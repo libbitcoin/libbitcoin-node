@@ -1,0 +1,18 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libbitcoin-node
+Description: Simple and extensible Bitcoin software development toolkit.
+URL: https://github.com/libbitcoin/libbitcoin-node
+Version: @PACKAGE_VERSION@
+
+# Our dependencies that publish package configuration.
+Requires: libbitcoin >= 2.4.0
+
+# Our own include directory and any other compiler flags we require.
+Cflags: -I${includedir} -std=c++11
+
+# Our own lib and any we require that do not publish package configuration.
+Libs: -L${libdir} -lbitcoin-node
