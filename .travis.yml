@@ -1,0 +1,25 @@
+language: cpp
+
+compiler: gcc
+   
+before_install:
+  # Set package repository.
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  
+  # Update the system.
+  - sudo apt-get -qq update
+  
+  # Get GCC 4.8 (for C++11 support)
+  - sudo apt-get -qq install g++-4.8
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
+  
+install:
+  # Get GMP (GNU Multiprecision Arithmetic Library)
+  - sudo apt-get -qq install libgmp-dev
+
+  # Download and install boost components at the minimum version required.
+  - sudo ./install-boost.sh
+
+script:
+  # Download and build unpackaged dependencies and build libbitcoin-node.
+  - sudo ./install-libbitcoin-node.sh CXXFLAGS="-Os -s"
