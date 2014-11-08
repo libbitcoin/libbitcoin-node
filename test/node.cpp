@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
- * This file is part of libbitcoin-node.
+ * This file is part of libbitcoin-protocol.
  *
- * libbitcoin-node is free software: you can redistribute it and/or
+ * libbitcoin-protocol is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Affero General Public License with
  * additional permissions to the one published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
@@ -17,15 +17,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_NODE_HPP
-#define LIBBITCOIN_NODE_NODE_HPP
+#include <boost/test/test_tools.hpp>
+#include <boost/test/unit_test_suite.hpp>
+#include <bitcoin/node.hpp>
 
-#include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/define.hpp>
-#include <bitcoin/node/poller.hpp>
-#include <bitcoin/node/session.hpp>
-#include <bitcoin/node/transaction_indexer.hpp>
-#include <bitcoin/node/validate.hpp>
+BOOST_AUTO_TEST_SUITE(node_tests)
 
-#endif
+BOOST_AUTO_TEST_CASE(node_test)
+{
+}
 
+BOOST_AUTO_TEST_SUITE_END()

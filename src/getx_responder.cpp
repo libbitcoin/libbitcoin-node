@@ -19,8 +19,7 @@
  */
 #include <bitcoin/node/getx_responder.hpp>
 
-#include <bitcoin/bitcoin.hpp>
-//#include <bitcoin/blockchain.hpp>
+#include <bitcoin/blockchain.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -28,7 +27,8 @@ namespace node {
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-getx_responder::getx_responder(chain::blockchain& chain, transaction_pool& txpool)
+getx_responder::getx_responder(chain::blockchain& chain, 
+    chain::transaction_pool& txpool)
   : chain_(chain), txpool_(txpool)
 {
 }

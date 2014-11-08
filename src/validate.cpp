@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2011-2013 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
- * This file is part of libbitcoin.
+ * This file is part of libbitcoin-node.
  *
- * libbitcoin is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License with
+ * libbitcoin-node is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Affero General Public License with
  * additional permissions to the one published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version. For more information see LICENSE.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -21,8 +21,8 @@
 
 #include <set>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <bitcoin/bitcoin.hpp>
-#include <bitcoin/node/blockchain.hpp>
+#include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/transaction_pool.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -35,12 +35,13 @@ using boost::posix_time::ptime;
 using boost::posix_time::from_time_t;
 using boost::posix_time::second_clock;
 using boost::posix_time::hours;
+using namespace bc;
 
 constexpr size_t max_block_size = 1000000;
 constexpr size_t max_block_script_sig_operations = max_block_size / 50;
 
 validate_transaction::validate_transaction(
-    blockchain& chain, const transaction_type& tx,
+    chain::blockchain& chain, const transaction_type& tx,
     const pool_buffer& pool, async_strand& strand)
   : strand_(strand), chain_(chain),
     tx_(tx), tx_hash_(hash_transaction(tx)), pool_(pool)

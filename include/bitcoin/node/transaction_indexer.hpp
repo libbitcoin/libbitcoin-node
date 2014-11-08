@@ -23,8 +23,7 @@
 #include <forward_list>
 #include <system_error>
 #include <unordered_map>
-#include <bitcoin/bitcoin.hpp>
-#include <bitcoin/node/blockchain.hpp>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

@@ -19,8 +19,7 @@
  */
 #include <bitcoin/node/transaction_indexer.hpp>
 
-#include <bitcoin/bitcoin.hpp>
-//#include <bitcoin/blockchain.hpp>
+#include <bitcoin/blockchain.hpp>
 
 namespace libbitcoin {
 namespace node {

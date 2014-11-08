@@ -21,10 +21,8 @@
 #define LIBBITCOIN_NODE_SESSION_HPP
 
 #include <set>
-#include <bitcoin/bitcoin.hpp>
-//#include <bitcoin/blockchain.hpp>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/poller.hpp>
-#include <bitcoin/node/transaction_pool.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -35,7 +33,7 @@ struct BCN_API session_params
     network::protocol& protocol_;
     chain::blockchain& blockchain_;
     poller& poller_;
-    transaction_pool& transaction_pool_;
+    chain::transaction_pool& transaction_pool_;
 };
 
 /**
@@ -128,7 +126,7 @@ private:
     network::protocol& protocol_;
     chain::blockchain& chain_;
     poller& poll_;
-    transaction_pool& tx_pool_;
+    chain::transaction_pool& tx_pool_;
 
     pumpkin_buffer<hash_digest> grabbed_invs_;
 };

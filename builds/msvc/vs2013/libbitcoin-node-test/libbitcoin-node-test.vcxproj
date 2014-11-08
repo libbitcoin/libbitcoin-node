@@ -92,5 +92,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\test\main.cpp" />
+    <ClCompile Include="..\..\..\..\test\node.cpp" />
   </ItemGroup>
 </Project>

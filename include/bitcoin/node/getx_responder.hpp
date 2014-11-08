@@ -21,10 +21,8 @@
 #define LIBBITCOIN_NODE_GETX_RESPONDER_HPP
 
 #include <system_error>
-#include <bitcoin/bitcoin.hpp>
-#include <bitcoin/node/blockchain.hpp>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/transaction_pool.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -32,7 +30,8 @@ namespace node {
 class getx_responder
 {
 public:
-    BCN_API getx_responder(chain::blockchain& chain, transaction_pool& txpool);
+    BCN_API getx_responder(chain::blockchain& chain, 
+        chain::transaction_pool& txpool);
     BCN_API void monitor(network::channel_ptr node);
 
 private:
@@ -56,7 +55,7 @@ private:
         const block_type& blk, network::channel_ptr node);
 
     chain::blockchain& chain_;
-    transaction_pool& txpool_;
+    chain::transaction_pool& txpool_;
 };
 
 } // node
