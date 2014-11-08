@@ -17,10 +17,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/transaction_indexer.hpp>
+#include <bitcoin/node/blockchain.hpp>
 
 #include <bitcoin/bitcoin.hpp>
-//#include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/transaction_indexer.hpp>
 
 namespace libbitcoin {
 namespace node {

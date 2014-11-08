@@ -17,26 +17,5 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_DEFINE_HPP
-#define LIBBITCOIN_NODE_DEFINE_HPP
-
-#include <bitcoin/bitcoin.hpp>
-
-// We use the generic helper definitions in libbitcoin to define BCX_API 
-// and BCX_INTERNAL. BCX_API is used for the public API symbols. It either DLL
-// imports or DLL exports (or does nothing for static build) BCX_INTERNAL is 
-// used for non-api symbols.
-
-#if defined BCN_STATIC
-    #define BCN_API
-    #define BCN_INTERNAL
-#elif defined BCN_DLL
-    #define BCN_API      BC_HELPER_DLL_EXPORT
-    #define BCN_INTERNAL BC_HELPER_DLL_LOCAL
-#else
-    #define BCN_API      BC_HELPER_DLL_IMPORT
-    #define BCN_INTERNAL BC_HELPER_DLL_LOCAL
-#endif
-
-#endif
-
+#define BOOST_TEST_MODULE libbitcoin_node_test
+#include <boost/test/unit_test.hpp>

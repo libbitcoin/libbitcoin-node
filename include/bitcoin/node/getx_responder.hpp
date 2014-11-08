@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2011-2013 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
- * This file is part of libbitcoin.
+ * This file is part of libbitcoin-node.
  *
- * libbitcoin is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License with
+ * libbitcoin-node is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Affero General Public License with
  * additional permissions to the one published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version. For more information see LICENSE.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
@@ -22,8 +22,9 @@
 
 #include <system_error>
 #include <bitcoin/bitcoin.hpp>
-#include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/transaction_pool.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -31,7 +32,7 @@ namespace node {
 class getx_responder
 {
 public:
-    BCN_API getx_responder(chain::blockchain& chain, chain::transaction_pool& txpool);
+    BCN_API getx_responder(chain::blockchain& chain, transaction_pool& txpool);
     BCN_API void monitor(network::channel_ptr node);
 
 private:
@@ -55,7 +56,7 @@ private:
         const block_type& blk, network::channel_ptr node);
 
     chain::blockchain& chain_;
-    chain::transaction_pool& txpool_;
+    transaction_pool& txpool_;
 };
 
 } // node
