@@ -209,6 +209,7 @@ build_library()
     # Download, build and install all unpackaged dependencies.
     build_from_github bitcoin secp256k1 master $SEQUENTIAL "$@" $SECP256K1_OPTIONS
     build_from_github libbitcoin libbitcoin version2 $PARALLEL "$@"
+    build_from_github libbitcoin libbitcoin-blockchain version2 $PARALLEL "$@"
 
     # The primary build is not downloaded if we are running in Travis.
     build_primary $PARALLEL "$@" $TEST_OPTIONS
