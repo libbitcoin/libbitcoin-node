@@ -25,7 +25,6 @@
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/session.hpp>
 #include <bitcoin/node/transaction_indexer.hpp>
-#include <bitcoin/node/validate.hpp>
 
 #endif
 
