@@ -2,7 +2,7 @@
 AC_PREREQ([2.65])
 
 # Process command-line arguments and perform initialization and verification.
-AC_INIT([libbitcoin-node], [0.1.0], [mienkphi@gmail.com])
+AC_INIT([libbitcoin-node], [2.0.0], [mienkphi@gmail.com])
 
 # Do compilation tests.
 AC_LANG(C++)
@@ -103,10 +103,9 @@ AC_MSG_RESULT($with_tests)
 AX_BOOST_BASE([1.49],,
     [AC_MSG_ERROR([Boost 1.49 or later is required but was not found.])])
 
-# Require bitcoin
+# Require bitcoin-blockchain min version.
 #------------------------------------------------------------------------------
-PKG_CHECK_MODULES([bitcoin], [libbitcoin >= 2.4.0])
-PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain])
+PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain >= 2.0.0])
 
 # Require test dependencies if $with_tests is set.
 #------------------------------------------------------------------------------
