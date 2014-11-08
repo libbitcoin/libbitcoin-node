@@ -1,9 +1,4 @@
 #
-# documentation
-#
-# doc_DATA = README.md INSTALL COPYING doc/README.tutorial
-
-#
 # pkg-config
 #
 pkgconfig_DATA = libbitcoin-node.pc
