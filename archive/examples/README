@@ -1,3 +1,5 @@
+Note that initchain has been moved to libbitcoin-blockchain.
+
 Run these commands to start the fullnode after installing libbitcoin:
 
   $ make
