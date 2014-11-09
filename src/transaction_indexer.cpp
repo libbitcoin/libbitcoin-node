@@ -221,13 +221,13 @@ void indexer_history_fetched(const std::error_code& ec,
         for (const chain::history_row& row: history)
         {
             // Loop over outputs only.
-            if (row.id != chain::history_row_id::output)
+            if (row.id != chain::point_ident::output)
                 continue;
             // Usually the indexer and memory doesn't have any
             // transactions indexed that are already confirmed
             // and in the blockchain.
             // This is a rare corner case.
-            if ((row.point) == (output_info.point))
+            if (row.point == output_info.point)
             {
                 is_conflict = true;
                 break;
@@ -237,7 +237,7 @@ void indexer_history_fetched(const std::error_code& ec,
             continue;
         // Everything OK. Insert outpoint.
         history.emplace_back(chain::history_row{
-        	chain::history_row_id::output,
+        	chain::point_ident::output,
             output_info.point,
             0,
             output_info.value
@@ -251,7 +251,7 @@ void indexer_history_fetched(const std::error_code& ec,
         for (const chain::history_row& row: history)
         {
             // Loop over inputs only.
-            if (row.id != chain::history_row_id::spend)
+            if (row.id != chain::point_ident::spend)
                 continue;
             if (row.point == spend_info.point)
             {
@@ -263,7 +263,7 @@ void indexer_history_fetched(const std::error_code& ec,
             continue;
         // Everything OK. Insert spend.
         history.emplace_back(chain::history_row{
-        	chain::history_row_id::spend,
+        	chain::point_ident::spend,
             spend_info.point,
             0,
             chain::spend_checksum(spend_info.previous_output)
