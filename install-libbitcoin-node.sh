@@ -180,13 +180,6 @@ build_tests()
     else
         make check
     fi
-
-    # Verify execution (note that 'help' currently returns empty with success).
-    if [[ $PREFIX ]]; then
-        "$PREFIX/bin/bx" help
-    else
-        bx help
-    fi
 }
 
 create_build_directory()
