@@ -23,6 +23,10 @@ MACPORTS_CPPFLAGS="-I/opt/local/include"
 MACPORTS_LD_LIBRARY_PATH="/opt/local/lib"
 MACPORTS_LD_INCLUDE_PATH="/opt/local/include"
 
+# Set common libbitcoin options.
+BITCOIN_OPTIONS=\
+"--without-tests"
+
 # https://github.com/bitcoin/secp256k1
 SECP256K1_OPTIONS=\
 "--with-bignum=gmp "\
@@ -30,10 +34,6 @@ SECP256K1_OPTIONS=\
 "--enable-benchmark=no "\
 "--enable-tests=no "\
 "--enable-endomorphism=no"
-
-# Enable test compile in the primary build.
-TEST_OPTIONS=\
-"--with-tests=yes"
 
 # Set SEQUENTIAL (always 1), PARALLEL (number of concurrent jobs) and OS.
 SEQUENTIAL=1
@@ -208,11 +208,11 @@ build_library()
 
     # Download, build and install all unpackaged dependencies.
     build_from_github bitcoin secp256k1 master $SEQUENTIAL "$@" $SECP256K1_OPTIONS
-    build_from_github libbitcoin libbitcoin version2 $PARALLEL "$@"
-    build_from_github libbitcoin libbitcoin-blockchain version2 $PARALLEL "$@"
+    build_from_github libbitcoin libbitcoin version2 $PARALLEL "$@" $BITCOIN_OPTIONS
+    build_from_github libbitcoin libbitcoin-blockchain version2 $PARALLEL "$@" $BITCOIN_OPTIONS
 
     # The primary build is not downloaded if we are running in Travis.
-    build_primary $PARALLEL "$@" $TEST_OPTIONS
+    build_primary $PARALLEL "$@"
 
     # If the build succeeded clean up the build directory.
     delete_build_directory
