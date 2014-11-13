@@ -48,5 +48,12 @@ src_libbitcoin_node_la_LIBADD = \
 # tests
 #
 # TODO
-if WITH_TESTS
-endif
+
+#if WITH_TESTS
+#
+#if SET_BOOST_TEST_DYN_LINK
+#test_libbitcoin_node_test_CPPFLAGS += \
+#    -DBOOST_TEST_DYN_LINK
+#endif
+#
+#endif
