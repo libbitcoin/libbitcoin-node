@@ -28,7 +28,8 @@ lib_LTLIBRARIES = src/libbitcoin-node.la
 
 src_libbitcoin_node_la_CPPFLAGS = \
     -I${srcdir}/include \
-    ${bitcoin_CFLAGS}
+    ${bitcoin_CFLAGS} \
+    ${bitcoin_blockchain_CFLAGS}
 
 src_libbitcoin_node_la_SOURCES = \
     src/getx_responder.cpp \
@@ -37,7 +38,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/transaction_indexer.cpp
 
 src_libbitcoin_node_la_LIBADD = \
-    ${bitcoin_LIBS}
+    ${bitcoin_LIBS} \
+    ${bitcoin_blockchain_LIBS}
     
 #
 # examples
