@@ -16,6 +16,7 @@ bitcoin_include_HEADERS = \
     
 bitcoin_node_includedir = ${includedir}/bitcoin/node
 bitcoin_node_include_HEADERS = \
+    include/bitcoin/node/define.hpp \
     include/bitcoin/node/getx_responder.hpp \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/session.hpp \
