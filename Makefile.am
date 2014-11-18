@@ -41,11 +41,26 @@ src_libbitcoin_node_la_SOURCES = \
 src_libbitcoin_node_la_LIBADD = \
     ${bitcoin_LIBS} \
     ${bitcoin_blockchain_LIBS}
-    
+
 #
 # examples
 #
-# TODO
+EXTRA_PROGRAMS = examples/fullnode
+
+examples_fullnode_CPPFLAGS = \
+    -I${srcdir}/include \
+    ${bitcoin_CFLAGS} \
+    ${bitcoin_blockchain_CFLAGS}
+
+examples_fullnode_LDADD = \
+    src/libbitcoin-node.la \
+    ${bitcoin_LIBS} \
+    ${bitcoin_blockchain_LIBS}
+
+examples_fullnode_SOURCES = \
+    examples/fullnode.cpp
+
+examples: examples/fullnode
 
 #
 # tests
