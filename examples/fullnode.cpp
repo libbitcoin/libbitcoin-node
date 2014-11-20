@@ -134,7 +134,7 @@ fullnode::fullnode(const std::string& db_prefix)
     hosts_(net_pool_), handshake_(net_pool_), network_(net_pool_),
     protocol_(net_pool_, hosts_, handshake_, network_),
     // Blockchain database service.
-    chain_(disk_pool_, db_prefix, {disabled_database}),
+    chain_(disk_pool_, db_prefix, {0}),
     // Poll new blocks, and transaction memory pool.
     poller_(mem_pool_, chain_), txpool_(mem_pool_, chain_), txidx_(mem_pool_),
     // Session manager service. Convenience wrapper.
