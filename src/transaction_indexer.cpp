@@ -205,7 +205,6 @@ void indexer_history_fetched(const std::error_code& ec,
         handle_fetch(ec, chain::history_list());
         return;
     }
-    BITCOIN_ASSERT_MSG(false, "This code is untested.");
     // Just add in outputs.
     for (const output_info_type& output_info: outputs)
     {
