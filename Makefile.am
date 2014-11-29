@@ -66,6 +66,7 @@ examples: examples/fullnode
 # tests
 #
 if WITH_TESTS
+
 TESTS = test/libbitcoin_node_test
 
 check_PROGRAMS = test/libbitcoin_node_test
@@ -87,4 +88,5 @@ test_libbitcoin_node_test_LDADD = \
     src/libbitcoin-node.la \
     -lboost_unit_test_framework \
     ${bitcoin_blockchain_LIBS}
+
 endif
