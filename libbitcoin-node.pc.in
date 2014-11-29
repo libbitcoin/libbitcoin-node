@@ -1,18 +1,25 @@
+###############################################################################
+# Copyright (c) 2011-2014 libbitcoin-node developers (see COPYING).
+#
+#         GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY
+#
+###############################################################################
+
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
 Name: libbitcoin-node
-Description: Simple and extensible Bitcoin software development toolkit.
+Description: Bitcoin Full Node
 URL: https://github.com/libbitcoin/libbitcoin-node
 Version: @PACKAGE_VERSION@
 
 # Our dependencies that publish package configuration.
-Requires: libbitcoin-blockchain >= 2.0.0
+Requires: libbitcoin >= 2.7.0 libbitcoin-blockchain >= 2.0.0
 
 # Our own include directory and any other compiler flags we require.
 Cflags: -I${includedir} -std=c++11
 
 # Our own lib and any we require that do not publish package configuration.
-Libs: -L${libdir} -lbitcoin-node
+Libs: -L${libdir} -lbitcoin-node  
