@@ -1,4 +1,9 @@
 #
+# documentation
+#
+doc_DATA = README INSTALL COPYING
+
+#
 # pkg-config
 #
 pkgconfig_DATA = libbitcoin-node.pc
@@ -10,7 +15,6 @@ ACLOCAL_AMFLAGS = -I m4
 # headers
 #
 bitcoin_includedir = ${includedir}/bitcoin
-
 bitcoin_include_HEADERS = \
     include/bitcoin/node.hpp
     
@@ -29,7 +33,6 @@ lib_LTLIBRARIES = src/libbitcoin-node.la
 
 src_libbitcoin_node_la_CPPFLAGS = \
     -I${srcdir}/include \
-    ${bitcoin_CFLAGS} \
     ${bitcoin_blockchain_CFLAGS}
 
 src_libbitcoin_node_la_SOURCES = \
@@ -39,7 +42,6 @@ src_libbitcoin_node_la_SOURCES = \
     src/transaction_indexer.cpp
 
 src_libbitcoin_node_la_LIBADD = \
-    ${bitcoin_LIBS} \
     ${bitcoin_blockchain_LIBS}
 
 #
@@ -49,12 +51,10 @@ EXTRA_PROGRAMS = examples/fullnode
 
 examples_fullnode_CPPFLAGS = \
     -I${srcdir}/include \
-    ${bitcoin_CFLAGS} \
     ${bitcoin_blockchain_CFLAGS}
 
 examples_fullnode_LDADD = \
     src/libbitcoin-node.la \
-    ${bitcoin_LIBS} \
     ${bitcoin_blockchain_LIBS}
 
 examples_fullnode_SOURCES = \
@@ -65,13 +65,26 @@ examples: examples/fullnode
 #
 # tests
 #
-# TODO
+if WITH_TESTS
+TESTS = test/libbitcoin_node_test
 
-#if WITH_TESTS
-#
-#if SET_BOOST_TEST_DYN_LINK
-#test_libbitcoin_node_test_CPPFLAGS += \
-#    -DBOOST_TEST_DYN_LINK
-#endif
-#
-#endif
+check_PROGRAMS = test/libbitcoin_node_test
+
+test_libbitcoin_node_test_CPPFLAGS = \
+    -I${srcdir}/include \
+    ${bitcoin_blockchain_CFLAGS}
+
+if ENABLE_SHARED 
+test_libbitcoin_node_test_CPPFLAGS += \
+    -DBOOST_TEST_DYN_LINK
+endif
+
+test_libbitcoin_node_test_SOURCES = \
+    test/main.cpp \
+    test/node.cpp
+
+test_libbitcoin_node_test_LDADD = \
+    src/libbitcoin-node.la \
+    -lboost_unit_test_framework \
+    ${bitcoin_blockchain_LIBS}
+endif
