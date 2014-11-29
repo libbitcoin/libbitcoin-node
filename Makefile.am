@@ -87,6 +87,7 @@ test_libbitcoin_node_test_SOURCES = \
 test_libbitcoin_node_test_LDADD = \
     src/libbitcoin-node.la \
     -lboost_unit_test_framework \
+    -lpthread \
     ${bitcoin_blockchain_LIBS}
 
 endif
