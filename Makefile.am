@@ -75,11 +75,6 @@ test_libbitcoin_node_test_CPPFLAGS = \
     -I${srcdir}/include \
     ${bitcoin_blockchain_CFLAGS}
 
-if ENABLE_SHARED 
-test_libbitcoin_node_test_CPPFLAGS += \
-    -DBOOST_TEST_DYN_LINK
-endif
-
 test_libbitcoin_node_test_SOURCES = \
     test/main.cpp \
     test/node.cpp
@@ -87,7 +82,6 @@ test_libbitcoin_node_test_SOURCES = \
 test_libbitcoin_node_test_LDADD = \
     src/libbitcoin-node.la \
     -lboost_unit_test_framework \
-    -lpthread \
     ${bitcoin_blockchain_LIBS}
 
 endif
