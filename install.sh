@@ -477,9 +477,9 @@ build_all()
     build_from_tarball_boost $BOOST_URL $BOOST_ARCHIVE boost $PARALLEL $BOOST_OPTIONS
     build_from_tarball_gmp $GMP_URL $GMP_ARCHIVE gmp $PARALLEL "$@" $GMP_OPTIONS
     build_from_github libbitcoin secp256k1 master $PARALLEL "$@" $SECP256K1_OPTIONS
-    build_from_github libbitcoin libbitcoin version2 $PARALLEL "$@" $BITCOIN_OPTIONS
-    build_from_github libbitcoin libbitcoin-blockchain version2 $PARALLEL "$@" $BITCOIN_BLOCKCHAIN_OPTIONS
-    build_from_travis libbitcoin libbitcoin-node version2 $PARALLEL "$@" $BITCOIN_NODE_OPTIONS
+    build_from_github libbitcoin libbitcoin master $PARALLEL "$@" $BITCOIN_OPTIONS
+    build_from_github libbitcoin libbitcoin-blockchain master $PARALLEL "$@" $BITCOIN_BLOCKCHAIN_OPTIONS
+    build_from_travis libbitcoin libbitcoin-node master $PARALLEL "$@" $BITCOIN_NODE_OPTIONS
 }
 
 
