@@ -123,14 +123,15 @@ void poller::handle_store(const std::error_code& ec, block_info info,
     if (ec && info.status != block_status::orphan)
     {
         log_warning(LOG_POLLER)
-            << "Storing block " << encode_hex(block_hash)
+            << "Storing block " << encode_hash(block_hash)
             << ": " << ec.message();
         return;
     }
     switch (info.status)
     {
         case block_status::orphan:
-            log_warning(LOG_POLLER) << "Orphan block " << block_hash;
+            log_warning(LOG_POLLER) << "Orphan block "
+                << encode_hash(block_hash);
             // TODO: Make more efficient by storing block hash
             // and next time do not download orphan block again.
             // Remember to remove from list once block is no longer orphan
@@ -140,12 +141,13 @@ void poller::handle_store(const std::error_code& ec, block_info info,
             break;
 
         case block_status::rejected:
-            log_warning(LOG_POLLER) << "Rejected block " << block_hash;
+            log_warning(LOG_POLLER) << "Rejected block "
+                << encode_hash(block_hash);
             break;
 
         case block_status::confirmed:
             log_info(LOG_POLLER)
-                << "Block #" << info.height << " " << encode_hex(block_hash);
+                << "Block #" << info.height << " " << encode_hash(block_hash);
             break;
     }
 }
