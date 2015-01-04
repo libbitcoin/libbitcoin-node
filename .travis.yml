@@ -89,25 +89,11 @@ install:
     - if [[ $LINUX && $CLANG ]]; then sudo ln -sf libc++abi.so.1.0 libc++.so.1; fi
     - if [[ $LINUX && $CLANG ]]; then popd; fi
 
-    # Download and install packages for osx/clang/static.
-    - if [[ $OSX   && $CLANG && $STATIC  ]]; then brew install leveldb; fi
-
-    # Download and install packages for linux/clang/static.
-    - if [[ $LINUX && $CLANG && $STATIC  ]]; then sudo apt-get -qq install libleveldb-dev; fi
-
-    # Download and install packages for linux/gcc/static.
-    - if [[ $LINUX && $GCC   && $STATIC  ]]; then sudo apt-get -qq install libleveldb-dev; fi
-
     # Download and install packages for osx/clang/dynamic.
     - if [[ $OSX   && $CLANG && $DYNAMIC ]]; then brew install gmp; fi
-    - if [[ $OSX   && $CLANG && $DYNAMIC ]]; then brew install leveldb; fi
 
     # Download and install packages for linux/clang/dynamic.
     - if [[ $LINUX && $CLANG && $DYNAMIC ]]; then sudo apt-get -qq install libgmp-dev; fi
-    - if [[ $LINUX && $CLANG && $DYNAMIC ]]; then sudo apt-get -qq install libleveldb-dev; fi
-
-    # Download and install packages for linux/gcc/dynamic.
-    - if [[ $LINUX && $GCC   && $DYNAMIC ]]; then sudo apt-get -qq install libleveldb-dev; fi
 
 script:
 
