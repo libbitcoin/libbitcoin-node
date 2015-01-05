@@ -164,7 +164,7 @@ void poller::ask_blocks(const std::error_code& ec,
     if (last_locator_begin_ == locator.front() && last_hash_stop_ == hash_stop)
     {
         log_debug(LOG_POLLER) << "Skipping duplicate ask blocks: "
-            << encode_hex(locator.front());
+            << encode_hash(locator.front());
         return;
     }
     get_blocks_type packet;
