@@ -71,7 +71,7 @@ public:
         BITCOIN_ASSERT(pointer_ < expiry_.size());
         // First remove it from the hash lookup set
         const Item& erase_item = expiry_[pointer_];
-        size_t number_erased = lookup_.erase(erase_item);
+        DEBUG_ONLY(size_t number_erased =) lookup_.erase(erase_item);
         BITCOIN_ASSERT(number_erased == 1);
         // Insert new item and overwrite it in circular buffer
         lookup_.insert(item);
