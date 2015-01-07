@@ -48,7 +48,7 @@ private:
         const block_locator_type& locator,
         const hash_digest& hash_stop, network::channel_ptr node);
 
-    boost::asio::io_service::strand strand_;
+    async_strand strand_;
     chain::blockchain& chain_;
 
     // Last hash from a block locator
