@@ -29,9 +29,7 @@ using std::placeholders::_2;
 using boost::asio::io_service;
 
 poller::poller(threadpool& pool, chain::blockchain& chain)
-  : strand_(pool.service()), chain_(chain),
-    last_locator_begin_(null_hash), last_hash_stop_(null_hash),
-    last_block_hash_(null_hash)
+  : strand_(pool), chain_(chain)
 {
 }
 
@@ -45,8 +43,7 @@ void poller::query(network::channel_ptr node)
 void poller::monitor(network::channel_ptr node)
 {
     node->subscribe_inventory(
-        strand_.wrap(std::bind(&poller::receive_inv,
-            this, _1, _2, node)));
+        strand_.wrap(&poller::receive_inv, this, _1, _2, node));
     node->subscribe_block(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
@@ -61,8 +58,8 @@ void poller::initial_ask_blocks(const std::error_code& ec,
             << "Fetching initial block locator: " << ec.message();
         return;
     }
-    strand_.dispatch(std::bind(&poller::ask_blocks,
-        this, ec, locator, null_hash, node));
+    strand_.randomly_queue(
+        &poller::ask_blocks, this, ec, locator, null_hash, node);
 }
 
 void handle_send_packet(const std::error_code& ec)
@@ -96,8 +93,7 @@ void poller::receive_inv(const std::error_code& ec,
         node->send(getdata, handle_send_packet);
     }
     node->subscribe_inventory(
-        strand_.wrap(std::bind(&poller::receive_inv,
-            this, _1, _2, node)));
+        strand_.wrap(&poller::receive_inv, this, _1, _2, node));
 }
 
 void poller::receive_block(const std::error_code& ec,
@@ -109,7 +105,7 @@ void poller::receive_block(const std::error_code& ec,
         return;
     }
     chain_.store(blk,
-        std::bind(&poller::handle_store,
+        strand_.wrap(&poller::handle_store,
             this, _1, _2, hash_block_header(blk.header), node));
     node->subscribe_block(
         std::bind(&poller::receive_block,
@@ -135,9 +131,8 @@ void poller::handle_store(const std::error_code& ec, block_info info,
             // TODO: Make more efficient by storing block hash
             // and next time do not download orphan block again.
             // Remember to remove from list once block is no longer orphan
-            fetch_block_locator(chain_,
-                strand_.wrap(std::bind(&poller::ask_blocks,
-                    this, _1, _2, block_hash, node)));
+            fetch_block_locator(chain_, strand_.wrap(
+                &poller::ask_blocks, this, _1, _2, block_hash, node));
             break;
 
         case block_status::rejected:
@@ -161,18 +156,22 @@ void poller::ask_blocks(const std::error_code& ec,
         log_error(LOG_POLLER) << "Ask for blocks: " << ec.message();
         return;
     }
-    if (last_locator_begin_ == locator.front() && last_hash_stop_ == hash_stop)
+    if (last_locator_begin_ == locator.front() &&
+        last_hash_stop_ == hash_stop && last_requested_node_ == node.get())
     {
         log_debug(LOG_POLLER) << "Skipping duplicate ask blocks: "
             << encode_hash(locator.front());
         return;
     }
+    // Send get_blocks request.
     get_blocks_type packet;
     packet.start_hashes = locator;
     packet.hash_stop = hash_stop;
     node->send(packet, std::bind(&handle_send_packet, _1));
+    // Update last values.
     last_locator_begin_ = locator.front();
     last_hash_stop_ = hash_stop;
+    last_requested_node_ = node.get();
 }
 
 } // namespace node

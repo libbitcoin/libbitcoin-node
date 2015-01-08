@@ -47,13 +47,6 @@ void session::start(completion_handler handle_complete)
 {
     protocol_.start(handle_complete);
     protocol_.subscribe_channel(
-        [this](const std::error_code& ec, network::channel_ptr node)
-        {
-            BITCOIN_ASSERT(!ec || ec == error::service_stopped);
-            if (!ec)
-                poll_.query(node);
-        });
-    protocol_.subscribe_channel(
         std::bind(&session::new_channel, this, _1, _2));
     chain_.fetch_last_height(
         std::bind(&network::handshake::set_start_height,
@@ -84,6 +77,7 @@ void session::new_channel(const std::error_code& ec, network::channel_ptr node)
     // block
     protocol_.subscribe_channel(
         std::bind(&session::new_channel, this, _1, _2));
+    poll_.query(node);
     poll_.monitor(node);
 }
 
