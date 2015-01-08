@@ -52,9 +52,10 @@ private:
     chain::blockchain& chain_;
 
     // Last hash from a block locator
-    hash_digest last_locator_begin_, last_hash_stop_;
+    hash_digest last_locator_begin_ = null_hash, last_hash_stop_ = null_hash;
+    network::channel* last_requested_node_ = nullptr;
     // Last hash from an inventory packet
-    hash_digest last_block_hash_;
+    hash_digest last_block_hash_ = null_hash;
 };
 
 } // namespace node

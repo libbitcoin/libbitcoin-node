@@ -29,8 +29,6 @@ using std::placeholders::_2;
 using boost::asio::io_service;
 
 poller::poller(threadpool& pool, chain::blockchain& chain)
-    last_locator_begin_(null_hash), last_hash_stop_(null_hash),
-    last_block_hash_(null_hash)
   : strand_(pool), chain_(chain)
 {
 }
@@ -61,7 +59,7 @@ void poller::initial_ask_blocks(const std::error_code& ec,
         return;
     }
     strand_.randomly_queue(
-        &poller::ask_blocks, this, ec, locator, node);
+        &poller::ask_blocks, this, ec, locator, null_hash, node);
 }
 
 void handle_send_packet(const std::error_code& ec)
@@ -134,7 +132,7 @@ void poller::handle_store(const std::error_code& ec, block_info info,
             // and next time do not download orphan block again.
             // Remember to remove from list once block is no longer orphan
             fetch_block_locator(chain_, strand_.wrap(
-                &poller::ask_blocks, this, _1, _2, node));
+                &poller::ask_blocks, this, _1, _2, block_hash, node));
             break;
 
         case block_status::rejected:
@@ -158,18 +156,22 @@ void poller::ask_blocks(const std::error_code& ec,
         log_error(LOG_POLLER) << "Ask for blocks: " << ec.message();
         return;
     }
-    if (last_locator_begin_ == locator.front() && last_hash_stop_ == hash_stop)
+    if (last_locator_begin_ == locator.front() &&
+        last_hash_stop_ == hash_stop && last_requested_node_ == node.get())
     {
         log_debug(LOG_POLLER) << "Skipping duplicate ask blocks: "
             << encode_hash(locator.front());
         return;
     }
+    // Send get_blocks request.
     get_blocks_type packet;
     packet.start_hashes = locator;
     packet.hash_stop = hash_stop;
     node->send(packet, std::bind(&handle_send_packet, _1));
+    // Update last values.
     last_locator_begin_ = locator.front();
     last_hash_stop_ = hash_stop;
+    last_requested_node_ = node.get();
 }
 
 } // namespace node
