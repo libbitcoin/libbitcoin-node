@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/libbitcoin/libbitcoin-node.svg?branch=version2)](https://travis-ci.org/libbitcoin/libbitcoin-node)
+[![Build Status](https://travis-ci.org/libbitcoin/libbitcoin-node.svg?branch=master)](https://travis-ci.org/libbitcoin/libbitcoin-node)
 
 # Libbitcoin Node
 
