@@ -128,10 +128,6 @@ AS_CASE([${CC}], [*clang*],
 
 AS_IF([test x$with_tests = xyes], [AX_BOOST_UNIT_TEST_FRAMEWORK])
 
-# Require bitcoin of at least version 2.7.0 and output ${bitcoin_CFLAGS} and ${bitcoin_LIBS}.
-#------------------------------------------------------------------------------
-PKG_CHECK_MODULES([bitcoin], [libbitcoin >= 2.7.0])
-
 # Require bitcoin-blockchain of at least version 2.0.0 and output ${bitcoin_blockchain_CFLAGS} and ${bitcoin_blockchain_LIBS}.
 #------------------------------------------------------------------------------
 PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain >= 2.0.0])

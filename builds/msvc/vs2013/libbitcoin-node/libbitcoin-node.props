@@ -35,19 +35,16 @@
   </ImportGroup>  
 
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'dynamic'">
-    <Linkage-mpir>static</Linkage-mpir>
     <Linkage-secp256k1>static</Linkage-secp256k1>
     <Linkage-libbitcoin>dynamic</Linkage-libbitcoin>
     <Linkage-libbitcoin-blockchain>dynamic</Linkage-libbitcoin-blockchain>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
-    <Linkage-mpir>static</Linkage-mpir>
     <Linkage-secp256k1>static</Linkage-secp256k1>
     <Linkage-libbitcoin>ltcg</Linkage-libbitcoin>
     <Linkage-libbitcoin-blockchain>ltcg</Linkage-libbitcoin-blockchain>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'static'">
-    <Linkage-mpir>static</Linkage-mpir>
     <Linkage-secp256k1>static</Linkage-secp256k1>
     <Linkage-libbitcoin>static</Linkage-libbitcoin>
     <Linkage-libbitcoin-blockchain>static</Linkage-libbitcoin-blockchain>
@@ -56,7 +53,6 @@
   <!-- Messages -->
   
   <Target Name="LinkageInfo" BeforeTargets="PrepareForBuild">
-    <Message Text="Linkage-mpir        : $(Linkage-mpir)" Importance="high"/>
     <Message Text="Linkage-secp256k1   : $(Linkage-secp256k1)" Importance="high"/>
     <Message Text="Linkage-libbitcoin  : $(Linkage-libbitcoin)" Importance="high"/>
     <Message Text="Linkage-_blockchain : $(Linkage-libbitcoin-blockchain)" Importance="high"/>
