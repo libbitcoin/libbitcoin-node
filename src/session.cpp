@@ -112,7 +112,7 @@ void session::inventory(const std::error_code& ec,
 {
     if (ec)
     {
-        log_error(LOG_SESSION) << "inventory: " << ec.message();
+        log_warning(LOG_SESSION) << "inventory: " << ec.message();
         return;
     }
     for (const inventory_vector_type& ivec: packet.inventories)
@@ -150,7 +150,7 @@ void session::get_blocks(const std::error_code& ec,
 {
     if (ec)
     {
-        log_error(LOG_SESSION) << "get_blocks: " << ec.message();
+        log_warning(LOG_SESSION) << "get_blocks: " << ec.message();
         return;
     }
     // TODO: Implement.
