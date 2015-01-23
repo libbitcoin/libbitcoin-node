@@ -73,7 +73,7 @@ void poller::receive_inv(const std::error_code& ec,
 {
     if (ec)
     {
-        log_error(LOG_POLLER) << "Received bad inventory: " << ec.message();
+        log_warning(LOG_POLLER) << "Received bad inventory: " << ec.message();
         return;
     }
     // Filter out only block inventories
@@ -101,7 +101,7 @@ void poller::receive_block(const std::error_code& ec,
 {
     if (ec)
     {
-        log_error(LOG_POLLER) << "Received bad block: " << ec.message();
+        log_warning(LOG_POLLER) << "Received bad block: " << ec.message();
         return;
     }
     chain_.store(blk,
