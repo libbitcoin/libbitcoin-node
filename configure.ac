@@ -96,17 +96,6 @@ AC_ARG_ENABLE([ndebug],
 AC_MSG_RESULT([$enable_ndebug])
 AS_IF([test x$enable_ndebug != xno], AC_DEFINE([NDEBUG]))
 
-# Implement --enable-testnet option and define ENABLE_TESTNET.
-#------------------------------------------------------------------------------
-AC_MSG_CHECKING(--enable-testnet option)
-AC_ARG_ENABLE([testnet],
-    AS_HELP_STRING([--enable-testnet],
-        [Compile for testnet (deprecated). @<:@default=no@:>@]),
-    [enable_testnet=$enableval],
-    [enable_testnet=no])
-AC_MSG_RESULT([$enable_testnet])
-AS_IF([test x$enable_testnet != xno], AC_DEFINE([ENABLE_TESTNET]))
-
 # Inherit --enable-shared option and define BOOST_TEST_DYN_LINK.
 #------------------------------------------------------------------------------
 AS_IF([test x$enable_shared != xno], AC_DEFINE([BOOST_TEST_DYN_LINK]))
