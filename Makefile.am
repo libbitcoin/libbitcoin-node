@@ -24,7 +24,8 @@ bitcoin_node_include_HEADERS = \
     include/bitcoin/node/getx_responder.hpp \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/session.hpp \
-    include/bitcoin/node/transaction_indexer.hpp
+    include/bitcoin/node/transaction_indexer.hpp \
+    include/bitcoin/node/version.hpp
 
 #
 # libraries

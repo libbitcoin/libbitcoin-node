@@ -50,5 +50,8 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
