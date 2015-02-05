@@ -38,5 +38,7 @@
     #define BCN_INTERNAL BC_HELPER_DLL_LOCAL
 #endif
 
-#endif
+// TODO: generate the version value from libbitcoin-build.
+#define LIBBITCOIN_NODE_VERSION "2.0.0"
 
+#endif
