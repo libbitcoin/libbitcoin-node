@@ -90,8 +90,10 @@ void session::set_start_height(const std::error_code& ec, size_t fork_point,
         BITCOIN_ASSERT(ec == error::service_stopped);
         return;
     }
-    size_t last_height = fork_point + new_blocks.size();
-    handshake_.set_start_height(last_height, handle_handshake_height_set);
+    auto last_height = fork_point + new_blocks.size();
+    BITCOIN_ASSERT(last_height <= bc::max_uint32);
+    auto last_height32 = static_cast<uint32_t>(last_height);
+    handshake_.set_start_height(last_height32, handle_handshake_height_set);
     chain_.subscribe_reorganize(
         std::bind(&session::set_start_height,
             this, _1, _2, _3, _4));
