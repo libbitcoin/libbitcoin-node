@@ -109,31 +109,34 @@ private:
     libbitcoin::threadpool net_pool_;
     libbitcoin::threadpool disk_pool_;
     libbitcoin::threadpool mem_pool_;
-
     network::hosts hosts_;
     network::handshake handshake_;
     network::network network_;
     network::protocol protocol_;
-
     chain::blockchain_impl chain_;
+    node::poller poller_;
     chain::transaction_pool txpool_;
-
     node::transaction_indexer txidx_;
     node::session session_;
-    node::poller poller_;
 };
 
 fullnode::fullnode(const std::string& db_prefix)
     // Threadpools and the number of threads they spawn.
     // 6 threads spawned in total.
-  : net_pool_(1), disk_pool_(4), mem_pool_(1),
+  : net_pool_(1), 
+    disk_pool_(4), 
+    mem_pool_(1),
     // Networking related services.
-    hosts_(net_pool_), handshake_(net_pool_), network_(net_pool_),
+    hosts_(net_pool_), 
+    handshake_(net_pool_), 
+    network_(net_pool_),
     protocol_(net_pool_, hosts_, handshake_, network_),
     // Blockchain database service.
     chain_(disk_pool_, db_prefix, {0}),
     // Poll new blocks, and transaction memory pool.
-    poller_(mem_pool_, chain_), txpool_(mem_pool_, chain_), txidx_(mem_pool_),
+    poller_(mem_pool_, chain_), 
+    txpool_(mem_pool_, chain_), 
+    txidx_(mem_pool_),
     // Session manager service. Convenience wrapper.
     session_(net_pool_, {
         handshake_, protocol_, chain_, poller_, txpool_})
@@ -146,7 +149,7 @@ void fullnode::start()
     protocol_.subscribe_channel(
         std::bind(&fullnode::connection_started, this, _1, _2));
     // Start blockchain
-    bool chain_started = chain_.start();
+    DEBUG_ONLY(bool chain_started =) chain_.start();
     BITCOIN_ASSERT(chain_started);
     // Start transaction pool
     txpool_.start();
@@ -351,4 +354,3 @@ int main()
 
     return 0;
 }
-
