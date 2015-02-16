@@ -6,21 +6,24 @@ doc_DATA = README INSTALL COPYING
 #
 # pkg-config
 #
-pkgconfig_DATA = libbitcoin-explorer.pc
+pkgconfig_DATA = libbitcoin-node.pc
 
 #
 # bash completion
 #
 if BASH_COMPLETION_DIR
     bashcompletiondir = ${bash_completion_dir}
-    dist_bashcompletion_DATA = data/bx
+    dist_bashcompletion_DATA = data/bitcoin_node
 endif
 
 #
 # configuration file
 #
+# TODO: coordinate this dir and file name with source code to keep in sync.
+# Note that in a prefix install this file is placed relative to the prefix but
+# execution of the server will default to reading in the system-wide directory.
 confdir="${sysconfdir}/libbitcoin"
-conf_DATA = data/bx.cfg
+conf_DATA = data/node.cfg
 
 # look for macros in the m4 subdirectory
 ACLOCAL_AMFLAGS = -I m4
