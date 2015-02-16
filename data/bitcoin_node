@@ -1,0 +1,11 @@
+#
+#  Command-line completion for bitcoin_node.
+#
+_bitcoin_node()
+{
+    local current="${COMP_WORDS[COMP_CWORD]}"
+    local options=" --help --initchain --settings -h -i -s"
+
+    COMPREPLY=( `compgen -W "$options" -- $current` )
+}
+complete -F _bitcoin_node bitcoin_node

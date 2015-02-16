@@ -173,6 +173,7 @@ BOOST_OPTIONS_GCC=\
 "threading=multi "\
 "variant=release "\
 "--disable-icu "\
+"--with-chrono "\
 "--with-date_time "\
 "--with-filesystem "\
 "--with-program_options "\
@@ -193,6 +194,7 @@ BOOST_OPTIONS_CLANG=\
 "threading=multi "\
 "variant=release "\
 "--disable-icu "\
+"--with-chrono "\
 "--with-date_time "\
 "--with-filesystem "\
 "--with-program_options "\
