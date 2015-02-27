@@ -223,6 +223,7 @@ BITCOIN_OPTIONS=\
 #------------------------------------------------------------------------------
 BITCOIN_BLOCKCHAIN_OPTIONS=\
 "--without-tests "\
+"--without-tools "\
 "${with_boost} "\
 "${with_pkgconfigdir} "
 
