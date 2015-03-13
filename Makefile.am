@@ -1,36 +1,82 @@
+###############################################################################
+#  Copyright (c) 2014-2015 libbitcoin-node developers (see COPYING).
 #
-# documentation
+#         GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY
 #
-doc_DATA = README INSTALL COPYING
+###############################################################################
 
-#
-# pkg-config
-#
-pkgconfig_DATA = libbitcoin-node.pc
-
+# Standard declarations.
+#==============================================================================
 # look for macros in the m4 subdirectory
 ACLOCAL_AMFLAGS = -I m4
 
-#
-# libraries
-#
-lib_LTLIBRARIES = \
-    src/libbitcoin-node.la
 
-src_libbitcoin_node_la_CPPFLAGS = \
-    -I${srcdir}/include \
-    ${bitcoin_blockchain_CFLAGS} \
-    -DSYSCONFDIR=\"${sysconfdir}\"
+# Automake products.
+#==============================================================================
+# files => ${pkgconfigdir}
+#------------------------------------------------------------------------------
+pkgconfig_DATA = \
+    libbitcoin-node.pc
 
-src_libbitcoin_node_la_LIBADD = \
-    ${bitcoin_blockchain_LIBS}
-    
-bitcoin_includedir = ${includedir}/bitcoin
-bitcoin_include_HEADERS = \
+# files => ${docdir}
+#------------------------------------------------------------------------------
+doc_DATA = \
+    AUTHORS \
+    COPYING \
+    ChangeLog \
+    INSTALL \
+    NEWS \
+    README
+
+# src/libbitcoin-node.la => ${libdir}
+#------------------------------------------------------------------------------
+lib_LTLIBRARIES = src/libbitcoin-node.la
+src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=${sysconfdir} ${bitcoin_blockchain_CPPFLAGS}
+src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
+src_libbitcoin_node_la_SOURCES = \
+    src/getx_responder.cpp \
+    src/poller.cpp \
+    src/session.cpp \
+    src/transaction_indexer.cpp
+
+# local: test/libbitcoin_node_test
+#------------------------------------------------------------------------------
+if WITH_TESTS
+
+# Execute 'test/libbitcoin_node_test' as a test.
+TESTS = test/libbitcoin_node_test
+
+check_PROGRAMS = test/libbitcoin_node_test
+test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
+test_libbitcoin_node_test_LDFLAGS = -L${srcdir}/src
+test_libbitcoin_node_test_LDADD = -lbitcoin-node ${bitcoin_blockchain_LIBS} ${boost_unit_test_framework_LIBS}
+test_libbitcoin_node_test_SOURCES = \
+    test/main.cpp \
+    test/node.cpp
+
+endif WITH_TESTS
+
+# console/bitcoin_node => ${bindir}
+#------------------------------------------------------------------------------
+if WITH_CONSOLE
+
+bin_PROGRAMS = console/bitcoin_node
+console_bitcoin_node_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
+console_bitcoin_node_LDFLAGS = -L${srcdir}/src
+console_bitcoin_node_LDADD = -lbitcoin-node ${bitcoin_blockchain_LIBS}
+console_bitcoin_node_SOURCES = \
+    console/main.cpp
+
+endif WITH_CONSOLE
+
+# files => ${includedir}/bitcoin
+#------------------------------------------------------------------------------
+include_bitcoindir = ${includedir}/bitcoin
+include_bitcoin_HEADERS = \
     include/bitcoin/node.hpp
-    
-bitcoin_node_includedir = ${includedir}/bitcoin/node
-bitcoin_node_include_HEADERS = \
+
+include_bitcoin_nodedir = ${includedir}/bitcoin/node
+include_bitcoin_node_HEADERS = \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/getx_responder.hpp \
     include/bitcoin/node/poller.hpp \
@@ -38,71 +84,18 @@ bitcoin_node_include_HEADERS = \
     include/bitcoin/node/transaction_indexer.hpp \
     include/bitcoin/node/version.hpp
 
-src_libbitcoin_node_la_SOURCES = \
-    src/getx_responder.cpp \
-    src/poller.cpp \
-    src/session.cpp \
-    src/transaction_indexer.cpp
+# files => ${bash_completiondir}
+#------------------------------------------------------------------------------
+if BASH_COMPLETIONDIR
 
-#
-# console application
-#
-if WITH_CONSOLE
+dist_bash_completion_DATA = \
+    data/bitcoin_node
 
-# bash completion
-if BASH_COMPLETION_DIR
-    bashcompletiondir = ${bash_completion_dir}
-    dist_bashcompletion_DATA = data/bitcoin_node
-endif
+endif BASH_COMPLETIONDIR
 
-# configuration file
-#
-# TODO: coordinate this dir and file name with source code to keep in sync.
-# Note that in a prefix install this file is placed relative to the prefix but
-# execution of the server will default to reading in the system-wide directory.
-confdir="${sysconfdir}/libbitcoin"
-conf_DATA = data/node.cfg
+# files => ${sysconfdir}/libbitcoin
+#------------------------------------------------------------------------------
+sysconf_libbitcoindir = ${sysconfdir}/libbitcoin
+sysconf_libbitcoin_DATA = \
+    data/node.cfg
 
-bin_PROGRAMS = \
-    bitcoin_node
-
-bitcoin_node_CPPFLAGS = \
-    -I${srcdir}/include \
-    ${bitcoin_blockchain_CFLAGS}
-
-bitcoin_node_LDADD = \
-    src/libbitcoin-node.la \
-    ${bitcoin_blockchain_LIBS}
-
-bitcoin_node_SOURCES = \
-    src/console/main.cpp
-
-endif
-    
-#
-# tests
-#
-if WITH_TESTS
-
-TESTS = \
-    test/libbitcoin_node_test
-
-check_PROGRAMS = \
-    test/libbitcoin_node_test
-
-test_libbitcoin_node_test_CPPFLAGS = \
-    -I${srcdir}/include \
-    ${bitcoin_blockchain_CFLAGS}
-
-test_libbitcoin_node_test_LDADD = \
-    src/libbitcoin-node.la \
-    -lboost_chrono \
-    -lboost_program_options \
-    -lboost_unit_test_framework \
-    ${bitcoin_blockchain_LIBS}
-
-test_libbitcoin_node_test_SOURCES = \
-    test/main.cpp \
-    test/node.cpp
-
-endif

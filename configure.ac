@@ -27,7 +27,7 @@ AC_CONFIG_MACRO_DIR([m4])
 # specifically: AUTHORS, COPYING, INSTALL, NEWS, README and ChangeLog.
 AM_INIT_AUTOMAKE([subdir-objects])
 
-# Enable C and Posix extensions that may be disabled on certain platforms.
+# Enable C and POSIX extensions that may be disabled on certain platforms.
 AC_USE_SYSTEM_EXTENSIONS
 
 # Enable the archiver.
@@ -57,26 +57,30 @@ AC_ARG_VAR([CC], "C compiler to use, such as gcc or clang")
 AC_ARG_VAR([CXX], "C++ compiler to use, such as g++ or clang++")
 AC_ARG_VAR([PKG_CONFIG_PATH], "Additional directories for package discovery.")
 
+# Check for baseline language coverage in the compiler for the C++11 standard.
+#------------------------------------------------------------------------------
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
+
 
 # Process options.
 #==============================================================================
-# Implement --with-bash-completion-dir and output ${bash_completion_dir} and declare BASH_COMPLETION_DIR.
+# Implement --with-bash-completiondir and output ${bash_completiondir} and declare BASH_COMPLETIONDIR.
 #------------------------------------------------------------------------------
-AC_MSG_CHECKING(--with-bash-completion-dir option)
-AC_ARG_WITH([bash-completion-dir],
-    AS_HELP_STRING([--with-bash-completion-dir[=PATH]],
+AC_MSG_CHECKING([--with-bash-completiondir option])
+AC_ARG_WITH([bash-completiondir],
+    AS_HELP_STRING([--with-bash-completiondir[=DIR]],
         [Install bash completion support, optionally specifying the directory. This option may require elevated permissions. @<:@default=no@:>@]),
-    [bash_completion_dir=$withval],
-    [bash_completion_dir=no])
-AC_MSG_RESULT([$bash_completion_dir])
-AC_SUBST([bash_completion_dir])
-AM_CONDITIONAL([BASH_COMPLETION_DIR], [test x$bash_completion_dir != xno])
+    [bash_completiondir=$withval],
+    [bash_completiondir=no])
+AC_MSG_RESULT([$bash_completiondir])
+AC_SUBST([bash_completiondir])
+AM_CONDITIONAL([BASH_COMPLETIONDIR], [test x$bash_completiondir != xno])
 
 # Implement --with-pkgconfigdir and output ${pkgconfigdir}.
 #------------------------------------------------------------------------------
-AC_MSG_CHECKING(--with-pkgconfigdir option)
+AC_MSG_CHECKING([--with-pkgconfigdir option])
 AC_ARG_WITH([pkgconfigdir],
-    AS_HELP_STRING([--with-pkgconfigdir=PATH],
+    AS_HELP_STRING([--with-pkgconfigdir=DIR],
         [Path to pkgconfig directory. @<:@default=${libdir}/pkgconfig@:>@]),
     [pkgconfigdir=$withval],
     [pkgconfigdir=${libdir}/pkgconfig])
@@ -85,7 +89,7 @@ AC_SUBST([pkgconfigdir])
 
 # Implement --with-tests and declare WITH_TESTS.
 #------------------------------------------------------------------------------
-AC_MSG_CHECKING(--with-tests option)
+AC_MSG_CHECKING([--with-tests option])
 AC_ARG_WITH([tests],
     AS_HELP_STRING([--with-tests],
         [Compile with unit tests. @<:@default=yes@:>@]),
@@ -96,7 +100,7 @@ AM_CONDITIONAL([WITH_TESTS], [test x$with_tests != xno])
 
 # Implement --with-console and declare WITH_CONSOLE.
 #------------------------------------------------------------------------------
-AC_MSG_CHECKING(--with-console option)
+AC_MSG_CHECKING([--with-console option])
 AC_ARG_WITH([console],
     AS_HELP_STRING([--with-console],
         [Compile console application. @<:@default=yes@:>@]),
@@ -105,71 +109,96 @@ AC_ARG_WITH([console],
 AC_MSG_RESULT([$with_console])
 AM_CONDITIONAL([WITH_CONSOLE], [test x$with_console != xno])
 
-# Implement --enable-ndebug option and define NDEBUG.
+# Implement --enable-ndebug and define NDEBUG.
 #------------------------------------------------------------------------------
-AC_MSG_CHECKING(--enable-ndebug option)
+AC_MSG_CHECKING([--enable-ndebug option])
 AC_ARG_ENABLE([ndebug],
     AS_HELP_STRING([--enable-ndebug],
         [Compile without debug assertions. @<:@default=yes@:>@]),
     [enable_ndebug=$enableval],
     [enable_ndebug=yes])
 AC_MSG_RESULT([$enable_ndebug])
-AS_IF([test x$enable_ndebug != xno], AC_DEFINE([NDEBUG]))
+AS_CASE([${enable_ndebug}], [yes], AC_DEFINE([NDEBUG]))
 
-# Inherit --enable-shared option and define BOOST_TEST_DYN_LINK.
+# Inherit --enable-shared and define BOOST_TEST_DYN_LINK.
 #------------------------------------------------------------------------------
-AS_IF([test x$enable_shared != xno], AC_DEFINE([BOOST_TEST_DYN_LINK]))
+AS_CASE([${enable_shared}], [yes], AC_DEFINE([BOOST_TEST_DYN_LINK]))
 
 
 # Check dependencies.
 #==============================================================================
-# Require Boost of at least version 1.49.0 if in gcc.
+# Require Boost of at least version 1.50.0 if in gcc and output ${boost_CPPFLAGS/LDFLAGS}.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*gcc*],
-    [AX_BOOST_BASE([1.49.0], [], [AC_MSG_ERROR(
-        [Boost 1.49.0 or later is required but was not found.])])])
+    [AX_BOOST_BASE([1.50.0],
+        [AC_SUBST([boost_CPPFLAGS], [${BOOST_CPPFLAGS}])
+         AC_SUBST([boost_LDFLAGS], [${BOOST_LDFLAGS}])
+         AC_MSG_NOTICE([boost_CPPFLAGS : ${boost_CPPFLAGS}])
+         AC_MSG_NOTICE([boost_LDFLAGS : ${boost_LDFLAGS}])],
+        [AC_MSG_ERROR([Boost 1.50.0 or later is required but was not found.])])])
 
-# Require Boost of at least version 1.54.0 if in clang.
+# Require Boost of at least version 1.54.0 if in clang and output ${boost_CPPFLAGS/LDFLAGS}.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*clang*],
-    [AX_BOOST_BASE([1.54.0], [], [AC_MSG_ERROR(
-        [Boost 1.54.0 or later is required but was not found.])])])
+    [AX_BOOST_BASE([1.54.0],
+        [AC_SUBST([boost_CPPFLAGS], [${BOOST_CPPFLAGS}])
+         AC_SUBST([boost_LDFLAGS], [${BOOST_LDFLAGS}])
+         AC_MSG_NOTICE([boost_CPPFLAGS : ${boost_CPPFLAGS}])
+         AC_MSG_NOTICE([boost_LDFLAGS : ${boost_LDFLAGS}])],
+        [AC_MSG_ERROR([Boost 1.54.0 or later is required but was not found.])])])
 
-AS_IF([test x$with_tests = xyes], [AX_BOOST_UNIT_TEST_FRAMEWORK])
+AS_CASE([${with_tests}], [yes],
+    [AX_BOOST_UNIT_TEST_FRAMEWORK
+     AC_SUBST([boost_unit_test_framework_LIBS], [${BOOST_UNIT_TEST_FRAMEWORK_LIB}])
+     AC_MSG_NOTICE([boost_unit_test_framework_LIBS : ${boost_unit_test_framework_LIBS}])])
 
-# Require bash-completion of at least version 2.0.0 and output ${bash_completion_CFLAGS} and ${bash_completion_LIBS}.
+# Require bash-completion of at least version 2.0.0 and output ${bash_completion_CFLAGS/LIBS/PKG}.
 #------------------------------------------------------------------------------
-AS_IF([test x$bash_completion_dir = xyes],
+AS_CASE([${bash_completiondir}], [yes],
     [PKG_CHECK_MODULES([bash_completion], [bash-completion >= 2.0.0],
-    [bash_completion_dir="`pkg-config --variable=completionsdir bash-completion`"],
-    [bash_completion_dir="${datadir}/bash-completion/completions"])])
+        [bash_completiondir="`pkg-config --variable=completionsdir bash-completion`"],
+        [bash_completiondir="${datadir}/bash-completion/completions"])
+     AC_SUBST([bash_completion_PKG], ['bash-completion >= 2.0.0'])
+     AC_SUBST([bash_completion_CPPFLAGS], [${bash_completion_CFLAGS}])
+     AC_MSG_NOTICE([bash_completion_CPPFLAGS : ${bash_completion_CPPFLAGS}])
+     AC_MSG_NOTICE([bash_completion_LIBS : ${bash_completion_LIBS}])])
 
-# Require bitcoin-blockchain of at least version 2.0.0 and output ${bitcoin_blockchain_CFLAGS} and ${bitcoin_blockchain_LIBS}.
+# Require bitcoin-blockchain of at least version 2.0.0 and output ${bitcoin_blockchain_CFLAGS/LIBS/PKG}.
 #------------------------------------------------------------------------------
 PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain >= 2.0.0])
+AC_SUBST([bitcoin_blockchain_PKG], ['libbitcoin-blockchain >= 2.0.0'])
+AC_SUBST([bitcoin_blockchain_CPPFLAGS], [${bitcoin_blockchain_CFLAGS}])
+AC_MSG_NOTICE([bitcoin_blockchain_CPPFLAGS : ${bitcoin_blockchain_CPPFLAGS}])
+AC_MSG_NOTICE([bitcoin_blockchain_LIBS : ${bitcoin_blockchain_LIBS}])
 
 
 # Set flags.
 #==============================================================================
+# Require c++11 for all c++ products.
+#------------------------------------------------------------------------------
+AS_CASE([${CC}], [*],
+    [AX_CHECK_COMPILE_FLAG([-std=c++11],
+        [CXXFLAGS="$CXXFLAGS -std=c++11"])])
+
 # Warn on all stuff.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*],
     [AX_CHECK_COMPILE_FLAG([-Wall],
-        [CXXFLAGS="$CXXFLAGS -Wall"])])
+        [CFLAGS="$CFLAGS -Wall"])])
 
 # Warn on extra stuff.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*],
     [AX_CHECK_COMPILE_FLAG([-Wextra],
-        [CXXFLAGS="$CXXFLAGS -Wextra"])])
+        [CFLAGS="$CFLAGS -Wextra"])])
 
 # Be really annoying.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*],
     [AX_CHECK_COMPILE_FLAG([-Wpedantic],
-        [CXXFLAGS="$CXXFLAGS -Wpedantic"],
+        [CFLAGS="$CFLAGS -Wpedantic"],
         [AX_CHECK_COMPILE_FLAG([-pedantic],
-            [CXXFLAGS="$CXXFLAGS -pedantic"])])])
+            [CFLAGS="$CFLAGS -pedantic"])])])
 
 # Conform to style.
 #------------------------------------------------------------------------------
@@ -195,37 +224,17 @@ AS_CASE([${CC}], [*gcc*],
     [AX_CHECK_COMPILE_FLAG([-Wno-unused-local-typedefs],
         [CXXFLAGS="$CXXFLAGS -Wno-unused-local-typedefs"])])
 
-# Clean up protobuf headers.
-#------------------------------------------------------------------------------
-AS_CASE([${CC}], [*],
-    [AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter],
-        [CXXFLAGS="$CXXFLAGS -Wno-unused-parameter"])])
-
-# Clean up protobuf headers, static. Enabled in clang only.
-#------------------------------------------------------------------------------
-AS_CASE([${CC}], [*clang*],
-    [AX_CHECK_COMPILE_FLAG([-Wno-sign-compare],
-        [CXXFLAGS="$CXXFLAGS -Wno-sign-compare"])])
-
-# Clean up protobuf headers, static. Enabled in clang only.
-#------------------------------------------------------------------------------
-AS_CASE([${CC}], [*clang*],
-    [AX_CHECK_COMPILE_FLAG([-Wno-nested-anon-types],
-        [CXXFLAGS="$CXXFLAGS -Wno-nested-anon-types"])])
-
 # Protect stack.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*],
-    [AX_CHECK_COMPILE_FLAG([-fstack-protector],
-        [AX_CHECK_LINK_FLAG([-fstack-protector],
-            [CXXFLAGS="$CXXFLAGS -fstack-protector"])])])
+    [AX_CHECK_LINK_FLAG([-fstack-protector],
+        [LDFLAGS="$LDFLAGS -fstack-protector"])])
 
 # Protect stack comprehensively.
 #------------------------------------------------------------------------------
 AS_CASE([${CC}], [*],
-    [AX_CHECK_COMPILE_FLAG([-fstack-protector-all],
-        [AX_CHECK_LINK_FLAG([-fstack-protector-all],
-            [CXXFLAGS="$CXXFLAGS -fstack-protector-all"])])])
+    [AX_CHECK_LINK_FLAG([-fstack-protector-all],
+        [LDFLAGS="$LDFLAGS -fstack-protector-all"])])
 
 # Hide internal functions from external libs. Enabled in gcc only.
 #------------------------------------------------------------------------------
