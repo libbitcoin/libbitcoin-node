@@ -65,9 +65,6 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\console\main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
@@ -97,5 +94,8 @@
     <ProjectReference Include="..\libbitcoin-node\libbitcoin-node.vcxproj">
       <Project>{5FFB5F52-0772-4404-BB2F-39BE5F82A158}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\console\main.cpp" />
   </ItemGroup>
 </Project>

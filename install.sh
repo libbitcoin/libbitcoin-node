@@ -32,8 +32,8 @@ BUILD_DIR="build-libbitcoin-node"
 
 # Boost archives for gcc.
 #------------------------------------------------------------------------------
-BOOST_URL_GCC="http://sourceforge.net/projects/boost/files/boost/1.49.0/boost_1_49_0.tar.bz2/download"
-BOOST_ARCHIVE_GCC="boost_1_49_0.tar.bz2"
+BOOST_URL_GCC="http://sourceforge.net/projects/boost/files/boost/1.50.0/boost_1_50_0.tar.bz2/download"
+BOOST_ARCHIVE_GCC="boost_1_50_0.tar.bz2"
 
 # Boost archives for clang.
 #------------------------------------------------------------------------------
@@ -172,10 +172,10 @@ echo "  with_pkgconfigdir: $with_pkgconfigdir"
 BOOST_OPTIONS_GCC=\
 "threading=multi "\
 "variant=release "\
-"--disable-icu "\
 "--with-chrono "\
 "--with-date_time "\
 "--with-filesystem "\
+"--with-locale "\
 "--with-program_options "\
 "--with-regex "\
 "--with-system "\
@@ -193,10 +193,10 @@ BOOST_OPTIONS_CLANG=\
 "linkflags=-stdlib=${boost_stdlib} "\
 "threading=multi "\
 "variant=release "\
-"--disable-icu "\
 "--with-chrono "\
 "--with-date_time "\
 "--with-filesystem "\
+"--with-locale "\
 "--with-program_options "\
 "--with-regex "\
 "--with-system "\
@@ -370,7 +370,7 @@ build_from_tarball_boost()
 
     # Build and install (note that "$@" is not from script args).
     ./bootstrap.sh
-    ./b2 install -j $JOBS "$@"
+    ./b2 install boost.locale.icu=off -j $JOBS "$@"
 
     pop_directory
 }
@@ -473,8 +473,8 @@ build_all()
 {
     build_from_tarball_boost $BOOST_URL $BOOST_ARCHIVE boost $PARALLEL $BOOST_OPTIONS
     build_from_github libbitcoin secp256k1 version2 $PARALLEL "$@" $SECP256K1_OPTIONS
-    build_from_github libbitcoin libbitcoin version2 $PARALLEL "$@" $BITCOIN_OPTIONS
-    build_from_github libbitcoin libbitcoin-blockchain version2 $PARALLEL "$@" $BITCOIN_BLOCKCHAIN_OPTIONS
+    build_from_github libbitcoin libbitcoin master $PARALLEL "$@" $BITCOIN_OPTIONS
+    build_from_github libbitcoin libbitcoin-blockchain master $PARALLEL "$@" $BITCOIN_BLOCKCHAIN_OPTIONS
     build_from_travis libbitcoin libbitcoin-node version2 $PARALLEL "$@" $BITCOIN_NODE_OPTIONS
 }
 
