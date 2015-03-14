@@ -31,7 +31,7 @@ doc_DATA = \
 # src/libbitcoin-node.la => ${libdir}
 #------------------------------------------------------------------------------
 lib_LTLIBRARIES = src/libbitcoin-node.la
-src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=${sysconfdir} ${bitcoin_blockchain_CPPFLAGS}
+src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdir}\" ${bitcoin_blockchain_CPPFLAGS}
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/getx_responder.cpp \
