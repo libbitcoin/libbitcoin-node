@@ -43,8 +43,7 @@ src_libbitcoin_node_la_SOURCES = \
 #------------------------------------------------------------------------------
 if WITH_TESTS
 
-# Execute 'test/libbitcoin_node_test' as a test.
-TESTS = test/libbitcoin_node_test
+TESTS = libbitcoin_node_test_runner.sh
 
 check_PROGRAMS = test/libbitcoin_node_test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
