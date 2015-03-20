@@ -153,7 +153,7 @@ AS_CASE([${with_tests}], [yes],
      AC_MSG_NOTICE([boost_unit_test_framework_LIBS : ${boost_unit_test_framework_LIBS}])],
     [AC_SUBST([boost_unit_test_framework_LIBS], [])])
 
-# Require bash-completion of at least version 2.0.0 and output ${bash_completion_CFLAGS/LIBS/PKG}.
+# Require bash-completion of at least version 2.0.0 and output ${bash_completion_CPPFLAGS/LIBS/PKG}.
 #------------------------------------------------------------------------------
 AS_CASE([${bash_completiondir}], [yes],
     [PKG_CHECK_MODULES([bash_completion], [bash-completion >= 2.0.0],
@@ -165,7 +165,7 @@ AS_CASE([${bash_completiondir}], [yes],
      AC_MSG_NOTICE([bash_completion_LIBS : ${bash_completion_LIBS}])],
     [AC_SUBST([bash_completion_PKG], [])])
 
-# Require bitcoin-blockchain of at least version 2.0.0 and output ${bitcoin_blockchain_CFLAGS/LIBS/PKG}.
+# Require bitcoin-blockchain of at least version 2.0.0 and output ${bitcoin_blockchain_CPPFLAGS/LIBS/PKG}.
 #------------------------------------------------------------------------------
 PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain >= 2.0.0])
 AC_SUBST([bitcoin_blockchain_PKG], ['libbitcoin-blockchain >= 2.0.0'])

@@ -43,13 +43,11 @@ src_libbitcoin_node_la_SOURCES = \
 #------------------------------------------------------------------------------
 if WITH_TESTS
 
-# Execute 'test/libbitcoin_node_test' as a test.
-TESTS = test/libbitcoin_node_test
+TESTS = libbitcoin_node_test_runner.sh
 
 check_PROGRAMS = test/libbitcoin_node_test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
-test_libbitcoin_node_test_LDFLAGS = -L${srcdir}/src
-test_libbitcoin_node_test_LDADD = -lbitcoin-node ${bitcoin_blockchain_LIBS} ${boost_unit_test_framework_LIBS}
+test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS}
 test_libbitcoin_node_test_SOURCES = \
     test/main.cpp \
     test/node.cpp
@@ -62,8 +60,7 @@ if WITH_CONSOLE
 
 bin_PROGRAMS = console/bitcoin_node
 console_bitcoin_node_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
-console_bitcoin_node_LDFLAGS = -L${srcdir}/src
-console_bitcoin_node_LDADD = -lbitcoin-node ${bitcoin_blockchain_LIBS}
+console_bitcoin_node_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS}
 console_bitcoin_node_SOURCES = \
     console/main.cpp
 
