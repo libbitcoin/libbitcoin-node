@@ -5,13 +5,14 @@
 #
 ###############################################################################
 
-# Standard declarations.
+# Automake settings.
 #==============================================================================
-# look for macros in the m4 subdirectory
+# Look for macros in the m4 subdirectory.
+#------------------------------------------------------------------------------
 ACLOCAL_AMFLAGS = -I m4
 
 
-# Automake products.
+# Distribution, build and install products.
 #==============================================================================
 # files => ${pkgconfigdir}
 #------------------------------------------------------------------------------
@@ -95,4 +96,14 @@ endif BASH_COMPLETIONDIR
 sysconf_libbitcoindir = ${sysconfdir}/libbitcoin
 sysconf_libbitcoin_DATA = \
     data/node.cfg
+
+
+# Custom make targets.
+#==============================================================================
+# make target: console
+#------------------------------------------------------------------------------
+target_console = \
+    console/bitcoin_node
+
+console: ${target_console}
 

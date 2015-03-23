@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Globals">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>CTP_Nov2013</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <ProjectGuid>{4BD50864-D3BC-4F64-AEBB-DDEB8A622FA8}</ProjectGuid>
     <ProjectName>libbitcoin-node-test</ProjectName>
     <NuGetPackageImportStamp>ed210297</NuGetPackageImportStamp>
