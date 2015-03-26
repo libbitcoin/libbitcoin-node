@@ -5,21 +5,25 @@
 #
 ###############################################################################
 
-prefix=@prefix@
-exec_prefix=@exec_prefix@
-libdir=@libdir@
-includedir=@includedir@
-
+# Package metadata.
+#==============================================================================
 Name: libbitcoin-node
 Description: Bitcoin Full Node
 URL: https://github.com/libbitcoin/libbitcoin-node
 Version: @PACKAGE_VERSION@
 
-# Our dependencies that publish package configuration.
-Requires: @bitcoin_blockchain_PKG@
 
-# Our own include directory and any other compiler flags we require.
-Cflags: -I${includedir} 
+# Package variables.
+#==============================================================================
+# Dependencies that publish package configuration.
+#------------------------------------------------------------------------------
+Requires: libbitcoin-blockchain >= 2.0.0
 
-# Our own lib directory, lib and any that do not publish package configuration.
-Libs: -L${libdir} -lbitcoin-node 
+# Include directory and any other required compiler flags.
+#------------------------------------------------------------------------------
+Cflags: -I@includedir@
+
+# Lib directory, lib and any required that do not publish pkg-config.
+#------------------------------------------------------------------------------
+Libs: -L@libdir@ -lbitcoin-node
+
