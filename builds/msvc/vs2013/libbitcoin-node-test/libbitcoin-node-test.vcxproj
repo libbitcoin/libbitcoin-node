@@ -64,54 +64,6 @@
     <Import Project="$(ProjectDir)..\..\properties\Output.props" />
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLEXE|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDEXE|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSEXE|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSEXE|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDEXE|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLEXE|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLEXE|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDEXE|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSEXE|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugSEXE|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDEXE|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLEXE|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
