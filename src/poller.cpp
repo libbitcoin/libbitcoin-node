@@ -30,12 +30,12 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
-poller::poller(threadpool& pool, blockchain& chain)
+poller::poller(threadpool& pool, blockchain::blockchain& chain)
   : strand_(pool),
     blockchain_(chain),
     last_block_hash_(null_hash),
     last_locator_begin_(null_hash),
-    last_hash_stop_(null_hash), 
+    last_hash_stop_(null_hash),
     last_requested_node_(nullptr)
 {
 }
@@ -128,7 +128,7 @@ void poller::monitor(channel_ptr node)
 //}
 
 void poller::receive_block(const std::error_code& ec,
-    const block_type& block, channel_ptr node)
+    const chain::block& block, channel_ptr node)
 {
     if (!node)
         return;
@@ -143,7 +143,7 @@ void poller::receive_block(const std::error_code& ec,
 
     blockchain_.store(block,
         strand_.wrap(&poller::handle_store_block,
-            this, _1, _2, hash_block_header(block.header), node));
+            this, _1, _2, block.header.hash(), node));
 
     // Resubscribe.
     node->subscribe_block(
@@ -151,8 +151,9 @@ void poller::receive_block(const std::error_code& ec,
             this, _1, _2, node));
 }
 
-void poller::handle_store_block(const std::error_code& ec, block_info info,
-    const hash_digest& block_hash, channel_ptr node)
+void poller::handle_store_block(const std::error_code& ec,
+    blockchain::block_info info, const hash_digest& block_hash,
+    channel_ptr node)
 {
     if (ec == error::duplicate)
     {
@@ -173,7 +174,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
     switch (info.status)
     {
         // The block has been accepted as an orphan (ec not set).
-        case block_status::orphan:
+        case blockchain::block_status::orphan:
             log_debug(LOG_POLLER) << "Potential block ["
                 << encode_hash(block_hash) << "]";
 
@@ -184,13 +185,13 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
         // The block has been rejected from the store (redundant?).
         // This case may be redundant with error::duplicate.
-        case block_status::rejected:
+        case blockchain::block_status::rejected:
             log_debug(LOG_POLLER) << "Rejected block ["
                 << encode_hash(block_hash) << "]";
             break;
 
         // The block has been accepted into the long chain (ec not set).
-        case block_status::confirmed:
+        case blockchain::block_status::confirmed:
             log_info(LOG_POLLER) << "Block #"
                 << info.height << " " << encode_hash(block_hash);
             break;
@@ -206,7 +207,7 @@ void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 
 // Not having orphans will cause a stall 
 void poller::ask_blocks(const std::error_code& ec,
-    const block_locator_type& locator, const hash_digest& hash_stop,
+    const message::block_locator& locator, const hash_digest& hash_stop,
     channel_ptr node)
 {
     if (!node)
@@ -247,7 +248,9 @@ void poller::ask_blocks(const std::error_code& ec,
     };
 
     // Send get_blocks request.
-    const get_blocks_type packet{ locator, hash_stop };
+    const message::get_blocks packet;
+    packet.start_hashes = locator;
+    packet.hash_stop = hash_stop;
     node->send(packet, handle_error);
 
     // Update last values.
@@ -267,4 +270,3 @@ bool poller::is_duplicate_block_ask(const block_locator_type& locator,
 
 } // namespace node
 } // namespace libbitcoin
-

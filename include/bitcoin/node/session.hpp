@@ -35,39 +35,48 @@ namespace node {
 class BCN_API session
 {
 public:
+
     typedef std::function<void (const std::error_code&)> completion_handler;
 
     session(threadpool& pool, bc::network::handshake& handshake,
-        bc::network::protocol& protocol, chain::blockchain& blockchain,
-        poller& poller, chain::transaction_pool& transaction_pool,
+        bc::network::protocol& protocol, blockchain::blockchain& blockchain,
+        poller& poller, blockchain::transaction_pool& transaction_pool,
         responder& responder);
 
     void start(completion_handler handle_complete);
+
     void stop(completion_handler handle_complete);
 
 private:
+
     void subscribe(const std::error_code& ec,
         completion_handler handle_complete);
+
     void new_channel(const std::error_code& ec,
         bc::network::channel_ptr node);
+
     void broadcast_new_blocks(const std::error_code& ec, uint32_t fork_point,
-        const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& replaced_blocks);
+        const blockchain::blockchain::block_list& new_blocks,
+        const blockchain::blockchain::block_list& replaced_blocks);
 
     void receive_inv(const std::error_code& ec,
-        const inventory_type& packet, bc::network::channel_ptr node);
+        const message::inventory& packet, bc::network::channel_ptr node);
+
     void receive_get_blocks(const std::error_code& ec,
-        const get_blocks_type& packet, bc::network::channel_ptr node);
+        const message::get_blocks& packet, bc::network::channel_ptr node);
 
     void new_tx_inventory(const hash_digest& tx_hash, 
         bc::network::channel_ptr node);
+
     void request_tx_data(bool tx_exists, const hash_digest& tx_hash,
         bc::network::channel_ptr node);
 
     void new_block_inventory(const hash_digest& block_hash,
         bc::network::channel_ptr node);
+
     void request_block_data(const hash_digest& block_hash,
         bc::network::channel_ptr node);
+
     void fetch_block_handler(const std::error_code& ec,
         const block_type& block, const hash_digest block_hash,
         bc::network::channel_ptr node);
@@ -75,8 +84,8 @@ private:
     async_strand strand_;
     bc::network::handshake& handshake_;
     bc::network::protocol& protocol_;
-    bc::chain::blockchain& blockchain_;
-    bc::chain::transaction_pool& tx_pool_;
+    bc::blockchain::blockchain& blockchain_;
+    bc::blockchain::transaction_pool& tx_pool_;
     bc::node::poller& poller_;
     bc::node::responder& responder_;
     std::atomic<uint64_t> last_height_;
@@ -90,4 +99,3 @@ private:
 } // namespace libbitcoin
 
 #endif
-

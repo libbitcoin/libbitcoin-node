@@ -29,22 +29,30 @@ namespace node {
 class BCN_API poller
 {
 public:
-    poller(threadpool& pool, chain::blockchain& chain);
+
+    poller(threadpool& pool, blockchain::blockchain& chain);
+
     void monitor(bc::network::channel_ptr node);
+
     void request_blocks(const hash_digest& block_hash,
         bc::network::channel_ptr node);
 
 private:
+
     ////void receive_inv(const std::error_code& ec,
     ////    const inventory_type& packet, bc::network::channel_ptr node);
     void receive_block(const std::error_code& ec,
-        const block_type& block, bc::network::channel_ptr node);
-    void handle_store_block(const std::error_code& ec, block_info info,
-        const hash_digest& block_hash, bc::network::channel_ptr node);
+        const chain::block& block, bc::network::channel_ptr node);
+
+    void handle_store_block(const std::error_code& ec,
+        blockchain::block_info info, const hash_digest& block_hash,
+        bc::network::channel_ptr node);
+
     void ask_blocks(const std::error_code& ec,
         const block_locator_type& locator,
         const hash_digest& hash_stop, bc::network::channel_ptr node);
-    bool is_duplicate_block_ask(const block_locator_type& locator,
+
+    bool is_duplicate_block_ask(const message::block_locator& locator,
         const hash_digest& hash_stop, bc::network::channel_ptr node);
 
     async_strand strand_;
@@ -63,4 +71,3 @@ private:
 } // namespace libbitcoin
 
 #endif
-
