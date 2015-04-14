@@ -33,7 +33,8 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 using std::placeholders::_4;
-using namespace bc::chain;
+
+using namespace bc::blockchain;
 using namespace bc::network;
 
 session::session(threadpool& pool, handshake& handshake, protocol& protocol,
@@ -179,13 +180,14 @@ void session::broadcast_new_blocks(const std::error_code& ec,
         return;
 
     // Broadcast new blocks inventory.
-    inventory_type blocks_inventory;
+    message::inventory blocks_inventory;
+
     for (const auto block: new_blocks)
     {
-        const inventory_vector_type inventory
+        const message::inventory_vector inventory
         {
-            inventory_type_id::block,
-            hash_block_header(block->header)
+            message::inventory_type_id::block,
+            block->header.hash()
         };
 
         blocks_inventory.inventories.push_back(inventory);
@@ -210,10 +212,11 @@ void session::broadcast_new_blocks(const std::error_code& ec,
 }
 
 // TODO: consolidate to libbitcoin utils.
-static size_t inventory_count(const inventory_list& inventories,
-    inventory_type_id type_id)
+static size_t inventory_count(const message::inventory_list& inventories,
+    message::inventory_type_id type_id)
 {
     size_t count = 0;
+
     for (const auto& inventory: inventories)
         if (inventory.type == type_id)
             ++count;
@@ -224,7 +227,7 @@ static size_t inventory_count(const inventory_list& inventories,
 // Put this on a short timer following lack of block inv.
 // request_blocks(null_hash, node);
 void session::receive_inv(const std::error_code& ec,
-    const inventory_type& packet, channel_ptr node)
+    const message::inventory& packet, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -241,9 +244,9 @@ void session::receive_inv(const std::error_code& ec,
     }
 
     const auto blocks = inventory_count(packet.inventories,
-        inventory_type_id::block);
+        message::inventory_type_id::block);
     const auto transactions = inventory_count(packet.inventories,
-        inventory_type_id::transaction);
+        message::inventory_type_id::transaction);
     //const auto filtered_blocks = inventory_count(packet.inventories,
     //    inventory_type_id::filtered_block);
 
@@ -258,7 +261,7 @@ void session::receive_inv(const std::error_code& ec,
     {
         switch (inventory.type)
         {
-            case inventory_type_id::transaction:
+            case message::inventory_type_id::transaction:
                 if (last_height_ >= minimum_start_height_)
                 {
                     log_debug(LOG_SESSION)
@@ -272,7 +275,7 @@ void session::receive_inv(const std::error_code& ec,
 
                 break;
 
-            case inventory_type_id::block:
+            case message::inventory_type_id::block:
                 log_debug(LOG_SESSION)
                     << "Block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
@@ -281,15 +284,15 @@ void session::receive_inv(const std::error_code& ec,
                         this, inventory.hash, node));
                 break;
 
-            case inventory_type_id::filtered_block:
+            case message::inventory_type_id::filtered_block:
                 // We don't suppport bloom filters, so we shouldn't see this.
                 log_debug(LOG_SESSION)
                     << "Filtred block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
                 break;
 
-            case inventory_type_id::none:
-            case inventory_type_id::error:
+            case message::inventory_type_id::none:
+            case message::inventory_type_id::error:
             default:
                 log_debug(LOG_SESSION)
                     << "Ignoring invalid inventory type from [" << peer << "]";
@@ -363,7 +366,7 @@ void session::new_block_inventory(const hash_digest& block_hash,
     channel_ptr node)
 {
     const auto request_block = [this, block_hash, node]
-        (const std::error_code& ec, const block_type& block)
+        (const std::error_code& ec, const chain::block& block)
     {
         if (ec == error::not_found)
         {
@@ -404,13 +407,13 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
         }
     };
 
-    const inventory_vector_type block_inventory
+    const message::inventory_vector block_inventory
     { 
-        inventory_type_id::block,
+        message::inventory_type_id::block,
         block_hash
     };
 
-    const get_data_type request_block{ { block_inventory } };
+    const message::get_data request_block{ { block_inventory } };
     node->send(request_block, handle_error);
 
     // Reset the revival timer because we just asked for block data. If after
@@ -433,7 +436,7 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
 
 // We don't respond to peers making getblocks requests.
 void session::receive_get_blocks(const std::error_code& ec,
-    const get_blocks_type& get_blocks, channel_ptr node)
+    const message::get_blocks& get_blocks, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;

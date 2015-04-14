@@ -33,8 +33,8 @@ namespace node {
 // output_info_type is defined in <bitcoin/transaction.hpp>
 struct BCN_API spend_info_type
 {
-    input_point point;
-    output_point previous_output;
+    chain::input_point point;
+    chain::output_point previous_output;
 };
 
 typedef std::vector<spend_info_type> spend_info_list;
@@ -42,10 +42,11 @@ typedef std::vector<spend_info_type> spend_info_list;
 class BCN_API indexer
 {
 public:
+
     typedef std::function<void (const std::error_code&)> completion_handler;
     typedef std::function<void (const std::error_code& ec,
-        const output_info_list& outputs, const spend_info_list& spends)>
-            query_handler;
+        const wallet::output_info_list& outputs,
+        const spend_info_list& spends)> query_handler;
 
     indexer(threadpool& pool);
 
@@ -60,35 +61,41 @@ public:
      * @param[in]   address         Bitcoin address to lookup.
      * @param[in]   handle_query    Completion handler for fetch operation.
      */
-    void query(const payment_address& address, query_handler handle_query);
+    void query(const wallet::payment_address& address,
+        query_handler handle_query);
 
     /**
      * Index a transaction.
      * @param[in]   tx              Transaction to index.
      * @param[in]   handle_index    Completion handler for index operation.
      */
-    void index(const transaction_type& tx, completion_handler handle_index);
+    void index(const chain::transaction& tx, completion_handler handle_index);
 
     /**
      * Deindex (remove from index) a transaction.
      * @param[in]   tx              Transaction to deindex.
      * @param[in]   handle_index    Completion handler for deindex operation.
      */
-    void deindex(const transaction_type& tx, 
+    void deindex(const chain::transaction& tx,
         completion_handler handle_deindex);
 
 private:
-    // address -> spend
-    typedef std::unordered_multimap<payment_address, spend_info_type>
+
+    // addr -> spend
+    typedef std::unordered_multimap<wallet::payment_address, spend_info_type>
         spends_multimap;
 
-    // address -> output
-    typedef std::unordered_multimap<payment_address, output_info_type>
-        outputs_multimap;
+    // addr -> output
+    typedef std::unordered_multimap<wallet::payment_address,
+        wallet::output_info> outputs_multimap;
 
-    void do_query(const payment_address& payaddr, query_handler handle_query);
-    void do_index(const transaction_type& tx, completion_handler handle_index);
-    void do_deindex(const transaction_type& tx,
+    void do_query(const wallet::payment_address& payaddr,
+        query_handler handle_query);
+
+    void do_index(const chain::transaction& tx,
+        completion_handler handle_index);
+
+    void do_deindex(const chain::transaction& tx,
         completion_handler handle_deindex);
 
     sequencer strand_;
@@ -96,13 +103,12 @@ private:
     outputs_multimap outputs_map_;
 };
 
-BCN_API void fetch_history(chain::blockchain& chain, 
-    indexer& indexer, const payment_address& address,
-    chain::blockchain::fetch_handler_history handle_fetch,
+BCN_API void fetch_history(blockchain::blockchain& chain,
+    indexer& indexer, const wallet::payment_address& address,
+    blockchain::blockchain::fetch_handler_history handle_fetch,
     size_t from_height=0);
 
 } // namespace node
 } // namespace libbitcoin
 
 #endif
-
