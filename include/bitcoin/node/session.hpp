@@ -105,7 +105,7 @@ public:
 
 private:
     void new_channel(const std::error_code& ec, network::channel_ptr node);
-    void set_start_height(const std::error_code& ec, size_t fork_point,
+    void set_start_height(const std::error_code& ec, uint64_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
