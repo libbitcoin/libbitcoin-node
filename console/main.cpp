@@ -317,13 +317,13 @@ void history_fetched(const std::error_code& ec, const history_list& history)
 //using initchain (from libbitcoin-blockchain/tools/)
 int main()
 {
-    auto debug_log_file = bc::ofstream("debug.log");
+    bc::ofstream debug_log_file("debug.log");
     log_debug().set_output_function(
         std::bind(output_file, std::ref(debug_log_file), _1, _2, _3));
     log_info().set_output_function(
         std::bind(output_both, std::ref(debug_log_file), _1, _2, _3));
 
-    auto error_log_file = bc::ofstream("error.log");
+    bc::ofstream error_log_file("error.log");
     log_warning().set_output_function(
         std::bind(error_file, std::ref(error_log_file), _1, _2, _3));
     log_error().set_output_function(
