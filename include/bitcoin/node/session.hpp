@@ -55,7 +55,7 @@ class pumpkin_buffer
 {
 public:
     pumpkin_buffer(size_t max_size)
-      : max_size_(max_size), pointer_(0) {}
+      : max_size_(max_size), index_(0) {}
 
     void store(const Item& item)
     {
@@ -68,18 +68,18 @@ public:
         }
         // Otherwise we overwrite old entries
         BITCOIN_ASSERT(expiry_.size() == max_size_);
-        BITCOIN_ASSERT(pointer_ < expiry_.size());
+        BITCOIN_ASSERT(index_ < expiry_.size());
         // First remove it from the hash lookup set
-        const Item& erase_item = expiry_[pointer_];
+        const Item& erase_item = expiry_[index_];
         DEBUG_ONLY(size_t number_erased =) lookup_.erase(erase_item);
         BITCOIN_ASSERT(number_erased == 1);
         // Insert new item and overwrite it in circular buffer
         lookup_.insert(item);
-        expiry_[pointer_] = item;
+        expiry_[index_] = item;
         // Cycle pointer around
-        pointer_++;
-        if (pointer_ == expiry_.size())
-            pointer_ = 0;
+        index_++;
+        if (index_ == expiry_.size())
+            index_ = 0;
     }
 
     bool exists(const Item& item)
@@ -91,7 +91,7 @@ private:
     std::set<Item> lookup_;
     std::vector<Item> expiry_;
     size_t max_size_;
-    size_t pointer_;
+    size_t index_;
 };
 
 class session
