@@ -19,8 +19,8 @@
  */
 #include <future>
 #include <iostream>
-#include <bitcoin/bitcoin.hpp>
-#include <bitcoin/blockchain.hpp>
+#include <string>
+#include <system_error>
 #include <bitcoin/node.hpp>
 
 using namespace bc;
@@ -317,17 +317,19 @@ void history_fetched(const std::error_code& ec, const history_list& history)
 //using initchain (from libbitcoin-blockchain/tools/)
 int main()
 {
-    std::ofstream outfile("debug.log"), errfile("error.log");
+    bc::ofstream debug_log_file("debug.log");
     log_debug().set_output_function(
-        std::bind(output_file, std::ref(outfile), _1, _2, _3));
+        std::bind(output_file, std::ref(debug_log_file), _1, _2, _3));
     log_info().set_output_function(
-        std::bind(output_both, std::ref(outfile), _1, _2, _3));
+        std::bind(output_both, std::ref(debug_log_file), _1, _2, _3));
+
+    bc::ofstream error_log_file("error.log");
     log_warning().set_output_function(
-        std::bind(error_file, std::ref(errfile), _1, _2, _3));
+        std::bind(error_file, std::ref(error_log_file), _1, _2, _3));
     log_error().set_output_function(
-        std::bind(error_both, std::ref(errfile), _1, _2, _3));
+        std::bind(error_both, std::ref(error_log_file), _1, _2, _3));
     log_fatal().set_output_function(
-        std::bind(error_both, std::ref(errfile), _1, _2, _3));
+        std::bind(error_both, std::ref(error_log_file), _1, _2, _3));
 
     fullnode app("blockchain");
     app.start();

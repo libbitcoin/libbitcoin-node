@@ -48,9 +48,18 @@ void session::start(completion_handler handle_complete)
     protocol_.start(handle_complete);
     protocol_.subscribe_channel(
         std::bind(&session::new_channel, this, _1, _2));
+
+    // set_start_height expects uint32_t but fetch_last_height returns
+    // height as uint64_t. This results in integer narrowing compile warnings.
+    // This results from the satoshi version structure expecting uint32_t but
+    // block heights capable of supporting a full uint64_t range (via varint).
+    // The warnings could be resolve through an indirection, but the logical
+    // inconsistency would remain. That issue won't become a problem until
+    // the year ~ 3375. By that time bender could fix it.
     chain_.fetch_last_height(
         std::bind(&network::handshake::set_start_height,
             &handshake_, _2, handle_handshake_height_set));
+
     chain_.subscribe_reorganize(
         std::bind(&session::set_start_height,
             this, _1, _2, _3, _4));
@@ -81,7 +90,9 @@ void session::new_channel(const std::error_code& ec, network::channel_ptr node)
     poll_.monitor(node);
 }
 
-void session::set_start_height(const std::error_code& ec, size_t fork_point,
+// There is an inconsistency in the wire protocols where fetch_last_height
+// requires a uint64_t callback but set_start_height is uint32_t.
+void session::set_start_height(const std::error_code& ec, uint64_t fork_point,
     const chain::blockchain::block_list& new_blocks,
     const chain::blockchain::block_list& /* replaced_blocks */)
 {
@@ -90,20 +101,22 @@ void session::set_start_height(const std::error_code& ec, size_t fork_point,
         BITCOIN_ASSERT(ec == error::service_stopped);
         return;
     }
-    auto last_height = fork_point + new_blocks.size();
-    BITCOIN_ASSERT(last_height <= bc::max_uint32);
-    auto last_height32 = static_cast<uint32_t>(last_height);
-    handshake_.set_start_height(last_height32, handle_handshake_height_set);
+
+    // Start height is limited to max_uint32 by satoshi protocol (version).
+    BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
+    auto start_height = static_cast<uint32_t>(fork_point + new_blocks.size());
+
+    handshake_.set_start_height(start_height, handle_handshake_height_set);
     chain_.subscribe_reorganize(
         std::bind(&session::set_start_height,
             this, _1, _2, _3, _4));
+
     // Broadcast invs of new blocks
     inventory_type blocks_inv;
     for (auto block: new_blocks)
     {
         blocks_inv.inventories.push_back({
-            inventory_type_id::block,
-            hash_block_header(block->header)});
+            inventory_type_id::block, hash_block_header(block->header)});
     }
     auto ignore_handler = [](const std::error_code&, size_t) {};
     protocol_.broadcast(blocks_inv, ignore_handler);
