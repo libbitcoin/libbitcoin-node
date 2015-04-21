@@ -24,7 +24,7 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace bc::chain;
+using namespace bc::blockchain;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -248,9 +248,7 @@ void poller::ask_blocks(const std::error_code& ec,
     };
 
     // Send get_blocks request.
-    const message::get_blocks packet;
-    packet.start_hashes = locator;
-    packet.hash_stop = hash_stop;
+    const message::get_blocks packet(locator, hash_stop);
     node->send(packet, handle_error);
 
     // Update last values.

@@ -193,7 +193,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             block->header.hash()
         };
 
-        blocks_inventory.inventories.push_back(inventory);
+        blocks_inventory.inventories().push_back(inventory);
     }
 
     log_debug(LOG_SESSION)
