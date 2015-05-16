@@ -21,7 +21,7 @@
 #include <boost/filesystem.hpp>
 #include <bitcoin/node.hpp>
 
-// TODO: move construction exressions into BOOST_REQUIRE_NO_THROW.
+// TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
 BOOST_AUTO_TEST_SUITE(node_tests)
 
 static void uninitchain(const char prefix[])
@@ -45,13 +45,23 @@ static void initchain(const char prefix[])
     interface.push(genesis);
 }
 
-BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
+BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
 {
-    bc::threadpool threads;
-    bc::node::transaction_indexer indexer(threads);
+    // WARNING: file system side effect, use unique relative path.
+    const static auto prefix = "node_test/construct_getx_responder";
+    initchain(prefix);
 
+    bc::threadpool threads;
+    bc::chain::blockchain_impl blockchain(threads, prefix);
+    bc::chain::transaction_pool transactions(threads, blockchain);
+    bc::node::getx_responder responder(blockchain, transactions);
+
+    blockchain.start();
+    transactions.start();
     threads.stop();
     threads.join();
+
+    // uninitchain(prefix);
 }
 
 BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
@@ -66,25 +76,6 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
 
     blockchain.start();
     blockchain.stop();
-    threads.stop();
-    threads.join();
-
-    // uninitchain(prefix);
-}
-
-BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
-{
-    // WARNING: file system side effect, use unique relative path.
-    const static auto prefix = "node_test/construct_getx_responder";
-    initchain(prefix);
-
-    bc::threadpool threads;
-    bc::chain::blockchain_impl blockchain(threads, prefix);
-    bc::chain::transaction_pool transactions(threads, blockchain);
-    bc::node::getx_responder responder(blockchain, transactions);
-
-    blockchain.start();
-    transactions.start();
     threads.stop();
     threads.join();
 
@@ -126,6 +117,15 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     threads.join();
 
     // uninitchain(prefix);
+}
+
+BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
+{
+    bc::threadpool threads;
+    bc::node::transaction_indexer indexer(threads);
+
+    threads.stop();
+    threads.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
