@@ -25,3 +25,4 @@ obj
 /configure
 /libtool
 .dirstamp
+node_test/
