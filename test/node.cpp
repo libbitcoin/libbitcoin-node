@@ -45,6 +45,19 @@ static void initchain(const char prefix[])
 // TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
 BOOST_AUTO_TEST_SUITE(node_tests)
 
+BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
+{
+    bc::threadpool threads;
+    bc::node::transaction_indexer indexer(threads);
+
+    threads.stop();
+    threads.join();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(slow_node_tests)
+
 BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
 {
     // WARNING: file system side effect, use unique relative path.
@@ -81,19 +94,6 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
 
     // uninitchain(prefix);
 }
-
-BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
-{
-    bc::threadpool threads;
-    bc::node::transaction_indexer indexer(threads);
-
-    threads.stop();
-    threads.join();
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE(slow_node_tests)
 
 BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
 {
