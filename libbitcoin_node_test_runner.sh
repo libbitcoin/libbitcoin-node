@@ -9,7 +9,7 @@
 # Define tests and options.
 #==============================================================================
 BOOST_UNIT_TEST_OPTIONS=\
-"--run_test=node_tests "\
+"--run_test=* "\
 "--random=1 "\
 "--show_progress=no "\
 "--detect_memory_leak=0 "\
