@@ -123,9 +123,9 @@ private:
 fullnode::fullnode(const std::string& db_prefix)
     // Threadpools and the number of threads they spawn.
     // 6 threads spawned in total.
-  : net_pool_(1), 
-    disk_pool_(4), 
-    mem_pool_(1),
+    : net_pool_(1, thread_priority::normal),
+    disk_pool_(4, thread_priority::lowest),
+    mem_pool_(1, thread_priority::low),
     // Networking related services.
     hosts_(net_pool_), 
     handshake_(net_pool_), 
