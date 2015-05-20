@@ -5,7 +5,7 @@
     <NuGetPackageImportStamp>57a18016</NuGetPackageImportStamp>
     <PlatformToolset>CTP_Nov2013</PlatformToolset>
     <ProjectGuid>{D3404804-C83F-46CE-A5A6-3A39EF93DE46}</ProjectGuid>
-    <ProjectName>bitcoin-node</ProjectName>
+    <ProjectName>bn</ProjectName>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="DebugDEXE|Win32">

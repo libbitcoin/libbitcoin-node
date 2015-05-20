@@ -55,14 +55,14 @@ test_libbitcoin_node_test_SOURCES = \
 
 endif WITH_TESTS
 
-# console/bitcoin_node => ${bindir}
+# console/bn => ${bindir}
 #------------------------------------------------------------------------------
 if WITH_CONSOLE
 
-bin_PROGRAMS = console/bitcoin_node
-console_bitcoin_node_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
-console_bitcoin_node_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS}
-console_bitcoin_node_SOURCES = \
+bin_PROGRAMS = console/bn
+console_bn_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
+console_bn_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS}
+console_bn_SOURCES = \
     console/main.cpp
 
 endif WITH_CONSOLE
@@ -87,7 +87,7 @@ include_bitcoin_node_HEADERS = \
 if BASH_COMPLETIONDIR
 
 dist_bash_completion_DATA = \
-    data/bitcoin_node
+    data/bn
 
 endif BASH_COMPLETIONDIR
 
@@ -97,7 +97,7 @@ if WITH_CONSOLE
 
 sysconf_libbitcoindir = ${sysconfdir}/libbitcoin
 sysconf_libbitcoin_DATA = \
-    data/node.cfg
+    data/bn.cfg
 
 endif WITH_CONSOLE
 
@@ -107,7 +107,7 @@ endif WITH_CONSOLE
 # make target: console
 #------------------------------------------------------------------------------
 target_console = \
-    console/bitcoin_node
+    console/bn
 
 console: ${target_console}
 
