@@ -63,7 +63,6 @@ static void initchain(const char prefix[])
 // TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
 BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
 
-
 BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
 {
     threadpool threads;
