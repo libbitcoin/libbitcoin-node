@@ -144,7 +144,7 @@ static console_result init_chain(const path& directory, std::ostream& output,
     // This is affected by the ENABLE_TESTNET switch.
     interface.push(genesis_block());
 
-    return console_result::okay;
+    return console_result::not_started;
 }
 
 // Use missing directory as a sentinel indicating lack of initialization.
