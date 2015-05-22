@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
+/**
+ * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
  *
@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_TRANSACTION_INDEXER_HPP
 #define LIBBITCOIN_NODE_TRANSACTION_INDEXER_HPP
 
+#include <cstddef>
 #include <forward_list>
 #include <system_error>
 #include <unordered_map>
@@ -30,7 +31,6 @@ namespace libbitcoin {
 namespace node {
 
 // output_info_type is defined in <bitcoin/transaction.hpp>
-
 struct BCN_API spend_info_type
 {
     input_point point;
@@ -39,26 +39,27 @@ struct BCN_API spend_info_type
 
 typedef std::vector<spend_info_type> spend_info_list;
 
-class transaction_indexer
+class BCN_API transaction_indexer
 {
 public:
     typedef std::function<void (const std::error_code&)> completion_handler;
 
-    typedef std::function<void (const std::error_code& ec,
+    typedef std::function<void (const std::error_code& code,
         const output_info_list& outputs, const spend_info_list& spends)>
             query_handler;
 
-    BCN_API transaction_indexer(threadpool& pool);
+    transaction_indexer(threadpool& pool);
 
     /// Non-copyable class
     transaction_indexer(const transaction_indexer&) = delete;
+
     /// Non-copyable class
     void operator=(const transaction_indexer&) = delete;
 
     /**
      * Query all transactions indexed that are related to a Bitcoin address.
      *
-     * @param[in]   payaddr         Bitcoin address to lookup.
+     * @param[in]   address         Bitcoin address to lookup.
      * @param[in]   handle_query    Completion handler for fetch operation.
      * @code
      *  void handle_query(
@@ -81,8 +82,7 @@ public:
      *  };
      * @endcode
      */
-    BCN_API void query(const payment_address& payaddr,
-        query_handler handle_query);
+    void query(const payment_address& address, query_handler handle_query);
 
     /**
      * Index a transaction.
@@ -95,8 +95,7 @@ public:
      *  );
      * @endcode
      */
-    BCN_API void index(const transaction_type& tx,
-        completion_handler handle_index);
+    void index(const transaction_type& tx, completion_handler handle_index);
 
     /**
      * Deindex (remove from index) a transaction.
@@ -109,23 +108,20 @@ public:
      *  );
      * @endcode
      */
-    BCN_API void deindex(const transaction_type& tx,
+    void deindex(const transaction_type& tx, 
         completion_handler handle_deindex);
 
 private:
     // addr -> spend
     typedef std::unordered_multimap<payment_address, spend_info_type>
         spends_multimap;
+
     // addr -> output
     typedef std::unordered_multimap<payment_address, output_info_type>
         outputs_multimap;
 
-    void do_query(const payment_address& payaddr,
-        query_handler handle_query);
-
-    void do_index(const transaction_type& tx,
-        completion_handler handle_index);
-
+    void do_query(const payment_address& payaddr, query_handler handle_query);
+    void do_index(const transaction_type& tx, completion_handler handle_index);
     void do_deindex(const transaction_type& tx,
         completion_handler handle_deindex);
 
@@ -134,9 +130,10 @@ private:
     outputs_multimap outputs_map_;
 };
 
-BCN_API void fetch_history(chain::blockchain& chain, transaction_indexer& indexer,
-    const payment_address& address,
-    chain::blockchain::fetch_handler_history handle_fetch, size_t from_height=0);
+BCN_API void fetch_history(chain::blockchain& chain, 
+    transaction_indexer& indexer, const payment_address& address,
+    chain::blockchain::fetch_handler_history handle_fetch,
+    size_t from_height=0);
 
 } // namespace node
 } // namespace libbitcoin

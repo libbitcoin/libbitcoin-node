@@ -26,34 +26,35 @@
 namespace libbitcoin {
 namespace node {
 
-class poller
+class BCN_API poller
 {
 public:
-    BCN_API poller(threadpool& pool, chain::blockchain& chain);
-    BCN_API void query(network::channel_ptr node);
-    BCN_API void monitor(network::channel_ptr node);
+    poller(threadpool& pool, chain::blockchain& chain);
+    void query(bc::network::channel_ptr node);
+    void monitor(bc::network::channel_ptr node);
 
 private:
-    void initial_ask_blocks(const std::error_code& ec,
-        const block_locator_type& locator, network::channel_ptr node);
+    void initial_ask_blocks(const std::error_code& code,
+        const block_locator_type& locator, bc::network::channel_ptr node);
 
-    void receive_inv(const std::error_code& ec,
-        const inventory_type& packet, network::channel_ptr node);
-    void receive_block(const std::error_code& ec,
-        const block_type& blk, network::channel_ptr node);
+    void receive_inv(const std::error_code& code,
+        const inventory_type& packet, bc::network::channel_ptr node);
+    void receive_block(const std::error_code& code,
+        const block_type& blk, bc::network::channel_ptr node);
 
-    void handle_store(const std::error_code& ec, block_info info,
-        const hash_digest& block_hash, network::channel_ptr node);
-    void ask_blocks(const std::error_code& ec,
+    void handle_store(const std::error_code& code, block_info info,
+        const hash_digest& block_hash, bc::network::channel_ptr node);
+    void ask_blocks(const std::error_code& code,
         const block_locator_type& locator,
-        const hash_digest& hash_stop, network::channel_ptr node);
+        const hash_digest& hash_stop, bc::network::channel_ptr node);
 
     async_strand strand_;
     chain::blockchain& chain_;
 
     // Last hash from a block locator
     hash_digest last_locator_begin_ = null_hash, last_hash_stop_ = null_hash;
-    network::channel* last_requested_node_ = nullptr;
+    bc::network::channel* last_requested_node_ = nullptr;
+
     // Last hash from an inventory packet
     hash_digest last_block_hash_ = null_hash;
 };

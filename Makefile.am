@@ -35,6 +35,7 @@ lib_LTLIBRARIES = src/libbitcoin-node.la
 src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdir}\" ${bitcoin_blockchain_CPPFLAGS}
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
 src_libbitcoin_node_la_SOURCES = \
+    src/fullnode.cpp \
     src/getx_responder.cpp \
     src/poller.cpp \
     src/session.cpp \
@@ -63,6 +64,10 @@ bin_PROGRAMS = console/bn
 console_bn_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
 console_bn_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS}
 console_bn_SOURCES = \
+    console/dispatch.cpp \
+    console/dispatch.hpp \
+    console/logging.cpp \
+    console/logging.hpp \
     console/main.cpp
 
 endif WITH_CONSOLE
@@ -76,6 +81,7 @@ include_bitcoin_HEADERS = \
 include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/define.hpp \
+    include/bitcoin/node/fullnode.hpp \
     include/bitcoin/node/getx_responder.hpp \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/session.hpp \

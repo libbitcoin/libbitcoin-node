@@ -24,23 +24,25 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace bc::chain;
+using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
-poller::poller(threadpool& pool, chain::blockchain& chain)
+poller::poller(threadpool& pool, blockchain& chain)
   : strand_(pool), chain_(chain)
 {
 }
 
-void poller::query(network::channel_ptr node)
+void poller::query(channel_ptr node)
 {
     fetch_block_locator(chain_,
         std::bind(&poller::initial_ask_blocks,
             this, _1, _2, node));
 }
 
-void poller::monitor(network::channel_ptr node)
+void poller::monitor(channel_ptr node)
 {
     node->subscribe_inventory(
         strand_.wrap(&poller::receive_inv, this, _1, _2, node));
@@ -49,80 +51,90 @@ void poller::monitor(network::channel_ptr node)
             this, _1, _2, node));
 }
 
-void poller::initial_ask_blocks(const std::error_code& ec,
-    const block_locator_type& locator, network::channel_ptr node)
+void poller::initial_ask_blocks(const std::error_code& code,
+    const block_locator_type& locator, channel_ptr node)
 {
-    if (ec)
+    if (code)
     {
         log_error(LOG_POLLER)
-            << "Fetching initial block locator: " << ec.message();
+            << "Fetching initial block locator: " << code.message();
         return;
     }
+
     strand_.randomly_queue(
-        &poller::ask_blocks, this, ec, locator, null_hash, node);
+        &poller::ask_blocks, this, code, locator, null_hash, node);
 }
 
-void handle_send_packet(const std::error_code& ec)
+void handle_send_packet(const std::error_code& code)
 {
-    if (ec)
-        log_error(LOG_POLLER) << "Send problem: " << ec.message();
+    if (code)
+        log_error(LOG_POLLER) << "Send problem: " << code.message();
 }
 
-void poller::receive_inv(const std::error_code& ec,
-    const inventory_type& packet, network::channel_ptr node)
+void poller::receive_inv(const std::error_code& code,
+    const inventory_type& packet, channel_ptr node)
 {
-    if (ec)
+    if (code)
     {
-        log_warning(LOG_POLLER) << "Received bad inventory: " << ec.message();
+        log_warning(LOG_POLLER) << "Received bad inventory: " << code.message();
         return;
     }
+
     // Filter out only block inventories
     get_data_type getdata;
-    for (const inventory_vector_type& ivv: packet.inventories)
+    for (const inventory_vector_type& inventory: packet.inventories)
     {
-        if (ivv.type != inventory_type_id::block)
+        if (inventory.type != inventory_type_id::block)
             continue;
+
         // Already got this block
-        if (ivv.hash == last_block_hash_)
+        if (inventory.hash == last_block_hash_)
             continue;
-        getdata.inventories.push_back(ivv);
+
+        getdata.inventories.push_back(inventory);
     }
+
     if (!getdata.inventories.empty())
     {
         last_block_hash_ = getdata.inventories.back().hash;
         node->send(getdata, handle_send_packet);
     }
+
     node->subscribe_inventory(
         strand_.wrap(&poller::receive_inv, this, _1, _2, node));
 }
 
-void poller::receive_block(const std::error_code& ec,
-    const block_type& blk, network::channel_ptr node)
+void poller::receive_block(const std::error_code& code,
+    const block_type& blk, channel_ptr node)
 {
-    if (ec)
+    if (code)
     {
-        log_warning(LOG_POLLER) << "Received bad block: " << ec.message();
+        log_warning(LOG_POLLER) << "Received bad block: " << code.message();
         return;
     }
+
     chain_.store(blk,
         strand_.wrap(&poller::handle_store,
             this, _1, _2, hash_block_header(blk.header), node));
+
+    BITCOIN_ASSERT(node);
     node->subscribe_block(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 }
 
-void poller::handle_store(const std::error_code& ec, block_info info,
-    const hash_digest& block_hash, network::channel_ptr node)
+void poller::handle_store(const std::error_code& code, block_info info,
+    const hash_digest& block_hash, channel_ptr node)
 {
     // We need orphan blocks so we can do the next getblocks round
-    if (ec && info.status != block_status::orphan)
+    if (code && info.status != block_status::orphan)
     {
         log_warning(LOG_POLLER)
             << "Storing block " << encode_hash(block_hash)
-            << ": " << ec.message();
+            << ": " << code.message();
         return;
     }
+
     switch (info.status)
     {
         case block_status::orphan:
@@ -147,15 +159,16 @@ void poller::handle_store(const std::error_code& ec, block_info info,
     }
 }
 
-void poller::ask_blocks(const std::error_code& ec,
-    const block_locator_type& locator,
-    const hash_digest& hash_stop, network::channel_ptr node)
+void poller::ask_blocks(const std::error_code& code,
+    const block_locator_type& locator, const hash_digest& hash_stop,
+    channel_ptr node)
 {
-    if (ec)
+    if (code)
     {
-        log_error(LOG_POLLER) << "Ask for blocks: " << ec.message();
+        log_error(LOG_POLLER) << "Ask for blocks: " << code.message();
         return;
     }
+
     if (last_locator_begin_ == locator.front() &&
         last_hash_stop_ == hash_stop && last_requested_node_ == node.get())
     {
@@ -163,11 +176,13 @@ void poller::ask_blocks(const std::error_code& ec,
             << encode_hash(locator.front());
         return;
     }
+
     // Send get_blocks request.
     get_blocks_type packet;
     packet.start_hashes = locator;
     packet.hash_stop = hash_stop;
     node->send(packet, std::bind(&handle_send_packet, _1));
+
     // Update last values.
     last_locator_begin_ = locator.front();
     last_hash_stop_ = hash_stop;

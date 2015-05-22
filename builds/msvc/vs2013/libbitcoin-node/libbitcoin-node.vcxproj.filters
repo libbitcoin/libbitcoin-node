@@ -30,6 +30,9 @@
     <ClCompile Include="..\..\..\..\src\transaction_indexer.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\fullnode.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
@@ -51,6 +54,9 @@
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\fullnode.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
   </ItemGroup>

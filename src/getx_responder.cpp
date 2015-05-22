@@ -26,31 +26,35 @@ namespace node {
 
 using std::placeholders::_1;
 using std::placeholders::_2;
+using namespace bc::chain;
+using namespace bc::network;
 
-getx_responder::getx_responder(chain::blockchain& chain, 
-    chain::transaction_pool& txpool)
+getx_responder::getx_responder(blockchain& chain, transaction_pool& txpool)
   : chain_(chain), txpool_(txpool)
 {
 }
 
-void getx_responder::monitor(network::channel_ptr node)
+void getx_responder::monitor(channel_ptr node)
 {
     // Use this wrapper to add shared state to our node for inv
     // requests to trigger getblocks requests so a node can continue
     // downloading blocks.
     channel_with_state special;
     special.node = node;
+
     // Serve tx and blocks to nodes.
+    BITCOIN_ASSERT(node);
     node->subscribe_get_data(
         std::bind(&getx_responder::receive_get_data,
             this, _1, _2, special));
 }
 
-void getx_responder::receive_get_data(const std::error_code& ec,
+void getx_responder::receive_get_data(const std::error_code& code,
     const get_data_type& packet, channel_with_state special)
 {
-    if (ec)
+    if (code)
         return;
+
     for (const inventory_vector_type& inv: packet.inventories)
     {
         switch (inv.type)
@@ -76,39 +80,46 @@ void getx_responder::receive_get_data(const std::error_code& ec,
                 break;
         }
     }
+
     special.node->subscribe_get_data(
         std::bind(&getx_responder::receive_get_data,
             this, _1, _2, special));
 }
 
-void getx_responder::pool_tx(const std::error_code& ec,
-    const transaction_type& tx, const hash_digest& tx_hash,
-    network::channel_ptr node)
+void getx_responder::pool_tx(const std::error_code& code,
+    const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
 {
-    if (ec)
+    if (code)
     {
         chain_.fetch_transaction(tx_hash,
             std::bind(&getx_responder::chain_tx,
                 this, _1, _2, node));
     }
     else
+    {
+        BITCOIN_ASSERT(node);
         node->send(tx, [](const std::error_code&) {});
+    }
 }
 
-void getx_responder::chain_tx(const std::error_code& ec,
-    const transaction_type& tx, network::channel_ptr node)
+void getx_responder::chain_tx(const std::error_code& code,
+    const transaction_type& tx, channel_ptr node)
 {
-    if (ec)
-        return;
-    node->send(tx, [](const std::error_code&) {});
+    if (!code)
+    {
+        BITCOIN_ASSERT(node);
+        node->send(tx, [](const std::error_code&) {});
+    }
 }
 
-void getx_responder::send_block(const std::error_code& ec,
-    const block_type& blk, network::channel_ptr node)
+void getx_responder::send_block(const std::error_code& code,
+    const block_type& block, channel_ptr node)
 {
-    if (ec)
-        return;
-    node->send(blk, [](const std::error_code&) {});
+    if (!code)
+    {
+        BITCOIN_ASSERT(node);
+        node->send(block, [](const std::error_code&) {});
+    }
 }
 
 } // node

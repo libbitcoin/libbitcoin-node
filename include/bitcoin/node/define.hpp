@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.

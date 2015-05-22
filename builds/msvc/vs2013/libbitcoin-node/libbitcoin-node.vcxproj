@@ -71,6 +71,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\fullnode.cpp" />
     <ClCompile Include="..\..\..\..\src\getx_responder.cpp" />
     <ClCompile Include="..\..\..\..\src\poller.cpp" />
     <ClCompile Include="..\..\..\..\src\session.cpp" />
@@ -79,6 +80,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\fullnode.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\getx_responder.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session.hpp" />
