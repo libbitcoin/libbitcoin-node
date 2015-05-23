@@ -18,6 +18,7 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/fullnode.hpp>
 #include <bitcoin/node/getx_responder.hpp>
+#include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/session.hpp>
 #include <bitcoin/node/transaction_indexer.hpp>

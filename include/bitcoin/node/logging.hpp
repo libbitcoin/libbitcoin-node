@@ -21,8 +21,17 @@
 #define LIBBITCOIN_NODE_LOGGING_HPP
 
 #include <iostream>
+#include <string>
+#include <bitcoin/node/define.hpp>
 
-void initialize_logging(std::ofstream& debug_log, std::ofstream& error_log,
-    std::ostream& output, std::ostream& error);
+namespace libbitcoin {
+namespace node {
+
+void BCN_API initialize_logging(std::ofstream& debug_log,
+    std::ofstream& error_log, std::ostream& output, std::ostream& error,
+    const std::string& skip_domain="");
+
+} // namespace node
+} // namespace libbitcoin
 
 #endif

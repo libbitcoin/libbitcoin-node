@@ -31,6 +31,18 @@
 namespace libbitcoin {
 namespace node {
 
+// Configuration parameters.
+#define BN_P2P_CONNECTIONS      8
+#define BN_P2P_HOSTS            1000
+#define BN_P2P_ORPHAN_POOL      20
+#define BN_P2P_TX_POOL          2000
+#define BN_THREADS_DISK         6
+#define BN_THREADS_MEMORY       1
+#define BN_THREADS_NETWORK      1
+#define BN_HISTORY_START        0
+#define BN_HOSTS_FILENAME       "hosts"
+#define BN_DIRECTORY            "blockchain"
+
 /**
  * A full node on the Bitcoin P2P network.
  */
@@ -40,9 +52,9 @@ public:
     /**
      * Construct the node.
      * The prefix must have been initialized using 'initchain' prior to this.
-     * param@ [in]  directory  The path to the database folder.
+     * param@ [in]  configuration  The configuration settings for the node.
      */
-    fullnode(const std::string& directory);
+    fullnode(/* configuration */);
     
     /**
      * Start the node.

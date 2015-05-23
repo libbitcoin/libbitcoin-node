@@ -26,7 +26,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
-#include "logging.hpp"
 
 // Localizable messages.
 #define BN_FETCH_HISTORY_SUCCESS \
@@ -54,7 +53,7 @@
 #define BN_NODE_START_FAIL \
     "The node failed to start."
 #define BN_NODE_START_SUCCESS \
-    "Type a bitcoin address or '<ctrl-c>' to exit."
+    "Type a bitcoin address to fetch, or press CTRL-C to stop node."
 #define BN_NODE_STARTING \
     "Starting up..."
 #define BN_UNINITIALIZED_CHAIN \
@@ -134,7 +133,8 @@ static console_result init_chain(const path& directory, std::ostream& output,
 
     // Allocate empty blockchain files.
     const auto& prefix = directory.string();
-    initialize_blockchain(prefix);
+    if (!initialize_blockchain(prefix))
+        return console_result::failure;
 
     // Add genesis block.
     db_paths file_paths(prefix);
@@ -143,7 +143,6 @@ static console_result init_chain(const path& directory, std::ostream& output,
 
     // This is affected by the ENABLE_TESTNET switch.
     interface.push(genesis_block());
-
     return console_result::not_started;
 }
 
@@ -201,7 +200,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     std::ostream& output, std::ostream& error)
 {
     // Blockchain directory is hard-wired for now (add to config).
-    const static path directory("blockchain");
+    const static path directory(BN_DIRECTORY);
 
     // Handle command line argument.
     auto result = process_arguments(argc, argv, directory, output, error);
@@ -224,8 +223,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
 
     // Start up the node.
     output << BN_NODE_STARTING << std::endl;
-    fullnode node(directory.string());
-    auto started = node.start();
+    fullnode node;
+    const auto started = node.start();
     if (started)
         output << BN_NODE_START_SUCCESS << std::endl;
     else
