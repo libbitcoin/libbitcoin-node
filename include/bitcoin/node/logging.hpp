@@ -27,6 +27,8 @@
 namespace libbitcoin {
 namespace node {
 
+#define LOG_NODE "node"
+
 void BCN_API initialize_logging(std::ofstream& debug_log,
     std::ofstream& error_log, std::ostream& output, std::ostream& error,
     const std::string& skip_domain="");
