@@ -64,21 +64,21 @@ using namespace boost::filesystem;
 using namespace bc::network;
 
 fullnode::fullnode(const std::string& directory)
-    // Threadpools and the number of threads they spawn.
+    // Threadpools and the number of threads they spawn(1/6/1).
     : net_pool_(2, thread_priority::normal),
     disk_pool_(6, thread_priority::low),
     mem_pool_(2, thread_priority::low),
 
-    // Networking related services (file path and peer capacity).
+    // Networking related services (file path, peer capacity=1000, connections=8).
     peers_(net_pool_, "hosts", 2000),
     handshake_(net_pool_),
     network_(net_pool_),
     protocol_(net_pool_, peers_, handshake_, network_, 20),
 
-    // Blockchain database service (db path, history height, orphan capacity).
-    chain_(disk_pool_, directory, {0}, 200),
+    // Blockchain database service (db path, history height, orphan capacity=20).
+    chain_(disk_pool_, directory, {0}, 2000),
 
-    // Poll new blocks, and transaction memory pool (tx mempool capacity).
+    // Poll new blocks, and transaction memory pool (mempool capacity=2000).
     poller_(mem_pool_, chain_),
     txpool_(mem_pool_, chain_, 10000),
     txidx_(mem_pool_),
@@ -87,7 +87,7 @@ fullnode::fullnode(const std::string& directory)
     session_(net_pool_, handshake_, protocol_, chain_, poller_, txpool_ )
 {
 }
-
+ 
 bool fullnode::start()
 {
     // Subscribe to new connections.
