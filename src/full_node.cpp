@@ -25,9 +25,8 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/fullnode.hpp>
-
-#define LOG_NODE "node"
+#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/logging.hpp>
 
 // Localizable messages.
 #define BN_ACCEPTED_TRANSACTION \
@@ -63,7 +62,7 @@ using boost::format;
 using namespace boost::filesystem;
 using namespace bc::network;
 
-fullnode::fullnode(/* configuration */)
+full_node::full_node(/* configuration */)
   : net_pool_(BN_THREADS_NETWORK, thread_priority::normal),
     disk_pool_(BN_THREADS_DISK, thread_priority::low),
     mem_pool_(BN_THREADS_MEMORY, thread_priority::low),
@@ -79,11 +78,11 @@ fullnode::fullnode(/* configuration */)
 {
 }
  
-bool fullnode::start()
+bool full_node::start()
 {
     // Subscribe to new connections.
     protocol_.subscribe_channel(
-        std::bind(&fullnode::connection_started, this, _1, _2));
+        std::bind(&full_node::connection_started, this, _1, _2));
 
     // Start blockchain
     if (!chain_.start())
@@ -93,12 +92,12 @@ bool fullnode::start()
     txpool_.start();
 
     // Fire off app.
-    const auto handle_start = std::bind(&fullnode::handle_start, this, _1);
+    const auto handle_start = std::bind(&full_node::handle_start, this, _1);
     session_.start(handle_start);
     return true;
 }
 
-void fullnode::stop()
+void full_node::stop()
 {
     std::promise<std::error_code> code_promise;
     const auto session_stopped = [&code_promise](const std::error_code& code)
@@ -125,23 +124,23 @@ void fullnode::stop()
     mem_pool_.join();
 }
 
-chain::blockchain& fullnode::chain()
+chain::blockchain& full_node::chain()
 {
     return chain_;
 }
 
-transaction_indexer& fullnode::indexer()
+transaction_indexer& full_node::indexer()
 {
     return txidx_;
 }
 
-void fullnode::handle_start(const std::error_code& code)
+void full_node::handle_start(const std::error_code& code)
 {
     if (code)
         log_error(LOG_NODE) << format(BN_START_ERROR) % code.message();
 }
 
-void fullnode::connection_started(const std::error_code& code,
+void full_node::connection_started(const std::error_code& code,
     channel_ptr node)
 {
     if (code)
@@ -155,14 +154,14 @@ void fullnode::connection_started(const std::error_code& code,
 
     // Subscribe to transaction messages from this node.
     node->subscribe_transaction(
-        std::bind(&fullnode::recieve_tx, this, _1, _2, node));
+        std::bind(&full_node::recieve_tx, this, _1, _2, node));
 
     // Stay subscribed to new connections.
     protocol_.subscribe_channel(
-        std::bind(&fullnode::connection_started, this, _1, _2));
+        std::bind(&full_node::connection_started, this, _1, _2));
 }
 
-void fullnode::recieve_tx(const std::error_code& code,
+void full_node::recieve_tx(const std::error_code& code,
     const transaction_type& tx, channel_ptr node)
 {
     if (code)
@@ -197,12 +196,12 @@ void fullnode::recieve_tx(const std::error_code& code,
     // Validate the transaction from the network.
     // Attempt to store in the transaction pool and check the result.
     txpool_.store(tx, handle_confirm,
-        std::bind(&fullnode::new_unconfirm_valid_tx, this, _1, _2, tx));
+        std::bind(&full_node::new_unconfirm_valid_tx, this, _1, _2, tx));
 
     // Resubscribe to transaction messages from this node.
     BITCOIN_ASSERT(node);
     node->subscribe_transaction(
-        std::bind(&fullnode::recieve_tx, this, _1, _2, node));
+        std::bind(&full_node::recieve_tx, this, _1, _2, node));
 }
 
 static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
@@ -219,7 +218,7 @@ static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
     return formatted.str();
 }
 
-void fullnode::new_unconfirm_valid_tx(const std::error_code& code,
+void full_node::new_unconfirm_valid_tx(const std::error_code& code,
     const index_list& unconfirmed, const transaction_type& tx)
 {
     auto handle_index = [](const std::error_code& code)

@@ -30,10 +30,10 @@
     <ClCompile Include="..\..\..\..\src\transaction_indexer.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\fullnode.cpp">
+    <ClCompile Include="..\..\..\..\src\logging.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\logging.cpp">
+    <ClCompile Include="..\..\..\..\src\full_node.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -59,10 +59,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\fullnode.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\logging.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\logging.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
   </ItemGroup>

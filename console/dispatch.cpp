@@ -223,7 +223,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
 
     // Start up the node.
     output << BN_NODE_STARTING << std::endl;
-    fullnode node;
+    full_node node;
     const auto started = node.start();
     if (started)
         output << BN_NODE_START_SUCCESS << std::endl;

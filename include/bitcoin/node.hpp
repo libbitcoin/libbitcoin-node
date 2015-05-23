@@ -16,7 +16,7 @@
 
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/fullnode.hpp>
+#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/getx_responder.hpp>
 #include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>

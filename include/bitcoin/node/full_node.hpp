@@ -46,7 +46,7 @@ namespace node {
 /**
  * A full node on the Bitcoin P2P network.
  */
-class BCN_API fullnode
+class BCN_API full_node
 {
 public:
     /**
@@ -54,7 +54,7 @@ public:
      * The prefix must have been initialized using 'initchain' prior to this.
      * param@ [in]  configuration  The configuration settings for the node.
      */
-    fullnode(/* configuration */);
+    full_node(/* configuration */);
     
     /**
      * Start the node.
