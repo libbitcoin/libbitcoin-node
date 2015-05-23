@@ -53,6 +53,17 @@
 #define BN_WITH_UNCONFIRMED_INPUTS \
     "with unconfirmed inputs (%1%)"
 
+// Configuration parameters.
+#define BN_P2P_CONNECTIONS      8
+#define BN_P2P_HOSTS            1000
+#define BN_P2P_ORPHAN_POOL      20
+#define BN_P2P_TX_POOL          2000
+#define BN_THREADS_DISK         6
+#define BN_THREADS_MEMORY       1
+#define BN_THREADS_NETWORK      1
+#define BN_HISTORY_START        0
+#define BN_HOSTS_FILENAME       "hosts"
+
 namespace libbitcoin {
 namespace node {
 
@@ -64,26 +75,17 @@ using namespace boost::filesystem;
 using namespace bc::network;
 
 fullnode::fullnode(const std::string& directory)
-    // Threadpools and the number of threads they spawn(1/6/1).
-    : net_pool_(2, thread_priority::normal),
-    disk_pool_(6, thread_priority::low),
-    mem_pool_(2, thread_priority::low),
-
-    // Networking related services (file path, peer capacity=1000, connections=8).
-    peers_(net_pool_, "hosts", 2000),
+  : net_pool_(BN_THREADS_NETWORK, thread_priority::normal),
+    disk_pool_(BN_THREADS_DISK, thread_priority::low),
+    mem_pool_(BN_THREADS_MEMORY, thread_priority::low),
+    peers_(net_pool_, BN_HOSTS_FILENAME, BN_P2P_HOSTS),
     handshake_(net_pool_),
     network_(net_pool_),
-    protocol_(net_pool_, peers_, handshake_, network_, 20),
-
-    // Blockchain database service (db path, history height, orphan capacity=20).
-    chain_(disk_pool_, directory, {0}, 2000),
-
-    // Poll new blocks, and transaction memory pool (mempool capacity=2000).
+    protocol_(net_pool_, peers_, handshake_, network_, BN_P2P_CONNECTIONS),
+    chain_(disk_pool_, directory, { BN_HISTORY_START }, BN_P2P_ORPHAN_POOL),
     poller_(mem_pool_, chain_),
-    txpool_(mem_pool_, chain_, 10000),
+    txpool_(mem_pool_, chain_, BN_P2P_TX_POOL),
     txidx_(mem_pool_),
-
-    // Session manager service. Convenience wrapper.
     session_(net_pool_, handshake_, protocol_, chain_, poller_, txpool_ )
 {
 }
