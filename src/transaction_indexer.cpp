@@ -65,13 +65,11 @@ template <typename Point, typename EntryMultimap>
 auto find_entry(const payment_address& key, const Point& value_point,
     EntryMultimap& map) -> decltype(map.begin())
 {
+    // The entry should only occur once in the multimap.
     const auto pair = map.equal_range(key);
     for (auto it = pair.first; it != pair.second; ++it)
-    {
-        // This entry should only occur once in the multimap.
         if (it->second.point == value_point)
             return it;
-    }
 
     return map.end();
 }
@@ -94,38 +92,39 @@ void transaction_indexer::do_index(const transaction_type& tx,
     completion_handler handle_index)
 {
     const auto tx_hash = hash_transaction(tx);
-    for (auto i = 0; i < tx.inputs.size(); ++i)
+
+    uint32_t index = 0;
+    for (const auto& input: tx.inputs)
     {
-        const auto& input = tx.inputs[i];
         payment_address address;
+        if (extract(address, input.script))
+        {
+            input_point point{tx_hash, index};
+            BITCOIN_ASSERT_MSG(
+                index_does_not_exist(address, point, spends_map_),
+                "Transaction input is indexed duplicate times!");
+            spends_map_.emplace(address,
+                spend_info_type{point, input.previous_output});
+        }
 
-        // Nothing to see here folks. Move along.
-        if (!extract(address, input.script))
-            continue;
-
-        input_point point{tx_hash, i};
-        BITCOIN_ASSERT_MSG(
-            index_does_not_exist(address, point, spends_map_),
-            "Transaction is indexed duplicate times!");
-        spends_map_.emplace(address,
-            spend_info_type{point, input.previous_output});
+        ++index;
     }
 
-    for (auto i = 0; i < tx.outputs.size(); ++i)
+    index = 0;
+    for (const auto& output: tx.outputs)
     {
-        const auto& output = tx.outputs[i];
         payment_address address;
+        if (extract(address, output.script))
+        {
+            output_point point{tx_hash, index};
+            BITCOIN_ASSERT_MSG(
+                index_does_not_exist(address, point, outputs_map_),
+                "Transaction output is indexed duplicate times!");
+            outputs_map_.emplace(address,
+                output_info_type{point, output.value});
+        }
 
-        // Nothing to see here folks. Move along.
-        if (!extract(address, output.script))
-            continue;
-
-        output_point point{tx_hash, i};
-        BITCOIN_ASSERT_MSG(
-            index_does_not_exist(address, point, outputs_map_),
-            "Transaction is indexed duplicate times!");
-        outputs_map_.emplace(address,
-            output_info_type{point, output.value});
+        ++index;
     }
 
     handle_index(std::error_code());
@@ -142,160 +141,156 @@ void transaction_indexer::do_deindex(const transaction_type& tx,
     completion_handler handle_deindex)
 {
     const auto tx_hash = hash_transaction(tx);
-    for (auto i = 0; i < tx.inputs.size(); ++i)
+
+    uint32_t index = 0;
+    for (const auto& input: tx.inputs)
     {
-        const transaction_input_type& input = tx.inputs[i];
         payment_address address;
+        if (extract(address, input.script))
+        {
+            input_point point{tx_hash, index};
+            auto entry = find_entry(address, point, spends_map_);
+            BITCOIN_ASSERT_MSG(entry != spends_map_.end(),
+                "Can't deindex transaction input twice");
+            spends_map_.erase(entry);
+            BITCOIN_ASSERT_MSG(
+                index_does_not_exist(address, point, spends_map_), 
+                "Transaction input is indexed duplicate times!");
+        }
 
-        // Nothing to see here folks. Move along.
-        if (!extract(address, input.script))
-            continue;
-
-        input_point point{tx_hash, i};
-        auto entry = find_entry(address, point, spends_map_);
-        BITCOIN_ASSERT_MSG(entry != spends_map_.end(),
-            "Can't deindex transaction twice");
-        spends_map_.erase(entry);
-        BITCOIN_ASSERT_MSG(
-            index_does_not_exist(address, point, spends_map_),
-            "Transaction is indexed duplicate times!");
+        ++index;
     }
 
-    for (auto i = 0; i < tx.outputs.size(); ++i)
+    index = 0;
+    for (const auto& output: tx.outputs)
     {
-        const auto& output = tx.outputs[i];
         payment_address address;
+        if (extract(address, output.script))
+        {
+            output_point point{tx_hash, index};
+            auto entry = find_entry(address, point, outputs_map_);
+            BITCOIN_ASSERT_MSG(entry != outputs_map_.end(),
+                "Can't deindex transaction output twice");
+            outputs_map_.erase(entry);
+            BITCOIN_ASSERT_MSG(
+                index_does_not_exist(address, point, outputs_map_), 
+                "Transaction output is indexed duplicate times!");
+        }
 
-        // Nothing to see here folks. Move along.
-        if (!extract(address, output.script))
-            continue;
-
-        output_point point{tx_hash, i};
-        auto entry = find_entry(address, point, outputs_map_);
-        BITCOIN_ASSERT_MSG(entry != outputs_map_.end(),
-            "Can't deindex transaction twice");
-        outputs_map_.erase(entry);
-        BITCOIN_ASSERT_MSG(
-            index_does_not_exist(address, point, outputs_map_),
-            "Transaction is indexed duplicate times!");
+        ++index;
     }
 
     handle_deindex(std::error_code());
 }
 
-void blockchain_history_fetched(
-    const std::error_code& code, const history_list& history,
-    transaction_indexer& indexer, const payment_address& address,
-    blockchain::fetch_handler_history handle_fetch);
-
-void indexer_history_fetched(const std::error_code& code,
-    const output_info_list& outputs, const spend_info_list& spends,
-    history_list history, blockchain::fetch_handler_history handle_fetch);
-
-// Fetch the history first from the blockchain and then from the indexer.
-void fetch_history(blockchain& chain, transaction_indexer& indexer,
-    const payment_address& address, 
-    blockchain::fetch_handler_history handle_fetch,
-    size_t from_height)
+static bool is_output_conflict(history_list& history,
+    const output_info_type& output)
 {
-    chain.fetch_history(address,
-        std::bind(blockchain_history_fetched, _1, _2,
-            std::ref(indexer), address, handle_fetch), from_height);
+    // Usually the indexer and memory doesn't have any transactions indexed tha
+    // are already confirmed and in the blockchain. This is a rare corner case.
+    for (const auto& row: history)
+        if (row.id == point_ident::output && row.point == output.point)
+            return true;
+
+    return false;
 }
-void blockchain_history_fetched(const std::error_code& code,
-    const history_list& history, transaction_indexer& indexer, 
-    const payment_address& address,
-    blockchain::fetch_handler_history handle_fetch)
+static bool is_spend_conflict(history_list& history,
+    const spend_info_type& spend)
 {
-    if (code)
-        handle_fetch(code, chain::history_list());
-    else
-        indexer.query(address,
-            std::bind(indexer_history_fetched, _1, _2, _3,
-                history, handle_fetch));
+    for (const auto& row: history)
+        if (row.id == point_ident::spend && row.point == spend.point)
+            return true;
+
+    return false;
 }
+static void add_history_output(history_list& history,
+    const output_info_type& output)
+{
+    history.emplace_back(history_row
+    {
+        point_ident::output, output.point, 0, { output.value }
+    });
+}
+static void add_history_spend(history_list& history,
+    const spend_info_type& spend)
+{
+    history.emplace_back(history_row
+    {
+        point_ident::spend, spend.point, 0, 
+        { chain::spend_checksum(spend.previous_output) }
+    });
+}
+static void add_history_outputs(history_list& history,
+    const output_info_list& outputs)
+{
+    // If everything okay insert the outpoint.
+    for (const auto& output: outputs)
+        if (!is_output_conflict(history, output))
+            add_history_output(history, output);
+}
+static void add_history_spends(history_list& history,
+    const spend_info_list& spends)
+{
+    // If everything okay insert the spend.
+    for (const auto& spend: spends)
+        if (!is_spend_conflict(history, spend))
+            add_history_spend(history, spend);
+
+    // This assert can be triggered if the pool fills and starts dropping txs.
+    // In practice this should not happen often and isn't a problem.
+    //BITCOIN_ASSERT_MSG(!conflict, "Couldn't find output for adding spend");
+}
+
 void indexer_history_fetched(const std::error_code& code,
     const output_info_list& outputs, const spend_info_list& spends,
     history_list history, blockchain::fetch_handler_history handle_fetch)
 {
+    // TODO: Why is "history_list history" passed in here, and not a reference?
+
     if (code)
     {
+        // Shouldn't "history" be returned here?
         handle_fetch(code, history_list());
         return;
     }
 
-    // Just add in outputs.
-    for (const output_info_type& output_info: outputs)
-    {
-        // There is always a chance of inconsistency, so we resolve these 
-        // and move on. This can happen when new blocks arrive in, and 
-        // indexer.query() is called midway through a bunch of 
-        // txpool.try_delete() operations. If do_query() is queued before
-        // the last do_doindex() and there's a transaction in our query in 
-        // that block then we will have a conflict.
-        bool conflict = false;
-        for (const history_row& row: history)
-        {
-            // Consider outputs only.
-            // Usually the indexer and memory doesn't have any
-            // transactions indexed that are already confirmed
-            // and in the blockchain. This is a rare corner case.
-            conflict =
-                row.id == point_ident::output &&
-                row.point == output_info.point;
+    // There is always a chance of inconsistency, so we resolve these 
+    // conflicts and move on. This can happen when new blocks arrive in,
+    // and indexer.query() is called midway through a bunch of 
+    // txpool.try_delete() operations. If do_query() is queued before
+    // the last do_doindex() and there's a transaction in our query in 
+    // that block then we will have a conflict.
 
-            if (conflict)
-                break;
-        }
-
-        if (conflict)
-            continue;
-
-        // Everything OK. Insert outpoint.
-        history.emplace_back(history_row
-        {
-        	point_ident::output,
-            output_info.point,
-            0,
-            { output_info.value }
-        });
-    }
-
-    // Now mark spends.
-    for (const spend_info_type& spend_info: spends)
-    {
-        // Iterate history looking for the output we need.
-        bool conflict = false;
-        for (const history_row& row: history)
-        {
-            // Consider inputs only.
-            conflict =
-                row.id == point_ident::spend &&
-                row.point == spend_info.point;
-
-            if (conflict)
-                break;
-        }
-
-        if (conflict)
-            continue;
-
-        // Everything OK. Insert spend.
-        history.emplace_back(history_row
-        {
-        	point_ident::spend,
-            spend_info.point,
-            0,
-            { chain::spend_checksum(spend_info.previous_output) }
-        });
-
-        // This assert can be triggered if the pool fills and starts
-        // dropping transactions.
-        // In practice this should not happen often and isn't a problem.
-        //BITCOIN_ASSERT_MSG(found, "Couldn't find output for adding spend");
-    }
-
+    // Add all outputs and spends and return success code.
+    add_history_outputs(history, outputs);
+    add_history_spends(history, spends);
     handle_fetch(std::error_code(), history);
+}
+
+void blockchain_history_fetched(const std::error_code& code,
+    const history_list& history, transaction_indexer& indexer,
+    const payment_address& address,
+    blockchain::fetch_handler_history handle_fetch)
+{
+    if (code)
+    {
+        handle_fetch(code, chain::history_list());
+        return;
+    }
+
+    indexer.query(address,
+        std::bind(indexer_history_fetched, _1, _2, _3,
+            history, handle_fetch));
+}
+
+// Fetch the history first from the blockchain and then from the indexer.
+void fetch_history(blockchain& chain, transaction_indexer& indexer,
+    const payment_address& address, 
+    blockchain::fetch_handler_history handle_fetch, size_t from_height)
+{
+    chain.fetch_history(address,
+        std::bind(blockchain_history_fetched, _1, _2,
+            std::ref(indexer), address, handle_fetch), from_height);
 }
 
 } // namespace node
