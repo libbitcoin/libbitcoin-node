@@ -116,14 +116,12 @@ void session::set_start_height(const std::error_code& code,
 
     // Broadcast invs of new blocks
     inventory_type blocks_inv;
-    for (auto block: new_blocks)
-    {
+    for (const auto block: new_blocks)
         blocks_inv.inventories.push_back(
         {
             inventory_type_id::block, 
             hash_block_header(block->header)
         });
-    }
 
     auto ignore_handler = [](const std::error_code&, size_t) {};
     protocol_.broadcast(blocks_inv, ignore_handler);

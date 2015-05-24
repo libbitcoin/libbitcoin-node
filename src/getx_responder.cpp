@@ -55,7 +55,7 @@ void getx_responder::receive_get_data(const std::error_code& code,
     if (code)
         return;
 
-    for (const inventory_vector_type& inv: packet.inventories)
+    for (const auto& inv: packet.inventories)
     {
         switch (inv.type)
         {

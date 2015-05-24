@@ -36,12 +36,10 @@ public:
 private:
     void initial_ask_blocks(const std::error_code& code,
         const block_locator_type& locator, bc::network::channel_ptr node);
-
     void receive_inv(const std::error_code& code,
         const inventory_type& packet, bc::network::channel_ptr node);
     void receive_block(const std::error_code& code,
         const block_type& blk, bc::network::channel_ptr node);
-
     void handle_store(const std::error_code& code, block_info info,
         const hash_digest& block_hash, bc::network::channel_ptr node);
     void ask_blocks(const std::error_code& code,
@@ -51,12 +49,13 @@ private:
     async_strand strand_;
     chain::blockchain& chain_;
 
-    // Last hash from a block locator
-    hash_digest last_locator_begin_ = null_hash, last_hash_stop_ = null_hash;
-    bc::network::channel* last_requested_node_ = nullptr;
-
     // Last hash from an inventory packet
-    hash_digest last_block_hash_ = null_hash;
+    hash_digest last_block_hash_;
+
+    // Last hash from a block locator
+    hash_digest last_locator_begin_;
+    hash_digest last_hash_stop_;
+    bc::network::channel* last_requested_node_;
 };
 
 } // namespace node

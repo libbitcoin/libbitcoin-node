@@ -31,7 +31,9 @@ using std::placeholders::_2;
 using boost::asio::io_service;
 
 poller::poller(threadpool& pool, blockchain& chain)
-  : strand_(pool), chain_(chain)
+  : strand_(pool), chain_(chain), last_block_hash_(null_hash),
+    last_locator_begin_(null_hash), last_hash_stop_(null_hash), 
+    last_requested_node_(nullptr)
 {
 }
 
@@ -80,18 +82,15 @@ void poller::receive_inv(const std::error_code& code,
         return;
     }
 
-    // Filter out only block inventories
     get_data_type getdata;
     for (const inventory_vector_type& inventory: packet.inventories)
     {
-        if (inventory.type != inventory_type_id::block)
-            continue;
-
-        // Already got this block
-        if (inventory.hash == last_block_hash_)
-            continue;
-
-        getdata.inventories.push_back(inventory);
+        if (inventory.type == inventory_type_id::block &&
+            inventory.hash != last_block_hash_)
+        {
+            // Filter out only block inventories
+            getdata.inventories.push_back(inventory);
+        }
     }
 
     if (!getdata.inventories.empty())
@@ -140,6 +139,7 @@ void poller::handle_store(const std::error_code& code, block_info info,
         case block_status::orphan:
             log_warning(LOG_POLLER) << "Orphan block "
                 << encode_hash(block_hash);
+
             // TODO: Make more efficient by storing block hash
             // and next time do not download orphan block again.
             // Remember to remove from list once block is no longer orphan

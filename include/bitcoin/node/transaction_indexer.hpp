@@ -112,11 +112,11 @@ public:
         completion_handler handle_deindex);
 
 private:
-    // addr -> spend
+    // address -> spend
     typedef std::unordered_multimap<payment_address, spend_info_type>
         spends_multimap;
 
-    // addr -> output
+    // address -> output
     typedef std::unordered_multimap<payment_address, output_info_type>
         outputs_multimap;
 
