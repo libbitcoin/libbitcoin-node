@@ -53,7 +53,7 @@
 #define BN_NODE_START_FAIL \
     "The node failed to start."
 #define BN_NODE_START_SUCCESS \
-    "Type a bitcoin address to fetch, or press CTRL-C to stop node."
+    "Type a bitcoin address to fetch, or 'stop' to stop node."
 #define BN_NODE_STARTING \
     "Starting up..."
 #define BN_UNINITIALIZED_CHAIN \
@@ -211,9 +211,13 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     result = verify_chain(directory, bc::cerr);
     if (result != console_result::okay)
         return result;
-    
-    // Suppress control-c so it's picked up in the loop by getline.
-    signal(SIGINT, [](int) {});
+
+    // Catch C signals for stopping the program.
+    // Suppress it's picked up in the loop by getline.
+    const auto interrupt_handler = [](int) {};
+    signal(SIGABRT, interrupt_handler);
+    signal(SIGTERM, interrupt_handler);
+    signal(SIGINT, interrupt_handler);
 
     // Set up logging for node background threads (add to config).
     constexpr auto append = std::ofstream::out | std::ofstream::app;
@@ -238,7 +242,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     {
         std::string command;
         std::getline(bc::cin, command);
-        if (command == "\0x03")
+        if (command == "\0x03" || command == "stop")
         {
             output << BN_NODE_SHUTTING_DOWN << std::endl;
             break;
