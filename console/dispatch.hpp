@@ -17,22 +17,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef LIBBITCOIN_NODE_DISPATCH_HPP
+#define LIBBITCOIN_NODE_DISPATCH_HPP
+
 #include <iostream>
-#include <bitcoin/node.hpp>
-#include "dispatch.hpp"
 
-BC_USE_LIBBITCOIN_MAIN
-
-/**
- * Invoke this program with the raw arguments provided on the command line.
- * All console input and output streams for the application originate here.
- * @param argc  The number of elements in the argv array.
- * @param argv  The array of arguments, including the process.
- * @return      The numeric result to return via console exit.
- */
-int bc::main(int argc, char* argv[])
+enum console_result : int
 {
-    bc::set_utf8_stdio();
-    const auto& args = const_cast<const char**>(argv);
-    return dispatch(argc, args, bc::cin, bc::cout, bc::cerr);
-}
+    failure = -1,
+    okay = 0,
+    not_started = 1
+};
+
+// Load arguments and config and then run the node.
+console_result dispatch(int argc, const char* argv[], std::istream&,
+    std::ostream& output, std::ostream& error);
+
+#endif

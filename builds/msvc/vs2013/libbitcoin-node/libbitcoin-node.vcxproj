@@ -67,59 +67,13 @@
     <Import Project="$(ProjectDir)..\..\properties\Output.props" />
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLTCG|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLTCG|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLIB|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLIB|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLTCG|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLTCG|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseLIB|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLIB|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|x64'">
-    <Option-secp256k1>
-    </Option-secp256k1>
-  </PropertyGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\getx_responder.cpp" />
+    <ClCompile Include="..\..\..\..\src\logging.cpp" />
     <ClCompile Include="..\..\..\..\src\poller.cpp" />
     <ClCompile Include="..\..\..\..\src\session.cpp" />
     <ClCompile Include="..\..\..\..\src\transaction_indexer.cpp" />
@@ -127,7 +81,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\getx_responder.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\logging.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\transaction_indexer.hpp" />

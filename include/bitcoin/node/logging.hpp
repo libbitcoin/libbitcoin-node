@@ -17,22 +17,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef LIBBITCOIN_NODE_LOGGING_HPP
+#define LIBBITCOIN_NODE_LOGGING_HPP
+
 #include <iostream>
-#include <bitcoin/node.hpp>
-#include "dispatch.hpp"
+#include <string>
+#include <bitcoin/node/define.hpp>
 
-BC_USE_LIBBITCOIN_MAIN
+namespace libbitcoin {
+namespace node {
 
-/**
- * Invoke this program with the raw arguments provided on the command line.
- * All console input and output streams for the application originate here.
- * @param argc  The number of elements in the argv array.
- * @param argv  The array of arguments, including the process.
- * @return      The numeric result to return via console exit.
- */
-int bc::main(int argc, char* argv[])
-{
-    bc::set_utf8_stdio();
-    const auto& args = const_cast<const char**>(argv);
-    return dispatch(argc, args, bc::cin, bc::cout, bc::cerr);
-}
+#define LOG_NODE "node"
+
+void BCN_API initialize_logging(std::ofstream& debug_log,
+    std::ofstream& error_log, std::ostream& output, std::ostream& error,
+    const std::string& skip_domain="");
+
+} // namespace node
+} // namespace libbitcoin
+
+#endif
