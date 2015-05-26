@@ -32,13 +32,13 @@ namespace libbitcoin {
 namespace node {
 
 // Configuration parameters.
-#define BN_P2P_CONNECTIONS      20
-#define BN_P2P_HOSTS            2000
-#define BN_P2P_ORPHAN_POOL      500
-#define BN_P2P_TX_POOL          5000
-#define BN_THREADS_DISK         8
-#define BN_THREADS_MEMORY       2
-#define BN_THREADS_NETWORK      3
+#define BN_P2P_CONNECTIONS      8
+#define BN_P2P_HOSTS            1000
+#define BN_P2P_ORPHAN_POOL      200
+#define BN_P2P_TX_POOL          2000
+#define BN_THREADS_DISK         6
+#define BN_THREADS_MEMORY       1
+#define BN_THREADS_NETWORK      1
 #define BN_HISTORY_START        0
 #define BN_HOSTS_FILENAME       "hosts"
 #define BN_DIRECTORY            "blockchain"
