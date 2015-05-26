@@ -242,14 +242,15 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     {
         std::string command;
         std::getline(bc::cin, command);
-        if (command == "\0x03" || command == "stop")
+        const auto trimmed = boost::trim_copy(command);
+        if (command == "\0x03" || trimmed == "stop")
         {
             output << BN_NODE_SHUTTING_DOWN << std::endl;
             break;
         }
 
         payment_address address;
-        if (!address.set_encoded(boost::trim_copy(command)))
+        if (!address.set_encoded(trimmed))
         {
             output << BN_INVALID_ADDRESS << std::endl;
             continue;
