@@ -31,28 +31,34 @@
 #include <bitcoin/node/logging.hpp>
 
 // Localizable messages.
-#define BN_ACCEPTED_TRANSACTION \
-    "Accepted transaction [%1%]%2%"
-#define BN_INDEX_ERROR \
-    "Index error : %1%"
-#define BN_CONFIRM_TX \
-    "Confirm transaction [%1%]"
-#define BN_CONFIRM_TX_ERROR \
-    "Confirm transaction error [%1%] : %2%"
+
+// Session errors.
 #define BN_CONNECTION_START_ERROR \
-    "Connection start error : %1%"
-#define BN_DEINDEX_TX_ERROR \
-    "Deindex error : %1%"
-#define BN_MEMPOOL_ERROR \
-    "Error storing memory pool transaction [%1%] : %2%"
-#define BN_RECEIVE_TX_ERROR \
-    "Receive transaction error [%1%] : %2%"
+    "Error starting connection : %1%"
+#define BN_SESSION_START_ERROR \
+    "Error starting session : %1%"
 #define BN_SESSION_STOP_ERROR \
-    "Problem stopping session : %1%"
-#define BN_START_ERROR \
-    "Node start error : %1%"
-#define BN_WITH_UNCONFIRMED_INPUTS \
-    "with unconfirmed inputs (%1%)"
+    "Error stopping session : %1%"
+
+// Transaction successes.
+#define BN_TX_ACCEPTED \
+    "Accepted transaction into memory pool [%1%]"
+#define BN_TX_ACCEPTED_WITH_INPUTS \
+    "Accepted transaction into memory pool [%1%] with unconfirmed inputs (%2%)"
+#define BN_TX_CONFIRMED \
+    "Confirmed transaction into blockchain [%1%]"
+
+// Transaction errors.
+#define BN_TX_ACCEPT_ERROR \
+    "Error accepting transaction in memory pool [%1%] : %2%"
+#define BN_TX_CONFIRM_ERROR \
+    "Error confirming transaction into blockchain [%1%] : %2%"
+#define BN_TX_DEINDEX_ERROR \
+    "Error deindexing transaction [%1%] : %2%"
+#define BN_TX_INDEX_ERROR \
+    "Error indexing transaction [%1%] : %2%"
+#define BN_TX_RECEIVE_ERROR \
+    "Error receiving transaction [%1%] : %2%"
 
 namespace libbitcoin {
 namespace node {
@@ -139,7 +145,7 @@ transaction_indexer& full_node::indexer()
 void full_node::handle_start(const std::error_code& code)
 {
     if (code)
-        log_error(LOG_NODE) << format(BN_START_ERROR) % code.message();
+        log_error(LOG_NODE) << format(BN_SESSION_START_ERROR) % code.message();
 }
 
 void full_node::connection_started(const std::error_code& code,
@@ -151,8 +157,6 @@ void full_node::connection_started(const std::error_code& code,
             code.message();
         return;
     }
-
-    BITCOIN_ASSERT(node);
 
     // Subscribe to transaction messages from this node.
     node->subscribe_transaction(
@@ -168,8 +172,9 @@ void full_node::recieve_tx(const std::error_code& code,
 {
     if (code)
     {
+        // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
-        log_error(LOG_NODE) << format(BN_RECEIVE_TX_ERROR) % hash %
+        log_error(LOG_NODE) << format(BN_TX_RECEIVE_ERROR) % hash %
             code.message();
         return;
     }
@@ -177,31 +182,30 @@ void full_node::recieve_tx(const std::error_code& code,
     // Called when the transaction becomes confirmed in a block.
     const auto handle_confirm = [this, tx](const std::error_code& code)
     {
+        // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
 
         if (code)
-            log_error(LOG_NODE) << format(BN_CONFIRM_TX_ERROR) % hash %
+            log_error(LOG_NODE) << format(BN_TX_CONFIRM_ERROR) % hash %
                 code.message();
         else
-            log_debug(LOG_NODE) << format(BN_CONFIRM_TX) % hash;
+            log_debug(LOG_NODE) << format(BN_TX_CONFIRMED) % hash;
 
-        const auto handle_deindex = [](const std::error_code& code)
+        const auto handle_deindex = [hash](const std::error_code& code)
         {
             if (code)
-                log_error(LOG_NODE) << format(BN_DEINDEX_TX_ERROR) %
+                log_error(LOG_NODE) << format(BN_TX_DEINDEX_ERROR) % hash %
                     code.message();
         };
 
         txidx_.deindex(tx, handle_deindex);
     };
 
-    // Validate the transaction from the network.
-    // Attempt to store in the transaction pool and check the result.
+    // Validate and store the tx in the transaction mempool.
     txpool_.store(tx, handle_confirm,
         std::bind(&full_node::new_unconfirm_valid_tx, this, _1, _2, tx));
 
-    // Resubscribe to transaction messages from this node.
-    BITCOIN_ASSERT(node);
+    // Resubscribe to receive transaction messages from this node.
     node->subscribe_transaction(
         std::bind(&full_node::recieve_tx, this, _1, _2, node));
 }
@@ -215,27 +219,29 @@ static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
     for (const auto input: unconfirmed)
         inputs.push_back(boost::lexical_cast<std::string>(input));
 
-    const auto list = bc::join(inputs, ",");
-    const auto formatted = format(BN_WITH_UNCONFIRMED_INPUTS) % list;
-    return formatted.str();
+    return bc::join(inputs, ",");
 }
 
 void full_node::new_unconfirm_valid_tx(const std::error_code& code,
     const index_list& unconfirmed, const transaction_type& tx)
 {
-    auto handle_index = [](const std::error_code& code)
-    {
-        if (code)
-            log_error(LOG_NODE) << format(BN_INDEX_ERROR) % code.message();
-    };
-
+    // TODO: format the hash/output so it matches the txid.
     const auto hash = encode_hash(hash_transaction(tx));
 
+    const auto handle_index = [hash](const std::error_code& code)
+    {
+        if (code)
+            log_error(LOG_NODE) << format(BN_TX_INDEX_ERROR) % hash % 
+                code.message();
+    };
+
     if (code)
-        log_warning(LOG_NODE) << format(BN_MEMPOOL_ERROR) % hash %
+        log_warning(LOG_NODE) << format(BN_TX_ACCEPT_ERROR) % hash %
             code.message();
+    else if (unconfirmed.empty())
+        log_debug(LOG_NODE) << format(BN_TX_ACCEPTED) % hash;
     else
-        log_debug(LOG_NODE) << format(BN_ACCEPTED_TRANSACTION) % hash %
+        log_debug(LOG_NODE) << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash %
             format_unconfirmed_inputs(unconfirmed);
         
     if (!code)
