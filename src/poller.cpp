@@ -58,8 +58,8 @@ void poller::initial_ask_blocks(const std::error_code& code,
 {
     if (code)
     {
-        log_error(LOG_POLLER)
-            << "Fetching initial block locator: " << code.message();
+        log_error(LOG_POLLER) << "Fetching initial block locator: "
+            << code.message();
         return;
     }
 
@@ -70,7 +70,8 @@ void poller::initial_ask_blocks(const std::error_code& code,
 void handle_send_packet(const std::error_code& code)
 {
     if (code)
-        log_error(LOG_POLLER) << "Send problem: " << code.message();
+        log_error(LOG_POLLER) << "Send problem: "
+            << code.message();
 }
 
 void poller::receive_inv(const std::error_code& code,
@@ -78,7 +79,8 @@ void poller::receive_inv(const std::error_code& code,
 {
     if (code)
     {
-        log_warning(LOG_POLLER) << "Received bad inventory: " << code.message();
+        log_warning(LOG_POLLER) << "Received bad inventory: "
+            << code.message();
         return;
     }
 
@@ -104,17 +106,18 @@ void poller::receive_inv(const std::error_code& code,
 }
 
 void poller::receive_block(const std::error_code& code,
-    const block_type& blk, channel_ptr node)
+    const block_type& block, channel_ptr node)
 {
     if (code)
     {
-        log_warning(LOG_POLLER) << "Received bad block: " << code.message();
+        log_warning(LOG_POLLER) << "Received bad block: "
+            << code.message();
         return;
     }
 
-    chain_.store(blk,
+    chain_.store(block,
         strand_.wrap(&poller::handle_store,
-            this, _1, _2, hash_block_header(blk.header), node));
+            this, _1, _2, hash_block_header(block.header), node));
 
     BITCOIN_ASSERT(node);
     node->subscribe_block(
@@ -125,36 +128,49 @@ void poller::receive_block(const std::error_code& code,
 void poller::handle_store(const std::error_code& code, block_info info,
     const hash_digest& block_hash, channel_ptr node)
 {
-    // We need orphan blocks so we can do the next getblocks round
-    if (code && info.status != block_status::orphan)
+    if (code == error::duplicate /*&& info.status == block_status::rejected*/)
     {
-        log_warning(LOG_POLLER)
-            << "Storing block " << encode_hash(block_hash)
-            << ": " << code.message();
+        // This is common, we get blocks we already have.
+        log_debug(LOG_POLLER) << "Redundant block " 
+            << encode_hash(block_hash);
+        return;
+    }
+
+    // We need orphan blocks so we can do the next getblocks round.
+    // So code should not be set when info.status is block_status::orphan.
+    if (code /*&& info.status != block_status::orphan*/)
+    {
+        log_error(LOG_POLLER) << "Error storing block "
+            << encode_hash(block_hash) << ": " << code.message();
         return;
     }
 
     switch (info.status)
     {
+        // The block has been accepted as an orphan (code not set).
         case block_status::orphan:
-            log_warning(LOG_POLLER) << "Orphan block "
+            log_debug(LOG_POLLER) << "Potential block " 
                 << encode_hash(block_hash);
 
             // TODO: Make more efficient by storing block hash
             // and next time do not download orphan block again.
-            // Remember to remove from list once block is no longer orphan
+            // Remember to remove from list once block is no longer orphan.
             fetch_block_locator(chain_, strand_.wrap(
                 &poller::ask_blocks, this, _1, _2, block_hash, node));
+
             break;
 
+        // The block has been rejected from the store.
+        // TODO: determine if code is also set, since that is already handled.
         case block_status::rejected:
-            log_warning(LOG_POLLER) << "Rejected block "
+            log_warning(LOG_POLLER) << "Rejected block " 
                 << encode_hash(block_hash);
             break;
 
+        // The block has been accepted into the long chain (code not set).
         case block_status::confirmed:
-            log_info(LOG_POLLER)
-                << "Block #" << info.height << " " << encode_hash(block_hash);
+            log_info(LOG_POLLER) << "Block #" 
+                << info.height << " " << encode_hash(block_hash);
             break;
     }
 }
@@ -165,7 +181,8 @@ void poller::ask_blocks(const std::error_code& code,
 {
     if (code)
     {
-        log_error(LOG_POLLER) << "Ask for blocks: " << code.message();
+        log_error(LOG_POLLER) << "Ask for blocks: "
+            << code.message();
         return;
     }
 

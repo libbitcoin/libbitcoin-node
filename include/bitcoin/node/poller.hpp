@@ -39,7 +39,7 @@ private:
     void receive_inv(const std::error_code& code,
         const inventory_type& packet, bc::network::channel_ptr node);
     void receive_block(const std::error_code& code,
-        const block_type& blk, bc::network::channel_ptr node);
+        const block_type& block, bc::network::channel_ptr node);
     void handle_store(const std::error_code& code, block_info info,
         const hash_digest& block_hash, bc::network::channel_ptr node);
     void ask_blocks(const std::error_code& code,
