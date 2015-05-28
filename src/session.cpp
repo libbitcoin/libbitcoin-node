@@ -34,20 +34,25 @@ using namespace bc::network;
 session::session(threadpool& pool, handshake& handshake,
     protocol& protocol, blockchain& blockchain, poller& poller,
     transaction_pool& transaction_pool)
-  : strand_(pool.service()), handshake_(handshake), protocol_(protocol),
-    chain_(blockchain), poll_(poller), tx_pool_(transaction_pool)
+  : strand_(pool.service()),
+    handshake_(handshake),
+    protocol_(protocol),
+    chain_(blockchain),
+    poll_(poller),
+    tx_pool_(transaction_pool)
 {
 }
 
 void session::start(completion_handler handle_complete)
 {
     protocol_.start(handle_complete);
-    protocol_.subscribe_channel(std::bind(&session::new_channel, this, _1, _2));
 
-    static const auto handle_handshake_height_set = [](const std::error_code&)
-    {
-        // Start height now set in handshake, so do nothing.
-    };
+    protocol_.subscribe_channel(
+        std::bind(&session::new_channel,
+            this, _1, _2));
+
+    // Start height now set in handshake, so do nothing.
+    const auto handle_set_height = [](const std::error_code&) {};
 
     // set_start_height expects uint32_t but fetch_last_height returns
     // height as uint64_t. This results in integer narrowing compile warnings.
@@ -57,11 +62,12 @@ void session::start(completion_handler handle_complete)
     // inconsistency would remain. That issue won't become a problem until
     // the year ~ 3375. By that time Professor Farnsworth can fix it.
     chain_.fetch_last_height(
-        std::bind(&handshake::set_start_height, &handshake_, _2, 
-            handle_handshake_height_set));
+        std::bind(&handshake::set_start_height,
+            &handshake_, _2, handle_set_height));
 
     chain_.subscribe_reorganize(
-        std::bind(&session::set_start_height, this, _1, _2, _3, _4));
+        std::bind(&session::set_start_height,
+            this, _1, _2, _3, _4));
 }
 
 void session::stop(completion_handler handle_complete)
@@ -69,52 +75,55 @@ void session::stop(completion_handler handle_complete)
     protocol_.stop(handle_complete);
 }
 
-void session::new_channel(const std::error_code& code,
-    channel_ptr node)
+void session::new_channel(const std::error_code& ec, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
-        log_warning(LOG_SESSION) << "New channel: " << code.message();
+        log_warning(LOG_SESSION) << "New channel: " << ec.message();
         return;
     }
 
     BITCOIN_ASSERT(node);
     node->subscribe_inventory(
-        std::bind(&session::inventory, this, _1, _2, node));
+        std::bind(&session::inventory,
+            this, _1, _2, node));
+
     node->subscribe_get_blocks(
-        std::bind(&session::get_blocks, this, _1, _2, node));
+        std::bind(&session::get_blocks,
+            this, _1, _2, node));
 
     // tx, block
     protocol_.subscribe_channel(
-        std::bind(&session::new_channel, this, _1, _2));
+        std::bind(&session::new_channel,
+            this, _1, _2));
+
     poll_.query(node);
     poll_.monitor(node);
 }
 
-void session::set_start_height(const std::error_code& code,
+void session::set_start_height(const std::error_code& ec,
     uint64_t fork_point, const blockchain::block_list& new_blocks,
     const blockchain::block_list& /* replaced_blocks */)
 {
-    if (code)
+    if (ec)
     {
-        BITCOIN_ASSERT(code == error::service_stopped);
+        BITCOIN_ASSERT(ec == error::service_stopped);
         return;
     }
 
-    static const auto handle_handshake_height_set = [](const std::error_code&)
-    {
-        // Start height now set in handshake, so do nothing.
-    };
+    // Start height now set in handshake, so do nothing.
+    static const auto handle_set_height = [](const std::error_code&) {};
 
     // Start height is limited to max_uint32 by satoshi protocol (version).
     BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
-    auto start_height = static_cast<uint32_t>(fork_point + new_blocks.size());
-    handshake_.set_start_height(start_height, handle_handshake_height_set);
+    const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
+    handshake_.set_start_height(height, handle_set_height);
 
     chain_.subscribe_reorganize(
-        std::bind(&session::set_start_height, this, _1, _2, _3, _4));
+        std::bind(&session::set_start_height,
+            this, _1, _2, _3, _4));
 
-    // Broadcast invs of new blocks
+    // Broadcast invs of new blocks.
     inventory_type blocks_inv;
     for (const auto block: new_blocks)
         blocks_inv.inventories.push_back(
@@ -123,16 +132,16 @@ void session::set_start_height(const std::error_code& code,
             hash_block_header(block->header)
         });
 
-    auto ignore_handler = [](const std::error_code&, size_t) {};
+    const auto ignore_handler = [](const std::error_code&, size_t) {};
     protocol_.broadcast(blocks_inv, ignore_handler);
 }
 
-void session::inventory(const std::error_code& code,
+void session::inventory(const std::error_code& ec,
     const inventory_type& packet, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
-        log_warning(LOG_SESSION) << "inventory: " << code.message();
+        log_warning(LOG_SESSION) << "inventory: " << ec.message();
         return;
     }
 
@@ -140,8 +149,8 @@ void session::inventory(const std::error_code& code,
     {
         if (inventory.type == inventory_type_id::transaction)
         {
-            strand_.post(std::bind(&session::new_tx_inventory, this,
-                inventory.hash, node));
+            strand_.post(std::bind(&session::new_tx_inventory,
+                this, inventory.hash, node));
         }
         else if (inventory.type != inventory_type_id::block)
         {
@@ -152,22 +161,24 @@ void session::inventory(const std::error_code& code,
 
     BITCOIN_ASSERT(node);
     node->subscribe_inventory(
-        std::bind(&session::inventory, this, _1, _2, node));
+        std::bind(&session::inventory,
+            this, _1, _2, node));
 }
 
 void session::new_tx_inventory(const hash_digest& tx_hash, channel_ptr node)
 {
     // If the tx doesn't exist, issue getdata.
     tx_pool_.exists(tx_hash, 
-        std::bind(&session::request_tx_data, this, _1, tx_hash, node));
+        std::bind(&session::request_tx_data,
+            this, _1, tx_hash, node));
 }
 
-void session::get_blocks(const std::error_code& code,
-    const get_blocks_type&, channel_ptr node)
+void session::get_blocks(const std::error_code& ec, const get_blocks_type&,
+    channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
-        log_warning(LOG_SESSION) << "get_blocks: " << code.message();
+        log_warning(LOG_SESSION) << "get_blocks: " << ec.message();
         return;
     }
 
@@ -177,7 +188,8 @@ void session::get_blocks(const std::error_code& code,
     // getdata done for it.
     BITCOIN_ASSERT(node);
     node->subscribe_get_blocks(
-        std::bind(&session::get_blocks, this, _1, _2, node));
+        std::bind(&session::get_blocks,
+            this, _1, _2, node));
 }
 
 void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
@@ -189,17 +201,18 @@ void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
     get_data_type request_tx;
     request_tx.inventories.push_back(
     {
-        inventory_type_id::transaction, tx_hash
+        inventory_type_id::transaction,
+        tx_hash
     });
 
-    const auto handle_send_get_data = [](const std::error_code& code)
+    const auto handle_request = [](const std::error_code& ec)
     {
-        if (code)
-            log_error(LOG_SESSION) << "Requesting data: " << code.message();
+        if (ec)
+            log_error(LOG_SESSION) << "Requesting data: " << ec.message();
     };
 
     BITCOIN_ASSERT(node);
-    node->send(request_tx, handle_send_get_data);
+    node->send(request_tx, handle_request);
 }
 
 } // namespace node

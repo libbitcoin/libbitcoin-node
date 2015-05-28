@@ -23,6 +23,7 @@
 #include <iostream>
 #include <string>
 #include <system_error>
+#include <vector>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
@@ -75,14 +76,15 @@ full_node::full_node(/* configuration */)
     disk_pool_(BN_THREADS_DISK, thread_priority::low),
     mem_pool_(BN_THREADS_MEMORY, thread_priority::low),
     peers_(net_pool_, BN_HOSTS_FILENAME, BN_P2P_HOSTS),
-    handshake_(net_pool_),
+    handshake_(net_pool_, BN_LISTEN_PORT),
     network_(net_pool_),
-    protocol_(net_pool_, peers_, handshake_, network_, BN_P2P_CONNECTIONS),
+    protocol_(net_pool_, peers_, handshake_, network_,
+        protocol::default_seeds, BN_LISTEN_PORT, BN_LISTEN, BN_P2P_OUTBOUND),
     chain_(disk_pool_, BN_DIRECTORY, { BN_HISTORY_START }, BN_P2P_ORPHAN_POOL),
     poller_(mem_pool_, chain_),
     txpool_(mem_pool_, chain_, BN_P2P_TX_POOL),
     txidx_(mem_pool_),
-    session_(net_pool_, handshake_, protocol_, chain_, poller_, txpool_ )
+    session_(net_pool_, handshake_, protocol_, chain_, poller_, txpool_)
 {
 }
  
@@ -90,7 +92,8 @@ bool full_node::start()
 {
     // Subscribe to new connections.
     protocol_.subscribe_channel(
-        std::bind(&full_node::connection_started, this, _1, _2));
+        std::bind(&full_node::connection_started,
+            this, _1, _2));
 
     // Start blockchain
     if (!chain_.start())
@@ -108,15 +111,15 @@ bool full_node::start()
 void full_node::stop()
 {
     std::promise<std::error_code> code_promise;
-    const auto session_stopped = [&code_promise](const std::error_code& code)
+    const auto session_stopped = [&code_promise](const std::error_code& ec)
     {
-        code_promise.set_value(code);
+        code_promise.set_value(ec);
     };
 
     session_.stop(session_stopped);
-    const auto code = code_promise.get_future().get();
-    if (code)
-        log_error(LOG_NODE) << format(BN_SESSION_STOP_ERROR) % code.message();
+    const auto ec = code_promise.get_future().get();
+    if (ec)
+        log_error(LOG_NODE) << format(BN_SESSION_STOP_ERROR) % ec.message();
 
     // Safely close blockchain database.
     chain_.stop();
@@ -142,60 +145,62 @@ transaction_indexer& full_node::indexer()
     return txidx_;
 }
 
-void full_node::handle_start(const std::error_code& code)
+void full_node::handle_start(const std::error_code& ec)
 {
-    if (code)
-        log_error(LOG_NODE) << format(BN_SESSION_START_ERROR) % code.message();
+    if (ec)
+        log_error(LOG_NODE) << format(BN_SESSION_START_ERROR) % ec.message();
 }
 
-void full_node::connection_started(const std::error_code& code,
+void full_node::connection_started(const std::error_code& ec,
     channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         log_warning(LOG_NODE) << format(BN_CONNECTION_START_ERROR) %
-            code.message();
+            ec.message();
         return;
     }
 
     // Subscribe to transaction messages from this node.
     node->subscribe_transaction(
-        std::bind(&full_node::recieve_tx, this, _1, _2, node));
+        std::bind(&full_node::recieve_tx,
+            this, _1, _2, node));
 
     // Stay subscribed to new connections.
     protocol_.subscribe_channel(
-        std::bind(&full_node::connection_started, this, _1, _2));
+        std::bind(&full_node::connection_started,
+            this, _1, _2));
 }
 
-void full_node::recieve_tx(const std::error_code& code,
+void full_node::recieve_tx(const std::error_code& ec,
     const transaction_type& tx, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
         log_error(LOG_NODE) << format(BN_TX_RECEIVE_ERROR) % hash %
-            code.message();
+            ec.message();
         return;
     }
 
     // Called when the transaction becomes confirmed in a block.
-    const auto handle_confirm = [this, tx](const std::error_code& code)
+    const auto handle_confirm = [this, tx](const std::error_code& ec)
     {
         // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
 
-        if (code)
+        if (ec)
             log_error(LOG_NODE) << format(BN_TX_CONFIRM_ERROR) % hash %
-                code.message();
+            ec.message();
         else
             log_debug(LOG_NODE) << format(BN_TX_CONFIRMED) % hash;
 
-        const auto handle_deindex = [hash](const std::error_code& code)
+        const auto handle_deindex = [hash](const std::error_code& ec)
         {
-            if (code)
+            if (ec)
                 log_error(LOG_NODE) << format(BN_TX_DEINDEX_ERROR) % hash %
-                    code.message();
+                ec.message();
         };
 
         txidx_.deindex(tx, handle_deindex);
@@ -203,11 +208,13 @@ void full_node::recieve_tx(const std::error_code& code,
 
     // Validate and store the tx in the transaction mempool.
     txpool_.store(tx, handle_confirm,
-        std::bind(&full_node::new_unconfirm_valid_tx, this, _1, _2, tx));
+        std::bind(&full_node::new_unconfirm_valid_tx,
+            this, _1, _2, tx));
 
     // Resubscribe to receive transaction messages from this node.
     node->subscribe_transaction(
-        std::bind(&full_node::recieve_tx, this, _1, _2, node));
+        std::bind(&full_node::recieve_tx,
+            this, _1, _2, node));
 }
 
 static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
@@ -222,29 +229,29 @@ static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
     return bc::join(inputs, ",");
 }
 
-void full_node::new_unconfirm_valid_tx(const std::error_code& code,
+void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
     const index_list& unconfirmed, const transaction_type& tx)
 {
     // TODO: format the hash/output so it matches the txid.
     const auto hash = encode_hash(hash_transaction(tx));
 
-    const auto handle_index = [hash](const std::error_code& code)
+    const auto handle_index = [hash](const std::error_code& ec)
     {
-        if (code)
+        if (ec)
             log_error(LOG_NODE) << format(BN_TX_INDEX_ERROR) % hash % 
-                code.message();
+            ec.message();
     };
 
-    if (code)
+    if (ec)
         log_warning(LOG_NODE) << format(BN_TX_ACCEPT_ERROR) % hash %
-            code.message();
+        ec.message();
     else if (unconfirmed.empty())
         log_debug(LOG_NODE) << format(BN_TX_ACCEPTED) % hash;
     else
         log_debug(LOG_NODE) << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash %
             format_unconfirmed_inputs(unconfirmed);
         
-    if (!code)
+    if (!ec)
         txidx_.index(tx, handle_index);
 }
 

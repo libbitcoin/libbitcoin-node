@@ -49,10 +49,10 @@ void getx_responder::monitor(channel_ptr node)
             this, _1, _2, special));
 }
 
-void getx_responder::receive_get_data(const std::error_code& code,
+void getx_responder::receive_get_data(const std::error_code& ec,
     const get_data_type& packet, channel_with_state special)
 {
-    if (code)
+    if (ec)
         return;
 
     for (const auto& inv: packet.inventories)
@@ -86,10 +86,10 @@ void getx_responder::receive_get_data(const std::error_code& code,
             this, _1, _2, special));
 }
 
-void getx_responder::pool_tx(const std::error_code& code,
+void getx_responder::pool_tx(const std::error_code& ec,
     const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         chain_.fetch_transaction(tx_hash,
             std::bind(&getx_responder::chain_tx,
@@ -102,20 +102,20 @@ void getx_responder::pool_tx(const std::error_code& code,
     }
 }
 
-void getx_responder::chain_tx(const std::error_code& code,
+void getx_responder::chain_tx(const std::error_code& ec,
     const transaction_type& tx, channel_ptr node)
 {
-    if (!code)
+    if (!ec)
     {
         BITCOIN_ASSERT(node);
         node->send(tx, [](const std::error_code&) {});
     }
 }
 
-void getx_responder::send_block(const std::error_code& code,
+void getx_responder::send_block(const std::error_code& ec,
     const block_type& block, channel_ptr node)
 {
-    if (!code)
+    if (!ec)
     {
         BITCOIN_ASSERT(node);
         node->send(block, [](const std::error_code&) {});

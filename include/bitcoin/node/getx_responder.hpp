@@ -42,16 +42,16 @@ private:
         hash_digest hash_continue = null_hash;
     };
 
-    void receive_get_data(const std::error_code& code,
+    void receive_get_data(const std::error_code& ec,
         const get_data_type& packet, channel_with_state special);
 
-    void pool_tx(const std::error_code& code, const transaction_type& tx,
+    void pool_tx(const std::error_code& ec, const transaction_type& tx,
         const hash_digest& tx_hash, bc::network::channel_ptr node);
 
-    void chain_tx(const std::error_code& code,
+    void chain_tx(const std::error_code& ec,
         const transaction_type& tx, bc::network::channel_ptr node);
 
-    void send_block(const std::error_code& code,
+    void send_block(const std::error_code& ec,
         const block_type& block, bc::network::channel_ptr node);
 
     chain::blockchain& chain_;

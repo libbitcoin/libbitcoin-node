@@ -41,17 +41,17 @@ public:
     void stop(completion_handler handle_complete);
 
 private:
-    void new_channel(const std::error_code& code, 
+    void new_channel(const std::error_code& ec,
         bc::network::channel_ptr node);
-    void set_start_height(const std::error_code& code, uint64_t fork_point,
+    void set_start_height(const std::error_code& ec, uint64_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
-    void inventory(const std::error_code& code,
+    void inventory(const std::error_code& ec,
         const inventory_type& packet, bc::network::channel_ptr node);
-    void get_data(const std::error_code& code,
+    void get_data(const std::error_code& ec,
         const get_data_type& packet, bc::network::channel_ptr node);
-    void get_blocks(const std::error_code& code,
+    void get_blocks(const std::error_code& ec,
         const get_blocks_type& packet, bc::network::channel_ptr node);
 
     void new_tx_inventory(const hash_digest& tx_hash,

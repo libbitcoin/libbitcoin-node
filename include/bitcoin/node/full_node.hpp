@@ -32,15 +32,17 @@ namespace libbitcoin {
 namespace node {
 
 // Configuration parameters.
-#define BN_P2P_CONNECTIONS      8
-#define BN_P2P_HOSTS            1000
-#define BN_P2P_ORPHAN_POOL      200
-#define BN_P2P_TX_POOL          2000
+#define BN_LISTEN               true
+#define BN_P2P_OUTBOUND         20
+#define BN_P2P_HOSTS            2000
+#define BN_P2P_ORPHAN_POOL      500
+#define BN_P2P_TX_POOL          5000
 #define BN_THREADS_DISK         6
-#define BN_THREADS_MEMORY       1
-#define BN_THREADS_NETWORK      1
+#define BN_THREADS_MEMORY       2
+#define BN_THREADS_NETWORK      2
 #define BN_HISTORY_START        0
-#define BN_HOSTS_FILENAME       "hosts"
+#define BN_LISTEN_PORT          bc::protocol_port
+#define BN_HOSTS_FILENAME       "peers"
 #define BN_DIRECTORY            "blockchain"
 
 /**
@@ -80,11 +82,11 @@ public:
     transaction_indexer& indexer();
 
 private:
-    void handle_start(const std::error_code& code);
+    void handle_start(const std::error_code& ec);
 
     // New connection has been started.
     // Subscribe to new transaction messages from the network.
-    void connection_started(const std::error_code& code,
+    void connection_started(const std::error_code& ec,
         bc::network::channel_ptr node);
 
     // New transaction message from the network.

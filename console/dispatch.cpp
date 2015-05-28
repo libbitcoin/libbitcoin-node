@@ -78,16 +78,16 @@ using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::node;
 
-static void display_history(const std::error_code& code,
+static void display_history(const std::error_code& ec,
     const history_list& history, const payment_address& address,
     std::ostream& output)
 {
     const auto encoded_address = address.encoded();
 
-    if (code)
+    if (ec)
     {
         output << format(BN_FETCH_HISTORY_FAIL) % encoded_address %
-            code.message();
+            ec.message();
         return;
     }
 
@@ -117,13 +117,13 @@ static void display_version(std::ostream& stream)
 static console_result init_chain(const path& directory, std::ostream& output,
     std::ostream& error)
 {
-    error_code code;
-    if (!create_directories(directory, code))
+    error_code ec;
+    if (!create_directories(directory, ec))
     {
-        if (code.value() == 0)
+        if (ec.value() == 0)
             error << format(BN_INITCHAIN_DIR_EXISTS) % directory << std::endl;
         else
-            error << format(BN_INITCHAIN_DIR_NEW) % directory % code.message()
+            error << format(BN_INITCHAIN_DIR_NEW) % directory % ec.message()
                 << std::endl;
 
         return console_result::failure;
@@ -149,13 +149,13 @@ static console_result init_chain(const path& directory, std::ostream& output,
 // Use missing directory as a sentinel indicating lack of initialization.
 static console_result verify_chain(const path& directory, std::ostream& error)
 {
-    error_code code;
-    if (!exists(directory, code))
+    error_code ec;
+    if (!exists(directory, ec))
     {
-        if (code.value() == 2)
+        if (ec.value() == 2)
             error << format(BN_UNINITIALIZED_CHAIN) % directory << std::endl;
         else
-            error << format(BN_INITCHAIN_DIR_TEST) % directory % code.message()
+            error << format(BN_INITCHAIN_DIR_TEST) % directory % ec.message()
                 << std::endl;
 
         return console_result::failure;
@@ -256,10 +256,10 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             continue;
         }
 
-        const auto fetch_handler = [&](const std::error_code& code,
+        const auto fetch_handler = [&](const std::error_code& ec,
             const history_list& history)
         {
-            display_history(code, history, address, output);
+            display_history(ec, history, address, output);
         };
 
         fetch_history(node.chain(), node.indexer(), address, fetch_handler);

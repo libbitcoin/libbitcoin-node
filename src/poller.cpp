@@ -31,8 +31,11 @@ using std::placeholders::_2;
 using boost::asio::io_service;
 
 poller::poller(threadpool& pool, blockchain& chain)
-  : strand_(pool), chain_(chain), last_block_hash_(null_hash),
-    last_locator_begin_(null_hash), last_hash_stop_(null_hash), 
+  : strand_(pool),
+    chain_(chain),
+    last_block_hash_(null_hash),
+    last_locator_begin_(null_hash),
+    last_hash_stop_(null_hash), 
     last_requested_node_(nullptr)
 {
 }
@@ -47,40 +50,43 @@ void poller::query(channel_ptr node)
 void poller::monitor(channel_ptr node)
 {
     node->subscribe_inventory(
-        strand_.wrap(&poller::receive_inv, this, _1, _2, node));
+        strand_.wrap(&poller::receive_inv,
+            this, _1, _2, node));
+
     node->subscribe_block(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 }
 
-void poller::initial_ask_blocks(const std::error_code& code,
+void poller::initial_ask_blocks(const std::error_code& ec,
     const block_locator_type& locator, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         log_error(LOG_POLLER) << "Fetching initial block locator: "
-            << code.message();
+            << ec.message();
         return;
     }
 
     strand_.randomly_queue(
-        &poller::ask_blocks, this, code, locator, null_hash, node);
+        &poller::ask_blocks,
+            this, ec, locator, null_hash, node);
 }
 
-void handle_send_packet(const std::error_code& code)
+void handle_send_packet(const std::error_code& ec)
 {
-    if (code)
+    if (ec)
         log_error(LOG_POLLER) << "Send problem: "
-            << code.message();
+            << ec.message();
 }
 
-void poller::receive_inv(const std::error_code& code,
+void poller::receive_inv(const std::error_code& ec,
     const inventory_type& packet, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         log_warning(LOG_POLLER) << "Received bad inventory: "
-            << code.message();
+            << ec.message();
         return;
     }
 
@@ -102,16 +108,17 @@ void poller::receive_inv(const std::error_code& code,
     }
 
     node->subscribe_inventory(
-        strand_.wrap(&poller::receive_inv, this, _1, _2, node));
+        strand_.wrap(&poller::receive_inv,
+            this, _1, _2, node));
 }
 
-void poller::receive_block(const std::error_code& code,
+void poller::receive_block(const std::error_code& ec,
     const block_type& block, channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         log_warning(LOG_POLLER) << "Received bad block: "
-            << code.message();
+            << ec.message();
         return;
     }
 
@@ -125,10 +132,10 @@ void poller::receive_block(const std::error_code& code,
             this, _1, _2, node));
 }
 
-void poller::handle_store(const std::error_code& code, block_info info,
+void poller::handle_store(const std::error_code& ec, block_info info,
     const hash_digest& block_hash, channel_ptr node)
 {
-    if (code == error::duplicate /*&& info.status == block_status::rejected*/)
+    if (ec == error::duplicate /*&& info.status == block_status::rejected*/)
     {
         // This is common, we get blocks we already have.
         log_debug(LOG_POLLER) << "Redundant block " 
@@ -137,17 +144,17 @@ void poller::handle_store(const std::error_code& code, block_info info,
     }
 
     // We need orphan blocks so we can do the next getblocks round.
-    // So code should not be set when info.status is block_status::orphan.
-    if (code /*&& info.status != block_status::orphan*/)
+    // So ec should not be set when info.status is block_status::orphan.
+    if (ec /*&& info.status != block_status::orphan*/)
     {
         log_error(LOG_POLLER) << "Error storing block "
-            << encode_hash(block_hash) << ": " << code.message();
+            << encode_hash(block_hash) << ": " << ec.message();
         return;
     }
 
     switch (info.status)
     {
-        // The block has been accepted as an orphan (code not set).
+        // The block has been accepted as an orphan (ec not set).
         case block_status::orphan:
             log_debug(LOG_POLLER) << "Potential block " 
                 << encode_hash(block_hash);
@@ -161,13 +168,13 @@ void poller::handle_store(const std::error_code& code, block_info info,
             break;
 
         // The block has been rejected from the store.
-        // TODO: determine if code is also set, since that is already handled.
+        // TODO: determine if ec is also set, since that is already handled.
         case block_status::rejected:
             log_warning(LOG_POLLER) << "Rejected block " 
                 << encode_hash(block_hash);
             break;
 
-        // The block has been accepted into the long chain (code not set).
+        // The block has been accepted into the long chain (ec not set).
         case block_status::confirmed:
             log_info(LOG_POLLER) << "Block #" 
                 << info.height << " " << encode_hash(block_hash);
@@ -175,17 +182,17 @@ void poller::handle_store(const std::error_code& code, block_info info,
     }
 }
 
-void poller::ask_blocks(const std::error_code& code,
+void poller::ask_blocks(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
 {
-    if (code)
+    if (ec)
     {
         log_error(LOG_POLLER) << "Ask for blocks: "
-            << code.message();
+            << ec.message();
         return;
     }
-
+    
     if (last_locator_begin_ == locator.front() &&
         last_hash_stop_ == hash_stop && last_requested_node_ == node.get())
     {

@@ -43,70 +43,36 @@ class BCN_API transaction_indexer
 {
 public:
     typedef std::function<void (const std::error_code&)> completion_handler;
-
-    typedef std::function<void (const std::error_code& code,
+    typedef std::function<void (const std::error_code& ec,
         const output_info_list& outputs, const spend_info_list& spends)>
             query_handler;
 
     transaction_indexer(threadpool& pool);
 
-    /// Non-copyable class
+    /// This class is not copyable.
     transaction_indexer(const transaction_indexer&) = delete;
 
-    /// Non-copyable class
+    /// This class is not copyable.
     void operator=(const transaction_indexer&) = delete;
 
     /**
      * Query all transactions indexed that are related to a Bitcoin address.
-     *
      * @param[in]   address         Bitcoin address to lookup.
      * @param[in]   handle_query    Completion handler for fetch operation.
-     * @code
-     *  void handle_query(
-     *      const std::error_code& ec,       // Status of operation
-     *      const output_info_list& outputs, // Outputs
-     *      const spend_info_list& spends    // Inputs
-     *  );
-     * @endcode
-     * @code
-     *  struct output_info_type
-     *  {
-     *      output_point point;
-     *      uint64_t value;
-     *  };
-     *
-     *  struct spend_info_type
-     *  {
-     *      input_point point;
-     *      output_point previous_output;
-     *  };
-     * @endcode
      */
     void query(const payment_address& address, query_handler handle_query);
 
     /**
      * Index a transaction.
-     *
      * @param[in]   tx              Transaction to index.
      * @param[in]   handle_index    Completion handler for index operation.
-     * @code
-     *  void handle_index(
-     *      const std::error_code& ec        // Status of operation
-     *  );
-     * @endcode
      */
     void index(const transaction_type& tx, completion_handler handle_index);
 
     /**
      * Deindex (remove from index) a transaction.
-     *
      * @param[in]   tx              Transaction to deindex.
      * @param[in]   handle_index    Completion handler for deindex operation.
-     * @code
-     *  void handle_deindex(
-     *      const std::error_code& ec        // Status of operation
-     *  );
-     * @endcode
      */
     void deindex(const transaction_type& tx, 
         completion_handler handle_deindex);
