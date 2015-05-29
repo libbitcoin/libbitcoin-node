@@ -38,8 +38,9 @@ using namespace bc::blockchain;
 using namespace bc::network;
 
 session::session(threadpool& pool, handshake& handshake, protocol& protocol,
-    blockchain& blockchain, poller& poller, transaction_pool& transaction_pool,
-    responder& responder, size_t minimum_start_height)
+    blockchain::blockchain& blockchain, poller& poller,
+    transaction_pool& transaction_pool, responder& responder,
+    size_t minimum_start_height)
   : strand_(pool),
     handshake_(handshake),
     protocol_(protocol),
@@ -190,7 +191,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             block->header.hash()
         };
 
-        blocks_inventory.inventories().push_back(inventory);
+        blocks_inventory.inventories.push_back(inventory);
     }
 
     log_debug(LOG_SESSION)
@@ -227,7 +228,7 @@ static size_t inventory_count(const message::inventory_list& inventories,
 // Put this on a short timer following lack of block inv.
 // request_blocks(null_hash, node);
 void session::receive_inv(const std::error_code& ec,
-    const message::inventory& packet, channel_ptr node)
+    const message::inventory& packet, channel::pointer node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -308,7 +309,8 @@ void session::receive_inv(const std::error_code& ec,
             this, _1, _2, node));
 }
 
-void session::new_tx_inventory(const hash_digest& tx_hash, channel_ptr node)
+void session::new_tx_inventory(const hash_digest& tx_hash,
+    channel::pointer node)
 {
     // If the tx doesn't exist in our mempool, issue getdata.
     tx_pool_.exists(tx_hash, 
@@ -363,7 +365,7 @@ void session::request_tx_data(const std::error_code& ec, bool tx_exists,
 }
 
 void session::new_block_inventory(const hash_digest& block_hash,
-    channel_ptr node)
+    channel::pointer node)
 {
     const auto request_block = [this, block_hash, node]
         (const std::error_code& ec, const chain::block& block)

@@ -79,7 +79,7 @@ private:
         network::channel_ptr node);
 
     void fetch_block_handler(const std::error_code& ec,
-        const block_type& block, const hash_digest block_hash,
+        const chain::block& block, const hash_digest block_hash,
         network::channel_ptr node);
 
     sequencer strand_;

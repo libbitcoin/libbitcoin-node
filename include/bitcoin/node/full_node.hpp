@@ -100,11 +100,11 @@ public:
     virtual bool stop();
 
     // Accessors
-    virtual chain::blockchain& blockchain();
-    virtual chain::transaction_pool& transaction_pool();
+    virtual blockchain::blockchain& blockchain();
+    virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
     virtual network::protocol& protocol();
-    virtual threadpool& pool();
+    virtual threadpool& threadpool();
 
 protected:
     // Result of store operation in transaction pool.
@@ -119,13 +119,14 @@ protected:
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
     virtual void recieve_tx(const std::error_code& ec,
-        const transaction_type& tx, network::channel_ptr node);
+        const chain::transaction& tx, network::channel_ptr node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
     virtual void broadcast_new_blocks(const std::error_code& ec,
-        uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& replaced_blocks);
+        uint32_t fork_point,
+        const blockchain::blockchain::block_list& new_blocks,
+        const blockchain::blockchain::block_list& replaced_blocks);
 
     // These must be bc types.
     bc::ofstream debug_file_;
@@ -138,20 +139,23 @@ protected:
     network::protocol protocol_;
 
     threadpool database_threads_;
-    chain::blockchain_impl blockchain_;
+    blockchain::blockchain_impl blockchain_;
 
     threadpool memory_threads_;
-    chain::transaction_pool tx_pool_;
+    blockchain::transaction_pool tx_pool_;
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;
     node::session session_;
 
 private:
+
     void handle_start(const std::error_code& ec,
         std::promise<std::error_code>& promise);
+
     void handle_stop(const std::error_code& ec,
         std::promise<std::error_code>& promise);
+
     void set_height(const std::error_code& ec, uint64_t height,
         std::promise<std::error_code>& promise);
 };
