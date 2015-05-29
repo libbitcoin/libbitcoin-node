@@ -41,7 +41,7 @@ poller::poller(threadpool& pool, blockchain::blockchain& chain)
 }
 
 // Start monitoring this channel.
-void poller::monitor(channel_ptr node)
+void poller::monitor(channel::pointer node)
 {
     if (!node)
     {
@@ -128,7 +128,7 @@ void poller::monitor(channel_ptr node)
 //}
 
 void poller::receive_block(const std::error_code& ec,
-    const chain::block& block, channel_ptr node)
+    const chain::block& block, channel::pointer node)
 {
     if (!node)
         return;
@@ -153,7 +153,7 @@ void poller::receive_block(const std::error_code& ec,
 
 void poller::handle_store_block(const std::error_code& ec,
     blockchain::block_info info, const hash_digest& block_hash,
-    channel_ptr node)
+    channel::pointer node)
 {
     if (ec == error::duplicate)
     {
@@ -208,7 +208,7 @@ void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 // Not having orphans will cause a stall 
 void poller::ask_blocks(const std::error_code& ec,
     const message::block_locator& locator, const hash_digest& hash_stop,
-    channel_ptr node)
+    channel::pointer node)
 {
     if (!node)
         return;
@@ -248,7 +248,7 @@ void poller::ask_blocks(const std::error_code& ec,
     };
 
     // Send get_blocks request.
-    const message::get_blocks packet(locator, hash_stop);
+    const message::get_blocks packet{ locator, hash_stop };
     node->send(packet, handle_error);
 
     // Update last values.

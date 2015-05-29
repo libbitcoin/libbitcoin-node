@@ -77,8 +77,8 @@ public:
     virtual bool stop();
 
     // Accessors
-    virtual bc::chain::blockchain& blockchain();
-    virtual bc::chain::transaction_pool& transaction_pool();
+    virtual bc::blockchain::blockchain& blockchain();
+    virtual bc::blockchain::transaction_pool& transaction_pool();
     virtual bc::node::indexer& transaction_indexer();
     virtual bc::network::protocol& protocol();
     virtual bc::threadpool& threadpool();
@@ -96,19 +96,23 @@ protected:
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
     virtual void recieve_tx(const std::error_code& ec,
-        const transaction_type& tx, bc::network::channel_ptr node);
+        const chain::transaction& tx, bc::network::channel_ptr node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
     virtual void broadcast_new_blocks(const std::error_code& ec,
-        uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& replaced_blocks);
+        uint32_t fork_point,
+        const blockchain::blockchain::block_list& new_blocks,
+        const blockchain::blockchain::block_list& replaced_blocks);
 
 private:
+
     void handle_start(const std::error_code& ec,
         std::promise<std::error_code>& promise);
+
     void handle_stop(const std::error_code& ec,
         std::promise<std::error_code>& promise);
+
     void set_height(const std::error_code& ec, uint64_t height,
         std::promise<std::error_code>& promise);
 
@@ -119,8 +123,8 @@ private:
     bc::network::handshake handshake_;
     bc::network::network network_;
     bc::network::protocol protocol_;
-    bc::chain::blockchain_impl blockchain_;
-    bc::chain::transaction_pool tx_pool_;
+    bc::blockchain::blockchain_impl blockchain_;
+    bc::blockchain::transaction_pool tx_pool_;
     bc::node::indexer tx_indexer_;
     bc::node::poller poller_;
     bc::node::session session_;

@@ -24,7 +24,7 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace bc::chain;
+using namespace bc::blockchain;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -94,7 +94,7 @@ void indexer::index(const chain::transaction& tx,
 void indexer::do_index(const chain::transaction& tx,
     completion_handler handle_index)
 {
-    const auto tx_hash = hash_transaction(tx);
+    const auto tx_hash = tx.hash();
 
     uint32_t index = 0;
     for (const auto& input: tx.inputs)
@@ -121,12 +121,12 @@ void indexer::do_index(const chain::transaction& tx,
 
         if (extract(address, output.script))
         {
-            output_point point{tx_hash, index};
+            chain::output_point point{ tx_hash, index };
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, outputs_map_),
                 "Transaction output is indexed multiple times!");
             outputs_map_.emplace(address,
-                output_info_type{point, output.value});
+                wallet::output_info{ point, output.value });
         }
 
         ++index;
@@ -146,7 +146,7 @@ void indexer::deindex(const chain::transaction& tx,
 void indexer::do_deindex(const chain::transaction& tx,
     completion_handler handle_deindex)
 {
-    const auto tx_hash = hash_transaction(tx);
+    const auto tx_hash = tx.hash();
 
     uint32_t index = 0;
 
@@ -195,8 +195,8 @@ void indexer::do_deindex(const chain::transaction& tx,
     handle_deindex(std::error_code());
 }
 
-static bool is_output_conflict(history_list& history,
-    const wallet::output_info_type& output)
+static bool is_output_conflict(blockchain::history_list& history,
+    const wallet::output_info& output)
 {
     // Usually the indexer and memory doesn't have any transactions indexed and
     // already confirmed and in the blockchain. This is a rare corner case.
@@ -218,7 +218,7 @@ static bool is_spend_conflict(history_list& history,
 }
 
 static void add_history_output(history_list& history,
-    const output_info_type& output)
+    const wallet::output_info& output)
 {
     history.emplace_back(history_row
     {
@@ -232,12 +232,12 @@ static void add_history_spend(history_list& history,
     history.emplace_back(history_row
     {
         point_ident::spend, spend.point, 0, 
-        { chain::spend_checksum(spend.previous_output) }
+        { blockchain::spend_checksum(spend.previous_output) }
     });
 }
 
 static void add_history_outputs(history_list& history,
-    const output_info_list& outputs)
+    const wallet::output_info_list& outputs)
 {
     // If everything okay insert the outpoint.
     for (const auto& output: outputs)
@@ -300,7 +300,7 @@ void blockchain_history_fetched(const std::error_code& ec,
 }
 
 // Fetch the history first from the blockchain and then from the indexer.
-void fetch_history(blockchain& chain, indexer& indexer,
+void fetch_history(blockchain::blockchain& chain, indexer& indexer,
     const wallet::payment_address& address,
     blockchain::blockchain::fetch_handler_history handle_fetch,
     size_t from_height)

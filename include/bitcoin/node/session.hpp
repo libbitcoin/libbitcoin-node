@@ -53,33 +53,33 @@ private:
         completion_handler handle_complete);
 
     void new_channel(const std::error_code& ec,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     void broadcast_new_blocks(const std::error_code& ec, uint32_t fork_point,
         const blockchain::blockchain::block_list& new_blocks,
         const blockchain::blockchain::block_list& replaced_blocks);
 
     void receive_inv(const std::error_code& ec,
-        const message::inventory& packet, bc::network::channel_ptr node);
+        const message::inventory& packet, bc::network::channel::pointer node);
 
     void receive_get_blocks(const std::error_code& ec,
-        const message::get_blocks& packet, bc::network::channel_ptr node);
+        const message::get_blocks& packet, bc::network::channel::pointer node);
 
     void new_tx_inventory(const hash_digest& tx_hash, 
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     void request_tx_data(bool tx_exists, const hash_digest& tx_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     void new_block_inventory(const hash_digest& block_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     void request_block_data(const hash_digest& block_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     void fetch_block_handler(const std::error_code& ec,
         const block_type& block, const hash_digest block_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     async_strand strand_;
     bc::network::handshake& handshake_;
