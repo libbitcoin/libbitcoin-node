@@ -103,7 +103,7 @@ void transaction_indexer::do_index(const transaction_type& tx,
             input_point point{tx_hash, index};
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, spends_map_),
-                "Transaction input is indexed duplicate times!");
+                "Transaction input is indexed multiple times!");
             spends_map_.emplace(address,
                 spend_info_type{point, input.previous_output});
         }
@@ -120,7 +120,7 @@ void transaction_indexer::do_index(const transaction_type& tx,
             output_point point{tx_hash, index};
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, outputs_map_),
-                "Transaction output is indexed duplicate times!");
+                "Transaction output is indexed multiple times!");
             outputs_map_.emplace(address,
                 output_info_type{point, output.value});
         }
