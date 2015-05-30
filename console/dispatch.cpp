@@ -132,7 +132,7 @@ static console_result init_chain(const path& directory, std::ostream& output,
     output << format(BN_INITCHAIN) % directory << std::endl;
 
     // Allocate empty blockchain files.
-    const auto& prefix = directory.string();
+    const auto prefix = directory.string();
     if (!initialize_blockchain(prefix))
         return console_result::failure;
 

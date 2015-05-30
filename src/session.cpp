@@ -124,7 +124,7 @@ void session::set_start_height(const std::error_code& ec,
 
     // Broadcast invs of new blocks.
     inventory_type blocks_inventory;
-    for (const auto& block: new_blocks)
+    for (const auto block: new_blocks)
         blocks_inventory.inventories.push_back(
         {
             inventory_type_id::block, 
