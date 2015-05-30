@@ -79,7 +79,13 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
 {
     if (ec)
     {
-        log_warning(LOG_SESSION) << "New channel: " << ec.message();
+        if (node)
+            log_error(LOG_SESSION)
+                << "Failure to establish channel with ["
+                << node->address().to_string() << "] " << ec.message();
+        else
+            log_error(LOG_SESSION)
+                << "Failure to establish channel: " << ec.message();
         return;
     }
 
@@ -141,7 +147,13 @@ void session::inventory(const std::error_code& ec,
 {
     if (ec)
     {
-        log_warning(LOG_SESSION) << "inventory: " << ec.message();
+        if (node)
+            log_error(LOG_SESSION)
+                << "Failure in get inventory from ["
+                << node->address().to_string() << "] " << ec.message();
+        else
+            log_error(LOG_SESSION)
+                << "Failure in get inventory: " << ec.message();
         return;
     }
 
@@ -155,7 +167,9 @@ void session::inventory(const std::error_code& ec,
         else if (inventory.type != inventory_type_id::block)
         {
             // inventory_type_id::block is handled by poller.
-            log_warning(LOG_SESSION) << "Ignoring unknown inventory type";
+            log_warning(LOG_SESSION)
+                << "Ignoring unknown inventory type from ["
+                << node->address().to_string() << "]";
         }
     }
 
@@ -178,7 +192,13 @@ void session::get_blocks(const std::error_code& ec, const get_blocks_type&,
 {
     if (ec)
     {
-        log_warning(LOG_SESSION) << "get_blocks: " << ec.message();
+        if (node)
+            log_error(LOG_SESSION) 
+                << "Failure in get blocks from [" 
+                << node->address().to_string() << "] " << ec.message();
+        else
+            log_error(LOG_SESSION)
+                << "Failure in get blocks: " << ec.message();
         return;
     }
 
@@ -205,10 +225,18 @@ void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
         tx_hash
     });
 
-    const auto handle_request = [](const std::error_code& ec)
+    const auto handle_request = [node](const std::error_code& ec)
     {
         if (ec)
-            log_error(LOG_SESSION) << "Requesting data: " << ec.message();
+        {
+            if (node)
+                log_error(LOG_SESSION) 
+                    << "Failure in get tx from [" 
+                    << node->address().to_string() << "] " << ec.message();
+            else
+                log_error(LOG_SESSION)
+                    << "Failure in get tx: " << ec.message();
+        }
     };
 
     BITCOIN_ASSERT(node);
