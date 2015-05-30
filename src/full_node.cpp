@@ -150,7 +150,8 @@ transaction_indexer& full_node::indexer()
 void full_node::handle_start(const std::error_code& ec)
 {
     if (ec)
-        log_error(LOG_NODE) << format(BN_SESSION_START_ERROR) % ec.message();
+        log_error(LOG_NODE)
+            << format(BN_SESSION_START_ERROR) % ec.message();
 }
 
 void full_node::connection_started(const std::error_code& ec,
@@ -158,8 +159,8 @@ void full_node::connection_started(const std::error_code& ec,
 {
     if (ec)
     {
-        log_warning(LOG_NODE) << format(BN_CONNECTION_START_ERROR) %
-            ec.message();
+        log_warning(LOG_NODE)
+            << format(BN_CONNECTION_START_ERROR) % ec.message();
         return;
     }
 
@@ -181,8 +182,8 @@ void full_node::recieve_tx(const std::error_code& ec,
     {
         // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
-        log_error(LOG_NODE) << format(BN_TX_RECEIVE_ERROR) % hash %
-            ec.message();
+        log_error(LOG_NODE)
+            << format(BN_TX_RECEIVE_ERROR) % hash % ec.message();
         return;
     }
 
@@ -193,16 +194,17 @@ void full_node::recieve_tx(const std::error_code& ec,
         const auto hash = encode_hash(hash_transaction(tx));
 
         if (ec)
-            log_error(LOG_NODE) << format(BN_TX_CONFIRM_ERROR) % hash %
-            ec.message();
+            log_error(LOG_NODE)
+                << format(BN_TX_CONFIRM_ERROR) % hash % ec.message();
         else
-            log_debug(LOG_NODE) << format(BN_TX_CONFIRMED) % hash;
+            log_debug(LOG_NODE)
+                << format(BN_TX_CONFIRMED) % hash;
 
         const auto handle_deindex = [hash](const std::error_code& ec)
         {
             if (ec)
-                log_error(LOG_NODE) << format(BN_TX_DEINDEX_ERROR) % hash %
-                ec.message();
+                log_error(LOG_NODE)
+                    << format(BN_TX_DEINDEX_ERROR) % hash % ec.message();
         };
 
         tx_indexer_.deindex(tx, handle_deindex);
@@ -240,18 +242,19 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
     const auto handle_index = [hash](const std::error_code& ec)
     {
         if (ec)
-            log_error(LOG_NODE) << format(BN_TX_INDEX_ERROR) % hash % 
-            ec.message();
+            log_error(LOG_NODE)
+                << format(BN_TX_INDEX_ERROR) % hash % ec.message();
     };
 
     if (ec)
-        log_warning(LOG_NODE) << format(BN_TX_ACCEPT_ERROR) % hash %
-        ec.message();
+        log_warning(LOG_NODE)
+            << format(BN_TX_ACCEPT_ERROR) % hash % ec.message();
     else if (unconfirmed.empty())
-        log_debug(LOG_NODE) << format(BN_TX_ACCEPTED) % hash;
+        log_debug(LOG_NODE)
+            << format(BN_TX_ACCEPTED) % hash;
     else
-        log_debug(LOG_NODE) << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash %
-            format_unconfirmed_inputs(unconfirmed);
+        log_debug(LOG_NODE)
+            << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash % format_unconfirmed_inputs(unconfirmed);
         
     if (!ec)
         tx_indexer_.index(tx, handle_index);
