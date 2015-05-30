@@ -55,25 +55,22 @@ void getx_responder::receive_get_data(const std::error_code& ec,
     if (ec)
         return;
 
-    for (const auto& inv: packet.inventories)
+    for (const auto& inventory: packet.inventories)
     {
-        switch (inv.type)
+        switch (inventory.type)
         {
             case inventory_type_id::transaction:
-                // First attempt lookup in faster pool, then do slow
-                // lookup in blockchain after.
-                txpool_.fetch(inv.hash,
+                txpool_.fetch(inventory.hash,
                     std::bind(&getx_responder::pool_tx,
-                        this, _1, _2, inv.hash, special.node));
+                        this, _1, _2, inventory.hash, special.node));
                 break;
 
             case inventory_type_id::block:
-                fetch_block(chain_, inv.hash,
+                fetch_block(chain_, inventory.hash,
                     std::bind(&getx_responder::send_block,
                         this, _1, _2, special.node));
                 break;
 
-            // Ignore everything else
             case inventory_type_id::error:
             case inventory_type_id::none:
             default:
