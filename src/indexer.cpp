@@ -195,7 +195,7 @@ void indexer::do_deindex(const chain::transaction& tx,
     handle_deindex(std::error_code());
 }
 
-static bool is_output_conflict(blockchain::history_list& history,
+static bool is_output_conflict(history_list& history,
     const wallet::output_info& output)
 {
     // Usually the indexer and memory doesn't have any transactions indexed and
@@ -232,7 +232,7 @@ static void add_history_spend(history_list& history,
     history.emplace_back(history_row
     {
         point_ident::spend, spend.point, 0, 
-        { blockchain::spend_checksum(spend.previous_output) }
+        { bc::blockchain::spend_checksum(spend.previous_output) }
     });
 }
 
@@ -260,8 +260,8 @@ static void add_history_spends(history_list& history,
 
 void indexer_history_fetched(const std::error_code& ec,
     const wallet::output_info_list& outputs, const spend_info_list& spends,
-    blockchain::history_list history,
-    blockchain::blockchain::fetch_handler_history handle_fetch)
+    history_list history,
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch)
 {
     if (ec)
     {
@@ -286,7 +286,7 @@ void indexer_history_fetched(const std::error_code& ec,
 void blockchain_history_fetched(const std::error_code& ec,
     const blockchain::history_list& history, indexer& indexer,
     const wallet::payment_address& address,
-    blockchain::blockchain::fetch_handler_history handle_fetch)
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch)
 {
     if (ec)
     {

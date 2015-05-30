@@ -137,8 +137,9 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
 }
 
 void session::broadcast_new_blocks(const std::error_code& ec,
-    uint32_t fork_point, const blockchain::blockchain::block_list& new_blocks,
-    const blockchain::blockchain::block_list& /* replaced_blocks */)
+    uint32_t fork_point,
+    const bc::blockchain::blockchain::block_list& new_blocks,
+    const bc::blockchain::blockchain::block_list& /* replaced_blocks */)
 {
     if (ec == error::service_stopped)
         return;
