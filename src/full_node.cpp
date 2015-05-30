@@ -72,19 +72,21 @@ using namespace boost::filesystem;
 using namespace bc::network;
 
 full_node::full_node(/* configuration */)
-  : net_pool_(BN_THREADS_NETWORK, thread_priority::normal),
-    disk_pool_(BN_THREADS_DISK, thread_priority::low),
-    mem_pool_(BN_THREADS_MEMORY, thread_priority::low),
-    peers_(net_pool_, BN_HOSTS_FILENAME, BN_P2P_HOSTS),
-    handshake_(net_pool_, BN_LISTEN_PORT),
-    network_(net_pool_),
-    protocol_(net_pool_, peers_, handshake_, network_,
+  : network_threads_(BN_THREADS_NETWORK, thread_priority::normal),
+    database_threads_(BN_THREADS_DISK, thread_priority::low),
+    memory_threads_(BN_THREADS_MEMORY, thread_priority::low),
+    host_pool_(network_threads_, BN_HOSTS_FILENAME, BN_P2P_HOST_POOL),
+    handshake_(network_threads_, BN_LISTEN_PORT),
+    network_(network_threads_),
+    protocol_(network_threads_, host_pool_, handshake_, network_,
         protocol::default_seeds, BN_LISTEN_PORT, BN_LISTEN, BN_P2P_OUTBOUND),
-    chain_(disk_pool_, BN_DIRECTORY, { BN_HISTORY_START }, BN_P2P_ORPHAN_POOL),
-    poller_(mem_pool_, chain_),
-    txpool_(mem_pool_, chain_, BN_P2P_TX_POOL),
-    txidx_(mem_pool_),
-    session_(net_pool_, handshake_, protocol_, chain_, poller_, txpool_)
+    blockchain_(database_threads_, BN_DIRECTORY, { BN_HISTORY_START },
+        BN_P2P_ORPHAN_POOL),
+    poller_(memory_threads_, blockchain_),
+    tx_pool_(memory_threads_, blockchain_, BN_P2P_TX_POOL),
+    tx_indexer_(memory_threads_),
+    session_(network_threads_, handshake_, protocol_, blockchain_, poller_,
+        tx_pool_)
 {
 }
  
@@ -96,11 +98,11 @@ bool full_node::start()
             this, _1, _2));
 
     // Start blockchain
-    if (!chain_.start())
+    if (!blockchain_.start())
         return false;
 
     // Start transaction pool
-    txpool_.start();
+    tx_pool_.start();
 
     // Fire off app.
     const auto handle_start = std::bind(&full_node::handle_start, this, _1);
@@ -122,27 +124,27 @@ void full_node::stop()
         log_error(LOG_NODE) << format(BN_SESSION_STOP_ERROR) % ec.message();
 
     // Safely close blockchain database.
-    chain_.stop();
+    blockchain_.stop();
 
     // Stop threadpools.
-    net_pool_.stop();
-    disk_pool_.stop();
-    mem_pool_.stop();
+    network_threads_.stop();
+    database_threads_.stop();
+    memory_threads_.stop();
 
     // Join threadpools. Wait for them to finish.
-    net_pool_.join();
-    disk_pool_.join();
-    mem_pool_.join();
+    network_threads_.join();
+    database_threads_.join();
+    memory_threads_.join();
 }
 
 chain::blockchain& full_node::chain()
 {
-    return chain_;
+    return blockchain_;
 }
 
 transaction_indexer& full_node::indexer()
 {
-    return txidx_;
+    return tx_indexer_;
 }
 
 void full_node::handle_start(const std::error_code& ec)
@@ -203,11 +205,11 @@ void full_node::recieve_tx(const std::error_code& ec,
                 ec.message();
         };
 
-        txidx_.deindex(tx, handle_deindex);
+        tx_indexer_.deindex(tx, handle_deindex);
     };
 
     // Validate and store the tx in the transaction mempool.
-    txpool_.store(tx, handle_confirm,
+    tx_pool_.store(tx, handle_confirm,
         std::bind(&full_node::new_unconfirm_valid_tx,
             this, _1, _2, tx));
 
@@ -252,7 +254,7 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
             format_unconfirmed_inputs(unconfirmed);
         
     if (!ec)
-        txidx_.index(tx, handle_index);
+        tx_indexer_.index(tx, handle_index);
 }
 
 } // namspace node

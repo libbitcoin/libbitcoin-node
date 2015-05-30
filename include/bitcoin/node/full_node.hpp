@@ -34,12 +34,12 @@ namespace node {
 // Configuration parameters.
 #define BN_LISTEN               true
 #define BN_P2P_OUTBOUND         20
-#define BN_P2P_HOSTS            2000
-#define BN_P2P_ORPHAN_POOL      500
-#define BN_P2P_TX_POOL          5000
+#define BN_P2P_HOST_POOL        1000
+#define BN_P2P_ORPHAN_POOL      20
+#define BN_P2P_TX_POOL          2000
 #define BN_THREADS_DISK         6
-#define BN_THREADS_MEMORY       2
-#define BN_THREADS_NETWORK      2
+#define BN_THREADS_MEMORY       1
+#define BN_THREADS_NETWORK      1
 #define BN_HISTORY_START        0
 #define BN_LISTEN_PORT          bc::protocol_port
 #define BN_HOSTS_FILENAME       "peers"
@@ -98,17 +98,17 @@ private:
     void new_unconfirm_valid_tx(const std::error_code& code,
         const index_list& unconfirmed, const transaction_type& tx);
 
-    threadpool net_pool_;
-    threadpool disk_pool_;
-    threadpool mem_pool_;
-    bc::network::hosts peers_;
+    threadpool network_threads_;
+    threadpool database_threads_;
+    threadpool memory_threads_;
+    bc::network::hosts host_pool_;
     bc::network::handshake handshake_;
     bc::network::network network_;
     bc::network::protocol protocol_;
-    chain::blockchain_impl chain_;
+    chain::blockchain_impl blockchain_;
     node::poller poller_;
-    chain::transaction_pool txpool_;
-    node::transaction_indexer txidx_;
+    chain::transaction_pool tx_pool_;
+    node::transaction_indexer tx_indexer_;
     node::session session_;
 };
 
