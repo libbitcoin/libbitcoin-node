@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSION_HPP
 
+#include <cstdint>
 #include <set>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
@@ -43,7 +44,7 @@ public:
 private:
     void new_channel(const std::error_code& ec,
         bc::network::channel_ptr node);
-    void set_start_height(const std::error_code& ec, uint64_t fork_point,
+    void set_start_height(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 

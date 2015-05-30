@@ -54,13 +54,6 @@ void session::start(completion_handler handle_complete)
     // Start height now set in handshake, so do nothing.
     const auto handle_set_height = [](const std::error_code&) {};
 
-    // set_start_height expects uint32_t but fetch_last_height returns
-    // height as uint64_t. This results in integer narrowing compile warnings.
-    // This results from the satoshi version structure expecting uint32_t but
-    // block heights capable of supporting a full uint64_t range (via varint).
-    // The warnings could be resolved through an indirection, but the logical
-    // inconsistency would remain. That issue won't become a problem until
-    // the year ~ 3375. By that time Professor Farnsworth can fix it.
     chain_.fetch_last_height(
         std::bind(&handshake::set_start_height,
             &handshake_, _2, handle_set_height));
@@ -108,7 +101,7 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
 }
 
 void session::set_start_height(const std::error_code& ec,
-    uint64_t fork_point, const blockchain::block_list& new_blocks,
+    uint32_t fork_point, const blockchain::block_list& new_blocks,
     const blockchain::block_list& /* replaced_blocks */)
 {
     if (ec)
@@ -130,16 +123,16 @@ void session::set_start_height(const std::error_code& ec,
             this, _1, _2, _3, _4));
 
     // Broadcast invs of new blocks.
-    inventory_type blocks_inv;
-    for (const auto block: new_blocks)
-        blocks_inv.inventories.push_back(
+    inventory_type blocks_inventory;
+    for (const auto& block: new_blocks)
+        blocks_inventory.inventories.push_back(
         {
             inventory_type_id::block, 
             hash_block_header(block->header)
         });
 
     const auto ignore_handler = [](const std::error_code&, size_t) {};
-    protocol_.broadcast(blocks_inv, ignore_handler);
+    protocol_.broadcast(blocks_inventory, ignore_handler);
 }
 
 void session::inventory(const std::error_code& ec,
