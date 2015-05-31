@@ -32,12 +32,12 @@ namespace libbitcoin {
 namespace node {
 
 // Configuration parameters.
-#define BN_LISTEN               true
-#define BN_P2P_OUTBOUND         20
+#define BN_LISTEN               false
+#define BN_P2P_OUTBOUND         3
 #define BN_P2P_HOST_POOL        1000
-#define BN_P2P_ORPHAN_POOL      20
-#define BN_P2P_TX_POOL          2000
-#define BN_THREADS_DISK         6
+#define BN_P2P_ORPHAN_POOL      200
+#define BN_P2P_TX_POOL          1000
+#define BN_THREADS_DISK         1
 #define BN_THREADS_MEMORY       1
 #define BN_THREADS_NETWORK      1
 #define BN_HISTORY_START        0
