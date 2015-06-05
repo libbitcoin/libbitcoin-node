@@ -29,8 +29,8 @@ using std::placeholders::_2;
 using namespace bc::chain;
 using namespace bc::network;
 
-getx_responder::getx_responder(blockchain& chain, transaction_pool& txpool)
-  : chain_(chain), txpool_(txpool)
+getx_responder::getx_responder(blockchain& chain, transaction_pool& tx_pool)
+  : chain_(chain), tx_pool_(tx_pool)
 {
 }
 
@@ -60,7 +60,7 @@ void getx_responder::receive_get_data(const std::error_code& ec,
         switch (inventory.type)
         {
             case inventory_type_id::transaction:
-                txpool_.fetch(inventory.hash,
+                tx_pool_.fetch(inventory.hash,
                     std::bind(&getx_responder::pool_tx,
                         this, _1, _2, inventory.hash, special.node));
                 break;

@@ -34,12 +34,12 @@ using namespace bc::network;
 session::session(threadpool& pool, handshake& handshake,
     protocol& protocol, blockchain& blockchain, poller& poller,
     transaction_pool& transaction_pool)
-  : strand_(pool.service()),
+  : strand_(pool),
     handshake_(handshake),
     protocol_(protocol),
-    chain_(blockchain),
-    poll_(poller),
-    tx_pool_(transaction_pool)
+    blockchain_(blockchain),
+    tx_pool_(transaction_pool),
+    poller_(poller)
 {
 }
 
@@ -54,11 +54,11 @@ void session::start(completion_handler handle_complete)
     // Start height now set in handshake, so do nothing.
     const auto handle_set_height = [](const std::error_code&) {};
 
-    chain_.fetch_last_height(
+    blockchain_.fetch_last_height(
         std::bind(&handshake::set_start_height,
             &handshake_, _2, handle_set_height));
 
-    chain_.subscribe_reorganize(
+    blockchain_.subscribe_reorganize(
         std::bind(&session::set_start_height,
             this, _1, _2, _3, _4));
 }
@@ -96,8 +96,8 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
         std::bind(&session::new_channel,
             this, _1, _2));
 
-    poll_.query(node);
-    poll_.monitor(node);
+    poller_.query(node);
+    poller_.monitor(node);
 }
 
 void session::set_start_height(const std::error_code& ec,
@@ -118,7 +118,7 @@ void session::set_start_height(const std::error_code& ec,
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
     handshake_.set_start_height(height, handle_set_height);
 
-    chain_.subscribe_reorganize(
+    blockchain_.subscribe_reorganize(
         std::bind(&session::set_start_height,
             this, _1, _2, _3, _4));
 
@@ -154,8 +154,8 @@ void session::inventory(const std::error_code& ec,
     {
         if (inventory.type == inventory_type_id::transaction)
         {
-            strand_.post(std::bind(&session::new_tx_inventory,
-                this, inventory.hash, node));
+            strand_.queue(&session::new_tx_inventory,
+                this, inventory.hash, node);
         }
         else if (inventory.type != inventory_type_id::block)
         {

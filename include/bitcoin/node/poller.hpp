@@ -47,12 +47,12 @@ private:
         const hash_digest& hash_stop, bc::network::channel_ptr node);
 
     async_strand strand_;
-    chain::blockchain& chain_;
+    chain::blockchain& blockchain_;
 
-    // Last hash from an inventory packet
+    // Last hash from an inventory packet.
     hash_digest last_block_hash_;
 
-    // Last hash from a block locator
+    // Last hash from a block locator.
     hash_digest last_locator_begin_;
     hash_digest last_hash_stop_;
     bc::network::channel* last_requested_node_;

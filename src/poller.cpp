@@ -32,7 +32,7 @@ using boost::asio::io_service;
 
 poller::poller(threadpool& pool, blockchain& chain)
   : strand_(pool),
-    chain_(chain),
+    blockchain_(chain),
     last_block_hash_(null_hash),
     last_locator_begin_(null_hash),
     last_hash_stop_(null_hash), 
@@ -42,7 +42,7 @@ poller::poller(threadpool& pool, blockchain& chain)
 
 void poller::query(channel_ptr node)
 {
-    fetch_block_locator(chain_,
+    fetch_block_locator(blockchain_,
         std::bind(&poller::initial_ask_blocks,
             this, _1, _2, node));
 }
@@ -122,7 +122,7 @@ void poller::receive_block(const std::error_code& ec,
         return;
     }
 
-    chain_.store(block,
+    blockchain_.store(block,
         strand_.wrap(&poller::handle_store,
             this, _1, _2, hash_block_header(block.header), node));
 
@@ -162,8 +162,9 @@ void poller::handle_store(const std::error_code& ec, block_info info,
             // TODO: Make more efficient by storing block hash
             // and next time do not download orphan block again.
             // Remember to remove from list once block is no longer orphan.
-            fetch_block_locator(chain_, strand_.wrap(
-                &poller::ask_blocks, this, _1, _2, block_hash, node));
+            fetch_block_locator(blockchain_,
+                strand_.wrap(&poller::ask_blocks, 
+                    this, _1, _2, block_hash, node));
 
             break;
 

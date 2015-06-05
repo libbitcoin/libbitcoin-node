@@ -30,7 +30,7 @@ namespace node {
 class BCN_API getx_responder
 {
 public:
-    getx_responder(chain::blockchain& chain, chain::transaction_pool& txpool);
+    getx_responder(chain::blockchain& chain, chain::transaction_pool& tx_pool);
     void monitor(bc::network::channel_ptr node);
 
 private:
@@ -55,7 +55,7 @@ private:
         const block_type& block, bc::network::channel_ptr node);
 
     chain::blockchain& chain_;
-    chain::transaction_pool& txpool_;
+    chain::transaction_pool& tx_pool_;
 };
 
 } // node

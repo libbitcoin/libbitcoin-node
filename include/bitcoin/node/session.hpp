@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
@@ -42,8 +42,7 @@ public:
     void stop(completion_handler handle_complete);
 
 private:
-    void new_channel(const std::error_code& ec,
-        bc::network::channel_ptr node);
+    void new_channel(const std::error_code& ec, bc::network::channel_ptr node);
     void set_start_height(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
@@ -57,15 +56,15 @@ private:
 
     void new_tx_inventory(const hash_digest& tx_hash,
         bc::network::channel_ptr node);
-    void request_tx_data(bool tx_exists,
-        const hash_digest& tx_hash, bc::network::channel_ptr node);
+    void request_tx_data(bool tx_exists, const hash_digest& tx_hash,
+        bc::network::channel_ptr node);
 
-    boost::asio::io_service::strand strand_;
+    async_strand strand_;
     bc::network::handshake& handshake_;
     bc::network::protocol& protocol_;
-    chain::blockchain& chain_;
-    poller& poll_;
-    chain::transaction_pool& tx_pool_;
+    bc::chain::blockchain& blockchain_;
+    bc::chain::transaction_pool& tx_pool_;
+    bc::node::poller& poller_;
 };
 
 } // namespace node
