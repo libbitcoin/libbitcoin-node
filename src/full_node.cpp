@@ -82,9 +82,9 @@ full_node::full_node(/* configuration */)
         protocol::default_seeds, BN_LISTEN_PORT, BN_LISTEN, BN_P2P_OUTBOUND),
     blockchain_(database_threads_, BN_DIRECTORY, { BN_HISTORY_START },
         BN_P2P_ORPHAN_POOL),
-    poller_(memory_threads_, blockchain_),
     tx_pool_(memory_threads_, blockchain_, BN_P2P_TX_POOL),
     tx_indexer_(memory_threads_),
+    poller_(memory_threads_, blockchain_),
     session_(network_threads_, handshake_, protocol_, blockchain_, poller_,
         tx_pool_)
 {
@@ -104,24 +104,15 @@ bool full_node::start()
     // Start transaction pool
     tx_pool_.start();
 
-    // Fire off app.
-    const auto handle_start = std::bind(&full_node::handle_start, this, _1);
+    // Start the app.
     session_.start(handle_start);
     return true;
 }
 
 void full_node::stop()
 {
-    std::promise<std::error_code> code_promise;
-    const auto session_stopped = [&code_promise](const std::error_code& ec)
-    {
-        code_promise.set_value(ec);
-    };
-
-    session_.stop(session_stopped);
-    const auto ec = code_promise.get_future().get();
-    if (ec)
-        log_error(LOG_NODE) << format(BN_SESSION_STOP_ERROR) % ec.message();
+    // Stop the app.
+    session_.stop(handle_stop);
 
     // Safely close blockchain database.
     blockchain_.stop();
@@ -152,6 +143,13 @@ void full_node::handle_start(const std::error_code& ec)
     if (ec)
         log_error(LOG_NODE)
             << format(BN_SESSION_START_ERROR) % ec.message();
+}
+
+void full_node::handle_stop(const std::error_code& ec)
+{
+    if (ec)
+        log_error(LOG_NODE)
+            << format(BN_SESSION_STOP_ERROR) % ec.message();
 }
 
 void full_node::connection_started(const std::error_code& ec,

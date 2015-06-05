@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_FULLNODE_HPP
-#define LIBBITCOIN_NODE_FULLNODE_HPP
+#ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
+#define LIBBITCOIN_NODE_FULL_NODE_HPP
 
 #include <string>
 #include <system_error>
@@ -32,12 +32,12 @@ namespace libbitcoin {
 namespace node {
 
 // Configuration parameters.
-#define BN_LISTEN               false
-#define BN_P2P_OUTBOUND         3
+#define BN_LISTEN               true
+#define BN_P2P_OUTBOUND         8
 #define BN_P2P_HOST_POOL        1000
-#define BN_P2P_ORPHAN_POOL      200
-#define BN_P2P_TX_POOL          1000
-#define BN_THREADS_DISK         1
+#define BN_P2P_ORPHAN_POOL      20
+#define BN_P2P_TX_POOL          2000
+#define BN_THREADS_DISK         6
 #define BN_THREADS_MEMORY       1
 #define BN_THREADS_NETWORK      1
 #define BN_HISTORY_START        0
@@ -82,7 +82,8 @@ public:
     transaction_indexer& indexer();
 
 private:
-    void handle_start(const std::error_code& ec);
+    static void handle_start(const std::error_code& ec);
+    static void handle_stop(const std::error_code& ec);
 
     // New connection has been started.
     // Subscribe to new transaction messages from the network.
@@ -98,18 +99,18 @@ private:
     void new_unconfirm_valid_tx(const std::error_code& code,
         const index_list& unconfirmed, const transaction_type& tx);
 
-    threadpool network_threads_;
-    threadpool database_threads_;
-    threadpool memory_threads_;
+    bc::threadpool network_threads_;
+    bc::threadpool database_threads_;
+    bc::threadpool memory_threads_;
     bc::network::hosts host_pool_;
     bc::network::handshake handshake_;
     bc::network::network network_;
     bc::network::protocol protocol_;
-    chain::blockchain_impl blockchain_;
-    node::poller poller_;
-    chain::transaction_pool tx_pool_;
-    node::transaction_indexer tx_indexer_;
-    node::session session_;
+    bc::chain::blockchain_impl blockchain_;
+    bc::chain::transaction_pool tx_pool_;
+    bc::node::transaction_indexer tx_indexer_;
+    bc::node::poller poller_;
+    bc::node::session session_;
 };
 
 } // namspace node
