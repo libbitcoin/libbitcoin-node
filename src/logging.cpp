@@ -36,12 +36,9 @@ static std::string make_log_string(log_level level,
     const std::string& domain, const std::string& body, 
     const std::string& skip_domain)
 {
-    const static auto form = "%1% %2% [%3%] %4%";
+    const static auto form = "%1% %2% [%3%] %4%\n";
 
-    if (body.empty())
-        return "";
-
-    if (domain == skip_domain)
+    if (body.empty() || domain == skip_domain)
         return "";
 
     const auto log = level_repr(level);
@@ -57,7 +54,10 @@ static void log_to_file(std::ofstream& file, log_level level,
     std::string output;
     output = make_log_string(level, domain, body, skip_domain);
     if (!output.empty())
-        file << output << std::endl;
+    {
+        file << output;
+        file.flush();
+    }
 }
 
 static void log_to_both(std::ostream& device, std::ofstream& file,
@@ -68,8 +68,10 @@ static void log_to_both(std::ostream& device, std::ofstream& file,
     output = make_log_string(level, domain, body, skip_domain);
     if (!output.empty())
     {
-        device << output << std::endl;
-        file << output << std::endl;
+        device << output;
+        device.flush();
+        file << output;
+        file.flush();
     }
 }
 
