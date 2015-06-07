@@ -49,13 +49,17 @@
 #define BN_INITCHAIN_DIR_TEST \
     "Failed to test directory %1% with error, '%2%'."
 #define BN_NODE_SHUTTING_DOWN \
-    "Shutting down..."
+    "The node is stopping..."
 #define BN_NODE_START_FAIL \
     "The node failed to start."
+#define BN_NODE_STOP_FAIL \
+    "The node failed to stop."
 #define BN_NODE_START_SUCCESS \
     "Type a bitcoin address to fetch, or 'stop' to stop node."
+#define BN_NODE_STOPPING \
+    "Please wait while unmapping %1% directory..."
 #define BN_NODE_STARTING \
-    "Starting up..."
+    "Please wait while mapping %1% directory..."
 #define BN_UNINITIALIZED_CHAIN \
     "The %1% directory is not initialized."
 #define BN_VERSION_MESSAGE \
@@ -225,8 +229,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     bc::ofstream error_log("error.log", append);
     initialize_logging(debug_log, error_log, output, error);
 
-    // Start up the node.
-    output << BN_NODE_STARTING << std::endl;
+    // Start up the node, which first maps the blockchain.
+    output << format(BN_NODE_STARTING) % directory << std::endl;
     full_node node;
     const auto started = node.start();
     if (started)
@@ -265,6 +269,15 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
         fetch_history(node.chain(), node.indexer(), address, fetch_handler);
     }
 
-    node.stop();
+    // The blockchain unmap is only initiated by the node stop (not completed).
+    auto stopped = node.stop();
+    if (stopped)
+        output << format(BN_NODE_STOPPING) % directory << std::endl;
+    else
+        output << BN_NODE_STOP_FAIL << std::endl;
+
+    if (!stopped)
+        result = console_result::failure;
+
     return result;
 }
