@@ -178,7 +178,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             this, _1, _2, _3, _4));
 
     // Don't bother publishing blocks when in the initial blockchain download.
-    if (fork_point < 235866)
+    if (fork_point < BN_CHECKPOINT_HEIGHT)
         return;
 
     // Broadcast new blocks inventory.

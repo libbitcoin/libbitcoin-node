@@ -98,6 +98,12 @@ protected:
     virtual void recieve_tx(const std::error_code& ec,
         const transaction_type& tx, bc::network::channel_ptr node);
 
+    // HACK: this is for access to broadcast_new_blocks to facilitate server
+    // inheritance of full_node. The organization should be refactored.
+    virtual void full_node::broadcast_new_blocks(const std::error_code& ec,
+        uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
+        const chain::blockchain::block_list& replaced_blocks);
+
 private:
     void handle_start(const std::error_code& ec,
         std::promise<std::error_code>& promise);
@@ -117,12 +123,7 @@ private:
     bc::chain::transaction_pool tx_pool_;
     bc::node::indexer tx_indexer_;
     bc::node::poller poller_;
-
-    // HACK
-protected:
     bc::node::session session_;
-
-private:
     bc::node::responder responder_;
 };
 
