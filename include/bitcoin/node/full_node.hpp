@@ -38,11 +38,11 @@ namespace node {
 // TODO: incorporate channel timeouts.
 #define BN_P2P_OUTBOUND         8
 #define BN_P2P_HOST_POOL        1000
-#define BN_P2P_ORPHAN_POOL      100
+#define BN_P2P_ORPHAN_POOL      50
 #define BN_P2P_TX_POOL          2000
 #define BN_THREADS_DISK         6
-#define BN_THREADS_MEMORY       2
-#define BN_THREADS_NETWORK      2
+#define BN_THREADS_MEMORY       4
+#define BN_THREADS_NETWORK      4
 #define BN_HISTORY_START_HEIGHT 0
 #define BN_CHECKPOINT_HEIGHT    bc::chain::block_validation_cutoff_height
 #define BN_LISTEN_PORT          bc::protocol_port
