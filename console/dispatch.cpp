@@ -216,8 +216,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     if (result != console_result::okay)
         return result;
 
-    // Catch C signals for stopping the program.
-    // Suppress it's picked up in the loop by getline.
+    // Suppress abort so it's picked up in the loop by getline.
     const auto interrupt_handler = [](int) {};
     signal(SIGABRT, interrupt_handler);
     signal(SIGTERM, interrupt_handler);
