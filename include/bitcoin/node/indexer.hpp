@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_TRANSACTION_INDEXER_HPP
-#define LIBBITCOIN_NODE_TRANSACTION_INDEXER_HPP
+#ifndef LIBBITCOIN_NODE_INDEXER_HPP
+#define LIBBITCOIN_NODE_INDEXER_HPP
 
 #include <cstddef>
 #include <forward_list>
@@ -39,7 +39,7 @@ struct BCN_API spend_info_type
 
 typedef std::vector<spend_info_type> spend_info_list;
 
-class BCN_API transaction_indexer
+class BCN_API indexer
 {
 public:
     typedef std::function<void (const std::error_code&)> completion_handler;
@@ -47,13 +47,13 @@ public:
         const output_info_list& outputs, const spend_info_list& spends)>
             query_handler;
 
-    transaction_indexer(threadpool& pool);
+    indexer(threadpool& pool);
 
     /// This class is not copyable.
-    transaction_indexer(const transaction_indexer&) = delete;
+    indexer(const indexer&) = delete;
 
     /// This class is not copyable.
-    void operator=(const transaction_indexer&) = delete;
+    void operator=(const indexer&) = delete;
 
     /**
      * Query all transactions indexed that are related to a Bitcoin address.
@@ -97,7 +97,7 @@ private:
 };
 
 BCN_API void fetch_history(chain::blockchain& chain, 
-    transaction_indexer& indexer, const payment_address& address,
+    indexer& indexer, const payment_address& address,
     chain::blockchain::fetch_handler_history handle_fetch,
     size_t from_height=0);
 

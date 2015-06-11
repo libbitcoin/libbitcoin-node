@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/transaction_indexer.hpp>
+#include <bitcoin/node/indexer.hpp>
 
 #include <bitcoin/blockchain.hpp>
 
@@ -30,16 +30,16 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 
-transaction_indexer::transaction_indexer(threadpool& pool)
+indexer::indexer(threadpool& pool)
   : strand_(pool)
 {
 }
 
-void transaction_indexer::query(const payment_address& address,
+void indexer::query(const payment_address& address,
     query_handler handle_query)
 {
     strand_.queue(
-        std::bind(&transaction_indexer::do_query,
+        std::bind(&indexer::do_query,
             this, address, handle_query));
 }
 
@@ -53,7 +53,7 @@ InfoList get_info_list(const payment_address& address, EntryMultimap& map)
 
     return info;
 }
-void transaction_indexer::do_query(const payment_address& address,
+void indexer::do_query(const payment_address& address,
     query_handler handle_query)
 {
     handle_query(std::error_code(),
@@ -81,15 +81,15 @@ bool index_does_not_exist(const payment_address& key,
     return find_entry(key, value_point, map) == map.end();
 }
 
-void transaction_indexer::index(const transaction_type& tx,
+void indexer::index(const transaction_type& tx,
     completion_handler handle_index)
 {
     strand_.queue(
-        std::bind(&transaction_indexer::do_index,
+        std::bind(&indexer::do_index,
             this, tx, handle_index));
 }
 
-void transaction_indexer::do_index(const transaction_type& tx,
+void indexer::do_index(const transaction_type& tx,
     completion_handler handle_index)
 {
     const auto tx_hash = hash_transaction(tx);
@@ -131,15 +131,15 @@ void transaction_indexer::do_index(const transaction_type& tx,
     handle_index(std::error_code());
 }
 
-void transaction_indexer::deindex(const transaction_type& tx,
+void indexer::deindex(const transaction_type& tx,
     completion_handler handle_deindex)
 {
     strand_.queue(
-        std::bind(&transaction_indexer::do_deindex,
+        std::bind(&indexer::do_deindex,
             this, tx, handle_deindex));
 }
 
-void transaction_indexer::do_deindex(const transaction_type& tx,
+void indexer::do_deindex(const transaction_type& tx,
     completion_handler handle_deindex)
 {
     const auto tx_hash = hash_transaction(tx);
@@ -190,8 +190,8 @@ void transaction_indexer::do_deindex(const transaction_type& tx,
 static bool is_output_conflict(history_list& history,
     const output_info_type& output)
 {
-    // Usually the indexer and memory doesn't have any transactions indexed tha
-    // are already confirmed and in the blockchain. This is a rare corner case.
+    // Usually the indexer and memory doesn't have any transactions indexed and
+    // already confirmed and in the blockchain. This is a rare corner case.
     for (const auto& row: history)
         if (row.id == point_ident::output && row.point == output.point)
             return true;
@@ -254,8 +254,6 @@ void indexer_history_fetched(const std::error_code& ec,
     const output_info_list& outputs, const spend_info_list& spends,
     history_list history, blockchain::fetch_handler_history handle_fetch)
 {
-    // TODO: Why is "history_list history" passed in here, and not a reference?
-
     if (ec)
     {
         // Shouldn't "history" be returned here?
@@ -277,7 +275,7 @@ void indexer_history_fetched(const std::error_code& ec,
 }
 
 void blockchain_history_fetched(const std::error_code& ec,
-    const history_list& history, transaction_indexer& indexer,
+    const history_list& history, indexer& indexer,
     const payment_address& address,
     blockchain::fetch_handler_history handle_fetch)
 {
@@ -293,7 +291,7 @@ void blockchain_history_fetched(const std::error_code& ec,
 }
 
 // Fetch the history first from the blockchain and then from the indexer.
-void fetch_history(blockchain& chain, transaction_indexer& indexer,
+void fetch_history(blockchain& chain, indexer& indexer,
     const payment_address& address, 
     blockchain::fetch_handler_history handle_fetch, size_t from_height)
 {

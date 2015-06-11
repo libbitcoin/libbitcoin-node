@@ -20,27 +20,31 @@
 #ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
+#include <cstdint>
+#include <future>
 #include <string>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/poller.hpp>
+#include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
-#include <bitcoin/node/transaction_indexer.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 // Configuration parameters.
-#define BN_LISTEN               true
+// TODO: incorporate channel timeouts.
 #define BN_P2P_OUTBOUND         8
 #define BN_P2P_HOST_POOL        1000
-#define BN_P2P_ORPHAN_POOL      20
+#define BN_P2P_ORPHAN_POOL      100
 #define BN_P2P_TX_POOL          2000
 #define BN_THREADS_DISK         6
-#define BN_THREADS_MEMORY       1
-#define BN_THREADS_NETWORK      1
-#define BN_HISTORY_START        0
+#define BN_THREADS_MEMORY       2
+#define BN_THREADS_NETWORK      2
+#define BN_HISTORY_START_HEIGHT 0
+#define BN_CHECKPOINT_HEIGHT    bc::chain::block_validation_cutoff_height
 #define BN_LISTEN_PORT          bc::protocol_port
 #define BN_HOSTS_FILENAME       "peers"
 #define BN_DIRECTORY            "blockchain"
@@ -60,7 +64,7 @@ public:
     
     /**
      * Start the node.
-     * @return  True if the start is initially successful.
+     * @return  True if the start is successful.
      */
     bool start();
 
@@ -68,8 +72,9 @@ public:
      * Stop the node.
      * Should only be called from the main thread.
      * It's an error to join() a thread from inside it.
+     * @return  True if the stop is successful.
      */
-    void stop();
+    bool stop();
 
     /**
      * Blockchain accessor.
@@ -79,16 +84,19 @@ public:
     /**
      * Transaction indexer accessor.
      */
-    transaction_indexer& indexer();
+    indexer& indexer();
 
 private:
-    static void handle_start(const std::error_code& ec);
-    static void handle_stop(const std::error_code& ec);
+    void handle_start(const std::error_code& ec,
+        std::promise<std::error_code>& promise);
+    void handle_stop(const std::error_code& ec,
+        std::promise<std::error_code>& promise);
+    void set_height(const std::error_code& ec, uint64_t height,
+        std::promise<std::error_code>& promise);
 
-    // New connection has been started.
+    // New channel has been started.
     // Subscribe to new transaction messages from the network.
-    void connection_started(const std::error_code& ec,
-        bc::network::channel_ptr node);
+    void new_channel(const std::error_code& ec, bc::network::channel_ptr node);
 
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
@@ -108,9 +116,10 @@ private:
     bc::network::protocol protocol_;
     bc::chain::blockchain_impl blockchain_;
     bc::chain::transaction_pool tx_pool_;
-    bc::node::transaction_indexer tx_indexer_;
+    bc::node::indexer tx_indexer_;
     bc::node::poller poller_;
     bc::node::session session_;
+    bc::node::responder responder_;
 };
 
 } // namspace node
