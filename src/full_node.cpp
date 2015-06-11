@@ -163,14 +163,29 @@ bool full_node::stop()
     return result;
 }
 
-chain::blockchain& full_node::chain()
+bc::chain::blockchain& full_node::blockchain()
 {
     return blockchain_;
 }
 
-indexer& full_node::indexer()
+bc::chain::transaction_pool& full_node::transaction_pool()
+{
+    return tx_pool_;
+}
+
+bc::node::indexer& full_node::transaction_indexer()
 {
     return tx_indexer_;
+}
+
+bc::network::protocol& full_node::protocol()
+{
+    return protocol_;
+}
+
+bc::threadpool& full_node::threadpool()
+{
+    return memory_threads_;
 }
 
 void full_node::handle_start(const std::error_code& ec,
@@ -257,7 +272,6 @@ void full_node::recieve_tx(const std::error_code& ec,
 {
     if (ec)
     {
-        // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
         log_debug(LOG_NODE)
             << format(BN_TX_RECEIVE_FAILURE) % hash % ec.message();
@@ -267,7 +281,6 @@ void full_node::recieve_tx(const std::error_code& ec,
     // Called when the transaction becomes confirmed in a block.
     const auto handle_confirm = [this, tx](const std::error_code& ec)
     {
-        // TODO: format the hash/output so it matches the txid.
         const auto hash = encode_hash(hash_transaction(tx));
 
         if (ec)
@@ -313,7 +326,6 @@ static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
 void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
     const index_list& unconfirmed, const transaction_type& tx)
 {
-    // TODO: format the hash/output so it matches the txid.
     const auto hash = encode_hash(hash_transaction(tx));
 
     const auto handle_index = [hash](const std::error_code& ec)

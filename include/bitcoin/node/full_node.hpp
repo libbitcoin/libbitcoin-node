@@ -66,7 +66,7 @@ public:
      * Start the node.
      * @return  True if the start is successful.
      */
-    bool start();
+    virtual bool start();
 
     /**
      * Stop the node.
@@ -74,17 +74,29 @@ public:
      * It's an error to join() a thread from inside it.
      * @return  True if the stop is successful.
      */
-    bool stop();
+    virtual bool stop();
 
-    /**
-     * Blockchain accessor.
-     */
-    chain::blockchain& chain();
+    // Accessors
+    virtual bc::chain::blockchain& blockchain();
+    virtual bc::chain::transaction_pool& transaction_pool();
+    virtual bc::node::indexer& transaction_indexer();
+    virtual bc::network::protocol& protocol();
+    virtual bc::threadpool& threadpool();
 
-    /**
-     * Transaction indexer accessor.
-     */
-    indexer& indexer();
+protected:
+    // Result of store operation in transaction pool.
+    virtual void new_unconfirm_valid_tx(const std::error_code& code,
+        const index_list& unconfirmed, const transaction_type& tx);
+
+    // New channel has been started.
+    // Subscribe to new transaction messages from the network.
+    virtual void new_channel(const std::error_code& ec,
+        bc::network::channel_ptr node);
+
+    // New transaction message from the network.
+    // Attempt to validate it by storing it in the transaction pool.
+    virtual void recieve_tx(const std::error_code& ec,
+        const transaction_type& tx, bc::network::channel_ptr node);
 
 private:
     void handle_start(const std::error_code& ec,
@@ -93,19 +105,6 @@ private:
         std::promise<std::error_code>& promise);
     void set_height(const std::error_code& ec, uint64_t height,
         std::promise<std::error_code>& promise);
-
-    // New channel has been started.
-    // Subscribe to new transaction messages from the network.
-    void new_channel(const std::error_code& ec, bc::network::channel_ptr node);
-
-    // New transaction message from the network.
-    // Attempt to validate it by storing it in the transaction pool.
-    void recieve_tx(const std::error_code& ec, const transaction_type& tx,
-        bc::network::channel_ptr node);
-
-    // Result of store operation in transaction pool.
-    void new_unconfirm_valid_tx(const std::error_code& code,
-        const index_list& unconfirmed, const transaction_type& tx);
 
     bc::threadpool network_threads_;
     bc::threadpool database_threads_;
@@ -118,7 +117,12 @@ private:
     bc::chain::transaction_pool tx_pool_;
     bc::node::indexer tx_indexer_;
     bc::node::poller poller_;
+
+    // HACK
+protected:
     bc::node::session session_;
+
+private:
     bc::node::responder responder_;
 };
 

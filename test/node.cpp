@@ -66,7 +66,7 @@ BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
 BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
 {
     threadpool threads;
-    indexer indexer(threads);
+    indexer index(threads);
     threads.stop();
     threads.join();
 }

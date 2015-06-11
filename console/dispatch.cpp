@@ -265,7 +265,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             display_history(ec, history, address, output);
         };
 
-        fetch_history(node.chain(), node.indexer(), address, fetch_handler);
+        fetch_history(node.blockchain(), node.transaction_indexer(), address,
+            fetch_handler);
     }
 
     // The blockchain unmap is only initiated by the node stop (not completed).

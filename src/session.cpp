@@ -177,6 +177,10 @@ void session::broadcast_new_blocks(const std::error_code& ec,
         std::bind(&session::broadcast_new_blocks,
             this, _1, _2, _3, _4));
 
+    // Don't bother publishing blocks when in the initial blockchain download.
+    if (fork_point < 235866)
+        return;
+
     // Broadcast new blocks inventory.
     inventory_type blocks_inventory;
     for (const auto block: new_blocks)
