@@ -66,7 +66,7 @@ BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
 BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
 {
     threadpool threads;
-    transaction_indexer indexer(threads);
+    indexer indexer(threads);
     threads.stop();
     threads.join();
 }
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
     threadpool threads;
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
-    getx_responder responder(blockchain, transactions);
+    responder responder(blockchain, transactions);
 
     blockchain.start();
     transactions.start();
@@ -123,13 +123,14 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
     poller poller(threads, blockchain);
+    responder responder(blockchain, transactions);
 
     const auto noop_handler = [](const std::error_code& code)
     {
     };
 
     node::session session(threads, handshake, protocol, blockchain, poller,
-        transactions);
+        transactions, responder);
 
     blockchain.start();
     transactions.start();
