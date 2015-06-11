@@ -49,13 +49,17 @@
 #define BN_INITCHAIN_DIR_TEST \
     "Failed to test directory %1% with error, '%2%'."
 #define BN_NODE_SHUTTING_DOWN \
-    "Shutting down..."
+    "The node is stopping..."
 #define BN_NODE_START_FAIL \
     "The node failed to start."
+#define BN_NODE_STOP_FAIL \
+    "The node failed to stop."
 #define BN_NODE_START_SUCCESS \
     "Type a bitcoin address to fetch, or 'stop' to stop node."
+#define BN_NODE_STOPPING \
+    "Please wait while unmapping %1% directory..."
 #define BN_NODE_STARTING \
-    "Starting up..."
+    "Please wait while mapping %1% directory..."
 #define BN_UNINITIALIZED_CHAIN \
     "The %1% directory is not initialized."
 #define BN_VERSION_MESSAGE \
@@ -78,16 +82,16 @@ using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::node;
 
-static void display_history(const std::error_code& code,
+static void display_history(const std::error_code& ec,
     const history_list& history, const payment_address& address,
     std::ostream& output)
 {
     const auto encoded_address = address.encoded();
 
-    if (code)
+    if (ec)
     {
         output << format(BN_FETCH_HISTORY_FAIL) % encoded_address %
-            code.message();
+            ec.message();
         return;
     }
 
@@ -117,13 +121,13 @@ static void display_version(std::ostream& stream)
 static console_result init_chain(const path& directory, std::ostream& output,
     std::ostream& error)
 {
-    error_code code;
-    if (!create_directories(directory, code))
+    error_code ec;
+    if (!create_directories(directory, ec))
     {
-        if (code.value() == 0)
+        if (ec.value() == 0)
             error << format(BN_INITCHAIN_DIR_EXISTS) % directory << std::endl;
         else
-            error << format(BN_INITCHAIN_DIR_NEW) % directory % code.message()
+            error << format(BN_INITCHAIN_DIR_NEW) % directory % ec.message()
                 << std::endl;
 
         return console_result::failure;
@@ -132,7 +136,7 @@ static console_result init_chain(const path& directory, std::ostream& output,
     output << format(BN_INITCHAIN) % directory << std::endl;
 
     // Allocate empty blockchain files.
-    const auto& prefix = directory.string();
+    const auto prefix = directory.string();
     if (!initialize_blockchain(prefix))
         return console_result::failure;
 
@@ -149,13 +153,13 @@ static console_result init_chain(const path& directory, std::ostream& output,
 // Use missing directory as a sentinel indicating lack of initialization.
 static console_result verify_chain(const path& directory, std::ostream& error)
 {
-    error_code code;
-    if (!exists(directory, code))
+    error_code ec;
+    if (!exists(directory, ec))
     {
-        if (code.value() == 2)
+        if (ec.value() == 2)
             error << format(BN_UNINITIALIZED_CHAIN) % directory << std::endl;
         else
-            error << format(BN_INITCHAIN_DIR_TEST) % directory % code.message()
+            error << format(BN_INITCHAIN_DIR_TEST) % directory % ec.message()
                 << std::endl;
 
         return console_result::failure;
@@ -212,8 +216,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     if (result != console_result::okay)
         return result;
 
-    // Catch C signals for stopping the program.
-    // Suppress it's picked up in the loop by getline.
+    // Suppress abort so it's picked up in the loop by getline.
     const auto interrupt_handler = [](int) {};
     signal(SIGABRT, interrupt_handler);
     signal(SIGTERM, interrupt_handler);
@@ -225,8 +228,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     bc::ofstream error_log("error.log", append);
     initialize_logging(debug_log, error_log, output, error);
 
-    // Start up the node.
-    output << BN_NODE_STARTING << std::endl;
+    // Start up the node, which first maps the blockchain.
+    output << format(BN_NODE_STARTING) % directory << std::endl;
     full_node node;
     const auto started = node.start();
     if (started)
@@ -256,15 +259,25 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             continue;
         }
 
-        const auto fetch_handler = [&](const std::error_code& code,
+        const auto fetch_handler = [&](const std::error_code& ec,
             const history_list& history)
         {
-            display_history(code, history, address, output);
+            display_history(ec, history, address, output);
         };
 
-        fetch_history(node.chain(), node.indexer(), address, fetch_handler);
+        fetch_history(node.blockchain(), node.transaction_indexer(), address,
+            fetch_handler);
     }
 
-    node.stop();
+    // The blockchain unmap is only initiated by the node stop (not completed).
+    auto stopped = node.stop();
+    if (stopped)
+        output << format(BN_NODE_STOPPING) % directory << std::endl;
+    else
+        output << BN_NODE_STOP_FAIL << std::endl;
+
+    if (!stopped)
+        result = console_result::failure;
+
     return result;
 }

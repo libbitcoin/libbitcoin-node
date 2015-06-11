@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/transaction_indexer.hpp>
+#include <bitcoin/node/indexer.hpp>
 
 #include <bitcoin/blockchain.hpp>
 
@@ -30,16 +30,16 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 
-transaction_indexer::transaction_indexer(threadpool& pool)
+indexer::indexer(threadpool& pool)
   : strand_(pool)
 {
 }
 
-void transaction_indexer::query(const payment_address& address,
+void indexer::query(const payment_address& address,
     query_handler handle_query)
 {
     strand_.queue(
-        std::bind(&transaction_indexer::do_query,
+        std::bind(&indexer::do_query,
             this, address, handle_query));
 }
 
@@ -53,7 +53,7 @@ InfoList get_info_list(const payment_address& address, EntryMultimap& map)
 
     return info;
 }
-void transaction_indexer::do_query(const payment_address& address,
+void indexer::do_query(const payment_address& address,
     query_handler handle_query)
 {
     handle_query(std::error_code(),
@@ -81,14 +81,15 @@ bool index_does_not_exist(const payment_address& key,
     return find_entry(key, value_point, map) == map.end();
 }
 
-void transaction_indexer::index(const transaction_type& tx,
+void indexer::index(const transaction_type& tx,
     completion_handler handle_index)
 {
     strand_.queue(
-        std::bind(&transaction_indexer::do_index,
+        std::bind(&indexer::do_index,
             this, tx, handle_index));
 }
-void transaction_indexer::do_index(const transaction_type& tx,
+
+void indexer::do_index(const transaction_type& tx,
     completion_handler handle_index)
 {
     const auto tx_hash = hash_transaction(tx);
@@ -102,7 +103,7 @@ void transaction_indexer::do_index(const transaction_type& tx,
             input_point point{tx_hash, index};
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, spends_map_),
-                "Transaction input is indexed duplicate times!");
+                "Transaction input is indexed multiple times!");
             spends_map_.emplace(address,
                 spend_info_type{point, input.previous_output});
         }
@@ -119,7 +120,7 @@ void transaction_indexer::do_index(const transaction_type& tx,
             output_point point{tx_hash, index};
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, outputs_map_),
-                "Transaction output is indexed duplicate times!");
+                "Transaction output is indexed multiple times!");
             outputs_map_.emplace(address,
                 output_info_type{point, output.value});
         }
@@ -130,14 +131,15 @@ void transaction_indexer::do_index(const transaction_type& tx,
     handle_index(std::error_code());
 }
 
-void transaction_indexer::deindex(const transaction_type& tx,
+void indexer::deindex(const transaction_type& tx,
     completion_handler handle_deindex)
 {
     strand_.queue(
-        std::bind(&transaction_indexer::do_deindex,
+        std::bind(&indexer::do_deindex,
             this, tx, handle_deindex));
 }
-void transaction_indexer::do_deindex(const transaction_type& tx,
+
+void indexer::do_deindex(const transaction_type& tx,
     completion_handler handle_deindex)
 {
     const auto tx_hash = hash_transaction(tx);
@@ -149,9 +151,10 @@ void transaction_indexer::do_deindex(const transaction_type& tx,
         if (extract(address, input.script))
         {
             input_point point{tx_hash, index};
-            auto entry = find_entry(address, point, spends_map_);
+            const auto entry = find_entry(address, point, spends_map_);
             BITCOIN_ASSERT_MSG(entry != spends_map_.end(),
                 "Can't deindex transaction input twice");
+
             spends_map_.erase(entry);
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, spends_map_), 
@@ -168,9 +171,10 @@ void transaction_indexer::do_deindex(const transaction_type& tx,
         if (extract(address, output.script))
         {
             output_point point{tx_hash, index};
-            auto entry = find_entry(address, point, outputs_map_);
+            const auto entry = find_entry(address, point, outputs_map_);
             BITCOIN_ASSERT_MSG(entry != outputs_map_.end(),
                 "Can't deindex transaction output twice");
+
             outputs_map_.erase(entry);
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, outputs_map_), 
@@ -186,14 +190,15 @@ void transaction_indexer::do_deindex(const transaction_type& tx,
 static bool is_output_conflict(history_list& history,
     const output_info_type& output)
 {
-    // Usually the indexer and memory doesn't have any transactions indexed tha
-    // are already confirmed and in the blockchain. This is a rare corner case.
+    // Usually the indexer and memory doesn't have any transactions indexed and
+    // already confirmed and in the blockchain. This is a rare corner case.
     for (const auto& row: history)
         if (row.id == point_ident::output && row.point == output.point)
             return true;
 
     return false;
 }
+
 static bool is_spend_conflict(history_list& history,
     const spend_info_type& spend)
 {
@@ -203,6 +208,7 @@ static bool is_spend_conflict(history_list& history,
 
     return false;
 }
+
 static void add_history_output(history_list& history,
     const output_info_type& output)
 {
@@ -211,6 +217,7 @@ static void add_history_output(history_list& history,
         point_ident::output, output.point, 0, { output.value }
     });
 }
+
 static void add_history_spend(history_list& history,
     const spend_info_type& spend)
 {
@@ -220,6 +227,7 @@ static void add_history_spend(history_list& history,
         { chain::spend_checksum(spend.previous_output) }
     });
 }
+
 static void add_history_outputs(history_list& history,
     const output_info_list& outputs)
 {
@@ -228,6 +236,7 @@ static void add_history_outputs(history_list& history,
         if (!is_output_conflict(history, output))
             add_history_output(history, output);
 }
+
 static void add_history_spends(history_list& history,
     const spend_info_list& spends)
 {
@@ -241,16 +250,14 @@ static void add_history_spends(history_list& history,
     //BITCOIN_ASSERT_MSG(!conflict, "Couldn't find output for adding spend");
 }
 
-void indexer_history_fetched(const std::error_code& code,
+void indexer_history_fetched(const std::error_code& ec,
     const output_info_list& outputs, const spend_info_list& spends,
     history_list history, blockchain::fetch_handler_history handle_fetch)
 {
-    // TODO: Why is "history_list history" passed in here, and not a reference?
-
-    if (code)
+    if (ec)
     {
         // Shouldn't "history" be returned here?
-        handle_fetch(code, history_list());
+        handle_fetch(ec, history_list());
         return;
     }
 
@@ -267,30 +274,30 @@ void indexer_history_fetched(const std::error_code& code,
     handle_fetch(std::error_code(), history);
 }
 
-void blockchain_history_fetched(const std::error_code& code,
-    const history_list& history, transaction_indexer& indexer,
+void blockchain_history_fetched(const std::error_code& ec,
+    const history_list& history, indexer& indexer,
     const payment_address& address,
     blockchain::fetch_handler_history handle_fetch)
 {
-    if (code)
+    if (ec)
     {
-        handle_fetch(code, chain::history_list());
+        handle_fetch(ec, chain::history_list());
         return;
     }
 
     indexer.query(address,
-        std::bind(indexer_history_fetched, _1, _2, _3,
-            history, handle_fetch));
+        std::bind(indexer_history_fetched,
+            _1, _2, _3, history, handle_fetch));
 }
 
 // Fetch the history first from the blockchain and then from the indexer.
-void fetch_history(blockchain& chain, transaction_indexer& indexer,
+void fetch_history(blockchain& chain, indexer& indexer,
     const payment_address& address, 
     blockchain::fetch_handler_history handle_fetch, size_t from_height)
 {
     chain.fetch_history(address,
-        std::bind(blockchain_history_fetched, _1, _2,
-            std::ref(indexer), address, handle_fetch), from_height);
+        std::bind(blockchain_history_fetched,
+            _1, _2, std::ref(indexer), address, handle_fetch), from_height);
 }
 
 } // namespace node

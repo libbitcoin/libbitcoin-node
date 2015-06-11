@@ -30,29 +30,30 @@ class BCN_API poller
 {
 public:
     poller(threadpool& pool, chain::blockchain& chain);
-    void query(bc::network::channel_ptr node);
     void monitor(bc::network::channel_ptr node);
+    void request_blocks(const hash_digest& block_hash,
+        bc::network::channel_ptr node);
 
 private:
-    void initial_ask_blocks(const std::error_code& code,
-        const block_locator_type& locator, bc::network::channel_ptr node);
-    void receive_inv(const std::error_code& code,
-        const inventory_type& packet, bc::network::channel_ptr node);
-    void receive_block(const std::error_code& code,
+    ////void receive_inv(const std::error_code& ec,
+    ////    const inventory_type& packet, bc::network::channel_ptr node);
+    void receive_block(const std::error_code& ec,
         const block_type& block, bc::network::channel_ptr node);
-    void handle_store(const std::error_code& code, block_info info,
+    void handle_store_block(const std::error_code& ec, block_info info,
         const hash_digest& block_hash, bc::network::channel_ptr node);
-    void ask_blocks(const std::error_code& code,
+    void ask_blocks(const std::error_code& ec,
         const block_locator_type& locator,
+        const hash_digest& hash_stop, bc::network::channel_ptr node);
+    bool is_duplicate_block_ask(const block_locator_type& locator,
         const hash_digest& hash_stop, bc::network::channel_ptr node);
 
     async_strand strand_;
-    chain::blockchain& chain_;
+    chain::blockchain& blockchain_;
 
-    // Last hash from an inventory packet
+    // Last hash from an inventory packet.
     hash_digest last_block_hash_;
 
-    // Last hash from a block locator
+    // Last hash from a block locator.
     hash_digest last_locator_begin_;
     hash_digest last_hash_stop_;
     bc::network::channel* last_requested_node_;

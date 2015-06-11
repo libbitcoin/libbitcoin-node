@@ -20,6 +20,7 @@
 #include <bitcoin/node/logging.hpp>
 
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <boost/date_time.hpp>
 #include <boost/format.hpp>
@@ -32,16 +33,19 @@ using namespace bc;
 using namespace boost::posix_time;
 using boost::format;
 
+// Guard against concurrent stream writes.
+static std::mutex console_mutex;
+
+// Guard against concurrent file writes.
+static std::mutex logfile_mutex;
+
 static std::string make_log_string(log_level level,
     const std::string& domain, const std::string& body, 
     const std::string& skip_domain)
 {
-    const static auto form = "%1% %2% [%3%] %4%";
+    const static auto form = "%1% %2% [%3%] %4%\n";
 
-    if (body.empty())
-        return "";
-
-    if (domain == skip_domain)
+    if (body.empty() || domain == skip_domain)
         return "";
 
     const auto log = level_repr(level);
@@ -54,22 +58,44 @@ static void log_to_file(std::ofstream& file, log_level level,
     const std::string& domain, const std::string& body, 
     const std::string& skip_domain)
 {
-    std::string output;
-    output = make_log_string(level, domain, body, skip_domain);
-    if (!output.empty())
-        file << output << std::endl;
+    std::string message;
+    message = make_log_string(level, domain, body, skip_domain);
+
+    if (!message.empty())
+    {
+        // This is overkill as we may locking across different files, but
+        // since fatal/error/warning logging is very infrequent this is ok.
+        std::lock_guard<std::mutex> lock_logfile(logfile_mutex);
+        file << message;
+        file.flush();
+    }
 }
 
 static void log_to_both(std::ostream& device, std::ofstream& file,
     log_level level, const std::string& domain, const std::string& body,
     const std::string& skip_domain)
 {
-    std::string output;
-    output = make_log_string(level, domain, body, skip_domain);
-    if (!output.empty())
+    std::string message;
+    message = make_log_string(level, domain, body, skip_domain);
+
+    if (!message.empty())
     {
-        device << output << std::endl;
-        file << output << std::endl;
+        // This is overkill as we may locking across different devices, but
+        // since fatal/error/warning logging is very infrequent this is ok.
+        // Also cout and cerr devices are typically writing to the same
+        // display. Locking across both devices prevents presentation mixing.
+        std::lock_guard<std::mutex> lock_console(console_mutex);
+        device << message;
+        device.flush();
+    }
+
+    if (!message.empty())
+    {
+        // This is overkill as we may locking across different files, but
+        // since fatal/error/warning logging is very infrequent this is ok.
+        std::lock_guard<std::mutex> lock_logfile(logfile_mutex);
+        file << message;
+        file.flush();
     }
 }
 
@@ -121,6 +147,13 @@ void initialize_logging(std::ofstream& debug_log, std::ofstream& error_log,
         std::ref(error_log), std::ref(error), _1, _2, _3, skip_domain));
     log_fatal().set_output_function(std::bind(error_both,
         std::ref(error_log), std::ref(error), _1, _2, _3, skip_domain));
+
+    const static auto headline = "================= Startup =================";
+    log_fatal(LOG_NODE) << headline;
+    log_error(LOG_NODE) << headline;
+    log_warning(LOG_NODE) << headline;
+    log_info(LOG_NODE) << headline;
+    log_debug(LOG_NODE) << headline;
 }
 
 } // namespace node

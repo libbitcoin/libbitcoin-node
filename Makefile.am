@@ -36,11 +36,11 @@ src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdi
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
-    src/getx_responder.cpp \
+    src/indexer.cpp \
     src/logging.cpp \
     src/poller.cpp \
-    src/session.cpp \
-    src/transaction_indexer.cpp
+    src/responder.cpp \
+    src/session.cpp
 
 # local: test/libbitcoin_node_test
 #------------------------------------------------------------------------------
@@ -81,11 +81,11 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/full_node.hpp \
-    include/bitcoin/node/getx_responder.hpp \
+    include/bitcoin/node/indexer.hpp \
     include/bitcoin/node/logging.hpp \
     include/bitcoin/node/poller.hpp \
+    include/bitcoin/node/responder.hpp \
     include/bitcoin/node/session.hpp \
-    include/bitcoin/node/transaction_indexer.hpp \
     include/bitcoin/node/version.hpp
 
 # files => ${bash_completiondir}

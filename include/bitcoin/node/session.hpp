@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
@@ -20,10 +20,14 @@
 #ifndef LIBBITCOIN_NODE_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSION_HPP
 
+#include <atomic>
+#include <cstdint>
 #include <set>
+#include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/poller.hpp>
+#include <bitcoin/node/responder.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -35,36 +39,51 @@ public:
 
     session(threadpool& pool, bc::network::handshake& handshake,
         bc::network::protocol& protocol, chain::blockchain& blockchain,
-        poller& poller, chain::transaction_pool& transaction_pool);
+        poller& poller, chain::transaction_pool& transaction_pool,
+        responder& responder);
 
     void start(completion_handler handle_complete);
     void stop(completion_handler handle_complete);
 
 private:
-    void new_channel(const std::error_code& code, 
+    void subscribe(const std::error_code& ec,
+        completion_handler handle_complete);
+    void new_channel(const std::error_code& ec,
         bc::network::channel_ptr node);
-    void set_start_height(const std::error_code& code, uint64_t fork_point,
+    void broadcast_new_blocks(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
-    void inventory(const std::error_code& code,
+    void receive_inv(const std::error_code& ec,
         const inventory_type& packet, bc::network::channel_ptr node);
-    void get_data(const std::error_code& code,
-        const get_data_type& packet, bc::network::channel_ptr node);
-    void get_blocks(const std::error_code& code,
+    void receive_get_blocks(const std::error_code& ec,
         const get_blocks_type& packet, bc::network::channel_ptr node);
 
-    void new_tx_inventory(const hash_digest& tx_hash,
+    void new_tx_inventory(const hash_digest& tx_hash, 
         bc::network::channel_ptr node);
-    void request_tx_data(bool tx_exists,
-        const hash_digest& tx_hash, bc::network::channel_ptr node);
+    void request_tx_data(bool tx_exists, const hash_digest& tx_hash,
+        bc::network::channel_ptr node);
 
-    boost::asio::io_service::strand strand_;
+    void new_block_inventory(const hash_digest& block_hash,
+        bc::network::channel_ptr node);
+    void request_block_data(const hash_digest& block_hash,
+        bc::network::channel_ptr node);
+    void fetch_block_handler(const std::error_code& ec,
+        const block_type& block, const hash_digest block_hash,
+        bc::network::channel_ptr node);
+
+    async_strand strand_;
     bc::network::handshake& handshake_;
     bc::network::protocol& protocol_;
-    chain::blockchain& chain_;
-    poller& poll_;
-    chain::transaction_pool& tx_pool_;
+    bc::chain::blockchain& blockchain_;
+    bc::chain::transaction_pool& tx_pool_;
+    bc::node::poller& poller_;
+    bc::node::responder& responder_;
+    std::atomic<uint64_t> last_height_;
+
+    // HACK: this is for access to broadcast_new_blocks to facilitate server
+    // inheritance of full_node. The organization should be refactored.
+    friend class full_node;
 };
 
 } // namespace node
