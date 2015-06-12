@@ -100,7 +100,7 @@ protected:
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
-    virtual void full_node::broadcast_new_blocks(const std::error_code& ec,
+    virtual void broadcast_new_blocks(const std::error_code& ec,
         uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
