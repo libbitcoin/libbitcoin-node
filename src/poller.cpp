@@ -31,7 +31,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
-poller::poller(threadpool& pool, blockchain::blockchain& chain)
+poller::poller(threadpool& pool, bc::blockchain::blockchain& chain)
   : strand_(pool),
     blockchain_(chain),
     last_block_hash_(null_hash),

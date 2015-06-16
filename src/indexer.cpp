@@ -266,7 +266,7 @@ void indexer_history_fetched(const std::error_code& ec,
     if (ec)
     {
         // Shouldn't "history" be returned here?
-        handle_fetch(ec, blockchain::history_list());
+        handle_fetch(ec, bc::blockchain::history_list());
         return;
     }
 
@@ -284,13 +284,13 @@ void indexer_history_fetched(const std::error_code& ec,
 }
 
 void blockchain_history_fetched(const std::error_code& ec,
-    const blockchain::history_list& history, indexer& indexer,
+    const bc::blockchain::history_list& history, indexer& indexer,
     const wallet::payment_address& address,
     bc::blockchain::blockchain::fetch_handler_history handle_fetch)
 {
     if (ec)
     {
-        handle_fetch(ec, blockchain::history_list());
+        handle_fetch(ec, bc::blockchain::history_list());
         return;
     }
 
@@ -300,9 +300,9 @@ void blockchain_history_fetched(const std::error_code& ec,
 }
 
 // Fetch the history first from the blockchain and then from the indexer.
-void fetch_history(blockchain::blockchain& chain, indexer& indexer,
+void fetch_history(bc::blockchain::blockchain& chain, indexer& indexer,
     const wallet::payment_address& address,
-    blockchain::blockchain::fetch_handler_history handle_fetch,
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch,
     size_t from_height)
 {
     chain.fetch_history(address,
