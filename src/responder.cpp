@@ -31,8 +31,8 @@ using std::placeholders::_2;
 using namespace bc::blockchain;
 using namespace bc::network;
 
-responder::responder(blockchain::blockchain& blockchain,
-    blockchain::transaction_pool& tx_pool)
+responder::responder(bc::blockchain::blockchain& blockchain,
+    bc::blockchain::transaction_pool& tx_pool)
   : blockchain_(blockchain), tx_pool_(tx_pool)
 {
 }

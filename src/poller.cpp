@@ -30,7 +30,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
-poller::poller(threadpool& pool, blockchain::blockchain& chain)
+poller::poller(threadpool& pool, bc::blockchain::blockchain& chain)
   : strand_(pool),
     blockchain_(chain),
     last_block_hash_(null_hash),
@@ -152,7 +152,7 @@ void poller::receive_block(const std::error_code& ec,
 }
 
 void poller::handle_store_block(const std::error_code& ec,
-    blockchain::block_info info, const hash_digest& block_hash,
+    bc::blockchain::block_info info, const hash_digest& block_hash,
     channel::pointer node)
 {
     if (ec == error::duplicate)
@@ -174,7 +174,7 @@ void poller::handle_store_block(const std::error_code& ec,
     switch (info.status)
     {
         // The block has been accepted as an orphan (ec not set).
-        case blockchain::block_status::orphan:
+        case bc::blockchain::block_status::orphan:
             log_debug(LOG_POLLER) << "Potential block ["
                 << encode_hash(block_hash) << "]";
 
@@ -185,13 +185,13 @@ void poller::handle_store_block(const std::error_code& ec,
 
         // The block has been rejected from the store (redundant?).
         // This case may be redundant with error::duplicate.
-        case blockchain::block_status::rejected:
+        case bc::blockchain::block_status::rejected:
             log_debug(LOG_POLLER) << "Rejected block ["
                 << encode_hash(block_hash) << "]";
             break;
 
         // The block has been accepted into the long chain (ec not set).
-        case blockchain::block_status::confirmed:
+        case bc::blockchain::block_status::confirmed:
             log_info(LOG_POLLER) << "Block #"
                 << info.height << " " << encode_hash(block_hash);
             break;

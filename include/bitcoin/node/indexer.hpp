@@ -103,9 +103,9 @@ private:
     outputs_multimap outputs_map_;
 };
 
-BCN_API void fetch_history(blockchain::blockchain& chain,
-    indexer& indexer, const wallet::payment_address& address,
-    blockchain::blockchain::fetch_handler_history handle_fetch,
+BCN_API void fetch_history(bc::blockchain::blockchain& chain,
+    indexer& indexer, const bc::wallet::payment_address& address,
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch,
     size_t from_height=0);
 
 } // namespace node

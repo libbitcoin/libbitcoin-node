@@ -38,7 +38,7 @@ using namespace bc::blockchain;
 using namespace bc::network;
 
 session::session(threadpool& pool, handshake& handshake, protocol& protocol,
-    blockchain::blockchain& blockchain, poller& poller,
+    bc::blockchain::blockchain& blockchain, poller& poller,
     transaction_pool& transaction_pool, responder& responder)
   : strand_(pool),
     handshake_(handshake),
