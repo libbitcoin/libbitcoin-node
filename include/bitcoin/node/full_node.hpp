@@ -44,7 +44,7 @@ namespace node {
 #define BN_THREADS_MEMORY       4
 #define BN_THREADS_NETWORK      4
 #define BN_HISTORY_START_HEIGHT 0
-#define BN_CHECKPOINT_HEIGHT    bc::chain::block_validation_cutoff_height
+#define BN_CHECKPOINT_HEIGHT    bc::blockchain::block_validation_cutoff_height
 #define BN_LISTEN_PORT          bc::protocol_port
 #define BN_HOSTS_FILENAME       "peers"
 #define BN_DIRECTORY            "blockchain"
@@ -86,17 +86,17 @@ public:
 protected:
     // Result of store operation in transaction pool.
     virtual void new_unconfirm_valid_tx(const std::error_code& code,
-        const index_list& unconfirmed, const transaction_type& tx);
+        const chain::index_list& unconfirmed, const chain::transaction& tx);
 
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
     virtual void new_channel(const std::error_code& ec,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
     virtual void recieve_tx(const std::error_code& ec,
-        const chain::transaction& tx, bc::network::channel_ptr node);
+        const chain::transaction& tx, bc::network::channel::pointer node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.

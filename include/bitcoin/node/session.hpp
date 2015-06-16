@@ -78,7 +78,7 @@ private:
         bc::network::channel::pointer node);
 
     void fetch_block_handler(const std::error_code& ec,
-        const block_type& block, const hash_digest block_hash,
+        const chain::block& block, const hash_digest block_hash,
         bc::network::channel::pointer node);
 
     async_strand strand_;

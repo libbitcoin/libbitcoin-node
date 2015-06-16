@@ -32,28 +32,28 @@ public:
 
     poller(threadpool& pool, blockchain::blockchain& chain);
 
-    void monitor(bc::network::channel_ptr node);
+    void monitor(bc::network::channel::pointer node);
 
     void request_blocks(const hash_digest& block_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
 private:
 
     ////void receive_inv(const std::error_code& ec,
     ////    const inventory_type& packet, bc::network::channel_ptr node);
     void receive_block(const std::error_code& ec,
-        const chain::block& block, bc::network::channel_ptr node);
+        const chain::block& block, bc::network::channel::pointer node);
 
     void handle_store_block(const std::error_code& ec,
         blockchain::block_info info, const hash_digest& block_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     void ask_blocks(const std::error_code& ec,
         const message::block_locator& locator, const hash_digest& hash_stop,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
     bool is_duplicate_block_ask(const message::block_locator& locator,
-        const hash_digest& hash_stop, bc::network::channel_ptr node);
+        const hash_digest& hash_stop, bc::network::channel::pointer node);
 
     async_strand strand_;
     blockchain::blockchain& blockchain_;

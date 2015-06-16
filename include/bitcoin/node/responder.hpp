@@ -30,37 +30,38 @@ namespace node {
 class BCN_API responder
 {
 public:
-    responder(chain::blockchain& chain, chain::transaction_pool& tx_pool);
-    void monitor(bc::network::channel_ptr node);
+    responder(blockchain::blockchain& chain,
+        blockchain::transaction_pool& tx_pool);
+
+    void monitor(bc::network::channel::pointer node);
 
 private:
     void receive_get_data(const std::error_code& ec,
-        const get_data_type& packet, bc::network::channel_ptr node);
+        const message::get_data& packet, bc::network::channel::pointer node);
 
-    void send_pool_tx(const std::error_code& ec, const transaction_type& tx,
-        const hash_digest& tx_hash, bc::network::channel_ptr node);
-    void send_chain_tx(const std::error_code& ec, const transaction_type& tx,
-        const hash_digest& tx_hash, bc::network::channel_ptr node);
-    void send_tx(const transaction_type& tx, const hash_digest& tx_hash,
-        bc::network::channel_ptr node);
+    void send_pool_tx(const std::error_code& ec, const chain::transaction& tx,
+        const hash_digest& tx_hash, bc::network::channel::pointer node);
+    void send_chain_tx(const std::error_code& ec, const chain::transaction& tx,
+        const hash_digest& tx_hash, bc::network::channel::pointer node);
+    void send_tx(const chain::transaction& tx, const hash_digest& tx_hash,
+        bc::network::channel::pointer node);
     void send_tx_not_found(const hash_digest& tx_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
-    void send_block(const std::error_code& ec, const block_type& block,
-        const hash_digest& block_hash, bc::network::channel_ptr node);
+    void send_block(const std::error_code& ec, const chain::block& block,
+        const hash_digest& block_hash, bc::network::channel::pointer node);
     void send_block_not_found(const hash_digest& block_hash,
-        bc::network::channel_ptr node);
+        bc::network::channel::pointer node);
 
-    void send_inventory_not_found(inventory_type_id inventory_type,
-        const hash_digest& hash, bc::network::channel_ptr node,
+    void send_inventory_not_found(message::inventory_type_id inventory_type,
+        const hash_digest& hash, bc::network::channel::pointer node,
         bc::network::channel_proxy::send_handler handler);
 
-    chain::blockchain& blockchain_;
-    chain::transaction_pool& tx_pool_;
+    blockchain::blockchain& blockchain_;
+    blockchain::transaction_pool& tx_pool_;
 };
 
 } // node
 } // libbitcoin
 
 #endif
-
