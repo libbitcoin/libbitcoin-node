@@ -89,7 +89,7 @@ void session::subscribe(const std::error_code& ec,
     handle_complete(ec);
 }
 
-void session::new_channel(const std::error_code& ec, channel_ptr node)
+void session::new_channel(const std::error_code& ec, channel::pointer node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
@@ -355,13 +355,14 @@ void session::request_tx_data(const std::error_code& ec, bool tx_exists,
     log_debug(LOG_SESSION)
         << "Requesting transaction [" << encode_hash(tx_hash) << "]";
 
-    const inventory_vector_type tx_inventory
+    const message::inventory_vector tx_inventory
     {
-        inventory_type_id::transaction,
+        message::inventory_type_id::transaction,
         tx_hash
     };
 
-    const get_data_type request_tx{ { tx_inventory } };
+    message::get_data request_tx;
+    request_tx.inventories.push_back(tx_inventory);
     node->send(request_tx, handle_error);
 }
 
@@ -397,7 +398,8 @@ void session::new_block_inventory(const hash_digest& block_hash,
     fetch_block(blockchain_, block_hash, request_block);
 }
 
-void session::request_block_data(const hash_digest& block_hash, channel_ptr node)
+void session::request_block_data(const hash_digest& block_hash,
+    channel::pointer node)
 {
     const auto handle_error = [node, block_hash](const std::error_code& ec)
     {
@@ -416,7 +418,8 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
         block_hash
     };
 
-    const message::get_data request_block{ { block_inventory } };
+    message::get_data request_block;
+    request_block.inventories.push_back(block_inventory);
     node->send(request_block, handle_error);
 
     // Reset the revival timer because we just asked for block data. If after
@@ -439,7 +442,7 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
 
 // We don't respond to peers making getblocks requests.
 void session::receive_get_blocks(const std::error_code& ec,
-    const message::get_blocks& get_blocks, channel_ptr node)
+    const message::get_blocks& get_blocks, channel::pointer node)
 {
     if (ec == error::channel_stopped)
         return;

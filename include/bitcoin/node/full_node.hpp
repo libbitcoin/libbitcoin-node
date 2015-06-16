@@ -109,7 +109,7 @@ public:
 protected:
     // Result of store operation in transaction pool.
     virtual void new_unconfirm_valid_tx(const std::error_code& code,
-        const index_list& unconfirmed, const transaction_type& tx);
+        const chain::index_list& unconfirmed, const chain::transaction& tx);
 
     // New channel has been started.
     // Subscribe to new transaction messages from the network.

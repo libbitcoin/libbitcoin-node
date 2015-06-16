@@ -374,7 +374,7 @@ void full_node::handle_stop(const std::error_code& ec,
     promise.set_value(ec);
 }
 
-void full_node::new_channel(const std::error_code& ec, channel_ptr node)
+void full_node::new_channel(const std::error_code& ec, channel::pointer node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
@@ -487,8 +487,8 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
 // HACK: this is for access to broadcast_new_blocks to facilitate server
 // inheritance of full_node. The organization should be refactored.
 void full_node::broadcast_new_blocks(const std::error_code& ec,
-    uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-    const chain::blockchain::block_list& replaced_blocks)
+    uint32_t fork_point, const blockchain::blockchain::block_list& new_blocks,
+    const blockchain::blockchain::block_list& replaced_blocks)
 {
     session_.broadcast_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
 }

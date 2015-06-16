@@ -199,7 +199,8 @@ void poller::handle_store_block(const std::error_code& ec,
     }
 }
 
-void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
+void poller::request_blocks(const hash_digest& block_hash,
+    channel::pointer node)
 {
     // TODO: cache this so we are not constantly hitting the blockchain for it.
     fetch_block_locator(blockchain_,
@@ -257,8 +258,8 @@ void poller::ask_blocks(const std::error_code& ec,
     last_block_ask_node_ = node.get();
 }
 
-bool poller::is_duplicate_block_ask(const block_locator_type& locator,
-    const hash_digest& hash_stop, channel_ptr node)
+bool poller::is_duplicate_block_ask(const message::block_locator& locator,
+    const hash_digest& hash_stop, channel::pointer node)
 {
     return
         last_locator_begin_ == locator.front() &&
