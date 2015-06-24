@@ -216,7 +216,8 @@ void session::broadcast_new_blocks(const std::error_code& ec,
 }
 
 // TODO: consolidate to libbitcoin utils.
-static size_t inventory_count(const message::inventory_list& inventories,
+static size_t inventory_count(
+    const message::inventory_vector::list& inventories,
     message::inventory_type_id type_id)
 {
     size_t count = 0;
