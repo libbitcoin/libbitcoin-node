@@ -24,154 +24,245 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace bc::chain;
+using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
-poller::poller(threadpool& pool, chain::blockchain& chain)
-  : strand_(pool), chain_(chain)
+poller::poller(threadpool& pool, blockchain& chain)
+  : strand_(pool),
+    blockchain_(chain),
+    last_block_hash_(null_hash),
+    last_locator_begin_(null_hash),
+    last_hash_stop_(null_hash), 
+    last_requested_node_(nullptr)
 {
 }
 
-void poller::query(network::channel_ptr node)
+// Start monitoring this channel.
+void poller::monitor(channel_ptr node)
 {
-    fetch_block_locator(chain_,
-        std::bind(&poller::initial_ask_blocks,
-            this, _1, _2, node));
-}
-
-void poller::monitor(network::channel_ptr node)
-{
-    node->subscribe_inventory(
-        strand_.wrap(&poller::receive_inv, this, _1, _2, node));
-    node->subscribe_block(
-        std::bind(&poller::receive_block,
-            this, _1, _2, node));
-}
-
-void poller::initial_ask_blocks(const std::error_code& ec,
-    const block_locator_type& locator, network::channel_ptr node)
-{
-    if (ec)
+    if (!node)
     {
         log_error(LOG_POLLER)
-            << "Fetching initial block locator: " << ec.message();
+            << "The node is not initialized and cannot be monitored.";
         return;
     }
-    strand_.randomly_queue(
-        &poller::ask_blocks, this, ec, locator, null_hash, node);
+
+    //////node->subscribe_inventory(
+    //////    std::bind(&poller::receive_inv,
+    //////        this, _1, _2, node));
+
+    node->subscribe_block(
+        std::bind(&poller::receive_block,
+            this, _1, _2, node));
+
+    // Issue the initial ask for blocks.
+    request_blocks(null_hash, node);
 }
 
-void handle_send_packet(const std::error_code& ec)
-{
-    if (ec)
-        log_error(LOG_POLLER) << "Send problem: " << ec.message();
-}
-
-void poller::receive_inv(const std::error_code& ec,
-    const inventory_type& packet, network::channel_ptr node)
-{
-    if (ec)
-    {
-        log_warning(LOG_POLLER) << "Received bad inventory: " << ec.message();
-        return;
-    }
-    // Filter out only block inventories
-    get_data_type getdata;
-    for (const inventory_vector_type& ivv: packet.inventories)
-    {
-        if (ivv.type != inventory_type_id::block)
-            continue;
-        // Already got this block
-        if (ivv.hash == last_block_hash_)
-            continue;
-        getdata.inventories.push_back(ivv);
-    }
-    if (!getdata.inventories.empty())
-    {
-        last_block_hash_ = getdata.inventories.back().hash;
-        node->send(getdata, handle_send_packet);
-    }
-    node->subscribe_inventory(
-        strand_.wrap(&poller::receive_inv, this, _1, _2, node));
-}
+// Dead code, temp retain for example.
+//void poller::receive_inv(const std::error_code& ec,
+//    const inventory_type& packet, channel_ptr node)
+//{
+//    if (!node)
+//        return;
+//
+//    const auto peer = node->address().to_string();
+//
+//    if (ec)
+//    {
+//        log_debug(LOG_POLLER)
+//            << "Failure in receive inventory ["
+//            << peer << "] " << ec.message();
+//        node->stop();
+//        return;
+//    }
+//
+//    log_debug(LOG_POLLER)
+//        << "Inventory BEGIN [" << peer << "] ("
+//        << packet.inventories.size() << ")";
+//
+//    get_data_type getdata;
+//    for (const auto& inventory: packet.inventories)
+//    {
+//        // Filter out non-block inventories
+//        if (inventory.type == inventory_type_id::block)
+//        {
+//            log_debug(LOG_POLLER)
+//                << "Block inventory from [" << peer << "] "
+//                << encode_hash(inventory.hash);
+//
+//            // Exclude the last block asked for.
+//            // Presumably this is because it's convenient/fast to do.
+//            // TODO: filter out blocks we already have so we aren't
+//            // re-requesting block data for them. Presumably we could
+//            // have obtained them on another channel even though we 
+//            // did ask for them on this channel.
+//            if (inventory.hash != last_block_hash_)
+//                getdata.inventories.push_back(inventory);
+//        }
+//    }
+//
+//    log_debug(LOG_POLLER)
+//        << "Inventory END [" << peer << "]";
+//
+//    // The session is also subscribed to inv, so we don't handle tx here.
+//    if (getdata.inventories.empty())
+//    {
+//        // If empty there is no ask, resulting in a stall.
+//        log_debug(LOG_POLLER) 
+//            << "Received empty filtered block inventory.";
+//    }
+//    else
+//    {
+//        last_block_hash_ = getdata.inventories.back().hash;
+//        node->send(getdata, handle_send_packet);
+//    }
+//
+//    // Resubscribe.
+//    node->subscribe_inventory(
+//        strand_.wrap(&poller::receive_inv,
+//            this, _1, _2, node));
+//}
 
 void poller::receive_block(const std::error_code& ec,
-    const block_type& blk, network::channel_ptr node)
+    const block_type& block, channel_ptr node)
 {
+    if (!node)
+        return;
+
     if (ec)
     {
-        log_warning(LOG_POLLER) << "Received bad block: " << ec.message();
+        log_warning(LOG_POLLER) << "Received bad block: "
+            << ec.message();
+        node->stop(/* ec */);
         return;
     }
-    chain_.store(blk,
-        strand_.wrap(&poller::handle_store,
-            this, _1, _2, hash_block_header(blk.header), node));
+
+    blockchain_.store(block,
+        strand_.wrap(&poller::handle_store_block,
+            this, _1, _2, hash_block_header(block.header), node));
+
+    // Resubscribe.
     node->subscribe_block(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 }
 
-void poller::handle_store(const std::error_code& ec, block_info info,
-    const hash_digest& block_hash, network::channel_ptr node)
+void poller::handle_store_block(const std::error_code& ec, block_info info,
+    const hash_digest& block_hash, channel_ptr node)
 {
-    // We need orphan blocks so we can do the next getblocks round
-    if (ec && info.status != block_status::orphan)
+    if (ec == error::duplicate)
     {
-        log_warning(LOG_POLLER)
-            << "Storing block " << encode_hash(block_hash)
-            << ": " << ec.message();
+        // This is common, we get blocks we already have.
+        log_debug(LOG_POLLER) << "Redundant block ["
+            << encode_hash(block_hash) << "]";
         return;
     }
+
+    if (ec)
+    {
+        log_error(LOG_POLLER) << "Error storing block ["
+            << encode_hash(block_hash) << "] " << ec.message();
+        node->stop(/* ec */);
+        return;
+    }
+    
     switch (info.status)
     {
+        // The block has been accepted as an orphan (ec not set).
         case block_status::orphan:
-            log_warning(LOG_POLLER) << "Orphan block "
-                << encode_hash(block_hash);
-            // TODO: Make more efficient by storing block hash
-            // and next time do not download orphan block again.
-            // Remember to remove from list once block is no longer orphan
-            fetch_block_locator(chain_, strand_.wrap(
-                &poller::ask_blocks, this, _1, _2, block_hash, node));
+            log_debug(LOG_POLLER) << "Potential block ["
+                << encode_hash(block_hash) << "]";
+
+            // This is how we get other nodes to send us the blocks we are
+            // missing from the top of our chain to the orphan.
+            request_blocks(block_hash, node);
             break;
 
+        // The block has been rejected from the store (redundant?).
+        // This case may be redundant with error::duplicate.
         case block_status::rejected:
-            log_warning(LOG_POLLER) << "Rejected block "
-                << encode_hash(block_hash);
+            log_debug(LOG_POLLER) << "Rejected block ["
+                << encode_hash(block_hash) << "]";
             break;
 
+        // The block has been accepted into the long chain (ec not set).
         case block_status::confirmed:
-            log_info(LOG_POLLER)
-                << "Block #" << info.height << " " << encode_hash(block_hash);
+            log_info(LOG_POLLER) << "Block #"
+                << info.height << " " << encode_hash(block_hash);
             break;
     }
 }
 
-void poller::ask_blocks(const std::error_code& ec,
-    const block_locator_type& locator,
-    const hash_digest& hash_stop, network::channel_ptr node)
+void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
+    fetch_block_locator(blockchain_,
+        strand_.wrap(&poller::ask_blocks,
+            this, _1, _2, block_hash, node));
+}
+
+// Not having orphans will cause a stall 
+void poller::ask_blocks(const std::error_code& ec,
+    const block_locator_type& locator, const hash_digest& hash_stop,
+    channel_ptr node)
+{
+    if (!node)
+        return;
+
     if (ec)
     {
-        log_error(LOG_POLLER) << "Ask for blocks: " << ec.message();
+        log_debug(LOG_POLLER)
+            << "Failed to fetch block locator: " << ec.message();
         return;
     }
-    if (last_locator_begin_ == locator.front() &&
-        last_hash_stop_ == hash_stop && last_requested_node_ == node.get())
+    
+    if (is_duplicate_block_ask(locator, hash_stop, node))
     {
-        log_debug(LOG_POLLER) << "Skipping duplicate ask blocks: "
-            << encode_hash(locator.front());
+        log_debug(LOG_POLLER)
+            << "Skipping duplicate ask blocks with locator front ["
+            << encode_hash(locator.front()) << "]";
         return;
     }
+
+    log_debug(LOG_POLLER)
+        << "Ask for blocks with stop [" 
+        << encode_hash(hash_stop) << "]";
+
+    const auto handle_error = [node](const std::error_code& ec)
+    {
+        if (!node)
+            return;
+
+        if (ec)
+        {
+            log_debug(LOG_POLLER)
+                << "Send get blocks problem: " << ec.message();
+
+            // TODO: modify send() to terminate the connection on send failure.
+            node->stop();
+        }
+    };
+
     // Send get_blocks request.
-    get_blocks_type packet;
-    packet.start_hashes = locator;
-    packet.hash_stop = hash_stop;
-    node->send(packet, std::bind(&handle_send_packet, _1));
+    const get_blocks_type packet{ locator, hash_stop };
+    node->send(packet, handle_error);
+
     // Update last values.
     last_locator_begin_ = locator.front();
     last_hash_stop_ = hash_stop;
     last_requested_node_ = node.get();
+}
+
+bool poller::is_duplicate_block_ask(const block_locator_type& locator,
+    const hash_digest& hash_stop, channel_ptr node)
+{
+    return
+        last_locator_begin_ == locator.front() &&
+        last_hash_stop_ == hash_stop &&
+        last_requested_node_ == node.get();
 }
 
 } // namespace node

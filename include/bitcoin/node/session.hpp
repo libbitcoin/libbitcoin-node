@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
@@ -20,115 +20,70 @@
 #ifndef LIBBITCOIN_NODE_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSION_HPP
 
+#include <atomic>
+#include <cstdint>
 #include <set>
+#include <system_error>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/poller.hpp>
+#include <bitcoin/node/responder.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-struct BCN_API session_params
-{
-    network::handshake& handshake_;
-    network::protocol& protocol_;
-    chain::blockchain& blockchain_;
-    poller& poller_;
-    chain::transaction_pool& transaction_pool_;
-};
-
-/**
- * Provides a circular buffer of expiring items.
- *
- * The pumpkin_buffer is used to store transaction inventory hashes
- * from the network to avoid re-requesting (and wasting bandwidth).
- * Typically the network goes mad over new tx hashes and several nodes
- * will notify you at once. This class avoids that.
- *
- * As transactions come at a fairly constant rate, we can cheat and make
- * the items in this structure expire by using a circular buffer that
- * overwrites old entries.
- *
- * Thanks copumpkin.
- */
-template <typename Item>
-class pumpkin_buffer
-{
-public:
-    pumpkin_buffer(size_t max_size)
-      : max_size_(max_size), index_(0) {}
-
-    void store(const Item& item)
-    {
-        // Fill it up
-        if (expiry_.size() < max_size_)
-        {
-            lookup_.insert(item);
-            expiry_.push_back(item);
-            return;
-        }
-        // Otherwise we overwrite old entries
-        BITCOIN_ASSERT(expiry_.size() == max_size_);
-        BITCOIN_ASSERT(index_ < expiry_.size());
-        // First remove it from the hash lookup set
-        const Item& erase_item = expiry_[index_];
-        DEBUG_ONLY(size_t number_erased =) lookup_.erase(erase_item);
-        BITCOIN_ASSERT(number_erased == 1);
-        // Insert new item and overwrite it in circular buffer
-        lookup_.insert(item);
-        expiry_[index_] = item;
-        // Cycle pointer around
-        index_++;
-        if (index_ == expiry_.size())
-            index_ = 0;
-    }
-
-    bool exists(const Item& item)
-    {
-        return lookup_.find(item) != lookup_.end();
-    }
-
-private:
-    std::set<Item> lookup_;
-    std::vector<Item> expiry_;
-    size_t max_size_;
-    size_t index_;
-};
-
-class session
+class BCN_API session
 {
 public:
     typedef std::function<void (const std::error_code&)> completion_handler;
 
-    BCN_API session(threadpool& pool, const session_params& params);
-    BCN_API void start(completion_handler handle_complete);
-    BCN_API void stop(completion_handler handle_complete);
+    session(threadpool& pool, bc::network::handshake& handshake,
+        bc::network::protocol& protocol, chain::blockchain& blockchain,
+        poller& poller, chain::transaction_pool& transaction_pool,
+        responder& responder);
+
+    void start(completion_handler handle_complete);
+    void stop(completion_handler handle_complete);
 
 private:
-    void new_channel(const std::error_code& ec, network::channel_ptr node);
-    void set_start_height(const std::error_code& ec, uint64_t fork_point,
+    void subscribe(const std::error_code& ec,
+        completion_handler handle_complete);
+    void new_channel(const std::error_code& ec,
+        bc::network::channel_ptr node);
+    void broadcast_new_blocks(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
-    void inventory(const std::error_code& ec,
-        const inventory_type& packet, network::channel_ptr node);
-    void get_data(const std::error_code& ec,
-        const get_data_type& packet, network::channel_ptr node);
-    void get_blocks(const std::error_code& ec,
-        const get_blocks_type& packet, network::channel_ptr node);
+    void receive_inv(const std::error_code& ec,
+        const inventory_type& packet, bc::network::channel_ptr node);
+    void receive_get_blocks(const std::error_code& ec,
+        const get_blocks_type& packet, bc::network::channel_ptr node);
 
-    void new_tx_inventory(const hash_digest& tx_hash, network::channel_ptr node);
-    void request_tx_data(bool tx_exists,
-        const hash_digest& tx_hash, network::channel_ptr node);
+    void new_tx_inventory(const hash_digest& tx_hash, 
+        bc::network::channel_ptr node);
+    void request_tx_data(bool tx_exists, const hash_digest& tx_hash,
+        bc::network::channel_ptr node);
 
-    boost::asio::io_service::strand strand_;
+    void new_block_inventory(const hash_digest& block_hash,
+        bc::network::channel_ptr node);
+    void request_block_data(const hash_digest& block_hash,
+        bc::network::channel_ptr node);
+    void fetch_block_handler(const std::error_code& ec,
+        const block_type& block, const hash_digest block_hash,
+        bc::network::channel_ptr node);
 
-    network::handshake& handshake_;
-    network::protocol& protocol_;
-    chain::blockchain& chain_;
-    poller& poll_;
-    chain::transaction_pool& tx_pool_;
+    async_strand strand_;
+    bc::network::handshake& handshake_;
+    bc::network::protocol& protocol_;
+    bc::chain::blockchain& blockchain_;
+    bc::chain::transaction_pool& tx_pool_;
+    bc::node::poller& poller_;
+    bc::node::responder& responder_;
+    std::atomic<uint64_t> last_height_;
 
-    pumpkin_buffer<hash_digest> grabbed_invs_;
+    // HACK: this is for access to broadcast_new_blocks to facilitate server
+    // inheritance of full_node. The organization should be refactored.
+    friend class full_node;
 };
 
 } // namespace node

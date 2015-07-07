@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-protocol.
@@ -17,14 +17,136 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <boost/test/test_tools.hpp>
-#include <boost/test/unit_test_suite.hpp>
+#include <boost/test/unit_test.hpp>
+#include <boost/filesystem.hpp>
 #include <bitcoin/node.hpp>
 
-BOOST_AUTO_TEST_SUITE(node_tests)
+using namespace bc;
+using namespace bc::chain;
+using namespace bc::network;
+using namespace bc::node;
 
-BOOST_AUTO_TEST_CASE(node_test)
+struct low_thread_priority_fixture
 {
+    low_thread_priority_fixture()
+    {
+        set_thread_priority(thread_priority::lowest);
+    }
+
+    ~low_thread_priority_fixture()
+    {
+        set_thread_priority(thread_priority::normal);
+    }
+};
+
+static void uninitchain(const char prefix[])
+{
+    boost::filesystem::remove_all(prefix);
+}
+
+static void initchain(const char prefix[])
+{
+    const size_t history_height = 0;
+    const auto genesis = genesis_block();
+
+    uninitchain(prefix);
+    boost::filesystem::create_directories(prefix);
+    initialize_blockchain(prefix);
+
+    db_paths paths(prefix);
+    db_interface interface(paths, { history_height });
+
+    interface.start();
+    interface.push(genesis);
+}
+
+// TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
+BOOST_FIXTURE_TEST_SUITE(thread_tests, low_thread_priority_fixture)
+
+// Just a basic test to get some coverage output.
+BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
+{
+    threadpool threads;
+    indexer index(threads);
+    threads.stop();
+    threads.join();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
+BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
+
+BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
+{
+    // WARNING: file system side effect, use unique relative path.
+    const static auto prefix = "node_test/construct_getx_responder";
+    initchain(prefix);
+
+    threadpool threads;
+    blockchain_impl blockchain(threads, prefix);
+    transaction_pool transactions(threads, blockchain);
+    responder responder(blockchain, transactions);
+
+    blockchain.start();
+    transactions.start();
+    blockchain.stop();
+    threads.stop();
+    threads.join();
+
+    // uninitchain(prefix);
+}
+
+BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
+{
+    // WARNING: file system side effect, use unique relative path.
+    const static auto prefix = "node_test/construct_poller";
+    initchain(prefix);
+
+    threadpool threads;
+    blockchain_impl blockchain(threads, prefix);
+    poller poller(threads, blockchain);
+
+    blockchain.start();
+    blockchain.stop();
+    threads.stop();
+    threads.join();
+
+    // uninitchain(prefix);
+}
+
+BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
+{
+    // WARNING: file system side effect, use unique relative path.
+    const static auto prefix = "node_test/construct_session";
+    initchain(prefix);
+
+    threadpool threads;
+    hosts hosts(threads);
+    bc::network::network network(threads);
+    handshake handshake(threads);
+    protocol protocol(threads, hosts, handshake, network);
+    blockchain_impl blockchain(threads, prefix);
+    transaction_pool transactions(threads, blockchain);
+    poller poller(threads, blockchain);
+    responder responder(blockchain, transactions);
+
+    const auto noop_handler = [](const std::error_code& code)
+    {
+    };
+
+    node::session session(threads, handshake, protocol, blockchain, poller,
+        transactions, responder);
+
+    blockchain.start();
+    transactions.start();
+    session.start(noop_handler);
+    session.stop(noop_handler);
+    blockchain.stop();
+    threads.stop();
+    threads.join();
+
+    // uninitchain(prefix);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
