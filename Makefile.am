@@ -86,6 +86,7 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/responder.hpp \
     include/bitcoin/node/session.hpp \
+    include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
 
 # files => ${bash_completiondir}
