@@ -35,6 +35,7 @@
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
+#include <bitcoin/node/settings.hpp>
 
 // Localizable messages.
 
@@ -82,18 +83,34 @@ using boost::format;
 using namespace boost::filesystem;
 using namespace bc::network;
 
-full_node::full_node(/* configuration */)
+const static settings default_node_settings
+{
+    BN_LISTEN_PORT,
+    BN_P2P_TX_POOL,
+    BN_P2P_OUTBOUND,
+    BN_HISTORY_START_HEIGHT,
+    BN_HOSTS_FILENAME,
+    BN_DIRECTORY
+};
+
+full_node::full_node()
+  : full_node(default_node_settings)
+{
+}
+
+full_node::full_node(const settings& config)
   : network_threads_(BN_THREADS_NETWORK, thread_priority::low),
     database_threads_(BN_THREADS_DISK, thread_priority::low),
     memory_threads_(BN_THREADS_MEMORY, thread_priority::low),
-    host_pool_(network_threads_, BN_HOSTS_FILENAME, BN_P2P_HOST_POOL),
-    handshake_(network_threads_, BN_LISTEN_PORT),
+    host_pool_(network_threads_, config.hosts_file, BN_P2P_HOST_POOL),
+    handshake_(network_threads_, config.listen_port),
     network_(network_threads_),
     protocol_(network_threads_, host_pool_, handshake_, network_,
-        protocol::default_seeds, BN_LISTEN_PORT, BN_P2P_OUTBOUND),
-    blockchain_(database_threads_, BN_DIRECTORY, { BN_HISTORY_START_HEIGHT },
-        BN_P2P_ORPHAN_POOL/*, BN_CHECKPOINT_HEIGHT*/),
-    tx_pool_(memory_threads_, blockchain_, BN_P2P_TX_POOL),
+        bc::network::protocol::default_seeds, config.listen_port,
+        config.out_connections),
+    blockchain_(database_threads_, config.blockchain_path.string(),
+        { config.history_height }, BN_P2P_ORPHAN_POOL/*, BN_CHECKPOINT_HEIGHT*/),
+    tx_pool_(memory_threads_, blockchain_, config.tx_pool_capacity),
     tx_indexer_(memory_threads_),
     poller_(memory_threads_, blockchain_),
     responder_(blockchain_, tx_pool_),

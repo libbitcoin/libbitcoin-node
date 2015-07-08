@@ -30,6 +30,7 @@
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
+#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -56,11 +57,17 @@ class BCN_API full_node
 {
 public:
     /**
+     * Construct the node using default configuration.
+     * The prefix must have been initialized using 'initchain' prior to this.
+     */
+    full_node();
+
+    /**
      * Construct the node.
      * The prefix must have been initialized using 'initchain' prior to this.
      * param@ [in]  configuration  The configuration settings for the node.
      */
-    full_node(/* configuration */);
+    full_node(const settings& configuration);
     
     /**
      * Start the node.
@@ -104,14 +111,6 @@ protected:
         uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
-private:
-    void handle_start(const std::error_code& ec,
-        std::promise<std::error_code>& promise);
-    void handle_stop(const std::error_code& ec,
-        std::promise<std::error_code>& promise);
-    void set_height(const std::error_code& ec, uint64_t height,
-        std::promise<std::error_code>& promise);
-
     bc::threadpool network_threads_;
     bc::threadpool database_threads_;
     bc::threadpool memory_threads_;
@@ -125,6 +124,14 @@ private:
     bc::node::poller poller_;
     bc::node::session session_;
     bc::node::responder responder_;
+
+private:
+    void handle_start(const std::error_code& ec,
+        std::promise<std::error_code>& promise);
+    void handle_stop(const std::error_code& ec,
+        std::promise<std::error_code>& promise);
+    void set_height(const std::error_code& ec, uint64_t height,
+        std::promise<std::error_code>& promise);
 };
 
 } // namspace node
