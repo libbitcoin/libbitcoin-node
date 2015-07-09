@@ -9,7 +9,7 @@
 # Define tests and options.
 #==============================================================================
 BOOST_UNIT_TEST_OPTIONS=\
-"--run_test=thread_tests "\
+"--run_test=config_tests,thread_tests "\
 "--show_progress=no "\
 "--detect_memory_leak=0 "\
 "--report_level=no "\

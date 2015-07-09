@@ -26,6 +26,8 @@ using namespace bc::node;
 using namespace boost;
 using namespace boost::program_options;
 
+BOOST_AUTO_TEST_SUITE(config_tests)
+
 BOOST_AUTO_TEST_SUITE(btc256_tests)
 
 BOOST_AUTO_TEST_CASE(btc256__construct__default__null_hash)
@@ -35,5 +37,7 @@ BOOST_AUTO_TEST_CASE(btc256__construct__default__null_hash)
     const auto result = bc::encode_hash(uninitialized_hash);
     BOOST_REQUIRE_EQUAL(expectation, result);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()

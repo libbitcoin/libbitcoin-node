@@ -26,9 +26,11 @@ using namespace bc::node;
 using namespace boost;
 using namespace boost::program_options;
 
-BOOST_AUTO_TEST_SUITE(endpont_tests)
+BOOST_AUTO_TEST_SUITE(config_tests)
 
-BOOST_AUTO_TEST_CASE(endpont__construct__default__expected_empty_values)
+BOOST_AUTO_TEST_SUITE(endpoint_tests)
+
+BOOST_AUTO_TEST_CASE(endpoint__construct__default__expected_empty_values)
 {
     endpoint_type endpoint;
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "");
@@ -36,7 +38,7 @@ BOOST_AUTO_TEST_CASE(endpont__construct__default__expected_empty_values)
     BOOST_REQUIRE_EQUAL(endpoint.get_port(), 0u);
 }
 
-BOOST_AUTO_TEST_CASE(endpont__construct__host__expected_values)
+BOOST_AUTO_TEST_CASE(endpoint__construct__host__expected_values)
 {
     endpoint_type endpoint("foo.bar");
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "");
@@ -44,7 +46,7 @@ BOOST_AUTO_TEST_CASE(endpont__construct__host__expected_values)
     BOOST_REQUIRE_EQUAL(endpoint.get_port(), 0u);
 }
 
-BOOST_AUTO_TEST_CASE(endpont__construct__host_port__expected_values)
+BOOST_AUTO_TEST_CASE(endpoint__construct__host_port__expected_values)
 {
     endpoint_type endpoint("foo.bar:42");
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "");
@@ -52,7 +54,7 @@ BOOST_AUTO_TEST_CASE(endpont__construct__host_port__expected_values)
     BOOST_REQUIRE_EQUAL(endpoint.get_port(), 42u);
 }
 
-BOOST_AUTO_TEST_CASE(endpont__construct__scheme_host_port__expected_values)
+BOOST_AUTO_TEST_CASE(endpoint__construct__scheme_host_port__expected_values)
 {
     endpoint_type endpoint("tcp://foo.bar:42");
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "tcp");
@@ -60,7 +62,7 @@ BOOST_AUTO_TEST_CASE(endpont__construct__scheme_host_port__expected_values)
     BOOST_REQUIRE_EQUAL(endpoint.get_port(), 42u);
 }
 
-BOOST_AUTO_TEST_CASE(endpont__construct__scheme_host__expected_values)
+BOOST_AUTO_TEST_CASE(endpoint__construct__scheme_host__expected_values)
 {
     endpoint_type endpoint("tcp://foo.bar");
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "tcp");
@@ -69,7 +71,7 @@ BOOST_AUTO_TEST_CASE(endpont__construct__scheme_host__expected_values)
 }
 
 // This should throw invalid_option_value.
-BOOST_AUTO_TEST_CASE(endpont__construct__no_host__throws_invalid_option_value)
+BOOST_AUTO_TEST_CASE(endpoint__construct__no_host__throws_invalid_option_value)
 {
     endpoint_type endpoint("tcp://"), invalid_option_value;
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "");
@@ -78,7 +80,7 @@ BOOST_AUTO_TEST_CASE(endpont__construct__no_host__throws_invalid_option_value)
 }
 
 // This should throw invalid_option_value.
-BOOST_AUTO_TEST_CASE(endpont__construct__port_only__throws_invalid_option_value)
+BOOST_AUTO_TEST_CASE(endpoint__construct__port_only__throws_invalid_option_value)
 {
     endpoint_type endpoint(":42");
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "");
@@ -87,12 +89,14 @@ BOOST_AUTO_TEST_CASE(endpont__construct__port_only__throws_invalid_option_value)
 }
 
 // This should throw invalid_option_value.
-BOOST_AUTO_TEST_CASE(endpont__construct__single_word_host__throws_invalid_option_value)
+BOOST_AUTO_TEST_CASE(endpoint__construct__single_word_host__throws_invalid_option_value)
 {
     endpoint_type endpoint("foobar");
     BOOST_REQUIRE_EQUAL(endpoint.get_scheme(), "");
     BOOST_REQUIRE_EQUAL(endpoint.get_host(), "foobar");
     BOOST_REQUIRE_EQUAL(endpoint.get_port(), 0u);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE_END()
