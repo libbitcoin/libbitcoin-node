@@ -25,30 +25,31 @@
 #include <string>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/config/settings.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
-#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 // Configuration parameters.
 // TODO: incorporate channel timeouts.
-#define BN_P2P_OUTBOUND         8
-#define BN_P2P_HOST_POOL        1000
-#define BN_P2P_ORPHAN_POOL      50
-#define BN_P2P_TX_POOL          2000
-#define BN_THREADS_DISK         6
-#define BN_THREADS_MEMORY       4
-#define BN_THREADS_NETWORK      4
-#define BN_HISTORY_START_HEIGHT 0
-#define BN_CHECKPOINT_HEIGHT    bc::chain::block_validation_cutoff_height
-#define BN_LISTEN_PORT          bc::protocol_port
-#define BN_HOSTS_FILENAME       "peers"
-#define BN_DIRECTORY            "blockchain"
+#define BN_DATABASE_THREADS         6
+#define BN_NETWORK_THREADS          4
+#define BN_MEMORY_THREADS           4
+#define BN_HOST_POOL_CAPACITY       1000
+#define BN_BLOCK_POOL_CAPACITY      50
+#define BN_TX_POOL_CAPACITY         2000
+#define BN_HISTORY_START_HEIGHT     0
+#define BN_CHECKPOINT_HEIGHT        0
+#define BN_CHECKPOINT_HASH          bc::null_hash
+#define BN_P2P_LISTEN_PORT          bc::protocol_port
+#define BN_P2P_OUTBOUND_CONNECTIONS 8
+#define BN_P2P_HOSTS_FILE           "peers"
+#define BN_BLOCKCHAIN_DIRECTORY     "blockchain"
 
 /**
  * A full node on the Bitcoin P2P network.

@@ -40,7 +40,9 @@ src_libbitcoin_node_la_SOURCES = \
     src/logging.cpp \
     src/poller.cpp \
     src/responder.cpp \
-    src/session.cpp
+    src/session.cpp \
+    src/config/btc256.cpp \
+    src/config/endpoint.cpp
 
 # local: test/libbitcoin_node_test
 #------------------------------------------------------------------------------
@@ -52,6 +54,8 @@ check_PROGRAMS = test/libbitcoin_node_test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS}
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS}
 test_libbitcoin_node_test_SOURCES = \
+    test/btc256.cpp \
+    test/endpoint.cpp \
     test/main.cpp \
     test/node.cpp
 
@@ -86,8 +90,13 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/responder.hpp \
     include/bitcoin/node/session.hpp \
-    include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
+
+include_bitcoin_node_configdir = ${includedir}/bitcoin/node/config
+include_bitcoin_node_config_HEADERS = \
+    include/bitcoin/node/config/btc256.hpp \
+    include/bitcoin/node/config/endpoint.hpp \
+    include/bitcoin/node/config/settings.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

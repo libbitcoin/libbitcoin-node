@@ -17,28 +17,41 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SETTINGS_HPP
-#define LIBBITCOIN_NODE_SETTINGS_HPP
+#ifndef LIBBITCOIN_NODE_ENDPOINT_HPP
+#define LIBBITCOIN_NODE_ENDPOINT_HPP
 
 #include <cstdint>
+#include <iostream>
 #include <string>
-#include <vector>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class BCN_API settings
+class BCN_API endpoint_type
 {
 public:
-    uint16_t listen_port;
-    uint32_t tx_pool_capacity;
-    uint32_t out_connections;
-    uint32_t history_height;
-    boost::filesystem::path hosts_file;
-    boost::filesystem::path blockchain_path;
+    endpoint_type();
+    endpoint_type(const std::string& value);
+    endpoint_type(const endpoint_type& other);
+
+    const std::string& get_scheme() const;
+    const std::string& get_host() const;
+    uint16_t get_port() const;
+    operator const std::string() const;
+
+    friend std::istream& operator>>(std::istream& input,
+        endpoint_type& argument);
+    friend std::ostream& operator<<(std::ostream& output,
+        const endpoint_type& argument);
+
+private:
+    std::string scheme_;
+    std::string host_;
+    uint16_t port_;
 };
 
 } // namespace node
