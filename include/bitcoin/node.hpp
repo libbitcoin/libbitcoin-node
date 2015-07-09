@@ -22,7 +22,9 @@
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
-#include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
+#include <bitcoin/node/config/btc256.hpp>
+#include <bitcoin/node/config/endpoint.hpp>
+#include <bitcoin/node/config/settings.hpp>
 
 #endif

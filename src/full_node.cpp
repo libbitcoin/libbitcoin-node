@@ -29,13 +29,13 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/config/settings.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
-#include <bitcoin/node/settings.hpp>
 
 // Localizable messages.
 
@@ -85,12 +85,19 @@ using namespace bc::network;
 
 const static settings default_node_settings
 {
-    BN_LISTEN_PORT,
-    BN_P2P_TX_POOL,
-    BN_P2P_OUTBOUND,
+    BN_DATABASE_THREADS,
+    BN_NETWORK_THREADS,
+    BN_MEMORY_THREADS,
+    BN_HOST_POOL_CAPACITY,
+    BN_BLOCK_POOL_CAPACITY,
+    BN_TX_POOL_CAPACITY,
     BN_HISTORY_START_HEIGHT,
-    BN_HOSTS_FILENAME,
-    BN_DIRECTORY
+    BN_CHECKPOINT_HEIGHT,
+    BN_CHECKPOINT_HASH,
+    BN_P2P_LISTEN_PORT,
+    BN_P2P_OUTBOUND_CONNECTIONS,
+    BN_P2P_HOSTS_FILE,
+    BN_BLOCKCHAIN_DIRECTORY
 };
 
 full_node::full_node()
@@ -99,17 +106,19 @@ full_node::full_node()
 }
 
 full_node::full_node(const settings& config)
-  : network_threads_(BN_THREADS_NETWORK, thread_priority::low),
-    database_threads_(BN_THREADS_DISK, thread_priority::low),
-    memory_threads_(BN_THREADS_MEMORY, thread_priority::low),
-    host_pool_(network_threads_, config.hosts_file, BN_P2P_HOST_POOL),
-    handshake_(network_threads_, config.listen_port),
+  : network_threads_(config.network_threads, thread_priority::low),
+    database_threads_(config.database_threads, thread_priority::low),
+    memory_threads_(config.memory_threads, thread_priority::low),
+    host_pool_(network_threads_, config.p2p_hosts_file,
+        config.host_pool_capacity),
+    handshake_(network_threads_, config.p2p_listen_port),
     network_(network_threads_),
     protocol_(network_threads_, host_pool_, handshake_, network_,
-        bc::network::protocol::default_seeds, config.listen_port,
-        config.out_connections),
+    bc::network::protocol::default_seeds, config.p2p_listen_port,
+        config.p2p_outbound_connections),
     blockchain_(database_threads_, config.blockchain_path.string(),
-        { config.history_height }, BN_P2P_ORPHAN_POOL/*, BN_CHECKPOINT_HEIGHT*/),
+        { config.history_height }, config.block_pool_capacity
+        /*, config.checkpoint_height, config.checkpoint_hash*/),
     tx_pool_(memory_threads_, blockchain_, config.tx_pool_capacity),
     tx_indexer_(memory_threads_),
     poller_(memory_threads_, blockchain_),

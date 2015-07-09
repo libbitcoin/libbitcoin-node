@@ -204,7 +204,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     std::ostream& output, std::ostream& error)
 {
     // Blockchain directory is hard-wired for now (add to config).
-    const static path directory(BN_DIRECTORY);
+    const static path directory(BN_BLOCKCHAIN_DIRECTORY);
 
     // Handle command line argument.
     auto result = process_arguments(argc, argv, directory, output, error);
