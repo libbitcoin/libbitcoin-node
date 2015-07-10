@@ -117,8 +117,8 @@ full_node::full_node(const settings& config)
     bc::network::protocol::default_seeds, config.p2p_listen_port,
         config.p2p_outbound_connections),
     blockchain_(database_threads_, config.blockchain_path.string(),
-        { config.history_height }, config.block_pool_capacity
-        /*, config.checkpoint_height, config.checkpoint_hash*/),
+        { config.history_height }, config.block_pool_capacity,
+        { config.checkpoint_height, config.checkpoint_hash }),
     tx_pool_(memory_threads_, blockchain_, config.tx_pool_capacity),
     tx_indexer_(memory_threads_),
     poller_(memory_threads_, blockchain_),
