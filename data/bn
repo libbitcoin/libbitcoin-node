@@ -4,7 +4,7 @@
 _bitcoin_node()
 {
     local current="${COMP_WORDS[COMP_CWORD]}"
-    local options=" --help --initchain --settings -h -i -s"
+    local options=" --help --initchain --version -h -i -v"
 
     COMPREPLY=( `compgen -W "$options" -- $current` )
 }
