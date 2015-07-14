@@ -46,7 +46,7 @@ public:
     uint32_t checkpoint_height;
     btc256 checkpoint_hash;
 
-    uint16_t p2p_listen_port;
+    uint16_t p2p_inbound_port;
     uint32_t p2p_outbound_connections;
 
     boost::filesystem::path p2p_hosts_file;
