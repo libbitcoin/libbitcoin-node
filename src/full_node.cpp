@@ -96,9 +96,14 @@ const static settings default_node_settings
     BN_CHECKPOINT_HASH,
     BN_P2P_INBOUND_PORT,
     BN_P2P_OUTBOUND_CONNECTIONS,
-    BN_P2P_HOSTS_FILE,
+    BN_PEERS,
+    BN_HOSTS_FILE,
+    BN_DEBUG_LOG_FILE,
+    BN_ERROR_LOG_FILE,
     BN_BLOCKCHAIN_DIRECTORY
 };
+
+constexpr auto append = std::ofstream::out | std::ofstream::app;
 
 full_node::full_node()
   : full_node(default_node_settings)
@@ -109,7 +114,7 @@ full_node::full_node(const settings& config)
   : network_threads_(config.network_threads, thread_priority::low),
     database_threads_(config.database_threads, thread_priority::low),
     memory_threads_(config.memory_threads, thread_priority::low),
-    host_pool_(network_threads_, config.p2p_hosts_file,
+    host_pool_(network_threads_, config.hosts_file,
         config.host_pool_capacity),
     handshake_(network_threads_, config.p2p_inbound_port),
     network_(network_threads_),
@@ -124,12 +129,23 @@ full_node::full_node(const settings& config)
     poller_(memory_threads_, blockchain_),
     responder_(blockchain_, tx_pool_),
     session_(network_threads_, handshake_, protocol_, blockchain_, poller_,
-        tx_pool_, responder_)
+        tx_pool_, responder_),
+    debug_file_(config.debug_file.string(), append),
+    error_file_(config.error_file.string(), append)
 {
 }
 
 bool full_node::start()
 {
+    return start(default_node_settings);
+}
+
+bool full_node::start(const settings& config)
+{
+    // Set up logging for node background threads.
+    initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr,
+        config.skip_log);
+
     // Start the blockchain.
     if (!blockchain_.start())
         return false;
@@ -147,7 +163,15 @@ bool full_node::start()
     // Start the transaction pool.
     tx_pool_.start();
 
-    // TODO: include manually-configured endpoints from config.
+    // Add configured connections before starting the session.
+    for (const auto& endpoint: config.peers)
+    {
+        const auto host = endpoint.get_host();
+        const auto port = endpoint.get_port();
+        log_info(LOG_NODE)
+            << "Adding configured node [" << host << ":" << port << "]";
+        protocol_.maintain_connection(host, port);
+    }
 
     std::promise<std::error_code> session_promise;
     session_.start(

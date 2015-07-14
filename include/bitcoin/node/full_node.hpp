@@ -48,7 +48,10 @@ namespace node {
 #define BN_CHECKPOINT_HASH          bc::null_hash
 #define BN_P2P_INBOUND_PORT         bc::protocol_port
 #define BN_P2P_OUTBOUND_CONNECTIONS 8
-#define BN_P2P_HOSTS_FILE           "peers"
+#define BN_PEERS                    {}
+#define BN_HOSTS_FILE               "peers"
+#define BN_DEBUG_LOG_FILE           "debug.log"
+#define BN_ERROR_LOG_FILE           "error.log"
 #define BN_BLOCKCHAIN_DIRECTORY     "blockchain"
 
 /**
@@ -75,6 +78,13 @@ public:
      * @return  True if the start is successful.
      */
     virtual bool start();
+    
+    /**
+     * Start the node.
+     * param@ [in]  configuration  The configuration settings for the node.
+     * @return  True if the start is successful.
+     */
+    virtual bool start(const settings& configuration);
 
     /**
      * Stop the node.
@@ -125,6 +135,8 @@ protected:
     bc::node::poller poller_;
     bc::node::session session_;
     bc::node::responder responder_;
+    bc::ofstream debug_file_;
+    bc::ofstream error_file_;
 
 private:
     void handle_start(const std::error_code& ec,

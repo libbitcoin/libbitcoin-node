@@ -27,6 +27,7 @@
 #include <boost/program_options.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/config/btc256.hpp>
+#include <bitcoin/node/config/endpoint.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -48,9 +49,15 @@ public:
 
     uint16_t p2p_inbound_port;
     uint32_t p2p_outbound_connections;
+    std::vector<endpoint_type> peers;
 
-    boost::filesystem::path p2p_hosts_file;
+    boost::filesystem::path hosts_file;
+    boost::filesystem::path debug_file;
+    boost::filesystem::path error_file;
     boost::filesystem::path blockchain_path;
+
+    // HACK: not a setting, generalize logging.
+    std::string skip_log;
 };
 
 } // namespace node
