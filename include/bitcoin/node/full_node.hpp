@@ -47,9 +47,11 @@ namespace node {
 #define BN_CHECKPOINT_HEIGHT        0
 #define BN_CHECKPOINT_HASH          bc::null_hash
 #define BN_P2P_INBOUND_PORT         bc::protocol_port
+#define BN_P2P_INBOUND_CONNECTIONS  8
 #define BN_P2P_OUTBOUND_CONNECTIONS 8
 #define BN_PEERS                    {}
-#define BN_HOSTS_FILE               "peers"
+#define BN_BANS                     {}
+#define BN_HOSTS_FILE               "hosts"
 #define BN_DEBUG_LOG_FILE           "debug.log"
 #define BN_ERROR_LOG_FILE           "error.log"
 #define BN_BLOCKCHAIN_DIRECTORY     "blockchain"

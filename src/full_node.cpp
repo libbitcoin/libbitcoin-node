@@ -95,8 +95,10 @@ const static settings default_node_settings
     BN_CHECKPOINT_HEIGHT,
     BN_CHECKPOINT_HASH,
     BN_P2P_INBOUND_PORT,
+    BN_P2P_INBOUND_CONNECTIONS,
     BN_P2P_OUTBOUND_CONNECTIONS,
     BN_PEERS,
+    BN_BANS,
     BN_HOSTS_FILE,
     BN_DEBUG_LOG_FILE,
     BN_ERROR_LOG_FILE,
@@ -120,7 +122,7 @@ full_node::full_node(const settings& config)
     network_(network_threads_),
     protocol_(network_threads_, host_pool_, handshake_, network_,
     bc::network::protocol::default_seeds, config.p2p_inbound_port,
-        config.p2p_outbound_connections),
+        config.p2p_outbound_connections, config.p2p_inbound_connections),
     blockchain_(database_threads_, config.blockchain_path.string(),
         { config.history_height }, config.block_pool_capacity,
         { config.checkpoint_height, config.checkpoint_hash }),
@@ -169,8 +171,18 @@ bool full_node::start(const settings& config)
         const auto host = endpoint.get_host();
         const auto port = endpoint.get_port();
         log_info(LOG_NODE)
-            << "Adding configured node [" << host << ":" << port << "]";
+            << "Connecting peer [" << endpoint << "]";
         protocol_.maintain_connection(host, port);
+    }
+
+    // Add banned connections before starting the session.
+    for (const auto& endpoint: config.bans)
+    {
+        const auto host = endpoint.get_host();
+        const auto port = endpoint.get_port();
+        log_info(LOG_NODE)
+            << "Banning peer [" << endpoint << "]";
+        protocol_.ban_connection(host, port);
     }
 
     std::promise<std::error_code> session_promise;

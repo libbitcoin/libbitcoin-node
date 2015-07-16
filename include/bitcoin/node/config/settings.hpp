@@ -48,8 +48,10 @@ public:
     btc256 checkpoint_hash;
 
     uint16_t p2p_inbound_port;
+    uint32_t p2p_inbound_connections;
     uint32_t p2p_outbound_connections;
     std::vector<endpoint_type> peers;
+    std::vector<endpoint_type> bans;
 
     boost::filesystem::path hosts_file;
     boost::filesystem::path debug_file;
