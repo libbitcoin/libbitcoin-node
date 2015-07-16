@@ -46,6 +46,7 @@ namespace node {
 #define BN_HISTORY_START_HEIGHT     0
 #define BN_CHECKPOINT_HEIGHT        0
 #define BN_CHECKPOINT_HASH          bc::null_hash
+#define BN_P2P_CONNECTION_TIMEOUT   5
 #define BN_P2P_INBOUND_PORT         bc::protocol_port
 #define BN_P2P_INBOUND_CONNECTIONS  8
 #define BN_P2P_OUTBOUND_CONNECTIONS 8
