@@ -48,6 +48,9 @@
     <ClCompile Include="..\..\..\..\src\config\btc256.cpp">
       <Filter>src\config</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\config\checkpoint.cpp">
+      <Filter>src\config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
@@ -84,6 +87,9 @@
       <Filter>include\bitcoin\node\config</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\btc256.hpp">
+      <Filter>include\bitcoin\node\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\checkpoint.hpp">
       <Filter>include\bitcoin\node\config</Filter>
     </ClInclude>
   </ItemGroup>
