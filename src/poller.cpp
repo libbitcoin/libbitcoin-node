@@ -189,6 +189,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
                 << encode_hash(block_hash) << "]";
             break;
 
+        // This may have also caused blocks to be accepted via the pool.
         // The block has been accepted into the long chain (ec not set).
         case block_status::confirmed:
             log_info(LOG_POLLER) << "Block #"
