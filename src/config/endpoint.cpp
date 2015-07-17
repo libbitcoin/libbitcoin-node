@@ -34,18 +34,18 @@ using namespace boost;
 using namespace boost::program_options;
 
 endpoint_type::endpoint_type()
-    : port_(0)
+  : port_(0)
 {
 }
 
 endpoint_type::endpoint_type(const std::string& value)
-    : endpoint_type()
+  : endpoint_type()
 {
     std::stringstream(value) >> *this;
 }
 
 endpoint_type::endpoint_type(const endpoint_type& other)
-    : scheme_(other.get_scheme()), host_(other.get_host()),
+  : scheme_(other.get_scheme()), host_(other.get_host()),
     port_(other.get_port())
 {
 }
