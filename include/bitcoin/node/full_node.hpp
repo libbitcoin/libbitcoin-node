@@ -52,6 +52,8 @@ namespace node {
 #define BN_P2P_OUTBOUND_CONNECTIONS 8
 #define BN_PEERS                    {}
 #define BN_BANS                     {}
+#define BN_SEEDS                    bc::network::protocol::default_seeds
+#define BN_CHECKPOINTS              bc::chain::checkpoint::defaults
 #define BN_HOSTS_FILE               "hosts"
 #define BN_DEBUG_LOG_FILE           "debug.log"
 #define BN_ERROR_LOG_FILE           "error.log"
