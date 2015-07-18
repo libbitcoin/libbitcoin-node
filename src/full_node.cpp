@@ -113,27 +113,28 @@ full_node::full_node()
 }
 
 full_node::full_node(const settings& config)
-  : network_threads_(config.network_threads, thread_priority::low),
-    database_threads_(config.database_threads, thread_priority::low),
-    memory_threads_(config.memory_threads, thread_priority::low),
-    host_pool_(network_threads_, config.hosts_file,
-        config.host_pool_capacity),
+  : debug_file_(config.debug_file.string(), append),
+    error_file_(config.error_file.string(), append),
+
+    network_threads_(config.network_threads, thread_priority::low),
+    host_pool_(network_threads_, config.hosts_file, config.host_pool_capacity),
     handshake_(network_threads_, config.p2p_inbound_port),
     network_(network_threads_, BN_TIMEOUTS),
-    protocol_(network_threads_, host_pool_, handshake_, network_,
-        BN_SEEDS, config.p2p_inbound_port, config.p2p_outbound_connections,
+    protocol_(network_threads_, host_pool_, handshake_, network_, BN_SEEDS,
+        config.p2p_inbound_port, config.p2p_outbound_connections,
         config.p2p_inbound_connections),
+
+    database_threads_(config.database_threads, thread_priority::low),
     blockchain_(database_threads_, config.blockchain_path.string(),
-        { BN_HISTORY_START_HEIGHT }, config.block_pool_capacity,
-        BN_CHECKPOINTS),
+        { BN_HISTORY_START_HEIGHT }, config.block_pool_capacity, BN_CHECKPOINTS),
+   
+    memory_threads_(config.memory_threads, thread_priority::low),
     tx_pool_(memory_threads_, blockchain_, config.tx_pool_capacity),
     tx_indexer_(memory_threads_),
     poller_(memory_threads_, blockchain_),
     responder_(blockchain_, tx_pool_),
     session_(network_threads_, handshake_, protocol_, blockchain_, poller_,
-        tx_pool_, responder_),
-    debug_file_(config.debug_file.string(), append),
-    error_file_(config.error_file.string(), append)
+        tx_pool_, responder_)
 {
 }
 

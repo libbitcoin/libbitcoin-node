@@ -127,21 +127,24 @@ protected:
         uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
+    bc::ofstream debug_file_;
+    bc::ofstream error_file_;
+
     bc::threadpool network_threads_;
-    bc::threadpool database_threads_;
-    bc::threadpool memory_threads_;
     bc::network::hosts host_pool_;
     bc::network::handshake handshake_;
     bc::network::network network_;
     bc::network::protocol protocol_;
+
+    bc::threadpool database_threads_;
     bc::chain::blockchain_impl blockchain_;
+
+    bc::threadpool memory_threads_;
     bc::chain::transaction_pool tx_pool_;
     bc::node::indexer tx_indexer_;
     bc::node::poller poller_;
-    bc::node::session session_;
     bc::node::responder responder_;
-    bc::ofstream debug_file_;
-    bc::ofstream error_file_;
+    bc::node::session session_;
 
 private:
     void handle_start(const std::error_code& ec,
