@@ -38,7 +38,7 @@ using namespace bc::network;
 
 session::session(threadpool& pool, handshake& handshake, protocol& protocol,
     blockchain& blockchain, poller& poller, transaction_pool& transaction_pool,
-    responder& responder)
+    responder& responder, size_t last_checkpoint)
   : strand_(pool),
     handshake_(handshake),
     protocol_(protocol),
@@ -46,7 +46,8 @@ session::session(threadpool& pool, handshake& handshake, protocol& protocol,
     tx_pool_(transaction_pool),
     poller_(poller),
     responder_(responder),
-    last_height_(0)
+    last_height_(0),
+    last_checkpoint_(last_checkpoint)
 {
 }
 
@@ -176,7 +177,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             this, _1, _2, _3, _4));
 
     // Don't bother publishing blocks when in the initial blockchain download.
-    if (fork_point < BN_CHECKPOINT_HEIGHT)
+    if (fork_point < last_checkpoint_)
         return;
 
     // Broadcast new blocks inventory.
@@ -258,7 +259,7 @@ void session::receive_inv(const std::error_code& ec,
         switch (inventory.type)
         {
             case inventory_type_id::transaction:
-                if (last_height_ >= BN_CHECKPOINT_HEIGHT)
+                if (last_height_ >= last_checkpoint_)
                 {
                     log_debug(LOG_SESSION)
                         << "Transaction inventory from [" << peer << "] "

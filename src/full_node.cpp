@@ -37,6 +37,18 @@
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
 
+namespace libbitcoin {
+namespace node {
+
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
+using boost::format;
+using boost::posix_time::seconds;
+using boost::posix_time::minutes;
+using namespace boost::filesystem;
+using namespace bc::network;
+
 // Localizable messages.
 
 // Session errors.
@@ -73,77 +85,130 @@
 #define BN_TX_RECEIVE_FAILURE \
     "Failure receiving transaction [%1%] %2%"
 
-namespace libbitcoin {
-namespace node {
-
-using std::placeholders::_1;
-using std::placeholders::_2;
-using std::placeholders::_3;
-using boost::format;
-using namespace boost::filesystem;
-using namespace bc::network;
-
-const static settings default_node_settings
+const settings_type full_node::defaults
 {
-    BN_DATABASE_THREADS,
-    BN_NETWORK_THREADS,
-    BN_MEMORY_THREADS,
-    BN_HOST_POOL_CAPACITY,
-    BN_BLOCK_POOL_CAPACITY,
-    BN_TX_POOL_CAPACITY,
-    BN_HISTORY_START_HEIGHT,
-    BN_CHECKPOINT_HEIGHT,
-    BN_CHECKPOINT_HASH,
-    BN_P2P_INBOUND_PORT,
-    BN_P2P_INBOUND_CONNECTIONS,
-    BN_P2P_OUTBOUND_CONNECTIONS,
-    BN_PEERS,
-    BN_BANS,
-    BN_HOSTS_FILE,
-    BN_DEBUG_LOG_FILE,
-    BN_ERROR_LOG_FILE,
-    BN_BLOCKCHAIN_DIRECTORY
+    // [node]
+    {
+        NODE_THREADS,
+        NODE_TRANSACTION_POOL_CAPACITY,
+        NODE_PEERS,
+        NODE_BANS
+    },
+
+    // [blockchain]
+    {
+        BLOCKCHAIN_BLOCKCHAIN_THREADS,
+        BLOCKCHAIN_BLOCK_POOL_CAPACITY,
+        BLOCKCHAIN_HISTORY_START_HEIGHT,
+        BLOCKCHAIN_DATABASE_PATH,
+        BLOCKCHAIN_CHECKPOINTS
+    },
+
+    // [system]
+    {
+        SYSTEM_NETWORK_THREADS,
+        SYSTEM_INBOUND_PORT,
+        SYSTEM_INBOUND_CONNECTION_LIMIT,
+        SYSTEM_OUTBOUND_CONNECTIONS,
+        SYSTEM_CONNECT_TIMEOUT_SECONDS,
+        SYSTEM_CHANNEL_EXPIRATION_MINUTES,
+        SYSTEM_CHANNEL_TIMEOUT_MINUTES,
+        SYSTEM_CHANNEL_HEARTBEAT_MINUTES,
+        SYSTEM_CHANNEL_STARTUP_MINUTES,
+        SYSTEM_CHANNEL_REVIVAL_MINUTES,
+        SYSTEM_HOST_POOL_CAPACITY,
+        SYSTEM_HOSTS_FILE,
+        SYSTEM_DEBUG_FILE,
+        SYSTEM_ERROR_FILE,
+        SYSTEM_SEEDS
+    },
+
+    BN_SKIP_LOG
 };
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-full_node::full_node()
-  : full_node(default_node_settings)
-{
-}
+/* TODO: create a configuration class to config thread priority. */
+full_node::full_node(const settings_type& config)
+  : debug_file_(
+        config.system.debug_file.string(),
+        append),
+    error_file_(
+        config.system.error_file.string(),
+        append),
+    network_threads_(
+        config.system.network_threads,
+        thread_priority::low),
+    host_pool_(
+        network_threads_,
+        config.system.hosts_file,
+        config.system.host_pool_capacity),
+    handshake_(
+        network_threads_,
+        config.system.inbound_port),
+    network_(
+        network_threads_,
+        /* TODO: there is a type difference between config and consumptiom. */
+        {
+            minutes(config.system.channel_expiration_minutes),
+            minutes(config.system.channel_timeout_minutes),
+            minutes(config.system.channel_heartbeat_minutes),
+            minutes(config.system.channel_startup_minutes),
+            minutes(config.system.channel_revivial_minutes),
+            seconds(config.system.connect_timeout_seconds)
+        }),
+    protocol_(
+        network_threads_,
+        host_pool_,
+        handshake_,
+        network_,
+        /* TODO: there is a type difference between config and consumptiom. */
+        SYSTEM_SEEDS,
+        config.system.inbound_port,
+        config.system.outbound_connections,
+        config.system.inbound_connection_limit),
 
-full_node::full_node(const settings& config)
-  : debug_file_(config.debug_file.string(), append),
-    error_file_(config.error_file.string(), append),
-
-    network_threads_(config.network_threads, thread_priority::low),
-    host_pool_(network_threads_, config.hosts_file, config.host_pool_capacity),
-    handshake_(network_threads_, config.p2p_inbound_port),
-    network_(network_threads_, BN_TIMEOUTS),
-    protocol_(network_threads_, host_pool_, handshake_, network_, BN_SEEDS,
-        config.p2p_inbound_port, config.p2p_outbound_connections,
-        config.p2p_inbound_connections),
-
-    database_threads_(config.database_threads, thread_priority::low),
-    blockchain_(database_threads_, config.blockchain_path.string(),
-        { BN_HISTORY_START_HEIGHT }, config.block_pool_capacity, BN_CHECKPOINTS),
+    database_threads_(
+        config.chain.blockchain_threads,
+        thread_priority::low),
+    blockchain_(
+        database_threads_,
+        config.chain.database_path.string(),
+        { config.chain.history_start_height },
+        config.chain.block_pool_capacity,
+        /* TODO: there is a type difference between config and consumptiom. */
+        BLOCKCHAIN_CHECKPOINTS),
    
-    memory_threads_(config.memory_threads, thread_priority::low),
-    tx_pool_(memory_threads_, blockchain_, config.tx_pool_capacity),
-    tx_indexer_(memory_threads_),
-    poller_(memory_threads_, blockchain_),
-    responder_(blockchain_, tx_pool_),
-    session_(network_threads_, handshake_, protocol_, blockchain_, poller_,
-        tx_pool_, responder_)
+    memory_threads_(
+        config.node.node_threads,
+        thread_priority::low),
+    tx_pool_(
+        memory_threads_,
+        blockchain_,
+        config.node.transaction_pool_capacity),
+    tx_indexer_(
+        memory_threads_),
+    poller_(
+        memory_threads_,
+        blockchain_),
+    responder_(
+        blockchain_,
+        tx_pool_),
+    session_(
+        network_threads_,
+        handshake_,
+        protocol_,
+        blockchain_,
+        poller_,
+        tx_pool_,
+        responder_, 
+        /* TODO: there is a type difference between config and consumptiom. */
+        config.chain.checkpoints.empty() ? 0 : 
+            config.chain.checkpoints.back().get_height())
 {
 }
 
-bool full_node::start()
-{
-    return start(default_node_settings);
-}
-
-bool full_node::start(const settings& config)
+bool full_node::start(const settings_type& config)
 {
     // Set up logging for node background threads.
     initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr,
@@ -167,7 +232,7 @@ bool full_node::start(const settings& config)
     tx_pool_.start();
 
     // Add configured connections before starting the session.
-    for (const auto& endpoint: config.peers)
+    for (const auto& endpoint: config.node.peers)
     {
         const auto host = endpoint.get_host();
         const auto port = endpoint.get_port();
@@ -177,7 +242,7 @@ bool full_node::start(const settings& config)
     }
 
     // Add banned connections before starting the session.
-    for (const auto& endpoint: config.bans)
+    for (const auto& endpoint: config.node.bans)
     {
         const auto host = endpoint.get_host();
         const auto port = endpoint.get_port();

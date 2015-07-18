@@ -28,38 +28,68 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/config/btc256.hpp>
 #include <bitcoin/node/config/endpoint.hpp>
+#include <bitcoin/node/config/checkpoint.hpp>
 
 namespace libbitcoin {
+namespace system {
+    
+// TODO: move into libbitcoin-system.
+class BCN_API settings
+{
+public:
+    uint32_t network_threads;
+    uint16_t inbound_port;
+    uint32_t inbound_connection_limit;
+    uint32_t outbound_connections;
+    uint32_t connect_timeout_seconds;
+    uint32_t channel_expiration_minutes;
+    uint32_t channel_timeout_minutes;
+    uint32_t channel_heartbeat_minutes;
+    uint32_t channel_startup_minutes;
+    uint32_t channel_revivial_minutes;
+    uint32_t host_pool_capacity;
+    boost::filesystem::path hosts_file;
+    boost::filesystem::path debug_file;
+    boost::filesystem::path error_file;
+    std::vector<node::endpoint_type> seeds;
+};
+
+} // namespace system
+
+// TODO: move into libbitcoin-blockchain.
+namespace chain {
+
+class BCN_API settings
+{
+public:
+    uint32_t blockchain_threads;
+    uint32_t block_pool_capacity;
+    uint32_t history_start_height;
+    boost::filesystem::path database_path;
+    std::vector<node::checkpoint_type> checkpoints;
+};
+
+} // namespace chain
+
 namespace node {
 
 class BCN_API settings
 {
 public:
-    uint16_t database_threads;
-    uint16_t network_threads;
-    uint16_t memory_threads;
-
-    uint32_t host_pool_capacity;
-    uint32_t block_pool_capacity;
-    uint32_t tx_pool_capacity;
-
-    uint32_t history_height;
-    uint32_t checkpoint_height;
-    btc256 checkpoint_hash;
-
-    uint16_t p2p_inbound_port;
-    uint32_t p2p_inbound_connections;
-    uint32_t p2p_outbound_connections;
-
+    uint32_t node_threads;
+    uint32_t transaction_pool_capacity;
     std::vector<endpoint_type> peers;
     std::vector<endpoint_type> bans;
+};
 
-    boost::filesystem::path hosts_file;
-    boost::filesystem::path debug_file;
-    boost::filesystem::path error_file;
-    boost::filesystem::path blockchain_path;
+class BCN_API settings_type
+{
+public:
+    node::settings node;
+    chain::settings chain;
+    system::settings system;
 
-    // HACK: not a setting, generalize logging.
+    // HACK: remove once logging is fully injected.
     std::string skip_log;
 };
 

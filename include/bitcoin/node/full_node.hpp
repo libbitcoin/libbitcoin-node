@@ -35,29 +35,42 @@
 namespace libbitcoin {
 namespace node {
 
-// Configuration parameters.
-// TODO: incorporate channel timeouts.
-#define BN_DATABASE_THREADS         6
-#define BN_NETWORK_THREADS          4
-#define BN_MEMORY_THREADS           4
-#define BN_HOST_POOL_CAPACITY       1000
-#define BN_BLOCK_POOL_CAPACITY      50
-#define BN_TX_POOL_CAPACITY         2000
-#define BN_HISTORY_START_HEIGHT     0
-#define BN_CHECKPOINT_HEIGHT        0
-#define BN_CHECKPOINT_HASH          bc::null_hash
-#define BN_P2P_INBOUND_PORT         bc::protocol_port
-#define BN_P2P_INBOUND_CONNECTIONS  8
-#define BN_P2P_OUTBOUND_CONNECTIONS 8
-#define BN_PEERS                    {}
-#define BN_BANS                     {}
-#define BN_SEEDS                    bc::network::hosts::defaults
-#define BN_TIMEOUTS                 bc::network::timeout::defaults
-#define BN_CHECKPOINTS              bc::chain::checkpoint::defaults
-#define BN_HOSTS_FILE               "hosts"
-#define BN_DEBUG_LOG_FILE           "debug.log"
-#define BN_ERROR_LOG_FILE           "error.log"
-#define BN_BLOCKCHAIN_DIRECTORY     "blockchain"
+// Configuration setting defaults.
+
+// [system]
+#define SYSTEM_NETWORK_THREADS              4
+#define SYSTEM_INBOUND_PORT                 bc::protocol_port
+#define SYSTEM_INBOUND_CONNECTION_LIMIT     8
+#define SYSTEM_OUTBOUND_CONNECTIONS         8
+#define SYSTEM_CONNECT_TIMEOUT_SECONDS      5
+#define SYSTEM_CHANNEL_EXPIRATION_MINUTES   90
+#define SYSTEM_CHANNEL_TIMEOUT_MINUTES      30
+#define SYSTEM_CHANNEL_HEARTBEAT_MINUTES    15
+#define SYSTEM_CHANNEL_STARTUP_MINUTES      1
+#define SYSTEM_CHANNEL_REVIVAL_MINUTES      1
+#define SYSTEM_HOST_POOL_CAPACITY           1000
+#define SYSTEM_HOSTS_FILE                   "hosts"
+#define SYSTEM_DEBUG_FILE                   "debug.log"
+#define SYSTEM_ERROR_FILE                   "error.log"
+#define SYSTEM_SEEDS                        {}
+// bc::network::hosts::defaults
+
+// [blockchain]
+#define BLOCKCHAIN_BLOCKCHAIN_THREADS       6
+#define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
+#define BLOCKCHAIN_HISTORY_START_HEIGHT     0
+#define BLOCKCHAIN_DATABASE_PATH            "blockchain"
+#define BLOCKCHAIN_CHECKPOINTS              {}
+// bc::chain::checkpoint::defaults
+
+// [node]
+#define NODE_THREADS                        4
+#define NODE_TRANSACTION_POOL_CAPACITY      2000
+#define NODE_PEERS                          {}
+#define NODE_BANS                           {}
+
+// HACK: remove once logging is fully injected.
+#define BN_SKIP_LOG                 ""
 
 /**
  * A full node on the Bitcoin P2P network.
@@ -65,31 +78,21 @@ namespace node {
 class BCN_API full_node
 {
 public:
-    /**
-     * Construct the node using default configuration.
-     * The prefix must have been initialized using 'initchain' prior to this.
-     */
-    full_node();
+    static const settings_type defaults;
 
     /**
      * Construct the node.
      * The prefix must have been initialized using 'initchain' prior to this.
-     * param@ [in]  configuration  The configuration settings for the node.
+     * param@ [in]  config  The configuration settings for the node.
      */
-    full_node(const settings& configuration);
+    full_node(const settings_type& config=defaults);
     
     /**
      * Start the node.
+     * param@ [in]  config  The configuration settings for the node.
      * @return  True if the start is successful.
      */
-    virtual bool start();
-    
-    /**
-     * Start the node.
-     * param@ [in]  configuration  The configuration settings for the node.
-     * @return  True if the start is successful.
-     */
-    virtual bool start(const settings& configuration);
+    virtual bool start(const settings_type& config=defaults);
 
     /**
      * Stop the node.
