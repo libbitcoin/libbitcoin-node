@@ -47,7 +47,6 @@ public:
     uint32_t checkpoint_height;
     btc256 checkpoint_hash;
 
-    uint32_t p2p_connection_timeout;
     uint16_t p2p_inbound_port;
     uint32_t p2p_inbound_connections;
     uint32_t p2p_outbound_connections;
