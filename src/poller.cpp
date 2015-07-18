@@ -262,10 +262,9 @@ bool poller::is_duplicate_block_ask(const block_locator_type& locator,
 {
     return
         last_locator_begin_ == locator.front() &&
-        last_hash_stop_ == hash_stop &&
+        last_hash_stop_ == hash_stop && hash_stop != null_hash &&
         last_requested_node_ == node.get();
 }
 
 } // namespace node
 } // namespace libbitcoin
-
