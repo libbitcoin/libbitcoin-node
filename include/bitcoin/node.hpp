@@ -27,5 +27,6 @@
 #include <bitcoin/node/config/checkpoint.hpp>
 #include <bitcoin/node/config/endpoint.hpp>
 #include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/config/settings_type.hpp>
 
 #endif

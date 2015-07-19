@@ -25,7 +25,7 @@
 #include <string>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/poller.hpp>
@@ -36,6 +36,20 @@ namespace libbitcoin {
 namespace node {
 
 // Configuration setting defaults.
+
+// [node]
+#define NODE_THREADS                        4
+#define NODE_TRANSACTION_POOL_CAPACITY      2000
+#define NODE_PEERS                          {}
+#define NODE_BANS                           {}
+
+// [blockchain]
+#define BLOCKCHAIN_BLOCKCHAIN_THREADS       6
+#define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
+#define BLOCKCHAIN_HISTORY_START_HEIGHT     0
+#define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
+#define BLOCKCHAIN_CHECKPOINTS              {}
+// bc::chain::checkpoint::defaults
 
 // [system]
 #define SYSTEM_NETWORK_THREADS              4
@@ -49,28 +63,11 @@ namespace node {
 #define SYSTEM_CHANNEL_STARTUP_MINUTES      1
 #define SYSTEM_CHANNEL_REVIVAL_MINUTES      1
 #define SYSTEM_HOST_POOL_CAPACITY           1000
-#define SYSTEM_HOSTS_FILE                   "hosts"
-#define SYSTEM_DEBUG_FILE                   "debug.log"
-#define SYSTEM_ERROR_FILE                   "error.log"
+#define SYSTEM_HOSTS_FILE                   boost::filesystem::path("hosts")
+#define SYSTEM_DEBUG_FILE                   boost::filesystem::path("debug.log")
+#define SYSTEM_ERROR_FILE                   boost::filesystem::path("error.log")
 #define SYSTEM_SEEDS                        {}
 // bc::network::hosts::defaults
-
-// [blockchain]
-#define BLOCKCHAIN_BLOCKCHAIN_THREADS       6
-#define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
-#define BLOCKCHAIN_HISTORY_START_HEIGHT     0
-#define BLOCKCHAIN_DATABASE_PATH            "blockchain"
-#define BLOCKCHAIN_CHECKPOINTS              {}
-// bc::chain::checkpoint::defaults
-
-// [node]
-#define NODE_THREADS                        4
-#define NODE_TRANSACTION_POOL_CAPACITY      2000
-#define NODE_PEERS                          {}
-#define NODE_BANS                           {}
-
-// HACK: remove once logging is fully injected.
-#define BN_SKIP_LOG                 ""
 
 /**
  * A full node on the Bitcoin P2P network.

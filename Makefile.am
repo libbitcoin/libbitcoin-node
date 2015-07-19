@@ -98,7 +98,8 @@ include_bitcoin_node_config_HEADERS = \
     include/bitcoin/node/config/btc256.hpp \
     include/bitcoin/node/config/checkpoint.hpp \
     include/bitcoin/node/config/endpoint.hpp \
-    include/bitcoin/node/config/settings.hpp
+    include/bitcoin/node/config/settings.hpp \
+    include/bitcoin/node/config/settings_type.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

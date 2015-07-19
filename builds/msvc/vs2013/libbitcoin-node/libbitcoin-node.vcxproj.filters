@@ -92,5 +92,8 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\checkpoint.hpp">
       <Filter>include\bitcoin\node\config</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\settings_type.hpp">
+      <Filter>include\bitcoin\node\config</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -21,14 +21,11 @@
 #define LIBBITCOIN_NODE_SETTINGS_HPP
 
 #include <cstdint>
-#include <string>
 #include <vector>
 #include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/config/btc256.hpp>
-#include <bitcoin/node/config/endpoint.hpp>
 #include <bitcoin/node/config/checkpoint.hpp>
+#include <bitcoin/node/config/endpoint.hpp>
 
 namespace libbitcoin {
 namespace system {
@@ -80,17 +77,6 @@ public:
     uint32_t transaction_pool_capacity;
     std::vector<endpoint_type> peers;
     std::vector<endpoint_type> bans;
-};
-
-class BCN_API settings_type
-{
-public:
-    node::settings node;
-    chain::settings chain;
-    system::settings system;
-
-    // HACK: remove once logging is fully injected.
-    std::string skip_log;
 };
 
 } // namespace node

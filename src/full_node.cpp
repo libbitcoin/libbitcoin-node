@@ -25,11 +25,11 @@
 #include <string>
 #include <system_error>
 #include <vector>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/logging.hpp>
@@ -88,6 +88,7 @@ using namespace bc::network;
 const settings_type full_node::defaults
 {
     // [node]
+    node::settings
     {
         NODE_THREADS,
         NODE_TRANSACTION_POOL_CAPACITY,
@@ -96,6 +97,7 @@ const settings_type full_node::defaults
     },
 
     // [blockchain]
+    chain::settings
     {
         BLOCKCHAIN_BLOCKCHAIN_THREADS,
         BLOCKCHAIN_BLOCK_POOL_CAPACITY,
@@ -105,6 +107,7 @@ const settings_type full_node::defaults
     },
 
     // [system]
+    system::settings
     {
         SYSTEM_NETWORK_THREADS,
         SYSTEM_INBOUND_PORT,
@@ -121,9 +124,7 @@ const settings_type full_node::defaults
         SYSTEM_DEBUG_FILE,
         SYSTEM_ERROR_FILE,
         SYSTEM_SEEDS
-    },
-
-    BN_SKIP_LOG
+    }
 };
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
