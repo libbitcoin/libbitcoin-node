@@ -32,8 +32,8 @@ struct BCN_API settings
 {
     uint32_t threads;
     uint32_t transaction_pool_capacity;
-    std::vector<config::endpoint_type> peers;
-    std::vector<config::endpoint_type> bans;
+    std::vector<config::endpoint> peers;
+    std::vector<config::endpoint> bans;
 };
 
 } // namespace node
