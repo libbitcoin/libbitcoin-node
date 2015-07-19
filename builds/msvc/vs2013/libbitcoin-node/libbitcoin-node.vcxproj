@@ -71,9 +71,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\config\btc256.cpp" />
-    <ClCompile Include="..\..\..\..\src\config\checkpoint.cpp" />
-    <ClCompile Include="..\..\..\..\src\config\endpoint.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\responder.cpp" />
     <ClCompile Include="..\..\..\..\src\logging.cpp" />
@@ -83,9 +80,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\btc256.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\checkpoint.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\endpoint.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\settings.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\settings_type.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />

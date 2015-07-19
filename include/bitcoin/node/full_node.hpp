@@ -44,30 +44,30 @@ namespace node {
 #define NODE_BANS                           {}
 
 // [blockchain]
-#define BLOCKCHAIN_BLOCKCHAIN_THREADS       6
+#define BLOCKCHAIN_THREADS                  6
 #define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
 #define BLOCKCHAIN_CHECKPOINTS              {}
-// bc::chain::checkpoint::defaults
+    // bc::chain::checkpoint::defaults
 
-// [system]
-#define SYSTEM_NETWORK_THREADS              4
-#define SYSTEM_INBOUND_PORT                 bc::protocol_port
-#define SYSTEM_INBOUND_CONNECTION_LIMIT     8
-#define SYSTEM_OUTBOUND_CONNECTIONS         8
-#define SYSTEM_CONNECT_TIMEOUT_SECONDS      5
-#define SYSTEM_CHANNEL_EXPIRATION_MINUTES   90
-#define SYSTEM_CHANNEL_TIMEOUT_MINUTES      30
-#define SYSTEM_CHANNEL_HEARTBEAT_MINUTES    15
-#define SYSTEM_CHANNEL_STARTUP_MINUTES      1
-#define SYSTEM_CHANNEL_REVIVAL_MINUTES      1
-#define SYSTEM_HOST_POOL_CAPACITY           1000
-#define SYSTEM_HOSTS_FILE                   boost::filesystem::path("hosts")
-#define SYSTEM_DEBUG_FILE                   boost::filesystem::path("debug.log")
-#define SYSTEM_ERROR_FILE                   boost::filesystem::path("error.log")
-#define SYSTEM_SEEDS                        {}
-// bc::network::hosts::defaults
+// [network]
+#define NETWORK_THREADS                     4
+#define NETWORK_INBOUND_PORT                bc::protocol_port
+#define NETWORK_INBOUND_CONNECTION_LIMIT    8
+#define NETWORK_OUTBOUND_CONNECTIONS        8
+#define NETWORK_CONNECT_TIMEOUT_SECONDS     5
+#define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
+#define NETWORK_CHANNEL_TIMEOUT_MINUTES     30
+#define NETWORK_CHANNEL_HEARTBEAT_MINUTES   15
+#define NETWORK_CHANNEL_STARTUP_MINUTES     1
+#define NETWORK_CHANNEL_REVIVAL_MINUTES     1
+#define NETWORK_HOST_POOL_CAPACITY          1000
+#define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts")
+#define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
+#define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
+#define NETWORK_SEEDS                       {}
+    // bc::network::hosts::defaults
 
 /**
  * A full node on the Bitcoin P2P network.

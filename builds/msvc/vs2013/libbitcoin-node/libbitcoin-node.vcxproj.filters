@@ -19,9 +19,6 @@
     <Filter Include="include\bitcoin\node\config">
       <UniqueIdentifier>{1cf196ae-eab4-42af-94b0-25a483bfa740}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\config">
-      <UniqueIdentifier>{7e1bd5bc-02de-41c9-9303-ce974445d848}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\poller.cpp">
@@ -41,15 +38,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\indexer.cpp">
       <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\config\endpoint.cpp">
-      <Filter>src\config</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\config\btc256.cpp">
-      <Filter>src\config</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\config\checkpoint.cpp">
-      <Filter>src\config</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -80,16 +68,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\indexer.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\endpoint.hpp">
-      <Filter>include\bitcoin\node\config</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\settings.hpp">
-      <Filter>include\bitcoin\node\config</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\btc256.hpp">
-      <Filter>include\bitcoin\node\config</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\config\checkpoint.hpp">
       <Filter>include\bitcoin\node\config</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\settings_type.hpp">

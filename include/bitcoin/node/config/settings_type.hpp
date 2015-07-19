@@ -25,13 +25,12 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/config/checkpoint.hpp>
-#include <bitcoin/node/config/endpoint.hpp>
 #include <bitcoin/node/config/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
     
+// TODO: rename to configuration
 class BCN_API settings_type
 {
 public:
@@ -39,17 +38,17 @@ public:
     {
     }
 
-    settings_type(const node::settings& node_settings,
-        const chain::settings& chain_settings,
-        const system::settings& system_settings)
-      : node(node_settings), chain(chain_settings), system(system_settings)
+    settings_type(const bc::node::settings& node_settings,
+        const bc::chain::settings& chain_settings,
+        const bc::network::settings& network_settings)
+      : node(node_settings), chain(chain_settings), network(network_settings)
     {
     }
 
     // settings
-    node::settings node;
-    chain::settings chain;
-    system::settings system;
+    bc::node::settings node;
+    bc::chain::settings chain;
+    bc::network::settings network;
 
     // HACK: remove once logging is fully injected.
     std::string skip_log;

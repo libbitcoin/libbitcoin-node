@@ -224,8 +224,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
 
     // Set up logging for node background threads (add to config).
     constexpr auto append = std::ofstream::out | std::ofstream::app;
-    bc::ofstream debug_log((SYSTEM_DEBUG_FILE).string(), append);
-    bc::ofstream error_log((SYSTEM_ERROR_FILE).string(), append);
+    bc::ofstream debug_log((NETWORK_DEBUG_FILE).string(), append);
+    bc::ofstream error_log((NETWORK_ERROR_FILE).string(), append);
     initialize_logging(debug_log, error_log, output, error);
 
     // Start up the node, which first maps the blockchain.

@@ -88,7 +88,7 @@ using namespace bc::network;
 const settings_type full_node::defaults
 {
     // [node]
-    node::settings
+    bc::node::settings
     {
         NODE_THREADS,
         NODE_TRANSACTION_POOL_CAPACITY,
@@ -97,33 +97,33 @@ const settings_type full_node::defaults
     },
 
     // [blockchain]
-    chain::settings
+    bc::chain::settings
     {
-        BLOCKCHAIN_BLOCKCHAIN_THREADS,
+        BLOCKCHAIN_THREADS,
         BLOCKCHAIN_BLOCK_POOL_CAPACITY,
         BLOCKCHAIN_HISTORY_START_HEIGHT,
         BLOCKCHAIN_DATABASE_PATH,
         BLOCKCHAIN_CHECKPOINTS
     },
 
-    // [system]
-    system::settings
+    // [network]
+    bc::network::settings
     {
-        SYSTEM_NETWORK_THREADS,
-        SYSTEM_INBOUND_PORT,
-        SYSTEM_INBOUND_CONNECTION_LIMIT,
-        SYSTEM_OUTBOUND_CONNECTIONS,
-        SYSTEM_CONNECT_TIMEOUT_SECONDS,
-        SYSTEM_CHANNEL_EXPIRATION_MINUTES,
-        SYSTEM_CHANNEL_TIMEOUT_MINUTES,
-        SYSTEM_CHANNEL_HEARTBEAT_MINUTES,
-        SYSTEM_CHANNEL_STARTUP_MINUTES,
-        SYSTEM_CHANNEL_REVIVAL_MINUTES,
-        SYSTEM_HOST_POOL_CAPACITY,
-        SYSTEM_HOSTS_FILE,
-        SYSTEM_DEBUG_FILE,
-        SYSTEM_ERROR_FILE,
-        SYSTEM_SEEDS
+        NETWORK_THREADS,
+        NETWORK_INBOUND_PORT,
+        NETWORK_INBOUND_CONNECTION_LIMIT,
+        NETWORK_OUTBOUND_CONNECTIONS,
+        NETWORK_CONNECT_TIMEOUT_SECONDS,
+        NETWORK_CHANNEL_EXPIRATION_MINUTES,
+        NETWORK_CHANNEL_TIMEOUT_MINUTES,
+        NETWORK_CHANNEL_HEARTBEAT_MINUTES,
+        NETWORK_CHANNEL_STARTUP_MINUTES,
+        NETWORK_CHANNEL_REVIVAL_MINUTES,
+        NETWORK_HOST_POOL_CAPACITY,
+        NETWORK_HOSTS_FILE,
+        NETWORK_DEBUG_FILE,
+        NETWORK_ERROR_FILE,
+        NETWORK_SEEDS
     }
 };
 
@@ -132,31 +132,31 @@ constexpr auto append = std::ofstream::out | std::ofstream::app;
 /* TODO: create a configuration class to config thread priority. */
 full_node::full_node(const settings_type& config)
   : debug_file_(
-        config.system.debug_file.string(),
+        config.network.debug_file.string(),
         append),
     error_file_(
-        config.system.error_file.string(),
+        config.network.error_file.string(),
         append),
     network_threads_(
-        config.system.network_threads,
+        config.network.threads,
         thread_priority::low),
     host_pool_(
         network_threads_,
-        config.system.hosts_file,
-        config.system.host_pool_capacity),
+        config.network.hosts_file,
+        config.network.host_pool_capacity),
     handshake_(
         network_threads_,
-        config.system.inbound_port),
+        config.network.inbound_port),
     network_(
         network_threads_,
         /* TODO: there is a type difference between config and consumptiom. */
         {
-            minutes(config.system.channel_expiration_minutes),
-            minutes(config.system.channel_timeout_minutes),
-            minutes(config.system.channel_heartbeat_minutes),
-            minutes(config.system.channel_startup_minutes),
-            minutes(config.system.channel_revivial_minutes),
-            seconds(config.system.connect_timeout_seconds)
+            minutes(config.network.channel_expiration_minutes),
+            minutes(config.network.channel_timeout_minutes),
+            minutes(config.network.channel_heartbeat_minutes),
+            minutes(config.network.channel_startup_minutes),
+            minutes(config.network.channel_revivial_minutes),
+            seconds(config.network.connect_timeout_seconds)
         }),
     protocol_(
         network_threads_,
@@ -164,13 +164,13 @@ full_node::full_node(const settings_type& config)
         handshake_,
         network_,
         /* TODO: there is a type difference between config and consumptiom. */
-        SYSTEM_SEEDS,
-        config.system.inbound_port,
-        config.system.outbound_connections,
-        config.system.inbound_connection_limit),
+        NETWORK_SEEDS,
+        config.network.inbound_port,
+        config.network.outbound_connections,
+        config.network.inbound_connection_limit),
 
     database_threads_(
-        config.chain.blockchain_threads,
+        config.chain.threads,
         thread_priority::low),
     blockchain_(
         database_threads_,
@@ -181,7 +181,7 @@ full_node::full_node(const settings_type& config)
         BLOCKCHAIN_CHECKPOINTS),
    
     memory_threads_(
-        config.node.node_threads,
+        config.node.threads,
         thread_priority::low),
     tx_pool_(
         memory_threads_,
