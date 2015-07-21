@@ -203,9 +203,7 @@ full_node::full_node(const settings_type& config)
         poller_,
         tx_pool_,
         responder_, 
-        /* TODO: there is a type difference between config and consumptiom. */
-        config.chain.checkpoints.empty() ? 0 : 
-            config.chain.checkpoints.back().get_height())
+        config.minimum_start_height())
 {
 }
 
@@ -213,7 +211,7 @@ bool full_node::start(const settings_type& config)
 {
     // Set up logging for node background threads.
     initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr,
-        config.skip_log);
+        config.log_to_skip());
 
     // Start the blockchain.
     if (!blockchain_.start())
@@ -232,24 +230,20 @@ bool full_node::start(const settings_type& config)
     // Start the transaction pool.
     tx_pool_.start();
 
+    // Add banned connections before starting the session.
+    for (const auto& authority: config.node.bans)
+    {
+        log_info(LOG_NODE)
+            << "Banning peer [" << authority << "]";
+        protocol_.ban_connection(authority);
+    }
+
     // Add configured connections before starting the session.
     for (const auto& endpoint: config.node.peers)
     {
-        const auto host = endpoint.get_host();
-        const auto port = endpoint.get_port();
         log_info(LOG_NODE)
             << "Connecting peer [" << endpoint << "]";
-        protocol_.maintain_connection(host, port);
-    }
-
-    // Add banned connections before starting the session.
-    for (const auto& endpoint: config.node.bans)
-    {
-        const auto host = endpoint.get_host();
-        const auto port = endpoint.get_port();
-        log_info(LOG_NODE)
-            << "Banning peer [" << endpoint << "]";
-        protocol_.ban_connection(host, port);
+        protocol_.maintain_connection(endpoint);
     }
 
     std::promise<std::error_code> session_promise;

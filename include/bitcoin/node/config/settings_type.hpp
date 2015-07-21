@@ -45,13 +45,23 @@ public:
     {
     }
 
+    // HACK: generalize logging.
+    virtual std::string log_to_skip() const
+    {
+        return "";
+    }
+
+    // Convenience.
+    virtual size_t minimum_start_height() const
+    {
+        return chain.checkpoints.empty() ? 0 : 
+            chain.checkpoints.back().height();
+    }
+
     // settings
     bc::node::settings node;
     bc::chain::settings chain;
     bc::network::settings network;
-
-    // HACK: remove once logging is fully injected.
-    std::string skip_log;
 };
 
 } // namespace node

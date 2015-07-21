@@ -21,7 +21,6 @@
 #define LIBBITCOIN_NODE_SETTINGS_HPP
 
 #include <cstdint>
-#include <vector>
 #include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -32,8 +31,8 @@ struct BCN_API settings
 {
     uint32_t threads;
     uint32_t transaction_pool_capacity;
-    std::vector<config::endpoint> peers;
-    std::vector<config::endpoint> bans;
+    config::endpoint::list peers;
+    config::authority::list bans;
 };
 
 } // namespace node

@@ -66,7 +66,7 @@ void responder::receive_get_data(const std::error_code& ec,
     if (!node)
         return;
 
-    const auto peer = node->address().to_string();
+    const auto peer = node->address();
 
     if (ec)
     {
@@ -140,7 +140,7 @@ void responder::send_pool_tx(const std::error_code& ec,
     if (ec == bc::error::not_found)
     {
         log_debug(LOG_RESPONDER)
-            << "Transaction for [" << node->address().to_string()
+            << "Transaction for [" << node->address()
             << "] not in mempool [" << encode_hash(tx_hash) << "]";
 
         // It wasn't in the mempool, so relay the request to the blockchain.
@@ -154,7 +154,7 @@ void responder::send_pool_tx(const std::error_code& ec,
     {
         log_error(LOG_RESPONDER)
             << "Failure to get mempool tx data for ["
-            << node->address().to_string() << "] " << ec.message();
+            << node->address() << "] " << ec.message();
         node->stop();
         return;
     }
@@ -177,7 +177,7 @@ void responder::send_chain_tx(const std::error_code& ec,
     if (ec == bc::error::not_found)
     {
         log_debug(LOG_RESPONDER)
-            << "Transaction for [" << node->address().to_string()
+            << "Transaction for [" << node->address()
             << "] not in blockchain [" << encode_hash(tx_hash) << "]";
 
         // It wasn't in the blockchain, so send notfound.
@@ -189,7 +189,7 @@ void responder::send_chain_tx(const std::error_code& ec,
     {
         log_error(LOG_RESPONDER)
             << "Failure to get blockchain tx data for ["
-            << node->address().to_string() << "] " << ec.message();
+            << node->address() << "] " << ec.message();
         node->stop();
         return;
     }
@@ -211,10 +211,10 @@ void responder::send_tx(const transaction_type& tx, const hash_digest& tx_hash,
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending tx for ["
-                << node->address().to_string() << "]";
+                << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
-                << "Sent tx for [" << node->address().to_string()
+                << "Sent tx for [" << node->address()
                 << "] " << encode_hash(tx_hash);
     };
 
@@ -231,10 +231,10 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel_ptr node)
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending tx notfound for ["
-                << node->address().to_string() << "]";
+                << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
-                << "Sent tx notfound for [" << node->address().to_string()
+                << "Sent tx notfound for [" << node->address()
                 << "] " << encode_hash(tx_hash);
     };
 
@@ -253,7 +253,7 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
     if (ec == bc::error::not_found)
     {
         log_debug(LOG_RESPONDER)
-            << "Block for [" << node->address().to_string()
+            << "Block for [" << node->address()
             << "] not in blockchain [" << encode_hash(block_hash) << "]";
 
         // It wasn't in the blockchain, so send notfound.
@@ -264,7 +264,7 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
     {
         log_error(LOG_RESPONDER)
             << "Failure to get block data for ["
-            << node->address().to_string() << "] " << ec.message();
+            << node->address() << "] " << ec.message();
         node->stop();
         return;
     }
@@ -277,10 +277,10 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending block for ["
-                << node->address().to_string() << "]";
+                << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
-                << "Sent block for [" << node->address().to_string()
+                << "Sent block for [" << node->address()
                 << "] " << encode_hash(block_hash);
     };
 
@@ -298,10 +298,10 @@ void responder::send_block_not_found(const hash_digest& block_hash,
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending tx notfound for ["
-                << node->address().to_string() << "]";
+                << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
-                << "Sent tx notfound for [" << node->address().to_string()
+                << "Sent tx notfound for [" << node->address()
                 << "] " << encode_hash(block_hash);
     };
 

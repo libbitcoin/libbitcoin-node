@@ -48,8 +48,7 @@ namespace node {
 #define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
-#define BLOCKCHAIN_CHECKPOINTS              {}
-    // bc::chain::checkpoint::defaults
+#define BLOCKCHAIN_CHECKPOINTS              bc::chain::checkpoint::defaults
 
 // [network]
 #define NETWORK_THREADS                     4
@@ -66,8 +65,7 @@ namespace node {
 #define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts")
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
-#define NETWORK_SEEDS                       {}
-    // bc::network::hosts::defaults
+#define NETWORK_SEEDS                       bc::network::hosts::defaults
 
 /**
  * A full node on the Bitcoin P2P network.

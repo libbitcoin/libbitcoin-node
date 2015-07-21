@@ -38,7 +38,7 @@ using namespace bc::network;
 
 session::session(threadpool& pool, handshake& handshake, protocol& protocol,
     blockchain& blockchain, poller& poller, transaction_pool& transaction_pool,
-    responder& responder, size_t last_checkpoint)
+    responder& responder, size_t minimum_start_height)
   : strand_(pool),
     handshake_(handshake),
     protocol_(protocol),
@@ -47,7 +47,7 @@ session::session(threadpool& pool, handshake& handshake, protocol& protocol,
     poller_(poller),
     responder_(responder),
     last_height_(0),
-    last_checkpoint_(last_checkpoint)
+    minimum_start_height_(minimum_start_height)
 {
 }
 
@@ -105,7 +105,7 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
         }
 
         log_debug(LOG_SESSION)
-            << "Channel revived [" << node->address().to_string() << "]";
+            << "Channel revived [" << node->address() << "]";
 
         // Send an inv request for 500 blocks.
         poller_.request_blocks(null_hash, node);
@@ -177,7 +177,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             this, _1, _2, _3, _4));
 
     // Don't bother publishing blocks when in the initial blockchain download.
-    if (fork_point < last_checkpoint_)
+    if (fork_point < minimum_start_height_)
         return;
 
     // Broadcast new blocks inventory.
@@ -231,7 +231,7 @@ void session::receive_inv(const std::error_code& ec,
     if (!node)
         return;
 
-    const auto peer = node->address().to_string();
+    const auto peer = node->address();
 
     if (ec)
     {
@@ -259,7 +259,7 @@ void session::receive_inv(const std::error_code& ec,
         switch (inventory.type)
         {
             case inventory_type_id::transaction:
-                if (last_height_ >= last_checkpoint_)
+                if (last_height_ >= minimum_start_height_)
                 {
                     log_debug(LOG_SESSION)
                         << "Transaction inventory from [" << peer << "] "
@@ -335,7 +335,7 @@ void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
         {
             log_debug(LOG_SESSION)
                 << "Failure to get tx data from [" 
-                << node->address().to_string() << "] " << ec.message();
+                << node->address() << "] " << ec.message();
             node->stop();
             return;
         }
@@ -403,7 +403,7 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
         {
             log_debug(LOG_SESSION)
                 << "Failure to get block data from ["
-                << node->address().to_string() << "] " << ec.message();
+                << node->address() << "] " << ec.message();
             node->stop();
         }
     };
@@ -446,7 +446,7 @@ void session::receive_get_blocks(const std::error_code& ec,
     {
         log_debug(LOG_SESSION)
             << "Failure in get blocks ["
-            << node->address().to_string() << "] " << ec.message();
+            << node->address() << "] " << ec.message();
         node->stop();
         return;
     }

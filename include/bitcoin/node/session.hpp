@@ -41,7 +41,7 @@ public:
     session(threadpool& pool, bc::network::handshake& handshake,
         bc::network::protocol& protocol, chain::blockchain& blockchain,
         poller& poller, chain::transaction_pool& transaction_pool,
-        responder& responder, size_t last_checkpoint=0);
+        responder& responder, size_t minimum_start_height=0);
 
     void start(completion_handler handle_complete);
     void stop(completion_handler handle_complete);
@@ -81,7 +81,7 @@ private:
     bc::node::poller& poller_;
     bc::node::responder& responder_;
     std::atomic<uint64_t> last_height_;
-    size_t last_checkpoint_;
+    size_t minimum_start_height_;
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.

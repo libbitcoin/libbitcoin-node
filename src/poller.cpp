@@ -69,7 +69,7 @@ void poller::monitor(channel_ptr node)
 //    if (!node)
 //        return;
 //
-//    const auto peer = node->address().to_string();
+//    const auto peer = node->address();
 //
 //    if (ec)
 //    {
