@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <string>
+#include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <bitcoin/node/define.hpp>
@@ -43,6 +44,15 @@ public:
         const bc::network::settings& network_settings)
       : node(node_settings), chain(chain_settings), network(network_settings)
     {
+        timeouts_ =
+        {
+            boost::posix_time::minutes(network.channel_expiration_minutes),
+            boost::posix_time::minutes(network.channel_timeout_minutes),
+            boost::posix_time::minutes(network.channel_heartbeat_minutes),
+            boost::posix_time::minutes(network.channel_startup_minutes),
+            boost::posix_time::minutes(network.channel_revivial_minutes),
+            boost::posix_time::seconds(network.connect_timeout_seconds)
+        };
     }
 
     // HACK: generalize logging.
@@ -58,10 +68,19 @@ public:
             chain.checkpoints.back().height();
     }
 
+    // Hack: don't need this one config is passed into consuming classes.
+    virtual const bc::network::timeout& network_timeouts() const
+    {
+        return timeouts_;
+    }
+
     // settings
     bc::node::settings node;
     bc::chain::settings chain;
     bc::network::settings network;
+
+private:
+    bc::network::timeout timeouts_;
 };
 
 } // namespace node

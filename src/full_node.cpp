@@ -149,16 +149,7 @@ full_node::full_node(const settings_type& config)
         config.network.inbound_port),
     network_(
         network_threads_,
-        /* TODO: there is a type difference between config and consumptiom. */
-        /* HACK: unsafe - this requires that network retain a copy vs. ref. */
-        {
-            minutes(config.network.channel_expiration_minutes),
-            minutes(config.network.channel_timeout_minutes),
-            minutes(config.network.channel_heartbeat_minutes),
-            minutes(config.network.channel_startup_minutes),
-            minutes(config.network.channel_revivial_minutes),
-            seconds(config.network.connect_timeout_seconds)
-        }),
+        config.network_timeouts()),
     protocol_(
         network_threads_,
         host_pool_,
@@ -251,7 +242,8 @@ bool full_node::start(const settings_type& config)
             this, _1, std::ref(session_promise)));
 
     // Wait for start completion.
-    return !session_promise.get_future().get();
+    const auto started = !session_promise.get_future().get();
+    return started;
 }
 
 bool full_node::stop()
