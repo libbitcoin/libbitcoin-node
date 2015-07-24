@@ -150,6 +150,7 @@ full_node::full_node(const settings_type& config)
     network_(
         network_threads_,
         /* TODO: there is a type difference between config and consumptiom. */
+        /* HACK: unsafe - this requires that network retain a copy vs. ref. */
         {
             minutes(config.network.channel_expiration_minutes),
             minutes(config.network.channel_timeout_minutes),
@@ -163,8 +164,7 @@ full_node::full_node(const settings_type& config)
         host_pool_,
         handshake_,
         network_,
-        /* TODO: there is a type difference between config and consumptiom. */
-        NETWORK_SEEDS,
+        config.network.seeds,
         config.network.inbound_port,
         config.network.outbound_connections,
         config.network.inbound_connection_limit),
@@ -177,8 +177,7 @@ full_node::full_node(const settings_type& config)
         config.chain.database_path.string(),
         { config.chain.history_start_height },
         config.chain.block_pool_capacity,
-        /* TODO: there is a type difference between config and consumptiom. */
-        BLOCKCHAIN_CHECKPOINTS),
+        config.chain.checkpoints),
    
     memory_threads_(
         config.node.threads,
