@@ -149,11 +149,11 @@ void initialize_logging(std::ofstream& debug_log, std::ofstream& error_log,
         std::ref(error_log), std::ref(error), _1, _2, _3, skip_domain));
 
     const static auto headline = "================= Startup =================";
-    log_fatal(LOG_NODE) << headline;
-    log_error(LOG_NODE) << headline;
-    log_warning(LOG_NODE) << headline;
-    log_info(LOG_NODE) << headline;
     log_debug(LOG_NODE) << headline;
+    log_info(LOG_NODE) << headline;
+    log_warning(LOG_NODE) << headline;
+    log_error(LOG_NODE) << headline;
+    log_fatal(LOG_NODE) << headline;
 }
 
 } // namespace node
