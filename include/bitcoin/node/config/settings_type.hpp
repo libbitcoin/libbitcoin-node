@@ -39,20 +39,14 @@ public:
     {
     }
 
-    settings_type(const bc::node::settings& node_settings,
+    settings_type(
+        const bc::node::settings& node_settings,
         const bc::chain::settings& chain_settings,
         const bc::network::settings& network_settings)
-      : node(node_settings), chain(chain_settings), network(network_settings)
+      : node(node_settings),
+        chain(chain_settings),
+        network(network_settings)
     {
-        timeouts_ =
-        {
-            boost::posix_time::minutes(network.channel_expiration_minutes),
-            boost::posix_time::minutes(network.channel_timeout_minutes),
-            boost::posix_time::minutes(network.channel_heartbeat_minutes),
-            boost::posix_time::minutes(network.channel_startup_minutes),
-            boost::posix_time::minutes(network.channel_revivial_minutes),
-            boost::posix_time::seconds(network.connect_timeout_seconds)
-        };
     }
 
     // HACK: generalize logging.
@@ -68,10 +62,18 @@ public:
             chain.checkpoints.back().height();
     }
 
-    // Hack: don't need this one config is passed into consuming classes.
-    virtual const bc::network::timeout& network_timeouts() const
+    // This allows timeouts to be const.
+    virtual void initialize_timeouts()
     {
-        return timeouts_;
+        using boost::posix_time::minutes;
+        using boost::posix_time::seconds;
+
+        timeouts.expiration = minutes(network.channel_expiration_minutes);
+        timeouts.inactivity = minutes(network.channel_timeout_minutes);
+        timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
+        timeouts.startup = minutes(network.channel_startup_minutes);
+        timeouts.revival = minutes(network.channel_revivial_minutes);
+        timeouts.connection = seconds(network.connect_timeout_seconds);
     }
 
     // settings
@@ -79,8 +81,8 @@ public:
     bc::chain::settings chain;
     bc::network::settings network;
 
-private:
-    bc::network::timeout timeouts_;
+    // Convenience.
+    bc::network::timeout timeouts;
 };
 
 } // namespace node

@@ -129,7 +129,7 @@ const settings_type full_node::defaults
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-/* TODO: create a configuration class to config thread priority. */
+/* TODO: create a configuration class for thread priority. */
 full_node::full_node(const settings_type& config)
   : debug_file_(
         config.network.debug_file.string(),
@@ -149,7 +149,7 @@ full_node::full_node(const settings_type& config)
         config.network.inbound_port),
     network_(
         network_threads_,
-        config.network_timeouts()),
+        config.timeouts),
     protocol_(
         network_threads_,
         host_pool_,
