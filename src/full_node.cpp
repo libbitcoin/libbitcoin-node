@@ -93,7 +93,7 @@ const settings_type full_node::defaults
         NODE_THREADS,
         NODE_TRANSACTION_POOL_CAPACITY,
         NODE_PEERS,
-        NODE_BANS
+        NODE_BLACKLISTS
     },
 
     // [blockchain]
@@ -197,6 +197,15 @@ full_node::full_node(const settings_type& config)
 {
 }
 
+static std::string format_blacklist(const config::authority& authority)
+{
+    auto formatted = authority.to_string();
+    if (authority.port() == 0)
+        formatted += ":*";
+
+    return formatted;
+}
+
 bool full_node::start(const settings_type& config)
 {
     // Set up logging for node background threads.
@@ -221,10 +230,10 @@ bool full_node::start(const settings_type& config)
     tx_pool_.start();
 
     // Add banned connections before starting the session.
-    for (const auto& authority: config.node.bans)
+    for (const auto& authority: config.node.blacklists)
     {
         log_info(LOG_NODE)
-            << "Banning peer [" << authority << "]";
+            << "Blacklisted peer [" << format_blacklist(authority) << "]";
         protocol_.ban_connection(authority);
     }
 

@@ -32,7 +32,7 @@ struct BCN_API settings
     uint32_t threads;
     uint32_t transaction_pool_capacity;
     config::endpoint::list peers;
-    config::authority::list bans;
+    config::authority::list blacklists;
 };
 
 } // namespace node

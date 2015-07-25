@@ -41,7 +41,7 @@ namespace node {
 #define NODE_THREADS                        4
 #define NODE_TRANSACTION_POOL_CAPACITY      2000
 #define NODE_PEERS                          {}
-#define NODE_BANS                           {}
+#define NODE_BLACKLISTS                     {}
 
 // [blockchain]
 #define BLOCKCHAIN_THREADS                  6
