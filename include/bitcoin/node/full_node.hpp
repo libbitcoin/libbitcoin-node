@@ -65,7 +65,7 @@ namespace node {
 #define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts")
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
-#define NETWORK_SEEDS                       bc::network::hosts::defaults
+#define NETWORK_SEEDS                       bc::network::seeder::defaults
 
 /**
  * A full node on the Bitcoin P2P network.
