@@ -25,7 +25,7 @@
 #include <string>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/poller.hpp>
@@ -35,21 +35,37 @@
 namespace libbitcoin {
 namespace node {
 
-// Configuration parameters.
-// TODO: incorporate channel timeouts.
-#define BN_DATABASE_THREADS         6
-#define BN_NETWORK_THREADS          4
-#define BN_MEMORY_THREADS           4
-#define BN_HOST_POOL_CAPACITY       1000
-#define BN_BLOCK_POOL_CAPACITY      50
-#define BN_TX_POOL_CAPACITY         2000
-#define BN_HISTORY_START_HEIGHT     0
-#define BN_CHECKPOINT_HEIGHT        0
-#define BN_CHECKPOINT_HASH          bc::null_hash
-#define BN_P2P_LISTEN_PORT          bc::protocol_port
-#define BN_P2P_OUTBOUND_CONNECTIONS 8
-#define BN_P2P_HOSTS_FILE           "peers"
-#define BN_BLOCKCHAIN_DIRECTORY     "blockchain"
+// Configuration setting defaults.
+
+// [node]
+#define NODE_THREADS                        4
+#define NODE_TRANSACTION_POOL_CAPACITY      2000
+#define NODE_PEERS                          {}
+#define NODE_BLACKLISTS                     {}
+
+// [blockchain]
+#define BLOCKCHAIN_THREADS                  6
+#define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
+#define BLOCKCHAIN_HISTORY_START_HEIGHT     0
+#define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
+#define BLOCKCHAIN_CHECKPOINTS              bc::chain::checkpoint::defaults
+
+// [network]
+#define NETWORK_THREADS                     4
+#define NETWORK_INBOUND_PORT                bc::protocol_port
+#define NETWORK_INBOUND_CONNECTION_LIMIT    8
+#define NETWORK_OUTBOUND_CONNECTIONS        8
+#define NETWORK_CONNECT_TIMEOUT_SECONDS     5
+#define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
+#define NETWORK_CHANNEL_TIMEOUT_MINUTES     30
+#define NETWORK_CHANNEL_HEARTBEAT_MINUTES   15
+#define NETWORK_CHANNEL_STARTUP_MINUTES     1
+#define NETWORK_CHANNEL_REVIVAL_MINUTES     1
+#define NETWORK_HOST_POOL_CAPACITY          1000
+#define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts")
+#define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
+#define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
+#define NETWORK_SEEDS                       bc::network::seeder::defaults
 
 /**
  * A full node on the Bitcoin P2P network.
@@ -57,24 +73,21 @@ namespace node {
 class BCN_API full_node
 {
 public:
-    /**
-     * Construct the node using default configuration.
-     * The prefix must have been initialized using 'initchain' prior to this.
-     */
-    full_node();
+    static const settings_type defaults;
 
     /**
      * Construct the node.
      * The prefix must have been initialized using 'initchain' prior to this.
-     * param@ [in]  configuration  The configuration settings for the node.
+     * param@ [in]  config  The configuration settings for the node.
      */
-    full_node(const settings& configuration);
+    full_node(const settings_type& config=defaults);
     
     /**
      * Start the node.
+     * param@ [in]  config  The configuration settings for the node.
      * @return  True if the start is successful.
      */
-    virtual bool start();
+    virtual bool start(const settings_type& config=defaults);
 
     /**
      * Stop the node.
@@ -112,19 +125,24 @@ protected:
         uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
+    bc::ofstream debug_file_;
+    bc::ofstream error_file_;
+
     bc::threadpool network_threads_;
-    bc::threadpool database_threads_;
-    bc::threadpool memory_threads_;
     bc::network::hosts host_pool_;
     bc::network::handshake handshake_;
     bc::network::network network_;
     bc::network::protocol protocol_;
+
+    bc::threadpool database_threads_;
     bc::chain::blockchain_impl blockchain_;
+
+    bc::threadpool memory_threads_;
     bc::chain::transaction_pool tx_pool_;
     bc::node::indexer tx_indexer_;
     bc::node::poller poller_;
-    bc::node::session session_;
     bc::node::responder responder_;
+    bc::node::session session_;
 
 private:
     void handle_start(const std::error_code& ec,

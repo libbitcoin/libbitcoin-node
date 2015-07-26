@@ -21,36 +21,18 @@
 #define LIBBITCOIN_NODE_SETTINGS_HPP
 
 #include <cstdint>
-#include <string>
-#include <vector>
-#include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
+#include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/config/btc256.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class BCN_API settings
+struct BCN_API settings
 {
-public:
-    uint16_t database_threads;
-    uint16_t network_threads;
-    uint16_t memory_threads;
-
-    uint32_t host_pool_capacity;
-    uint32_t block_pool_capacity;
-    uint32_t tx_pool_capacity;
-
-    uint32_t history_height;
-    uint32_t checkpoint_height;
-    btc256 checkpoint_hash;
-
-    uint16_t p2p_listen_port;
-    uint32_t p2p_outbound_connections;
-
-    boost::filesystem::path p2p_hosts_file;
-    boost::filesystem::path blockchain_path;
+    uint32_t threads;
+    uint32_t transaction_pool_capacity;
+    config::endpoint::list peers;
+    config::authority::list blacklists;
 };
 
 } // namespace node

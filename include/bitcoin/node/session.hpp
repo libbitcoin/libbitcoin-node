@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
  *
@@ -21,6 +21,7 @@
 #define LIBBITCOIN_NODE_SESSION_HPP
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <set>
 #include <system_error>
@@ -40,7 +41,7 @@ public:
     session(threadpool& pool, bc::network::handshake& handshake,
         bc::network::protocol& protocol, chain::blockchain& blockchain,
         poller& poller, chain::transaction_pool& transaction_pool,
-        responder& responder);
+        responder& responder, size_t minimum_start_height=0);
 
     void start(completion_handler handle_complete);
     void stop(completion_handler handle_complete);
@@ -80,6 +81,7 @@ private:
     bc::node::poller& poller_;
     bc::node::responder& responder_;
     std::atomic<uint64_t> last_height_;
+    size_t minimum_start_height_;
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.

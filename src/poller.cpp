@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
+/**
+ * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
  *
@@ -69,7 +69,7 @@ void poller::monitor(channel_ptr node)
 //    if (!node)
 //        return;
 //
-//    const auto peer = node->address().to_string();
+//    const auto peer = node->address();
 //
 //    if (ec)
 //    {
@@ -189,6 +189,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
                 << encode_hash(block_hash) << "]";
             break;
 
+        // This may have also caused blocks to be accepted via the pool.
         // The block has been accepted into the long chain (ec not set).
         case block_status::confirmed:
             log_info(LOG_POLLER) << "Block #"
@@ -261,10 +262,9 @@ bool poller::is_duplicate_block_ask(const block_locator_type& locator,
 {
     return
         last_locator_begin_ == locator.front() &&
-        last_hash_stop_ == hash_stop &&
+        last_hash_stop_ == hash_stop && hash_stop != null_hash &&
         last_requested_node_ == node.get();
 }
 
 } // namespace node
 } // namespace libbitcoin
-

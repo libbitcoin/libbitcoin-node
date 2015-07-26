@@ -25,17 +25,29 @@
 #include <string>
 #include <system_error>
 #include <vector>
-#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
+
+namespace libbitcoin {
+namespace node {
+
+using std::placeholders::_1;
+using std::placeholders::_2;
+using std::placeholders::_3;
+using boost::format;
+using boost::posix_time::seconds;
+using boost::posix_time::minutes;
+using namespace boost::filesystem;
+using namespace bc::network;
 
 // Localizable messages.
 
@@ -73,63 +85,133 @@
 #define BN_TX_RECEIVE_FAILURE \
     "Failure receiving transaction [%1%] %2%"
 
-namespace libbitcoin {
-namespace node {
-
-using std::placeholders::_1;
-using std::placeholders::_2;
-using std::placeholders::_3;
-using boost::format;
-using namespace boost::filesystem;
-using namespace bc::network;
-
-const static settings default_node_settings
+const settings_type full_node::defaults
 {
-    BN_DATABASE_THREADS,
-    BN_NETWORK_THREADS,
-    BN_MEMORY_THREADS,
-    BN_HOST_POOL_CAPACITY,
-    BN_BLOCK_POOL_CAPACITY,
-    BN_TX_POOL_CAPACITY,
-    BN_HISTORY_START_HEIGHT,
-    BN_CHECKPOINT_HEIGHT,
-    BN_CHECKPOINT_HASH,
-    BN_P2P_LISTEN_PORT,
-    BN_P2P_OUTBOUND_CONNECTIONS,
-    BN_P2P_HOSTS_FILE,
-    BN_BLOCKCHAIN_DIRECTORY
+    // [node]
+    bc::node::settings
+    {
+        NODE_THREADS,
+        NODE_TRANSACTION_POOL_CAPACITY,
+        NODE_PEERS,
+        NODE_BLACKLISTS
+    },
+
+    // [blockchain]
+    bc::chain::settings
+    {
+        BLOCKCHAIN_THREADS,
+        BLOCKCHAIN_BLOCK_POOL_CAPACITY,
+        BLOCKCHAIN_HISTORY_START_HEIGHT,
+        BLOCKCHAIN_DATABASE_PATH,
+        BLOCKCHAIN_CHECKPOINTS
+    },
+
+    // [network]
+    bc::network::settings
+    {
+        NETWORK_THREADS,
+        NETWORK_INBOUND_PORT,
+        NETWORK_INBOUND_CONNECTION_LIMIT,
+        NETWORK_OUTBOUND_CONNECTIONS,
+        NETWORK_CONNECT_TIMEOUT_SECONDS,
+        NETWORK_CHANNEL_EXPIRATION_MINUTES,
+        NETWORK_CHANNEL_TIMEOUT_MINUTES,
+        NETWORK_CHANNEL_HEARTBEAT_MINUTES,
+        NETWORK_CHANNEL_STARTUP_MINUTES,
+        NETWORK_CHANNEL_REVIVAL_MINUTES,
+        NETWORK_HOST_POOL_CAPACITY,
+        NETWORK_HOSTS_FILE,
+        NETWORK_DEBUG_FILE,
+        NETWORK_ERROR_FILE,
+        NETWORK_SEEDS
+    }
 };
 
-full_node::full_node()
-  : full_node(default_node_settings)
+constexpr auto append = std::ofstream::out | std::ofstream::app;
+
+/* TODO: create a configuration class for thread priority. */
+full_node::full_node(const settings_type& config)
+  : debug_file_(
+        config.network.debug_file.string(),
+        append),
+    error_file_(
+        config.network.error_file.string(),
+        append),
+    network_threads_(
+        config.network.threads,
+        thread_priority::low),
+    host_pool_(
+        network_threads_,
+        config.network.hosts_file,
+        config.network.host_pool_capacity),
+    handshake_(
+        network_threads_,
+        config.network.inbound_port),
+    network_(
+        network_threads_,
+        config.timeouts),
+    protocol_(
+        network_threads_,
+        host_pool_,
+        handshake_,
+        network_,
+        config.network.seeds,
+        config.network.inbound_port,
+        config.network.outbound_connections,
+        config.network.inbound_connection_limit),
+
+    database_threads_(
+        config.chain.threads,
+        thread_priority::low),
+    blockchain_(
+        database_threads_,
+        config.chain.database_path.string(),
+        { config.chain.history_start_height },
+        config.chain.block_pool_capacity,
+        config.chain.checkpoints),
+   
+    memory_threads_(
+        config.node.threads,
+        thread_priority::low),
+    tx_pool_(
+        memory_threads_,
+        blockchain_,
+        config.node.transaction_pool_capacity),
+    tx_indexer_(
+        memory_threads_),
+    poller_(
+        memory_threads_,
+        blockchain_),
+    responder_(
+        blockchain_,
+        tx_pool_),
+    session_(
+        network_threads_,
+        handshake_,
+        protocol_,
+        blockchain_,
+        poller_,
+        tx_pool_,
+        responder_, 
+        config.minimum_start_height())
 {
 }
 
-full_node::full_node(const settings& config)
-  : network_threads_(config.network_threads, thread_priority::low),
-    database_threads_(config.database_threads, thread_priority::low),
-    memory_threads_(config.memory_threads, thread_priority::low),
-    host_pool_(network_threads_, config.p2p_hosts_file,
-        config.host_pool_capacity),
-    handshake_(network_threads_, config.p2p_listen_port),
-    network_(network_threads_),
-    protocol_(network_threads_, host_pool_, handshake_, network_,
-    bc::network::protocol::default_seeds, config.p2p_listen_port,
-        config.p2p_outbound_connections),
-    blockchain_(database_threads_, config.blockchain_path.string(),
-        { config.history_height }, config.block_pool_capacity,
-        { config.checkpoint_height, config.checkpoint_hash }),
-    tx_pool_(memory_threads_, blockchain_, config.tx_pool_capacity),
-    tx_indexer_(memory_threads_),
-    poller_(memory_threads_, blockchain_),
-    responder_(blockchain_, tx_pool_),
-    session_(network_threads_, handshake_, protocol_, blockchain_, poller_,
-        tx_pool_, responder_)
+static std::string format_blacklist(const config::authority& authority)
 {
+    auto formatted = authority.to_string();
+    if (authority.port() == 0)
+        formatted += ":*";
+
+    return formatted;
 }
 
-bool full_node::start()
+bool full_node::start(const settings_type& config)
 {
+    // Set up logging for node background threads.
+    initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr,
+        config.log_to_skip());
+
     // Start the blockchain.
     if (!blockchain_.start())
         return false;
@@ -147,7 +229,21 @@ bool full_node::start()
     // Start the transaction pool.
     tx_pool_.start();
 
-    // TODO: include manually-configured endpoints from config.
+    // Add banned connections before starting the session.
+    for (const auto& authority: config.node.blacklists)
+    {
+        log_info(LOG_NODE)
+            << "Blacklisted peer [" << format_blacklist(authority) << "]";
+        protocol_.ban_connection(authority);
+    }
+
+    // Add configured connections before starting the session.
+    for (const auto& endpoint: config.node.peers)
+    {
+        log_info(LOG_NODE)
+            << "Connecting peer [" << endpoint << "]";
+        protocol_.maintain_connection(endpoint);
+    }
 
     std::promise<std::error_code> session_promise;
     session_.start(
@@ -155,7 +251,8 @@ bool full_node::start()
             this, _1, std::ref(session_promise)));
 
     // Wait for start completion.
-    return !session_promise.get_future().get();
+    const auto started = !session_promise.get_future().get();
+    return started;
 }
 
 bool full_node::stop()

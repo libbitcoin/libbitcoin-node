@@ -142,7 +142,7 @@ static console_result init_chain(const path& directory, std::ostream& output,
 
     // Add genesis block.
     db_paths file_paths(prefix);
-    db_interface interface(file_paths, { 0 });
+    db_interface interface(file_paths, { BLOCKCHAIN_HISTORY_START_HEIGHT });
     interface.start();
 
     // This is affected by the ENABLE_TESTNET switch.
@@ -204,7 +204,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     std::ostream& output, std::ostream& error)
 {
     // Blockchain directory is hard-wired for now (add to config).
-    const static path directory(BN_BLOCKCHAIN_DIRECTORY);
+    const static path directory(BLOCKCHAIN_DATABASE_PATH);
 
     // Handle command line argument.
     auto result = process_arguments(argc, argv, directory, output, error);
@@ -224,8 +224,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
 
     // Set up logging for node background threads (add to config).
     constexpr auto append = std::ofstream::out | std::ofstream::app;
-    bc::ofstream debug_log("debug.log", append);
-    bc::ofstream error_log("error.log", append);
+    bc::ofstream debug_log((NETWORK_DEBUG_FILE).string(), append);
+    bc::ofstream error_log((NETWORK_ERROR_FILE).string(), append);
     initialize_logging(debug_log, error_log, output, error);
 
     // Start up the node, which first maps the blockchain.

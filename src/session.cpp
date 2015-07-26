@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2011-2014 libbitcoin developers (see AUTHORS)
+/**
+ * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin-node.
  *
@@ -38,7 +38,7 @@ using namespace bc::network;
 
 session::session(threadpool& pool, handshake& handshake, protocol& protocol,
     blockchain& blockchain, poller& poller, transaction_pool& transaction_pool,
-    responder& responder)
+    responder& responder, size_t minimum_start_height)
   : strand_(pool),
     handshake_(handshake),
     protocol_(protocol),
@@ -46,7 +46,8 @@ session::session(threadpool& pool, handshake& handshake, protocol& protocol,
     tx_pool_(transaction_pool),
     poller_(poller),
     responder_(responder),
-    last_height_(0)
+    last_height_(0),
+    minimum_start_height_(minimum_start_height)
 {
 }
 
@@ -103,10 +104,8 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
             return;
         }
 
-        // This should really appears as a poller log entry, since it's the
-        // only actual polling.
         log_debug(LOG_SESSION)
-            << "Channel revived [" << node->address().to_string() << "]";
+            << "Channel revived [" << node->address() << "]";
 
         // Send an inv request for 500 blocks.
         poller_.request_blocks(null_hash, node);
@@ -178,7 +177,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             this, _1, _2, _3, _4));
 
     // Don't bother publishing blocks when in the initial blockchain download.
-    if (fork_point < BN_CHECKPOINT_HEIGHT)
+    if (fork_point < minimum_start_height_)
         return;
 
     // Broadcast new blocks inventory.
@@ -232,7 +231,7 @@ void session::receive_inv(const std::error_code& ec,
     if (!node)
         return;
 
-    const auto peer = node->address().to_string();
+    const auto peer = node->address();
 
     if (ec)
     {
@@ -260,7 +259,7 @@ void session::receive_inv(const std::error_code& ec,
         switch (inventory.type)
         {
             case inventory_type_id::transaction:
-                if (last_height_ >= BN_CHECKPOINT_HEIGHT)
+                if (last_height_ >= minimum_start_height_)
                 {
                     log_debug(LOG_SESSION)
                         << "Transaction inventory from [" << peer << "] "
@@ -336,7 +335,7 @@ void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
         {
             log_debug(LOG_SESSION)
                 << "Failure to get tx data from [" 
-                << node->address().to_string() << "] " << ec.message();
+                << node->address() << "] " << ec.message();
             node->stop();
             return;
         }
@@ -404,7 +403,7 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
         {
             log_debug(LOG_SESSION)
                 << "Failure to get block data from ["
-                << node->address().to_string() << "] " << ec.message();
+                << node->address() << "] " << ec.message();
             node->stop();
         }
     };
@@ -418,7 +417,21 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
     const get_data_type request_block{ { block_inventory } };
     node->send(request_block, handle_error);
 
-    // Reset the revival timer because we just asked for block inventory.
+    // Reset the revival timer because we just asked for block data. If after
+    // the last revival-initiated inventory request we didn't receive any block
+    // inv then this will not restart the timer and we will no longer revive
+    // this channel.
+    //
+    // The presumption is that we are then at the top of our peer's chain, or
+    // the peer has delayed but will eventually send us more block inventory, 
+    // thereby restarting the revival timer.
+    //
+    // If we have not sent a block inv request because the current inv request
+    // is the same as the last then this may stall. So we skip a duplicate
+    // request only if the last request was not a null_hash stop (500).
+    //
+    // If the peer is just unresponsive but we are not at its top, we will end
+    // up timing out or expiring the channel.
     node->reset_revival();
 }
 
@@ -433,7 +446,7 @@ void session::receive_get_blocks(const std::error_code& ec,
     {
         log_debug(LOG_SESSION)
             << "Failure in get blocks ["
-            << node->address().to_string() << "] " << ec.message();
+            << node->address() << "] " << ec.message();
         node->stop();
         return;
     }

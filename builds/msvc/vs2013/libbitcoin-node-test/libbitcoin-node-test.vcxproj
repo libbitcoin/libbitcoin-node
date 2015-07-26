@@ -65,8 +65,6 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\test\btc256.cpp" />
-    <ClCompile Include="..\..\..\..\test\endpoint.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
   </ItemGroup>
