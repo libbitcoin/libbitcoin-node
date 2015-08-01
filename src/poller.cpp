@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/poller.hpp>
 
+#include <system_error>
 #include <bitcoin/blockchain.hpp>
 
 namespace libbitcoin {
@@ -40,6 +41,11 @@ poller::poller(threadpool& pool, blockchain& chain)
 {
 }
 
+static inline bool aborted(const std::error_code& ec)
+{
+    return ec == error::service_stopped;
+}
+
 // Start monitoring this channel.
 void poller::monitor(channel_ptr node)
 {
@@ -58,6 +64,8 @@ void poller::monitor(channel_ptr node)
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 
+    // TODO: consider deferring this ask on inbound connections.
+    // The caller may intend only to post a transaction and disconnect.
     // Issue the initial ask for blocks.
     request_blocks(null_hash, node);
 }
@@ -66,8 +74,8 @@ void poller::monitor(channel_ptr node)
 //void poller::receive_inv(const std::error_code& ec,
 //    const inventory_type& packet, channel_ptr node)
 //{
-//    if (!node)
-//        return;
+    //if (aborted(ec) || !node)
+    //    return;
 //
 //    const auto peer = node->address();
 //
@@ -130,7 +138,7 @@ void poller::monitor(channel_ptr node)
 void poller::receive_block(const std::error_code& ec,
     const block_type& block, channel_ptr node)
 {
-    if (!node)
+    if (aborted(ec) || !node)
         return;
 
     if (ec)
@@ -154,6 +162,9 @@ void poller::receive_block(const std::error_code& ec,
 void poller::handle_store_block(const std::error_code& ec, block_info info,
     const hash_digest& block_hash, channel_ptr node)
 {
+    if (aborted(ec) || !node)
+        return;
+
     if (ec == error::duplicate)
     {
         // This is common, we get blocks we already have.
@@ -210,7 +221,7 @@ void poller::ask_blocks(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
 {
-    if (!node)
+    if (aborted(ec) || !node)
         return;
 
     if (ec)
