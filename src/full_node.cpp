@@ -123,6 +123,7 @@ const settings_type full_node::defaults
         NETWORK_HOSTS_FILE,
         NETWORK_DEBUG_FILE,
         NETWORK_ERROR_FILE,
+        NETWORK_SELF,
         NETWORK_SEEDS
     }
 };
@@ -146,7 +147,7 @@ full_node::full_node(const settings_type& config)
         config.network.host_pool_capacity),
     handshake_(
         network_threads_,
-        config.network.inbound_port),
+        config.network.self),
     network_(
         network_threads_,
         config.timeouts),
@@ -395,9 +396,9 @@ void full_node::recieve_tx(const std::error_code& ec,
 {
     if (ec)
     {
-        const auto hash = encode_hash(hash_transaction(tx));
-        log_debug(LOG_NODE)
-            << format(BN_TX_RECEIVE_FAILURE) % hash % ec.message();
+        if (node)
+            log_debug(LOG_NODE)
+                << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
         return;
     }
 
