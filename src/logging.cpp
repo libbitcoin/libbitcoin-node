@@ -43,7 +43,7 @@ static std::string make_log_string(log_level level,
     const std::string& domain, const std::string& body, 
     const std::string& skip_domain)
 {
-    const static auto form = "%1% %2% [%3%] %4%\n";
+    static const auto form = "%1% %2% [%3%] %4%\n";
 
     if (body.empty() || domain == skip_domain)
         return "";
