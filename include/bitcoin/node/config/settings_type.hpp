@@ -68,12 +68,12 @@ public:
         using boost::posix_time::minutes;
         using boost::posix_time::seconds;
 
-        timeouts.expiration = minutes(network.channel_expiration_minutes);
-        timeouts.inactivity = minutes(network.channel_timeout_minutes);
-        timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
+        timeouts.connect = seconds(network.connect_timeout_seconds);
         timeouts.handshake = minutes(network.channel_handshake_minutes);
         timeouts.revival = minutes(network.channel_revival_minutes);
-        timeouts.connection = seconds(network.connect_timeout_seconds);
+        timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
+        timeouts.inactivity = minutes(network.channel_inactivity_minutes);
+        timeouts.expiration = minutes(network.channel_expiration_minutes);
     }
 
     // settings
