@@ -59,9 +59,10 @@ namespace node {
 #define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
 #define NETWORK_CHANNEL_TIMEOUT_MINUTES     30
 #define NETWORK_CHANNEL_HEARTBEAT_MINUTES   15
-#define NETWORK_CHANNEL_STARTUP_MINUTES     1
+#define NETWORK_CHANNEL_HANDSHAKE_MINUTES   1
 #define NETWORK_CHANNEL_REVIVAL_MINUTES     1
 #define NETWORK_HOST_POOL_CAPACITY          1000
+#define NETWORK_RELAY_TRANSACTIONS          true
 #define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts")
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")

@@ -71,7 +71,7 @@ public:
         timeouts.expiration = minutes(network.channel_expiration_minutes);
         timeouts.inactivity = minutes(network.channel_timeout_minutes);
         timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
-        timeouts.startup = minutes(network.channel_startup_minutes);
+        timeouts.handshake = minutes(network.channel_handshake_minutes);
         timeouts.revival = minutes(network.channel_revival_minutes);
         timeouts.connection = seconds(network.connect_timeout_seconds);
     }
