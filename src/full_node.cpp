@@ -120,6 +120,7 @@ const settings_type full_node::defaults
         NETWORK_CHANNEL_HANDSHAKE_MINUTES,
         NETWORK_CHANNEL_REVIVAL_MINUTES,
         NETWORK_HOST_POOL_CAPACITY,
+        NETWORK_RELAY_TRANSACTIONS,
         NETWORK_HOSTS_FILE,
         NETWORK_DEBUG_FILE,
         NETWORK_ERROR_FILE,
@@ -156,10 +157,11 @@ full_node::full_node(const settings_type& config)
         host_pool_,
         handshake_,
         network_,
-        config.network.seeds,
         config.network.inbound_port,
+        config.network.relay_transactions,
         config.network.outbound_connections,
-        config.network.inbound_connection_limit),
+        config.network.inbound_connection_limit,
+        config.network.seeds),
 
     database_threads_(
         config.chain.threads,
@@ -243,7 +245,8 @@ bool full_node::start(const settings_type& config)
     {
         log_info(LOG_NODE)
             << "Connecting peer [" << endpoint << "]";
-        protocol_.maintain_connection(endpoint);
+        protocol_.maintain_connection(endpoint.host(), endpoint.port(),
+            config.network.relay_transactions);
     }
 
     std::promise<std::error_code> session_promise;
