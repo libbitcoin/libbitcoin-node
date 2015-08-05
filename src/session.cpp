@@ -247,10 +247,10 @@ void session::receive_inv(const std::error_code& ec,
     const auto transactions = inventory_count(packet.inventories,
         inventory_type_id::transaction);
 
-    log_debug(LOG_SESSION)
-        << "Inventory BEGIN [" << peer << "] "
-        << "txs (" << transactions << ") "
-        << "blocks (" << blocks << ")";
+    //log_debug(LOG_SESSION)
+    //    << "Inventory BEGIN [" << peer << "] "
+    //    << "txs (" << transactions << ") "
+    //    << "blocks (" << blocks << ")";
 
     // TODO: build an inventory vector vs. individual requests.
     // See commented out (redundant) code in poller.cpp.
@@ -289,8 +289,8 @@ void session::receive_inv(const std::error_code& ec,
         }
     }
 
-    log_debug(LOG_SESSION)
-        << "Inventory END [" << peer << "]";
+    //log_debug(LOG_SESSION)
+    //    << "Inventory END [" << peer << "]";
 
     // Node may have died following new_tx_inventory or new_block_inventory.
     if (!node)
