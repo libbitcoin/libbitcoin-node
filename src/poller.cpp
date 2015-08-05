@@ -36,8 +36,8 @@ poller::poller(threadpool& pool, blockchain& chain)
     blockchain_(chain),
     last_block_hash_(null_hash),
     last_locator_begin_(null_hash),
-    last_hash_stop_(null_hash), 
-    last_requested_node_(nullptr)
+    last_hash_stop_(null_hash),
+    last_block_ask_node_(nullptr)
 {
 }
 
@@ -84,7 +84,7 @@ void poller::monitor(channel_ptr node)
 //        log_debug(LOG_POLLER)
 //            << "Failure in receive inventory ["
 //            << peer << "] " << ec.message();
-//        node->stop();
+//        node->stop(ec);
 //        return;
 //    }
 //
@@ -143,9 +143,9 @@ void poller::receive_block(const std::error_code& ec,
 
     if (ec)
     {
-        log_warning(LOG_POLLER) << "Received bad block: "
-            << ec.message();
-        node->stop(/* ec */);
+        log_warning(LOG_POLLER)
+            << "Received bad block: " << ec.message();
+        node->stop(ec);
         return;
     }
 
@@ -168,16 +168,17 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
     if (ec == error::duplicate)
     {
         // This is common, we get blocks we already have.
-        log_debug(LOG_POLLER) << "Redundant block ["
-            << encode_hash(block_hash) << "]";
+        log_debug(LOG_POLLER)
+            << "Redundant block [" << encode_hash(block_hash) << "]";
         return;
     }
 
     if (ec)
     {
-        log_error(LOG_POLLER) << "Error storing block ["
-            << encode_hash(block_hash) << "] " << ec.message();
-        node->stop(/* ec */);
+        log_error(LOG_POLLER)
+            << "Error storing block [" << encode_hash(block_hash) << "] "
+            << ec.message();
+        node->stop(ec);
         return;
     }
     
@@ -185,8 +186,8 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
     {
         // The block has been accepted as an orphan (ec not set).
         case block_status::orphan:
-            log_debug(LOG_POLLER) << "Potential block ["
-                << encode_hash(block_hash) << "]";
+            log_debug(LOG_POLLER)
+                << "Potential block [" << encode_hash(block_hash) << "]";
 
             // This is how we get other nodes to send us the blocks we are
             // missing from the top of our chain to the orphan.
@@ -196,15 +197,15 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
         // The block has been rejected from the store (redundant?).
         // This case may be redundant with error::duplicate.
         case block_status::rejected:
-            log_debug(LOG_POLLER) << "Rejected block ["
-                << encode_hash(block_hash) << "]";
+            log_debug(LOG_POLLER)
+                << "Rejected block [" << encode_hash(block_hash) << "]";
             break;
 
         // This may have also caused blocks to be accepted via the pool.
         // The block has been accepted into the long chain (ec not set).
         case block_status::confirmed:
-            log_info(LOG_POLLER) << "Block #"
-                << info.height << " " << encode_hash(block_hash);
+            log_info(LOG_POLLER)
+                << "Block #" << info.height << " " << encode_hash(block_hash);
             break;
     }
 }
@@ -230,6 +231,8 @@ void poller::ask_blocks(const std::error_code& ec,
             << "Failed to fetch block locator: " << ec.message();
         return;
     }
+
+    BITCOIN_ASSERT(!locator.empty());
     
     if (is_duplicate_block_ask(locator, hash_stop, node))
     {
@@ -238,9 +241,10 @@ void poller::ask_blocks(const std::error_code& ec,
             << encode_hash(locator.front()) << "]";
         return;
     }
-
+    
     log_debug(LOG_POLLER)
-        << "Ask for blocks with stop [" 
+        << "Ask for blocks with locator [" << encode_hash(locator.front())
+        << "] of (" << locator.size() << ") and stop ["
         << encode_hash(hash_stop) << "]";
 
     const auto handle_error = [node](const std::error_code& ec)
@@ -252,9 +256,7 @@ void poller::ask_blocks(const std::error_code& ec,
         {
             log_debug(LOG_POLLER)
                 << "Send get blocks problem: " << ec.message();
-
-            // TODO: modify send() to terminate the connection on send failure.
-            node->stop();
+            node->stop(ec);
         }
     };
 
@@ -265,7 +267,7 @@ void poller::ask_blocks(const std::error_code& ec,
     // Update last values.
     last_locator_begin_ = locator.front();
     last_hash_stop_ = hash_stop;
-    last_requested_node_ = node.get();
+    last_block_ask_node_ = node.get();
 }
 
 bool poller::is_duplicate_block_ask(const block_locator_type& locator,
@@ -274,7 +276,7 @@ bool poller::is_duplicate_block_ask(const block_locator_type& locator,
     return
         last_locator_begin_ == locator.front() &&
         last_hash_stop_ == hash_stop && hash_stop != null_hash &&
-        last_requested_node_ == node.get();
+        last_block_ask_node_ == node.get();
 }
 
 } // namespace node

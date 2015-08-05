@@ -56,7 +56,7 @@ private:
     // Last hash from a block locator.
     hash_digest last_locator_begin_;
     hash_digest last_hash_stop_;
-    bc::network::channel* last_requested_node_;
+    bc::network::channel* last_block_ask_node_;
 };
 
 } // namespace node
