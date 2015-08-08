@@ -62,8 +62,8 @@ private:
 
     void new_tx_inventory(const hash_digest& tx_hash, 
         bc::network::channel_ptr node);
-    void request_tx_data(bool tx_exists, const hash_digest& tx_hash,
-        bc::network::channel_ptr node);
+    void request_tx_data(const std::error_code& ec, bool tx_exists,
+        const hash_digest& tx_hash, bc::network::channel_ptr node);
 
     void new_block_inventory(const hash_digest& block_hash,
         bc::network::channel_ptr node);
