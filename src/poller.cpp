@@ -212,12 +212,13 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
+    // TODO: cache this so we are not constantly hitting the blockchain for it.
     fetch_block_locator(blockchain_,
         strand_.wrap(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
 
-// Not having orphans will cause a stall 
+// Not having orphans will cause a stall unless mitigated.
 void poller::ask_blocks(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
@@ -242,10 +243,10 @@ void poller::ask_blocks(const std::error_code& ec,
         return;
     }
     
+    const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
     log_debug(LOG_POLLER)
-        << "Ask for blocks with locator [" << encode_hash(locator.front())
-        << "] of (" << locator.size() << ") and stop ["
-        << encode_hash(hash_stop) << "]";
+        << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
+        << locator.size() << ") to [" << stop << "]";
 
     const auto handle_error = [node](const std::error_code& ec)
     {

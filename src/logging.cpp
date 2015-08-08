@@ -148,7 +148,7 @@ void initialize_logging(std::ofstream& debug_log, std::ofstream& error_log,
     log_fatal().set_output_function(std::bind(error_both,
         std::ref(error_log), std::ref(error), _1, _2, _3, skip_domain));
 
-    const static auto headline = "================= Startup =================";
+    static const auto headline = "================= Startup =================";
     log_debug(LOG_NODE) << headline;
     log_info(LOG_NODE) << headline;
     log_warning(LOG_NODE) << headline;
