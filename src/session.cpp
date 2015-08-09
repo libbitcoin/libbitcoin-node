@@ -342,7 +342,7 @@ void session::request_tx_data(const std::error_code& ec, bool tx_exists,
         if (ec)
         {
             log_debug(LOG_SESSION)
-                << "Failure to get tx data from [" 
+                << "Failure sending tx data request to [" 
                 << node->address() << "] " << ec.message();
             node->stop();
             return;
@@ -410,7 +410,7 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
         if (ec)
         {
             log_debug(LOG_SESSION)
-                << "Failure to get block data from ["
+                << "Failure getting block data from ["
                 << node->address() << "] " << ec.message();
             node->stop();
         }

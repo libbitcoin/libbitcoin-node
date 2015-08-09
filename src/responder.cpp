@@ -153,7 +153,7 @@ void responder::send_pool_tx(const std::error_code& ec,
     if (ec)
     {
         log_error(LOG_RESPONDER)
-            << "Failure to get mempool tx data for ["
+            << "Failure fetching mempool tx data for ["
             << node->address() << "] " << ec.message();
         node->stop();
         return;
@@ -188,7 +188,7 @@ void responder::send_chain_tx(const std::error_code& ec,
     if (ec)
     {
         log_error(LOG_RESPONDER)
-            << "Failure to get blockchain tx data for ["
+            << "Failure fetching blockchain tx data for ["
             << node->address() << "] " << ec.message();
         node->stop();
         return;
@@ -263,7 +263,7 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
     if (ec)
     {
         log_error(LOG_RESPONDER)
-            << "Failure to get block data for ["
+            << "Failure fetching block data for ["
             << node->address() << "] " << ec.message();
         node->stop();
         return;
