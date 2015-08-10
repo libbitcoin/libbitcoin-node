@@ -400,6 +400,9 @@ void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 void full_node::recieve_tx(const std::error_code& ec,
     const transaction_type& tx, channel_ptr node)
 {
+    if (ec == error::channel_stopped)
+        return;
+
     if (ec)
     {
         log_debug(LOG_NODE)

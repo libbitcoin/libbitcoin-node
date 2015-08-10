@@ -226,6 +226,9 @@ static size_t inventory_count(const inventory_list& inventories,
 void session::receive_inv(const std::error_code& ec,
     const inventory_type& packet, channel_ptr node)
 {
+    if (ec == error::channel_stopped)
+        return;
+
     const auto peer = node->address();
 
     if (ec)
@@ -304,6 +307,9 @@ void session::new_tx_inventory(const hash_digest& tx_hash, channel_ptr node)
 void session::request_tx_data(const std::error_code& ec, bool tx_exists,
     const hash_digest& tx_hash, channel_ptr node)
 {
+    if (ec == error::channel_stopped)
+        return;
+
     if (ec)
     {
         log_debug(LOG_SESSION)
@@ -420,6 +426,9 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
 void session::receive_get_blocks(const std::error_code& ec,
     const get_blocks_type& get_blocks, channel_ptr node)
 {
+    if (ec == error::channel_stopped)
+        return;
+
     if (ec)
     {
         log_debug(LOG_SESSION)
