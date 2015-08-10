@@ -376,7 +376,7 @@ void full_node::handle_stop(const std::error_code& ec,
 void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
-    if (ec == bc::error::service_stopped)
+    if (ec == error::service_stopped)
         return;
 
     if (ec)
@@ -402,9 +402,8 @@ void full_node::recieve_tx(const std::error_code& ec,
 {
     if (ec)
     {
-        if (node)
-            log_debug(LOG_NODE)
-                << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
+        log_debug(LOG_NODE)
+            << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
         return;
     }
 

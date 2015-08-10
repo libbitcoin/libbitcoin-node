@@ -123,8 +123,7 @@ void responder::receive_get_data(const std::error_code& ec,
 void responder::send_pool_tx(const std::error_code& ec,
     const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
 {
-    // TODO: confirm error code.
-    if (ec == bc::error::not_found)
+    if (ec == error::not_found)
     {
         log_debug(LOG_RESPONDER)
             << "Transaction for [" << node->address()
@@ -157,8 +156,7 @@ void responder::send_pool_tx(const std::error_code& ec,
 void responder::send_chain_tx(const std::error_code& ec,
     const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
 {
-    // TODO: confirm error code.
-    if (ec == bc::error::not_found)
+    if (ec == error::not_found)
     {
         log_debug(LOG_RESPONDER)
             << "Transaction for [" << node->address()
@@ -222,8 +220,7 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel_ptr node)
 void responder::send_block(const std::error_code& ec, const block_type& block,
     const hash_digest& block_hash, channel_ptr node)
 {
-    // TODO: verify error code.
-    if (ec == bc::error::not_found)
+    if (ec == error::not_found)
     {
         log_debug(LOG_RESPONDER)
             << "Block for [" << node->address()
