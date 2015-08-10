@@ -244,6 +244,8 @@ void session::receive_inv(const std::error_code& ec,
         inventory_type_id::block);
     const auto transactions = inventory_count(packet.inventories,
         inventory_type_id::transaction);
+    //const auto filtered_blocks = inventory_count(packet.inventories,
+    //    inventory_type_id::filtered_block);
 
     //log_debug(LOG_SESSION)
     //    << "Inventory BEGIN [" << peer << "] "
@@ -277,6 +279,13 @@ void session::receive_inv(const std::error_code& ec,
                 strand_.queue(
                     std::bind(&session::new_block_inventory,
                         this, inventory.hash, node));
+                break;
+
+            case inventory_type_id::filtered_block:
+                // We don't suppport bloom filters, so we shouldn't see this.
+                log_debug(LOG_SESSION)
+                    << "Filtred block inventory from [" << peer << "] "
+                    << encode_hash(inventory.hash);
                 break;
 
             case inventory_type_id::none:
