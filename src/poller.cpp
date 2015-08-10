@@ -41,21 +41,9 @@ poller::poller(threadpool& pool, blockchain& chain)
 {
 }
 
-static inline bool aborted(const std::error_code& ec)
-{
-    return ec == error::service_stopped;
-}
-
 // Start monitoring this channel.
 void poller::monitor(channel_ptr node)
 {
-    if (!node)
-    {
-        log_error(LOG_POLLER)
-            << "The node is not initialized and cannot be monitored.";
-        return;
-    }
-
     //////node->subscribe_inventory(
     //////    std::bind(&poller::receive_inv,
     //////        this, _1, _2, node));
@@ -74,8 +62,8 @@ void poller::monitor(channel_ptr node)
 //void poller::receive_inv(const std::error_code& ec,
 //    const inventory_type& packet, channel_ptr node)
 //{
-    //if (aborted(ec) || !node)
-    //    return;
+//    if (ec == error::channel_stopped)
+//        return;
 //
 //    const auto peer = node->address();
 //
@@ -138,7 +126,7 @@ void poller::monitor(channel_ptr node)
 void poller::receive_block(const std::error_code& ec,
     const block_type& block, channel_ptr node)
 {
-    if (aborted(ec) || !node)
+    if (ec == error::channel_stopped)
         return;
 
     if (ec)
@@ -162,7 +150,7 @@ void poller::receive_block(const std::error_code& ec,
 void poller::handle_store_block(const std::error_code& ec, block_info info,
     const hash_digest& block_hash, channel_ptr node)
 {
-    if (aborted(ec) || !node)
+    if (ec == error::service_stopped)
         return;
 
     if (ec == error::duplicate)
@@ -223,7 +211,7 @@ void poller::ask_blocks(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
 {
-    if (aborted(ec) || !node)
+    if (ec == error::service_stopped)
         return;
 
     if (ec)
@@ -250,13 +238,10 @@ void poller::ask_blocks(const std::error_code& ec,
 
     const auto handle_error = [node](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
         {
             log_debug(LOG_POLLER)
-                << "Send get blocks problem: " << ec.message();
+                << "Failure sending get blocks: " << ec.message();
             node->stop(ec);
         }
     };

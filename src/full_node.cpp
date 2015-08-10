@@ -375,8 +375,8 @@ void full_node::handle_stop(const std::error_code& ec,
 
 void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 {
-    // This is the sentinel for protocol stopping (and node is nullptr).
-    if (ec == channel_proxy::stop_code)
+    // This is the sentinel code for protocol stopping (and node is nullptr).
+    if (ec == bc::error::service_stopped)
         return;
 
     if (ec)
