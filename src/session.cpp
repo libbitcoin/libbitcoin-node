@@ -440,8 +440,6 @@ void session::receive_get_blocks(const std::error_code& ec,
 
     ///////////////////////////////////////////////////////////////////////////
     // TODO: Implement.
-    // Send 500 invs from last fork point and have memory of last inv, 
-    // ready to trigger send next 500 once getdata done for it.
     ///////////////////////////////////////////////////////////////////////////
     log_info(LOG_SESSION)
         << "Received a get blocks request (IGNORED).";
