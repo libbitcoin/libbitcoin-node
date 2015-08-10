@@ -89,14 +89,12 @@ void session::subscribe(const std::error_code& ec,
 
 void session::new_channel(const std::error_code& ec, channel_ptr node)
 {
-    if (!node)
+    // This is the sentinel code for protocol stopping (and node is nullptr).
+    if (ec == error::service_stopped)
         return;
 
     const auto revive = [this, node](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
         {
             log_error(LOG_SESSION)
@@ -140,7 +138,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
     uint32_t fork_point, const blockchain::block_list& new_blocks,
     const blockchain::block_list& /* replaced_blocks */)
 {
-    if (ec == bc::error::service_stopped)
+    if (ec == error::service_stopped)
         return;
 
     if (ec)
@@ -228,9 +226,6 @@ static size_t inventory_count(const inventory_list& inventories,
 void session::receive_inv(const std::error_code& ec,
     const inventory_type& packet, channel_ptr node)
 {
-    if (!node)
-        return;
-
     const auto peer = node->address();
 
     if (ec)
@@ -238,7 +233,7 @@ void session::receive_inv(const std::error_code& ec,
         log_debug(LOG_SESSION)
             << "Failure in receive inventory ["
             << peer << "] " << ec.message();
-        node->stop();
+        node->stop(ec);
         return;
     }
 
@@ -247,10 +242,10 @@ void session::receive_inv(const std::error_code& ec,
     const auto transactions = inventory_count(packet.inventories,
         inventory_type_id::transaction);
 
-    log_debug(LOG_SESSION)
-        << "Inventory BEGIN [" << peer << "] "
-        << "txs (" << transactions << ") "
-        << "blocks (" << blocks << ")";
+    //log_debug(LOG_SESSION)
+    //    << "Inventory BEGIN [" << peer << "] "
+    //    << "txs (" << transactions << ") "
+    //    << "blocks (" << blocks << ")";
 
     // TODO: build an inventory vector vs. individual requests.
     // See commented out (redundant) code in poller.cpp.
@@ -289,12 +284,8 @@ void session::receive_inv(const std::error_code& ec,
         }
     }
 
-    log_debug(LOG_SESSION)
-        << "Inventory END [" << peer << "]";
-
-    // Node may have died following new_tx_inventory or new_block_inventory.
-    if (!node)
-        return;
+    //log_debug(LOG_SESSION)
+    //    << "Inventory END [" << peer << "]";
 
     // Resubscribe to new inventory requests.
     node->subscribe_inventory(
@@ -304,20 +295,22 @@ void session::receive_inv(const std::error_code& ec,
 
 void session::new_tx_inventory(const hash_digest& tx_hash, channel_ptr node)
 {
-    if (!node)
-        return;
-
     // If the tx doesn't exist in our mempool, issue getdata.
     tx_pool_.exists(tx_hash, 
         std::bind(&session::request_tx_data,
-            this, _1, tx_hash, node));
+            this, _1, _2, tx_hash, node));
 }
 
-void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
-    channel_ptr node)
+void session::request_tx_data(const std::error_code& ec, bool tx_exists,
+    const hash_digest& tx_hash, channel_ptr node)
 {
-    if (!node)
+    if (ec)
+    {
+        log_debug(LOG_SESSION)
+            << "Failure in getting transaction existence ["
+            << encode_hash(tx_hash) << "] " << ec.message();
         return;
+    }
 
     if (tx_exists)
     {
@@ -328,15 +321,12 @@ void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
 
     const auto handle_error = [node](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
         {
             log_debug(LOG_SESSION)
-                << "Failure to get tx data from [" 
+                << "Failure sending tx data request to [" 
                 << node->address() << "] " << ec.message();
-            node->stop();
+            node->stop(ec);
             return;
         }
     };
@@ -357,9 +347,6 @@ void session::request_tx_data(bool tx_exists, const hash_digest& tx_hash,
 void session::new_block_inventory(const hash_digest& block_hash,
     channel_ptr node)
 {
-    if (!node)
-        return;
-
     const auto request_block = [this, block_hash, node]
         (const std::error_code& ec, const block_type& block)
     {
@@ -376,7 +363,7 @@ void session::new_block_inventory(const hash_digest& block_hash,
             log_error(LOG_SESSION)
                 << "Failure fetching block ["
                 << encode_hash(block_hash) << "] " << ec.message();
-            node->stop();
+            node->stop(ec);
             return;
         }
 
@@ -391,20 +378,14 @@ void session::new_block_inventory(const hash_digest& block_hash,
 
 void session::request_block_data(const hash_digest& block_hash, channel_ptr node)
 {
-    if (!node)
-        return;
-
     const auto handle_error = [node, block_hash](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
         {
             log_debug(LOG_SESSION)
-                << "Failure to get block data from ["
+                << "Failure getting block data from ["
                 << node->address() << "] " << ec.message();
-            node->stop();
+            node->stop(ec);
         }
     };
 
@@ -439,15 +420,12 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
 void session::receive_get_blocks(const std::error_code& ec,
     const get_blocks_type& get_blocks, channel_ptr node)
 {
-    if (!node)
-        return;
-
     if (ec)
     {
         log_debug(LOG_SESSION)
             << "Failure in get blocks ["
             << node->address() << "] " << ec.message();
-        node->stop();
+        node->stop(ec);
         return;
     }
 

@@ -38,9 +38,6 @@ responder::responder(blockchain& blockchain, transaction_pool& tx_pool)
 
 void responder::monitor(channel_ptr node)
 {
-    if (!node)
-        return;
-
     // Subscribe to serve tx and blocks.
     node->subscribe_get_data(
         std::bind(&responder::receive_get_data,
@@ -63,9 +60,6 @@ static size_t inventory_count(const inventory_list& inventories,
 void responder::receive_get_data(const std::error_code& ec,
     const get_data_type& packet, channel_ptr node)
 {
-    if (!node)
-        return;
-
     const auto peer = node->address();
 
     if (ec)
@@ -73,7 +67,7 @@ void responder::receive_get_data(const std::error_code& ec,
         log_debug(LOG_RESPONDER)
             << "Failure in receive get data ["
             << peer << "] " << ec.message();
-        node->stop();
+        node->stop(ec);
         return;
     }
 
@@ -120,10 +114,6 @@ void responder::receive_get_data(const std::error_code& ec,
     log_debug(LOG_RESPONDER)
         << "Inventory END [" << peer << "]";
 
-    // Node may have died following tx_pool_.fetch or fetch_block.
-    if (!node)
-        return;
-
     // Resubscribe to serve tx and blocks.
     node->subscribe_get_data(
         std::bind(&responder::receive_get_data,
@@ -133,11 +123,7 @@ void responder::receive_get_data(const std::error_code& ec,
 void responder::send_pool_tx(const std::error_code& ec,
     const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
 {
-    if (!node)
-        return;
-
-    // TODO: confirm error code.
-    if (ec == bc::error::not_found)
+    if (ec == error::not_found)
     {
         log_debug(LOG_RESPONDER)
             << "Transaction for [" << node->address()
@@ -153,9 +139,9 @@ void responder::send_pool_tx(const std::error_code& ec,
     if (ec)
     {
         log_error(LOG_RESPONDER)
-            << "Failure to get mempool tx data for ["
+            << "Failure fetching mempool tx data for ["
             << node->address() << "] " << ec.message();
-        node->stop();
+        node->stop(ec);
         return;
     }
 
@@ -170,11 +156,7 @@ void responder::send_pool_tx(const std::error_code& ec,
 void responder::send_chain_tx(const std::error_code& ec,
     const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
 {
-    if (!node)
-        return;
-
-    // TODO: confirm error code.
-    if (ec == bc::error::not_found)
+    if (ec == error::not_found)
     {
         log_debug(LOG_RESPONDER)
             << "Transaction for [" << node->address()
@@ -188,9 +170,9 @@ void responder::send_chain_tx(const std::error_code& ec,
     if (ec)
     {
         log_error(LOG_RESPONDER)
-            << "Failure to get blockchain tx data for ["
+            << "Failure fetching blockchain tx data for ["
             << node->address() << "] " << ec.message();
-        node->stop();
+        node->stop(ec);
         return;
     }
 
@@ -200,14 +182,8 @@ void responder::send_chain_tx(const std::error_code& ec,
 void responder::send_tx(const transaction_type& tx, const hash_digest& tx_hash,
     channel_ptr node)
 {
-    if (!node)
-        return;
-
     const auto send_handler = [tx_hash, node](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending tx for ["
@@ -225,8 +201,6 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel_ptr node)
 {
     const auto send_handler = [tx_hash, node](const std::error_code& ec)
     {
-        if (!node)
-            return;
 
         if (ec)
             log_debug(LOG_RESPONDER)
@@ -246,11 +220,7 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel_ptr node)
 void responder::send_block(const std::error_code& ec, const block_type& block,
     const hash_digest& block_hash, channel_ptr node)
 {
-    if (!node)
-        return;
-
-    // TODO: verify error code.
-    if (ec == bc::error::not_found)
+    if (ec == error::not_found)
     {
         log_debug(LOG_RESPONDER)
             << "Block for [" << node->address()
@@ -263,17 +233,14 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
     if (ec)
     {
         log_error(LOG_RESPONDER)
-            << "Failure to get block data for ["
+            << "Failure fetching block data for ["
             << node->address() << "] " << ec.message();
-        node->stop();
+        node->stop(ec);
         return;
     }
 
     const auto send_handler = [block_hash, node](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending block for ["
@@ -292,9 +259,6 @@ void responder::send_block_not_found(const hash_digest& block_hash,
 {
     const auto send_handler = [block_hash, node](const std::error_code& ec)
     {
-        if (!node)
-            return;
-
         if (ec)
             log_debug(LOG_RESPONDER)
                 << "Failure sending tx notfound for ["
@@ -313,9 +277,6 @@ void responder::send_inventory_not_found(inventory_type_id type_id,
     const hash_digest& hash, channel_ptr node,
     channel_proxy::send_handler handler)
 {
-    if (!node)
-        return;
-
     // There's currently no way to send this message.
     //const inventory_vector_type block_inventory
     //{

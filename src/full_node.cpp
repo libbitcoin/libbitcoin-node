@@ -189,6 +189,7 @@ full_node::full_node(const settings_type& config)
         blockchain_,
         tx_pool_),
     session_(
+        /* TODO: use node treads here? */
         network_threads_,
         handshake_,
         protocol_,
@@ -219,18 +220,18 @@ bool full_node::start(const settings_type& config)
     if (!blockchain_.start())
         return false;
 
+    // Register the transaction pool against reorg notifications.
+    if (!tx_pool_.start())
+        return false;
+
     std::promise<std::error_code> height_promise;
     blockchain_.fetch_last_height(
         std::bind(&full_node::set_height,
             this, _1, _2, std::ref(height_promise)));
 
-    // Wait for set completion.
-    auto result = !height_promise.get_future().get();
-    if (!result)
+    // Wait for set height completion.
+    if (height_promise.get_future().get())
         return false;
-
-    // Start the transaction pool.
-    tx_pool_.start();
 
     // Add banned connections before starting the session.
     for (const auto& authority: config.node.blacklists)
@@ -270,12 +271,13 @@ bool full_node::stop()
             this, _1, std::ref(promise)));
 
     // Wait for stop completion.
-    auto result = !promise.get_future().get();
+    auto success = !promise.get_future().get();
 
     // Try and close blockchain database even if session stop failed.
     // Blockchain stop is currently non-blocking, so the result is misleading.
+    // No need to stop tx_pool, it will get a shutdown notification from this.
     if (!blockchain_.stop())
-        result = false;
+        success = false;
 
     // Stop threadpools.
     network_threads_.stop();
@@ -287,7 +289,7 @@ bool full_node::stop()
     database_threads_.join();
     memory_threads_.join();
 
-    return result;
+    return success;
 }
 
 bc::chain::blockchain& full_node::blockchain()
@@ -373,7 +375,8 @@ void full_node::handle_stop(const std::error_code& ec,
 
 void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 {
-    if (!node || ec == bc::error::service_stopped)
+    // This is the sentinel code for protocol stopping (and node is nullptr).
+    if (ec == error::service_stopped)
         return;
 
     if (ec)
@@ -399,9 +402,8 @@ void full_node::recieve_tx(const std::error_code& ec,
 {
     if (ec)
     {
-        if (node)
-            log_debug(LOG_NODE)
-                << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
+        log_debug(LOG_NODE)
+            << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
         return;
     }
 
