@@ -89,6 +89,10 @@ void session::subscribe(const std::error_code& ec,
 
 void session::new_channel(const std::error_code& ec, channel_ptr node)
 {
+    // This is the sentinel code for protocol stopping (and node is nullptr).
+    if (ec == error::service_stopped)
+        return;
+
     const auto revive = [this, node](const std::error_code& ec)
     {
         if (ec)
