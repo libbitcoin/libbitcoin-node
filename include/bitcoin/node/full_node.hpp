@@ -57,7 +57,7 @@ namespace node {
 #define NETWORK_OUTBOUND_CONNECTIONS        8
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
 #define NETWORK_CHANNEL_HANDSHAKE_MINUTES   1
-#define NETWORK_CHANNEL_REVIVAL_MINUTES     2
+#define NETWORK_CHANNEL_REVIVAL_MINUTES     5
 #define NETWORK_CHANNEL_HEARTBEAT_MINUTES   5
 #define NETWORK_CHANNEL_INACTIVITY_MINUTES  30
 #define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
@@ -133,7 +133,7 @@ protected:
     bc::threadpool network_threads_;
     bc::network::hosts host_pool_;
     bc::network::handshake handshake_;
-    bc::network::network network_;
+    bc::network::peer network_;
     bc::network::protocol protocol_;
 
     bc::threadpool database_threads_;
