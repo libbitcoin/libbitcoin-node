@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
 
     threadpool threads;
     hosts hosts(threads);
-    bc::network::network network(threads);
+    peer network(threads);
     handshake handshake(threads);
     protocol protocol(threads, hosts, handshake, network);
     blockchain_impl blockchain(threads, prefix);
