@@ -114,7 +114,7 @@ const settings_type full_node::defaults
         NETWORK_INBOUND_CONNECTION_LIMIT,
         NETWORK_OUTBOUND_CONNECTIONS,
         NETWORK_CONNECT_TIMEOUT_SECONDS,
-        NETWORK_CHANNEL_HANDSHAKE_MINUTES,
+        NETWORK_CHANNEL_HANDSHAKE_SECONDS,
         NETWORK_CHANNEL_REVIVAL_MINUTES,
         NETWORK_CHANNEL_HEARTBEAT_MINUTES,
         NETWORK_CHANNEL_INACTIVITY_MINUTES,
@@ -148,7 +148,8 @@ full_node::full_node(const settings_type& config)
         config.network.host_pool_capacity),
     handshake_(
         network_threads_,
-        config.network.self),
+        config.network.self,
+        config.timeouts),
     network_(
         network_threads_,
         config.timeouts),
@@ -292,27 +293,27 @@ bool full_node::stop()
     return success;
 }
 
-bc::chain::blockchain& full_node::blockchain()
+chain::blockchain& full_node::blockchain()
 {
     return blockchain_;
 }
 
-bc::chain::transaction_pool& full_node::transaction_pool()
+chain::transaction_pool& full_node::transaction_pool()
 {
     return tx_pool_;
 }
 
-bc::node::indexer& full_node::transaction_indexer()
+node::indexer& full_node::transaction_indexer()
 {
     return tx_indexer_;
 }
 
-bc::network::protocol& full_node::protocol()
+network::protocol& full_node::protocol()
 {
     return protocol_;
 }
 
-bc::threadpool& full_node::threadpool()
+threadpool& full_node::pool()
 {
     return memory_threads_;
 }
