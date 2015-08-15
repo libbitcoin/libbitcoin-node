@@ -91,7 +91,7 @@ private:
     void do_deindex(const transaction_type& tx,
         completion_handler handle_deindex);
 
-    async_strand strand_;
+    sequencer strand_;
     spends_multimap spends_map_;
     outputs_multimap outputs_map_;
 };

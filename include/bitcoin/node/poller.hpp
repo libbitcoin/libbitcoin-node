@@ -47,7 +47,7 @@ private:
     bool is_duplicate_block_ask(const block_locator_type& locator,
         const hash_digest& hash_stop, bc::network::channel_ptr node);
 
-    async_strand strand_;
+    sequencer strand_;
     chain::blockchain& blockchain_;
 
     // Last hash from an inventory packet.

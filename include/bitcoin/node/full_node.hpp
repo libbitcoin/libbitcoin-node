@@ -48,15 +48,15 @@ namespace node {
 #define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
-#define BLOCKCHAIN_CHECKPOINTS              bc::chain::checkpoint::defaults
+#define BLOCKCHAIN_CHECKPOINTS              chain::checkpoint::defaults
 
 // [network]
 #define NETWORK_THREADS                     4
-#define NETWORK_INBOUND_PORT                bc::protocol_port
+#define NETWORK_INBOUND_PORT                protocol_port
 #define NETWORK_INBOUND_CONNECTION_LIMIT    8
 #define NETWORK_OUTBOUND_CONNECTIONS        8
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
-#define NETWORK_CHANNEL_HANDSHAKE_MINUTES   1
+#define NETWORK_CHANNEL_HANDSHAKE_SECONDS   30
 #define NETWORK_CHANNEL_REVIVAL_MINUTES     5
 #define NETWORK_CHANNEL_HEARTBEAT_MINUTES   5
 #define NETWORK_CHANNEL_INACTIVITY_MINUTES  30
@@ -66,8 +66,8 @@ namespace node {
 #define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts.cache")
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
-#define NETWORK_SELF                        bc::network::handshake::unspecified
-#define NETWORK_SEEDS                       bc::network::seeder::defaults
+#define NETWORK_SELF                        network::handshake::unspecified
+#define NETWORK_SEEDS                       network::seeder::defaults
 
 /**
  * A full node on the Bitcoin P2P network.
@@ -100,11 +100,11 @@ public:
     virtual bool stop();
 
     // Accessors
-    virtual bc::chain::blockchain& blockchain();
-    virtual bc::chain::transaction_pool& transaction_pool();
-    virtual bc::node::indexer& transaction_indexer();
-    virtual bc::network::protocol& protocol();
-    virtual bc::threadpool& threadpool();
+    virtual chain::blockchain& blockchain();
+    virtual chain::transaction_pool& transaction_pool();
+    virtual node::indexer& transaction_indexer();
+    virtual network::protocol& protocol();
+    virtual threadpool& pool();
 
 protected:
     // Result of store operation in transaction pool.
@@ -114,12 +114,12 @@ protected:
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
     virtual void new_channel(const std::error_code& ec,
-        bc::network::channel_ptr node);
+        network::channel_ptr node);
 
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
     virtual void recieve_tx(const std::error_code& ec,
-        const transaction_type& tx, bc::network::channel_ptr node);
+        const transaction_type& tx, network::channel_ptr node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
@@ -127,24 +127,25 @@ protected:
         uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
+    // These must be bc types.
     bc::ofstream debug_file_;
     bc::ofstream error_file_;
 
-    bc::threadpool network_threads_;
-    bc::network::hosts host_pool_;
-    bc::network::handshake handshake_;
-    bc::network::peer network_;
-    bc::network::protocol protocol_;
+    threadpool network_threads_;
+    network::hosts host_pool_;
+    network::handshake handshake_;
+    network::peer network_;
+    network::protocol protocol_;
 
-    bc::threadpool database_threads_;
-    bc::chain::blockchain_impl blockchain_;
+    threadpool database_threads_;
+    chain::blockchain_impl blockchain_;
 
-    bc::threadpool memory_threads_;
-    bc::chain::transaction_pool tx_pool_;
-    bc::node::indexer tx_indexer_;
-    bc::node::poller poller_;
-    bc::node::responder responder_;
-    bc::node::session session_;
+    threadpool memory_threads_;
+    chain::transaction_pool tx_pool_;
+    node::indexer tx_indexer_;
+    node::poller poller_;
+    node::responder responder_;
+    node::session session_;
 
 private:
     void handle_start(const std::error_code& ec,

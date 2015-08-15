@@ -40,9 +40,9 @@ public:
     }
 
     settings_type(
-        const bc::node::settings& node_settings,
-        const bc::chain::settings& chain_settings,
-        const bc::network::settings& network_settings)
+        const node::settings& node_settings,
+        const chain::settings& chain_settings,
+        const network::settings& network_settings)
       : node(node_settings),
         chain(chain_settings),
         network(network_settings)
@@ -69,7 +69,7 @@ public:
         using boost::posix_time::seconds;
 
         timeouts.connect = seconds(network.connect_timeout_seconds);
-        timeouts.handshake = minutes(network.channel_handshake_minutes);
+        timeouts.handshake = seconds(network.channel_handshake_seconds);
         timeouts.revival = minutes(network.channel_revival_minutes);
         timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
         timeouts.inactivity = minutes(network.channel_inactivity_minutes);
@@ -77,12 +77,12 @@ public:
     }
 
     // settings
-    bc::node::settings node;
-    bc::chain::settings chain;
-    bc::network::settings network;
+    node::settings node;
+    chain::settings chain;
+    network::settings network;
 
     // Convenience.
-    bc::network::timeout timeouts;
+    network::timeout timeouts;
 };
 
 } // namespace node
