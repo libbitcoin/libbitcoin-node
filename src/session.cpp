@@ -199,14 +199,16 @@ void session::broadcast_new_blocks(const std::error_code& ec,
         << "Broadcasting block inventory [" 
         << blocks_inventory.inventories.size() << "]";
 
-    const auto broadcast_handler = [](const std::error_code& ec, size_t count)
+    const auto broadcast_handler = [](const std::error_code& ec, channel_ptr node)
     {
         if (ec)
             log_debug(LOG_SESSION)
-                << "Failure broadcasting block inventory: " << ec.message();
+                << "Failure broadcasting block inventory to ["
+                << node->address() << "] " << ec.message();
         else
             log_debug(LOG_SESSION)
-                << "Broadcast block inventory to (" << count << ") nodes.";
+                << "Broadcasted block inventory to ["
+                << node->address() << "] ";
     };
 
     // Could optimize by not broadcasting to the node from which it came.
@@ -271,7 +273,7 @@ void session::receive_inv(const std::error_code& ec,
                         << "Transaction inventory from [" << peer << "] "
                         << encode_hash(inventory.hash);
 
-                    strand_.queue(
+                    sequence_.queue(
                         std::bind(&session::new_tx_inventory,
                             this, inventory.hash, node));
                 }
@@ -282,7 +284,7 @@ void session::receive_inv(const std::error_code& ec,
                 log_debug(LOG_SESSION)
                     << "Block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
-                strand_.queue(
+                sequence_.queue(
                     std::bind(&session::new_block_inventory,
                         this, inventory.hash, node));
                 break;
@@ -375,7 +377,7 @@ void session::new_block_inventory(const hash_digest& block_hash,
     {
         if (ec == error::not_found)
         {
-            strand_.queue(
+            sequence_.queue(
                 std::bind(&session::request_block_data,
                     this, block_hash, node));
             return;

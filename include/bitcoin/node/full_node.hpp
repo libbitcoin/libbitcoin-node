@@ -135,7 +135,7 @@ protected:
     threadpool network_threads_;
     network::hosts host_pool_;
     network::handshake handshake_;
-    network::peer network_;
+    network::peer_to_peer network_;
     network::protocol protocol_;
 
     threadpool database_threads_;

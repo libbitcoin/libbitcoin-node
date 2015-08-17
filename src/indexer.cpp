@@ -31,14 +31,14 @@ using std::placeholders::_2;
 using std::placeholders::_3;
 
 indexer::indexer(threadpool& pool)
-  : strand_(pool)
+  : sequence_(pool)
 {
 }
 
 void indexer::query(const wallet::payment_address& address,
     query_handler handle_query)
 {
-    strand_.queue(
+    sequence_.queue(
         std::bind(&indexer::do_query,
             this, address, handle_query));
 }
@@ -86,7 +86,7 @@ bool index_does_not_exist(const wallet::payment_address& key,
 void indexer::index(const chain::transaction& tx,
     completion_handler handle_index)
 {
-    strand_.queue(
+    sequence_.queue(
         std::bind(&indexer::do_index,
             this, tx, handle_index));
 }
@@ -138,7 +138,7 @@ void indexer::do_index(const chain::transaction& tx,
 void indexer::deindex(const chain::transaction& tx,
     completion_handler handle_deindex)
 {
-    strand_.queue(
+    sequence_.queue(
         std::bind(&indexer::do_deindex,
             this, tx, handle_deindex));
 }

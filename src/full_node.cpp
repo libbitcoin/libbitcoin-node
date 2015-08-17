@@ -162,7 +162,9 @@ full_node::full_node(const settings_type& config)
         config.network.relay_transactions,
         config.network.outbound_connections,
         config.network.inbound_connection_limit,
-        config.network.seeds),
+        config.network.seeds,
+        config.network.self.to_network_address(),
+        config.timeouts),
 
     database_threads_(
         config.chain.threads,
@@ -239,7 +241,7 @@ bool full_node::start(const settings_type& config)
     {
         log_info(LOG_NODE)
             << "Blacklisted peer [" << format_blacklist(authority) << "]";
-        protocol_.ban_connection(authority);
+        protocol_.blacklist(authority);
     }
 
     // Add configured connections before starting the session.

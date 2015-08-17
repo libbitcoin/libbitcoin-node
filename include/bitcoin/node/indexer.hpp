@@ -98,7 +98,7 @@ private:
     void do_deindex(const chain::transaction& tx,
         completion_handler handle_deindex);
 
-    sequencer strand_;
+    sequencer sequence_;
     spends_multimap spends_map_;
     outputs_multimap outputs_map_;
 };
