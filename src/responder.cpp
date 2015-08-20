@@ -37,7 +37,7 @@ responder::responder(bc::blockchain::blockchain& blockchain,
 {
 }
 
-void responder::monitor(channel::pointer node)
+void responder::monitor(channel_ptr node)
 {
     // Subscribe to serve tx and blocks.
     node->subscribe_get_data(
@@ -61,7 +61,7 @@ static size_t inventory_count(
 
 // We don't seem to be getting getdata requests.
 void responder::receive_get_data(const std::error_code& ec,
-    const message::get_data& packet, channel::pointer node)
+    const message::get_data& packet, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -127,7 +127,7 @@ void responder::receive_get_data(const std::error_code& ec,
 }
 
 void responder::send_pool_tx(const std::error_code& ec,
-    const chain::transaction& tx, const hash_digest& tx_hash, channel::pointer node)
+    const chain::transaction& tx, const hash_digest& tx_hash, channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -164,7 +164,7 @@ void responder::send_pool_tx(const std::error_code& ec,
 // on nodes having full transaction indexes (which modern nodes do not).
 void responder::send_chain_tx(const std::error_code& ec,
     const chain::transaction& tx, const hash_digest& tx_hash,
-    channel::pointer node)
+    channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -193,7 +193,7 @@ void responder::send_chain_tx(const std::error_code& ec,
 }
 
 void responder::send_tx(const chain::transaction& tx,
-    const hash_digest& tx_hash, channel::pointer node)
+    const hash_digest& tx_hash, channel_ptr node)
 {
     const auto send_handler = [tx_hash, node](const std::error_code& ec)
     {
@@ -210,7 +210,7 @@ void responder::send_tx(const chain::transaction& tx,
     node->send(tx, send_handler);
 }
 
-void responder::send_tx_not_found(const hash_digest& tx_hash, channel::pointer node)
+void responder::send_tx_not_found(const hash_digest& tx_hash, channel_ptr node)
 {
     const auto send_handler = [tx_hash, node](const std::error_code& ec)
     {
@@ -231,7 +231,7 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel::pointer n
 // Should we look in the orphan pool first?
 void responder::send_block(const std::error_code& ec,
     const chain::block& block, const hash_digest& block_hash,
-    channel::pointer node)
+    channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -271,7 +271,7 @@ void responder::send_block(const std::error_code& ec,
 }
 
 void responder::send_block_not_found(const hash_digest& block_hash,
-    channel::pointer node)
+    channel_ptr node)
 {
     const auto send_handler = [block_hash, node](const std::error_code& ec)
     {
@@ -290,7 +290,7 @@ void responder::send_block_not_found(const hash_digest& block_hash,
 }
 
 void responder::send_inventory_not_found(message::inventory_type_id type_id,
-    const hash_digest& hash, channel::pointer node,
+    const hash_digest& hash, channel_ptr node,
     channel_proxy::send_handler handler)
 {
     // There's currently no way to send this message.

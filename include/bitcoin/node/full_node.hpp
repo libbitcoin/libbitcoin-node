@@ -48,7 +48,7 @@ namespace node {
 #define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
-#define BLOCKCHAIN_CHECKPOINTS              chain::checkpoint::defaults
+#define BLOCKCHAIN_CHECKPOINTS              bc::blockchain::checkpoint::defaults
 
 // [network]
 #define NETWORK_THREADS                     4
@@ -104,7 +104,7 @@ public:
     virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
     virtual network::protocol& protocol();
-    virtual threadpool& threadpool();
+    virtual threadpool& pool();
 
 protected:
     // Result of store operation in transaction pool.

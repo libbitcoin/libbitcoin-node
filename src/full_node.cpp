@@ -374,7 +374,7 @@ void full_node::handle_stop(const std::error_code& ec,
     promise.set_value(ec);
 }
 
-void full_node::new_channel(const std::error_code& ec, channel::pointer node)
+void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
@@ -399,7 +399,7 @@ void full_node::new_channel(const std::error_code& ec, channel::pointer node)
 }
 
 void full_node::recieve_tx(const std::error_code& ec,
-    const chain::transaction& tx, channel::pointer node)
+    const chain::transaction& tx, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
