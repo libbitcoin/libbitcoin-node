@@ -293,12 +293,12 @@ bool full_node::stop()
     return success;
 }
 
-chain::blockchain& full_node::blockchain()
+blockchain::blockchain& full_node::blockchain()
 {
     return blockchain_;
 }
 
-chain::transaction_pool& full_node::transaction_pool()
+blockchain::transaction_pool& full_node::transaction_pool()
 {
     return tx_pool_;
 }
@@ -399,7 +399,7 @@ void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 }
 
 void full_node::recieve_tx(const std::error_code& ec,
-    const transaction_type& tx, channel_ptr node)
+    const chain::transaction& tx, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -414,7 +414,7 @@ void full_node::recieve_tx(const std::error_code& ec,
     // Called when the transaction becomes confirmed in a block.
     const auto handle_confirm = [this, tx](const std::error_code& ec)
     {
-        const auto hash = encode_hash(hash_transaction(tx));
+        const auto hash = encode_hash(tx.hash());
 
         if (ec)
             log_warning(LOG_NODE)
@@ -444,7 +444,8 @@ void full_node::recieve_tx(const std::error_code& ec,
             this, _1, _2, node));
 }
 
-static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
+static std::string format_unconfirmed_inputs(
+    const chain::index_list& unconfirmed)
 {
     if (unconfirmed.empty())
         return "";
@@ -457,9 +458,9 @@ static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
 }
 
 void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
-    const index_list& unconfirmed, const transaction_type& tx)
+    const chain::index_list& unconfirmed, const chain::transaction& tx)
 {
-    const auto hash = encode_hash(hash_transaction(tx));
+    const auto hash = encode_hash(tx.hash());
 
     const auto handle_index = [hash](const std::error_code& ec)
     {
@@ -486,8 +487,8 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
 // HACK: this is for access to broadcast_new_blocks to facilitate server
 // inheritance of full_node. The organization should be refactored.
 void full_node::broadcast_new_blocks(const std::error_code& ec,
-    uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-    const chain::blockchain::block_list& replaced_blocks)
+    uint32_t fork_point, const blockchain::blockchain::block_list& new_blocks,
+    const blockchain::blockchain::block_list& replaced_blocks)
 {
     session_.broadcast_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
 }

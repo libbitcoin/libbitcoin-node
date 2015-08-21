@@ -24,7 +24,7 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace bc::chain;
+using namespace bc::blockchain;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -35,7 +35,7 @@ indexer::indexer(threadpool& pool)
 {
 }
 
-void indexer::query(const payment_address& address,
+void indexer::query(const wallet::payment_address& address,
     query_handler handle_query)
 {
     strand_.queue(
@@ -44,7 +44,8 @@ void indexer::query(const payment_address& address,
 }
 
 template <typename InfoList, typename EntryMultimap>
-InfoList get_info_list(const payment_address& address, EntryMultimap& map)
+InfoList get_info_list(const wallet::payment_address& address,
+    EntryMultimap& map)
 {
     InfoList info;
     auto iter_pair = map.equal_range(address);
@@ -53,16 +54,17 @@ InfoList get_info_list(const payment_address& address, EntryMultimap& map)
 
     return info;
 }
-void indexer::do_query(const payment_address& address,
+
+void indexer::do_query(const wallet::payment_address& address,
     query_handler handle_query)
 {
     handle_query(std::error_code(),
-        get_info_list<output_info_list>(address, outputs_map_),
+        get_info_list<wallet::output_info_list>(address, outputs_map_),
         get_info_list<spend_info_list>(address, spends_map_));
 }
 
 template <typename Point, typename EntryMultimap>
-auto find_entry(const payment_address& key, const Point& value_point,
+auto find_entry(const wallet::payment_address& key, const Point& value_point,
     EntryMultimap& map) -> decltype(map.begin())
 {
     // The entry should only occur once in the multimap.
@@ -75,13 +77,13 @@ auto find_entry(const payment_address& key, const Point& value_point,
 }
 
 template <typename Point, typename EntryMultimap>
-bool index_does_not_exist(const payment_address& key,
+bool index_does_not_exist(const wallet::payment_address& key,
     const Point& value_point, EntryMultimap& map)
 {
     return find_entry(key, value_point, map) == map.end();
 }
 
-void indexer::index(const transaction_type& tx,
+void indexer::index(const chain::transaction& tx,
     completion_handler handle_index)
 {
     strand_.queue(
@@ -89,18 +91,19 @@ void indexer::index(const transaction_type& tx,
             this, tx, handle_index));
 }
 
-void indexer::do_index(const transaction_type& tx,
+void indexer::do_index(const chain::transaction& tx,
     completion_handler handle_index)
 {
-    const auto tx_hash = hash_transaction(tx);
+    const auto tx_hash = tx.hash();
 
     uint32_t index = 0;
     for (const auto& input: tx.inputs)
     {
-        payment_address address;
+        wallet::payment_address address;
+
         if (extract(address, input.script))
         {
-            input_point point{tx_hash, index};
+            chain::input_point point{tx_hash, index};
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, spends_map_),
                 "Transaction input is indexed multiple times!");
@@ -114,15 +117,16 @@ void indexer::do_index(const transaction_type& tx,
     index = 0;
     for (const auto& output: tx.outputs)
     {
-        payment_address address;
+        wallet::payment_address address;
+
         if (extract(address, output.script))
         {
-            output_point point{tx_hash, index};
+            chain::output_point point{ tx_hash, index };
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, outputs_map_),
                 "Transaction output is indexed multiple times!");
             outputs_map_.emplace(address,
-                output_info_type{point, output.value});
+                wallet::output_info{ point, output.value });
         }
 
         ++index;
@@ -131,7 +135,7 @@ void indexer::do_index(const transaction_type& tx,
     handle_index(std::error_code());
 }
 
-void indexer::deindex(const transaction_type& tx,
+void indexer::deindex(const chain::transaction& tx,
     completion_handler handle_deindex)
 {
     strand_.queue(
@@ -139,18 +143,20 @@ void indexer::deindex(const transaction_type& tx,
             this, tx, handle_deindex));
 }
 
-void indexer::do_deindex(const transaction_type& tx,
+void indexer::do_deindex(const chain::transaction& tx,
     completion_handler handle_deindex)
 {
-    const auto tx_hash = hash_transaction(tx);
+    const auto tx_hash = tx.hash();
 
     uint32_t index = 0;
+
     for (const auto& input: tx.inputs)
     {
-        payment_address address;
+        wallet::payment_address address;
+
         if (extract(address, input.script))
         {
-            input_point point{tx_hash, index};
+            chain::input_point point{tx_hash, index};
             const auto entry = find_entry(address, point, spends_map_);
             BITCOIN_ASSERT_MSG(entry != spends_map_.end(),
                 "Can't deindex transaction input twice");
@@ -165,12 +171,14 @@ void indexer::do_deindex(const transaction_type& tx,
     }
 
     index = 0;
+
     for (const auto& output: tx.outputs)
     {
-        payment_address address;
+        wallet::payment_address address;
+
         if (extract(address, output.script))
         {
-            output_point point{tx_hash, index};
+            chain::output_point point{tx_hash, index};
             const auto entry = find_entry(address, point, outputs_map_);
             BITCOIN_ASSERT_MSG(entry != outputs_map_.end(),
                 "Can't deindex transaction output twice");
@@ -188,7 +196,7 @@ void indexer::do_deindex(const transaction_type& tx,
 }
 
 static bool is_output_conflict(history_list& history,
-    const output_info_type& output)
+    const wallet::output_info& output)
 {
     // Usually the indexer and memory doesn't have any transactions indexed and
     // already confirmed and in the blockchain. This is a rare corner case.
@@ -210,7 +218,7 @@ static bool is_spend_conflict(history_list& history,
 }
 
 static void add_history_output(history_list& history,
-    const output_info_type& output)
+    const wallet::output_info& output)
 {
     history.emplace_back(history_row
     {
@@ -224,12 +232,12 @@ static void add_history_spend(history_list& history,
     history.emplace_back(history_row
     {
         point_ident::spend, spend.point, 0, 
-        { chain::spend_checksum(spend.previous_output) }
+        { bc::blockchain::spend_checksum(spend.previous_output) }
     });
 }
 
 static void add_history_outputs(history_list& history,
-    const output_info_list& outputs)
+    const wallet::output_info_list& outputs)
 {
     // If everything okay insert the outpoint.
     for (const auto& output: outputs)
@@ -251,13 +259,14 @@ static void add_history_spends(history_list& history,
 }
 
 void indexer_history_fetched(const std::error_code& ec,
-    const output_info_list& outputs, const spend_info_list& spends,
-    history_list history, blockchain::fetch_handler_history handle_fetch)
+    const wallet::output_info_list& outputs, const spend_info_list& spends,
+    history_list history,
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch)
 {
     if (ec)
     {
         // Shouldn't "history" be returned here?
-        handle_fetch(ec, history_list());
+        handle_fetch(ec, bc::blockchain::history_list());
         return;
     }
 
@@ -275,13 +284,13 @@ void indexer_history_fetched(const std::error_code& ec,
 }
 
 void blockchain_history_fetched(const std::error_code& ec,
-    const history_list& history, indexer& indexer,
-    const payment_address& address,
-    blockchain::fetch_handler_history handle_fetch)
+    const bc::blockchain::history_list& history, indexer& indexer,
+    const wallet::payment_address& address,
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch)
 {
     if (ec)
     {
-        handle_fetch(ec, chain::history_list());
+        handle_fetch(ec, bc::blockchain::history_list());
         return;
     }
 
@@ -291,9 +300,10 @@ void blockchain_history_fetched(const std::error_code& ec,
 }
 
 // Fetch the history first from the blockchain and then from the indexer.
-void fetch_history(blockchain& chain, indexer& indexer,
-    const payment_address& address, 
-    blockchain::fetch_handler_history handle_fetch, size_t from_height)
+void fetch_history(bc::blockchain::blockchain& chain, indexer& indexer,
+    const wallet::payment_address& address,
+    bc::blockchain::blockchain::fetch_handler_history handle_fetch,
+    size_t from_height)
 {
     chain.fetch_history(address,
         std::bind(blockchain_history_fetched,
@@ -302,4 +312,3 @@ void fetch_history(blockchain& chain, indexer& indexer,
 
 } // namespace node
 } // namespace libbitcoin
-

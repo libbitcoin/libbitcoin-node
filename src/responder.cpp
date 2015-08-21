@@ -28,10 +28,11 @@ namespace node {
 
 using std::placeholders::_1;
 using std::placeholders::_2;
-using namespace bc::chain;
+using namespace bc::blockchain;
 using namespace bc::network;
 
-responder::responder(blockchain& blockchain, transaction_pool& tx_pool)
+responder::responder(bc::blockchain::blockchain& blockchain,
+    bc::blockchain::transaction_pool& tx_pool)
   : blockchain_(blockchain), tx_pool_(tx_pool)
 {
 }
@@ -45,10 +46,12 @@ void responder::monitor(channel_ptr node)
 }
 
 // TODO: consolidate to libbitcoin utils.
-static size_t inventory_count(const inventory_list& inventories,
-    inventory_type_id type_id)
+static size_t inventory_count(
+    const message::inventory_vector::list& inventories,
+    message::inventory_type_id type_id)
 {
     size_t count = 0;
+
     for (const auto& inventory: inventories)
         if (inventory.type == type_id)
             ++count;
@@ -58,7 +61,7 @@ static size_t inventory_count(const inventory_list& inventories,
 
 // We don't seem to be getting getdata requests.
 void responder::receive_get_data(const std::error_code& ec,
-    const get_data_type& packet, channel_ptr node)
+    const message::get_data& packet, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -75,9 +78,9 @@ void responder::receive_get_data(const std::error_code& ec,
     }
 
     const auto blocks = inventory_count(packet.inventories,
-        inventory_type_id::block);
+        message::inventory_type_id::block);
     const auto transactions = inventory_count(packet.inventories,
-        inventory_type_id::transaction);
+        message::inventory_type_id::transaction);
 
     log_debug(LOG_RESPONDER)
         << "Getdata BEGIN [" << peer << "] "
@@ -88,7 +91,7 @@ void responder::receive_get_data(const std::error_code& ec,
     {
         switch (inventory.type)
         {
-            case inventory_type_id::transaction:
+            case message::inventory_type_id::transaction:
                 log_debug(LOG_RESPONDER)
                     << "Transaction inventory for [" << peer << "] "
                     << encode_hash(inventory.hash);
@@ -97,7 +100,7 @@ void responder::receive_get_data(const std::error_code& ec,
                         this, _1, _2, inventory.hash, node));
                 break;
 
-            case inventory_type_id::block:
+            case message::inventory_type_id::block:
                 log_debug(LOG_RESPONDER)
                     << "Block inventory for [" << peer << "] "
                     << encode_hash(inventory.hash);
@@ -106,8 +109,8 @@ void responder::receive_get_data(const std::error_code& ec,
                         this, _1, _2, inventory.hash, node));
                 break;
 
-            case inventory_type_id::error:
-            case inventory_type_id::none:
+            case message::inventory_type_id::error:
+            case message::inventory_type_id::none:
             default:
                 log_debug(LOG_RESPONDER)
                     << "Ignoring invalid inventory type for [" << peer << "]";
@@ -124,7 +127,7 @@ void responder::receive_get_data(const std::error_code& ec,
 }
 
 void responder::send_pool_tx(const std::error_code& ec,
-    const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
+    const chain::transaction& tx, const hash_digest& tx_hash, channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -160,7 +163,8 @@ void responder::send_pool_tx(const std::error_code& ec,
 // in the  chain is not allowed to avoid having clients start to depend
 // on nodes having full transaction indexes (which modern nodes do not).
 void responder::send_chain_tx(const std::error_code& ec,
-    const transaction_type& tx, const hash_digest& tx_hash, channel_ptr node)
+    const chain::transaction& tx, const hash_digest& tx_hash,
+    channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -188,8 +192,8 @@ void responder::send_chain_tx(const std::error_code& ec,
     send_tx(tx, tx_hash, node);
 }
 
-void responder::send_tx(const transaction_type& tx, const hash_digest& tx_hash,
-    channel_ptr node)
+void responder::send_tx(const chain::transaction& tx,
+    const hash_digest& tx_hash, channel_ptr node)
 {
     const auto send_handler = [tx_hash, node](const std::error_code& ec)
     {
@@ -220,13 +224,14 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel_ptr node)
                 << "] " << encode_hash(tx_hash);
     };
 
-    send_inventory_not_found(inventory_type_id::transaction, tx_hash, node,
-        send_handler);
+    send_inventory_not_found(message::inventory_type_id::transaction, tx_hash,
+        node, send_handler);
 }
 
 // Should we look in the orphan pool first?
-void responder::send_block(const std::error_code& ec, const block_type& block,
-    const hash_digest& block_hash, channel_ptr node)
+void responder::send_block(const std::error_code& ec,
+    const chain::block& block, const hash_digest& block_hash,
+    channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -280,11 +285,11 @@ void responder::send_block_not_found(const hash_digest& block_hash,
                 << "] " << encode_hash(block_hash);
     };
 
-    send_inventory_not_found(inventory_type_id::block, block_hash, node,
-        send_handler);
+    send_inventory_not_found(message::inventory_type_id::block, block_hash,
+        node, send_handler);
 }
 
-void responder::send_inventory_not_found(inventory_type_id type_id,
+void responder::send_inventory_not_found(message::inventory_type_id type_id,
     const hash_digest& hash, channel_ptr node,
     channel_proxy::send_handler handler)
 {

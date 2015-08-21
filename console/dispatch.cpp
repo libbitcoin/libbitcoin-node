@@ -78,15 +78,15 @@ using boost::format;
 using namespace boost::system;
 using namespace boost::filesystem;
 using namespace bc;
-using namespace bc::chain;
+using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::node;
 
 static void display_history(const std::error_code& ec,
-    const history_list& history, const payment_address& address,
+    const history_list& history, const wallet::payment_address& address,
     std::ostream& output)
 {
-    const auto encoded_address = address.encoded();
+    const auto encoded_address = address.to_string();
 
     if (ec)
     {
@@ -252,8 +252,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             break;
         }
 
-        payment_address address;
-        if (!address.set_encoded(trimmed))
+        wallet::payment_address address;
+        if (!address.from_string(trimmed))
         {
             output << BN_INVALID_ADDRESS << std::endl;
             continue;
