@@ -74,6 +74,7 @@ public:
         timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
         timeouts.inactivity = minutes(network.channel_inactivity_minutes);
         timeouts.expiration = minutes(network.channel_expiration_minutes);
+        timeouts.germination = seconds(network.channel_germination_seconds);
     }
 
     // settings

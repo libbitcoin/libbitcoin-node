@@ -119,6 +119,7 @@ const settings_type full_node::defaults
         NETWORK_CHANNEL_HEARTBEAT_MINUTES,
         NETWORK_CHANNEL_INACTIVITY_MINUTES,
         NETWORK_CHANNEL_EXPIRATION_MINUTES,
+        NETWORK_CHANNEL_GERMINATION_SECONDS,
         NETWORK_HOST_POOL_CAPACITY,
         NETWORK_RELAY_TRANSACTIONS,
         NETWORK_HOSTS_FILE,
@@ -146,17 +147,12 @@ full_node::full_node(const settings_type& config)
         network_threads_,
         config.network.hosts_file,
         config.network.host_pool_capacity),
-    handshake_(
-        network_threads_,
-        config.network.self,
-        config.timeouts),
     network_(
         network_threads_,
         config.timeouts),
     protocol_(
         network_threads_,
         host_pool_,
-        handshake_,
         network_,
         config.network.inbound_port,
         config.network.relay_transactions,
@@ -194,7 +190,6 @@ full_node::full_node(const settings_type& config)
     session_(
         /* TODO: use node treads here? */
         network_threads_,
-        handshake_,
         protocol_,
         blockchain_,
         poller_,
@@ -363,7 +358,7 @@ void full_node::set_height(const std::error_code& ec, uint64_t height,
         promise.set_value(ec);
     };
 
-    handshake_.set_start_height(height, handle_set_height);
+    ////handshake_.set_start_height(height, handle_set_height);
 }
 
 void full_node::handle_stop(const std::error_code& ec, 
@@ -376,7 +371,7 @@ void full_node::handle_stop(const std::error_code& ec,
     promise.set_value(ec);
 }
 
-void full_node::new_channel(const std::error_code& ec, channel_ptr node)
+void full_node::new_channel(const std::error_code& ec, channel::ptr node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
@@ -401,7 +396,7 @@ void full_node::new_channel(const std::error_code& ec, channel_ptr node)
 }
 
 void full_node::recieve_tx(const std::error_code& ec,
-    const chain::transaction& tx, channel_ptr node)
+    const chain::transaction& tx, channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;

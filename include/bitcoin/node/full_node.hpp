@@ -61,12 +61,13 @@ namespace node {
 #define NETWORK_CHANNEL_HEARTBEAT_MINUTES   5
 #define NETWORK_CHANNEL_INACTIVITY_MINUTES  30
 #define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
+#define NETWORK_CHANNEL_GERMINATION_SECONDS 45
 #define NETWORK_HOST_POOL_CAPACITY          1000
 #define NETWORK_RELAY_TRANSACTIONS          true
 #define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts.cache")
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
-#define NETWORK_SELF                        network::handshake::unspecified
+#define NETWORK_SELF                        bc::unspecified_network_address
 #define NETWORK_SEEDS                       network::seeder::defaults
 
 /**
@@ -100,8 +101,8 @@ public:
     virtual bool stop();
 
     // Accessors
-    virtual blockchain::blockchain& blockchain();
-    virtual blockchain::transaction_pool& transaction_pool();
+    virtual bc::blockchain::blockchain& blockchain();
+    virtual bc::blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
     virtual network::protocol& protocol();
     virtual threadpool& pool();
@@ -114,19 +115,19 @@ protected:
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
     virtual void new_channel(const std::error_code& ec,
-        network::channel_ptr node);
+        network::channel::ptr node);
 
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
     virtual void recieve_tx(const std::error_code& ec,
-        const chain::transaction& tx, network::channel_ptr node);
+        const chain::transaction& tx, network::channel::ptr node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
     virtual void broadcast_new_blocks(const std::error_code& ec,
         uint32_t fork_point,
-        const blockchain::blockchain::block_list& new_blocks,
-        const blockchain::blockchain::block_list& replaced_blocks);
+        const bc::blockchain::blockchain::block_list& new_blocks,
+        const bc::blockchain::blockchain::block_list& replaced_blocks);
 
     // These must be bc types.
     bc::ofstream debug_file_;
@@ -134,28 +135,24 @@ protected:
 
     threadpool network_threads_;
     network::hosts host_pool_;
-    network::handshake handshake_;
-    network::peer_to_peer network_;
+    network::initiator network_;
     network::protocol protocol_;
 
     threadpool database_threads_;
-    blockchain::blockchain_impl blockchain_;
+    bc::blockchain::blockchain_impl blockchain_;
 
     threadpool memory_threads_;
-    blockchain::transaction_pool tx_pool_;
+    bc::blockchain::transaction_pool tx_pool_;
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;
     node::session session_;
 
 private:
-
     void handle_start(const std::error_code& ec,
         std::promise<std::error_code>& promise);
-
     void handle_stop(const std::error_code& ec,
         std::promise<std::error_code>& promise);
-
     void set_height(const std::error_code& ec, uint64_t height,
         std::promise<std::error_code>& promise);
 };

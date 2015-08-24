@@ -123,9 +123,8 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
 
     threadpool threads;
     hosts hosts(threads);
-    peer_to_peer network(threads);
-    handshake handshake(threads);
-    protocol protocol(threads, hosts, handshake, network);
+    initiator network(threads);
+    protocol protocol(threads, hosts, network);
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
     poller poller(threads, blockchain);
@@ -135,8 +134,8 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     {
     };
 
-    node::session session(threads, handshake, protocol, blockchain, poller,
-        transactions, responder);
+    node::session session(threads, protocol, blockchain, poller, transactions,
+        responder);
 
     blockchain.start();
     transactions.start();

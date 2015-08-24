@@ -32,7 +32,7 @@ using std::placeholders::_2;
 using boost::asio::io_service;
 
 poller::poller(threadpool& pool, bc::blockchain::blockchain& chain)
-  : strand_(pool),
+  : dispatch_(pool),
     blockchain_(chain),
     last_block_hash_(null_hash),
     last_locator_begin_(null_hash),
@@ -42,7 +42,7 @@ poller::poller(threadpool& pool, bc::blockchain::blockchain& chain)
 }
 
 // Start monitoring this channel.
-void poller::monitor(channel_ptr node)
+void poller::monitor(channel::ptr node)
 {
     //////node->subscribe_inventory(
     //////    std::bind(&poller::receive_inv,
@@ -60,7 +60,7 @@ void poller::monitor(channel_ptr node)
 
 // Dead code, temp retain for example.
 //void poller::receive_inv(const std::error_code& ec,
-//    const inventory_type& packet, channel_ptr node)
+//    const inventory_type& packet, channel::ptr node)
 //{
 //    if (ec == error::channel_stopped)
 //        return;
@@ -124,7 +124,7 @@ void poller::monitor(channel_ptr node)
 //}
 
 void poller::receive_block(const std::error_code& ec,
-    const chain::block& block, channel_ptr node)
+    const chain::block& block, channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -138,7 +138,7 @@ void poller::receive_block(const std::error_code& ec,
     }
 
     blockchain_.store(block,
-        strand_.wrap(&poller::handle_store_block,
+        dispatch_.sync(&poller::handle_store_block,
             this, _1, _2, block.header.hash(), node));
 
     // Resubscribe.
@@ -149,7 +149,7 @@ void poller::receive_block(const std::error_code& ec,
 
 void poller::handle_store_block(const std::error_code& ec,
     block_info info, const hash_digest& block_hash,
-    channel_ptr node)
+    channel::ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -200,7 +200,7 @@ void poller::handle_store_block(const std::error_code& ec,
 }
 
 void poller::request_blocks(const hash_digest& block_hash,
-    channel_ptr node)
+    channel::ptr node)
 {
     // TODO: cache this so we are not constantly hitting the blockchain for it.
     fetch_block_locator(blockchain_,
@@ -211,7 +211,7 @@ void poller::request_blocks(const hash_digest& block_hash,
 // Not having orphans will cause a stall unless mitigated.
 void poller::ask_blocks(const std::error_code& ec,
     const message::block_locator& locator, const hash_digest& hash_stop,
-    channel_ptr node)
+    channel::ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -259,7 +259,7 @@ void poller::ask_blocks(const std::error_code& ec,
 }
 
 bool poller::is_duplicate_block_ask(const message::block_locator& locator,
-    const hash_digest& hash_stop, channel_ptr node)
+    const hash_digest& hash_stop, channel::ptr node)
 {
     return
         last_locator_begin_ == locator.front() &&

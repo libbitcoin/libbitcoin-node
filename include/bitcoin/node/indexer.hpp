@@ -54,8 +54,6 @@ public:
 
     /// This class is not copyable.
     indexer(const indexer&) = delete;
-
-    /// This class is not copyable.
     void operator=(const indexer&) = delete;
 
     /**
@@ -100,7 +98,7 @@ private:
     void do_deindex(const chain::transaction& tx,
         completion_handler handle_deindex);
 
-    dispatch dispatch_;
+    dispatcher dispatch_;
     spends_multimap spends_map_;
     outputs_multimap outputs_map_;
 };
