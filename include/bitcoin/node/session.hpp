@@ -82,7 +82,7 @@ private:
         const chain::block& block, const hash_digest block_hash,
         network::channel_ptr node);
 
-    sequencer sequence_;
+    dispatch dispatch_;
     network::handshake& handshake_;
     network::protocol& protocol_;
     bc::blockchain::blockchain& blockchain_;

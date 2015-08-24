@@ -163,7 +163,7 @@ full_node::full_node(const settings_type& config)
         config.network.outbound_connections,
         config.network.inbound_connection_limit,
         config.network.seeds,
-        config.network.self.to_network_address(),
+        config.network.self,
         config.timeouts),
 
     database_threads_(

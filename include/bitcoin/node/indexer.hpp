@@ -30,6 +30,8 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace message;
+
 // output_info_type is defined in <bitcoin/transaction.hpp>
 struct BCN_API spend_info_type
 {
@@ -98,7 +100,7 @@ private:
     void do_deindex(const chain::transaction& tx,
         completion_handler handle_deindex);
 
-    sequencer sequence_;
+    dispatch dispatch_;
     spends_multimap spends_map_;
     outputs_multimap outputs_map_;
 };

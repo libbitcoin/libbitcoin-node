@@ -119,7 +119,7 @@ void poller::monitor(channel_ptr node)
 //
 //    // Resubscribe.
 //    node->subscribe_inventory(
-//        sequence_.sync(&poller::receive_inv,
+//        dispatch_.sync(&poller::receive_inv,
 //            this, _1, _2, node));
 //}
 
@@ -204,7 +204,7 @@ void poller::request_blocks(const hash_digest& block_hash,
 {
     // TODO: cache this so we are not constantly hitting the blockchain for it.
     fetch_block_locator(blockchain_,
-        sequence_.sync(&poller::ask_blocks,
+        dispatch_.sync(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
 

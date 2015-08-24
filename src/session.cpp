@@ -273,7 +273,7 @@ void session::receive_inv(const std::error_code& ec,
                         << "Transaction inventory from [" << peer << "] "
                         << encode_hash(inventory.hash);
 
-                    sequence_.queue(
+                    dispatch_.queue(
                         std::bind(&session::new_tx_inventory,
                             this, inventory.hash, node));
                 }
@@ -284,7 +284,7 @@ void session::receive_inv(const std::error_code& ec,
                 log_debug(LOG_SESSION)
                     << "Block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
-                sequence_.queue(
+                dispatch_.queue(
                     std::bind(&session::new_block_inventory,
                         this, inventory.hash, node));
                 break;
@@ -377,7 +377,7 @@ void session::new_block_inventory(const hash_digest& block_hash,
     {
         if (ec == error::not_found)
         {
-            sequence_.queue(
+            dispatch_.queue(
                 std::bind(&session::request_block_data,
                     this, block_hash, node));
             return;
