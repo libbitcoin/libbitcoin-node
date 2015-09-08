@@ -48,7 +48,7 @@ void poller::monitor(channel::ptr node)
     //////    std::bind(&poller::receive_inv,
     //////        this, _1, _2, node));
 
-    node->subscribe_block(
+    node->subscribe<message::block>(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 
@@ -59,7 +59,7 @@ void poller::monitor(channel::ptr node)
 }
 
 // Dead code, temp retain for example.
-//void poller::receive_inv(const std::error_code& ec,
+//void poller::receive_inv(const code& ec,
 //    const inventory_type& packet, channel::ptr node)
 //{
 //    if (ec == error::channel_stopped)
@@ -123,7 +123,7 @@ void poller::monitor(channel::ptr node)
 //            this, _1, _2, node));
 //}
 
-void poller::receive_block(const std::error_code& ec,
+void poller::receive_block(const code& ec,
     const chain::block& block, channel::ptr node)
 {
     if (ec == error::channel_stopped)
@@ -138,16 +138,16 @@ void poller::receive_block(const std::error_code& ec,
     }
 
     blockchain_.store(block,
-        dispatch_.sync(&poller::handle_store_block,
+        dispatch_.unordered_delegate(&poller::handle_store_block,
             this, _1, _2, block.header.hash(), node));
 
     // Resubscribe.
-    node->subscribe_block(
+    node->subscribe<message::block>(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 }
 
-void poller::handle_store_block(const std::error_code& ec,
+void poller::handle_store_block(const code& ec,
     block_info info, const hash_digest& block_hash,
     channel::ptr node)
 {
@@ -204,12 +204,12 @@ void poller::request_blocks(const hash_digest& block_hash,
 {
     // TODO: cache this so we are not constantly hitting the blockchain for it.
     fetch_block_locator(blockchain_,
-        dispatch_.sync(&poller::ask_blocks,
+        dispatch_.unordered_delegate(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
 
 // Not having orphans will cause a stall unless mitigated.
-void poller::ask_blocks(const std::error_code& ec,
+void poller::ask_blocks(const code& ec,
     const message::block_locator& locator, const hash_digest& hash_stop,
     channel::ptr node)
 {
@@ -238,7 +238,7 @@ void poller::ask_blocks(const std::error_code& ec,
         << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
         << locator.size() << ") to [" << stop << "]";
 
-    const auto handle_error = [node](const std::error_code& ec)
+    const auto handle_error = [node](const code& ec)
     {
         if (ec)
         {

@@ -40,7 +40,7 @@ responder::responder(bc::blockchain::blockchain& blockchain,
 void responder::monitor(channel::ptr node)
 {
     // Subscribe to serve tx and blocks.
-    node->subscribe_get_data(
+    node->subscribe<message::get_data>(
         std::bind(&responder::receive_get_data,
             this, _1, _2, node));
 }
@@ -60,7 +60,7 @@ static size_t inventory_count(
 }
 
 // We don't seem to be getting getdata requests.
-void responder::receive_get_data(const std::error_code& ec,
+void responder::receive_get_data(const code& ec,
     const message::get_data& packet, channel::ptr node)
 {
     if (ec == error::channel_stopped)
@@ -121,12 +121,12 @@ void responder::receive_get_data(const std::error_code& ec,
         << "Inventory END [" << peer << "]";
 
     // Resubscribe to serve tx and blocks.
-    node->subscribe_get_data(
+    node->subscribe<message::get_data>(
         std::bind(&responder::receive_get_data,
             this, _1, _2, node));
 }
 
-void responder::send_pool_tx(const std::error_code& ec,
+void responder::send_pool_tx(const code& ec,
     const chain::transaction& tx, const hash_digest& tx_hash, channel::ptr node)
 {
     if (ec == error::service_stopped)
@@ -162,7 +162,7 @@ void responder::send_pool_tx(const std::error_code& ec,
 // in the memory pool or relay set - arbitrary access to transactions
 // in the  chain is not allowed to avoid having clients start to depend
 // on nodes having full transaction indexes (which modern nodes do not).
-void responder::send_chain_tx(const std::error_code& ec,
+void responder::send_chain_tx(const code& ec,
     const chain::transaction& tx, const hash_digest& tx_hash,
     channel::ptr node)
 {
@@ -195,7 +195,7 @@ void responder::send_chain_tx(const std::error_code& ec,
 void responder::send_tx(const chain::transaction& tx,
     const hash_digest& tx_hash, channel::ptr node)
 {
-    const auto send_handler = [tx_hash, node](const std::error_code& ec)
+    const auto send_handler = [tx_hash, node](const code& ec)
     {
         if (ec)
             log_debug(LOG_RESPONDER)
@@ -212,7 +212,7 @@ void responder::send_tx(const chain::transaction& tx,
 
 void responder::send_tx_not_found(const hash_digest& tx_hash, channel::ptr node)
 {
-    const auto send_handler = [tx_hash, node](const std::error_code& ec)
+    const auto send_handler = [tx_hash, node](const code& ec)
     {
         if (ec)
             log_debug(LOG_RESPONDER)
@@ -229,7 +229,7 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel::ptr node)
 }
 
 // Should we look in the orphan pool first?
-void responder::send_block(const std::error_code& ec,
+void responder::send_block(const code& ec,
     const chain::block& block, const hash_digest& block_hash,
     channel::ptr node)
 {
@@ -255,7 +255,7 @@ void responder::send_block(const std::error_code& ec,
         return;
     }
 
-    const auto send_handler = [block_hash, node](const std::error_code& ec)
+    const auto send_handler = [block_hash, node](const code& ec)
     {
         if (ec)
             log_debug(LOG_RESPONDER)
@@ -273,15 +273,15 @@ void responder::send_block(const std::error_code& ec,
 void responder::send_block_not_found(const hash_digest& block_hash,
     channel::ptr node)
 {
-    const auto send_handler = [block_hash, node](const std::error_code& ec)
+    const auto send_handler = [block_hash, node](const code& ec)
     {
         if (ec)
             log_debug(LOG_RESPONDER)
-                << "Failure sending tx notfound for ["
+                << "Failure sending block notfound for ["
                 << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
-                << "Sent tx notfound for [" << node->address()
+                << "Sent block notfound for [" << node->address()
                 << "] " << encode_hash(block_hash);
     };
 
@@ -290,18 +290,16 @@ void responder::send_block_not_found(const hash_digest& block_hash,
 }
 
 void responder::send_inventory_not_found(message::inventory_type_id type_id,
-    const hash_digest& hash, channel::ptr node,
-    channel_proxy::send_handler handler)
+    const hash_digest& hash, channel::ptr node, proxy::handler handler)
 {
-    // There's currently no way to send this message.
-    //const inventory_vector_type block_inventory
-    //{
-    //    type_id,
-    //    hash
-    //};
+    const message::inventory_vector block_inventory
+    {
+        type_id,
+        hash
+    };
 
-    //const get_data_type not_found{ { block_inventory } };
-    //node->send(not_found, handler);
+    const message::not_found lost{ { block_inventory } };
+    node->send(lost, handler);
 }
 
 } // node

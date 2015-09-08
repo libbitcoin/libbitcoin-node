@@ -109,22 +109,22 @@ public:
 
 protected:
     // Result of store operation in transaction pool.
-    virtual void new_unconfirm_valid_tx(const std::error_code& code,
+    virtual void new_unconfirm_valid_tx(const code& code,
         const chain::index_list& unconfirmed, const chain::transaction& tx);
 
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
-    virtual void new_channel(const std::error_code& ec,
+    virtual void new_channel(const code& ec,
         network::channel::ptr node);
 
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
-    virtual void recieve_tx(const std::error_code& ec,
+    virtual void recieve_tx(const code& ec,
         const chain::transaction& tx, network::channel::ptr node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
-    virtual void broadcast_new_blocks(const std::error_code& ec,
+    virtual void broadcast_new_blocks(const code& ec,
         uint32_t fork_point,
         const bc::blockchain::blockchain::block_list& new_blocks,
         const bc::blockchain::blockchain::block_list& replaced_blocks);
@@ -149,12 +149,12 @@ protected:
     node::session session_;
 
 private:
-    void handle_start(const std::error_code& ec,
-        std::promise<std::error_code>& promise);
-    void handle_stop(const std::error_code& ec,
-        std::promise<std::error_code>& promise);
-    void set_height(const std::error_code& ec, uint64_t height,
-        std::promise<std::error_code>& promise);
+    void handle_start(const code& ec,
+        std::promise<code>& promise);
+    void handle_stop(const code& ec,
+        std::promise<code>& promise);
+    void set_height(const code& ec, uint64_t height,
+        std::promise<code>& promise);
 };
 
 } // namspace node

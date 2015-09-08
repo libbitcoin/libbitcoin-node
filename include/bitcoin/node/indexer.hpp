@@ -45,8 +45,8 @@ class BCN_API indexer
 {
 public:
 
-    typedef std::function<void (const std::error_code&)> completion_handler;
-    typedef std::function<void (const std::error_code& ec,
+    typedef std::function<void (const code&)> completion_handler;
+    typedef std::function<void (const code& ec,
         const wallet::output_info_list& outputs,
         const spend_info_list& spends)> query_handler;
 

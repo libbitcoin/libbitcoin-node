@@ -222,7 +222,7 @@ bool full_node::start(const settings_type& config)
     if (!tx_pool_.start())
         return false;
 
-    std::promise<std::error_code> height_promise;
+    std::promise<code> height_promise;
     blockchain_.fetch_last_height(
         std::bind(&full_node::set_height,
             this, _1, _2, std::ref(height_promise)));
@@ -248,7 +248,7 @@ bool full_node::start(const settings_type& config)
             config.network.relay_transactions);
     }
 
-    std::promise<std::error_code> session_promise;
+    std::promise<code> session_promise;
     session_.start(
         std::bind(&full_node::handle_start,
             this, _1, std::ref(session_promise)));
@@ -261,7 +261,7 @@ bool full_node::start(const settings_type& config)
 bool full_node::stop()
 {
     // Use promise to block on main thread until stop completes.
-    std::promise<std::error_code> promise;
+    std::promise<code> promise;
 
     // Stop the session.
     session_.stop(
@@ -277,12 +277,12 @@ bool full_node::stop()
     if (!blockchain_.stop())
         success = false;
 
-    // Stop threadpools.
-    network_threads_.stop();
-    database_threads_.stop();
-    memory_threads_.stop();
+    // Signal the threadpools to stop.
+    network_threads_.shutdown();
+    database_threads_.shutdown();
+    memory_threads_.shutdown();
 
-    // Join threadpools. Wait for them to finish.
+    // Wait for threads to finish.
     network_threads_.join();
     database_threads_.join();
     memory_threads_.join();
@@ -315,8 +315,8 @@ threadpool& full_node::pool()
     return memory_threads_;
 }
 
-void full_node::handle_start(const std::error_code& ec,
-    std::promise<std::error_code>& promise)
+void full_node::handle_start(const code& ec,
+    std::promise<code>& promise)
 {
     if (ec)
     {
@@ -334,8 +334,8 @@ void full_node::handle_start(const std::error_code& ec,
     promise.set_value(ec);
 }
 
-void full_node::set_height(const std::error_code& ec, uint64_t height,
-    std::promise<std::error_code>& promise)
+void full_node::set_height(const code& ec, uint64_t height,
+    std::promise<code>& promise)
 {
     if (ec)
     {
@@ -346,7 +346,7 @@ void full_node::set_height(const std::error_code& ec, uint64_t height,
     }
 
     const auto handle_set_height = [height, &promise]
-        (const std::error_code& ec)
+        (const code& ec)
     {
         if (ec)
             log_error(LOG_SESSION)
@@ -358,11 +358,12 @@ void full_node::set_height(const std::error_code& ec, uint64_t height,
         promise.set_value(ec);
     };
 
+    // HACK: not setting start height yet.
+    handle_set_height(ec);
     ////handshake_.set_start_height(height, handle_set_height);
 }
 
-void full_node::handle_stop(const std::error_code& ec, 
-    std::promise<std::error_code>& promise)
+void full_node::handle_stop(const code& ec, std::promise<code>& promise)
 {
     if (ec)
         log_error(LOG_NODE)
@@ -371,7 +372,7 @@ void full_node::handle_stop(const std::error_code& ec,
     promise.set_value(ec);
 }
 
-void full_node::new_channel(const std::error_code& ec, channel::ptr node)
+void full_node::new_channel(const code& ec, channel::ptr node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
@@ -385,7 +386,7 @@ void full_node::new_channel(const std::error_code& ec, channel::ptr node)
     }
 
     // Subscribe to transaction messages from this node.
-    node->subscribe_transaction(
+    node->subscribe<message::transaction>(
         std::bind(&full_node::recieve_tx,
             this, _1, _2, node));
 
@@ -395,7 +396,7 @@ void full_node::new_channel(const std::error_code& ec, channel::ptr node)
             this, _1, _2));
 }
 
-void full_node::recieve_tx(const std::error_code& ec,
+void full_node::recieve_tx(const code& ec,
     const chain::transaction& tx, channel::ptr node)
 {
     if (ec == error::channel_stopped)
@@ -409,7 +410,7 @@ void full_node::recieve_tx(const std::error_code& ec,
     }
 
     // Called when the transaction becomes confirmed in a block.
-    const auto handle_confirm = [this, tx](const std::error_code& ec)
+    const auto handle_confirm = [this, tx](const code& ec)
     {
         const auto hash = encode_hash(tx.hash());
 
@@ -420,7 +421,7 @@ void full_node::recieve_tx(const std::error_code& ec,
             log_debug(LOG_NODE)
                 << format(BN_TX_CONFIRMED) % hash;
 
-        const auto handle_deindex = [hash](const std::error_code& ec)
+        const auto handle_deindex = [hash](const code& ec)
         {
             if (ec)
                 log_error(LOG_NODE)
@@ -436,7 +437,7 @@ void full_node::recieve_tx(const std::error_code& ec,
             this, _1, _2, tx));
 
     // Resubscribe to receive transaction messages from this node.
-    node->subscribe_transaction(
+    node->subscribe<message::transaction>(
         std::bind(&full_node::recieve_tx,
             this, _1, _2, node));
 }
@@ -454,12 +455,12 @@ static std::string format_unconfirmed_inputs(
     return bc::join(inputs, ",");
 }
 
-void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
+void full_node::new_unconfirm_valid_tx(const code& ec,
     const chain::index_list& unconfirmed, const chain::transaction& tx)
 {
     const auto hash = encode_hash(tx.hash());
 
-    const auto handle_index = [hash](const std::error_code& ec)
+    const auto handle_index = [hash](const code& ec)
     {
         if (ec)
             log_error(LOG_NODE)
@@ -483,7 +484,7 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
 
 // HACK: this is for access to broadcast_new_blocks to facilitate server
 // inheritance of full_node. The organization should be refactored.
-void full_node::broadcast_new_blocks(const std::error_code& ec,
+void full_node::broadcast_new_blocks(const code& ec,
     uint32_t fork_point, const blockchain::blockchain::block_list& new_blocks,
     const blockchain::blockchain::block_list& replaced_blocks)
 {
