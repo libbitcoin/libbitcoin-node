@@ -31,14 +31,14 @@ using std::placeholders::_2;
 using std::placeholders::_3;
 
 indexer::indexer(threadpool& pool)
-  : strand_(pool)
+  : dispatch_(pool)
 {
 }
 
 void indexer::query(const wallet::payment_address& address,
     query_handler handle_query)
 {
-    strand_.queue(
+    dispatch_.ordered(
         std::bind(&indexer::do_query,
             this, address, handle_query));
 }
@@ -58,7 +58,7 @@ InfoList get_info_list(const wallet::payment_address& address,
 void indexer::do_query(const wallet::payment_address& address,
     query_handler handle_query)
 {
-    handle_query(std::error_code(),
+    handle_query(code(),
         get_info_list<wallet::output_info_list>(address, outputs_map_),
         get_info_list<spend_info_list>(address, spends_map_));
 }
@@ -86,7 +86,7 @@ bool index_does_not_exist(const wallet::payment_address& key,
 void indexer::index(const chain::transaction& tx,
     completion_handler handle_index)
 {
-    strand_.queue(
+    dispatch_.ordered(
         std::bind(&indexer::do_index,
             this, tx, handle_index));
 }
@@ -132,13 +132,13 @@ void indexer::do_index(const chain::transaction& tx,
         ++index;
     }
 
-    handle_index(std::error_code());
+    handle_index(code());
 }
 
 void indexer::deindex(const chain::transaction& tx,
     completion_handler handle_deindex)
 {
-    strand_.queue(
+    dispatch_.ordered(
         std::bind(&indexer::do_deindex,
             this, tx, handle_deindex));
 }
@@ -192,7 +192,7 @@ void indexer::do_deindex(const chain::transaction& tx,
         ++index;
     }
 
-    handle_deindex(std::error_code());
+    handle_deindex(code());
 }
 
 static bool is_output_conflict(history_list& history,
@@ -258,7 +258,7 @@ static void add_history_spends(history_list& history,
     //BITCOIN_ASSERT_MSG(!conflict, "Couldn't find output for adding spend");
 }
 
-void indexer_history_fetched(const std::error_code& ec,
+void indexer_history_fetched(const code& ec,
     const wallet::output_info_list& outputs, const spend_info_list& spends,
     history_list history,
     bc::blockchain::blockchain::fetch_handler_history handle_fetch)
@@ -280,10 +280,10 @@ void indexer_history_fetched(const std::error_code& ec,
     // Add all outputs and spends and return success code.
     add_history_outputs(history, outputs);
     add_history_spends(history, spends);
-    handle_fetch(std::error_code(), history);
+    handle_fetch(code(), history);
 }
 
-void blockchain_history_fetched(const std::error_code& ec,
+void blockchain_history_fetched(const code& ec,
     const bc::blockchain::history_list& history, indexer& indexer,
     const wallet::payment_address& address,
     bc::blockchain::blockchain::fetch_handler_history handle_fetch)

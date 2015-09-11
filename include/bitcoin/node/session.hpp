@@ -36,54 +36,40 @@ namespace node {
 class BCN_API session
 {
 public:
+    typedef std::function<void (const code&)> completion_handler;
 
-    typedef std::function<void (const std::error_code&)> completion_handler;
-
-    session(threadpool& pool, network::handshake& handshake,
-        network::protocol& protocol, blockchain::blockchain& blockchain,
-        poller& poller, blockchain::transaction_pool& transaction_pool,
+    session(threadpool& pool, network::protocol& protocol,
+        bc::blockchain::blockchain& blockchain, poller& poller,
+        bc::blockchain::transaction_pool& transaction_pool,
         responder& responder, size_t minimum_start_height=0);
 
     void start(completion_handler handle_complete);
-
     void stop(completion_handler handle_complete);
 
 private:
-
-    void subscribe(const std::error_code& ec,
+    void subscribe(const code& ec,
         completion_handler handle_complete);
-
-    void new_channel(const std::error_code& ec,
-        network::channel_ptr node);
-
-    void broadcast_new_blocks(const std::error_code& ec, uint32_t fork_point,
-        const blockchain::blockchain::block_list& new_blocks,
-        const blockchain::blockchain::block_list& replaced_blocks);
-
-    void receive_inv(const std::error_code& ec,
-        const message::inventory& packet, network::channel_ptr node);
-
-    void receive_get_blocks(const std::error_code& ec,
-        const message::get_blocks& packet, network::channel_ptr node);
-
+    void new_channel(const code& ec, network::channel::ptr node);
+    void broadcast_new_blocks(const code& ec, uint32_t fork_point,
+        const bc::blockchain::blockchain::block_list& new_blocks,
+        const bc::blockchain::blockchain::block_list& replaced_blocks);
+    void receive_inv(const code& ec,
+        const message::inventory& packet, network::channel::ptr node);
+    void receive_get_blocks(const code& ec,
+        const message::get_blocks& packet, network::channel::ptr node);
     void new_tx_inventory(const hash_digest& tx_hash,
-        network::channel_ptr node);
-
-    void request_tx_data(const std::error_code& ec, bool tx_exists,
-        const hash_digest& tx_hash, network::channel_ptr node);
-
+        network::channel::ptr node);
+    void request_tx_data(const code& ec, bool tx_exists,
+        const hash_digest& tx_hash, network::channel::ptr node);
     void new_block_inventory(const hash_digest& block_hash,
-        network::channel_ptr node);
-
+        network::channel::ptr node);
     void request_block_data(const hash_digest& block_hash,
-        network::channel_ptr node);
-
-    void fetch_block_handler(const std::error_code& ec,
+        network::channel::ptr node);
+    void fetch_block_handler(const code& ec,
         const chain::block& block, const hash_digest block_hash,
-        network::channel_ptr node);
+        network::channel::ptr node);
 
-    sequencer strand_;
-    network::handshake& handshake_;
+    dispatcher dispatch_;
     network::protocol& protocol_;
     bc::blockchain::blockchain& blockchain_;
     bc::blockchain::transaction_pool& tx_pool_;

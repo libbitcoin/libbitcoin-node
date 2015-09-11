@@ -30,40 +30,32 @@ namespace node {
 class BCN_API responder
 {
 public:
-    responder(blockchain::blockchain& chain,
-        blockchain::transaction_pool& tx_pool);
+    responder(bc::blockchain::blockchain& chain,
+        bc::blockchain::transaction_pool& tx_pool);
 
-    void monitor(network::channel_ptr node);
+    void monitor(network::channel::ptr node);
 
 private:
-
-    void receive_get_data(const std::error_code& ec,
-        const message::get_data& packet, network::channel_ptr node);
-
-    void send_pool_tx(const std::error_code& ec, const chain::transaction& tx,
-        const hash_digest& tx_hash, network::channel_ptr node);
-
-    void send_chain_tx(const std::error_code& ec, const chain::transaction& tx,
-        const hash_digest& tx_hash, network::channel_ptr node);
-
+    void receive_get_data(const code& ec,
+        const message::get_data& packet, network::channel::ptr node);
+    void send_pool_tx(const code& ec, const chain::transaction& tx,
+        const hash_digest& tx_hash, network::channel::ptr node);
+    void send_chain_tx(const code& ec, const chain::transaction& tx,
+        const hash_digest& tx_hash, network::channel::ptr node);
     void send_tx(const chain::transaction& tx, const hash_digest& tx_hash,
-        network::channel_ptr node);
-
+        network::channel::ptr node);
     void send_tx_not_found(const hash_digest& tx_hash,
-        network::channel_ptr node);
-
-    void send_block(const std::error_code& ec, const chain::block& block,
-        const hash_digest& block_hash, network::channel_ptr node);
-
+        network::channel::ptr node);
+    void send_block(const code& ec, const chain::block& block,
+        const hash_digest& block_hash, network::channel::ptr node);
     void send_block_not_found(const hash_digest& block_hash,
-        network::channel_ptr node);
-
+        network::channel::ptr node);
     void send_inventory_not_found(message::inventory_type_id inventory_type,
-        const hash_digest& hash, network::channel_ptr node,
-        network::channel_proxy::send_handler handler);
+        const hash_digest& hash, network::channel::ptr node,
+        network::proxy::handler handler);
 
-    blockchain::blockchain& blockchain_;
-    blockchain::transaction_pool& tx_pool_;
+    bc::blockchain::blockchain& blockchain_;
+    bc::blockchain::transaction_pool& tx_pool_;
 };
 
 } // node

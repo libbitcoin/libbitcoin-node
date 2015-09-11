@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_transaction_indexer__does_not_throw)
 {
     threadpool threads;
     indexer index(threads);
-    threads.stop();
+    threads.shutdown();
     threads.join();
 }
 
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
     blockchain.start();
     transactions.start();
     blockchain.stop();
-    threads.stop();
+    threads.shutdown();
     threads.join();
 
     // uninitchain(prefix);
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
 
     blockchain.start();
     blockchain.stop();
-    threads.stop();
+    threads.shutdown();
     threads.join();
 
     // uninitchain(prefix);
@@ -123,9 +123,8 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
 
     threadpool threads;
     hosts hosts(threads);
-    peer network(threads);
-    handshake handshake(threads);
-    protocol protocol(threads, hosts, handshake, network);
+    initiator network(threads);
+    protocol protocol(threads, hosts, network);
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
     poller poller(threads, blockchain);
@@ -135,15 +134,15 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     {
     };
 
-    node::session session(threads, handshake, protocol, blockchain, poller,
-        transactions, responder);
+    node::session session(threads, protocol, blockchain, poller, transactions,
+        responder);
 
     blockchain.start();
     transactions.start();
     session.start(noop_handler);
     session.stop(noop_handler);
     blockchain.stop();
-    threads.stop();
+    threads.shutdown();
     threads.join();
 
     // uninitchain(prefix);

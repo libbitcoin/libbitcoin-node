@@ -30,6 +30,8 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace message;
+
 // output_info_type is defined in <bitcoin/transaction.hpp>
 struct BCN_API spend_info_type
 {
@@ -43,8 +45,8 @@ class BCN_API indexer
 {
 public:
 
-    typedef std::function<void (const std::error_code&)> completion_handler;
-    typedef std::function<void (const std::error_code& ec,
+    typedef std::function<void (const code&)> completion_handler;
+    typedef std::function<void (const code& ec,
         const wallet::output_info_list& outputs,
         const spend_info_list& spends)> query_handler;
 
@@ -52,8 +54,6 @@ public:
 
     /// This class is not copyable.
     indexer(const indexer&) = delete;
-
-    /// This class is not copyable.
     void operator=(const indexer&) = delete;
 
     /**
@@ -98,7 +98,7 @@ private:
     void do_deindex(const chain::transaction& tx,
         completion_handler handle_deindex);
 
-    sequencer strand_;
+    dispatcher dispatch_;
     spends_multimap spends_map_;
     outputs_multimap outputs_map_;
 };

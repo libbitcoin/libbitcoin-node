@@ -37,12 +37,11 @@ using std::placeholders::_4;
 using namespace bc::blockchain;
 using namespace bc::network;
 
-session::session(threadpool& pool, handshake& handshake, protocol& protocol,
+session::session(threadpool& pool, protocol& protocol,
     bc::blockchain::blockchain& blockchain, poller& poller,
     transaction_pool& transaction_pool, responder& responder,
     size_t minimum_start_height)
-  : strand_(pool),
-    handshake_(handshake),
+  : dispatch_(pool),
     protocol_(protocol),
     blockchain_(blockchain),
     tx_pool_(transaction_pool),
@@ -65,7 +64,7 @@ void session::stop(completion_handler handle_complete)
     protocol_.stop(handle_complete);
 }
 
-void session::subscribe(const std::error_code& ec,
+void session::subscribe(const code& ec,
     completion_handler handle_complete)
 {
     if (ec)
@@ -89,13 +88,13 @@ void session::subscribe(const std::error_code& ec,
     handle_complete(ec);
 }
 
-void session::new_channel(const std::error_code& ec, channel_ptr node)
+void session::new_channel(const code& ec, channel::ptr node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
         return;
 
-    const auto revive = [this, node](const std::error_code& ec)
+    const auto revive = [this, node](const code& ec)
     {
         if (ec)
         {
@@ -115,12 +114,12 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
     node->set_revival_handler(revive);
     
     // Subscribe to new inventory requests.
-    node->subscribe_inventory(
+    node->subscribe<message::inventory>(
         std::bind(&session::receive_inv,
             this, _1, _2, node));
 
     // Subscribe to new get_blocks requests.
-    node->subscribe_get_blocks(
+    node->subscribe<message::get_blocks>(
         std::bind(&session::receive_get_blocks,
             this, _1, _2, node));
 
@@ -136,7 +135,7 @@ void session::new_channel(const std::error_code& ec, channel_ptr node)
     responder_.monitor(node);
 }
 
-void session::broadcast_new_blocks(const std::error_code& ec,
+void session::broadcast_new_blocks(const code& ec,
     uint32_t fork_point,
     const bc::blockchain::blockchain::block_list& new_blocks,
     const bc::blockchain::blockchain::block_list& /* replaced_blocks */)
@@ -155,7 +154,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
     BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
 
-    const auto handle_set_height = [this, height](const std::error_code& ec)
+    const auto handle_set_height = [this, height](const code& ec)
     {
         if (ec)
         {
@@ -170,7 +169,7 @@ void session::broadcast_new_blocks(const std::error_code& ec,
             << "Reorg set start height [" << height << "]";
     };
 
-    handshake_.set_start_height(height, handle_set_height);
+    /////handshake_.set_start_height(height, handle_set_height);
 
     // Resubscribe to new reorganizations.
     blockchain_.subscribe_reorganize(
@@ -199,14 +198,16 @@ void session::broadcast_new_blocks(const std::error_code& ec,
         << "Broadcasting block inventory [" 
         << blocks_inventory.inventories.size() << "]";
 
-    const auto broadcast_handler = [](const std::error_code& ec, size_t count)
+    const auto broadcast_handler = [](const code& ec, channel::ptr node)
     {
         if (ec)
             log_debug(LOG_SESSION)
-                << "Failure broadcasting block inventory: " << ec.message();
+                << "Failure broadcasting block inventory to ["
+                << node->address() << "] " << ec.message();
         else
             log_debug(LOG_SESSION)
-                << "Broadcast block inventory to (" << count << ") nodes.";
+                << "Broadcasted block inventory to ["
+                << node->address() << "] ";
     };
 
     // Could optimize by not broadcasting to the node from which it came.
@@ -229,8 +230,8 @@ static size_t inventory_count(
 
 // Put this on a short timer following lack of block inv.
 // request_blocks(null_hash, node);
-void session::receive_inv(const std::error_code& ec,
-    const message::inventory& packet, channel_ptr node)
+void session::receive_inv(const code& ec,
+    const message::inventory& packet, channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -271,7 +272,7 @@ void session::receive_inv(const std::error_code& ec,
                         << "Transaction inventory from [" << peer << "] "
                         << encode_hash(inventory.hash);
 
-                    strand_.queue(
+                    dispatch_.ordered(
                         std::bind(&session::new_tx_inventory,
                             this, inventory.hash, node));
                 }
@@ -282,7 +283,7 @@ void session::receive_inv(const std::error_code& ec,
                 log_debug(LOG_SESSION)
                     << "Block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
-                strand_.queue(
+                dispatch_.ordered(
                     std::bind(&session::new_block_inventory,
                         this, inventory.hash, node));
                 break;
@@ -306,13 +307,13 @@ void session::receive_inv(const std::error_code& ec,
     //    << "Inventory END [" << peer << "]";
 
     // Resubscribe to new inventory requests.
-    node->subscribe_inventory(
+    node->subscribe<message::inventory>(
         std::bind(&session::receive_inv,
             this, _1, _2, node));
 }
 
 void session::new_tx_inventory(const hash_digest& tx_hash,
-    channel_ptr node)
+    channel::ptr node)
 {
     // If the tx doesn't exist in our mempool, issue getdata.
     tx_pool_.exists(tx_hash, 
@@ -320,8 +321,8 @@ void session::new_tx_inventory(const hash_digest& tx_hash,
             this, _1, _2, tx_hash, node));
 }
 
-void session::request_tx_data(const std::error_code& ec, bool tx_exists,
-    const hash_digest& tx_hash, channel_ptr node)
+void session::request_tx_data(const code& ec, bool tx_exists,
+    const hash_digest& tx_hash, channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -341,7 +342,7 @@ void session::request_tx_data(const std::error_code& ec, bool tx_exists,
         return;
     }
 
-    const auto handle_error = [node](const std::error_code& ec)
+    const auto handle_error = [node](const code& ec)
     {
         if (ec)
         {
@@ -368,14 +369,14 @@ void session::request_tx_data(const std::error_code& ec, bool tx_exists,
 }
 
 void session::new_block_inventory(const hash_digest& block_hash,
-    channel_ptr node)
+    channel::ptr node)
 {
     const auto request_block = [this, block_hash, node]
-        (const std::error_code& ec, const chain::block& block)
+        (const code& ec, const chain::block& block)
     {
         if (ec == error::not_found)
         {
-            strand_.queue(
+            dispatch_.ordered(
                 std::bind(&session::request_block_data,
                     this, block_hash, node));
             return;
@@ -400,9 +401,9 @@ void session::new_block_inventory(const hash_digest& block_hash,
 }
 
 void session::request_block_data(const hash_digest& block_hash,
-    channel_ptr node)
+    channel::ptr node)
 {
-    const auto handle_error = [node, block_hash](const std::error_code& ec)
+    const auto handle_error = [node, block_hash](const code& ec)
     {
         if (ec)
         {
@@ -442,8 +443,8 @@ void session::request_block_data(const hash_digest& block_hash,
 }
 
 // We don't respond to peers making getblocks requests.
-void session::receive_get_blocks(const std::error_code& ec,
-    const message::get_blocks& get_blocks, channel_ptr node)
+void session::receive_get_blocks(const code& ec,
+    const message::get_blocks& get_blocks, channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
