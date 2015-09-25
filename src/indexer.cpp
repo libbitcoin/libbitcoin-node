@@ -26,6 +26,7 @@ namespace node {
 
 using namespace bc::blockchain;
 using namespace bc::network;
+using namespace bc::wallet;
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -99,9 +100,8 @@ void indexer::do_index(const chain::transaction& tx,
     uint32_t index = 0;
     for (const auto& input: tx.inputs)
     {
-        wallet::payment_address address;
-
-        if (extract(address, input.script))
+        const auto address = payment_address::extract(input.script);
+        if (address)
         {
             chain::input_point point{tx_hash, index};
             BITCOIN_ASSERT_MSG(
@@ -117,9 +117,8 @@ void indexer::do_index(const chain::transaction& tx,
     index = 0;
     for (const auto& output: tx.outputs)
     {
-        wallet::payment_address address;
-
-        if (extract(address, output.script))
+        const auto address = payment_address::extract(output.script);
+        if (address)
         {
             chain::output_point point{ tx_hash, index };
             BITCOIN_ASSERT_MSG(
@@ -152,9 +151,8 @@ void indexer::do_deindex(const chain::transaction& tx,
 
     for (const auto& input: tx.inputs)
     {
-        wallet::payment_address address;
-
-        if (extract(address, input.script))
+        const auto address = payment_address::extract(input.script);
+        if (address)
         {
             chain::input_point point{tx_hash, index};
             const auto entry = find_entry(address, point, spends_map_);
@@ -174,9 +172,8 @@ void indexer::do_deindex(const chain::transaction& tx,
 
     for (const auto& output: tx.outputs)
     {
-        wallet::payment_address address;
-
-        if (extract(address, output.script))
+        const auto address = payment_address::extract(output.script);
+        if (address)
         {
             chain::output_point point{tx_hash, index};
             const auto entry = find_entry(address, point, outputs_map_);
