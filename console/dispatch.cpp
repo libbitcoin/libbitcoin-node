@@ -86,16 +86,14 @@ static void display_history(const std::error_code& ec,
     const history_list& history, const wallet::payment_address& address,
     std::ostream& output)
 {
-    const auto encoded_address = address.to_string();
-
     if (ec)
     {
-        output << format(BN_FETCH_HISTORY_FAIL) % encoded_address %
+        output << format(BN_FETCH_HISTORY_FAIL) % address.encoded() %
             ec.message();
         return;
     }
 
-    output << format(BN_FETCH_HISTORY_SUCCESS) % encoded_address;
+    output << format(BN_FETCH_HISTORY_SUCCESS) % address.encoded();
 
     for (const auto& row: history)
     {
@@ -252,8 +250,8 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             break;
         }
 
-        wallet::payment_address address;
-        if (!address.from_string(trimmed))
+        const auto address = wallet::payment_address(trimmed);
+        if (!address)
         {
             output << BN_INVALID_ADDRESS << std::endl;
             continue;
