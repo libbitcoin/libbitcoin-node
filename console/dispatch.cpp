@@ -66,13 +66,7 @@
     "\nVersion Information:\n\n" \
     "libbitcoin-node:       %1%\n" \
     "libbitcoin-blockchain: %2%\n" \
-    "libbitcoin [%4%]:  %3%"
-
-#ifdef ENABLE_TESTNET
-    #define BN_COIN_NETWORK "testnet"
-#else
-    #define BN_COIN_NETWORK "mainnet"
-#endif
+    "libbitcoin:            %3%"
 
 using boost::format;
 using namespace boost::system;
@@ -110,8 +104,7 @@ static void display_history(const std::error_code& ec,
 static void display_version(std::ostream& stream)
 {
     stream << format(BN_VERSION_MESSAGE) % LIBBITCOIN_NODE_VERSION % 
-        LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_VERSION % BN_COIN_NETWORK
-        << std::endl;
+        LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_VERSION << std::endl;
 }
 
 // Create the directory as a convenience for the user, and then use it
@@ -138,13 +131,12 @@ static console_result init_chain(const path& directory, std::ostream& output,
     if (!initialize_blockchain(prefix))
         return console_result::failure;
 
-    // Add genesis block.
-    db_paths file_paths(prefix);
-    db_interface interface(file_paths, { BLOCKCHAIN_HISTORY_START_HEIGHT });
-    interface.start();
+    ////// Add genesis block.
+    ////db_paths file_paths(prefix);
+    ////db_interface interface(file_paths, { BLOCKCHAIN_HISTORY_START_HEIGHT });
+    ////interface.start();
+    ////interface.push(genesis_block());
 
-    // This is affected by the ENABLE_TESTNET switch.
-    interface.push(genesis_block());
     return console_result::not_started;
 }
 

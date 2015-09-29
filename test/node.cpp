@@ -46,18 +46,17 @@ static void uninitchain(const char prefix[])
 
 static void initchain(const char prefix[])
 {
-    const size_t history_height = 0;
-    const auto genesis = genesis_block();
-
     uninitchain(prefix);
     boost::filesystem::create_directories(prefix);
     initialize_blockchain(prefix);
 
-    db_paths paths(prefix);
-    db_interface interface(paths, { history_height });
+    ////const size_t history_height = 0;
+    ////db_paths paths(prefix);
+    ////db_interface interface(paths, { history_height });
 
-    interface.start();
-    interface.push(genesis);
+    ////const auto genesis = genesis_block();
+    ////interface.start();
+    ////interface.push(genesis);
 }
 
 // TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
