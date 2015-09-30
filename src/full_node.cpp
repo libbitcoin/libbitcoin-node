@@ -103,13 +103,15 @@ const settings_type full_node::defaults
         BLOCKCHAIN_BLOCK_POOL_CAPACITY,
         BLOCKCHAIN_HISTORY_START_HEIGHT,
         BLOCKCHAIN_DATABASE_PATH,
-        BLOCKCHAIN_CHECKPOINTS_MAINNET
+        BLOCKCHAIN_CHECKPOINTS_MAINNET,
+        BLOCKCHAIN_TESTNET_RULES_MAINNET
     },
 
     // [network]
     bc::network::settings
     {
         NETWORK_THREADS,
+        NETWORK_IDENTIFIER_MAINNET,
         NETWORK_INBOUND_PORT_MAINNET,
         NETWORK_INBOUND_CONNECTION_LIMIT,
         NETWORK_OUTBOUND_CONNECTIONS,
@@ -149,6 +151,7 @@ full_node::full_node(const settings_type& config)
         config.network.host_pool_capacity),
     network_(
         network_threads_,
+        config.network.identifier,
         config.timeouts),
     protocol_(
         network_threads_,
@@ -170,6 +173,7 @@ full_node::full_node(const settings_type& config)
         config.chain.database_path.string(),
         { config.chain.history_start_height },
         config.chain.block_pool_capacity,
+        config.chain.testnet_rules,
         config.chain.checkpoints),
    
     memory_threads_(

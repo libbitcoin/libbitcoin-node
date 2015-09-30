@@ -49,10 +49,12 @@ namespace node {
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
 #define BLOCKCHAIN_CHECKPOINTS_MAINNET      bc::blockchain::checkpoint::mainnet
+#define BLOCKCHAIN_TESTNET_RULES_MAINNET    false
 
 // [network]
 #define NETWORK_THREADS                     4
-#define NETWORK_INBOUND_PORT_MAINNET        8333
+#define NETWORK_IDENTIFIER_MAINNET          bc::network::initiator::mainnet
+#define NETWORK_INBOUND_PORT_MAINNET        bc::network::protocol::mainnet
 #define NETWORK_INBOUND_CONNECTION_LIMIT    8
 #define NETWORK_OUTBOUND_CONNECTIONS        8
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
@@ -68,7 +70,7 @@ namespace node {
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
 #define NETWORK_SELF                        bc::unspecified_network_address
-#define NETWORK_SEEDS_MAINNET               network::seeder::mainnet
+#define NETWORK_SEEDS_MAINNET               bc::network::seeder::mainnet
 
 /**
  * A full node on the Bitcoin P2P network.
