@@ -47,9 +47,9 @@ namespace node {
 #define BLOCKCHAIN_THREADS                  6
 #define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
+#define BLOCKCHAIN_TESTNET_RULES_MAINNET    false
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
 #define BLOCKCHAIN_CHECKPOINTS_MAINNET      bc::blockchain::checkpoint::mainnet
-#define BLOCKCHAIN_TESTNET_RULES_MAINNET    false
 
 // [network]
 #define NETWORK_THREADS                     4
