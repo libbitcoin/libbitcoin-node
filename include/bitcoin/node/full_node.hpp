@@ -47,12 +47,14 @@ namespace node {
 #define BLOCKCHAIN_THREADS                  6
 #define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
 #define BLOCKCHAIN_HISTORY_START_HEIGHT     0
+#define BLOCKCHAIN_TESTNET_RULES_MAINNET    false
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
-#define BLOCKCHAIN_CHECKPOINTS              bc::blockchain::checkpoint::defaults
+#define BLOCKCHAIN_CHECKPOINTS_MAINNET      bc::blockchain::checkpoint::mainnet
 
 // [network]
 #define NETWORK_THREADS                     4
-#define NETWORK_INBOUND_PORT                protocol_port
+#define NETWORK_IDENTIFIER_MAINNET          bc::network::initiator::mainnet
+#define NETWORK_INBOUND_PORT_MAINNET        bc::network::protocol::mainnet
 #define NETWORK_INBOUND_CONNECTION_LIMIT    8
 #define NETWORK_OUTBOUND_CONNECTIONS        8
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
@@ -61,14 +63,14 @@ namespace node {
 #define NETWORK_CHANNEL_HEARTBEAT_MINUTES   5
 #define NETWORK_CHANNEL_INACTIVITY_MINUTES  30
 #define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
-#define NETWORK_CHANNEL_GERMINATION_SECONDS 45
+#define NETWORK_CHANNEL_GERMINATION_SECONDS 30
 #define NETWORK_HOST_POOL_CAPACITY          1000
 #define NETWORK_RELAY_TRANSACTIONS          true
 #define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts.cache")
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
 #define NETWORK_SELF                        bc::unspecified_network_address
-#define NETWORK_SEEDS                       network::seeder::defaults
+#define NETWORK_SEEDS_MAINNET               bc::network::seeder::mainnet
 
 /**
  * A full node on the Bitcoin P2P network.
