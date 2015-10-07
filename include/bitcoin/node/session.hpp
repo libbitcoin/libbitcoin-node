@@ -53,21 +53,20 @@ private:
     void broadcast_new_blocks(const code& ec, uint32_t fork_point,
         const bc::blockchain::blockchain::block_list& new_blocks,
         const bc::blockchain::blockchain::block_list& replaced_blocks);
-    void receive_inv(const code& ec,
-        const message::inventory& packet, network::channel::ptr node);
+    void receive_inv(const code& ec, const message::inventory& packet,
+        network::channel::ptr node);
     void receive_get_blocks(const code& ec,
         const message::get_blocks& packet, network::channel::ptr node);
     void new_tx_inventory(const hash_digest& tx_hash,
         network::channel::ptr node);
-    void request_tx_data(const code& ec, bool tx_exists,
-        const hash_digest& tx_hash, network::channel::ptr node);
+    void request_tx_data(const code& ec, const hash_digest& tx_hash,
+        network::channel::ptr node);
     void new_block_inventory(const hash_digest& block_hash,
         network::channel::ptr node);
     void request_block_data(const hash_digest& block_hash,
         network::channel::ptr node);
-    void fetch_block_handler(const code& ec,
-        const chain::block& block, const hash_digest block_hash,
-        network::channel::ptr node);
+    void fetch_block_handler(const code& ec, const chain::block& block,
+        const hash_digest block_hash, network::channel::ptr node);
 
     dispatcher dispatch_;
     network::protocol& protocol_;

@@ -318,16 +318,23 @@ void session::new_tx_inventory(const hash_digest& tx_hash,
     // If the tx doesn't exist in our mempool, issue getdata.
     tx_pool_.exists(tx_hash, 
         std::bind(&session::request_tx_data,
-            this, _1, _2, tx_hash, node));
+            this, _1, tx_hash, node));
 }
 
-void session::request_tx_data(const code& ec, bool tx_exists,
-    const hash_digest& tx_hash, channel::ptr node)
+void session::request_tx_data(const code& ec, const hash_digest& tx_hash,
+    channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
 
-    if (ec)
+    if (ec == error::success)
+    {
+        log_debug(LOG_SESSION)
+            << "Transaction already exists [" << encode_hash(tx_hash) << "]";
+        return;
+    }
+
+    if (ec != error::not_found)
     {
         log_debug(LOG_SESSION)
             << "Failure in getting transaction existence ["
@@ -335,12 +342,7 @@ void session::request_tx_data(const code& ec, bool tx_exists,
         return;
     }
 
-    if (tx_exists)
-    {
-        log_debug(LOG_SESSION)
-            << "Transaction already exists [" << encode_hash(tx_hash) << "]";
-        return;
-    }
+    // ec == error::not_found
 
     const auto handle_error = [node](const code& ec)
     {
