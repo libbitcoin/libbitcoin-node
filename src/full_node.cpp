@@ -47,6 +47,7 @@ using boost::format;
 using boost::posix_time::seconds;
 using boost::posix_time::minutes;
 using namespace boost::filesystem;
+using namespace bc::blockchain;
 using namespace bc::network;
 
 // Localizable messages.
@@ -171,7 +172,7 @@ full_node::full_node(const settings_type& config)
     blockchain_(
         database_threads_,
         config.chain.database_path.string(),
-        { config.chain.history_start_height },
+        config.chain.history_start_height,
         config.chain.block_pool_capacity,
         config.chain.use_testnet_rules,
         config.chain.checkpoints),
@@ -192,7 +193,7 @@ full_node::full_node(const settings_type& config)
         blockchain_,
         tx_pool_),
     session_(
-        /* TODO: use node treads here? */
+        /* TODO: use node threads here? */
         network_threads_,
         protocol_,
         blockchain_,
@@ -294,12 +295,12 @@ bool full_node::stop()
     return success;
 }
 
-blockchain::blockchain& full_node::blockchain()
+block_chain& full_node::blockchain()
 {
     return blockchain_;
 }
 
-blockchain::transaction_pool& full_node::transaction_pool()
+transaction_pool& full_node::transaction_pool()
 {
     return tx_pool_;
 }
@@ -488,9 +489,9 @@ void full_node::new_unconfirm_valid_tx(const code& ec,
 
 // HACK: this is for access to broadcast_new_blocks to facilitate server
 // inheritance of full_node. The organization should be refactored.
-void full_node::broadcast_new_blocks(const code& ec,
-    uint32_t fork_point, const blockchain::blockchain::block_list& new_blocks,
-    const blockchain::blockchain::block_list& replaced_blocks)
+void full_node::broadcast_new_blocks(const code& ec, uint64_t fork_point,
+    const block_chain::list& new_blocks,
+    const block_chain::list& replaced_blocks)
 {
     session_.broadcast_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
 }

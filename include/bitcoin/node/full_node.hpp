@@ -103,8 +103,8 @@ public:
     virtual bool stop();
 
     // Accessors
-    virtual bc::blockchain::blockchain& blockchain();
-    virtual bc::blockchain::transaction_pool& transaction_pool();
+    virtual blockchain::block_chain& blockchain();
+    virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
     virtual network::protocol& protocol();
     virtual threadpool& pool();
@@ -126,10 +126,9 @@ protected:
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
-    virtual void broadcast_new_blocks(const code& ec,
-        uint32_t fork_point,
-        const bc::blockchain::blockchain::block_list& new_blocks,
-        const bc::blockchain::blockchain::block_list& replaced_blocks);
+    virtual void broadcast_new_blocks(const code& ec, uint64_t fork_point,
+        const blockchain::block_chain::list& new_blocks,
+        const blockchain::block_chain::list& replaced_blocks);
 
     // These must be bc types.
     bc::ofstream debug_file_;
@@ -141,10 +140,10 @@ protected:
     network::protocol protocol_;
 
     threadpool database_threads_;
-    bc::blockchain::blockchain_impl blockchain_;
+    blockchain::blockchain_impl blockchain_;
 
     threadpool memory_threads_;
-    bc::blockchain::transaction_pool tx_pool_;
+    blockchain::transaction_pool tx_pool_;
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;

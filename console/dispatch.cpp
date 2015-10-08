@@ -77,8 +77,8 @@ using namespace bc::config;
 using namespace bc::node;
 
 static void display_history(const std::error_code& ec,
-    const history_list& history, const wallet::payment_address& address,
-    std::ostream& output)
+    const block_chain::history& history,
+    const wallet::payment_address& address, std::ostream& output)
 {
     if (ec)
     {
@@ -92,7 +92,7 @@ static void display_history(const std::error_code& ec,
     for (const auto& row: history)
     {
         const auto hash = bc::encode_hash(row.point.hash);
-        if (row.id == point_ident::output)
+        if (row.kind == block_chain::point_kind::output)
             output << format(BN_FETCH_HISTORY_OUTPUT) % hash %
                 row.point.index % row.height % row.value;
         else
@@ -128,12 +128,12 @@ static console_result init_chain(const path& directory, std::ostream& output,
 
     // Allocate empty blockchain files.
     const auto prefix = directory.string();
-    if (!initialize_blockchain(prefix))
+    if (!database::initialize(prefix))
         return console_result::failure;
 
     ////// Add genesis block.
-    ////db_paths file_paths(prefix);
-    ////db_interface interface(file_paths, { BLOCKCHAIN_HISTORY_START_HEIGHT });
+    ////database::store file_paths(prefix);
+    ////database interface(file_paths, BLOCKCHAIN_HISTORY_START_HEIGHT);
     ////interface.start();
     ////interface.push(genesis_block());
 
@@ -250,7 +250,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
         }
 
         const auto fetch_handler = [&](const std::error_code& ec,
-            const history_list& history)
+            const block_chain::history& history)
         {
             display_history(ec, history, address, output);
         };

@@ -30,8 +30,8 @@ namespace node {
 class BCN_API responder
 {
 public:
-    responder(bc::blockchain::blockchain& chain,
-        bc::blockchain::transaction_pool& tx_pool);
+    responder(blockchain::block_chain& chain,
+        blockchain::transaction_pool& tx_pool);
 
     void monitor(network::channel::ptr node);
 
@@ -54,8 +54,8 @@ private:
         const hash_digest& hash, network::channel::ptr node,
         network::proxy::handler handler);
 
-    bc::blockchain::blockchain& blockchain_;
-    bc::blockchain::transaction_pool& tx_pool_;
+    blockchain::block_chain& blockchain_;
+    blockchain::transaction_pool& tx_pool_;
 };
 
 } // node

@@ -39,8 +39,8 @@ public:
     typedef std::function<void (const code&)> completion_handler;
 
     session(threadpool& pool, network::protocol& protocol,
-        bc::blockchain::blockchain& blockchain, poller& poller,
-        bc::blockchain::transaction_pool& transaction_pool,
+        blockchain::block_chain& blockchain, poller& poller,
+        blockchain::transaction_pool& transaction_pool,
         responder& responder, size_t minimum_start_height=0);
 
     void start(completion_handler handle_complete);
@@ -50,9 +50,9 @@ private:
     void subscribe(const code& ec,
         completion_handler handle_complete);
     void new_channel(const code& ec, network::channel::ptr node);
-    void broadcast_new_blocks(const code& ec, uint32_t fork_point,
-        const bc::blockchain::blockchain::block_list& new_blocks,
-        const bc::blockchain::blockchain::block_list& replaced_blocks);
+    void broadcast_new_blocks(const code& ec, uint64_t fork_point,
+        const blockchain::block_chain::list& new_blocks,
+        const blockchain::block_chain::list& replaced_blocks);
     void receive_inv(const code& ec, const message::inventory& packet,
         network::channel::ptr node);
     void receive_get_blocks(const code& ec,
@@ -70,8 +70,8 @@ private:
 
     dispatcher dispatch_;
     network::protocol& protocol_;
-    bc::blockchain::blockchain& blockchain_;
-    bc::blockchain::transaction_pool& tx_pool_;
+    blockchain::block_chain& blockchain_;
+    blockchain::transaction_pool& tx_pool_;
     node::poller& poller_;
     node::responder& responder_;
     std::atomic<uint64_t> last_height_;

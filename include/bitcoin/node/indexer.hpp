@@ -79,26 +79,25 @@ public:
 
     /**
      * Query all transactions indexed that are related to a Bitcoin address.
-     * @param[in]   address         Bitcoin address to lookup.
-     * @param[in]   handle_query    Completion handler for fetch operation.
+     * @param[in]   address  Bitcoin address to lookup.
+     * @param[in]   handler  Completion handler for fetch operation.
      */
     void query(const wallet::payment_address& address,
         query_handler handle_query);
 
     /**
      * Index a transaction.
-     * @param[in]   tx              Transaction to index.
-     * @param[in]   handle_index    Completion handler for index operation.
+     * @param[in]   tx       Transaction to index.
+     * @param[in]   handler  Completion handler for index operation.
      */
-    void index(const chain::transaction& tx, completion_handler handle_index);
+    void index(const chain::transaction& tx, completion_handler handler);
 
     /**
      * Deindex (remove from index) a transaction.
-     * @param[in]   tx              Transaction to deindex.
-     * @param[in]   handle_index    Completion handler for deindex operation.
+     * @param[in]   tx       Transaction to deindex.
+     * @param[in]   handler  Completion handler for deindex operation.
      */
-    void deindex(const chain::transaction& tx,
-        completion_handler handle_deindex);
+    void deindex(const chain::transaction& tx, completion_handler handler);
 
 private:
 
@@ -110,23 +109,19 @@ private:
     typedef std::unordered_multimap<wallet::payment_address,
         wallet::output_info> outputs_multimap;
 
+    void do_index(const chain::transaction& tx, completion_handler handler);
+    void do_deindex(const chain::transaction& tx, completion_handler handler);
     void do_query(const wallet::payment_address& payaddr,
-        query_handler handle_query);
-
-    void do_index(const chain::transaction& tx,
-        completion_handler handle_index);
-
-    void do_deindex(const chain::transaction& tx,
-        completion_handler handle_deindex);
+        query_handler handler);
 
     dispatcher dispatch_;
     spends_multimap spends_map_;
     outputs_multimap outputs_map_;
 };
 
-BCN_API void fetch_history(bc::blockchain::blockchain& chain,
+BCN_API void fetch_history(blockchain::block_chain& chain,
     indexer& indexer, const bc::wallet::payment_address& address,
-    bc::blockchain::blockchain::fetch_handler_history handle_fetch,
+    blockchain::block_chain::history_fetch_handler handler,
     size_t from_height=0);
 
 } // namespace node

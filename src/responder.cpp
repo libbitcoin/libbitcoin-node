@@ -31,8 +31,7 @@ using std::placeholders::_2;
 using namespace bc::blockchain;
 using namespace bc::network;
 
-responder::responder(bc::blockchain::blockchain& blockchain,
-    bc::blockchain::transaction_pool& tx_pool)
+responder::responder(block_chain& blockchain, transaction_pool& tx_pool)
   : blockchain_(blockchain), tx_pool_(tx_pool)
 {
 }
@@ -104,7 +103,7 @@ void responder::receive_get_data(const code& ec,
                 log_debug(LOG_RESPONDER)
                     << "Block inventory for [" << peer << "] "
                     << encode_hash(inventory.hash);
-                fetch_block(blockchain_, inventory.hash,
+                block_fetcher::fetch(blockchain_, inventory.hash,
                     std::bind(&responder::send_block,
                         this, _1, _2, inventory.hash, node));
                 break;
