@@ -37,9 +37,8 @@ using std::placeholders::_4;
 using namespace bc::blockchain;
 using namespace bc::network;
 
-session::session(threadpool& pool, protocol& protocol,
-    bc::blockchain::blockchain& blockchain, poller& poller,
-    transaction_pool& transaction_pool, responder& responder,
+session::session(threadpool& pool, protocol& protocol, block_chain& blockchain,
+    poller& poller, transaction_pool& transaction_pool, responder& responder,
     size_t minimum_start_height)
   : dispatch_(pool),
     protocol_(protocol),
@@ -135,10 +134,9 @@ void session::new_channel(const code& ec, channel::ptr node)
     responder_.monitor(node);
 }
 
-void session::broadcast_new_blocks(const code& ec,
-    uint32_t fork_point,
-    const bc::blockchain::blockchain::block_list& new_blocks,
-    const bc::blockchain::blockchain::block_list& /* replaced_blocks */)
+void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
+    const block_chain::list& new_blocks,
+    const block_chain::list& /* replaced_blocks */)
 {
     if (ec == error::service_stopped)
         return;
@@ -399,7 +397,7 @@ void session::new_block_inventory(const hash_digest& block_hash,
 
     // TODO: optimize with chain_.block_exists(block_hash, handler) function.
     // If the block doesn't exist, issue getdata for block.
-    fetch_block(blockchain_, block_hash, request_block);
+    block_fetcher::fetch(blockchain_, block_hash, request_block);
 }
 
 void session::request_block_data(const hash_digest& block_hash,

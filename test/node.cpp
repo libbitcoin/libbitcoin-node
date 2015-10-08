@@ -48,11 +48,11 @@ static void initchain(const char prefix[])
 {
     uninitchain(prefix);
     boost::filesystem::create_directories(prefix);
-    initialize_blockchain(prefix);
+    database::initialize(prefix);
 
     ////const size_t history_height = 0;
-    ////db_paths paths(prefix);
-    ////db_interface interface(paths, { history_height });
+    ////database::store paths(prefix);
+    ////database interface(paths, history_height);
 
     ////const auto genesis = genesis_block();
     ////interface.start();
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
     threads.shutdown();
     threads.join();
 
-    // uninitchain(prefix);
+    ////uninitchain(prefix);
 }
 
 BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
     threads.shutdown();
     threads.join();
 
-    // uninitchain(prefix);
+    ////uninitchain(prefix);
 }
 
 BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     poller poller(threads, blockchain);
     responder responder(blockchain, transactions);
 
-    const auto noop_handler = [](const std::error_code& code)
+    const auto noop_handler = [](const code& ec)
     {
     };
 
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     threads.shutdown();
     threads.join();
 
-    // uninitchain(prefix);
+    ////uninitchain(prefix);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

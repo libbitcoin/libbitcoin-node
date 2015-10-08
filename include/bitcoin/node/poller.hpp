@@ -29,7 +29,7 @@ namespace node {
 class BCN_API poller
 {
 public:
-    poller(threadpool& pool, bc::blockchain::blockchain& chain);
+    poller(threadpool& pool, blockchain::block_chain& chain);
 
     void monitor(network::channel::ptr node);
     void request_blocks(const hash_digest& block_hash,
@@ -51,7 +51,7 @@ private:
         const hash_digest& hash_stop, network::channel::ptr node);
 
     dispatcher dispatch_;
-    bc::blockchain::blockchain& blockchain_;
+    blockchain::block_chain& blockchain_;
 
     // Last hash from an inventory packet.
     hash_digest last_block_hash_;
@@ -59,7 +59,7 @@ private:
     // Last hash from a block locator.
     hash_digest last_locator_begin_;
     hash_digest last_hash_stop_;
-    bc::network::channel* last_block_ask_node_;
+    network::channel* last_block_ask_node_;
 };
 
 } // namespace node

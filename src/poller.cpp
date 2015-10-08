@@ -31,7 +31,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
-poller::poller(threadpool& pool, bc::blockchain::blockchain& chain)
+poller::poller(threadpool& pool, block_chain& chain)
   : dispatch_(pool),
     blockchain_(chain),
     last_block_hash_(null_hash),
@@ -203,7 +203,7 @@ void poller::request_blocks(const hash_digest& block_hash,
     channel::ptr node)
 {
     // TODO: cache this so we are not constantly hitting the blockchain for it.
-    fetch_block_locator(blockchain_,
+    block_locator_fetcher::fetch(blockchain_,
         dispatch_.unordered_delegate(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
