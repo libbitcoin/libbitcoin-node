@@ -63,6 +63,8 @@ using namespace bc::network;
     "Error fetching start height: %1%"
 #define BN_SESSION_START_HEIGHT_SET_ERROR \
     "Error setting start height: %1%"
+#define BN_SESSION_EMPTY_CHAIN \
+    "Starting with empty blockchain."
 #define BN_SESSION_START_HEIGHT \
     "Set start height (%1%)"
 
@@ -342,6 +344,14 @@ void full_node::handle_start(const code& ec,
 void full_node::set_height(const code& ec, uint64_t height,
     std::promise<code>& promise)
 {
+    if (ec == error::not_found)
+    {
+        log_info(LOG_SESSION)
+            << BN_SESSION_EMPTY_CHAIN;
+        promise.set_value(error::success);
+        return;
+    }
+
     if (ec)
     {
         log_error(LOG_SESSION)
