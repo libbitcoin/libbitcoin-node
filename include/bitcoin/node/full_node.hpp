@@ -53,7 +53,7 @@ namespace node {
 
 // [network]
 #define NETWORK_THREADS                     4
-#define NETWORK_IDENTIFIER_MAINNET          bc::network::initiator::mainnet
+#define NETWORK_IDENTIFIER_MAINNET          bc::network::connector::mainnet
 #define NETWORK_INBOUND_PORT_MAINNET        bc::network::session::mainnet
 #define NETWORK_INBOUND_CONNECTION_LIMIT    8
 #define NETWORK_OUTBOUND_CONNECTIONS        8
@@ -136,7 +136,7 @@ protected:
 
     threadpool network_threads_;
     network::hosts host_pool_;
-    network::initiator network_;
+    network::connector network_;
     network::session protocol_;
 
     threadpool database_threads_;
