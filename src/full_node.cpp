@@ -312,7 +312,7 @@ node::indexer& full_node::transaction_indexer()
     return tx_indexer_;
 }
 
-network::protocol& full_node::protocol()
+network::session& full_node::protocol()
 {
     return protocol_;
 }

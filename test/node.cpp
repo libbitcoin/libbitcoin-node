@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     threadpool threads;
     hosts hosts(threads);
     initiator network(threads);
-    protocol protocol(threads, hosts, network);
+    network::session protocol(threads, hosts, network);
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
     poller poller(threads, blockchain);

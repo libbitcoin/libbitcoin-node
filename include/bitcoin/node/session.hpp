@@ -38,7 +38,7 @@ class BCN_API session
 public:
     typedef std::function<void (const code&)> completion_handler;
 
-    session(threadpool& pool, network::protocol& protocol,
+    session(threadpool& pool, network::session& protocol,
         blockchain::block_chain& blockchain, poller& poller,
         blockchain::transaction_pool& transaction_pool,
         responder& responder, size_t minimum_start_height=0);
@@ -69,7 +69,7 @@ private:
         const hash_digest block_hash, network::channel::ptr node);
 
     dispatcher dispatch_;
-    network::protocol& protocol_;
+    network::session& protocol_;
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& tx_pool_;
     node::poller& poller_;

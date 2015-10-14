@@ -54,7 +54,7 @@ namespace node {
 // [network]
 #define NETWORK_THREADS                     4
 #define NETWORK_IDENTIFIER_MAINNET          bc::network::initiator::mainnet
-#define NETWORK_INBOUND_PORT_MAINNET        bc::network::protocol::mainnet
+#define NETWORK_INBOUND_PORT_MAINNET        bc::network::session::mainnet
 #define NETWORK_INBOUND_CONNECTION_LIMIT    8
 #define NETWORK_OUTBOUND_CONNECTIONS        8
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
@@ -106,7 +106,7 @@ public:
     virtual blockchain::block_chain& blockchain();
     virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
-    virtual network::protocol& protocol();
+    virtual network::session& protocol();
     virtual threadpool& pool();
 
 protected:
@@ -137,7 +137,7 @@ protected:
     threadpool network_threads_;
     network::hosts host_pool_;
     network::initiator network_;
-    network::protocol protocol_;
+    network::session protocol_;
 
     threadpool database_threads_;
     blockchain::blockchain_impl blockchain_;
