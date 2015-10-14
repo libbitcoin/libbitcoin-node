@@ -70,7 +70,7 @@ namespace node {
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
 #define NETWORK_SELF                        bc::unspecified_network_address
-#define NETWORK_SEEDS_MAINNET               bc::network::seeder::mainnet
+#define NETWORK_SEEDS_MAINNET               bc::network::session_seed::mainnet
 
 /**
  * A full node on the Bitcoin P2P network.
