@@ -53,8 +53,8 @@ namespace node {
 
 // [network]
 #define NETWORK_THREADS                     4
-#define NETWORK_IDENTIFIER_MAINNET          bc::network::initiator::mainnet
-#define NETWORK_INBOUND_PORT_MAINNET        bc::network::protocol::mainnet
+#define NETWORK_IDENTIFIER_MAINNET          bc::network::connector::mainnet
+#define NETWORK_INBOUND_PORT_MAINNET        bc::network::p2p::mainnet
 #define NETWORK_INBOUND_CONNECTION_LIMIT    8
 #define NETWORK_OUTBOUND_CONNECTIONS        8
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
@@ -70,7 +70,7 @@ namespace node {
 #define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
 #define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
 #define NETWORK_SELF                        bc::unspecified_network_address
-#define NETWORK_SEEDS_MAINNET               bc::network::seeder::mainnet
+#define NETWORK_SEEDS_MAINNET               bc::network::session_seed::mainnet
 
 /**
  * A full node on the Bitcoin P2P network.
@@ -106,7 +106,7 @@ public:
     virtual blockchain::block_chain& blockchain();
     virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
-    virtual network::protocol& protocol();
+    virtual network::p2p& protocol();
     virtual threadpool& pool();
 
 protected:
@@ -136,8 +136,8 @@ protected:
 
     threadpool network_threads_;
     network::hosts host_pool_;
-    network::initiator network_;
-    network::protocol protocol_;
+    network::connector network_;
+    network::p2p protocol_;
 
     threadpool database_threads_;
     blockchain::blockchain_impl blockchain_;
