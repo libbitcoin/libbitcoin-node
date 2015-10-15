@@ -109,8 +109,8 @@ static void display_version(std::ostream& stream)
 
 // Create the directory as a convenience for the user, and then use it
 // as sentinel to guard against inadvertent re-initialization.
-static console_result init_chain(const path& directory, std::ostream& output,
-    std::ostream& error)
+static console_result init_chain(const path& directory, bool testnet,
+    std::ostream& output, std::ostream& error)
 {
     error_code ec;
     if (!create_directories(directory, ec))
@@ -126,18 +126,12 @@ static console_result init_chain(const path& directory, std::ostream& output,
 
     output << format(BN_INITCHAIN) % directory << std::endl;
 
-    // Allocate empty blockchain files.
     const auto prefix = directory.string();
-    if (!database::initialize(prefix))
-        return console_result::failure;
+    const auto genesis = testnet ? testnet_genesis_block() :
+        mainnet_genesis_block();
 
-    ////// Add genesis block.
-    ////database::store file_paths(prefix);
-    ////database interface(file_paths, BLOCKCHAIN_HISTORY_START_HEIGHT);
-    ////interface.start();
-    ////interface.push(genesis_block());
-
-    return console_result::not_started;
+    return database::initialize(prefix, genesis) ?
+        console_result::not_started : console_result::failure;
 }
 
 // Use missing directory as a sentinel indicating lack of initialization.
@@ -168,7 +162,7 @@ static console_result process_arguments(int argc, const char* argv[],
 
         if (argument == "-h" || argument == "--help")
         {
-            output << "bn [--help] [--initchain] [--version]" << std::endl;
+            output << "bn [--help] [--mainnet] [--testnet] [--version]" << std::endl;
             return console_result::not_started;
         }
         else if (argument == "-v" || argument == "--version")
@@ -176,9 +170,13 @@ static console_result process_arguments(int argc, const char* argv[],
             display_version(output);
             return console_result::not_started;
         }
-        else if (argument == "-i" || argument == "--initchain")
+        else if (argument == "-m" || argument == "--mainnet")
         {
-            return init_chain(directory, output, error);
+            return init_chain(directory, false, output, error);
+        }
+        else if (argument == "-t" || argument == "--testnet")
+        {
+            return init_chain(directory, true, output, error);
         }
         else
         {
