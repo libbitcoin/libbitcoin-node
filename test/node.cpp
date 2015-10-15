@@ -48,15 +48,7 @@ static void initchain(const char prefix[])
 {
     uninitchain(prefix);
     boost::filesystem::create_directories(prefix);
-    database::initialize(prefix);
-
-    ////const size_t history_height = 0;
-    ////database::store paths(prefix);
-    ////database interface(paths, history_height);
-
-    ////const auto genesis = genesis_block();
-    ////interface.start();
-    ////interface.push(genesis);
+    database::initialize(prefix, mainnet_genesis_block());
 }
 
 // TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
