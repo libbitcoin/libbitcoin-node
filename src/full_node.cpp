@@ -276,6 +276,9 @@ bool full_node::stop()
     // Wait for stop completion.
     auto success = !promise.get_future().get();
 
+    log_info(LOG_NODE)
+        << "Session stopped.";
+
     // Try and close blockchain database even if session stop failed.
     // Blockchain stop is currently non-blocking, so the result is misleading.
     // No need to stop tx_pool, it will get a shutdown notification from this.
@@ -287,10 +290,16 @@ bool full_node::stop()
     database_threads_.shutdown();
     memory_threads_.shutdown();
 
+    log_info(LOG_NODE)
+        << "Shutdown threads.";
+
     // Wait for threads to finish.
     network_threads_.join();
     database_threads_.join();
     memory_threads_.join();
+
+    log_info(LOG_NODE)
+        << "Joined threads.";
 
     return success;
 }
