@@ -291,7 +291,7 @@ bool full_node::stop()
     memory_threads_.shutdown();
 
     log_info(LOG_NODE)
-        << "Shutdown threads.";
+        << "Threads signaled.";
 
     // Wait for threads to finish.
     network_threads_.join();
@@ -299,7 +299,7 @@ bool full_node::stop()
     memory_threads_.join();
 
     log_info(LOG_NODE)
-        << "Joined threads.";
+        << "Threads joined.";
 
     return success;
 }
