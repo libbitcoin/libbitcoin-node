@@ -37,7 +37,7 @@ using std::placeholders::_4;
 using namespace bc::blockchain;
 using namespace bc::network;
 
-session::session(threadpool& pool, network::session& protocol,
+session::session(threadpool& pool, p2p& protocol,
     block_chain& blockchain, poller& poller,
     transaction_pool& transaction_pool, responder& responder,
     size_t minimum_start_height)
