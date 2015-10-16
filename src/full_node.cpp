@@ -276,7 +276,7 @@ bool full_node::stop()
     // Wait for stop completion.
     auto success = !promise.get_future().get();
 
-    log_info(LOG_NODE)
+    log_debug(LOG_NODE)
         << "Session stopped.";
 
     // Try and close blockchain database even if session stop failed.
@@ -290,7 +290,7 @@ bool full_node::stop()
     database_threads_.shutdown();
     memory_threads_.shutdown();
 
-    log_info(LOG_NODE)
+    log_debug(LOG_NODE)
         << "Threads signaled.";
 
     // Wait for threads to finish.
@@ -298,7 +298,7 @@ bool full_node::stop()
     database_threads_.join();
     memory_threads_.join();
 
-    log_info(LOG_NODE)
+    log_debug(LOG_NODE)
         << "Threads joined.";
 
     return success;
