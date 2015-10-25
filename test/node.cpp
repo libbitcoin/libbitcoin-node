@@ -106,37 +106,35 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
     ////uninitchain(prefix);
 }
 
-BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
-{
-    // WARNING: file system side effect, use unique relative path.
-    const static auto prefix = "node_test/construct_session";
-    initchain(prefix);
-
-    threadpool threads;
-    hosts hosts(threads);
-    connector network(threads);
-    p2p protocol(threads, hosts, network);
-    blockchain_impl blockchain(threads, prefix);
-    transaction_pool transactions(threads, blockchain);
-    poller poller(threads, blockchain);
-    responder responder(blockchain, transactions);
-
-    const auto noop_handler = [](const code& ec)
-    {
-    };
-
-    node::session session(threads, protocol, blockchain, poller, transactions,
-        responder);
-
-    blockchain.start();
-    transactions.start();
-    session.start(noop_handler);
-    session.stop(noop_handler);
-    blockchain.stop();
-    threads.shutdown();
-    threads.join();
-
-    ////uninitchain(prefix);
-}
+////BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
+////{
+////    // WARNING: file system side effect, use unique relative path.
+////    const static auto prefix = "node_test/construct_session";
+////    initchain(prefix);
+////
+////    p2p network;
+////    threadpool threads;
+////    blockchain_impl blockchain(threads, prefix);
+////    transaction_pool transactions(threads, blockchain);
+////    poller poller(threads, blockchain);
+////    responder responder(blockchain, transactions);
+////
+////    const auto noop_handler = [](const code& ec)
+////    {
+////    };
+////
+////    node::session session(threads, network, blockchain, poller, transactions,
+////        responder);
+////
+////    blockchain.start();
+////    transactions.start();
+////    session.start(noop_handler);
+////    session.stop(noop_handler);
+////    blockchain.stop();
+////    threads.shutdown();
+////    threads.join();
+////
+////    ////uninitchain(prefix);
+////}
 
 BOOST_AUTO_TEST_SUITE_END()
