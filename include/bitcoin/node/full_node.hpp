@@ -51,27 +51,6 @@ namespace node {
 #define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
 #define BLOCKCHAIN_CHECKPOINTS_MAINNET      bc::blockchain::checkpoint::mainnet
 
-// [network]
-#define NETWORK_THREADS                     4
-#define NETWORK_IDENTIFIER_MAINNET          bc::network::connector::mainnet
-#define NETWORK_INBOUND_PORT_MAINNET        bc::network::p2p::mainnet
-#define NETWORK_INBOUND_CONNECTION_LIMIT    8
-#define NETWORK_OUTBOUND_CONNECTIONS        8
-#define NETWORK_CONNECT_TIMEOUT_SECONDS     5
-#define NETWORK_CHANNEL_HANDSHAKE_SECONDS   30
-#define NETWORK_CHANNEL_REVIVAL_MINUTES     5
-#define NETWORK_CHANNEL_HEARTBEAT_MINUTES   5
-#define NETWORK_CHANNEL_INACTIVITY_MINUTES  30
-#define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
-#define NETWORK_CHANNEL_GERMINATION_SECONDS 30
-#define NETWORK_HOST_POOL_CAPACITY          1000
-#define NETWORK_RELAY_TRANSACTIONS          true
-#define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts.cache")
-#define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
-#define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
-#define NETWORK_SELF                        bc::unspecified_network_address
-#define NETWORK_SEEDS_MAINNET               bc::network::session_seed::mainnet
-
 /**
  * A full node on the Bitcoin P2P network.
  */
@@ -106,7 +85,7 @@ public:
     virtual blockchain::block_chain& blockchain();
     virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
-    virtual network::p2p& protocol();
+    virtual network::p2p& network();
     virtual threadpool& pool();
 
 protected:
@@ -135,9 +114,7 @@ protected:
     bc::ofstream error_file_;
 
     threadpool network_threads_;
-    network::hosts host_pool_;
-    network::connector network_;
-    network::p2p protocol_;
+    network::p2p network_;
 
     threadpool database_threads_;
     blockchain::blockchain_impl blockchain_;

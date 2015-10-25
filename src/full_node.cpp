@@ -109,28 +109,7 @@ const settings_type full_node::defaults
     },
 
     // [network]
-    bc::network::settings
-    {
-        NETWORK_THREADS,
-        NETWORK_IDENTIFIER_MAINNET,
-        NETWORK_INBOUND_PORT_MAINNET,
-        NETWORK_INBOUND_CONNECTION_LIMIT,
-        NETWORK_OUTBOUND_CONNECTIONS,
-        NETWORK_CONNECT_TIMEOUT_SECONDS,
-        NETWORK_CHANNEL_HANDSHAKE_SECONDS,
-        NETWORK_CHANNEL_REVIVAL_MINUTES,
-        NETWORK_CHANNEL_HEARTBEAT_MINUTES,
-        NETWORK_CHANNEL_INACTIVITY_MINUTES,
-        NETWORK_CHANNEL_EXPIRATION_MINUTES,
-        NETWORK_CHANNEL_GERMINATION_SECONDS,
-        NETWORK_HOST_POOL_CAPACITY,
-        NETWORK_RELAY_TRANSACTIONS,
-        NETWORK_HOSTS_FILE,
-        NETWORK_DEBUG_FILE,
-        NETWORK_ERROR_FILE,
-        NETWORK_SELF,
-        NETWORK_SEEDS_MAINNET
-    }
+    bc::network::p2p::mainnet
 };
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
@@ -143,28 +122,9 @@ full_node::full_node(const settings_type& config)
     error_file_(
         config.network.error_file.string(),
         append),
-    network_threads_(
-        config.network.threads,
-        thread_priority::low),
-    host_pool_(
-        network_threads_,
-        config.network.hosts_file,
-        config.network.host_pool_capacity),
+
     network_(
-        network_threads_,
-        config.network.identifier,
-        config.timeouts),
-    protocol_(
-        network_threads_,
-        host_pool_,
-        network_,
-        config.network.inbound_port,
-        config.network.relay_transactions,
-        config.network.outbound_connections,
-        config.network.inbound_connection_limit,
-        config.network.seeds,
-        config.network.self,
-        config.timeouts),
+        config.network),
 
     database_threads_(
         config.chain.threads,
@@ -195,7 +155,7 @@ full_node::full_node(const settings_type& config)
     session_(
         /* TODO: use node threads here? */
         network_threads_,
-        protocol_,
+        network_,
         blockchain_,
         poller_,
         tx_pool_,
@@ -236,12 +196,11 @@ bool full_node::start(const settings_type& config)
     if (height_promise.get_future().get())
         return false;
 
-    // Add banned connections before starting the session.
+    // This is just for logging, the blacklist is used directly from config.
     for (const auto& authority: config.node.blacklists)
     {
         log_info(LOG_NODE)
             << "Blacklisted peer [" << format_blacklist(authority) << "]";
-        protocol_.blacklist(authority);
     }
 
     // Add configured connections before starting the session.
@@ -249,8 +208,7 @@ bool full_node::start(const settings_type& config)
     {
         log_info(LOG_NODE)
             << "Connecting peer [" << endpoint << "]";
-        protocol_.maintain_connection(endpoint.host(), endpoint.port(),
-            config.network.relay_transactions);
+        network_.connect(endpoint.host(), endpoint.port());
     }
 
     std::promise<code> session_promise;
@@ -319,9 +277,9 @@ node::indexer& full_node::transaction_indexer()
     return tx_indexer_;
 }
 
-network::p2p& full_node::protocol()
+p2p& full_node::network()
 {
-    return protocol_;
+    return network_;
 }
 
 threadpool& full_node::pool()
@@ -329,8 +287,7 @@ threadpool& full_node::pool()
     return memory_threads_;
 }
 
-void full_node::handle_start(const code& ec,
-    std::promise<code>& promise)
+void full_node::handle_start(const code& ec, std::promise<code>& promise)
 {
     if (ec)
     {
@@ -341,7 +298,7 @@ void full_node::handle_start(const code& ec,
     }
 
     // Subscribe to new connections.
-    protocol_.subscribe_channel(
+    network_.subscribe(
         std::bind(&full_node::new_channel,
             this, _1, _2));
 
@@ -405,7 +362,7 @@ void full_node::new_channel(const code& ec, channel::ptr node)
             this, _1, _2, node));
 
     // Stay subscribed to new connections.
-    protocol_.subscribe_channel(
+    network_.subscribe(
         std::bind(&full_node::new_channel,
             this, _1, _2));
 }

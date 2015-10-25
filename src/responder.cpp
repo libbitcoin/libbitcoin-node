@@ -289,7 +289,7 @@ void responder::send_block_not_found(const hash_digest& block_hash,
 }
 
 void responder::send_inventory_not_found(message::inventory_type_id type_id,
-    const hash_digest& hash, channel::ptr node, proxy::handler handler)
+    const hash_digest& hash, channel::ptr node, proxy::send_handler handler)
 {
     const message::inventory_vector block_inventory
     {

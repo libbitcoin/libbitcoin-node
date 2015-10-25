@@ -62,28 +62,10 @@ public:
             chain.checkpoints.back().height();
     }
 
-    // This allows timeouts to be const.
-    virtual void initialize_timeouts()
-    {
-        using boost::posix_time::minutes;
-        using boost::posix_time::seconds;
-
-        timeouts.connect = seconds(network.connect_timeout_seconds);
-        timeouts.handshake = seconds(network.channel_handshake_seconds);
-        timeouts.revival = minutes(network.channel_revival_minutes);
-        timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
-        timeouts.inactivity = minutes(network.channel_inactivity_minutes);
-        timeouts.expiration = minutes(network.channel_expiration_minutes);
-        timeouts.germination = seconds(network.channel_germination_seconds);
-    }
-
     // settings
     node::settings node;
     chain::settings chain;
     network::settings network;
-
-    // Convenience.
-    network::timeout timeouts;
 };
 
 } // namespace node

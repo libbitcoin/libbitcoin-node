@@ -52,7 +52,7 @@ private:
         network::channel::ptr node);
     void send_inventory_not_found(message::inventory_type_id inventory_type,
         const hash_digest& hash, network::channel::ptr node,
-        network::proxy::handler handler);
+        network::proxy::send_handler handler);
 
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& tx_pool_;

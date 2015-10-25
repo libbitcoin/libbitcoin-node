@@ -76,7 +76,7 @@ void session::subscribe(const code& ec,
     }
 
     // Subscribe to new connections.
-    protocol_.subscribe_channel(
+    protocol_.subscribe(
         std::bind(&session::new_channel,
             this, _1, _2));
 
@@ -124,7 +124,7 @@ void session::new_channel(const code& ec, channel::ptr node)
             this, _1, _2, node));
 
     // Resubscribe to new channels.
-    protocol_.subscribe_channel(
+    protocol_.subscribe(
         std::bind(&session::new_channel,
             this, _1, _2));
 
