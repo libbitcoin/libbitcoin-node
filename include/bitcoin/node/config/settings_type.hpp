@@ -49,12 +49,6 @@ public:
     {
     }
 
-    // HACK: generalize logging.
-    virtual std::string log_to_skip() const
-    {
-        return "";
-    }
-
     // Convenience.
     virtual size_t minimum_start_height() const
     {

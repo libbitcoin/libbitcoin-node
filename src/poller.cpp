@@ -69,14 +69,14 @@ void poller::monitor(channel::ptr node)
 //
 //    if (ec)
 //    {
-//        log_debug(LOG_POLLER)
+//        log::debug(LOG_POLLER)
 //            << "Failure in receive inventory ["
 //            << peer << "] " << ec.message();
 //        node->stop(ec);
 //        return;
 //    }
 //
-//    log_debug(LOG_POLLER)
+//    log::debug(LOG_POLLER)
 //        << "Inventory BEGIN [" << peer << "] ("
 //        << packet.inventories.size() << ")";
 //
@@ -86,7 +86,7 @@ void poller::monitor(channel::ptr node)
 //        // Filter out non-block inventories
 //        if (inventory.type == inventory_type_id::block)
 //        {
-//            log_debug(LOG_POLLER)
+//            log::debug(LOG_POLLER)
 //                << "Block inventory from [" << peer << "] "
 //                << encode_hash(inventory.hash);
 //
@@ -101,14 +101,14 @@ void poller::monitor(channel::ptr node)
 //        }
 //    }
 //
-//    log_debug(LOG_POLLER)
+//    log::debug(LOG_POLLER)
 //        << "Inventory END [" << peer << "]";
 //
 //    // The session is also subscribed to inv, so we don't handle tx here.
 //    if (getdata.inventories.empty())
 //    {
 //        // If empty there is no ask, resulting in a stall.
-//        log_debug(LOG_POLLER) 
+//        log::debug(LOG_POLLER) 
 //            << "Received empty filtered block inventory.";
 //    }
 //    else
@@ -131,7 +131,7 @@ void poller::receive_block(const code& ec,
 
     if (ec)
     {
-        log_warning(LOG_POLLER)
+        log::warning(LOG_POLLER)
             << "Received bad block: " << ec.message();
         node->stop(ec);
         return;
@@ -157,14 +157,14 @@ void poller::handle_store_block(const code& ec,
     if (ec == error::duplicate)
     {
         // This is common, we get blocks we already have.
-        log_debug(LOG_POLLER)
+        log::debug(LOG_POLLER)
             << "Redundant block [" << encode_hash(block_hash) << "]";
         return;
     }
 
     if (ec)
     {
-        log_error(LOG_POLLER)
+        log::error(LOG_POLLER)
             << "Error storing block [" << encode_hash(block_hash) << "] "
             << ec.message();
         node->stop(ec);
@@ -175,7 +175,7 @@ void poller::handle_store_block(const code& ec,
     {
         // The block has been accepted as an orphan (ec not set).
         case block_status::orphan:
-            log_debug(LOG_POLLER)
+            log::debug(LOG_POLLER)
                 << "Potential block [" << encode_hash(block_hash) << "]";
 
             // This is how we get other nodes to send us the blocks we are
@@ -186,14 +186,14 @@ void poller::handle_store_block(const code& ec,
         // The block has been rejected from the store (redundant?).
         // This case may be redundant with error::duplicate.
         case block_status::rejected:
-            log_debug(LOG_POLLER)
+            log::debug(LOG_POLLER)
                 << "Rejected block [" << encode_hash(block_hash) << "]";
             break;
 
         // This may have also caused blocks to be accepted via the pool.
         // The block has been accepted into the long chain (ec not set).
         case block_status::confirmed:
-            log_info(LOG_POLLER)
+            log::info(LOG_POLLER)
                 << "Block #" << info.height << " " << encode_hash(block_hash);
             break;
     }
@@ -218,7 +218,7 @@ void poller::ask_blocks(const code& ec,
 
     if (ec)
     {
-        log_debug(LOG_POLLER)
+        log::debug(LOG_POLLER)
             << "Failed to fetch block locator: " << ec.message();
         return;
     }
@@ -227,14 +227,14 @@ void poller::ask_blocks(const code& ec,
     
     if (is_duplicate_block_ask(locator, hash_stop, node))
     {
-        log_debug(LOG_POLLER)
+        log::debug(LOG_POLLER)
             << "Skipping duplicate ask blocks with locator front ["
             << encode_hash(locator.front()) << "]";
         return;
     }
     
     const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
-    log_debug(LOG_POLLER)
+    log::debug(LOG_POLLER)
         << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
         << locator.size() << ") to [" << stop << "]";
 
@@ -242,7 +242,7 @@ void poller::ask_blocks(const code& ec,
     {
         if (ec)
         {
-            log_debug(LOG_POLLER)
+            log::debug(LOG_POLLER)
                 << "Failure sending get blocks: " << ec.message();
             node->stop(ec);
         }

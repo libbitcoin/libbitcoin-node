@@ -35,6 +35,8 @@
 namespace libbitcoin {
 namespace node {
 
+#define LOG_NODE "node"
+
 // Configuration setting defaults.
 
 // [node]

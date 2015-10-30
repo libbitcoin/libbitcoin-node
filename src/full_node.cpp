@@ -32,7 +32,6 @@
 #include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
-#include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
@@ -116,19 +115,10 @@ constexpr auto append = std::ofstream::out | std::ofstream::app;
 
 /* TODO: create a configuration class for thread priority. */
 full_node::full_node(const settings_type& config)
-  : debug_file_(
-        config.network.debug_file.string(),
-        append),
-    error_file_(
-        config.network.error_file.string(),
-        append),
-
-    network_(
-        config.network),
-
-    database_threads_(
-        config.chain.threads,
-        thread_priority::low),
+  : debug_file_(config.network.debug_file.string(), append),
+    error_file_(config.network.error_file.string(), append),
+    network_(config.network),
+    database_threads_(config.chain.threads, thread_priority::low),
     blockchain_(
         database_threads_,
         config.chain.database_path.string(),
@@ -136,24 +126,13 @@ full_node::full_node(const settings_type& config)
         config.chain.block_pool_capacity,
         config.chain.use_testnet_rules,
         config.chain.checkpoints),
-   
-    memory_threads_(
-        config.node.threads,
-        thread_priority::low),
-    tx_pool_(
-        memory_threads_,
-        blockchain_,
+    memory_threads_(config.node.threads, thread_priority::low),
+    tx_pool_(memory_threads_, blockchain_,
         config.node.transaction_pool_capacity),
-    tx_indexer_(
-        memory_threads_),
-    poller_(
-        memory_threads_,
-        blockchain_),
-    responder_(
-        blockchain_,
-        tx_pool_),
+    tx_indexer_(memory_threads_),
+    poller_(memory_threads_, blockchain_),
+    responder_(blockchain_, tx_pool_),
     session_(
-        /* TODO: use node threads here? */
         network_threads_,
         network_,
         blockchain_,
@@ -176,8 +155,7 @@ static std::string format_blacklist(const config::authority& authority)
 bool full_node::start(const settings_type& config)
 {
     // Set up logging for node background threads.
-    initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr,
-        config.log_to_skip());
+    initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr);
 
     // Start the blockchain.
     if (!blockchain_.start())
@@ -199,14 +177,14 @@ bool full_node::start(const settings_type& config)
     // This is just for logging, the blacklist is used directly from config.
     for (const auto& authority: config.node.blacklists)
     {
-        log_info(LOG_NODE)
+        log::info(LOG_NODE)
             << "Blacklisted peer [" << format_blacklist(authority) << "]";
     }
 
     // Add configured connections before starting the session.
     for (const auto& endpoint: config.node.peers)
     {
-        log_info(LOG_NODE)
+        log::info(LOG_NODE)
             << "Connecting peer [" << endpoint << "]";
         network_.connect(endpoint.host(), endpoint.port());
     }
@@ -234,7 +212,7 @@ bool full_node::stop()
     // Wait for stop completion.
     auto success = !promise.get_future().get();
 
-    log_debug(LOG_NODE)
+    log::debug(LOG_NODE)
         << "Session stopped.";
 
     // Try and close blockchain database even if session stop failed.
@@ -248,7 +226,7 @@ bool full_node::stop()
     database_threads_.shutdown();
     memory_threads_.shutdown();
 
-    log_debug(LOG_NODE)
+    log::debug(LOG_NODE)
         << "Threads signaled.";
 
     // Wait for threads to finish.
@@ -256,7 +234,7 @@ bool full_node::stop()
     database_threads_.join();
     memory_threads_.join();
 
-    log_debug(LOG_NODE)
+    log::debug(LOG_NODE)
         << "Threads joined.";
 
     return success;
@@ -291,7 +269,7 @@ void full_node::handle_start(const code& ec, std::promise<code>& promise)
 {
     if (ec)
     {
-        log_error(LOG_NODE)
+        log::error(LOG_NODE)
             << format(BN_SESSION_START_ERROR) % ec.message();
         promise.set_value(ec);
         return;
@@ -310,7 +288,7 @@ void full_node::set_height(const code& ec, uint64_t height,
 {
     if (ec)
     {
-        log_error(LOG_SESSION)
+        log::error(LOG_SESSION)
             << format(BN_SESSION_START_HEIGHT_FETCH_ERROR) % ec.message();
         promise.set_value(ec);
         return;
@@ -320,10 +298,10 @@ void full_node::set_height(const code& ec, uint64_t height,
         (const code& ec)
     {
         if (ec)
-            log_error(LOG_SESSION)
+            log::error(LOG_SESSION)
                 << format(BN_SESSION_START_HEIGHT_SET_ERROR) % ec.message();
         else
-            log_info(LOG_SESSION)
+            log::info(LOG_SESSION)
                 << format(BN_SESSION_START_HEIGHT) % height;
 
         promise.set_value(ec);
@@ -337,7 +315,7 @@ void full_node::set_height(const code& ec, uint64_t height,
 void full_node::handle_stop(const code& ec, std::promise<code>& promise)
 {
     if (ec)
-        log_error(LOG_NODE)
+        log::error(LOG_NODE)
             << format(BN_SESSION_STOP_ERROR) % ec.message();
 
     promise.set_value(ec);
@@ -351,7 +329,7 @@ void full_node::new_channel(const code& ec, channel::ptr node)
 
     if (ec)
     {
-        log_info(LOG_NODE)
+        log::info(LOG_NODE)
             << format(BN_CONNECTION_START_ERROR) % ec.message();
         return;
     }
@@ -375,7 +353,7 @@ void full_node::recieve_tx(const code& ec,
 
     if (ec)
     {
-        log_debug(LOG_NODE)
+        log::debug(LOG_NODE)
             << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
         return;
     }
@@ -386,16 +364,16 @@ void full_node::recieve_tx(const code& ec,
         const auto hash = encode_hash(tx.hash());
 
         if (ec)
-            log_warning(LOG_NODE)
+            log::warning(LOG_NODE)
             << format(BN_TX_CONFIRM_FAILURE) % hash % ec.message();
         else
-            log_debug(LOG_NODE)
+            log::debug(LOG_NODE)
                 << format(BN_TX_CONFIRMED) % hash;
 
         const auto handle_deindex = [hash](const code& ec)
         {
             if (ec)
-                log_error(LOG_NODE)
+                log::error(LOG_NODE)
                     << format(BN_TX_DEINDEX_FAILURE) % hash % ec.message();
         };
 
@@ -434,18 +412,18 @@ void full_node::new_unconfirm_valid_tx(const code& ec,
     const auto handle_index = [hash](const code& ec)
     {
         if (ec)
-            log_error(LOG_NODE)
+            log::error(LOG_NODE)
                 << format(BN_TX_INDEX_FAILURE) % hash % ec.message();
     };
 
     if (ec)
-        log_debug(LOG_NODE)
+        log::debug(LOG_NODE)
             << format(BN_TX_ACCEPT_FAILURE) % hash % ec.message();
     else if (unconfirmed.empty())
-        log_debug(LOG_NODE)
+        log::debug(LOG_NODE)
             << format(BN_TX_ACCEPTED) % hash;
     else
-        log_debug(LOG_NODE)
+        log::debug(LOG_NODE)
             << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash %
                 format_unconfirmed_inputs(unconfirmed);
         

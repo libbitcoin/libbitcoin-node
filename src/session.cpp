@@ -69,7 +69,7 @@ void session::subscribe(const code& ec,
 {
     if (ec)
     {
-        log_error(LOG_SESSION)
+        log::error(LOG_SESSION)
             << "Failure starting session: " << ec.message();
         handle_complete(ec);
         return;
@@ -98,12 +98,12 @@ void session::new_channel(const code& ec, channel::ptr node)
     {
         if (ec)
         {
-            log_error(LOG_SESSION)
+            log::error(LOG_SESSION)
                 << "Failure in channel revival: " << ec.message();
             return;
         }
 
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Channel revived [" << node->address() << "]";
 
         // Send an inv request for 500 blocks.
@@ -144,7 +144,7 @@ void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
 
     if (ec)
     {
-        log_error(LOG_SESSION)
+        log::error(LOG_SESSION)
             << "Failure in reorganize: " << ec.message();
         return;
     }
@@ -157,14 +157,14 @@ void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
     {
         if (ec)
         {
-            log_error(LOG_SESSION)
+            log::error(LOG_SESSION)
             << "Failure setting start height: " << ec.message();
             return;
         }
 
         last_height_ = height;
 
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Reorg set start height [" << height << "]";
     };
 
@@ -193,18 +193,18 @@ void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
         blocks_inventory.inventories.push_back(inventory);
     }
 
-    log_debug(LOG_SESSION)
+    log::debug(LOG_SESSION)
         << "Broadcasting block inventory [" 
         << blocks_inventory.inventories.size() << "]";
 
     const auto broadcast_handler = [](const code& ec, channel::ptr node)
     {
         if (ec)
-            log_debug(LOG_SESSION)
+            log::debug(LOG_SESSION)
                 << "Failure broadcasting block inventory to ["
                 << node->address() << "] " << ec.message();
         else
-            log_debug(LOG_SESSION)
+            log::debug(LOG_SESSION)
                 << "Broadcasted block inventory to ["
                 << node->address() << "] ";
     };
@@ -239,7 +239,7 @@ void session::receive_inv(const code& ec,
 
     if (ec)
     {
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Failure in receive inventory ["
             << peer << "] " << ec.message();
         node->stop(ec);
@@ -253,7 +253,7 @@ void session::receive_inv(const code& ec,
     //const auto filtered_blocks = inventory_count(packet.inventories,
     //    inventory_type_id::filtered_block);
 
-    //log_debug(LOG_SESSION)
+    //log::debug(LOG_SESSION)
     //    << "Inventory BEGIN [" << peer << "] "
     //    << "txs (" << transactions << ") "
     //    << "blocks (" << blocks << ")";
@@ -267,7 +267,7 @@ void session::receive_inv(const code& ec,
             case message::inventory_type_id::transaction:
                 if (last_height_ >= minimum_start_height_)
                 {
-                    log_debug(LOG_SESSION)
+                    log::debug(LOG_SESSION)
                         << "Transaction inventory from [" << peer << "] "
                         << encode_hash(inventory.hash);
 
@@ -279,7 +279,7 @@ void session::receive_inv(const code& ec,
                 break;
 
             case message::inventory_type_id::block:
-                log_debug(LOG_SESSION)
+                log::debug(LOG_SESSION)
                     << "Block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
                 dispatch_.ordered(
@@ -289,7 +289,7 @@ void session::receive_inv(const code& ec,
 
             case message::inventory_type_id::filtered_block:
                 // We don't suppport bloom filters, so we shouldn't see this.
-                log_debug(LOG_SESSION)
+                log::debug(LOG_SESSION)
                     << "Filtred block inventory from [" << peer << "] "
                     << encode_hash(inventory.hash);
                 break;
@@ -297,12 +297,12 @@ void session::receive_inv(const code& ec,
             case message::inventory_type_id::none:
             case message::inventory_type_id::error:
             default:
-                log_debug(LOG_SESSION)
+                log::debug(LOG_SESSION)
                     << "Ignoring invalid inventory type from [" << peer << "]";
         }
     }
 
-    //log_debug(LOG_SESSION)
+    //log::debug(LOG_SESSION)
     //    << "Inventory END [" << peer << "]";
 
     // Resubscribe to new inventory requests.
@@ -328,14 +328,14 @@ void session::request_tx_data(const code& ec, const hash_digest& tx_hash,
 
     if (ec == error::success)
     {
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Transaction already exists [" << encode_hash(tx_hash) << "]";
         return;
     }
 
     if (ec != error::not_found)
     {
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Failure in getting transaction existence ["
             << encode_hash(tx_hash) << "] " << ec.message();
         return;
@@ -347,7 +347,7 @@ void session::request_tx_data(const code& ec, const hash_digest& tx_hash,
     {
         if (ec)
         {
-            log_debug(LOG_SESSION)
+            log::debug(LOG_SESSION)
                 << "Failure sending tx data request to [" 
                 << node->address() << "] " << ec.message();
             node->stop(ec);
@@ -355,7 +355,7 @@ void session::request_tx_data(const code& ec, const hash_digest& tx_hash,
         }
     };
 
-    log_debug(LOG_SESSION)
+    log::debug(LOG_SESSION)
         << "Requesting transaction [" << encode_hash(tx_hash) << "]";
 
     const message::inventory_vector tx_inventory
@@ -385,14 +385,14 @@ void session::new_block_inventory(const hash_digest& block_hash,
 
         if (ec)
         {
-            log_error(LOG_SESSION)
+            log::error(LOG_SESSION)
                 << "Failure fetching block ["
                 << encode_hash(block_hash) << "] " << ec.message();
             node->stop(ec);
             return;
         }
 
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Block already exists [" << encode_hash(block_hash) << "]";
     };
 
@@ -408,7 +408,7 @@ void session::request_block_data(const hash_digest& block_hash,
     {
         if (ec)
         {
-            log_debug(LOG_SESSION)
+            log::debug(LOG_SESSION)
                 << "Failure getting block data from ["
                 << node->address() << "] " << ec.message();
             node->stop(ec);
@@ -452,7 +452,7 @@ void session::receive_get_blocks(const code& ec,
 
     if (ec)
     {
-        log_debug(LOG_SESSION)
+        log::debug(LOG_SESSION)
             << "Failure in get blocks ["
             << node->address() << "] " << ec.message();
         node->stop(ec);
@@ -462,7 +462,7 @@ void session::receive_get_blocks(const code& ec,
     ///////////////////////////////////////////////////////////////////////////
     // TODO: Implement.
     ///////////////////////////////////////////////////////////////////////////
-    log_info(LOG_SESSION)
+    log::info(LOG_SESSION)
         << "Received a get blocks request (IGNORED).";
 
     // This is disabled to prevent logging subsequent requests on this channel.

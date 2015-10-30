@@ -75,6 +75,7 @@ using namespace bc;
 using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::node;
+using namespace bc::network;
 
 static void display_history(const std::error_code& ec,
     const block_chain::history& history,
@@ -212,9 +213,16 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
 
     // Set up logging for node background threads (add to config).
     constexpr auto append = std::ofstream::out | std::ofstream::app;
-    bc::ofstream debug_log(network::p2p::mainnet.debug_file.string(), append);
-    bc::ofstream error_log(network::p2p::mainnet.error_file.string(), append);
+    bc::ofstream debug_log(p2p::mainnet.debug_file.string(), append);
+    bc::ofstream error_log(p2p::mainnet.error_file.string(), append);
     initialize_logging(debug_log, error_log, output, error);
+
+    static const auto headline = "================= Startup =================";
+    log::debug(LOG_NODE) << headline;
+    log::info(LOG_NODE) << headline;
+    log::warning(LOG_NODE) << headline;
+    log::error(LOG_NODE) << headline;
+    log::fatal(LOG_NODE) << headline;
 
     // Start up the node, which first maps the blockchain.
     output << format(BN_NODE_STARTING) % directory << std::endl;
