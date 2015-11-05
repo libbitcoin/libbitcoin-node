@@ -354,7 +354,7 @@ void full_node::recieve_tx(const code& ec,
     if (ec)
     {
         log::debug(LOG_NODE)
-            << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
+            << format(BN_TX_RECEIVE_FAILURE) % node->authority() % ec.message();
         return;
     }
 

@@ -104,7 +104,7 @@ void session::new_channel(const code& ec, channel::ptr node)
         }
 
         log::debug(LOG_SESSION)
-            << "Channel revived [" << node->address() << "]";
+            << "Channel revived [" << node->authority() << "]";
 
         // Send an inv request for 500 blocks.
         poller_.request_blocks(null_hash, node);
@@ -202,15 +202,16 @@ void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
         if (ec)
             log::debug(LOG_SESSION)
                 << "Failure broadcasting block inventory to ["
-                << node->address() << "] " << ec.message();
+                << node->authority() << "] " << ec.message();
         else
             log::debug(LOG_SESSION)
                 << "Broadcasted block inventory to ["
-                << node->address() << "] ";
+                << node->authority() << "] ";
     };
 
     // Could optimize by not broadcasting to the node from which it came.
-    protocol_.broadcast(blocks_inventory, broadcast_handler);
+    const auto unhandled = [](const code&){};
+    protocol_.broadcast(blocks_inventory, broadcast_handler, unhandled);
 }
 
 // TODO: consolidate to libbitcoin utils.
@@ -235,7 +236,7 @@ void session::receive_inv(const code& ec,
     if (ec == error::channel_stopped)
         return;
 
-    const auto peer = node->address();
+    const auto peer = node->authority();
 
     if (ec)
     {
@@ -349,7 +350,7 @@ void session::request_tx_data(const code& ec, const hash_digest& tx_hash,
         {
             log::debug(LOG_SESSION)
                 << "Failure sending tx data request to [" 
-                << node->address() << "] " << ec.message();
+                << node->authority() << "] " << ec.message();
             node->stop(ec);
             return;
         }
@@ -410,7 +411,7 @@ void session::request_block_data(const hash_digest& block_hash,
         {
             log::debug(LOG_SESSION)
                 << "Failure getting block data from ["
-                << node->address() << "] " << ec.message();
+                << node->authority() << "] " << ec.message();
             node->stop(ec);
         }
     };
@@ -454,7 +455,7 @@ void session::receive_get_blocks(const code& ec,
     {
         log::debug(LOG_SESSION)
             << "Failure in get blocks ["
-            << node->address() << "] " << ec.message();
+            << node->authority() << "] " << ec.message();
         node->stop(ec);
         return;
     }

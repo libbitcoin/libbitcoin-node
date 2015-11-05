@@ -65,7 +65,7 @@ void poller::monitor(channel::ptr node)
 //    if (ec == error::channel_stopped)
 //        return;
 //
-//    const auto peer = node->address();
+//    const auto peer = node->authority();
 //
 //    if (ec)
 //    {

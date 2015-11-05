@@ -65,7 +65,7 @@ void responder::receive_get_data(const code& ec,
     if (ec == error::channel_stopped)
         return;
 
-    const auto peer = node->address();
+    const auto peer = node->authority();
 
     if (ec)
     {
@@ -134,7 +134,7 @@ void responder::send_pool_tx(const code& ec,
     if (ec == error::not_found)
     {
         log::debug(LOG_RESPONDER)
-            << "Transaction for [" << node->address()
+            << "Transaction for [" << node->authority()
             << "] not in mempool [" << encode_hash(tx_hash) << "]";
 
         // It wasn't in the mempool, so relay the request to the blockchain.
@@ -148,7 +148,7 @@ void responder::send_pool_tx(const code& ec,
     {
         log::error(LOG_RESPONDER)
             << "Failure fetching mempool tx data for ["
-            << node->address() << "] " << ec.message();
+            << node->authority() << "] " << ec.message();
         node->stop(ec);
         return;
     }
@@ -171,7 +171,7 @@ void responder::send_chain_tx(const code& ec,
     if (ec == error::not_found)
     {
         log::debug(LOG_RESPONDER)
-            << "Transaction for [" << node->address()
+            << "Transaction for [" << node->authority()
             << "] not in blockchain [" << encode_hash(tx_hash) << "]";
 
         // It wasn't in the blockchain, so send notfound.
@@ -183,7 +183,7 @@ void responder::send_chain_tx(const code& ec,
     {
         log::error(LOG_RESPONDER)
             << "Failure fetching blockchain tx data for ["
-            << node->address() << "] " << ec.message();
+            << node->authority() << "] " << ec.message();
         node->stop(ec);
         return;
     }
@@ -199,10 +199,10 @@ void responder::send_tx(const chain::transaction& tx,
         if (ec)
             log::debug(LOG_RESPONDER)
                 << "Failure sending tx for ["
-                << node->address() << "]";
+                << node->authority() << "]";
         else
             log::debug(LOG_RESPONDER)
-                << "Sent tx for [" << node->address()
+                << "Sent tx for [" << node->authority()
                 << "] " << encode_hash(tx_hash);
     };
 
@@ -216,10 +216,10 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel::ptr node)
         if (ec)
             log::debug(LOG_RESPONDER)
                 << "Failure sending tx notfound for ["
-                << node->address() << "]";
+                << node->authority() << "]";
         else
             log::debug(LOG_RESPONDER)
-                << "Sent tx notfound for [" << node->address()
+                << "Sent tx notfound for [" << node->authority()
                 << "] " << encode_hash(tx_hash);
     };
 
@@ -238,7 +238,7 @@ void responder::send_block(const code& ec,
     if (ec == error::not_found)
     {
         log::debug(LOG_RESPONDER)
-            << "Block for [" << node->address()
+            << "Block for [" << node->authority()
             << "] not in blockchain [" << encode_hash(block_hash) << "]";
 
         // It wasn't in the blockchain, so send notfound.
@@ -249,7 +249,7 @@ void responder::send_block(const code& ec,
     {
         log::error(LOG_RESPONDER)
             << "Failure fetching block data for ["
-            << node->address() << "] " << ec.message();
+            << node->authority() << "] " << ec.message();
         node->stop(ec);
         return;
     }
@@ -259,10 +259,10 @@ void responder::send_block(const code& ec,
         if (ec)
             log::debug(LOG_RESPONDER)
                 << "Failure sending block for ["
-                << node->address() << "]";
+                << node->authority() << "]";
         else
             log::debug(LOG_RESPONDER)
-                << "Sent block for [" << node->address()
+                << "Sent block for [" << node->authority()
                 << "] " << encode_hash(block_hash);
     };
 
@@ -277,10 +277,10 @@ void responder::send_block_not_found(const hash_digest& block_hash,
         if (ec)
             log::debug(LOG_RESPONDER)
                 << "Failure sending block notfound for ["
-                << node->address() << "]";
+                << node->authority() << "]";
         else
             log::debug(LOG_RESPONDER)
-                << "Sent block notfound for [" << node->address()
+                << "Sent block notfound for [" << node->authority()
                 << "] " << encode_hash(block_hash);
     };
 
