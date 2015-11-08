@@ -17,31 +17,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SETTINGS_TYPE_HPP
-#define LIBBITCOIN_NODE_SETTINGS_TYPE_HPP
+#ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
+#define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
 #include <cstdint>
 #include <string>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-// TODO: rename to configuration
-class BCN_API settings_type
+class BCN_API configuration
 {
 public:
-    settings_type()
+    configuration()
     {
     }
 
-    settings_type(
+    configuration(
         const node::settings& node_settings,
-        const chain::settings& chain_settings,
+        const blockchain::settings& chain_settings,
         const network::settings& network_settings)
       : node(node_settings),
         chain(chain_settings),
@@ -58,7 +58,7 @@ public:
 
     // settings
     node::settings node;
-    chain::settings chain;
+    blockchain::settings chain;
     network::settings network;
 };
 

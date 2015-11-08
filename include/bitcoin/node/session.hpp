@@ -47,12 +47,14 @@ public:
     void stop(completion_handler handle_complete);
 
 private:
-    void subscribe(const code& ec,
-        completion_handler handle_complete);
+    void subscribe(const code& ec, completion_handler handle_complete);
+
     void new_channel(const code& ec, network::channel::ptr node);
-    void broadcast_new_blocks(const code& ec, uint64_t fork_point,
+
+    void handle_new_blocks(const code& ec, uint64_t fork_point,
         const blockchain::block_chain::list& new_blocks,
         const blockchain::block_chain::list& replaced_blocks);
+
     void receive_inv(const code& ec, const message::inventory& packet,
         network::channel::ptr node);
     void receive_get_blocks(const code& ec,
@@ -69,7 +71,7 @@ private:
         const hash_digest block_hash, network::channel::ptr node);
 
     dispatcher dispatch_;
-    network::p2p& protocol_;
+    network::p2p& network_;
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& tx_pool_;
     node::poller& poller_;
@@ -77,7 +79,7 @@ private:
     std::atomic<uint64_t> last_height_;
     size_t minimum_start_height_;
 
-    // HACK: this is for access to broadcast_new_blocks to facilitate server
+    // HACK: this is for access to handle_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
     friend class full_node;
 };

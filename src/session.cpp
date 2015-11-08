@@ -37,12 +37,11 @@ using std::placeholders::_4;
 using namespace bc::blockchain;
 using namespace bc::network;
 
-session::session(threadpool& pool, p2p& protocol,
-    block_chain& blockchain, poller& poller,
-    transaction_pool& transaction_pool, responder& responder,
+session::session(threadpool& pool, p2p& network, block_chain& blockchain,
+    poller& poller, transaction_pool& transaction_pool, responder& responder,
     size_t minimum_start_height)
   : dispatch_(pool),
-    protocol_(protocol),
+    network_(network),
     blockchain_(blockchain),
     tx_pool_(transaction_pool),
     poller_(poller),
@@ -54,14 +53,14 @@ session::session(threadpool& pool, p2p& protocol,
 
 void session::start(completion_handler handle_complete)
 {
-    protocol_.start(
+    network_.start(
         std::bind(&session::subscribe,
             this, _1, handle_complete));
 }
 
 void session::stop(completion_handler handle_complete)
 {
-    protocol_.stop(handle_complete);
+    network_.stop(handle_complete);
 }
 
 void session::subscribe(const code& ec,
@@ -76,13 +75,13 @@ void session::subscribe(const code& ec,
     }
 
     // Subscribe to new connections.
-    protocol_.subscribe(
+    network_.subscribe(
         std::bind(&session::new_channel,
             this, _1, _2));
 
     // Subscribe to new reorganizations.
     blockchain_.subscribe_reorganize(
-        std::bind(&session::broadcast_new_blocks,
+        std::bind(&session::handle_new_blocks,
             this, _1, _2, _3, _4));
 
     handle_complete(ec);
@@ -124,7 +123,7 @@ void session::new_channel(const code& ec, channel::ptr node)
             this, _1, _2, node));
 
     // Resubscribe to new channels.
-    protocol_.subscribe(
+    network_.subscribe(
         std::bind(&session::new_channel,
             this, _1, _2));
 
@@ -135,7 +134,7 @@ void session::new_channel(const code& ec, channel::ptr node)
     responder_.monitor(node);
 }
 
-void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
+void session::handle_new_blocks(const code& ec, uint64_t fork_point,
     const block_chain::list& new_blocks,
     const block_chain::list& /* replaced_blocks */)
 {
@@ -153,26 +152,14 @@ void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
     BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
 
-    const auto handle_set_height = [this, height](const code& ec)
-    {
-        if (ec)
-        {
-            log::error(LOG_SESSION)
-            << "Failure setting start height: " << ec.message();
-            return;
-        }
+    network_.set_height(height);
 
-        last_height_ = height;
-
-        log::debug(LOG_SESSION)
-            << "Reorg set start height [" << height << "]";
-    };
-
-    /////handshake_.set_start_height(height, handle_set_height);
+    log::debug(LOG_SESSION)
+        << "Reorg set start height [" << height << "]";
 
     // Resubscribe to new reorganizations.
     blockchain_.subscribe_reorganize(
-        std::bind(&session::broadcast_new_blocks,
+        std::bind(&session::handle_new_blocks,
             this, _1, _2, _3, _4));
 
     // Don't bother publishing blocks when in the initial blockchain download.
@@ -211,7 +198,7 @@ void session::broadcast_new_blocks(const code& ec, uint64_t fork_point,
 
     // Could optimize by not broadcasting to the node from which it came.
     const auto unhandled = [](const code&){};
-    protocol_.broadcast(blocks_inventory, broadcast_handler, unhandled);
+    network_.broadcast(blocks_inventory, broadcast_handler, unhandled);
 }
 
 // TODO: consolidate to libbitcoin utils.

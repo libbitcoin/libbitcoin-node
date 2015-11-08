@@ -39,14 +39,13 @@ private:
 
     ////void receive_inv(const code& ec,
     ////    const inventory_type& packet, bc::network::channel::ptr node);
-    void receive_block(const code& ec,
-        const chain::block& block, network::channel::ptr node);
+    void receive_block(const code& ec, const chain::block& block,
+        network::channel::ptr node);
     void handle_store_block(const code& ec,
-        bc::blockchain::block_info info, const hash_digest& block_hash,
+        blockchain::block_info info, const hash_digest& block_hash,
         network::channel::ptr node);
-    void ask_blocks(const code& ec,
-        const message::block_locator& locator, const hash_digest& hash_stop,
-        network::channel::ptr node);
+    void ask_blocks(const code& ec, const message::block_locator& locator,
+        const hash_digest& hash_stop, network::channel::ptr node);
     bool is_duplicate_block_ask(const message::block_locator& locator,
         const hash_digest& hash_stop, network::channel::ptr node);
 

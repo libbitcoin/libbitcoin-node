@@ -31,8 +31,6 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace message;
-
 // output_info_type is defined in <bitcoin/transaction.hpp>
 struct BCN_API spend_info_type
 {

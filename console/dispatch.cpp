@@ -19,6 +19,7 @@
  */
 #include "dispatch.hpp"
 
+#include <future>
 #include <iostream>
 #include <string>
 #include <system_error>
@@ -211,33 +212,21 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     signal(SIGTERM, interrupt_handler);
     signal(SIGINT, interrupt_handler);
 
-    // Set up logging for node background threads (add to config).
-    constexpr auto append = std::ofstream::out | std::ofstream::app;
-    bc::ofstream debug_log(p2p::mainnet.debug_file.string(), append);
-    bc::ofstream error_log(p2p::mainnet.error_file.string(), append);
-    initialize_logging(debug_log, error_log, output, error);
-
-    static const auto headline = "================= Startup =================";
-    log::debug(LOG_NODE) << headline;
-    log::info(LOG_NODE) << headline;
-    log::warning(LOG_NODE) << headline;
-    log::error(LOG_NODE) << headline;
-    log::fatal(LOG_NODE) << headline;
-
     // Start up the node, which first maps the blockchain.
     output << format(BN_NODE_STARTING) % directory << std::endl;
-    full_node node;
-    const auto started = node.start();
-    if (started)
-        output << BN_NODE_START_SUCCESS << std::endl;
-    else
-        output << BN_NODE_START_FAIL << std::endl;
 
-    if (!started)
-        result = console_result::failure;
+    full_node node;
+
+    std::promise<code> promise;
+    const auto handle_start = [&promise](const code& ec)
+    {
+        promise.set_value(ec);
+    };
+    node.start(handle_start);
+    promise.get_future().wait();
 
     // Accept address queries from the console.
-    while (started)
+    while (true)
     {
         std::string command;
         std::getline(bc::cin, command);
@@ -266,14 +255,6 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     }
 
     // The blockchain unmap is only initiated by the node stop (not completed).
-    auto stopped = node.stop();
-    if (stopped)
-        output << format(BN_NODE_STOPPING) % directory << std::endl;
-    else
-        output << BN_NODE_STOP_FAIL << std::endl;
-
-    if (!stopped)
-        result = console_result::failure;
-
-    return result;
+    node.stop([](const code&){});
+    return console_result::okay;
 }
