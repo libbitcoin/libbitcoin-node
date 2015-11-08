@@ -49,13 +49,13 @@ using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::network;
 
-// Beware of static initializer ordering here.
+/// default settings (testnet)
 const configuration full_node::defaults = configuration
 {
     // [node]
     node::settings
     {
-        2,
+        NODE_THREADS,
         NODE_TRANSACTION_POOL_CAPACITY,
         NODE_PEERS,
         NODE_BLACKLISTS
@@ -64,16 +64,39 @@ const configuration full_node::defaults = configuration
     // [blockchain]
     blockchain::settings
     {
-        2,
+        BLOCKCHAIN_THREADS,
         BLOCKCHAIN_BLOCK_POOL_CAPACITY,
         BLOCKCHAIN_HISTORY_START_HEIGHT,
-        true,
+        BLOCKCHAIN_TESTNET_RULES_TESTNET,
         BLOCKCHAIN_DATABASE_PATH,
-        bc::blockchain::checkpoint::testnet
+        BLOCKCHAIN_CHECKPOINTS_TESTNET
     },
 
     // [network]
-    network::p2p::testnet
+    network::settings
+    {
+        NETWORK_THREADS,
+        NETWORK_IDENTIFIER_TESTNET,
+        NETWORK_INBOUND_PORT_TESTNET,
+        NETWORK_INBOUND_CONNECTION_LIMIT,
+        NETWORK_OUTBOUND_CONNECTIONS,
+        NETWORK_CONNECT_ATTEMPTS,
+        NETWORK_CONNECT_TIMEOUT_SECONDS,
+        NETWORK_CHANNEL_HANDSHAKE_SECONDS,
+        NETWORK_CHANNEL_REVIVAL_MINUTES,
+        NETWORK_CHANNEL_HEARTBEAT_MINUTES,
+        NETWORK_CHANNEL_INACTIVITY_MINUTES,
+        NETWORK_CHANNEL_EXPIRATION_MINUTES,
+        NETWORK_CHANNEL_GERMINATION_SECONDS,
+        NETWORK_HOST_POOL_CAPACITY,
+        NETWORK_RELAY_TRANSACTIONS,
+        NETWORK_HOSTS_FILE,
+        NETWORK_DEBUG_FILE,
+        NETWORK_ERROR_FILE,
+        NETWORK_SELF,
+        NETWORK_BLACKLISTS,
+        NETWORK_SEEDS_TESTNET
+    }
 };
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;

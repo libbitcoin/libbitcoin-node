@@ -36,22 +36,6 @@ namespace node {
 
 #define LOG_NODE "node"
 
-// Configuration setting defaults.
-
-// [node]
-#define NODE_THREADS                        4
-#define NODE_TRANSACTION_POOL_CAPACITY      2000
-#define NODE_PEERS                          {}
-#define NODE_BLACKLISTS                     {}
-
-// [blockchain]
-#define BLOCKCHAIN_THREADS                  6
-#define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
-#define BLOCKCHAIN_HISTORY_START_HEIGHT     0
-#define BLOCKCHAIN_TESTNET_RULES_MAINNET    false
-#define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
-#define BLOCKCHAIN_CHECKPOINTS_MAINNET      bc::blockchain::checkpoint::mainnet
-
 /**
  * A full node on the Bitcoin P2P network.
  */

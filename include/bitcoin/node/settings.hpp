@@ -26,6 +26,12 @@
 
 namespace libbitcoin {
 namespace node {
+    
+/// default settings
+#define NODE_THREADS                        4
+#define NODE_TRANSACTION_POOL_CAPACITY      2000
+#define NODE_PEERS                          {}
+#define NODE_BLACKLISTS                     {}
 
 struct BCN_API settings
 {
