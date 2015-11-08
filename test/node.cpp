@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
 
     threadpool threads;
     blockchain_impl blockchain(threads, prefix);
-    transaction_pool transactions(threads, blockchain);
+    transaction_pool transactions(threads, blockchain, 42);
     responder responder(blockchain, transactions);
 
     blockchain.start();
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
 ////    p2p network;
 ////    threadpool threads;
 ////    blockchain_impl blockchain(threads, prefix);
-////    transaction_pool transactions(threads, blockchain);
+////    transaction_pool transactions(threads, blockchain, 42);
 ////    poller poller(threads, blockchain);
 ////    responder responder(blockchain, transactions);
 ////
