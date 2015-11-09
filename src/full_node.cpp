@@ -110,6 +110,12 @@ full_node::full_node(const configuration& config)
 {
 }
 
+full_node::~full_node()
+{
+    const auto unhandled = [](const code&){};
+    stop(unhandled);
+}
+
 block_chain& full_node::blockchain()
 {
     return blockchain_;
@@ -233,6 +239,7 @@ void full_node::handle_manual_connect(const code& ec, channel::ptr channel,
 }
 
 // The handler is not called until all threads are coalesced.
+// TODO: handle blockchain and network shutdown errors (file-based).
 void full_node::stop(result_handler handler)
 {
     code ec(error::success);
@@ -240,9 +247,9 @@ void full_node::stop(result_handler handler)
     node_threads_.shutdown();
     database_threads_.shutdown();
     memory_threads_.shutdown();
-    blockchain_.stop();
+    blockchain_.stop(/* handler */);
     tx_pool_.stop();
-    network_.stop();
+    network_.stop(/* handler */);
     log::debug(LOG_NODE)
         << "Threads signaled.";
 

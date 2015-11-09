@@ -54,6 +54,11 @@ public:
      * param@ [in]  config  The configuration settings for the node.
      */
     full_node(const configuration& config=defaults);
+
+    /**
+     * Block until all threads are coalesced.
+     */
+    ~full_node();
     
     /**
      * Start the node.
