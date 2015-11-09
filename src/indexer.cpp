@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/indexer.hpp>
 
+#include <algorithm>
 #include <bitcoin/blockchain.hpp>
 
 namespace libbitcoin {
@@ -60,7 +61,7 @@ InfoList get_info_list(const payment_address& address,
 void indexer::do_query(const payment_address& address,
     query_handler handler)
 {
-    handler(code(),
+    handler(error::success,
         get_info_list<output_info_list>(address, outputs_map_),
         get_info_list<spend_info_list>(address, spends_map_));
 }
@@ -102,7 +103,7 @@ void indexer::do_index(const transaction& tx, completion_handler handler)
         const auto address = payment_address::extract(input.script);
         if (address)
         {
-            chain::input_point point{tx_hash, index};
+            chain::input_point point{ tx_hash, index };
             BITCOIN_ASSERT_MSG(
                 index_does_not_exist(address, point, spends_map_),
                 "Transaction input is indexed multiple times!");
@@ -130,7 +131,7 @@ void indexer::do_index(const transaction& tx, completion_handler handler)
         ++index;
     }
 
-    handler(code());
+    handler(error::success);
 }
 
 void indexer::deindex(const transaction& tx, completion_handler handler)
@@ -145,13 +146,12 @@ void indexer::do_deindex(const transaction& tx, completion_handler handler)
     const auto tx_hash = tx.hash();
 
     uint32_t index = 0;
-
     for (const auto& input: tx.inputs)
     {
         const auto address = payment_address::extract(input.script);
         if (address)
         {
-            input_point point{tx_hash, index};
+            input_point point{ tx_hash, index };
             const auto entry = find_entry(address, point, spends_map_);
             BITCOIN_ASSERT_MSG(entry != spends_map_.end(),
                 "Can't deindex transaction input twice");
@@ -172,7 +172,7 @@ void indexer::do_deindex(const transaction& tx, completion_handler handler)
         const auto address = payment_address::extract(output.script);
         if (address)
         {
-            output_point point{tx_hash, index};
+            output_point point{ tx_hash, index };
             const auto entry = find_entry(address, point, outputs_map_);
             BITCOIN_ASSERT_MSG(entry != outputs_map_.end(),
                 "Can't deindex transaction output twice");
@@ -186,7 +186,7 @@ void indexer::do_deindex(const transaction& tx, completion_handler handler)
         ++index;
     }
 
-    handler(code());
+    handler(error::success);
 }
 
 static bool is_output_conflict(block_chain::history& history,
@@ -275,7 +275,7 @@ void indexer_history_fetched(const code& ec,
     // Add all outputs and spends and return success code.
     add_history_outputs(history, outputs);
     add_history_spends(history, spends);
-    handler(code(), history);
+    handler(error::success, history);
 }
 
 void blockchain_history_fetched(const code& ec,
