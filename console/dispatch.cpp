@@ -217,16 +217,16 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
 
     full_node node;
 
-    std::promise<code> promise;
-    const auto handle_start = [&promise](const code& ec)
+    std::promise<code> start_promise;
+    const auto handle_start = [&start_promise](const code& ec)
     {
-        promise.set_value(ec);
+        start_promise.set_value(ec);
     };
     node.start(handle_start);
-    promise.get_future().wait();
+    auto ec = start_promise.get_future().get();
 
     // Accept address queries from the console.
-    while (true)
+    while (!ec)
     {
         std::string command;
         std::getline(bc::cin, command);
@@ -254,7 +254,17 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             fetch_handler);
     }
 
-    // The blockchain unmap is only initiated by the node stop (not completed).
-    node.stop([](const code&){});
-    return console_result::okay;
+    std::promise<code> stop_promise;
+    const auto handle_stop = [&stop_promise](const code& ec)
+    {
+        stop_promise.set_value(ec);
+    };
+
+    // The blockchain unmap is initiated by the node stop but not completed.
+    node.stop(handle_stop);
+
+    // Ignore the stop error code.
+    stop_promise.get_future().wait();
+
+    return ec ? console_result::failure : console_result::okay;
 }
