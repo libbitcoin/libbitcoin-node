@@ -54,14 +54,12 @@ static const configuration default_configuration()
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;
     defaults.node.blacklists = NODE_BLACKLISTS;
-
     defaults.chain.threads = BLOCKCHAIN_THREADS;
     defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
     defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
     defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_TESTNET;
     defaults.chain.database_path = BLOCKCHAIN_DATABASE_PATH;
     defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_TESTNET;
-
     defaults.network.threads = NETWORK_THREADS;
     defaults.network.identifier = NETWORK_IDENTIFIER_TESTNET;
     defaults.network.inbound_port = NETWORK_INBOUND_PORT_TESTNET;
@@ -83,7 +81,6 @@ static const configuration default_configuration()
     defaults.network.self = NETWORK_SELF;
     defaults.network.blacklists = NETWORK_BLACKLISTS;
     defaults.network.seeds = NETWORK_SEEDS_TESTNET;
-
     return defaults;
 };
 
