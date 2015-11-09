@@ -50,7 +50,7 @@ public:
     }
 
     // Convenience.
-    virtual size_t minimum_start_height() const
+    virtual size_t last_checkpoint_height() const
     {
         return chain.checkpoints.empty() ? 0 : 
             chain.checkpoints.back().height();

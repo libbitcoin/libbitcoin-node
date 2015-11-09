@@ -41,7 +41,7 @@ public:
     session(threadpool& pool, network::p2p& protocol,
         blockchain::block_chain& blockchain, poller& poller,
         blockchain::transaction_pool& transaction_pool,
-        responder& responder, size_t minimum_start_height);
+        responder& responder, size_t last_checkpoint_height);
 
     void start();
 
@@ -74,7 +74,7 @@ private:
     node::poller& poller_;
     node::responder& responder_;
     std::atomic<uint64_t> last_height_;
-    size_t minimum_start_height_;
+    size_t last_checkpoint_height_;
 
     // HACK: this is for access to handle_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.

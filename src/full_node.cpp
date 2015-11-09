@@ -103,7 +103,7 @@ full_node::full_node(const configuration& config)
     poller_(node_threads_, blockchain_),
     responder_(blockchain_, tx_pool_),
     session_(node_threads_, network_, blockchain_, poller_, tx_pool_,
-        responder_, config.minimum_start_height())
+        responder_, config.last_checkpoint_height())
 {
 }
 
@@ -245,17 +245,13 @@ void full_node::stop(result_handler handler)
     database_threads_.shutdown();
     memory_threads_.shutdown();
     blockchain_.stop(/* handler */);
-    tx_pool_.stop();
+    ////tx_pool_.stop();
     network_.stop(/* handler */);
-    log::debug(LOG_NODE)
-        << "Threads signaled.";
 
     node_threads_.join();
     database_threads_.join();
     memory_threads_.join();
     network_.close();
-    log::debug(LOG_NODE)
-        << "Threads joined.";
 
     handler(ec);
 }
@@ -381,13 +377,9 @@ void full_node::handle_tx_validated(const code& ec, const transaction& tx,
         return;
     }
 
-    if (unconfirmed.empty())
-        log::debug(LOG_NODE)
-            << "Accepted transaction [" << encoded << "]";
-    else
-        log::debug(LOG_NODE)
-            << "Accepted transaction [" << encoded
-            << "] with unconfirmed inputs (" << format(unconfirmed) << ")";
+    log::debug(LOG_NODE)
+        << "Accepted transaction [" << encoded
+        << "] with unconfirmed input indexes (" << format(unconfirmed) << ")";
 
     tx_indexer_.index(tx, 
         std::bind(&full_node::handle_tx_indexed,
@@ -400,10 +392,10 @@ void full_node::handle_tx_indexed(const code& ec, const hash_digest& hash)
 
     if (ec)
         log::error(LOG_NODE)
-            << "Failure iadding transaction [" << encoded
+            << "Failure adding transaction [" << encoded
             << "] to memory pool index: " << ec.message();
     else
-        log::error(LOG_NODE)
+        log::debug(LOG_NODE)
             << "Added transaction [" << encoded << "] to memory pool index.";
 }
 
