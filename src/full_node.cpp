@@ -139,11 +139,18 @@ void full_node::start(result_handler handler)
 {
     initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr);
 
-    if (!blockchain_.start())
+    blockchain_.start(
+        std::bind(&full_node::handle_blockchain_start,
+            this, _1, handler));
+}
+
+void full_node::handle_blockchain_start(const code& ec, result_handler handler)
+{
+    if (ec)
     {
         log::info(LOG_NODE)
-            << "Blockchain failed to start.";
-        handler(error::operation_failed);
+            << "Blockchain failed to start: " << ec.message();
+        handler(ec);
         return;
     }
 
@@ -187,10 +194,20 @@ void full_node::handle_fetch_height(const code& ec, uint64_t height,
     }
 
     network_.set_height(height);
+    session_.start();
 
-    session_.start(
-        std::bind(&full_node::handle_session_start,
-            this, _1, handler));
+    // This is just for logging, the blacklist is used directly from config.
+    for (const auto& authority: configuration_.node.blacklists)
+        log::info(LOG_NODE)
+            << "Blacklisted peer [" << format(authority) << "]";
+
+    // Start configured connections before starting the session.
+    for (const auto& endpoint: configuration_.node.peers)
+        network_.connect(endpoint.host(), endpoint.port(),
+            std::bind(&full_node::handle_manual_connect,
+                this, _1, _2, endpoint));
+
+    handler(error::success);
 }
 
 std::string full_node::format(const config::authority& authority)
@@ -200,34 +217,6 @@ std::string full_node::format(const config::authority& authority)
         formatted += ":*";
 
     return formatted;
-}
-
-void full_node::handle_session_start(const code& ec, result_handler handler)
-{
-    if (ec)
-    {
-        log::error(LOG_SESSION)
-            << "Error starting session: " << ec.message();
-        handler(ec);
-        return;
-    }
-
-    // This is just for logging, the blacklist is used directly from config.
-    for (const auto& authority: configuration_.node.blacklists)
-    {
-        log::info(LOG_NODE)
-            << "Blacklisted peer [" << format(authority) << "]";
-    }
-
-    // Start configured connections before starting the session.
-    for (const auto& endpoint: configuration_.node.peers)
-    {
-        network_.connect(endpoint.host(), endpoint.port(),
-            std::bind(&full_node::handle_manual_connect,
-                this, _1, _2, endpoint));
-    }
-
-    handler(error::success);
 }
 
 // This will log on the first successful connection to each configured peer.
@@ -246,31 +235,12 @@ void full_node::handle_manual_connect(const code& ec, channel::ptr channel,
 // The handler is not called until all threads are coalesced.
 void full_node::stop(result_handler handler)
 {
-    session_.stop(
-        std::bind(&full_node::handle_session_stop,
-            this, _1, handler));
-}
-
-// TODO: bury thread management in blockchain and tx pool (see network).
-void full_node::handle_session_stop(const code& ec, result_handler handler)
-{
-    if (ec)
-        log::error(LOG_NODE)
-            << "Error stopping session: " << ec.message();
-    else
-        log::debug(LOG_NODE)
-            << "Session stopped.";
-
-    if (!blockchain_.stop())
-        log::error(LOG_NODE)
-            << "Error stopping blockchain.";
-    else
-        log::debug(LOG_NODE)
-            << "Blockchain stopped.";
+    code ec(error::success);
 
     node_threads_.shutdown();
     database_threads_.shutdown();
     memory_threads_.shutdown();
+    blockchain_.stop();
     tx_pool_.stop();
     network_.stop();
     log::debug(LOG_NODE)

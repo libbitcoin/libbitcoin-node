@@ -51,29 +51,8 @@ session::session(threadpool& pool, p2p& network, block_chain& blockchain,
 {
 }
 
-void session::start(completion_handler handle_complete)
+void session::start()
 {
-    network_.start(
-        std::bind(&session::subscribe,
-            this, _1, handle_complete));
-}
-
-void session::stop(completion_handler handle_complete)
-{
-    network_.stop(handle_complete);
-}
-
-void session::subscribe(const code& ec,
-    completion_handler handle_complete)
-{
-    if (ec)
-    {
-        log::error(LOG_SESSION)
-            << "Failure starting session: " << ec.message();
-        handle_complete(ec);
-        return;
-    }
-
     // Subscribe to new connections.
     network_.subscribe(
         std::bind(&session::new_channel,
@@ -83,8 +62,6 @@ void session::subscribe(const code& ec,
     blockchain_.subscribe_reorganize(
         std::bind(&session::handle_new_blocks,
             this, _1, _2, _3, _4));
-
-    handle_complete(ec);
 }
 
 void session::new_channel(const code& ec, channel::ptr node)

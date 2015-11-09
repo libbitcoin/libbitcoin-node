@@ -115,8 +115,7 @@ private:
     static std::string format(const config::authority& authority);
     static std::string format(const chain::index_list& unconfirmed);
 
-    void handle_session_start(const code& ec, result_handler handler);
-    void handle_session_stop(const code& ec, result_handler handler);
+    void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_network_start(const code& ec, result_handler handler);
     void handle_fetch_height(const code& ec, uint64_t height,
         result_handler handler);

@@ -23,7 +23,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <set>
+#include <functional>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,19 +36,16 @@ namespace node {
 class BCN_API session
 {
 public:
-    typedef std::function<void (const code&)> completion_handler;
+    typedef std::function<void (const code&)> result_handler;
 
     session(threadpool& pool, network::p2p& protocol,
         blockchain::block_chain& blockchain, poller& poller,
         blockchain::transaction_pool& transaction_pool,
-        responder& responder, size_t minimum_start_height=0);
+        responder& responder, size_t minimum_start_height);
 
-    void start(completion_handler handle_complete);
-    void stop(completion_handler handle_complete);
+    void start();
 
 private:
-    void subscribe(const code& ec, completion_handler handle_complete);
-
     void new_channel(const code& ec, network::channel::ptr node);
 
     void handle_new_blocks(const code& ec, uint64_t fork_point,
