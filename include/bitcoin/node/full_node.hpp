@@ -102,8 +102,10 @@ protected:
     threadpool memory_threads_;
     blockchain::transaction_pool tx_pool_;
 
-    threadpool node_threads_;
+    // network_ manages its own threads, others will eventually
     network::p2p network_;
+
+    threadpool node_threads_;
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;

@@ -42,98 +42,71 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 using std::placeholders::_4;
-using boost::posix_time::seconds;
-using boost::posix_time::minutes;
 using namespace boost::filesystem;
 using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::network;
 
-/// default settings (testnet)
-const configuration full_node::defaults = configuration
+static const configuration default_configuration()
 {
-    // [node]
-    node::settings
-    {
-        NODE_THREADS,
-        NODE_TRANSACTION_POOL_CAPACITY,
-        NODE_PEERS,
-        NODE_BLACKLISTS
-    },
+    configuration defaults;
+    defaults.node.threads = NODE_THREADS;
+    defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
+    defaults.node.peers = NODE_PEERS;
+    defaults.node.blacklists = NODE_BLACKLISTS;
 
-    // [blockchain]
-    blockchain::settings
-    {
-        BLOCKCHAIN_THREADS,
-        BLOCKCHAIN_BLOCK_POOL_CAPACITY,
-        BLOCKCHAIN_HISTORY_START_HEIGHT,
-        BLOCKCHAIN_TESTNET_RULES_TESTNET,
-        BLOCKCHAIN_DATABASE_PATH,
-        BLOCKCHAIN_CHECKPOINTS_TESTNET
-    },
+    defaults.chain.threads = BLOCKCHAIN_THREADS;
+    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
+    defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
+    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_TESTNET;
+    defaults.chain.database_path = BLOCKCHAIN_DATABASE_PATH;
+    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_TESTNET;
 
-    // [network]
-    network::settings
-    {
-        NETWORK_THREADS,
-        NETWORK_IDENTIFIER_TESTNET,
-        NETWORK_INBOUND_PORT_TESTNET,
-        NETWORK_INBOUND_CONNECTION_LIMIT,
-        NETWORK_OUTBOUND_CONNECTIONS,
-        NETWORK_CONNECT_ATTEMPTS,
-        NETWORK_CONNECT_TIMEOUT_SECONDS,
-        NETWORK_CHANNEL_HANDSHAKE_SECONDS,
-        NETWORK_CHANNEL_REVIVAL_MINUTES,
-        NETWORK_CHANNEL_HEARTBEAT_MINUTES,
-        NETWORK_CHANNEL_INACTIVITY_MINUTES,
-        NETWORK_CHANNEL_EXPIRATION_MINUTES,
-        NETWORK_CHANNEL_GERMINATION_SECONDS,
-        NETWORK_HOST_POOL_CAPACITY,
-        NETWORK_RELAY_TRANSACTIONS,
-        NETWORK_HOSTS_FILE,
-        NETWORK_DEBUG_FILE,
-        NETWORK_ERROR_FILE,
-        NETWORK_SELF,
-        NETWORK_BLACKLISTS,
-        NETWORK_SEEDS_TESTNET
-    }
+    defaults.network.threads = NETWORK_THREADS;
+    defaults.network.identifier = NETWORK_IDENTIFIER_TESTNET;
+    defaults.network.inbound_port = NETWORK_INBOUND_PORT_TESTNET;
+    defaults.network.inbound_connection_limit = NETWORK_INBOUND_CONNECTION_LIMIT;
+    defaults.network.outbound_connections = NETWORK_OUTBOUND_CONNECTIONS;
+    defaults.network.connect_attempts = NETWORK_CONNECT_ATTEMPTS;
+    defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
+    defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
+    defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
+    defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
+    defaults.network.channel_inactivity_minutes = NETWORK_CHANNEL_INACTIVITY_MINUTES;
+    defaults.network.channel_expiration_minutes = NETWORK_CHANNEL_EXPIRATION_MINUTES;
+    defaults.network.channel_germination_seconds = NETWORK_CHANNEL_GERMINATION_SECONDS;
+    defaults.network.host_pool_capacity = NETWORK_HOST_POOL_CAPACITY;
+    defaults.network.relay_transactions = NETWORK_RELAY_TRANSACTIONS;
+    defaults.network.hosts_file = NETWORK_HOSTS_FILE;
+    defaults.network.debug_file = NETWORK_DEBUG_FILE;
+    defaults.network.error_file = NETWORK_ERROR_FILE;
+    defaults.network.self = NETWORK_SELF;
+    defaults.network.blacklists = NETWORK_BLACKLISTS;
+    defaults.network.seeds = NETWORK_SEEDS_TESTNET;
+
+    return defaults;
 };
+
+const configuration full_node::defaults = default_configuration();
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-/* TODO: create a configuration class for thread priority. */
 full_node::full_node(const configuration& config)
   : configuration_(config),
     debug_file_(config.network.debug_file.string(), append),
     error_file_(config.network.error_file.string(), append),
-
     database_threads_(config.chain.threads, thread_priority::low),
-    blockchain_(
-        database_threads_,
-        config.chain.database_path.string(),
-        config.chain.history_start_height,
-        config.chain.block_pool_capacity,
-        config.chain.use_testnet_rules,
-        config.chain.checkpoints),
-
+    blockchain_(database_threads_, config.chain),
     memory_threads_(config.node.threads, thread_priority::low),
     tx_pool_(memory_threads_, blockchain_,
         config.node.transaction_pool_capacity),
-        
-    /* node threads is now duplicative as network_ manages its own threads */
-    node_threads_(config.network.threads, thread_priority::low),
     network_(config.network),
+    node_threads_(config.network.threads, thread_priority::low),
     tx_indexer_(node_threads_),
     poller_(node_threads_, blockchain_),
     responder_(blockchain_, tx_pool_),
-    session_(
-        node_threads_,
-        network_,
-        blockchain_,
-        poller_,
-        tx_pool_,
-        responder_, 
-        config.minimum_start_height())
+    session_(node_threads_, network_, blockchain_, poller_, tx_pool_,
+        responder_, config.minimum_start_height())
 {
 }
 
