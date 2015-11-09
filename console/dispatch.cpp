@@ -77,6 +77,7 @@ using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::node;
 using namespace bc::network;
+using namespace bc::wallet;
 
 static void display_history(const std::error_code& ec,
     const block_chain::history& history,
@@ -216,17 +217,23 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     output << format(BN_NODE_STARTING) % directory << std::endl;
 
     full_node node;
-
     std::promise<code> start_promise;
     const auto handle_start = [&start_promise](const code& ec)
     {
         start_promise.set_value(ec);
     };
+
     node.start(handle_start);
     auto ec = start_promise.get_future().get();
 
+    if (ec)
+    {
+        output << format(BN_NODE_START_FAIL) << std::endl;
+        return console_result::not_started;
+    }
+
     // Accept address queries from the console.
-    while (!ec)
+    while (true)
     {
         std::string command;
         std::getline(bc::cin, command);
@@ -237,7 +244,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             break;
         }
 
-        const auto address = wallet::payment_address(trimmed);
+        const auto address = payment_address(trimmed);
         if (!address)
         {
             output << BN_INVALID_ADDRESS << std::endl;
@@ -260,11 +267,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
         stop_promise.set_value(ec);
     };
 
-    // The blockchain unmap is initiated by the node stop but not completed.
     node.stop(handle_stop);
-
-    // Ignore the stop error code.
-    stop_promise.get_future().wait();
-
+    ec = stop_promise.get_future().get();
     return ec ? console_result::failure : console_result::okay;
 }
