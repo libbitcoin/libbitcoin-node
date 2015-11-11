@@ -80,18 +80,11 @@ void responder::receive_get_data(const code& ec, const get_data& packet,
         std::bind(&responder::receive_get_data,
             this, _1, _2, node));
 
-    const auto blocks = packet.inventories.count(
-        inventory_type_id::block);
-    const auto transactions = packet.inventories.count(
-        inventory_type_id::transaction);
-    const auto filtered = packet.inventories.count(
-        inventory_type_id::filtered_block);
-
     log::debug(LOG_RESPONDER)
         << "Getdata BEGIN [" << peer << "] "
-        << "txs (" << transactions << ") "
-        << "blocks (" << blocks << ") "
-        << "filtered (" << filtered << ")";
+        << "txs (" << packet.count(inventory_type_id::transaction) << ") "
+        << "blocks (" << packet.count(inventory_type_id::block) << ") "
+        << "bloom (" << packet.count(inventory_type_id::filtered_block) << ")";
 
     for (const auto& inventory: packet.inventories)
     {

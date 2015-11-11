@@ -203,18 +203,11 @@ void session::receive_inv(const code& ec, const inventory& packet,
         std::bind(&session::receive_inv,
             this, _1, _2, node));
 
-    const auto blocks = packet.inventories.count(
-        inventory_type_id::block);
-    const auto transactions = packet.inventories.count(
-        inventory_type_id::transaction);
-    const auto filtered = packet.inventories.count(
-        inventory_type_id::filtered_block);
-
-    log::debug(LOG_SESSION)
+    log::debug(LOG_RESPONDER)
         << "Inventory BEGIN [" << peer << "] "
-        << "txs (" << transactions << ") "
-        << "blocks (" << blocks << ") "
-        << "filtered (" << filtered << ")";
+        << "txs (" << packet.count(inventory_type_id::transaction) << ") "
+        << "blocks (" << packet.count(inventory_type_id::block) << ") "
+        << "bloom (" << packet.count(inventory_type_id::filtered_block) << ")";
 
     // TODO: build an inventory vector vs. individual requests.
     // See commented out (redundant) code in poller.cpp.
