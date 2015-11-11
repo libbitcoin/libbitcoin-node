@@ -179,18 +179,6 @@ void session::handle_new_blocks(const code& ec, uint64_t fork_point,
     network_.broadcast(blocks_inventory, broadcast_handler, unhandled);
 }
 
-// TODO: consolidate to libbitcoin utils.
-static size_t inventory_count(const inventory_vector::list& inventories,
-    inventory_type_id type_id)
-{
-    size_t count = 0;
-    for (const auto& inventory: inventories)
-        if (inventory.type == type_id)
-            ++count;
-
-    return count;
-}
-
 // Put this on a short timer following lack of block inv.
 // request_blocks(null_hash, node);
 void session::receive_inv(const code& ec, const inventory& packet,
@@ -215,11 +203,11 @@ void session::receive_inv(const code& ec, const inventory& packet,
         std::bind(&session::receive_inv,
             this, _1, _2, node));
 
-    const auto blocks = inventory_count(packet.inventories,
+    const auto blocks = packet.inventories.count(
         inventory_type_id::block);
-    const auto transactions = inventory_count(packet.inventories,
+    const auto transactions = packet.inventories.count(
         inventory_type_id::transaction);
-    const auto filtered = inventory_count(packet.inventories,
+    const auto filtered = packet.inventories.count(
         inventory_type_id::filtered_block);
 
     log::debug(LOG_SESSION)
