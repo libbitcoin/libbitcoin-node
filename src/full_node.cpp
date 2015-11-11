@@ -26,13 +26,11 @@
 #include <system_error>
 #include <vector>
 #include <boost/filesystem.hpp>
-#include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/config/settings_type.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
-#include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
@@ -43,265 +41,75 @@ namespace node {
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
-using boost::format;
-using boost::posix_time::seconds;
-using boost::posix_time::minutes;
+using std::placeholders::_4;
 using namespace boost::filesystem;
 using namespace bc::blockchain;
+using namespace bc::chain;
 using namespace bc::network;
 
-// Localizable messages.
-
-// Session errors.
-#define BN_CONNECTION_START_ERROR \
-    "Error starting connection: %1%"
-#define BN_SESSION_START_ERROR \
-    "Error starting session: %1%"
-#define BN_SESSION_STOP_ERROR \
-    "Error stopping session: %1%"
-#define BN_SESSION_START_HEIGHT_FETCH_ERROR \
-    "Error fetching start height: %1%"
-#define BN_SESSION_START_HEIGHT_SET_ERROR \
-    "Error setting start height: %1%"
-#define BN_SESSION_START_HEIGHT \
-    "Set start height (%1%)"
-
-// Transaction successes.
-#define BN_TX_ACCEPTED \
-    "Accepted transaction into memory pool [%1%]"
-#define BN_TX_ACCEPTED_WITH_INPUTS \
-    "Accepted transaction into memory pool [%1%] with unconfirmed inputs (%2%)"
-#define BN_TX_CONFIRMED \
-    "Confirmed transaction into blockchain [%1%]"
-
-// Transaction failures.
-#define BN_TX_ACCEPT_FAILURE \
-    "Failure accepting transaction in memory pool [%1%] %2%"
-#define BN_TX_CONFIRM_FAILURE \
-    "Failure confirming transaction into blockchain [%1%] %2%"
-#define BN_TX_DEINDEX_FAILURE \
-    "Failure deindexing transaction [%1%] %2%"
-#define BN_TX_INDEX_FAILURE \
-    "Failure indexing transaction [%1%] %2%"
-#define BN_TX_RECEIVE_FAILURE \
-    "Failure receiving transaction [%1%] %2%"
-
-const settings_type full_node::defaults
+static const configuration default_configuration()
 {
-    // [node]
-    bc::node::settings
-    {
-        NODE_THREADS,
-        NODE_TRANSACTION_POOL_CAPACITY,
-        NODE_PEERS,
-        NODE_BLACKLISTS
-    },
-
-    // [blockchain]
-    bc::chain::settings
-    {
-        BLOCKCHAIN_THREADS,
-        BLOCKCHAIN_BLOCK_POOL_CAPACITY,
-        BLOCKCHAIN_HISTORY_START_HEIGHT,
-        BLOCKCHAIN_TESTNET_RULES_MAINNET,
-        BLOCKCHAIN_DATABASE_PATH,
-        BLOCKCHAIN_CHECKPOINTS_MAINNET
-    },
-
-    // [network]
-    bc::network::settings
-    {
-        NETWORK_THREADS,
-        NETWORK_IDENTIFIER_MAINNET,
-        NETWORK_INBOUND_PORT_MAINNET,
-        NETWORK_INBOUND_CONNECTION_LIMIT,
-        NETWORK_OUTBOUND_CONNECTIONS,
-        NETWORK_CONNECT_TIMEOUT_SECONDS,
-        NETWORK_CHANNEL_HANDSHAKE_SECONDS,
-        NETWORK_CHANNEL_REVIVAL_MINUTES,
-        NETWORK_CHANNEL_HEARTBEAT_MINUTES,
-        NETWORK_CHANNEL_INACTIVITY_MINUTES,
-        NETWORK_CHANNEL_EXPIRATION_MINUTES,
-        NETWORK_CHANNEL_GERMINATION_SECONDS,
-        NETWORK_HOST_POOL_CAPACITY,
-        NETWORK_RELAY_TRANSACTIONS,
-        NETWORK_HOSTS_FILE,
-        NETWORK_DEBUG_FILE,
-        NETWORK_ERROR_FILE,
-        NETWORK_SELF,
-        NETWORK_SEEDS_MAINNET
-    }
+    configuration defaults;
+    defaults.node.threads = NODE_THREADS;
+    defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
+    defaults.node.peers = NODE_PEERS;
+    defaults.chain.threads = BLOCKCHAIN_THREADS;
+    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
+    defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
+    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_TESTNET;
+    defaults.chain.database_path = BLOCKCHAIN_DATABASE_PATH;
+    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_TESTNET;
+    defaults.network.threads = NETWORK_THREADS;
+    defaults.network.identifier = NETWORK_IDENTIFIER_TESTNET;
+    defaults.network.inbound_port = NETWORK_INBOUND_PORT_TESTNET;
+    defaults.network.inbound_connection_limit = NETWORK_INBOUND_CONNECTION_LIMIT;
+    defaults.network.outbound_connections = NETWORK_OUTBOUND_CONNECTIONS;
+    defaults.network.connect_attempts = NETWORK_CONNECT_ATTEMPTS;
+    defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
+    defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
+    defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
+    defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
+    defaults.network.channel_inactivity_minutes = NETWORK_CHANNEL_INACTIVITY_MINUTES;
+    defaults.network.channel_expiration_minutes = NETWORK_CHANNEL_EXPIRATION_MINUTES;
+    defaults.network.channel_germination_seconds = NETWORK_CHANNEL_GERMINATION_SECONDS;
+    defaults.network.host_pool_capacity = NETWORK_HOST_POOL_CAPACITY;
+    defaults.network.relay_transactions = NETWORK_RELAY_TRANSACTIONS;
+    defaults.network.hosts_file = NETWORK_HOSTS_FILE;
+    defaults.network.debug_file = NETWORK_DEBUG_FILE;
+    defaults.network.error_file = NETWORK_ERROR_FILE;
+    defaults.network.self = NETWORK_SELF;
+    defaults.network.blacklists = NETWORK_BLACKLISTS;
+    defaults.network.seeds = NETWORK_SEEDS_TESTNET;
+    return defaults;
 };
+
+const configuration full_node::defaults = default_configuration();
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-/* TODO: create a configuration class for thread priority. */
-full_node::full_node(const settings_type& config)
-  : debug_file_(
-        config.network.debug_file.string(),
-        append),
-    error_file_(
-        config.network.error_file.string(),
-        append),
-    network_threads_(
-        config.network.threads,
-        thread_priority::low),
-    host_pool_(
-        network_threads_,
-        config.network.hosts_file,
-        config.network.host_pool_capacity),
-    network_(
-        network_threads_,
-        config.network.identifier,
-        config.timeouts),
-    protocol_(
-        network_threads_,
-        host_pool_,
-        network_,
-        config.network.inbound_port,
-        config.network.relay_transactions,
-        config.network.outbound_connections,
-        config.network.inbound_connection_limit,
-        config.network.seeds,
-        config.network.self,
-        config.timeouts),
-
-    database_threads_(
-        config.chain.threads,
-        thread_priority::low),
-    blockchain_(
-        database_threads_,
-        config.chain.database_path.string(),
-        config.chain.history_start_height,
-        config.chain.block_pool_capacity,
-        config.chain.use_testnet_rules,
-        config.chain.checkpoints),
-   
-    memory_threads_(
-        config.node.threads,
-        thread_priority::low),
-    tx_pool_(
-        memory_threads_,
-        blockchain_,
+full_node::full_node(const configuration& config)
+  : configuration_(config),
+    debug_file_(config.network.debug_file.string(), append),
+    error_file_(config.network.error_file.string(), append),
+    database_threads_(config.chain.threads, thread_priority::low),
+    blockchain_(database_threads_, config.chain),
+    memory_threads_(config.node.threads, thread_priority::low),
+    tx_pool_(memory_threads_, blockchain_,
         config.node.transaction_pool_capacity),
-    tx_indexer_(
-        memory_threads_),
-    poller_(
-        memory_threads_,
-        blockchain_),
-    responder_(
-        blockchain_,
-        tx_pool_),
-    session_(
-        /* TODO: use node threads here? */
-        network_threads_,
-        protocol_,
-        blockchain_,
-        poller_,
-        tx_pool_,
-        responder_, 
-        config.minimum_start_height())
+    network_(config.network),
+    node_threads_(config.network.threads, thread_priority::low),
+    tx_indexer_(node_threads_),
+    poller_(node_threads_, blockchain_),
+    responder_(blockchain_, tx_pool_),
+    session_(node_threads_, network_, blockchain_, poller_, tx_pool_,
+        responder_, config.last_checkpoint_height())
 {
 }
 
-static std::string format_blacklist(const config::authority& authority)
+full_node::~full_node()
 {
-    auto formatted = authority.to_string();
-    if (authority.port() == 0)
-        formatted += ":*";
-
-    return formatted;
-}
-
-bool full_node::start(const settings_type& config)
-{
-    // Set up logging for node background threads.
-    initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr,
-        config.log_to_skip());
-
-    // Start the blockchain.
-    if (!blockchain_.start())
-        return false;
-
-    // Register the transaction pool against reorg notifications.
-    if (!tx_pool_.start())
-        return false;
-
-    std::promise<code> height_promise;
-    blockchain_.fetch_last_height(
-        std::bind(&full_node::set_height,
-            this, _1, _2, std::ref(height_promise)));
-
-    // Wait for set height completion.
-    if (height_promise.get_future().get())
-        return false;
-
-    // Add banned connections before starting the session.
-    for (const auto& authority: config.node.blacklists)
-    {
-        log_info(LOG_NODE)
-            << "Blacklisted peer [" << format_blacklist(authority) << "]";
-        protocol_.blacklist(authority);
-    }
-
-    // Add configured connections before starting the session.
-    for (const auto& endpoint: config.node.peers)
-    {
-        log_info(LOG_NODE)
-            << "Connecting peer [" << endpoint << "]";
-        protocol_.maintain_connection(endpoint.host(), endpoint.port(),
-            config.network.relay_transactions);
-    }
-
-    std::promise<code> session_promise;
-    session_.start(
-        std::bind(&full_node::handle_start,
-            this, _1, std::ref(session_promise)));
-
-    // Wait for start completion.
-    const auto started = !session_promise.get_future().get();
-    return started;
-}
-
-bool full_node::stop()
-{
-    // Use promise to block on main thread until stop completes.
-    std::promise<code> promise;
-
-    // Stop the session.
-    session_.stop(
-        std::bind(&full_node::handle_stop,
-            this, _1, std::ref(promise)));
-
-    // Wait for stop completion.
-    auto success = !promise.get_future().get();
-
-    log_debug(LOG_NODE)
-        << "Session stopped.";
-
-    // Try and close blockchain database even if session stop failed.
-    // Blockchain stop is currently non-blocking, so the result is misleading.
-    // No need to stop tx_pool, it will get a shutdown notification from this.
-    if (!blockchain_.stop())
-        success = false;
-
-    // Signal the threadpools to stop.
-    network_threads_.shutdown();
-    database_threads_.shutdown();
-    memory_threads_.shutdown();
-
-    log_debug(LOG_NODE)
-        << "Threads signaled.";
-
-    // Wait for threads to finish.
-    network_threads_.join();
-    database_threads_.join();
-    memory_threads_.join();
-
-    log_debug(LOG_NODE)
-        << "Threads joined.";
-
-    return success;
+    const auto unhandled = [](const code&){};
+    stop(unhandled);
 }
 
 block_chain& full_node::blockchain()
@@ -319,9 +127,9 @@ node::indexer& full_node::transaction_indexer()
     return tx_indexer_;
 }
 
-network::p2p& full_node::protocol()
+p2p& full_node::network()
 {
-    return protocol_;
+    return network_;
 }
 
 threadpool& full_node::pool()
@@ -329,135 +137,226 @@ threadpool& full_node::pool()
     return memory_threads_;
 }
 
-void full_node::handle_start(const code& ec,
-    std::promise<code>& promise)
+void full_node::start(result_handler handler)
+{
+    initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr);
+
+    static const auto startup = "================= startup ==================";
+    log::debug(LOG_NODE) << startup;
+    log::info(LOG_NODE) << startup;
+    log::warning(LOG_NODE) << startup;
+    log::error(LOG_NODE) << startup;
+    log::fatal(LOG_NODE) << startup;
+
+    blockchain_.start(
+        std::bind(&full_node::handle_blockchain_start,
+            this, _1, handler));
+}
+
+void full_node::handle_blockchain_start(const code& ec, result_handler handler)
 {
     if (ec)
     {
-        log_error(LOG_NODE)
-            << format(BN_SESSION_START_ERROR) % ec.message();
-        promise.set_value(ec);
+        log::info(LOG_NODE)
+            << "Blockchain failed to start: " << ec.message();
+        handler(ec);
+        return;
+    }
+
+    tx_pool_.start();
+
+    network_.start(
+        std::bind(&full_node::handle_network_start,
+            this, _1, handler));
+}
+
+void full_node::handle_network_start(const code& ec, result_handler handler)
+{
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Error starting session: " << ec.message();
+        handler(ec);
         return;
     }
 
     // Subscribe to new connections.
-    protocol_.subscribe_channel(
-        std::bind(&full_node::new_channel,
+    network_.subscribe(
+        std::bind(&full_node::handle_new_channel,
             this, _1, _2));
 
-    promise.set_value(ec);
+    // Pass the initial blockchain height to the network.
+    blockchain_.fetch_last_height(
+        std::bind(&full_node::handle_fetch_height,
+            this, _1, _2, handler));
 }
 
-void full_node::set_height(const code& ec, uint64_t height,
-    std::promise<code>& promise)
+void full_node::handle_fetch_height(const code& ec, uint64_t height,
+    result_handler handler)
 {
     if (ec)
     {
-        log_error(LOG_SESSION)
-            << format(BN_SESSION_START_HEIGHT_FETCH_ERROR) % ec.message();
-        promise.set_value(ec);
+        log::error(LOG_SESSION)
+            << "Error fetching start height: " << ec.message();
+        handler(ec);
         return;
     }
 
-    const auto handle_set_height = [height, &promise]
-        (const code& ec)
-    {
-        if (ec)
-            log_error(LOG_SESSION)
-                << format(BN_SESSION_START_HEIGHT_SET_ERROR) % ec.message();
-        else
-            log_info(LOG_SESSION)
-                << format(BN_SESSION_START_HEIGHT) % height;
+    network_.set_height(height);
+    session_.start();
 
-        promise.set_value(ec);
-    };
+    // This is just for logging, the blacklist is used directly from config.
+    for (const auto& authority: configuration_.network.blacklists)
+        log::info(LOG_NODE)
+            << "Blacklisted peer [" << format(authority) << "]";
 
-    // HACK: not setting start height yet.
-    handle_set_height(ec);
-    ////handshake_.set_start_height(height, handle_set_height);
+    // Start configured connections before starting the session.
+    for (const auto& endpoint: configuration_.node.peers)
+        network_.connect(endpoint.host(), endpoint.port(),
+            std::bind(&full_node::handle_manual_connect,
+                this, _1, _2, endpoint));
+
+    handler(error::success);
 }
 
-void full_node::handle_stop(const code& ec, std::promise<code>& promise)
+std::string full_node::format(const config::authority& authority)
+{
+    auto formatted = authority.to_string();
+    if (authority.port() == 0)
+        formatted += ":*";
+
+    return formatted;
+}
+
+// This will log on the first successful connection to each configured peer.
+void full_node::handle_manual_connect(const code& ec, channel::ptr channel,
+    const config::endpoint& endpoint)
 {
     if (ec)
-        log_error(LOG_NODE)
-            << format(BN_SESSION_STOP_ERROR) % ec.message();
-
-    promise.set_value(ec);
+        log::info(LOG_NODE)
+            << "Failure connecting configured peer [" << endpoint << "] "
+            << ec.message();
+    else
+        log::info(LOG_NODE)
+            << "Connected configured peer [" << endpoint << "]";
 }
 
-void full_node::new_channel(const code& ec, channel::ptr node)
+// The handler is not called until all threads are coalesced.
+// TODO: handle blockchain and network shutdown errors (file-based).
+void full_node::stop(result_handler handler)
 {
-    // This is the sentinel code for protocol stopping (and node is nullptr).
+    code ec(error::success);
+
+    node_threads_.shutdown();
+    database_threads_.shutdown();
+    memory_threads_.shutdown();
+    blockchain_.stop(/* handler */);
+    network_.stop(/* handler */);
+
+    node_threads_.join();
+    database_threads_.join();
+    memory_threads_.join();
+    network_.close();
+
+    handler(ec);
+}
+
+void full_node::handle_new_channel(const code& ec, channel::ptr node)
+{
     if (ec == error::service_stopped)
         return;
 
+    // Stay subscribed to new channels unless stopping.
+    network_.subscribe(
+        std::bind(&full_node::handle_new_channel,
+            this, _1, _2));
+
     if (ec)
     {
-        log_info(LOG_NODE)
-            << format(BN_CONNECTION_START_ERROR) % ec.message();
+        log::info(LOG_NODE)
+            << "Error starting transaction subscription for ["
+            << node ->authority() << "] " << ec.message();
         return;
     }
 
-    // Subscribe to transaction messages from this node.
-    node->subscribe<message::transaction>(
-        std::bind(&full_node::recieve_tx,
+    // Subscribe to transaction messages from this channel.
+    node->subscribe<transaction>(
+        std::bind(&full_node::handle_recieve_tx,
             this, _1, _2, node));
-
-    // Stay subscribed to new connections.
-    protocol_.subscribe_channel(
-        std::bind(&full_node::new_channel,
-            this, _1, _2));
 }
 
-void full_node::recieve_tx(const code& ec,
-    const chain::transaction& tx, channel::ptr node)
+void full_node::handle_recieve_tx(const code& ec, const transaction& tx,
+    channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
 
+    // Resubscribe to receive transaction messages from this channel.
+    node->subscribe<transaction>(
+        std::bind(&full_node::handle_recieve_tx,
+            this, _1, _2, node));
+
+    const auto hash = tx.hash();
+    const auto encoded = encode_hash(hash);
+
     if (ec)
     {
-        log_debug(LOG_NODE)
-            << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
+        log::debug(LOG_NODE)
+            << "Failure receiving transaction [" << encoded << "] from ["
+            << node->authority() << "] " << ec.message();
         return;
     }
 
-    // Called when the transaction becomes confirmed in a block.
-    const auto handle_confirm = [this, tx](const code& ec)
-    {
-        const auto hash = encode_hash(tx.hash());
+    log::debug(LOG_NODE)
+        << "Received transaction [" << encoded << "] from ["
+        << node->authority() << "]";
 
-        if (ec)
-            log_warning(LOG_NODE)
-            << format(BN_TX_CONFIRM_FAILURE) % hash % ec.message();
-        else
-            log_debug(LOG_NODE)
-                << format(BN_TX_CONFIRMED) % hash;
-
-        const auto handle_deindex = [hash](const code& ec)
-        {
-            if (ec)
-                log_error(LOG_NODE)
-                    << format(BN_TX_DEINDEX_FAILURE) % hash % ec.message();
-        };
-
-        tx_indexer_.deindex(tx, handle_deindex);
-    };
-
-    // Validate and store the tx in the transaction mempool.
-    tx_pool_.store(tx, handle_confirm,
-        std::bind(&full_node::new_unconfirm_valid_tx,
-            this, _1, _2, tx));
-
-    // Resubscribe to receive transaction messages from this node.
-    node->subscribe<message::transaction>(
-        std::bind(&full_node::recieve_tx,
-            this, _1, _2, node));
+    // Validate the tx and store it in the memory pool.
+    // If validation returns an error then confirmation will never be called.
+    tx_pool_.store(tx, 
+        std::bind(&full_node::handle_tx_confirmed,
+            this, _1, _2, _3),
+        std::bind(&full_node::handle_tx_validated,
+            this, _1, _2, _3, _4));
 }
 
-static std::string format_unconfirmed_inputs(
-    const chain::index_list& unconfirmed)
+// Called when the transaction becomes confirmed in a block.
+void full_node::handle_tx_confirmed(const code& ec, const transaction& tx,
+    const hash_digest& hash)
+{
+    const auto encoded = encode_hash(hash);
+
+    // This could be error::blockchain_reorganized (we dump the pool),
+    // error::pool_filled or error::double_spend (where the tx is a dependency
+    // of retractive double spend).
+    if (ec)
+        log::warning(LOG_NODE)
+        << "Discarded transaction [" << encoded << "] from memory pool: "
+            << ec.message();
+    else
+        log::debug(LOG_NODE)
+        << "Confirmed transaction [" << encoded << "] into blockchain.";
+
+    tx_indexer_.deindex(tx,
+        std::bind(&full_node::handle_tx_deindexed,
+            this, _1, hash));
+}
+
+void full_node::handle_tx_deindexed(const code& ec, const hash_digest& hash)
+{
+    const auto encoded = encode_hash(hash);
+
+    if (ec)
+        log::error(LOG_NODE)
+            << "Failure removing confirmed transaction [" << encoded
+            << "] from memory pool index: " << ec.message();
+    else
+        log::debug(LOG_NODE)
+            << "Removed confirmed transaction [" << encoded
+            << "] from memory pool index.";
+}
+
+std::string full_node::format(const index_list& unconfirmed)
 {
     if (unconfirmed.empty())
         return "";
@@ -469,40 +368,49 @@ static std::string format_unconfirmed_inputs(
     return bc::join(inputs, ",");
 }
 
-void full_node::new_unconfirm_valid_tx(const code& ec,
-    const chain::index_list& unconfirmed, const chain::transaction& tx)
+// Called when the transaction passes memory pool validation.
+void full_node::handle_tx_validated(const code& ec, const transaction& tx,
+    const hash_digest& hash, const index_list& unconfirmed)
 {
-    const auto hash = encode_hash(tx.hash());
-
-    const auto handle_index = [hash](const code& ec)
-    {
-        if (ec)
-            log_error(LOG_NODE)
-                << format(BN_TX_INDEX_FAILURE) % hash % ec.message();
-    };
+    const auto encoded = encode_hash(hash);
 
     if (ec)
-        log_debug(LOG_NODE)
-            << format(BN_TX_ACCEPT_FAILURE) % hash % ec.message();
-    else if (unconfirmed.empty())
-        log_debug(LOG_NODE)
-            << format(BN_TX_ACCEPTED) % hash;
-    else
-        log_debug(LOG_NODE)
-            << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash %
-                format_unconfirmed_inputs(unconfirmed);
-        
-    if (!ec)
-        tx_indexer_.index(tx, handle_index);
+    {
+        log::debug(LOG_NODE)
+            << "Failure accepting transaction [" << encoded << "]"
+            << ec.message();
+        return;
+    }
+
+    log::debug(LOG_NODE)
+        << "Accepted transaction [" << encoded
+        << "] with unconfirmed input indexes (" << format(unconfirmed) << ")";
+
+    tx_indexer_.index(tx, 
+        std::bind(&full_node::handle_tx_indexed,
+            this, _1, hash));
 }
 
-// HACK: this is for access to broadcast_new_blocks to facilitate server
+void full_node::handle_tx_indexed(const code& ec, const hash_digest& hash)
+{
+    const auto encoded = encode_hash(hash);
+
+    if (ec)
+        log::error(LOG_NODE)
+            << "Failure adding transaction [" << encoded
+            << "] to memory pool index: " << ec.message();
+    else
+        log::debug(LOG_NODE)
+            << "Added transaction [" << encoded << "] to memory pool index.";
+}
+
+// HACK: this is for access to handle_new_blocks to facilitate server
 // inheritance of full_node. The organization should be refactored.
-void full_node::broadcast_new_blocks(const code& ec, uint64_t fork_point,
+void full_node::handle_new_blocks(const code& ec, uint64_t fork_point,
     const block_chain::list& new_blocks,
     const block_chain::list& replaced_blocks)
 {
-    session_.broadcast_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
+    session_.handle_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
 }
 
 } // namspace node

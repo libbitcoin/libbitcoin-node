@@ -17,31 +17,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SETTINGS_TYPE_HPP
-#define LIBBITCOIN_NODE_SETTINGS_TYPE_HPP
+#ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
+#define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
 #include <cstdint>
 #include <string>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/config/settings.hpp>
+#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-// TODO: rename to configuration
-class BCN_API settings_type
+class BCN_API configuration
 {
 public:
-    settings_type()
+    configuration()
     {
     }
 
-    settings_type(
+    configuration(
         const node::settings& node_settings,
-        const chain::settings& chain_settings,
+        const blockchain::settings& chain_settings,
         const network::settings& network_settings)
       : node(node_settings),
         chain(chain_settings),
@@ -49,41 +49,17 @@ public:
     {
     }
 
-    // HACK: generalize logging.
-    virtual std::string log_to_skip() const
-    {
-        return "";
-    }
-
     // Convenience.
-    virtual size_t minimum_start_height() const
+    virtual size_t last_checkpoint_height() const
     {
         return chain.checkpoints.empty() ? 0 : 
             chain.checkpoints.back().height();
     }
 
-    // This allows timeouts to be const.
-    virtual void initialize_timeouts()
-    {
-        using boost::posix_time::minutes;
-        using boost::posix_time::seconds;
-
-        timeouts.connect = seconds(network.connect_timeout_seconds);
-        timeouts.handshake = seconds(network.channel_handshake_seconds);
-        timeouts.revival = minutes(network.channel_revival_minutes);
-        timeouts.heartbeat = minutes(network.channel_heartbeat_minutes);
-        timeouts.inactivity = minutes(network.channel_inactivity_minutes);
-        timeouts.expiration = minutes(network.channel_expiration_minutes);
-        timeouts.germination = seconds(network.channel_germination_seconds);
-    }
-
     // settings
     node::settings node;
-    chain::settings chain;
+    blockchain::settings chain;
     network::settings network;
-
-    // Convenience.
-    network::timeout timeouts;
 };
 
 } // namespace node

@@ -19,6 +19,7 @@
  */
 #include "dispatch.hpp"
 
+#include <future>
 #include <iostream>
 #include <string>
 #include <system_error>
@@ -75,6 +76,8 @@ using namespace bc;
 using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::node;
+using namespace bc::network;
+using namespace bc::wallet;
 
 static void display_history(const std::error_code& ec,
     const block_chain::history& history,
@@ -210,26 +213,27 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     signal(SIGTERM, interrupt_handler);
     signal(SIGINT, interrupt_handler);
 
-    // Set up logging for node background threads (add to config).
-    constexpr auto append = std::ofstream::out | std::ofstream::app;
-    bc::ofstream debug_log((NETWORK_DEBUG_FILE).string(), append);
-    bc::ofstream error_log((NETWORK_ERROR_FILE).string(), append);
-    initialize_logging(debug_log, error_log, output, error);
-
     // Start up the node, which first maps the blockchain.
     output << format(BN_NODE_STARTING) % directory << std::endl;
-    full_node node;
-    const auto started = node.start();
-    if (started)
-        output << BN_NODE_START_SUCCESS << std::endl;
-    else
-        output << BN_NODE_START_FAIL << std::endl;
 
-    if (!started)
-        result = console_result::failure;
+    full_node node;
+    std::promise<code> start_promise;
+    const auto handle_start = [&start_promise](const code& ec)
+    {
+        start_promise.set_value(ec);
+    };
+
+    node.start(handle_start);
+    auto ec = start_promise.get_future().get();
+
+    if (ec)
+    {
+        output << format(BN_NODE_START_FAIL) << std::endl;
+        return console_result::not_started;
+    }
 
     // Accept address queries from the console.
-    while (started)
+    while (true)
     {
         std::string command;
         std::getline(bc::cin, command);
@@ -240,7 +244,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             break;
         }
 
-        const auto address = wallet::payment_address(trimmed);
+        const auto address = payment_address(trimmed);
         if (!address)
         {
             output << BN_INVALID_ADDRESS << std::endl;
@@ -257,15 +261,13 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             fetch_handler);
     }
 
-    // The blockchain unmap is only initiated by the node stop (not completed).
-    auto stopped = node.stop();
-    if (stopped)
-        output << format(BN_NODE_STOPPING) % directory << std::endl;
-    else
-        output << BN_NODE_STOP_FAIL << std::endl;
+    std::promise<code> stop_promise;
+    const auto handle_stop = [&stop_promise](const code& ec)
+    {
+        stop_promise.set_value(ec);
+    };
 
-    if (!stopped)
-        result = console_result::failure;
-
-    return result;
+    node.stop(handle_stop);
+    ec = stop_promise.get_future().get();
+    return ec ? console_result::failure : console_result::okay;
 }

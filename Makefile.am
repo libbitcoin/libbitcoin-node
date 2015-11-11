@@ -37,7 +37,6 @@ src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
     src/indexer.cpp \
-    src/logging.cpp \
     src/poller.cpp \
     src/responder.cpp \
     src/session.cpp
@@ -79,19 +78,15 @@ include_bitcoin_HEADERS = \
 
 include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
+    include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/full_node.hpp \
     include/bitcoin/node/indexer.hpp \
-    include/bitcoin/node/logging.hpp \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/responder.hpp \
     include/bitcoin/node/session.hpp \
+    include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
-
-include_bitcoin_node_configdir = ${includedir}/bitcoin/node/config
-include_bitcoin_node_config_HEADERS = \
-    include/bitcoin/node/config/settings.hpp \
-    include/bitcoin/node/config/settings_type.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

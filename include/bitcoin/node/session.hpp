@@ -23,7 +23,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <set>
+#include <functional>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,48 +36,44 @@ namespace node {
 class BCN_API session
 {
 public:
-    typedef std::function<void (const code&)> completion_handler;
-
     session(threadpool& pool, network::p2p& protocol,
         blockchain::block_chain& blockchain, poller& poller,
         blockchain::transaction_pool& transaction_pool,
-        responder& responder, size_t minimum_start_height=0);
+        responder& responder, size_t last_checkpoint_height);
 
-    void start(completion_handler handle_complete);
-    void stop(completion_handler handle_complete);
+    void start();
 
 private:
-    void subscribe(const code& ec,
-        completion_handler handle_complete);
     void new_channel(const code& ec, network::channel::ptr node);
-    void broadcast_new_blocks(const code& ec, uint64_t fork_point,
+
+    void handle_new_blocks(const code& ec, uint64_t fork_point,
         const blockchain::block_chain::list& new_blocks,
         const blockchain::block_chain::list& replaced_blocks);
+
     void receive_inv(const code& ec, const message::inventory& packet,
         network::channel::ptr node);
-    void receive_get_blocks(const code& ec,
-        const message::get_blocks& packet, network::channel::ptr node);
-    void new_tx_inventory(const hash_digest& tx_hash,
+    void receive_get_blocks(const code& ec, const message::get_blocks& packet,
         network::channel::ptr node);
-    void request_tx_data(const code& ec, const hash_digest& tx_hash,
+    void new_tx_inventory(const hash_digest& hash, network::channel::ptr node);
+    void request_tx_data(const code& ec, const hash_digest& hash,
         network::channel::ptr node);
-    void new_block_inventory(const hash_digest& block_hash,
+    void new_block_inventory(const hash_digest& hash,
         network::channel::ptr node);
-    void request_block_data(const hash_digest& block_hash,
+    void request_block_data(const hash_digest& hash,
         network::channel::ptr node);
     void fetch_block_handler(const code& ec, const chain::block& block,
-        const hash_digest block_hash, network::channel::ptr node);
+        const hash_digest hash, network::channel::ptr node);
 
     dispatcher dispatch_;
-    network::p2p& protocol_;
+    network::p2p& network_;
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& tx_pool_;
     node::poller& poller_;
     node::responder& responder_;
     std::atomic<uint64_t> last_height_;
-    size_t minimum_start_height_;
+    size_t last_checkpoint_height_;
 
-    // HACK: this is for access to broadcast_new_blocks to facilitate server
+    // HACK: this is for access to handle_new_blocks to facilitate server
     // inheritance of full_node. The organization should be refactored.
     friend class full_node;
 };

@@ -26,13 +26,17 @@
 
 namespace libbitcoin {
 namespace node {
+    
+/// default settings
+#define NODE_THREADS                        4
+#define NODE_TRANSACTION_POOL_CAPACITY      2000
+#define NODE_PEERS                          config::endpoint::list()
 
 struct BCN_API settings
 {
     uint32_t threads;
     uint32_t transaction_pool_capacity;
     config::endpoint::list peers;
-    config::authority::list blacklists;
 };
 
 } // namespace node

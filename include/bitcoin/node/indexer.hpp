@@ -28,30 +28,8 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 
-// Allow payment_address to be in indexed in std::*map classes.
-namespace std {
-    template <>
-    struct hash<bc::wallet::payment_address>
-    {
-        size_t operator()(const bc::wallet::payment_address& address) const
-        {
-            // Create a string of the form [address-version|address-hash].
-            std::string buffer;
-            buffer.resize(bc::short_hash_size + 1);
-            buffer[0] = address.version();
-            const auto& hash = address.hash();
-            std::copy(hash.begin(), hash.end(), buffer.begin() + 1);
-            std::hash<std::string> functor;
-            return functor(buffer);
-        }
-    };
-
-} // namspace std
-
 namespace libbitcoin {
 namespace node {
-
-using namespace message;
 
 // output_info_type is defined in <bitcoin/transaction.hpp>
 struct BCN_API spend_info_type

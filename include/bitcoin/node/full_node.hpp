@@ -21,11 +21,10 @@
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
 #include <cstdint>
-#include <future>
+#include <functional>
 #include <string>
-#include <system_error>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/config/settings_type.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/poller.hpp>
@@ -35,42 +34,7 @@
 namespace libbitcoin {
 namespace node {
 
-// Configuration setting defaults.
-
-// [node]
-#define NODE_THREADS                        4
-#define NODE_TRANSACTION_POOL_CAPACITY      2000
-#define NODE_PEERS                          {}
-#define NODE_BLACKLISTS                     {}
-
-// [blockchain]
-#define BLOCKCHAIN_THREADS                  6
-#define BLOCKCHAIN_BLOCK_POOL_CAPACITY      50
-#define BLOCKCHAIN_HISTORY_START_HEIGHT     0
-#define BLOCKCHAIN_TESTNET_RULES_MAINNET    false
-#define BLOCKCHAIN_DATABASE_PATH            boost::filesystem::path("blockchain")
-#define BLOCKCHAIN_CHECKPOINTS_MAINNET      bc::blockchain::checkpoint::mainnet
-
-// [network]
-#define NETWORK_THREADS                     4
-#define NETWORK_IDENTIFIER_MAINNET          bc::network::connector::mainnet
-#define NETWORK_INBOUND_PORT_MAINNET        bc::network::p2p::mainnet
-#define NETWORK_INBOUND_CONNECTION_LIMIT    8
-#define NETWORK_OUTBOUND_CONNECTIONS        8
-#define NETWORK_CONNECT_TIMEOUT_SECONDS     5
-#define NETWORK_CHANNEL_HANDSHAKE_SECONDS   30
-#define NETWORK_CHANNEL_REVIVAL_MINUTES     5
-#define NETWORK_CHANNEL_HEARTBEAT_MINUTES   5
-#define NETWORK_CHANNEL_INACTIVITY_MINUTES  30
-#define NETWORK_CHANNEL_EXPIRATION_MINUTES  90
-#define NETWORK_CHANNEL_GERMINATION_SECONDS 30
-#define NETWORK_HOST_POOL_CAPACITY          1000
-#define NETWORK_RELAY_TRANSACTIONS          true
-#define NETWORK_HOSTS_FILE                  boost::filesystem::path("hosts.cache")
-#define NETWORK_DEBUG_FILE                  boost::filesystem::path("debug.log")
-#define NETWORK_ERROR_FILE                  boost::filesystem::path("error.log")
-#define NETWORK_SELF                        bc::unspecified_network_address
-#define NETWORK_SEEDS_MAINNET               bc::network::session_seed::mainnet
+#define LOG_NODE "node"
 
 /**
  * A full node on the Bitcoin P2P network.
@@ -78,84 +42,96 @@ namespace node {
 class BCN_API full_node
 {
 public:
-    static const settings_type defaults;
+    typedef std::function<void(const code&)> result_handler;
+    typedef std::function<void(const code&, network::channel::ptr)>
+        channel_handler;
+
+    static const configuration defaults;
 
     /**
      * Construct the node.
      * The prefix must have been initialized using 'initchain' prior to this.
      * param@ [in]  config  The configuration settings for the node.
      */
-    full_node(const settings_type& config=defaults);
+    full_node(const configuration& config=defaults);
+
+    /**
+     * Block until all threads are coalesced.
+     */
+    ~full_node();
     
     /**
      * Start the node.
-     * param@ [in]  config  The configuration settings for the node.
-     * @return  True if the start is successful.
      */
-    virtual bool start(const settings_type& config=defaults);
+    virtual void start(result_handler handler);
 
     /**
      * Stop the node.
-     * Should only be called from the main thread.
-     * It's an error to join() a thread from inside it.
-     * @return  True if the stop is successful.
+     * Must only be called from the main thread.
      */
-    virtual bool stop();
+    virtual void stop(result_handler handler);
 
-    // Accessors
+    /// Accessors
     virtual blockchain::block_chain& blockchain();
     virtual blockchain::transaction_pool& transaction_pool();
     virtual node::indexer& transaction_indexer();
-    virtual network::p2p& protocol();
+    virtual network::p2p& network();
     virtual threadpool& pool();
 
 protected:
-    // Result of store operation in transaction pool.
-    virtual void new_unconfirm_valid_tx(const code& code,
-        const chain::index_list& unconfirmed, const chain::transaction& tx);
-
-    // New channel has been started.
-    // Subscribe to new transaction messages from the network.
-    virtual void new_channel(const code& ec,
+    /// New channel has been started.
+    virtual void handle_new_channel(const code& ec,
         network::channel::ptr node);
 
-    // New transaction message from the network.
-    // Attempt to validate it by storing it in the transaction pool.
-    virtual void recieve_tx(const code& ec,
+    /// New transaction has been received from the network.
+    virtual void handle_recieve_tx(const code& ec,
         const chain::transaction& tx, network::channel::ptr node);
 
-    // HACK: this is for access to broadcast_new_blocks to facilitate server
-    // inheritance of full_node. The organization should be refactored.
-    virtual void broadcast_new_blocks(const code& ec, uint64_t fork_point,
+    /// New transaction has been validated and accepted into the pool.
+    virtual void handle_tx_validated(const code& ec,
+        const chain::transaction& tx, const hash_digest& hash,
+        const chain::index_list& unconfirmed);
+
+    /// New block(s) have been accepted into the chain.
+    virtual void handle_new_blocks(const code& ec, uint64_t fork_point,
         const blockchain::block_chain::list& new_blocks,
         const blockchain::block_chain::list& replaced_blocks);
 
-    // These must be bc types.
+    // These must be libbitcoin streams.
     bc::ofstream debug_file_;
     bc::ofstream error_file_;
-
-    threadpool network_threads_;
-    network::hosts host_pool_;
-    network::connector network_;
-    network::p2p protocol_;
 
     threadpool database_threads_;
     blockchain::blockchain_impl blockchain_;
 
     threadpool memory_threads_;
     blockchain::transaction_pool tx_pool_;
+
+    // network_ manages its own threads, others will eventually
+    network::p2p network_;
+
+    threadpool node_threads_;
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;
     node::session session_;
 
 private:
-    void handle_start(const code& ec,
-        std::promise<code>& promise);
-    void handle_stop(const code& ec,
-        std::promise<code>& promise);
-    void set_height(const code& ec, uint64_t height,
-        std::promise<code>& promise);
+    static std::string format(const config::authority& authority);
+    static std::string format(const chain::index_list& unconfirmed);
+
+    void handle_blockchain_start(const code& ec, result_handler handler);
+    void handle_network_start(const code& ec, result_handler handler);
+    void handle_fetch_height(const code& ec, uint64_t height,
+        result_handler handler);
+    void handle_manual_connect(const code& ec, network::channel::ptr channel,
+        const config::endpoint& endpoint);
+    void handle_tx_indexed(const code& ec, const hash_digest& hash);
+    void handle_tx_deindexed(const code& ec, const hash_digest& hash);
+    void handle_tx_confirmed(const code& ec, const chain::transaction& tx,
+        const hash_digest& hash);
+
+    const configuration configuration_;
 };
 
 } // namspace node

@@ -75,11 +75,13 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
     initchain(prefix);
 
     threadpool threads;
-    blockchain_impl blockchain(threads, prefix);
-    transaction_pool transactions(threads, blockchain);
+    configuration config;
+    blockchain_impl blockchain(threads, config.chain);
+    transaction_pool transactions(threads, blockchain, 42);
     responder responder(blockchain, transactions);
 
-    blockchain.start();
+    // TODO: handle blockchain start.
+    blockchain.start([](code){});
     transactions.start();
     blockchain.stop();
     threads.shutdown();
@@ -95,43 +97,12 @@ BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
     initchain(prefix);
 
     threadpool threads;
-    blockchain_impl blockchain(threads, prefix);
+    configuration config;
+    blockchain_impl blockchain(threads, config.chain);
     poller poller(threads, blockchain);
 
-    blockchain.start();
-    blockchain.stop();
-    threads.shutdown();
-    threads.join();
-
-    ////uninitchain(prefix);
-}
-
-BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
-{
-    // WARNING: file system side effect, use unique relative path.
-    const static auto prefix = "node_test/construct_session";
-    initchain(prefix);
-
-    threadpool threads;
-    hosts hosts(threads);
-    connector network(threads);
-    p2p protocol(threads, hosts, network);
-    blockchain_impl blockchain(threads, prefix);
-    transaction_pool transactions(threads, blockchain);
-    poller poller(threads, blockchain);
-    responder responder(blockchain, transactions);
-
-    const auto noop_handler = [](const code& ec)
-    {
-    };
-
-    node::session session(threads, protocol, blockchain, poller, transactions,
-        responder);
-
-    blockchain.start();
-    transactions.start();
-    session.start(noop_handler);
-    session.stop(noop_handler);
+    // TODO: handle blockchain start.
+    blockchain.start([](code){});
     blockchain.stop();
     threads.shutdown();
     threads.join();

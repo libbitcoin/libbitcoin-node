@@ -42,9 +42,9 @@ private:
         const hash_digest& tx_hash, network::channel::ptr node);
     void send_chain_tx(const code& ec, const chain::transaction& tx,
         const hash_digest& tx_hash, network::channel::ptr node);
-    void send_tx(const chain::transaction& tx, const hash_digest& tx_hash,
+    void send_tx(const chain::transaction& tx, const hash_digest& hash,
         network::channel::ptr node);
-    void send_tx_not_found(const hash_digest& tx_hash,
+    void send_tx_not_found(const hash_digest& hash,
         network::channel::ptr node);
     void send_block(const code& ec, const chain::block& block,
         const hash_digest& block_hash, network::channel::ptr node);
@@ -52,7 +52,7 @@ private:
         network::channel::ptr node);
     void send_inventory_not_found(message::inventory_type_id inventory_type,
         const hash_digest& hash, network::channel::ptr node,
-        network::proxy::handler handler);
+        network::proxy::result_handler handler);
 
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& tx_pool_;
