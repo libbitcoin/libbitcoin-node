@@ -37,28 +37,21 @@ public:
 
 private:
 
-    ////void receive_inv(const code& ec,
-    ////    const inventory_type& packet, bc::network::channel::ptr node);
-    void receive_block(const code& ec, const chain::block& block,
+    ////void receive_inv(const code& ec, const inventory_type& packet,
+    ////    network::channel::ptr node);
+
+    void receive_block(const code& ec, const message::block& block,
         network::channel::ptr node);
-    void handle_store_block(const code& ec,
-        blockchain::block_info info, const hash_digest& block_hash,
-        network::channel::ptr node);
-    void ask_blocks(const code& ec, const message::block_locator& locator,
-        const hash_digest& hash_stop, network::channel::ptr node);
-    bool is_duplicate_block_ask(const message::block_locator& locator,
-        const hash_digest& hash_stop, network::channel::ptr node);
+    void handle_store_block(const code& ec, const blockchain::block_info& info,
+        const hash_digest& hash, network::channel::ptr node);
+
+    void get_blocks(const code& ec, const message::block_locator& locator,
+        const hash_digest& stop, network::channel::ptr node);
+    void handle_get_blocks(const code& ec, network::channel::ptr node,
+        const hash_digest& start, const hash_digest& stop);
 
     dispatcher dispatch_;
     blockchain::block_chain& blockchain_;
-
-    // Last hash from an inventory packet.
-    hash_digest last_block_hash_;
-
-    // Last hash from a block locator.
-    hash_digest last_locator_begin_;
-    hash_digest last_hash_stop_;
-    network::channel* last_block_ask_node_;
 };
 
 } // namespace node
