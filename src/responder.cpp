@@ -29,6 +29,7 @@ namespace node {
 using std::placeholders::_1;
 using std::placeholders::_2;
 using namespace bc::blockchain;
+using namespace bc::message;
 using namespace bc::network;
 
 responder::responder(block_chain& blockchain, transaction_pool& tx_pool)
@@ -39,15 +40,14 @@ responder::responder(block_chain& blockchain, transaction_pool& tx_pool)
 void responder::monitor(channel::ptr node)
 {
     // Subscribe to serve tx and blocks.
-    node->subscribe<message::get_data>(
+    node->subscribe<get_data>(
         std::bind(&responder::receive_get_data,
             this, _1, _2, node));
 }
 
 // TODO: consolidate to libbitcoin utils.
-static size_t inventory_count(
-    const message::inventory_vector::list& inventories,
-    message::inventory_type_id type_id)
+static size_t inventory_count(const inventory_vector::list& inventories,
+    inventory_type_id type_id)
 {
     size_t count = 0;
 
@@ -59,8 +59,8 @@ static size_t inventory_count(
 }
 
 // We don't seem to be getting getdata requests.
-void responder::receive_get_data(const code& ec,
-    const message::get_data& packet, channel::ptr node)
+void responder::receive_get_data(const code& ec, const get_data& packet,
+    channel::ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -70,63 +70,65 @@ void responder::receive_get_data(const code& ec,
     if (ec)
     {
         log::debug(LOG_RESPONDER)
-            << "Failure in receive get data ["
-            << peer << "] " << ec.message();
+            << "Failure in receive get data [" << peer << "] " << ec.message();
         node->stop(ec);
         return;
     }
 
+    // Resubscribe to serve tx and blocks.
+    node->subscribe<message::get_data>(
+        std::bind(&responder::receive_get_data,
+            this, _1, _2, node));
+
     const auto blocks = inventory_count(packet.inventories,
-        message::inventory_type_id::block);
+        inventory_type_id::block);
     const auto transactions = inventory_count(packet.inventories,
-        message::inventory_type_id::transaction);
+        inventory_type_id::transaction);
+    const auto filtered = inventory_count(packet.inventories,
+        inventory_type_id::filtered_block);
 
     log::debug(LOG_RESPONDER)
         << "Getdata BEGIN [" << peer << "] "
         << "txs (" << transactions << ") "
-        << "blocks (" << blocks << ")";
+        << "blocks (" << blocks << ") "
+        << "filtered (" << filtered << ")";
 
     for (const auto& inventory: packet.inventories)
     {
         switch (inventory.type)
         {
-            case message::inventory_type_id::transaction:
+            case inventory_type_id::transaction:
                 log::debug(LOG_RESPONDER)
-                    << "Transaction inventory for [" << peer << "] "
+                    << "Transaction getdata for [" << peer << "] "
                     << encode_hash(inventory.hash);
                 tx_pool_.fetch(inventory.hash,
                     std::bind(&responder::send_pool_tx,
                         this, _1, _2, inventory.hash, node));
                 break;
 
-            case message::inventory_type_id::block:
+            case inventory_type_id::block:
                 log::debug(LOG_RESPONDER)
-                    << "Block inventory for [" << peer << "] "
+                    << "Block getdata for [" << peer << "] "
                     << encode_hash(inventory.hash);
                 block_fetcher::fetch(blockchain_, inventory.hash,
                     std::bind(&responder::send_block,
                         this, _1, _2, inventory.hash, node));
                 break;
 
-            case message::inventory_type_id::error:
-            case message::inventory_type_id::none:
+            case inventory_type_id::error:
+            case inventory_type_id::none:
             default:
                 log::debug(LOG_RESPONDER)
-                    << "Ignoring invalid inventory type for [" << peer << "]";
+                    << "Ignoring invalid getdata type for [" << peer << "]";
         }
     }
 
     log::debug(LOG_RESPONDER)
-        << "Inventory END [" << peer << "]";
-
-    // Resubscribe to serve tx and blocks.
-    node->subscribe<message::get_data>(
-        std::bind(&responder::receive_get_data,
-            this, _1, _2, node));
+        << "Getdata END [" << peer << "]";
 }
 
-void responder::send_pool_tx(const code& ec,
-    const chain::transaction& tx, const hash_digest& tx_hash, channel::ptr node)
+void responder::send_pool_tx(const code& ec, const transaction& tx,
+    const hash_digest& tx_hash, channel::ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -161,9 +163,8 @@ void responder::send_pool_tx(const code& ec,
 // in the memory pool or relay set - arbitrary access to transactions
 // in the  chain is not allowed to avoid having clients start to depend
 // on nodes having full transaction indexes (which modern nodes do not).
-void responder::send_chain_tx(const code& ec,
-    const chain::transaction& tx, const hash_digest& tx_hash,
-    channel::ptr node)
+void responder::send_chain_tx(const code& ec, const transaction& tx,
+    const hash_digest& tx_hash, channel::ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -191,10 +192,10 @@ void responder::send_chain_tx(const code& ec,
     send_tx(tx, tx_hash, node);
 }
 
-void responder::send_tx(const chain::transaction& tx,
-    const hash_digest& tx_hash, channel::ptr node)
+void responder::send_tx(const transaction& tx, const hash_digest& hash,
+    channel::ptr node)
 {
-    const auto send_handler = [tx_hash, node](const code& ec)
+    const auto send_handler = [hash, node](const code& ec)
     {
         if (ec)
             log::debug(LOG_RESPONDER)
@@ -203,15 +204,15 @@ void responder::send_tx(const chain::transaction& tx,
         else
             log::debug(LOG_RESPONDER)
                 << "Sent tx for [" << node->authority()
-                << "] " << encode_hash(tx_hash);
+                << "] " << encode_hash(hash);
     };
 
     node->send(tx, send_handler);
 }
 
-void responder::send_tx_not_found(const hash_digest& tx_hash, channel::ptr node)
+void responder::send_tx_not_found(const hash_digest& hash, channel::ptr node)
 {
-    const auto send_handler = [tx_hash, node](const code& ec)
+    const auto send_handler = [hash, node](const code& ec)
     {
         if (ec)
             log::debug(LOG_RESPONDER)
@@ -220,17 +221,16 @@ void responder::send_tx_not_found(const hash_digest& tx_hash, channel::ptr node)
         else
             log::debug(LOG_RESPONDER)
                 << "Sent tx notfound for [" << node->authority()
-                << "] " << encode_hash(tx_hash);
+                << "] " << encode_hash(hash);
     };
 
-    send_inventory_not_found(message::inventory_type_id::transaction, tx_hash,
-        node, send_handler);
+    send_inventory_not_found(inventory_type_id::transaction, hash, node,
+        send_handler);
 }
 
 // Should we look in the orphan pool first?
-void responder::send_block(const code& ec,
-    const chain::block& block, const hash_digest& block_hash,
-    channel::ptr node)
+void responder::send_block(const code& ec, const block& block,
+    const hash_digest& block_hash, channel::ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -284,20 +284,20 @@ void responder::send_block_not_found(const hash_digest& block_hash,
                 << "] " << encode_hash(block_hash);
     };
 
-    send_inventory_not_found(message::inventory_type_id::block, block_hash,
+    send_inventory_not_found(inventory_type_id::block, block_hash,
         node, send_handler);
 }
 
-void responder::send_inventory_not_found(message::inventory_type_id type_id,
-    const hash_digest& hash, channel::ptr node, proxy::send_handler handler)
+void responder::send_inventory_not_found(inventory_type_id type_id,
+    const hash_digest& hash, channel::ptr node, proxy::result_handler handler)
 {
-    const message::inventory_vector block_inventory
+    const inventory_vector block_inventory
     {
         type_id,
         hash
     };
 
-    const message::not_found lost{ { block_inventory } };
+    const not_found lost{ { block_inventory } };
     node->send(lost, handler);
 }
 

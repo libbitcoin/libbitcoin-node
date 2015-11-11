@@ -36,8 +36,6 @@ namespace node {
 class BCN_API session
 {
 public:
-    typedef std::function<void (const code&)> result_handler;
-
     session(threadpool& pool, network::p2p& protocol,
         blockchain::block_chain& blockchain, poller& poller,
         blockchain::transaction_pool& transaction_pool,
@@ -54,18 +52,17 @@ private:
 
     void receive_inv(const code& ec, const message::inventory& packet,
         network::channel::ptr node);
-    void receive_get_blocks(const code& ec,
-        const message::get_blocks& packet, network::channel::ptr node);
-    void new_tx_inventory(const hash_digest& tx_hash,
+    void receive_get_blocks(const code& ec, const message::get_blocks& packet,
         network::channel::ptr node);
-    void request_tx_data(const code& ec, const hash_digest& tx_hash,
+    void new_tx_inventory(const hash_digest& hash, network::channel::ptr node);
+    void request_tx_data(const code& ec, const hash_digest& hash,
         network::channel::ptr node);
-    void new_block_inventory(const hash_digest& block_hash,
+    void new_block_inventory(const hash_digest& hash,
         network::channel::ptr node);
-    void request_block_data(const hash_digest& block_hash,
+    void request_block_data(const hash_digest& hash,
         network::channel::ptr node);
     void fetch_block_handler(const code& ec, const chain::block& block,
-        const hash_digest block_hash, network::channel::ptr node);
+        const hash_digest hash, network::channel::ptr node);
 
     dispatcher dispatch_;
     network::p2p& network_;

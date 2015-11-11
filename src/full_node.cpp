@@ -53,7 +53,6 @@ static const configuration default_configuration()
     defaults.node.threads = NODE_THREADS;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;
-    defaults.node.blacklists = NODE_BLACKLISTS;
     defaults.chain.threads = BLOCKCHAIN_THREADS;
     defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
     defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
@@ -142,6 +141,13 @@ void full_node::start(result_handler handler)
 {
     initialize_logging(debug_file_, error_file_, bc::cout, bc::cerr);
 
+    static const auto startup = "================= startup ==================";
+    log::debug(LOG_NODE) << startup;
+    log::info(LOG_NODE) << startup;
+    log::warning(LOG_NODE) << startup;
+    log::error(LOG_NODE) << startup;
+    log::fatal(LOG_NODE) << startup;
+
     blockchain_.start(
         std::bind(&full_node::handle_blockchain_start,
             this, _1, handler));
@@ -200,7 +206,7 @@ void full_node::handle_fetch_height(const code& ec, uint64_t height,
     session_.start();
 
     // This is just for logging, the blacklist is used directly from config.
-    for (const auto& authority: configuration_.node.blacklists)
+    for (const auto& authority: configuration_.network.blacklists)
         log::info(LOG_NODE)
             << "Blacklisted peer [" << format(authority) << "]";
 
@@ -245,7 +251,6 @@ void full_node::stop(result_handler handler)
     database_threads_.shutdown();
     memory_threads_.shutdown();
     blockchain_.stop(/* handler */);
-    ////tx_pool_.stop();
     network_.stop(/* handler */);
 
     node_threads_.join();
