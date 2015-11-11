@@ -20,8 +20,11 @@
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/poller.hpp>
+#include <bitcoin/node/protocol_sync_blocks.hpp>
+#include <bitcoin/node/protocol_sync_headers.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
+#include <bitcoin/node/session_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
 

@@ -24,7 +24,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/poller.hpp>
