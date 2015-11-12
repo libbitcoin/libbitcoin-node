@@ -79,6 +79,8 @@ using namespace bc::node;
 using namespace bc::network;
 using namespace bc::wallet;
 
+constexpr auto append = std::ofstream::out | std::ofstream::app;
+
 static void display_history(const std::error_code& ec,
     const block_chain::history& history,
     const wallet::payment_address& address, std::ostream& output)
@@ -194,10 +196,11 @@ static console_result process_arguments(int argc, const char* argv[],
 console_result dispatch(int argc, const char* argv[], std::istream& input,
     std::ostream& output, std::ostream& error)
 {
-    // Blockchain directory is hard-wired for now (add to config).
-    const static path directory(BLOCKCHAIN_DATABASE_PATH);
+    // Config is hardwired for now.
+    const auto config = p2p_node::defaults;
+    const auto directory = config.chain.database_path;
 
-    // Handle command line argument.
+    // Handle command line arguments.
     auto result = process_arguments(argc, argv, directory, output, error);
     if (result != console_result::okay)
         return result;
@@ -213,26 +216,47 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     signal(SIGTERM, interrupt_handler);
     signal(SIGINT, interrupt_handler);
 
-    // Start up the node, which first maps the blockchain.
     output << format(BN_NODE_STARTING) % directory << std::endl;
 
-    full_node node;
+    // These must be libbitcoin streams.
+    bc::ofstream debug_file(config.network.debug_file.string(), append);
+    bc::ofstream error_file(config.network.error_file.string(), append);
+    initialize_logging(debug_file, error_file, bc::cout, bc::cerr);
+
+    static const auto startup = "================= startup ==================";
+    log::debug(LOG_NODE) << startup;
+    log::info(LOG_NODE) << startup;
+    log::warning(LOG_NODE) << startup;
+    log::error(LOG_NODE) << startup;
+    log::fatal(LOG_NODE) << startup;
+
+    p2p_node node(config);
     std::promise<code> start_promise;
-    const auto handle_start = [&start_promise](const code& ec)
+    const auto handle_start = [&start_promise, &node](const code ec)
     {
         start_promise.set_value(ec);
     };
 
+    // Start the node.
     node.start(handle_start);
     auto ec = start_promise.get_future().get();
 
     if (ec)
     {
-        output << format(BN_NODE_START_FAIL) << std::endl;
+        output << BN_NODE_START_FAIL << std::endl;
         return console_result::not_started;
     }
 
-    // Accept address queries from the console.
+    std::promise<code>run_promise;
+    const auto handle_run = [&run_promise](const code ec)
+    {
+        run_promise.set_value(ec);
+    };
+
+    // Start the long-running sessions.
+    node.run(handle_run);
+    ec = run_promise.get_future().get();
+
     while (true)
     {
         std::string command;
@@ -243,31 +267,23 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
             output << BN_NODE_SHUTTING_DOWN << std::endl;
             break;
         }
-
-        const auto address = payment_address(trimmed);
-        if (!address)
-        {
-            output << BN_INVALID_ADDRESS << std::endl;
-            continue;
-        }
-
-        const auto fetch_handler = [&](const std::error_code& ec,
-            const block_chain::history& history)
-        {
-            display_history(ec, history, address, output);
-        };
-
-        fetch_history(node.blockchain(), node.transaction_indexer(), address,
-            fetch_handler);
     }
 
     std::promise<code> stop_promise;
-    const auto handle_stop = [&stop_promise](const code& ec)
+    const auto handle_stop = [&stop_promise](const code ec)
     {
         stop_promise.set_value(ec);
     };
 
+    // Stop the service.
     node.stop(handle_stop);
     ec = stop_promise.get_future().get();
-    return ec ? console_result::failure : console_result::okay;
+
+    if (ec)
+    {
+        output << BN_NODE_STOP_FAIL << std::endl;
+        return console_result::failure;
+    }
+
+    return console_result::okay;
 }

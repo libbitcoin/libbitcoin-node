@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
+    <ClCompile Include="..\..\..\..\src\p2p_node.cpp" />
     <ClCompile Include="..\..\..\..\src\protocol_sync_blocks.cpp" />
     <ClCompile Include="..\..\..\..\src\protocol_sync_headers.cpp" />
     <ClCompile Include="..\..\..\..\src\responder.cpp" />
@@ -85,6 +86,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync_blocks.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync_headers.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\responder.hpp" />
