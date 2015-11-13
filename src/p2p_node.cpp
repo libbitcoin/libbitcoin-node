@@ -21,6 +21,7 @@
 
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/session_sync.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -85,10 +86,10 @@ void p2p_node::run(result_handler handler)
         dispatch_.ordered_delegate(&p2p_node::handle_synchronized,
             this, _1, handler);
 
-    handle_complete(error::success);
+    const auto check = configuration_.chain.checkpoints.back();
 
     // The instance is retained by the stop handler (i.e. until shutdown).
-    ////attach<session_sync>(handle_complete);
+    attach<session_sync>(check, handle_complete);
 }
 
 void p2p_node::handle_synchronized(const code& ec, result_handler handler)
