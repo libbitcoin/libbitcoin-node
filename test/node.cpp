@@ -25,6 +25,7 @@ using namespace bc;
 using namespace bc::blockchain;
 using namespace bc::network;
 using namespace bc::node;
+using namespace boost;
 
 struct low_thread_priority_fixture
 {
@@ -39,16 +40,16 @@ struct low_thread_priority_fixture
     }
 };
 
-static void uninitchain(const char prefix[])
+static void uninitchain(filesystem::path& path)
 {
-    boost::filesystem::remove_all(prefix);
+    boost::filesystem::remove_all(path);
 }
 
-static void initchain(const char prefix[])
+static void initchain(filesystem::path& path)
 {
-    uninitchain(prefix);
-    boost::filesystem::create_directories(prefix);
-    database::initialize(prefix, mainnet_genesis_block());
+    uninitchain(path);
+    boost::filesystem::create_directories(path);
+    database::initialize(path, mainnet_genesis_block());
 }
 
 // TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
@@ -68,14 +69,14 @@ BOOST_AUTO_TEST_SUITE_END()
 // TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
 BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
 
-BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
+BOOST_AUTO_TEST_CASE(node_test__construct_responder__does_not_throw)
 {
     // WARNING: file system side effect, use unique relative path.
-    const static auto prefix = "node_test/construct_getx_responder";
-    initchain(prefix);
+    configuration config;
+    config.chain.database_path = "node_test/construct_responder";
+    initchain(config.chain.database_path);
 
     threadpool threads;
-    configuration config;
     blockchain_impl blockchain(threads, config.chain);
     transaction_pool transactions(threads, blockchain, 42);
     responder responder(blockchain, transactions);
@@ -93,11 +94,11 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
 BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
 {
     // WARNING: file system side effect, use unique relative path.
-    const static auto prefix = "node_test/construct_poller";
-    initchain(prefix);
+    configuration config;
+    config.chain.database_path = "node_test/construct_poller";
+    initchain(config.chain.database_path);
 
     threadpool threads;
-    configuration config;
     blockchain_impl blockchain(threads, config.chain);
     poller poller(threads, blockchain);
 
