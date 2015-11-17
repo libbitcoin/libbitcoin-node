@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOL_HEADER_SYNC_HPP
-#define LIBBITCOIN_NODE_PROTOCOL_HEADER_SYNC_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
+#define LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -32,27 +32,25 @@ namespace libbitcoin {
 namespace node {
         
 /**
- * Headers sync protocol.
+ * Blocks sync protocol.
  */
-class BCN_API protocol_header_sync
-  : public network::protocol_timer, public track<protocol_header_sync>
+class BCN_API protocol_block_sync
+  : public network::protocol_timer, public track<protocol_block_sync>
 {
 public:
-    typedef std::shared_ptr<protocol_header_sync> ptr;
+    typedef std::shared_ptr<protocol_block_sync> ptr;
 
     /**
-     * Construct a header sync protocol instance.
+     * Construct a block sync protocol instance.
      * @param[in]  pool          The thread pool used by the protocol.
      * @param[in]  channel       The channel on which to start the protocol.
-     * @param[in]  minimum_rate  The minimum sync rate in headers per second.
+     * @param[in]  minimum_rate  The minimum sync rate in blocks per minute.
      * @param[in]  first_height  The height of the first entry in headers.
-     * @param[in]  hashes        The ordered set of block hashes when cmplete.
-     * @param[in]  checkpoints   The ordered blockchain checkpoints.
+     * @param[in]  hashes        The ordered set of block hashes to sync.
      */
-    protocol_header_sync(threadpool& pool, network::p2p&,
+    protocol_block_sync(threadpool& pool, network::p2p&,
         network::channel::ptr channel, uint32_t minimum_rate,
-        size_t first_height, hash_list& hashes,
-        const config::checkpoint::list& checkpoints);
+        size_t first_height, const hash_list& hashes);
 
     /**
      * Start the protocol.
@@ -61,28 +59,23 @@ public:
     void start(event_handler handler);
 
 private:
-    static const size_t target(size_t first_height, hash_list& headers,
-        const config::checkpoint::list& checkpoints);
-
-    void rollback();
-    size_t next_height();
     size_t current_rate();
-    bool merge_headers(const message::headers& message);
+    size_t target_height();
+    size_t current_height();
+    const hash_digest& current_hash();
 
-    void send_get_headers(event_handler complete);
+    void send_get_block(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
-    void handle_receive(const code& ec, const message::headers& message,
+    void handle_receive(const code& ec, const message::block& message,
         event_handler complete);
-    void headers_complete(const code& ec, event_handler handler);
+    void blocks_complete(const code& ec, event_handler handler);
 
-    hash_list& hashes_;
-    size_t current_second_;
-    const uint32_t minimum_rate_;
-    const size_t start_size_;
+    size_t hash_index_;
+    size_t current_minute_;
     const size_t first_height_;
-    const size_t target_height_;
-    const config::checkpoint::list& checkpoints_;
+    const uint32_t minimum_rate_;
+    const hash_list& hashes_;
 };
 
 } // namespace network

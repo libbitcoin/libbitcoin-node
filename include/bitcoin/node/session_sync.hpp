@@ -57,7 +57,7 @@ private:
     void handle_channel_stop(const code& ec);
 
     size_t votes_;
-    hash_list headers_;
+    hash_list hashes_;
     const size_t start_height_;
     const configuration& configuration_;
     config::checkpoint::list checkpoints_;

@@ -42,7 +42,7 @@ session_sync::session_sync(threadpool& pool, p2p& network,
     const checkpoint& start, const configuration& configuration)
   : session(pool, network, configuration.network, false, true),
     votes_(0),
-    headers_({ start.hash() }),
+    hashes_({ start.hash() }),
     start_height_(start.height()),
     configuration_(configuration),
     checkpoints_(configuration.chain.checkpoints),
@@ -122,7 +122,7 @@ void session_sync::handle_channel_start(const code& ec, connector::ptr connect,
 
     attach<protocol_ping>(channel)->start(settings_);
     attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_header_sync>(channel, rate, start_height_, headers_,
+    attach<protocol_header_sync>(channel, rate, start_height_, hashes_,
         checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
 };
 

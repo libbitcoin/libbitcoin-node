@@ -29,7 +29,7 @@ INITIALIZE_TRACK(bc::node::protocol_header_sync);
 namespace libbitcoin {
 namespace node {
 
-#define NAME "sync_headers"
+#define NAME "protocol_header_sync"
 #define CLASS protocol_header_sync
 
 using namespace bc::config;
@@ -43,18 +43,18 @@ static const asio::duration one_second(0, 0, 1);
 
 protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
     channel::ptr channel, uint32_t minimum_rate, size_t first_height,
-    hash_list& headers, const checkpoint::list& checkpoints)
+    hash_list& hashes, const checkpoint::list& checkpoints)
   : protocol_timer(pool, channel, NAME),
-    headers_(headers),
+    hashes_(hashes),
     current_second_(0),
     minimum_rate_(minimum_rate),
-    start_size_(headers.size()),
+    start_size_(hashes.size()),
     first_height_(first_height),
-    target_height_(target(first_height, headers, checkpoints)),
+    target_height_(target(first_height, hashes, checkpoints)),
     checkpoints_(checkpoints),
     CONSTRUCT_TRACK(protocol_header_sync, LOG_PROTOCOL)
 {
-    BITCOIN_ASSERT_MSG(!headers.empty(), "The starting header must be set.");
+    BITCOIN_ASSERT_MSG(!hashes_.empty(), "The starting header must be set.");
 }
 
 const size_t protocol_header_sync::target(size_t first_height,
@@ -71,7 +71,7 @@ void protocol_header_sync::start(event_handler handler)
     {
         log::info(LOG_NETWORK)
             << "Start height (" << peer_version().start_height
-            << ") below sync target (" << target_height_ << ") from ["
+            << ") below header sync target (" << target_height_ << ") from ["
             << authority() << "]";
 
         handler(error::channel_stopped);
@@ -88,11 +88,11 @@ void protocol_header_sync::send_get_headers(event_handler complete)
     if (stopped())
         return;
 
-    BITCOIN_ASSERT_MSG(!headers_.empty(), "The start header must be set.");
-    const message::get_headers get_headers{ { headers_.back() }, null_hash };
+    BITCOIN_ASSERT_MSG(!hashes_.empty(), "The start header must be set.");
+    const get_headers packet{ { hashes_.back() }, null_hash };
 
     SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
-    SEND2(get_headers, handle_send, _1, complete);
+    SEND2(packet, handle_send, _1, complete);
 }
 
 void protocol_header_sync::handle_send(const code& ec, event_handler complete)
@@ -103,7 +103,7 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
     if (ec)
     {
         log::debug(LOG_PROTOCOL)
-            << "Failure sending get headers to seed [" << authority() << "] "
+            << "Failure sending get headers to sync [" << authority() << "] "
             << ec.message();
         complete(ec);
     }
@@ -111,7 +111,7 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
 
 size_t protocol_header_sync::next_height()
 {
-    return headers_.size() + first_height_;
+    return hashes_.size() + first_height_;
 }
 
 void protocol_header_sync::rollback()
@@ -120,23 +120,22 @@ void protocol_header_sync::rollback()
     {
         for (auto it = checkpoints_.rbegin(); it != checkpoints_.rend(); ++it)
         {
-            const auto& hash = it->hash();
-            auto match = std::find(headers_.begin(), headers_.end(), hash);
-            if (match != headers_.end())
+            auto match = std::find(hashes_.begin(), hashes_.end(), it->hash());
+            if (match != hashes_.end())
             {
-                headers_.erase(++match, headers_.end());
+                hashes_.erase(++match, hashes_.end());
                 return;
             }
         }
     }
 
-    headers_.resize(1);
+    hashes_.resize(1);
 }
 
 // We could validate more than this to ensure work is required.
 bool protocol_header_sync::merge_headers(const headers& message)
 {
-    auto previous = headers_.back();
+    auto previous = hashes_.back();
     for (const auto& block: message.elements)
     {
         const auto current = block.hash();
@@ -148,7 +147,7 @@ bool protocol_header_sync::merge_headers(const headers& message)
         }
 
         previous = current;
-        headers_.push_back(current);
+        hashes_.push_back(current);
     }
 
     return true;
@@ -163,7 +162,7 @@ void protocol_header_sync::handle_receive(const code& ec,
     if (ec)
     {
         log::debug(LOG_PROTOCOL)
-            << "Failure receiving headers from seed ["
+            << "Failure receiving headers from sync ["
             << authority() << "] " << ec.message();
         complete(ec);
         return;
@@ -192,7 +191,7 @@ void protocol_header_sync::handle_receive(const code& ec,
 
 size_t protocol_header_sync::current_rate()
 {
-    return (headers_.size() - start_size_) / current_second_;
+    return (hashes_.size() - start_size_) / current_second_;
 }
 
 // This is fired by the base timer and stop handler.
@@ -207,7 +206,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     if (ec && ec != error::channel_timeout)
     {
         log::warning(LOG_PROTOCOL)
-            << "Failure in headers timer for [" << authority() << "] "
+            << "Failure in header sync timer for [" << authority() << "] "
             << ec.message();
         complete(ec);
         return;
@@ -221,8 +220,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     {
         log::info(LOG_PROTOCOL)
             << "Header sync rate (" << current_rate()
-            << "/sec) from [" << authority() << "] is below minimum ("
-            << minimum_rate_ << ").";
+            << "/sec) from [" << authority() << "]";
         complete(error::channel_timeout);
         return;
     }

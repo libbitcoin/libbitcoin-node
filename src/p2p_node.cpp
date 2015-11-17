@@ -170,7 +170,7 @@ void p2p_node::handle_fetch_header(const code& ec, const header& header,
         return;
     }
 
-    const checkpoint start_block(header.hash() , height());
+    const checkpoint start_block(header.hash(), height());
 
     // The instance is retained by the stop handler (i.e. until shutdown).
     attach<session_sync>(start_block, configuration_)->start(
