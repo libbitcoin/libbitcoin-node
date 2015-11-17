@@ -21,8 +21,8 @@
 #include <bitcoin/node/indexer.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/poller.hpp>
+#include <bitcoin/node/protocol_sync.hpp>
 #include <bitcoin/node/protocol_sync_blocks.hpp>
-#include <bitcoin/node/protocol_sync_headers.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
 #include <bitcoin/node/session_sync.hpp>

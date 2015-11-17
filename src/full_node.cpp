@@ -50,7 +50,9 @@ using namespace bc::network;
 static const configuration default_configuration()
 {
     configuration defaults;
+    defaults.node.quorum = NODE_QUORUM;
     defaults.node.threads = NODE_THREADS;
+    defaults.node.headers_per_second = NODE_HEADERS_PER_SECOND;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;
     defaults.chain.threads = BLOCKCHAIN_THREADS;
@@ -251,7 +253,7 @@ void full_node::stop(result_handler handler)
     database_threads_.shutdown();
     memory_threads_.shutdown();
     blockchain_.stop(/* handler */);
-    network_.stop(/* handler */);
+    network_.stop([](code){});
 
     node_threads_.join();
     database_threads_.join();

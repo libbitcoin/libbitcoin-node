@@ -33,16 +33,13 @@
     <ClCompile Include="..\..\..\..\src\indexer.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocol_sync_blocks.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocol_sync_headers.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\session_sync.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\p2p_node.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocol_sync.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -77,16 +74,13 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync_headers.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session_sync.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync_blocks.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
   </ItemGroup>

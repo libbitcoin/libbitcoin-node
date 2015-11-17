@@ -38,13 +38,38 @@ public:
     /// Construct the full node.
     p2p_node(const configuration& configuration);
 
-    /// Synchronize the blockchain and then start the long-running sessions.
-    virtual void run(result_handler handler);
+    /// Destruct the full node.
+    ~p2p_node();
+
+    /// Invoke startup and seeding sequence, call from constructing thread.
+    void start(result_handler handler) override;
+
+    /// Synchronize the blockchain and then begin long running sessions,
+    /// call from start result handler. Call base method to skip sync.
+    void run(result_handler handler) override;
+
+    /// Non-blocking call to coalesce all work, start may be reinvoked after.
+    /// Handler returns the result of file save operations.
+    void stop(result_handler handler) override;
+
+    /// Blocking call to coalesce all work and then terminate all threads.
+    /// Call from thread that constructed this class, or don't call at all.
+    /// This calls stop, and start may be reinvoked after calling this.
+    void close() override;
 
 private:
+    void handle_blockchain_start(const code& ec, result_handler handler);
+    void handle_fetch_height(const code& ec, uint64_t height,
+        result_handler handler);
+    void handle_fetch_header(const code& ec, const chain::header& header,
+        result_handler handler);
     void handle_synchronized(const code& ec, result_handler handler);
 
     configuration configuration_;
+
+    // TODO: move into blockchain constuctor.
+    threadpool blockchain_pool_;
+    blockchain::blockchain_impl blockchain_;
 };
 
 } // namspace node

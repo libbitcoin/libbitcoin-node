@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/p2p_node.hpp>
 
+#include <functional>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/session_sync.hpp>
@@ -28,12 +29,19 @@ namespace node {
 
 #define LOG_NODE "LOG_P2P_NODE"
 
-using namespace network;
+using namespace bc::blockchain;
+using namespace bc::chain;
+using namespace bc::config;
+using namespace bc::network;
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 static const configuration default_configuration()
 {
     configuration defaults;
     defaults.node.threads = NODE_THREADS;
+    defaults.node.quorum = 2;
+    defaults.node.headers_per_second = 18000;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;
     defaults.chain.threads = BLOCKCHAIN_THREADS;
@@ -48,7 +56,7 @@ static const configuration default_configuration()
     defaults.network.inbound_connection_limit = 0;
     defaults.network.outbound_connections = 1;
     defaults.network.connect_attempts = NETWORK_CONNECT_ATTEMPTS;
-    defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
+    defaults.network.connect_timeout_seconds = 5;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
     defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
     defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
@@ -70,9 +78,78 @@ const configuration p2p_node::defaults = default_configuration();
 
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
-    configuration_(configuration)
+    configuration_(configuration),
+    blockchain_pool_(configuration_.chain.threads, thread_priority::low),
+    blockchain_(blockchain_pool_, configuration.chain)
 {
 }
+
+// Start sequence.
+// ----------------------------------------------------------------------------
+
+void p2p_node::start(result_handler handler)
+{
+    if (!stopped())
+    {
+        handler(error::operation_failed);
+        return;
+    }
+
+    // TODO: move threadpool into blockchain start, to make restartable.
+    ////blockchain_pool_.join();
+    ////blockchain_pool_.spawn(configuration_.chain.threads, thread_priority::low);
+
+    blockchain_.start(
+        std::bind(&p2p_node::handle_blockchain_start,
+            this, _1, handler));
+}
+
+void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
+{
+    ////if (stopped())
+    ////{
+    ////    handler(error::service_stopped);
+    ////    return;
+    ////}
+
+    if (ec)
+    {
+        log::info(LOG_NODE)
+            << "Blockchain failed to start: " << ec.message();
+        handler(ec);
+        return;
+    }
+
+    blockchain_.fetch_last_height(
+        std::bind(&p2p_node::handle_fetch_height,
+            this, _1, _2, handler));
+}
+
+void p2p_node::handle_fetch_height(const code& ec, uint64_t height,
+    result_handler handler)
+{
+    ////if (stopped())
+    ////{
+    ////    handler(error::service_stopped);
+    ////    return;
+    ////}
+
+    if (ec)
+    {
+        log::error(LOG_SESSION)
+            << "Failure fetching blockchain start height: " << ec.message();
+        handler(ec);
+        return;
+    }
+
+    set_height(height);
+
+    // This is the end of the derived start sequence.
+    p2p::start(handler);
+}
+
+// Run sequence.
+// ----------------------------------------------------------------------------
 
 void p2p_node::run(result_handler handler)
 {
@@ -82,28 +159,91 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    auto handle_complete =
-        dispatch_.ordered_delegate(&p2p_node::handle_synchronized,
-            this, _1, handler);
-
-    const auto check = configuration_.chain.checkpoints.back();
-
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_sync>(check, handle_complete);
+    blockchain_.fetch_block_header(height(),
+        std::bind(&p2p_node::handle_fetch_header,
+            this, _1, _2, handler));
 }
 
-void p2p_node::handle_synchronized(const code& ec, result_handler handler)
+void p2p_node::handle_fetch_header(const code& ec, const header& header,
+    result_handler handler)
 {
+    if (stopped())
+    {
+        handler(error::service_stopped);
+        return;
+    }
+
     if (ec)
     {
-        log::error(LOG_NETWORK)
-            << "Error starting node: " << ec.message();
+        log::error(LOG_SESSION)
+            << "Failure fetching blockchain start header: " << ec.message();
         handler(ec);
         return;
     }
 
-    p2p::run();
-    handler(error::success);
+    const checkpoint start_block(header.hash() , height());
+
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    attach<session_sync>(start_block, configuration_)->start(
+        dispatch_.ordered_delegate(&p2p_node::handle_synchronized,
+            this, _1, handler));
+}
+
+void p2p_node::handle_synchronized(const code& ec, result_handler handler)
+{
+    if (stopped())
+    {
+        handler(error::service_stopped);
+        return;
+    }
+
+    if (ec)
+    {
+        log::error(LOG_NETWORK)
+            << "Failure synchronizing blockchain: " << ec.message();
+        handler(ec);
+        return;
+    }
+
+    log::info(LOG_NETWORK)
+        << "Completed synchronizing blockchain to height [" << height() << "]";
+
+    // This is the end of the derived run sequence.
+    p2p::run(handler);
+}
+
+// Stop sequence.
+// ----------------------------------------------------------------------------
+
+void p2p_node::stop(result_handler handler)
+{
+    if (stopped())
+    {
+        handler(error::service_stopped);
+        return;
+    }
+
+    blockchain_pool_.shutdown();
+
+    // This is the end of the derived stop sequence.
+    p2p::stop(handler);
+}
+
+// Destruct sequence.
+// ----------------------------------------------------------------------------
+
+p2p_node::~p2p_node()
+{
+    close();
+}
+
+void p2p_node::close()
+{
+    stop([](code){});
+    blockchain_pool_.join();
+
+    // This is the end of the destruction sequence.
+    p2p::close();
 }
 
 } // namspace node

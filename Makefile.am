@@ -39,8 +39,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/indexer.cpp \
     src/p2p_node.cpp \
     src/poller.cpp \
+    src/protocol_sync.cpp \
     src/protocol_sync_blocks.cpp \
-    src/protocol_sync_headers.cpp \
     src/responder.cpp \
     src/session.cpp \
     src/session_sync.cpp
@@ -88,8 +88,8 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/indexer.hpp \
     include/bitcoin/node/p2p_node.hpp \
     include/bitcoin/node/poller.hpp \
+    include/bitcoin/node/protocol_sync.hpp \
     include/bitcoin/node/protocol_sync_blocks.hpp \
-    include/bitcoin/node/protocol_sync_headers.hpp \
     include/bitcoin/node/responder.hpp \
     include/bitcoin/node/session.hpp \
     include/bitcoin/node/session_sync.hpp \

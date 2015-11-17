@@ -20,8 +20,11 @@
 #ifndef LIBBITCOIN_NODE_SESSION_SYNC_HPP
 #define LIBBITCOIN_NODE_SESSION_SYNC_HPP
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -34,28 +37,31 @@ public:
     typedef std::shared_ptr<session_sync> ptr;
 
     session_sync(threadpool& pool, network::p2p& network,
-        const network::settings& settings);
+        const config::checkpoint& start, const configuration& configuration);
 
-    void start(const config::checkpoint& check, result_handler handler);
+    void start(result_handler handler);
 
 private:
     void new_connection(network::connector::ptr connect,
         result_handler handler);
-
     void start_syncing(const code& ec, const config::authority& host,
         network::connector::ptr connect, result_handler handler);
-
     void handle_connect(const code& ec, network::channel::ptr channel,
         const config::authority& host, network::connector::ptr connect,
+        result_handler handler);
+    void handle_complete(const code& ec, network::connector::ptr connect,
         result_handler handler);
 
     void handle_channel_start(const code& ec, network::connector::ptr connect,
         network::channel::ptr channel, result_handler handler);
+    void handle_channel_stop(const code& ec);
 
-    void handle_channel_stop(const code& ec, network::connector::ptr connect,
-        result_handler handler);
-
-    config::checkpoint checkpoint_;
+    size_t votes_;
+    hash_list headers_;
+    const size_t start_height_;
+    const uint32_t quorum_;
+    const uint32_t minimum_rate_;
+    config::checkpoint::list checkpoints_;
 };
 
 } // namespace node

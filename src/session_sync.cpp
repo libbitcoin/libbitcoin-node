@@ -19,14 +19,19 @@
  */
 #include <bitcoin/node/session_sync.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/protocol_sync.hpp>
 
 INITIALIZE_TRACK(bc::node::session_sync);
 
 namespace libbitcoin {
 namespace node {
+
+#define CLASS session_sync
 
 using namespace config;
 using namespace network;
@@ -34,13 +39,21 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 session_sync::session_sync(threadpool& pool, p2p& network,
-    const network::settings& settings)
-  : session(pool, network, settings, false, true),
+    const checkpoint& start, const configuration& configuration)
+  : session(pool, network, configuration.network, false, true),
+    votes_(0),
+    headers_({ start.hash() }),
+    start_height_(start.height()),
+    quorum_(configuration.node.quorum),
+    minimum_rate_(configuration.node.headers_per_second),
+    checkpoints_(configuration.chain.checkpoints),
     CONSTRUCT_TRACK(session_sync, LOG_NETWORK)
 {
+    // Protocol sync relies on a sort so that it doesn't have to repeat one.
+    config::checkpoint::sort(checkpoints_);
 }
 
-void session_sync::start(const checkpoint& check, result_handler handler)
+void session_sync::start(result_handler handler)
 {
     if (!stopped())
     {
@@ -49,18 +62,18 @@ void session_sync::start(const checkpoint& check, result_handler handler)
     }
 
     session::start();
-    checkpoint_ = check;
-    const auto connect = create_connector();
-    new_connection(connect, handler);
+
+    votes_ = 0;
+    new_connection(create_connector(), handler);
 }
 
-void session_sync::new_connection(connector::ptr connect, result_handler handler)
+void session_sync::new_connection(connector::ptr connect,
+    result_handler handler)
 {
-    fetch_address(
-        dispatch_.ordered_delegate(&session_sync::start_syncing,
-            shared_from_base<session_sync>(), _1, _2, connect, handler));
+    fetch_address(ORDERED4(start_syncing, _1, _2, connect, handler));
 }
 
+// This session does not support concurrent channels.
 void session_sync::start_syncing(const code& ec, const config::authority& sync,
     connector::ptr connect, result_handler handler)
 {
@@ -73,10 +86,10 @@ void session_sync::start_syncing(const code& ec, const config::authority& sync,
     log::info(LOG_NETWORK)
         << "Contacting sync [" << sync << "]";
 
+
     // SYNCHRONIZE CONNECT
     connect->connect(sync,
-        dispatch_.ordered_delegate(&session_sync::handle_connect,
-            shared_from_base<session_sync>(), _1, _2, sync, connect, handler));
+        ORDERED5(handle_connect, _1, _2, sync, connect, handler));
 }
 
 void session_sync::handle_connect(const code& ec, channel::ptr channel,
@@ -85,8 +98,7 @@ void session_sync::handle_connect(const code& ec, channel::ptr channel,
     if (ec)
     {
         log::debug(LOG_NETWORK)
-            << "Failure connecting [" << sync << "] sync: "
-            << ec.message();
+            << "Failure connecting [" << sync << "] sync: " << ec.message();
         new_connection(connect, handler);
         return;
     }
@@ -94,41 +106,53 @@ void session_sync::handle_connect(const code& ec, channel::ptr channel,
     log::info(LOG_NETWORK)
         << "Connected to sync [" << channel->authority() << "]";
 
-    register_channel(channel, 
-        std::bind(&session_sync::handle_channel_start,
-            shared_from_base<session_sync>(), _1, connect, channel, handler),
-        std::bind(&session_sync::handle_channel_stop,
-            shared_from_base<session_sync>(), _1, connect, handler));
+    register_channel(channel,
+        BIND4(handle_channel_start, _1, connect, channel, handler),
+        BIND1(handle_channel_stop, _1));
 }
 
 void session_sync::handle_channel_start(const code& ec, connector::ptr connect,
     channel::ptr channel, result_handler handler)
 {
-    // Treat a start failure just like a stop.
+    // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_channel_stop(ec, connect, handler);
+        handle_complete(ec, connect, handler);
         return;
     }
 
-    // Insufficient peer, just stop and try again.
-    if (channel->version().start_height < checkpoint_.height())
-    {
-        channel->stop(error::channel_stopped);
-        return;
-    }
-
-    attach<protocol_ping>(channel, settings_);
-    attach<protocol_address>(channel, settings_);
-    ////attach<protocol_sync_headers>(channel, settings_, handler);
+    attach<protocol_ping>(channel)->start(settings_);
+    attach<protocol_address>(channel)->start(settings_);
+    attach<protocol_sync>(channel, minimum_rate_, start_height_, headers_,
+        checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
 };
 
-void session_sync::handle_channel_stop(const code& ec, connector::ptr connect,
-    result_handler handler)
+// The handler is passed on to the next start call.
+void session_sync::handle_complete(const code& ec,
+    network::connector::ptr connect, result_handler handler)
 {
-    // Are we done or just failed?
-    if (ec != error::service_stopped)
+    if (ec == error::service_stopped)
+    {
+        handler(ec);
+        return;
+    }
+
+    if (!ec)
+        ++votes_;
+
+    // We require quorum successful "votes" by peers, for maximizing height.
+    if (ec || votes_ < quorum_)
+    {
         new_connection(connect, handler);
+        return;
+    }
+
+    // This is the end of the header sync cycle.
+    handler(error::success);
+}
+
+void session_sync::handle_channel_stop(const code& ec)
+{
 }
 
 } // namespace node
