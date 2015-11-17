@@ -177,7 +177,7 @@ void protocol_sync::handle_receive(const code& ec, const headers& message,
     if (message.elements.size() >= full_headers)
     {
         log::info(LOG_PROTOCOL)
-            << "Downloaded " << next_height() - message.elements.size()
+            << "Synced headers " << next_height() - message.elements.size()
             << "-" << next_height() << " from [" << authority() << "]";
         send_get_headers(complete);
         return;
@@ -217,8 +217,9 @@ void protocol_sync::handle_event(const code& ec, event_handler complete)
     if (headers_per_second() < minimum_rate_)
     {
         log::info(LOG_PROTOCOL)
-            << "Header sync too slow at " << headers_per_second()
-            << " per second from [" << authority() << "]";
+            << "Header sync rate (" << headers_per_second()
+            << "/sec) from [" << authority() << "] is below minimum ("
+            << minimum_rate_ << ").";
         complete(error::channel_timeout);
         return;
     }
