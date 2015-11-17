@@ -17,20 +17,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocol_sync.hpp>
+#include <bitcoin/node/protocol_header_sync.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <bitcoin/bitcoin.hpp>
 
-INITIALIZE_TRACK(bc::node::protocol_sync);
+INITIALIZE_TRACK(bc::node::protocol_header_sync);
 
 namespace libbitcoin {
 namespace node {
 
 #define NAME "sync_headers"
-#define CLASS protocol_sync
+#define CLASS protocol_header_sync
 
 using namespace bc::config;
 using namespace bc::message;
@@ -41,9 +41,9 @@ using std::placeholders::_2;
 static constexpr size_t full_headers = 2000;
 static const asio::duration one_second(0, 0, 1);
 
-protocol_sync::protocol_sync(threadpool& pool, p2p&, channel::ptr channel,
-    uint32_t minimum_rate, size_t first_height, hash_list& headers,
-    const checkpoint::list& checkpoints)
+protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
+    channel::ptr channel, uint32_t minimum_rate, size_t first_height,
+    hash_list& headers, const checkpoint::list& checkpoints)
   : protocol_timer(pool, channel, NAME),
     headers_(headers),
     current_second_(0),
@@ -52,20 +52,20 @@ protocol_sync::protocol_sync(threadpool& pool, p2p&, channel::ptr channel,
     first_height_(first_height),
     target_height_(target(first_height, headers, checkpoints)),
     checkpoints_(checkpoints),
-    CONSTRUCT_TRACK(protocol_sync, LOG_PROTOCOL)
+    CONSTRUCT_TRACK(protocol_header_sync, LOG_PROTOCOL)
 {
-    BITCOIN_ASSERT_MSG(!headers.empty(), "The starting header must be populated.");
+    BITCOIN_ASSERT_MSG(!headers.empty(), "The starting header must be set.");
 }
 
-const size_t protocol_sync::target(size_t first_height, hash_list& headers,
-    const checkpoint::list& checkpoints)
+const size_t protocol_header_sync::target(size_t first_height,
+    hash_list& headers, const checkpoint::list& checkpoints)
 {
     const auto current_block = first_height + headers.size() - 1;
     return checkpoints.empty() ? current_block :
         std::max(checkpoints.back().height(), current_block);
 }
 
-void protocol_sync::start(event_handler handler)
+void protocol_header_sync::start(event_handler handler)
 {
     if (peer_version().start_height < target_height_)
     {
@@ -83,19 +83,19 @@ void protocol_sync::start(event_handler handler)
     send_get_headers(complete);
 }
 
-void protocol_sync::send_get_headers(event_handler complete)
+void protocol_header_sync::send_get_headers(event_handler complete)
 {
     if (stopped())
         return;
 
-    BITCOIN_ASSERT_MSG(!headers_.empty(), "The start header must be populated.");
+    BITCOIN_ASSERT_MSG(!headers_.empty(), "The start header must be set.");
     const message::get_headers get_headers{ { headers_.back() }, null_hash };
 
     SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
     SEND2(get_headers, handle_send, _1, complete);
 }
 
-void protocol_sync::handle_send(const code& ec, event_handler complete)
+void protocol_header_sync::handle_send(const code& ec, event_handler complete)
 {
     if (stopped())
         return;
@@ -109,29 +109,32 @@ void protocol_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-size_t protocol_sync::next_height()
+size_t protocol_header_sync::next_height()
 {
     return headers_.size() + first_height_;
 }
 
-void protocol_sync::rollback()
+void protocol_header_sync::rollback()
 {
     if (!checkpoints_.empty())
+    {
         for (auto it = checkpoints_.rbegin(); it != checkpoints_.rend(); ++it)
         {
-            auto match = std::find(headers_.begin(), headers_.end(), it->hash());
+            const auto& hash = it->hash();
+            auto match = std::find(headers_.begin(), headers_.end(), hash);
             if (match != headers_.end())
             {
                 headers_.erase(++match, headers_.end());
                 return;
             }
         }
+    }
 
     headers_.resize(1);
 }
 
 // We could validate more than this to ensure work is required.
-bool protocol_sync::merge_headers(const headers& message)
+bool protocol_header_sync::merge_headers(const headers& message)
 {
     auto previous = headers_.back();
     for (const auto& block: message.elements)
@@ -151,8 +154,8 @@ bool protocol_sync::merge_headers(const headers& message)
     return true;
 }
 
-void protocol_sync::handle_receive(const code& ec, const headers& message,
-    event_handler complete)
+void protocol_header_sync::handle_receive(const code& ec,
+    const headers& message, event_handler complete)
 {
     if (stopped())
         return;
@@ -187,13 +190,13 @@ void protocol_sync::handle_receive(const code& ec, const headers& message,
     complete(success ? error::success : error::operation_failed);
 }
 
-size_t protocol_sync::headers_per_second()
+size_t protocol_header_sync::current_rate()
 {
     return (headers_.size() - start_size_) / current_second_;
 }
 
 // This is fired by the base timer and stop handler.
-void protocol_sync::handle_event(const code& ec, event_handler complete)
+void protocol_header_sync::handle_event(const code& ec, event_handler complete)
 {
     if (ec == error::channel_stopped)
     {
@@ -214,10 +217,10 @@ void protocol_sync::handle_event(const code& ec, event_handler complete)
     ++current_second_;
 
     // Drop the channel if it falls below the min sync rate.
-    if (headers_per_second() < minimum_rate_)
+    if (current_rate() < minimum_rate_)
     {
         log::info(LOG_PROTOCOL)
-            << "Header sync rate (" << headers_per_second()
+            << "Header sync rate (" << current_rate()
             << "/sec) from [" << authority() << "] is below minimum ("
             << minimum_rate_ << ").";
         complete(error::channel_timeout);
@@ -227,7 +230,8 @@ void protocol_sync::handle_event(const code& ec, event_handler complete)
     reset_timer();
 }
 
-void protocol_sync::headers_complete(const code& ec, event_handler handler)
+void protocol_header_sync::headers_complete(const code& ec,
+    event_handler handler)
 {
     // This is the original handler, feedback to the session.
     handler(ec);

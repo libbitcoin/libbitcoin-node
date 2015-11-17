@@ -39,7 +39,7 @@
     <ClCompile Include="..\..\..\..\src\p2p_node.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocol_sync.cpp">
+    <ClCompile Include="..\..\..\..\src\protocol_header_sync.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -80,7 +80,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_header_sync.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
   </ItemGroup>

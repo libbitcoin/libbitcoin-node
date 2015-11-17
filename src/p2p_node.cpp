@@ -79,7 +79,7 @@ const configuration p2p_node::defaults = default_configuration();
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     configuration_(configuration),
-    blockchain_pool_(configuration_.chain.threads, thread_priority::low),
+    blockchain_pool_(0),
     blockchain_(blockchain_pool_, configuration.chain)
 {
 }
@@ -95,9 +95,9 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
-    // TODO: move threadpool into blockchain start, to make restartable.
-    ////blockchain_pool_.join();
-    ////blockchain_pool_.spawn(configuration_.chain.threads, thread_priority::low);
+    // TODO: move threadpool into blockchain start and make restartable.
+    blockchain_pool_.join();
+    blockchain_pool_.spawn(configuration_.chain.threads, thread_priority::low);
 
     blockchain_.start(
         std::bind(&p2p_node::handle_blockchain_start,
@@ -106,12 +106,6 @@ void p2p_node::start(result_handler handler)
 
 void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
 {
-    ////if (stopped())
-    ////{
-    ////    handler(error::service_stopped);
-    ////    return;
-    ////}
-
     if (ec)
     {
         log::info(LOG_NODE)
@@ -128,12 +122,6 @@ void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
 void p2p_node::handle_fetch_height(const code& ec, uint64_t height,
     result_handler handler)
 {
-    ////if (stopped())
-    ////{
-    ////    handler(error::service_stopped);
-    ////    return;
-    ////}
-
     if (ec)
     {
         log::error(LOG_SESSION)
@@ -145,6 +133,7 @@ void p2p_node::handle_fetch_height(const code& ec, uint64_t height,
     set_height(height);
 
     // This is the end of the derived start sequence.
+    // Stopped is true and no network threads until after this call.
     p2p::start(handler);
 }
 

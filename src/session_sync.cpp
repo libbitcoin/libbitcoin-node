@@ -24,7 +24,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocol_sync.hpp>
+#include <bitcoin/node/protocol_header_sync.hpp>
 
 INITIALIZE_TRACK(bc::node::session_sync);
 
@@ -44,12 +44,10 @@ session_sync::session_sync(threadpool& pool, p2p& network,
     votes_(0),
     headers_({ start.hash() }),
     start_height_(start.height()),
-    quorum_(configuration.node.quorum),
-    minimum_rate_(configuration.node.headers_per_second),
+    configuration_(configuration),
     checkpoints_(configuration.chain.checkpoints),
     CONSTRUCT_TRACK(session_sync, LOG_NETWORK)
 {
-    // Protocol sync relies on a sort so that it doesn't have to repeat one.
     config::checkpoint::sort(checkpoints_);
 }
 
@@ -61,9 +59,8 @@ void session_sync::start(result_handler handler)
         return;
     }
 
-    session::start();
-
     votes_ = 0;
+    session::start();
     new_connection(create_connector(), handler);
 }
 
@@ -121,9 +118,11 @@ void session_sync::handle_channel_start(const code& ec, connector::ptr connect,
         return;
     }
 
+    const auto rate = configuration_.node.headers_per_second;
+
     attach<protocol_ping>(channel)->start(settings_);
     attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_sync>(channel, minimum_rate_, start_height_, headers_,
+    attach<protocol_header_sync>(channel, rate, start_height_, headers_,
         checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
 };
 
@@ -140,8 +139,8 @@ void session_sync::handle_complete(const code& ec,
     if (!ec)
         ++votes_;
 
-    // We require quorum successful "votes" by peers, for maximizing height.
-    if (ec || votes_ < quorum_)
+    // We require a number successful peer syncs, for maximizing height.
+    if (ec || votes_ < configuration_.node.quorum)
     {
         new_connection(connect, handler);
         return;

@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOL_SYNC_HPP
-#define LIBBITCOIN_NODE_PROTOCOL_SYNC_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOL_HEADER_SYNC_HPP
+#define LIBBITCOIN_NODE_PROTOCOL_HEADER_SYNC_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -34,11 +34,11 @@ namespace node {
 /**
  * Headers sync protocol.
  */
-class BCN_API protocol_sync
-  : public network::protocol_timer, public track<protocol_sync>
+class BCN_API protocol_header_sync
+  : public network::protocol_timer, public track<protocol_header_sync>
 {
 public:
-    typedef std::shared_ptr<protocol_sync> ptr;
+    typedef std::shared_ptr<protocol_header_sync> ptr;
 
     /**
      * Construct a sync protocol instance.
@@ -49,7 +49,7 @@ public:
      * @param[in]  headers       The ordered set of header hashes when cmplete.
      * @param[in]  checkpoints   The ordered blockchain checkpoints.
      */
-    protocol_sync(threadpool& pool, network::p2p&,
+    protocol_header_sync(threadpool& pool, network::p2p&,
         network::channel::ptr channel, uint32_t minimum_rate,
         size_t first_height, hash_list& headers,
         const config::checkpoint::list& checkpoints);
@@ -66,14 +66,14 @@ private:
 
     void rollback();
     size_t next_height();
-    size_t headers_per_second();
+    size_t current_rate();
     bool merge_headers(const message::headers& message);
 
     void send_get_headers(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
+    void handle_event(const code& ec, event_handler complete);
     void handle_receive(const code& ec, const message::headers& message,
         event_handler complete);
-    void handle_event(const code& ec, event_handler complete);
 
     void headers_complete(const code& ec, event_handler handler);
 

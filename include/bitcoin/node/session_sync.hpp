@@ -59,8 +59,7 @@ private:
     size_t votes_;
     hash_list headers_;
     const size_t start_height_;
-    const uint32_t quorum_;
-    const uint32_t minimum_rate_;
+    const configuration& configuration_;
     config::checkpoint::list checkpoints_;
 };
 

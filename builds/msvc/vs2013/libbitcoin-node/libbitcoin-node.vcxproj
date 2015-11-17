@@ -73,7 +73,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\p2p_node.cpp" />
-    <ClCompile Include="..\..\..\..\src\protocol_sync.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocol_header_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\responder.cpp" />
     <ClCompile Include="..\..\..\..\src\poller.cpp" />
     <ClCompile Include="..\..\..\..\src\session.cpp" />
@@ -86,7 +86,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_sync.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\responder.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session.hpp" />
