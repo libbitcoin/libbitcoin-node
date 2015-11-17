@@ -176,11 +176,12 @@ void protocol_header_sync::handle_receive(const code& ec,
         return;
     }
 
+    log::info(LOG_PROTOCOL)
+        << "Synced headers " << next_height() - message.elements.size()
+        << "-" << next_height() << " from [" << authority() << "]";
+
     if (message.elements.size() >= full_headers)
     {
-        log::info(LOG_PROTOCOL)
-            << "Synced headers " << next_height() - message.elements.size()
-            << "-" << next_height() << " from [" << authority() << "]";
         send_get_headers(complete);
         return;
     }
