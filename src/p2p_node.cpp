@@ -22,7 +22,7 @@
 #include <functional>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
-#include <bitcoin/node/session_sync.hpp>
+#include <bitcoin/node/session_header_sync.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -40,8 +40,8 @@ static const configuration default_configuration()
 {
     configuration defaults;
     defaults.node.threads = NODE_THREADS;
-    defaults.node.quorum = 2;
-    defaults.node.headers_per_second = 18000;
+    defaults.node.quorum = 1;
+    defaults.node.headers_per_second = 8000;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;
     defaults.chain.threads = BLOCKCHAIN_THREADS;
@@ -50,13 +50,13 @@ static const configuration default_configuration()
     defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_TESTNET;
     defaults.chain.database_path = boost::filesystem::path("s:\\node\\blockchain");
     defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_TESTNET;
-    defaults.network.threads = 1;
+    defaults.network.threads = 3;
     defaults.network.identifier = NETWORK_IDENTIFIER_TESTNET;
     defaults.network.inbound_port = 0;
-    defaults.network.inbound_connection_limit = 0;
-    defaults.network.outbound_connections = 1;
-    defaults.network.connect_attempts = NETWORK_CONNECT_ATTEMPTS;
-    defaults.network.connect_timeout_seconds = 5;
+    defaults.network.connection_limit = 0;
+    defaults.network.outbound_connections = 2;
+    defaults.network.manual_retry_limit = NETWORK_MANUAL_RETRY_LIMIT;
+    defaults.network.connect_timeout_seconds = 3;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
     defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
     defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
@@ -67,7 +67,7 @@ static const configuration default_configuration()
     defaults.network.relay_transactions = NETWORK_RELAY_TRANSACTIONS;
     defaults.network.hosts_file = boost::filesystem::path("s:\\node\\bn-hosts.cache");
     defaults.network.debug_file = boost::filesystem::path("s:\\node\\bn-debug.log");
-    defaults.network.error_file = boost::filesystem::path("s:\\node\\bn-error.log");;
+    defaults.network.error_file = boost::filesystem::path("s:\\node\\bn-error.log");
     defaults.network.self = NETWORK_SELF;
     defaults.network.blacklists = NETWORK_BLACKLISTS;
     defaults.network.seeds = NETWORK_SEEDS_TESTNET;
@@ -95,6 +95,7 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
+    // We use distinct threadpools so priority can be adjusted independently.
     // TODO: move threadpool into blockchain start and make restartable.
     blockchain_pool_.join();
     blockchain_pool_.spawn(configuration_.chain.threads, thread_priority::low);
@@ -148,13 +149,16 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    blockchain_.fetch_block_header(height(),
+    // Ensure consistency in the case where member height is chainging.
+    const auto current_height = height();
+
+    blockchain_.fetch_block_header(current_height,
         std::bind(&p2p_node::handle_fetch_header,
-            this, _1, _2, handler));
+            this, _1, _2, current_height, handler));
 }
 
 void p2p_node::handle_fetch_header(const code& ec, const header& header,
-    result_handler handler)
+    size_t block_height, result_handler handler)
 {
     if (stopped())
     {
@@ -169,16 +173,18 @@ void p2p_node::handle_fetch_header(const code& ec, const header& header,
         handler(ec);
         return;
     }
-
-    const checkpoint start_block(header.hash(), height());
+    
+    // Initialize the hash chain with the starting block hash.
+    hashes_ = { header.hash() };
 
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_sync>(start_block, configuration_)->start(
-        dispatch_.ordered_delegate(&p2p_node::handle_synchronized,
-            this, _1, handler));
+    attach<session_header_sync>(hashes_, block_height, configuration_)->start(
+        dispatch_.ordered_delegate(&p2p_node::handle_headers_synchronized,
+            this, _1, block_height, handler));
 }
 
-void p2p_node::handle_synchronized(const code& ec, result_handler handler)
+void p2p_node::handle_headers_synchronized(const code& ec, size_t start_height,
+    result_handler handler)
 {
     if (stopped())
     {
@@ -189,13 +195,41 @@ void p2p_node::handle_synchronized(const code& ec, result_handler handler)
     if (ec)
     {
         log::error(LOG_NETWORK)
-            << "Failure synchronizing blockchain: " << ec.message();
+            << "Failure synchronizing headers: " << ec.message();
         handler(ec);
         return;
     }
 
     log::info(LOG_NETWORK)
-        << "Completed synchronizing blockchain to height [" << height() << "]";
+        << "Completed synchronizing headers to height ["
+        << start_height << "]";
+
+    ////// The instance is retained by the stop handler (i.e. until shutdown).
+    ////attach<session_block_sync>(hashes_, start_height, configuration_)->start(
+    ////    dispatch_.ordered_delegate(&p2p_node::handle_blocks_synchronized,
+    ////        this, _1, start_height, handler));
+    handle_blocks_synchronized(ec, start_height, handler);
+}
+
+void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
+    result_handler handler)
+{
+    if (stopped())
+    {
+        handler(error::service_stopped);
+        return;
+    }
+
+    if (ec)
+    {
+        log::error(LOG_NETWORK)
+            << "Failure synchronizing blocks: " << ec.message();
+        handler(ec);
+        return;
+    }
+
+    log::info(LOG_NETWORK)
+        << "Completed synchronizing blocks to height [" << start_height << "]";
 
     // This is the end of the derived run sequence.
     p2p::run(handler);
@@ -231,7 +265,7 @@ void p2p_node::close()
     stop([](code){});
     blockchain_pool_.join();
 
-    // This is the end of the destruction sequence.
+    // This is the end of the destruct sequence.
     p2p::close();
 }
 

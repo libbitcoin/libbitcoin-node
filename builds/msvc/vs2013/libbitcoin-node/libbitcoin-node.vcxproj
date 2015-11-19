@@ -79,7 +79,8 @@
     <ClCompile Include="..\..\..\..\src\poller.cpp" />
     <ClCompile Include="..\..\..\..\src\session.cpp" />
     <ClCompile Include="..\..\..\..\src\indexer.cpp" />
-    <ClCompile Include="..\..\..\..\src\session_sync.cpp" />
+    <ClCompile Include="..\..\..\..\src\session_block_sync.cpp" />
+    <ClCompile Include="..\..\..\..\src\session_header_sync.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
@@ -93,7 +94,8 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\indexer.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\session_sync.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\session_block_sync.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\session_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />
   </ItemGroup>

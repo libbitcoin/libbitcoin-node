@@ -25,7 +25,8 @@
 #include <bitcoin/node/protocol_header_sync.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
-#include <bitcoin/node/session_sync.hpp>
+#include <bitcoin/node/session_block_sync.hpp>
+#include <bitcoin/node/session_header_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
 

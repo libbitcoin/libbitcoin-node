@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_SYNC_HPP
-#define LIBBITCOIN_NODE_SESSION_SYNC_HPP
+#ifndef LIBBITCOIN_NODE_SESSION_HEADER_SYNC_HPP
+#define LIBBITCOIN_NODE_SESSION_HEADER_SYNC_HPP
 
 #include <cstddef>
 #include <cstdint>
@@ -30,14 +30,14 @@
 namespace libbitcoin {
 namespace node {
 
-class BCN_API session_sync
-  : public network::session, track<session_sync>
+class BCN_API session_header_sync
+  : public network::session, track<session_header_sync>
 {
 public:
-    typedef std::shared_ptr<session_sync> ptr;
+    typedef std::shared_ptr<session_header_sync> ptr;
 
-    session_sync(threadpool& pool, network::p2p& network,
-        const config::checkpoint& start, const configuration& configuration);
+    session_header_sync(threadpool& pool, network::p2p& network,
+        hash_list& hashes, size_t start, const configuration& configuration);
 
     void start(result_handler handler);
 
@@ -57,7 +57,7 @@ private:
     void handle_channel_stop(const code& ec);
 
     size_t votes_;
-    hash_list hashes_;
+    hash_list& hashes_;
     const size_t start_height_;
     const configuration& configuration_;
     config::checkpoint::list checkpoints_;
