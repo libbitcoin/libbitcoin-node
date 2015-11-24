@@ -46,23 +46,36 @@ session_header_sync::session_header_sync(threadpool& pool, p2p& network,
     start_height_(start),
     configuration_(configuration),
     checkpoints_(configuration.chain.checkpoints),
-    CONSTRUCT_TRACK(session_header_sync, LOG_NETWORK)
+    CONSTRUCT_TRACK(session_header_sync)
 {
     config::checkpoint::sort(checkpoints_);
 }
 
+// Start sequence.
+// ----------------------------------------------------------------------------
+
 void session_header_sync::start(result_handler handler)
 {
-    if (!stopped())
+    session::start(ORDERED2(handle_started, _1, handler));
+}
+
+void session_header_sync::handle_started(const code& ec,
+    result_handler handler)
+{
+    if (ec)
     {
-        handler(error::operation_failed);
+        handler(ec);
         return;
     }
 
     votes_ = 0;
-    session::start();
+
+    // This is the end of the start sequence.
     new_connection(create_connector(), handler);
 }
+
+// Header sync sequence.
+// ----------------------------------------------------------------------------
 
 void session_header_sync::new_connection(connector::ptr connect,
     result_handler handler)
@@ -143,7 +156,7 @@ void session_header_sync::handle_complete(const code& ec,
         return;
     }
 
-    // This is the end of the header sync cycle.
+    // This is the end of the header sync sequence.
     handler(error::success);
 }
 

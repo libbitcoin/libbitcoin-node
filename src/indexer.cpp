@@ -24,6 +24,8 @@
 
 namespace libbitcoin {
 namespace node {
+    
+#define NAME "indexer"
 
 using namespace bc::blockchain;
 using namespace bc::chain;
@@ -34,7 +36,7 @@ using std::placeholders::_2;
 using std::placeholders::_3;
 
 indexer::indexer(threadpool& pool)
-  : dispatch_(pool)
+  : dispatch_(pool, NAME)
 {
 }
 

@@ -29,6 +29,8 @@
 namespace libbitcoin {
 namespace node {
 
+#define NAME "session"
+
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -41,7 +43,7 @@ using namespace bc::network;
 session::session(threadpool& pool, p2p& network, block_chain& blockchain,
     poller& poller, transaction_pool& transaction_pool, responder& responder,
     size_t last_checkpoint_height)
-  : dispatch_(pool),
+  : dispatch_(pool, NAME),
     network_(network),
     blockchain_(blockchain),
     tx_pool_(transaction_pool),
@@ -55,9 +57,9 @@ session::session(threadpool& pool, p2p& network, block_chain& blockchain,
 void session::start()
 {
     // Subscribe to new connections.
-    network_.subscribe(
-        std::bind(&session::new_channel,
-            this, _1, _2));
+    ////network_.subscribe(
+    ////    std::bind(&session::new_channel,
+    ////        this, _1, _2));
 
     // Subscribe to new reorganizations.
     blockchain_.subscribe_reorganize(

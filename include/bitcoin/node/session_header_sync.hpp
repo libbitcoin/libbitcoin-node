@@ -42,6 +42,7 @@ public:
     void start(result_handler handler);
 
 private:
+    void handle_started(const code& ec, result_handler handler);
     void new_connection(network::connector::ptr connect,
         result_handler handler);
     void start_syncing(const code& ec, const config::authority& host,

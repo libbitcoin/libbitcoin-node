@@ -23,7 +23,9 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
+#define NAME "poller"
+
 using namespace bc::blockchain;
 using namespace bc::message;
 using namespace bc::network;
@@ -31,7 +33,8 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 poller::poller(threadpool& pool, block_chain& chain)
-  : dispatch_(pool),  blockchain_(chain)
+  : dispatch_(pool, NAME),
+    blockchain_(chain)
 {
 }
 

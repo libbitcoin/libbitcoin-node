@@ -49,7 +49,7 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     first_height_(first_height),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
-    CONSTRUCT_TRACK(protocol_block_sync, LOG_PROTOCOL)
+    CONSTRUCT_TRACK(protocol_block_sync)
 {
 }
 

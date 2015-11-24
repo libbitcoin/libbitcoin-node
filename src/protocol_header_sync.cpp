@@ -52,7 +52,7 @@ protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
     first_height_(first_height),
     target_height_(target(first_height, hashes, checkpoints)),
     checkpoints_(checkpoints),
-    CONSTRUCT_TRACK(protocol_header_sync, LOG_PROTOCOL)
+    CONSTRUCT_TRACK(protocol_header_sync)
 {
     BITCOIN_ASSERT_MSG(!hashes_.empty(), "The starting header must be set.");
 }
@@ -64,6 +64,9 @@ const size_t protocol_header_sync::target(size_t first_height,
     return checkpoints.empty() ? current_block :
         std::max(checkpoints.back().height(), current_block);
 }
+
+// Start sequence.
+// ----------------------------------------------------------------------------
 
 void protocol_header_sync::start(event_handler handler)
 {
@@ -80,8 +83,13 @@ void protocol_header_sync::start(event_handler handler)
 
     auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
     protocol_timer::start(one_second, BIND2(handle_event, _1, complete));
+
+    // This is the end of the start sequence.
     send_get_headers(complete);
 }
+
+// Header sync sequence.
+// ----------------------------------------------------------------------------
 
 void protocol_header_sync::send_get_headers(event_handler complete)
 {
@@ -232,7 +240,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
 void protocol_header_sync::headers_complete(const code& ec,
     event_handler handler)
 {
-    // This is the original handler, feedback to the session.
+    // This is end of the header sync sequence.
     handler(ec);
 
     // The session does not need to handle the stop.
