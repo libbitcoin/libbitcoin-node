@@ -188,14 +188,14 @@ void protocol_header_sync::handle_receive(const code& ec,
         << "Synced headers " << next_height() - message.elements.size()
         << "-" << next_height() << " from [" << authority() << "]";
 
-    ////if (message.elements.size() >= full_headers)
-    ////{
-    ////    send_get_headers(complete);
-    ////    return;
-    ////}
+    if (message.elements.size() >= full_headers)
+    {
+        send_get_headers(complete);
+        return;
+    }
     
     const auto success = next_height() > target_height_;
-    complete(/*success*/ true ? error::success : error::operation_failed);
+    complete(success ? error::success : error::operation_failed);
 }
 
 size_t protocol_header_sync::current_rate()

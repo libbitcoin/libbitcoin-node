@@ -73,6 +73,9 @@ const hash_digest& protocol_block_sync::current_hash()
     return hashes_[hash_index_];
 }
 
+// Start sequence.
+// ----------------------------------------------------------------------------
+
 void protocol_block_sync::start(event_handler handler)
 {
     if (peer_version().start_height < target_height())
@@ -88,8 +91,13 @@ void protocol_block_sync::start(event_handler handler)
 
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
     protocol_timer::start(one_minute, BIND2(handle_event, _1, complete));
+
+    // This is the end of the start sequence.
     send_get_block(complete);
 }
+
+// Block sync sequence.
+// ----------------------------------------------------------------------------
 
 void protocol_block_sync::send_get_block(event_handler complete)
 {
@@ -182,7 +190,7 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 void protocol_block_sync::blocks_complete(const code& ec,
     event_handler handler)
 {
-    // This is the original handler, feedback to the session.
+    // This is the end of the block sync sequence.
     handler(ec);
 
     // The session does not need to handle the stop.

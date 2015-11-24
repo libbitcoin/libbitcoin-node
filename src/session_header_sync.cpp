@@ -83,7 +83,7 @@ void session_header_sync::new_connection(connector::ptr connect,
     if (stopped())
     {
         log::debug(LOG_NETWORK)
-            << "SUSPENDING SEED SESSION";
+            << "Suspending header sync session.";
         return;
     }
 
@@ -98,10 +98,9 @@ void session_header_sync::start_syncing(const code& ec,
     log::info(LOG_NETWORK)
         << "Contacting sync [" << sync << "]";
 
-
-    // SYNCHRONIZE CONNECT
-    connect->connect(sync,
-        ORDERED5(handle_connect, _1, _2, sync, connect, handler));
+    // HEADER SYNC CONNECT
+    connect->connect(sync, ORDERED5(handle_connect, _1, _2, sync, connect,
+        handler));
 }
 
 void session_header_sync::handle_connect(const code& ec, channel::ptr channel,

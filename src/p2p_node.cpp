@@ -22,6 +22,7 @@
 #include <functional>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/session_block_sync.hpp>
 #include <bitcoin/node/session_header_sync.hpp>
 
 namespace libbitcoin {
@@ -40,23 +41,24 @@ static const configuration default_configuration()
 {
     configuration defaults;
     defaults.node.threads = NODE_THREADS;
-    defaults.node.quorum = 1;
-    defaults.node.headers_per_second = 8000;
+    defaults.node.quorum = 2;
+    defaults.node.blocks_per_minute = 1000;
+    defaults.node.headers_per_second = 1000;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;
     defaults.chain.threads = BLOCKCHAIN_THREADS;
     defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
     defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
-    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_TESTNET;
-    defaults.chain.database_path = boost::filesystem::path("s:\\node\\blockchain");
-    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_TESTNET;
+    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_MAINNET;
+    defaults.chain.database_path = boost::filesystem::path("s:\\mainnet\\blockchain");
+    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_MAINNET;
     defaults.network.threads = 3;
-    defaults.network.identifier = NETWORK_IDENTIFIER_TESTNET;
+    defaults.network.identifier = NETWORK_IDENTIFIER_MAINNET;
     defaults.network.inbound_port = 0;
     defaults.network.connection_limit = 0;
     defaults.network.outbound_connections = 2;
     defaults.network.manual_retry_limit = NETWORK_MANUAL_RETRY_LIMIT;
-    defaults.network.connect_timeout_seconds = 3;
+    defaults.network.connect_timeout_seconds = 8;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
     defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
     defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
@@ -65,12 +67,12 @@ static const configuration default_configuration()
     defaults.network.channel_germination_seconds = NETWORK_CHANNEL_GERMINATION_SECONDS;
     defaults.network.host_pool_capacity = NETWORK_HOST_POOL_CAPACITY;
     defaults.network.relay_transactions = NETWORK_RELAY_TRANSACTIONS;
-    defaults.network.hosts_file = boost::filesystem::path("s:\\node\\bn-hosts.cache");
-    defaults.network.debug_file = boost::filesystem::path("s:\\node\\bn-debug.log");
-    defaults.network.error_file = boost::filesystem::path("s:\\node\\bn-error.log");
+    defaults.network.hosts_file = boost::filesystem::path("s:\\mainnet\\bn-hosts.cache");
+    defaults.network.debug_file = boost::filesystem::path("s:\\mainnet\\bn-debug.log");
+    defaults.network.error_file = boost::filesystem::path("s:\\mainnet\\bn-error.log");
     defaults.network.self = NETWORK_SELF;
     defaults.network.blacklists = NETWORK_BLACKLISTS;
-    defaults.network.seeds = NETWORK_SEEDS_TESTNET;
+    defaults.network.seeds = NETWORK_SEEDS_MAINNET;
     return defaults;
 };
 
@@ -177,10 +179,13 @@ void p2p_node::handle_fetch_header(const code& ec, const header& header,
     // Initialize the hash chain with the starting block hash.
     hashes_ = { header.hash() };
 
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, block_height, configuration_)->start(
+    const auto header_sync_handler =
         dispatch_.ordered_delegate(&p2p_node::handle_headers_synchronized,
-            this, _1, block_height, handler));
+            this, _1, block_height, handler);
+
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    attach<session_header_sync>(hashes_, block_height, configuration_)->
+        start(header_sync_handler);
 }
 
 void p2p_node::handle_headers_synchronized(const code& ec, size_t start_height,
@@ -200,15 +205,18 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t start_height,
         return;
     }
 
+    const auto finish_height = start_height + hashes_.size();
     log::info(LOG_NETWORK)
-        << "Completed synchronizing headers to height ["
-        << start_height << "]";
+        << "Completed synchronizing headers [" << start_height
+        << "-" << finish_height << "]";
 
-    ////// The instance is retained by the stop handler (i.e. until shutdown).
-    ////attach<session_block_sync>(hashes_, start_height, configuration_)->start(
-    ////    dispatch_.ordered_delegate(&p2p_node::handle_blocks_synchronized,
-    ////        this, _1, start_height, handler));
-    handle_blocks_synchronized(ec, start_height, handler);
+    const auto block_sync_handler =
+        dispatch_.ordered_delegate(&p2p_node::handle_blocks_synchronized,
+            this, _1, start_height, handler);
+
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    attach<session_block_sync>(hashes_, start_height, configuration_)->
+        start(block_sync_handler);
 }
 
 void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
@@ -229,7 +237,8 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
     }
 
     log::info(LOG_NETWORK)
-        << "Completed synchronizing blocks to height [" << start_height << "]";
+        << "Completed synchronizing blocks [" << start_height
+        << "-" << height() << "]";
 
     // This is the end of the derived run sequence.
     p2p::run(handler);
