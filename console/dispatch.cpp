@@ -19,14 +19,19 @@
  */
 #include "dispatch.hpp"
 
+#include <chrono>
+#include <functional>
 #include <future>
 #include <iostream>
 #include <string>
-#include <system_error>
+#include <thread>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
+
+namespace libbitcoin {
+namespace node {
 
 // Localizable messages.
 #define BN_FETCH_HISTORY_SUCCESS \
@@ -70,12 +75,11 @@
     "libbitcoin:            %3%"
 
 using boost::format;
+using std::placeholders::_1;
 using namespace boost::system;
 using namespace boost::filesystem;
-using namespace bc;
 using namespace bc::blockchain;
 using namespace bc::config;
-using namespace bc::node;
 using namespace bc::network;
 using namespace bc::wallet;
 
@@ -193,6 +197,19 @@ static console_result process_arguments(int argc, const char* argv[],
     return console_result::okay;
 }
 
+// Unfortunately these must be static.
+static auto done = false;
+static void interrupt_handler(int code)
+{
+    signal(SIGINT, interrupt_handler);
+    signal(SIGTERM, interrupt_handler);
+    signal(SIGBREAK, interrupt_handler);
+    signal(SIGABRT, interrupt_handler);
+
+    if (code != 0)
+        done = true;
+}
+
 console_result dispatch(int argc, const char* argv[], std::istream& input,
     std::ostream& output, std::ostream& error)
 {
@@ -210,14 +227,6 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     if (result != console_result::okay)
         return result;
 
-    // Suppress abort so it's picked up in the loop by getline.
-    const auto interrupt_handler = [](int) {};
-    signal(SIGABRT, interrupt_handler);
-    signal(SIGTERM, interrupt_handler);
-    signal(SIGINT, interrupt_handler);
-
-    output << format(BN_NODE_STARTING) % directory << std::endl;
-
     // These must be libbitcoin streams.
     bc::ofstream debug_file(config.network.debug_file.string(), append);
     bc::ofstream error_file(config.network.error_file.string(), append);
@@ -230,60 +239,72 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     log::error(LOG_NODE) << startup;
     log::fatal(LOG_NODE) << startup;
 
+    log::info(LOG_NODE) << format(BN_NODE_STARTING) % directory;
+
     p2p_node node(config);
-    std::promise<code> start_promise;
-    const auto handle_start = [&start_promise, &node](const code ec)
-    {
-        start_promise.set_value(ec);
-    };
 
-    // Start the node.
-    node.start(handle_start);
-    auto ec = start_promise.get_future().get();
+    // The stop handlers are registered in start.
+    node.start(std::bind(handle_started, _1, std::ref(node)));
 
-    if (ec)
-    {
-        output << BN_NODE_START_FAIL << std::endl;
-        return console_result::not_started;
-    }
-
-    std::promise<code>run_promise;
-    const auto handle_run = [&run_promise](const code ec)
-    {
-        run_promise.set_value(ec);
-    };
-
-    // Start the long-running sessions.
-    node.run(handle_run);
-    ec = run_promise.get_future().get();
-
-    while (true)
-    {
-        std::string command;
-        std::getline(bc::cin, command);
-        const auto trimmed = boost::trim_copy(command);
-        if (command == "\0x03" || trimmed == "stop")
-        {
-            output << BN_NODE_SHUTTING_DOWN << std::endl;
-            break;
-        }
-    }
-
-    std::promise<code> stop_promise;
-    const auto handle_stop = [&stop_promise](const code ec)
-    {
-        stop_promise.set_value(ec);
-    };
-
-    // Stop the service.
-    node.stop(handle_stop);
-    ec = stop_promise.get_future().get();
-
-    if (ec)
-    {
-        output << BN_NODE_STOP_FAIL << std::endl;
-        return console_result::failure;
-    }
-
-    return console_result::okay;
+    return run(node);
 }
+
+// This is called at the end of seeding.
+void handle_started(const code& ec, p2p_node& node)
+{
+    if (ec)
+    {
+        log::info(LOG_NODE) << BN_NODE_START_FAIL;
+        done = true;
+        return;
+    }
+
+    // TODO: seperate sync from run and invoke independently.
+    node.run(std::bind(handle_running, _1));
+}
+
+// This is called at the end of block sync, though execution continues after.
+void handle_running(const code& ec)
+{
+    if (ec)
+    {
+        log::info(LOG_NODE) << BN_NODE_START_FAIL;
+        done = true;
+        return;
+    }
+
+    // The service is running now, waiting on us to call stop.
+}
+
+console_result run(p2p_node& node)
+{
+    // Set up the stop handler.
+    std::promise<code> promise;
+    const auto stop_handler = [&promise](code ec) { promise.set_value(ec); };
+
+    // Wait for completion.
+    monitor_stop(node, stop_handler);
+
+    // Block until the stop handler is invoked.
+    const auto result = promise.get_future().get();
+    return result ? console_result::failure : console_result::okay;
+}
+
+void monitor_stop(p2p_node& node, p2p::result_handler handler)
+{
+    using namespace std::chrono;
+    using namespace std::this_thread;
+    std::string command;
+    
+    interrupt_handler(0);
+    log::info(LOG_NODE) << BN_NODE_START_SUCCESS;
+
+    while (!done)
+        sleep_for(milliseconds(100));
+
+    log::info(LOG_NODE) << BN_NODE_SHUTTING_DOWN;
+    node.stop(handler);
+}
+
+} // namespace node
+} // namespace libbitcoin

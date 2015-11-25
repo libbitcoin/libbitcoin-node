@@ -21,6 +21,7 @@
 #define LIBBITCOIN_NODE_DISPATCH_HPP
 
 #include <iostream>
+#include <bitcoin/node.hpp>
 
 enum console_result : int
 {
@@ -29,8 +30,20 @@ enum console_result : int
     not_started = 1
 };
 
+namespace libbitcoin {
+namespace node {
+
+console_result run(p2p_node& node);
+void monitor_stop(p2p_node& node, p2p_node::result_handler);
+
+void handle_started(const code& ec, p2p_node& node);
+void handle_running(const code& ec);
+
 // Load arguments and config and then run the node.
 console_result dispatch(int argc, const char* argv[], std::istream&,
     std::ostream& output, std::ostream& error);
+
+} // namespace node
+} // namespace libbitcoin
 
 #endif

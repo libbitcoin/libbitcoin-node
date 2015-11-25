@@ -34,5 +34,5 @@ int bc::main(int argc, char* argv[])
 {
     bc::set_utf8_stdio();
     const auto& args = const_cast<const char**>(argv);
-    return dispatch(argc, args, bc::cin, bc::cout, bc::cerr);
+    return bc::node::dispatch(argc, args, bc::cin, bc::cout, bc::cerr);
 }
