@@ -45,11 +45,8 @@ private:
     void handle_started(const code& ec, result_handler handler);
     void new_connection(network::connector::ptr connect,
         result_handler handler);
-    void start_syncing(const code& ec, const config::authority& host,
-        network::connector::ptr connect, result_handler handler);
     void handle_connect(const code& ec, network::channel::ptr channel,
-        const config::authority& host, network::connector::ptr connect,
-        result_handler handler);
+        network::connector::ptr connect, result_handler handler);
     void handle_complete(const code& ec, network::connector::ptr connect,
         result_handler handler);
 

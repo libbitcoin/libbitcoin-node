@@ -43,7 +43,7 @@ static const asio::duration one_minute(0, 1, 0);
 protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     channel::ptr channel, uint32_t minimum_rate, size_t first_height,
     const hash_list& hashes)
-  : protocol_timer(pool, channel, NAME),
+  : protocol_timer(pool, channel, true, NAME),
     hash_index_(0),
     current_minute_(0),
     first_height_(first_height),
@@ -183,8 +183,6 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         complete(error::channel_timeout);
         return;
     }
-
-    reset_timer();
 }
 
 void protocol_block_sync::blocks_complete(const code& ec,

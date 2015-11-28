@@ -41,7 +41,7 @@ static const configuration default_configuration()
 {
     configuration defaults;
     defaults.node.threads = NODE_THREADS;
-    defaults.node.quorum = 2;
+    defaults.node.quorum = 5;
     defaults.node.blocks_per_minute = 1000;
     defaults.node.headers_per_second = 1000;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
@@ -52,13 +52,13 @@ static const configuration default_configuration()
     defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_MAINNET;
     defaults.chain.database_path = boost::filesystem::path("s:\\mainnet\\blockchain");
     defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_MAINNET;
-    defaults.network.threads = 3;
+    defaults.network.threads = 6;
     defaults.network.identifier = NETWORK_IDENTIFIER_MAINNET;
     defaults.network.inbound_port = 0;
     defaults.network.connection_limit = 0;
-    defaults.network.outbound_connections = 2;
+    defaults.network.outbound_connections = 5;
     defaults.network.manual_retry_limit = NETWORK_MANUAL_RETRY_LIMIT;
-    defaults.network.connect_timeout_seconds = 8;
+    defaults.network.connect_timeout_seconds = 5;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
     defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
     defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;

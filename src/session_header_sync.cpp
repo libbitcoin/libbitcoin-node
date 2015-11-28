@@ -56,7 +56,7 @@ session_header_sync::session_header_sync(threadpool& pool, p2p& network,
 
 void session_header_sync::start(result_handler handler)
 {
-    session::start(ORDERED2(handle_started, _1, handler));
+    session::start(CONCURRENT2(handle_started, _1, handler));
 }
 
 void session_header_sync::handle_started(const code& ec,
@@ -87,35 +87,27 @@ void session_header_sync::new_connection(connector::ptr connect,
         return;
     }
 
-    fetch_address(ORDERED4(start_syncing, _1, _2, connect, handler));
-}
-
-// This session does not support concurrent channels.
-void session_header_sync::start_syncing(const code& ec,
-    const config::authority& sync, connector::ptr connect,
-    result_handler handler)
-{
-    log::info(LOG_NETWORK)
-        << "Contacting sync [" << sync << "]";
+    // TODO: add setting for concurrent connect limit.
+    const auto limit = /*settings_.outbound_connections*/ 5;
 
     // HEADER SYNC CONNECT
-    connect->connect(sync, ORDERED5(handle_connect, _1, _2, sync, connect,
+    this->connect(connect, limit, BIND4(handle_connect, _1, _2, connect,
         handler));
 }
 
 void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
-    const authority& sync, connector::ptr connect, result_handler handler)
+    connector::ptr connect, result_handler handler)
 {
     if (ec)
     {
         log::debug(LOG_NETWORK)
-            << "Failure connecting [" << sync << "] sync: " << ec.message();
+            << "Failure connecting header sync: " << ec.message();
         new_connection(connect, handler);
         return;
     }
 
     log::info(LOG_NETWORK)
-        << "Connected to sync [" << channel->authority() << "]";
+        << "Connected to header sync channel [" << channel->authority() << "]";
 
     register_channel(channel,
         BIND4(handle_channel_start, _1, connect, channel, handler),
