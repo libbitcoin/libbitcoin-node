@@ -87,12 +87,8 @@ void session_header_sync::new_connection(connector::ptr connect,
         return;
     }
 
-    // TODO: add setting for concurrent connect limit.
-    const auto limit = /*settings_.outbound_connections*/ 5;
-
     // HEADER SYNC CONNECT
-    this->connect(connect, limit, BIND4(handle_connect, _1, _2, connect,
-        handler));
+    this->connect(connect, BIND4(handle_connect, _1, _2, connect, handler));
 }
 
 void session_header_sync::handle_connect(const code& ec, channel::ptr channel,

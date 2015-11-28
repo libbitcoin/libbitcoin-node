@@ -58,6 +58,7 @@ static const configuration default_configuration()
     defaults.network.connection_limit = 0;
     defaults.network.outbound_connections = 5;
     defaults.network.manual_retry_limit = NETWORK_MANUAL_RETRY_LIMIT;
+    defaults.network.connect_batch_size = NETWORK_CONNECT_BATCH_SIZE;
     defaults.network.connect_timeout_seconds = 5;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
     defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
