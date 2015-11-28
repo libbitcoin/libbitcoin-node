@@ -61,7 +61,7 @@ namespace node {
 #define BN_NODE_STOP_FAIL \
     "The node failed to stop."
 #define BN_NODE_START_SUCCESS \
-    "Type a bitcoin address to fetch, or 'stop' to stop node."
+    "The node is starting, type CTRL-C to stop."
 #define BN_NODE_STOPPING \
     "Please wait while unmapping %1% directory..."
 #define BN_NODE_STARTING \
