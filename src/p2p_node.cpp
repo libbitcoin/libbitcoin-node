@@ -181,7 +181,7 @@ void p2p_node::handle_fetch_header(const code& ec, const header& header,
     hashes_ = { header.hash() };
 
     const auto header_sync_handler =
-        dispatch_.ordered_delegate(&p2p_node::handle_headers_synchronized,
+        std::bind(&p2p_node::handle_headers_synchronized,
             this, _1, block_height, handler);
 
     // The instance is retained by the stop handler (i.e. until shutdown).
@@ -212,7 +212,7 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t start_height,
         << "-" << finish_height << "]";
 
     const auto block_sync_handler =
-        dispatch_.ordered_delegate(&p2p_node::handle_blocks_synchronized,
+        std::bind(&p2p_node::handle_blocks_synchronized,
             this, _1, start_height, handler);
 
     // The instance is retained by the stop handler (i.e. until shutdown).

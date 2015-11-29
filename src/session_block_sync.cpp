@@ -40,7 +40,7 @@ using std::placeholders::_2;
 
 session_block_sync::session_block_sync(threadpool& pool, p2p& network,
     hash_list& hashes, size_t start, const configuration& configuration)
-  : session(pool, network, configuration.network, false, true),
+  : session_batch(pool, network, configuration.network, false),
     votes_(0),
     hashes_(hashes),
     start_height_(start),

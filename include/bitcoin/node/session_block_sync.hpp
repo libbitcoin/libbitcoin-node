@@ -31,7 +31,7 @@ namespace libbitcoin {
 namespace node {
 
 class BCN_API session_block_sync
-  : public network::session, track<session_block_sync>
+  : public network::session_batch, track<session_block_sync>
 {
 public:
     typedef std::shared_ptr<session_block_sync> ptr;
