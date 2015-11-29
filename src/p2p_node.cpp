@@ -176,17 +176,14 @@ void p2p_node::handle_fetch_header(const code& ec, const header& header,
         handler(ec);
         return;
     }
-    
+
     // Initialize the hash chain with the starting block hash.
     hashes_ = { header.hash() };
 
-    const auto header_sync_handler =
-        std::bind(&p2p_node::handle_headers_synchronized,
-            this, _1, block_height, handler);
-
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, block_height, configuration_)->
-        start(header_sync_handler);
+    attach<session_header_sync>(hashes_, block_height, configuration_)->start(
+        std::bind(&p2p_node::handle_headers_synchronized,
+            this, _1, block_height, handler));
 }
 
 void p2p_node::handle_headers_synchronized(const code& ec, size_t start_height,
@@ -211,13 +208,10 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t start_height,
         << "Completed synchronizing headers [" << start_height
         << "-" << finish_height << "]";
 
-    const auto block_sync_handler =
-        std::bind(&p2p_node::handle_blocks_synchronized,
-            this, _1, start_height, handler);
-
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_block_sync>(hashes_, start_height, configuration_)->
-        start(block_sync_handler);
+    attach<session_block_sync>(hashes_, start_height, configuration_)->start(
+        std::bind(&p2p_node::handle_blocks_synchronized,
+            this, _1, start_height, handler));
 }
 
 void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
@@ -250,12 +244,6 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
 
 void p2p_node::stop(result_handler handler)
 {
-    if (stopped())
-    {
-        handler(error::service_stopped);
-        return;
-    }
-
     blockchain_pool_.shutdown();
 
     // This is the end of the derived stop sequence.
