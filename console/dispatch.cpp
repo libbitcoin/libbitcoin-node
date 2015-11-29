@@ -203,7 +203,6 @@ static void interrupt_handler(int code)
 {
     signal(SIGINT, interrupt_handler);
     signal(SIGTERM, interrupt_handler);
-    signal(SIGBREAK, interrupt_handler);
     signal(SIGABRT, interrupt_handler);
 
     if (code != 0)
