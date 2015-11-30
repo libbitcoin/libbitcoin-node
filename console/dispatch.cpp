@@ -245,6 +245,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     // The stop handlers are registered in start.
     node.start(std::bind(handle_started, _1, std::ref(node)));
 
+    // BUGBUG: node.stop can be invoked prior to completion of node.start.
     return run(node);
 }
 
