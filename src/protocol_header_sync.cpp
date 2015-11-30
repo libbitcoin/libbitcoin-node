@@ -29,7 +29,7 @@ INITIALIZE_TRACK(bc::node::protocol_header_sync);
 namespace libbitcoin {
 namespace node {
 
-#define NAME "protocol_header_sync"
+#define NAME "header_sync"
 #define CLASS protocol_header_sync
 
 using namespace bc::config;

@@ -29,7 +29,7 @@ INITIALIZE_TRACK(bc::node::protocol_block_sync);
 namespace libbitcoin {
 namespace node {
 
-#define NAME "protocol_block_sync"
+#define NAME "block_sync"
 #define CLASS protocol_block_sync
 
 using namespace bc::config;
