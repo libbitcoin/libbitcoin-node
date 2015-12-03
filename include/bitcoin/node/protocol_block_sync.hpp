@@ -64,12 +64,13 @@ private:
     size_t current_height();
     const hash_digest& current_hash();
 
-    void send_get_block(event_handler complete);
+    message::get_data build_maximal_request();
+    void send_get_blocks(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
-    void handle_receive(const code& ec, const message::block& message,
-        event_handler complete);
     void blocks_complete(const code& ec, event_handler handler);
+    bool handle_receive(const code& ec, const message::block& message,
+        event_handler complete);
 
     size_t hash_index_;
     size_t current_minute_;

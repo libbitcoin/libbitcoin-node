@@ -80,11 +80,11 @@ public:
 
 protected:
     /// New channel has been started.
-    virtual void handle_new_channel(const code& ec,
+    virtual bool handle_new_channel(const code& ec,
         network::channel::ptr node);
 
     /// New transaction has been received from the network.
-    virtual void handle_recieve_tx(const code& ec,
+    virtual bool handle_recieve_tx(const code& ec,
         const chain::transaction& tx, network::channel::ptr node);
 
     /// New transaction has been validated and accepted into the pool.

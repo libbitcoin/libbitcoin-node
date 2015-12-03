@@ -183,10 +183,10 @@ void full_node::handle_network_start(const code& ec, result_handler handler)
         return;
     }
 
-    // Subscribe to new connections.
-    network_.subscribe(
-        std::bind(&full_node::handle_new_channel,
-            this, _1, _2));
+    ////// Subscribe to new connections.
+    ////network_.subscribe(
+    ////    std::bind(&full_node::handle_new_channel,
+    ////        this, _1, _2));
 
     // Pass the initial blockchain height to the network.
     blockchain_.fetch_last_height(
@@ -264,40 +264,33 @@ void full_node::stop(result_handler handler)
     handler(ec);
 }
 
-void full_node::handle_new_channel(const code& ec, channel::ptr node)
+bool full_node::handle_new_channel(const code& ec, channel::ptr node)
 {
     if (ec == error::service_stopped)
-        return;
-
-    // Stay subscribed to new channels unless stopping.
-    network_.subscribe(
-        std::bind(&full_node::handle_new_channel,
-            this, _1, _2));
+        return false;
 
     if (ec)
     {
         log::info(LOG_NODE)
             << "Error starting transaction subscription for ["
             << node ->authority() << "] " << ec.message();
-        return;
+        return false;
     }
 
     // Subscribe to transaction messages from this channel.
     node->subscribe<transaction>(
         std::bind(&full_node::handle_recieve_tx,
             this, _1, _2, node));
+
+    // Stay subscribed to new channels unless stopping.
+    return true;
 }
 
-void full_node::handle_recieve_tx(const code& ec, const transaction& tx,
+bool full_node::handle_recieve_tx(const code& ec, const transaction& tx,
     channel::ptr node)
 {
     if (ec == error::channel_stopped)
-        return;
-
-    // Resubscribe to receive transaction messages from this channel.
-    node->subscribe<transaction>(
-        std::bind(&full_node::handle_recieve_tx,
-            this, _1, _2, node));
+        return false;
 
     const auto hash = tx.hash();
     const auto encoded = encode_hash(hash);
@@ -307,7 +300,7 @@ void full_node::handle_recieve_tx(const code& ec, const transaction& tx,
         log::debug(LOG_NODE)
             << "Failure receiving transaction [" << encoded << "] from ["
             << node->authority() << "] " << ec.message();
-        return;
+        return false;
     }
 
     log::debug(LOG_NODE)
@@ -321,6 +314,9 @@ void full_node::handle_recieve_tx(const code& ec, const transaction& tx,
             this, _1, _2, _3),
         std::bind(&full_node::handle_tx_validated,
             this, _1, _2, _3, _4));
+
+    // Resubscribe to receive transaction messages from this channel.
+    return true;
 }
 
 // Called when the transaction becomes confirmed in a block.

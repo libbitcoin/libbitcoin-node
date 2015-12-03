@@ -92,20 +92,20 @@ void session::new_channel(const code& ec, channel::ptr node)
     // Revive channel with a new getblocks request if it stops getting blocks.
     node->set_revival_handler(revive);
     
-    // Subscribe to new inventory requests.
-    node->subscribe<inventory>(
-        std::bind(&session::receive_inv,
-            this, _1, _2, node));
+    ////////// Subscribe to new inventory requests.
+    ////////node->subscribe<inventory>(
+    ////////    std::bind(&session::receive_inv,
+    ////////        this, _1, _2, node));
 
-    // Subscribe to new get_blocks requests.
-    node->subscribe<get_blocks>(
-        std::bind(&session::receive_get_blocks,
-            this, _1, _2, node));
+    ////////// Subscribe to new get_blocks requests.
+    ////////node->subscribe<get_blocks>(
+    ////////    std::bind(&session::receive_get_blocks,
+    ////////        this, _1, _2, node));
 
-    // Resubscribe to new channels.
-    network_.subscribe(
-        std::bind(&session::new_channel,
-            this, _1, _2));
+    ////////// Resubscribe to new channels.
+    ////////network_.subscribe(
+    ////////    std::bind(&session::new_channel,
+    ////////        this, _1, _2));
 
     // Poll this channel to build the blockchain.
     poller_.monitor(node);
@@ -200,10 +200,10 @@ void session::receive_inv(const code& ec, const inventory& packet,
         return;
     }
 
-    // Resubscribe to new inventory requests.
-    node->subscribe<inventory>(
-        std::bind(&session::receive_inv,
-            this, _1, _2, node));
+    ////////// Resubscribe to new inventory requests.
+    ////////node->subscribe<inventory>(
+    ////////    std::bind(&session::receive_inv,
+    ////////        this, _1, _2, node));
 
     log::debug(LOG_RESPONDER)
         << "Inventory BEGIN [" << peer << "] "

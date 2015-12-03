@@ -84,6 +84,8 @@ void protocol_header_sync::start(event_handler handler)
     auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
     protocol_timer::start(one_second, BIND2(handle_event, _1, complete));
 
+    SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
+
     // This is the end of the start sequence.
     send_get_headers(complete);
 }
@@ -99,7 +101,6 @@ void protocol_header_sync::send_get_headers(event_handler complete)
     BITCOIN_ASSERT_MSG(!hashes_.empty(), "The start header must be set.");
     const get_headers packet{ { hashes_.back() }, null_hash };
 
-    SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
     SEND2(packet, handle_send, _1, complete);
 }
 
@@ -161,11 +162,11 @@ bool protocol_header_sync::merge_headers(const headers& message)
     return true;
 }
 
-void protocol_header_sync::handle_receive(const code& ec,
+bool protocol_header_sync::handle_receive(const code& ec,
     const headers& message, event_handler complete)
 {
     if (stopped())
-        return;
+        return false;
 
     if (ec)
     {
@@ -173,7 +174,7 @@ void protocol_header_sync::handle_receive(const code& ec,
             << "Failure receiving headers from sync ["
             << authority() << "] " << ec.message();
         complete(ec);
-        return;
+        return false;
     }
 
     if (!merge_headers(message))
@@ -181,21 +182,24 @@ void protocol_header_sync::handle_receive(const code& ec,
         log::info(LOG_PROTOCOL)
             << "Failure merging headers from [" << authority() << "]";
         complete(error::previous_block_invalid);
-        return;
+        return false;
     }
 
     log::info(LOG_PROTOCOL)
         << "Synced headers " << next_height() - message.elements.size()
         << "-" << next_height() << " from [" << authority() << "]";
 
-    if (message.elements.size() >= full_headers)
+    // If we received fewer than 2000 the peer is exhausted.
+    if (message.elements.size() < full_headers)
     {
-        send_get_headers(complete);
-        return;
+        // If we reached the target height the sync is a success.
+        const auto success = next_height() > target_height_;
+        complete(success ? error::success : error::operation_failed);
+        return false;
     }
-    
-    const auto success = next_height() > target_height_;
-    complete(success ? error::success : error::operation_failed);
+
+    send_get_headers(complete);
+    return true;
 }
 
 size_t protocol_header_sync::current_rate()

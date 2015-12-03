@@ -45,9 +45,9 @@ void poller::monitor(channel::ptr node)
     ////    std::bind(&poller::receive_inv,
     ////        this, _1, _2, node));
 
-    node->subscribe<block>(
-        std::bind(&poller::receive_block,
-            this, _1, _2, node));
+    ////node->subscribe<block>(
+    ////    std::bind(&poller::receive_block,
+    ////        this, _1, _2, node));
 
     request_blocks(null_hash, node);
 }
@@ -67,9 +67,9 @@ void poller::receive_block(const code& ec, const block& block,
         return;
     }
 
-    node->subscribe<message::block>(
-        std::bind(&poller::receive_block,
-            this, _1, _2, node));
+    //////node->subscribe<message::block>(
+    //////    std::bind(&poller::receive_block,
+    //////        this, _1, _2, node));
 
     blockchain_.store(block,
         dispatch_.ordered_delegate(&poller::handle_store_block,

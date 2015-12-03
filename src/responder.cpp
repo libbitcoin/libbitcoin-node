@@ -39,10 +39,10 @@ responder::responder(block_chain& blockchain, transaction_pool& tx_pool)
 
 void responder::monitor(channel::ptr node)
 {
-    // Subscribe to serve tx and blocks.
-    node->subscribe<get_data>(
-        std::bind(&responder::receive_get_data,
-            this, _1, _2, node));
+    ////// Subscribe to serve tx and blocks.
+    ////node->subscribe<get_data>(
+    ////    std::bind(&responder::receive_get_data,
+    ////        this, _1, _2, node));
 }
 
 // TODO: consolidate to libbitcoin utils.
@@ -75,10 +75,10 @@ void responder::receive_get_data(const code& ec, const get_data& packet,
         return;
     }
 
-    // Resubscribe to serve tx and blocks.
-    node->subscribe<message::get_data>(
-        std::bind(&responder::receive_get_data,
-            this, _1, _2, node));
+    ////// Resubscribe to serve tx and blocks.
+    ////node->subscribe<message::get_data>(
+    ////    std::bind(&responder::receive_get_data,
+    ////        this, _1, _2, node));
 
     log::debug(LOG_RESPONDER)
         << "Getdata BEGIN [" << peer << "] "

@@ -68,13 +68,12 @@ private:
     size_t next_height();
     size_t current_rate();
     bool merge_headers(const message::headers& message);
-
     void send_get_headers(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
-    void handle_receive(const code& ec, const message::headers& message,
-        event_handler complete);
     void headers_complete(const code& ec, event_handler handler);
+    bool handle_receive(const code& ec, const message::headers& message,
+        event_handler complete);
 
     hash_list& hashes_;
     size_t current_second_;

@@ -89,17 +89,35 @@ void protocol_block_sync::start(event_handler handler)
         return;
     }
 
+    // TODO: use completion handler to count blocks synced.
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
     protocol_timer::start(one_minute, BIND2(handle_event, _1, complete));
 
+    SUBSCRIBE3(block, handle_receive, _1, _2, complete);
+
     // This is the end of the start sequence.
-    send_get_block(complete);
+    send_get_blocks(complete);
 }
 
 // Block sync sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::send_get_block(event_handler complete)
+message::get_data protocol_block_sync::build_maximal_request()
+{
+    get_data packet;
+    const auto copy = [&packet](const hash_digest& hash)
+    {
+        packet.inventories.push_back({ inventory_type_id::block, hash });
+    };
+
+    const size_t unfilled = hashes_.size() - hash_index_;
+    const size_t count = std::min(unfilled, size_t(50000));
+    const auto start = hashes_.begin() + hash_index_;
+    std::for_each(start, start + count, copy);
+    return packet;
+}
+
+void protocol_block_sync::send_get_blocks(event_handler complete)
 {
     if (stopped())
         return;
@@ -109,10 +127,8 @@ void protocol_block_sync::send_get_block(event_handler complete)
         complete(error::success);
         return;
     }
-    
-    const get_data packet{ { inventory_type_id::block, current_hash() } };
 
-    SUBSCRIBE3(block, handle_receive, _1, _2, complete);
+    const auto packet = build_maximal_request();
     SEND2(packet, handle_send, _1, complete);
 }
 
@@ -130,11 +146,11 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-void protocol_block_sync::handle_receive(const code& ec, const block& message,
+bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     event_handler complete)
 {
     if (stopped())
-        return;
+        return false;
 
     if (ec)
     {
@@ -142,15 +158,28 @@ void protocol_block_sync::handle_receive(const code& ec, const block& message,
             << "Failure receiving block from sync ["
             << authority() << "] " << ec.message();
         complete(ec);
-        return;
+        return false;
     }
 
-    log::info(LOG_PROTOCOL)
-        << "Synced block #" << current_height() << " from [" 
-        << authority() << "]";
+    if (current_hash() != message.header.hash())
+    {
+        log::info(LOG_PROTOCOL)
+            << "Out of order block " << encode_hash(message.header.hash())
+            << " from [" << authority() << "] (ignored)";
+
+        // We probably received a block anouncement, ignore and keep going.
+        return true;
+    }
 
     ++hash_index_;
-    send_get_block(complete);
+    // TODO: commit block here.
+
+    log::info(LOG_PROTOCOL)
+        << "Synced block #" << current_height() << " from ["
+        << authority() << "]";
+
+    send_get_blocks(complete);
+    return true;
 }
 
 // This is fired by the base timer and stop handler.
