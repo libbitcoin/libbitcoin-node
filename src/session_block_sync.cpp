@@ -41,14 +41,11 @@ using std::placeholders::_2;
 session_block_sync::session_block_sync(threadpool& pool, p2p& network,
     hash_list& hashes, size_t start, const configuration& configuration)
   : session_batch(pool, network, configuration.network, false),
-    votes_(0),
     hashes_(hashes),
     start_height_(start),
     configuration_(configuration),
-    checkpoints_(configuration.chain.checkpoints),
     CONSTRUCT_TRACK(session_block_sync)
 {
-    config::checkpoint::sort(checkpoints_);
 }
 
 // Start sequence.
@@ -68,8 +65,6 @@ void session_block_sync::handle_started(const code& ec,
         return;
     }
 
-    votes_ = 0;
-
     // This is the end of the start sequence.
     new_connection(create_connector(), handler);
 }
@@ -86,6 +81,8 @@ void session_block_sync::new_connection(connector::ptr connect,
             << "Suspending block sync session.";
         return;
     }
+
+    // TODO: parallelize into 50k groups.
 
     // BLOCK SYNC CONNECT
     this->connect(connect, BIND4(handle_connect, _1, _2, connect, handler));
@@ -121,11 +118,11 @@ void session_block_sync::handle_channel_start(
         return;
     }
 
-    const auto rate = configuration_.node.blocks_per_minute;
+    const auto rate = configuration_.node.blocks_per_second;
 
     attach<protocol_ping>(channel)->start(settings_);
     attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_block_sync>(channel, rate, start_height_, hashes_)->
+    attach<protocol_block_sync>(channel, rate, start_height_, 0, hashes_)->
         start(BIND3(handle_complete, _1, connect, handler));
 };
 
@@ -133,11 +130,7 @@ void session_block_sync::handle_channel_start(
 void session_block_sync::handle_complete(const code& ec,
     network::connector::ptr connect, result_handler handler)
 {
-    if (!ec)
-        ++votes_;
-
-    // We require a number successful peer syncs, for maximizing height.
-    if (ec || votes_ < configuration_.node.quorum)
+    if (ec)
     {
         new_connection(connect, handler);
         return;

@@ -52,6 +52,7 @@ static const configuration default_configuration()
     configuration defaults;
     defaults.node.quorum = NODE_QUORUM;
     defaults.node.threads = NODE_THREADS;
+    defaults.node.blocks_per_second = NODE_BLOCKS_PER_SECOND;
     defaults.node.headers_per_second = NODE_HEADERS_PER_SECOND;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
     defaults.node.peers = NODE_PEERS;

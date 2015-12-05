@@ -39,15 +39,20 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 session_header_sync::session_header_sync(threadpool& pool, p2p& network,
-    hash_list& hashes, size_t start, const configuration& configuration)
+    hash_list& hashes, const config::checkpoint& top,
+    const configuration& configuration)
   : session_batch(pool, network, configuration.network, false),
     votes_(0),
     hashes_(hashes),
-    start_height_(start),
-    configuration_(configuration),
     checkpoints_(configuration.chain.checkpoints),
+    start_height_(top.height()),
+    configuration_(configuration),
     CONSTRUCT_TRACK(session_header_sync)
 {
+    // Seed the headers list with the top block, matching start_height.
+    hashes_.push_back(top.hash());
+
+    // Checkpoints must be sorted but may not be so in config.
     config::checkpoint::sort(checkpoints_);
 }
 
@@ -137,11 +142,15 @@ void session_header_sync::handle_complete(const code& ec,
         ++votes_;
 
     // We require a number successful peer syncs, for maximizing height.
+    // They do not have to agree, as this is not conflict resolution.
     if (ec || votes_ < configuration_.node.quorum)
     {
         new_connection(connect, handler);
         return;
     }
+
+    // Remove the seed (top) block hash so we only return new headers.
+    hashes_.erase(hashes_.begin());
 
     // This is the end of the header sync sequence.
     handler(error::success);

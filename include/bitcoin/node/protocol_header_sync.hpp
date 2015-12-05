@@ -61,13 +61,18 @@ public:
     void start(event_handler handler);
 
 private:
-    static const size_t target(size_t first_height, hash_list& headers,
+    static size_t target(size_t first_height, hash_list& headers,
         const config::checkpoint::list& checkpoints);
 
+    size_t next_height() const;
+    size_t current_rate() const;
+
     void rollback();
-    size_t next_height();
-    size_t current_rate();
     bool merge_headers(const message::headers& message);
+    bool checks(const hash_digest& hash, size_t height) const;
+    bool chained(const chain::header& header, const hash_digest& hash) const;
+    bool proof_of_work(const chain::header& header, size_t height) const;
+
     void send_get_headers(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
@@ -75,8 +80,12 @@ private:
     bool handle_receive(const code& ec, const message::headers& message,
         event_handler complete);
 
+    // This is write-guarded by the header message subscriber strand.
     hash_list& hashes_;
+
+    // This is guarded by protocol_timer/deadline contract (exactly one call).
     size_t current_second_;
+
     const uint32_t minimum_rate_;
     const size_t start_size_;
     const size_t first_height_;

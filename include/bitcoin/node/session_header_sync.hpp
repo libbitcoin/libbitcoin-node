@@ -37,7 +37,8 @@ public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
     session_header_sync(threadpool& pool, network::p2p& network,
-        hash_list& hashes, size_t start, const configuration& configuration);
+        hash_list& hashes, const config::checkpoint& top,
+        const configuration& configuration);
 
     void start(result_handler handler);
 
@@ -56,11 +57,13 @@ private:
         network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec);
 
+    // These are guarded by the non-restartable session constraint.
     size_t votes_;
     hash_list& hashes_;
+    config::checkpoint::list checkpoints_;
+
     const size_t start_height_;
     const configuration& configuration_;
-    config::checkpoint::list checkpoints_;
 };
 
 } // namespace node

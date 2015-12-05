@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -46,11 +47,12 @@ public:
      * @param[in]  channel       The channel on which to start the protocol.
      * @param[in]  minimum_rate  The minimum sync rate in blocks per minute.
      * @param[in]  first_height  The height of the first entry in headers.
+     * @param[in]  scope         The block of responsibility [1-50,000].
      * @param[in]  hashes        The ordered set of block hashes to sync.
      */
     protocol_block_sync(threadpool& pool, network::p2p&,
         network::channel::ptr channel, uint32_t minimum_rate,
-        size_t first_height, const hash_list& hashes);
+        size_t first_height, size_t scope, const hash_list& hashes);
 
     /**
      * Start the protocol.
@@ -59,12 +61,14 @@ public:
     void start(event_handler handler);
 
 private:
-    size_t current_rate();
-    size_t target_height();
-    size_t current_height();
-    const hash_digest& current_hash();
+    static size_t target(size_t first_height, size_t start_index,
+        const hash_list& hashes);
 
-    message::get_data build_maximal_request();
+    size_t current_rate() const;
+    size_t current_height() const;
+    const hash_digest& current_hash() const;
+    message::get_data build_get_data() const;
+
     void send_get_blocks(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
@@ -72,9 +76,15 @@ private:
     bool handle_receive(const code& ec, const message::block& message,
         event_handler complete);
 
-    size_t hash_index_;
-    size_t current_minute_;
+    // This is guarded by protocol_timer/deadline contract (exactly one call).
+    size_t current_second_;
+
+    // This is write-guarded by the block message subscriber strand.
+    std::atomic<size_t> hash_index_;
+
+    const size_t start_index_;
     const size_t first_height_;
+    const size_t target_height_;
     const uint32_t minimum_rate_;
     const hash_list& hashes_;
 };

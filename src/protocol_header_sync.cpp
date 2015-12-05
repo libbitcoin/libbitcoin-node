@@ -33,13 +33,17 @@ namespace node {
 #define CLASS protocol_header_sync
 
 using namespace bc::config;
+using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+// TODO: move to config.
+static constexpr size_t header_rate_seconds = 10;
+
 static constexpr size_t full_headers = 2000;
-static const asio::duration one_second(0, 0, 1);
+static const asio::duration ten_seconds(0, 0, header_rate_seconds);
 
 protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
     channel::ptr channel, uint32_t minimum_rate, size_t first_height,
@@ -54,15 +58,98 @@ protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
     checkpoints_(checkpoints),
     CONSTRUCT_TRACK(protocol_header_sync)
 {
+    // TODO: convert to exception (public API).
     BITCOIN_ASSERT_MSG(!hashes_.empty(), "The starting header must be set.");
 }
 
-const size_t protocol_header_sync::target(size_t first_height,
+// Utilities
+// ----------------------------------------------------------------------------
+
+size_t protocol_header_sync::target(size_t first_height,
     hash_list& headers, const checkpoint::list& checkpoints)
 {
     const auto current_block = first_height + headers.size() - 1;
     return checkpoints.empty() ? current_block :
         std::max(checkpoints.back().height(), current_block);
+}
+
+size_t protocol_header_sync::next_height() const
+{
+    return hashes_.size() + first_height_;
+}
+
+size_t protocol_header_sync::current_rate() const
+{
+    return (hashes_.size() - start_size_) / current_second_;
+}
+
+bool protocol_header_sync::chained(const header& header,
+    const hash_digest& hash) const
+{
+    return header.previous_block_hash == hash;
+}
+
+bool protocol_header_sync::checks(const hash_digest& hash, size_t height) const
+{
+    if (height > target_height_)
+        return true;
+
+    return checkpoint::validate(hash, height, checkpoints_);
+}
+
+bool protocol_header_sync::proof_of_work(const header& header,
+    size_t height) const
+{
+    if (height <= target_height_)
+        return true;
+
+    // TODO: determine if the PoW for this block is valid.
+    return true;
+}
+
+void protocol_header_sync::rollback()
+{
+    if (!checkpoints_.empty())
+    {
+        for (auto it = checkpoints_.rbegin(); it != checkpoints_.rend(); ++it)
+        {
+            auto match = std::find(hashes_.begin(), hashes_.end(), it->hash());
+            if (match != hashes_.end())
+            {
+                hashes_.erase(++match, hashes_.end());
+                return;
+            }
+        }
+    }
+
+    hashes_.resize(1);
+}
+
+// It's not necessary to roll back for invalid PoW. We just stop and move to
+// another peer. As long as we are getting valid PoW there is no way to know
+// we aren't of on a fork, so moving on is sufficient (and generally faster).
+bool protocol_header_sync::merge_headers(const headers& message)
+{
+    auto previous = hashes_.back();
+
+    for (const auto& header: message.elements)
+    {
+        const auto current = header.hash();
+
+        if (!chained(header, previous) || !checks(current, next_height()))
+        {
+            rollback();
+            return false;
+        }
+
+        if (!proof_of_work(header, next_height()))
+            return false;
+
+        previous = current;
+        hashes_.push_back(current);
+    }
+
+    return true;
 }
 
 // Start sequence.
@@ -77,12 +164,13 @@ void protocol_header_sync::start(event_handler handler)
             << ") below header sync target (" << target_height_ << ") from ["
             << authority() << "]";
 
-        handler(error::channel_stopped);
+        // This is a successful vote.
+        handler(error::success);
         return;
     }
 
     auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
-    protocol_timer::start(one_second, BIND2(handle_event, _1, complete));
+    protocol_timer::start(ten_seconds, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
 
@@ -116,50 +204,6 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
             << ec.message();
         complete(ec);
     }
-}
-
-size_t protocol_header_sync::next_height()
-{
-    return hashes_.size() + first_height_;
-}
-
-void protocol_header_sync::rollback()
-{
-    if (!checkpoints_.empty())
-    {
-        for (auto it = checkpoints_.rbegin(); it != checkpoints_.rend(); ++it)
-        {
-            auto match = std::find(hashes_.begin(), hashes_.end(), it->hash());
-            if (match != hashes_.end())
-            {
-                hashes_.erase(++match, hashes_.end());
-                return;
-            }
-        }
-    }
-
-    hashes_.resize(1);
-}
-
-// We could validate more than this to ensure work is required.
-bool protocol_header_sync::merge_headers(const headers& message)
-{
-    auto previous = hashes_.back();
-    for (const auto& block: message.elements)
-    {
-        const auto current = block.hash();
-        if (block.previous_block_hash != previous ||
-            !checkpoint::validate(current, next_height(), checkpoints_))
-        {
-            rollback();
-            return false;
-        }
-
-        previous = current;
-        hashes_.push_back(current);
-    }
-
-    return true;
 }
 
 bool protocol_header_sync::handle_receive(const code& ec,
@@ -202,11 +246,6 @@ bool protocol_header_sync::handle_receive(const code& ec,
     return true;
 }
 
-size_t protocol_header_sync::current_rate()
-{
-    return (hashes_.size() - start_size_) / current_second_;
-}
-
 // This is fired by the base timer and stop handler.
 void protocol_header_sync::handle_event(const code& ec, event_handler complete)
 {
@@ -225,8 +264,8 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
         return;
     }
 
-    // It was a timeout, so one more second has passed.
-    ++current_second_;
+    // It was a timeout, so ten more seconds have passed.
+    current_second_ += header_rate_seconds;
 
     // Drop the channel if it falls below the min sync rate.
     if (current_rate() < minimum_rate_)

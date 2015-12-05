@@ -61,9 +61,9 @@ private:
     void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_fetch_height(const code& ec, uint64_t height,
         result_handler handler);
-    void handle_fetch_header(const code& ec, const chain::header& header,
+    void handle_fetch_header(const code& ec, const chain::header& block_header,
         size_t block_height, result_handler handler);
-    void handle_headers_synchronized(const code& ec, size_t start_height,
+    void handle_headers_synchronized(const code& ec, size_t block_height,
         result_handler handler);
     void handle_blocks_synchronized(const code& ec, size_t start_height,
         result_handler handler);

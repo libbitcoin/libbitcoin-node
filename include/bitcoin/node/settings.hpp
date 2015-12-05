@@ -30,7 +30,7 @@ namespace node {
 /// default settings
 #define NODE_THREADS                        4
 #define NODE_QUORUM                         8
-#define NODE_BLOCKS_PER_MINUTE              10000
+#define NODE_BLOCKS_PER_SECOND              16
 #define NODE_HEADERS_PER_SECOND             10000
 #define NODE_TRANSACTION_POOL_CAPACITY      10000
 #define NODE_PEERS                          config::endpoint::list()
@@ -39,7 +39,7 @@ struct BCN_API settings
 {
     uint32_t threads;
     uint32_t quorum;
-    uint32_t blocks_per_minute;
+    uint32_t blocks_per_second;
     uint32_t headers_per_second;
     uint32_t transaction_pool_capacity;
     config::endpoint::list peers;

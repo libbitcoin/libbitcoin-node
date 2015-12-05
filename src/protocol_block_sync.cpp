@@ -38,39 +38,68 @@ using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-static const asio::duration one_minute(0, 1, 0);
+// TODO: move to config.
+static constexpr size_t block_rate_seconds = 10;
+
+static constexpr size_t full_blocks = 50000;
+static const asio::duration ten_seconds(0, 0, block_rate_seconds);
 
 protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     channel::ptr channel, uint32_t minimum_rate, size_t first_height,
-    const hash_list& hashes)
+    size_t scope, const hash_list& hashes)
   : protocol_timer(pool, channel, true, NAME),
-    hash_index_(0),
-    current_minute_(0),
+    current_second_(0),
+    hash_index_(scope * full_blocks),
+    start_index_(hash_index_),
     first_height_(first_height),
+    target_height_(target(first_height, hash_index_, hashes)),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
+    // TODO: convert to exceptions (public API).
+    BITCOIN_ASSERT_MSG(scope < bc::max_size_t / full_blocks, "Invalid scope.");
+    BITCOIN_ASSERT_MSG(hash_index_ < hashes.size(), "Invalid scope.");
+    BITCOIN_ASSERT_MSG(!hashes_.empty(), "The block hash list is empty.");
 }
 
-size_t protocol_block_sync::current_height()
+// Utilities
+// ----------------------------------------------------------------------------
+
+size_t protocol_block_sync::target(size_t first_height, size_t start_index,
+    const hash_list& hashes)
+{
+    const auto count = std::min(hashes.size() - start_index, full_blocks);
+    return first_height + start_index + count - 1;
+}
+
+size_t protocol_block_sync::current_height() const
 {
     return first_height_ + hash_index_;
 }
 
-size_t protocol_block_sync::target_height()
+size_t protocol_block_sync::current_rate() const
 {
-    return first_height_ + hashes_.size() - 1;
+    return (hash_index_ - start_index_) / current_second_;
 }
 
-size_t protocol_block_sync::current_rate()
-{
-    return hash_index_ / current_minute_;
-}
-
-const hash_digest& protocol_block_sync::current_hash()
+const hash_digest& protocol_block_sync::current_hash() const
 {
     return hashes_[hash_index_];
+}
+
+message::get_data protocol_block_sync::build_get_data() const
+{
+    get_data packet;
+    const auto copy = [&packet](const hash_digest& hash)
+    {
+        packet.inventories.push_back({ inventory_type_id::block, hash });
+    };
+
+    const auto start = hashes_.begin() + start_index_;
+    const size_t count = target_height_ - first_height_ + 1;
+    std::for_each(start, start + count, copy);
+    return packet;
 }
 
 // Start sequence.
@@ -78,20 +107,19 @@ const hash_digest& protocol_block_sync::current_hash()
 
 void protocol_block_sync::start(event_handler handler)
 {
-    if (peer_version().start_height < target_height())
+    if (peer_version().start_height < target_height_)
     {
         log::info(LOG_NETWORK)
             << "Start height (" << peer_version().start_height
-            << ") below block sync target (" << target_height() << ") from ["
+            << ") below block sync target (" << target_height_ << ") from ["
             << authority() << "]";
 
         handler(error::channel_stopped);
         return;
     }
 
-    // TODO: use completion handler to count blocks synced.
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
-    protocol_timer::start(one_minute, BIND2(handle_event, _1, complete));
+    protocol_timer::start(ten_seconds, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(block, handle_receive, _1, _2, complete);
 
@@ -102,34 +130,13 @@ void protocol_block_sync::start(event_handler handler)
 // Block sync sequence.
 // ----------------------------------------------------------------------------
 
-message::get_data protocol_block_sync::build_maximal_request()
-{
-    get_data packet;
-    const auto copy = [&packet](const hash_digest& hash)
-    {
-        packet.inventories.push_back({ inventory_type_id::block, hash });
-    };
-
-    const size_t unfilled = hashes_.size() - hash_index_;
-    const size_t count = std::min(unfilled, size_t(50000));
-    const auto start = hashes_.begin() + hash_index_;
-    std::for_each(start, start + count, copy);
-    return packet;
-}
-
 void protocol_block_sync::send_get_blocks(event_handler complete)
 {
     if (stopped())
         return;
 
-    if (current_height() == target_height())
-    {
-        complete(error::success);
-        return;
-    }
-
-    const auto packet = build_maximal_request();
-    SEND2(packet, handle_send, _1, complete);
+    // This is sent only once in this protocol, for a maximum of 50k blocks.
+    SEND2(build_get_data(), handle_send, _1, complete);
 }
 
 void protocol_block_sync::handle_send(const code& ec, event_handler complete)
@@ -161,24 +168,35 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
         return false;
     }
 
+    // A block must match the request in order to be accepted.
     if (current_hash() != message.header.hash())
     {
         log::info(LOG_PROTOCOL)
             << "Out of order block " << encode_hash(message.header.hash())
             << " from [" << authority() << "] (ignored)";
 
-        // We probably received a block anouncement, ignore and keep going.
+        // We either received a block anounce or we have a misbehaving peer.
+        // Ignore and continue until success or hitting the rate limiter.
         return true;
     }
-
-    ++hash_index_;
-    // TODO: commit block here.
 
     log::info(LOG_PROTOCOL)
         << "Synced block #" << current_height() << " from ["
         << authority() << "]";
 
-    send_get_blocks(complete);
+    ///////////////////////////////////////////////////
+    // TODO: commit block here, from another thread. //
+    ///////////////////////////////////////////////////
+
+    ++hash_index_;
+
+    // If we reached the target height the sync is complete.
+    if (current_height() > target_height_)
+    {
+        complete(error::success);
+        return false;
+    }
+
     return true;
 }
 
@@ -200,8 +218,8 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         return;
     }
 
-    // It was a timeout, so one more minute has passed.
-    ++current_minute_;
+    // It was a timeout, so ten more seconds have passed.
+    current_second_ += block_rate_seconds;
 
     // Drop the channel if it falls below the min sync rate.
     if (current_rate() < minimum_rate_)

@@ -54,11 +54,11 @@ private:
         network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec);
 
-    size_t votes_;
+    // This is guarded by the non-restartable session constraint.
     hash_list& hashes_;
+
     const size_t start_height_;
     const configuration& configuration_;
-    config::checkpoint::list checkpoints_;
 };
 
 } // namespace node
