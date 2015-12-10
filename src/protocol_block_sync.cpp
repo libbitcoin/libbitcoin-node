@@ -97,8 +97,17 @@ message::get_data protocol_block_sync::build_get_data() const
     };
 
     const auto start = hashes_.begin() + start_index_;
-    const size_t count = target_height_ - first_height_ + 1;
+    const auto start_height = first_height_ + start_index_;
+    const size_t count = target_height_ - start_height + 1;
     std::for_each(start, start + count, copy);
+
+    log::info(LOG_NETWORK)
+        << "Count: " << count
+        << ", start_index: " << start_index_
+        << ", first_height: " << first_height_
+        << ", start_height: " << start_height
+        << ", target_height: " << target_height_;
+
     return packet;
 }
 

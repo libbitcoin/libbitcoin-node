@@ -102,7 +102,7 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
     if (ec)
     {
         log::debug(LOG_NETWORK)
-            << "Failure connecting header sync: " << ec.message();
+            << "Failure connecting header sync channel: " << ec.message();
         new_connection(connect, handler);
         return;
     }
@@ -153,6 +153,7 @@ void session_header_sync::handle_complete(const code& ec,
     hashes_.erase(hashes_.begin());
 
     // This is the end of the header sync sequence.
+    // There is no failure scenario (add timer).
     handler(error::success);
 }
 
