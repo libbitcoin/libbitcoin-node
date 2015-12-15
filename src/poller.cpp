@@ -138,6 +138,10 @@ bool poller::receive_block(const std::error_code& ec,
         strand_.wrap(&poller::handle_store_block,
             this, _1, _2, hash_block_header(block.header), node));
 
+    // Reset the revival timer because we just recieved a block from this peer.
+    // Once we are at the top this will end up polling the peer.
+    node->reset_revival();
+
     return true;
 }
 
