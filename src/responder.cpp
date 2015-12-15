@@ -57,11 +57,11 @@ static size_t inventory_count(const inventory_list& inventories,
 }
 
 // We don't seem to be getting getdata requests.
-void responder::receive_get_data(const std::error_code& ec,
+bool responder::receive_get_data(const std::error_code& ec,
     const get_data_type& packet, channel_ptr node)
 {
     if (ec == error::channel_stopped)
-        return;
+        return false;
 
     const auto peer = node->address();
 
@@ -71,7 +71,7 @@ void responder::receive_get_data(const std::error_code& ec,
             << "Failure in receive get data ["
             << peer << "] " << ec.message();
         node->stop(ec);
-        return;
+        return false;
     }
 
     const auto blocks = inventory_count(packet.inventories,
@@ -117,10 +117,7 @@ void responder::receive_get_data(const std::error_code& ec,
     log_debug(LOG_RESPONDER)
         << "Inventory END [" << peer << "]";
 
-    // Resubscribe to serve tx and blocks.
-    node->subscribe_get_data(
-        std::bind(&responder::receive_get_data,
-            this, _1, _2, node));
+    return true;
 }
 
 void responder::send_pool_tx(const std::error_code& ec,

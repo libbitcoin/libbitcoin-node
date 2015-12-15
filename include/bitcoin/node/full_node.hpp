@@ -118,7 +118,7 @@ protected:
 
     // New transaction message from the network.
     // Attempt to validate it by storing it in the transaction pool.
-    virtual void recieve_tx(const std::error_code& ec,
+    virtual bool recieve_tx(const std::error_code& ec,
         const transaction_type& tx, network::channel_ptr node);
 
     // HACK: this is for access to broadcast_new_blocks to facilitate server

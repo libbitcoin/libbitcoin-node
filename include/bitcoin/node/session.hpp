@@ -55,9 +55,9 @@ private:
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list& replaced_blocks);
 
-    void receive_inv(const std::error_code& ec,
+    bool receive_inv(const std::error_code& ec,
         const inventory_type& packet, network::channel_ptr node);
-    void receive_get_blocks(const std::error_code& ec,
+    bool receive_get_blocks(const std::error_code& ec,
         const get_blocks_type& packet, network::channel_ptr node);
 
     void new_tx_inventory(const hash_digest& tx_hash,
