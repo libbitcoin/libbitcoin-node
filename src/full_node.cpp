@@ -398,17 +398,17 @@ void full_node::new_channel(const std::error_code& ec, channel_ptr node)
             this, _1, _2));
 }
 
-void full_node::recieve_tx(const std::error_code& ec,
+bool full_node::recieve_tx(const std::error_code& ec,
     const transaction_type& tx, channel_ptr node)
 {
     if (ec == error::channel_stopped)
-        return;
+        return false;
 
     if (ec)
     {
         log_debug(LOG_NODE)
             << format(BN_TX_RECEIVE_FAILURE) % node->address() % ec.message();
-        return;
+        return false;
     }
 
     // Called when the transaction becomes confirmed in a block.
@@ -438,10 +438,7 @@ void full_node::recieve_tx(const std::error_code& ec,
         std::bind(&full_node::new_unconfirm_valid_tx,
             this, _1, _2, tx));
 
-    // Resubscribe to receive transaction messages from this node.
-    node->subscribe_transaction(
-        std::bind(&full_node::recieve_tx,
-            this, _1, _2, node));
+    return true;
 }
 
 static std::string format_unconfirmed_inputs(const index_list& unconfirmed)

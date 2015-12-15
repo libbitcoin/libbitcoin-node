@@ -34,7 +34,7 @@ public:
     void monitor(network::channel_ptr node);
 
 private:
-    void receive_get_data(const std::error_code& ec,
+    bool receive_get_data(const std::error_code& ec,
         const get_data_type& packet, network::channel_ptr node);
 
     void send_pool_tx(const std::error_code& ec, const transaction_type& tx,

@@ -59,11 +59,11 @@ void poller::monitor(channel_ptr node)
 }
 
 // Dead code, temp retain for example.
-//void poller::receive_inv(const std::error_code& ec,
+//bool poller::receive_inv(const std::error_code& ec,
 //    const inventory_type& packet, channel_ptr node)
 //{
 //    if (ec == error::channel_stopped)
-//        return;
+//        return false;
 //
 //    const auto peer = node->address();
 //
@@ -73,7 +73,7 @@ void poller::monitor(channel_ptr node)
 //            << "Failure in receive inventory ["
 //            << peer << "] " << ec.message();
 //        node->stop(ec);
-//        return;
+//        return false;
 //    }
 //
 //    log_debug(LOG_POLLER)
@@ -117,34 +117,28 @@ void poller::monitor(channel_ptr node)
 //        node->send(getdata, handle_send_packet);
 //    }
 //
-//    // Resubscribe.
-//    node->subscribe_inventory(
-//        strand_.wrap(&poller::receive_inv,
-//            this, _1, _2, node));
+//    return true;
 //}
 
-void poller::receive_block(const std::error_code& ec,
+bool poller::receive_block(const std::error_code& ec,
     const block_type& block, channel_ptr node)
 {
     if (ec == error::channel_stopped)
-        return;
+        return false;
 
     if (ec)
     {
         log_warning(LOG_POLLER)
             << "Received bad block: " << ec.message();
         node->stop(ec);
-        return;
+        return false;
     }
 
     blockchain_.store(block,
         strand_.wrap(&poller::handle_store_block,
             this, _1, _2, hash_block_header(block.header), node));
 
-    // Resubscribe.
-    node->subscribe_block(
-        std::bind(&poller::receive_block,
-            this, _1, _2, node));
+    return true;
 }
 
 void poller::handle_store_block(const std::error_code& ec, block_info info,

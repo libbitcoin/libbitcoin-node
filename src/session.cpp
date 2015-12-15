@@ -223,11 +223,11 @@ static size_t inventory_count(const inventory_list& inventories,
 
 // Put this on a short timer following lack of block inv.
 // request_blocks(null_hash, node);
-void session::receive_inv(const std::error_code& ec,
+bool session::receive_inv(const std::error_code& ec,
     const inventory_type& packet, channel_ptr node)
 {
     if (ec == error::channel_stopped)
-        return;
+        return false;
 
     const auto peer = node->address();
 
@@ -237,7 +237,7 @@ void session::receive_inv(const std::error_code& ec,
             << "Failure in receive inventory ["
             << peer << "] " << ec.message();
         node->stop(ec);
-        return;
+        return false;
     }
 
     const auto blocks = inventory_count(packet.inventories,
@@ -299,10 +299,7 @@ void session::receive_inv(const std::error_code& ec,
     //log_debug(LOG_SESSION)
     //    << "Inventory END [" << peer << "]";
 
-    // Resubscribe to new inventory requests.
-    node->subscribe_inventory(
-        std::bind(&session::receive_inv,
-            this, _1, _2, node));
+    return true;
 }
 
 void session::new_tx_inventory(const hash_digest& tx_hash, channel_ptr node)
@@ -432,11 +429,11 @@ void session::request_block_data(const hash_digest& block_hash, channel_ptr node
 }
 
 // We don't respond to peers making getblocks requests.
-void session::receive_get_blocks(const std::error_code& ec,
+bool session::receive_get_blocks(const std::error_code& ec,
     const get_blocks_type& get_blocks, channel_ptr node)
 {
     if (ec == error::channel_stopped)
-        return;
+        return false;
 
     if (ec)
     {
@@ -444,7 +441,7 @@ void session::receive_get_blocks(const std::error_code& ec,
             << "Failure in get blocks ["
             << node->address() << "] " << ec.message();
         node->stop(ec);
-        return;
+        return false;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -453,11 +450,8 @@ void session::receive_get_blocks(const std::error_code& ec,
     log_info(LOG_SESSION)
         << "Received a get blocks request (IGNORED).";
 
-    // This is disabled to prevent logging subsequent requests on this channel.
-    ////// Resubscribe to new get_blocks requests.
-    ////node->subscribe_get_blocks(
-    ////    std::bind(&session::handle_get_blocks,
-    ////        this, _1, _2, node));
+    // Resubscribe is disabled to prevent logging subsequent requests.
+    return false;
 }
 
 } // namespace node
