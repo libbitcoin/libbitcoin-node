@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
     threadpool threads;
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
-    responder responder(blockchain, transactions);
+    responder responder(blockchain, transactions, 0);
 
     blockchain.start();
     transactions.start();
@@ -129,14 +129,15 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     blockchain_impl blockchain(threads, prefix);
     transaction_pool transactions(threads, blockchain);
     poller poller(threads, blockchain);
-    responder responder(blockchain, transactions);
+    responder responder(blockchain, transactions, 0);
+    inventory inventory(handshake, blockchain, transactions, 0);
 
-    const auto noop_handler = [](const std::error_code& code)
+    const auto noop_handler = [](std::error_code code)
     {
     };
 
-    node::session session(threads, handshake, protocol, blockchain, poller,
-        transactions, responder);
+    node::session session(protocol, blockchain, transactions, poller,
+        responder, inventory, 0);
 
     blockchain.start();
     transactions.start();

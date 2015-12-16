@@ -189,7 +189,8 @@ full_node::full_node(const settings_type& config)
         blockchain_),
     responder_(
         blockchain_,
-        tx_pool_),
+        tx_pool_,
+        config.minimum_start_height()),
     inventory_(
         handshake_,
         blockchain_,
@@ -481,13 +482,9 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
         tx_indexer_.index(tx, handle_index);
 }
 
-// HACK: this is for access to broadcast_new_blocks to facilitate server
-// inheritance of full_node. The organization should be refactored.
-void full_node::broadcast_new_blocks(const std::error_code& ec,
-    uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-    const chain::blockchain::block_list& replaced_blocks)
+void full_node::broadcast(const chain::blockchain::block_list& blocks)
 {
-    session_.broadcast_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
+    session_.broadcast(blocks);
 }
 
 } // namspace node

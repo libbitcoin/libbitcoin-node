@@ -32,27 +32,37 @@ namespace node {
 class BCN_API inventory
 {
 public:
+    static std::string to_text(inventory_type_id type);
+    static size_t count(const inventory_list& inventories,
+        inventory_type_id type_id);
+    static hash_list to_hashes(const inventory_list& inventories,
+        inventory_type_id type);
+    static inventory_list to_inventories(const hash_list& hashes,
+        inventory_type_id type);
+
     inventory(network::handshake& handshake, chain::blockchain& chain,
         chain::transaction_pool& tx_pool, size_t minimum_start_height);
     void monitor(network::channel_ptr node);
 
 private:
-    bool set_height(const std::error_code& ec, uint32_t fork_point,
+    void sanitize_block_hashes(hash_list& hashes);
+
+    bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& /* replaced_blocks */);
+        const chain::blockchain::block_list&);
     void handle_set_height(const std::error_code& ec, uint32_t height);
 
     bool receive_inv(const std::error_code& ec,
         const inventory_type& packet, network::channel_ptr node);
 
-    void new_tx_inventory(const inventory_type& packet,
+    void new_transaction_inventory(const inventory_type& packet,
         network::channel_ptr node);
-    void get_tx(const std::error_code& ec, bool exists,
-        const hash_digest& hash, network::channel_ptr node);
+    void get_transactions(const std::error_code& ec, const hash_list& hashes,
+        network::channel_ptr node);
 
     void new_block_inventory(const inventory_type& packet,
         network::channel_ptr node);
-    void get_block(const std::error_code& ec, const hash_digest& hash,
+    void get_blocks(const std::error_code& ec, const hash_list& hashes,
         network::channel_ptr node);
 
     void new_filter_inventory(const inventory_type& packet,
@@ -63,7 +73,7 @@ private:
     chain::transaction_pool& tx_pool_;
     std::atomic<uint64_t> last_height_;
     hash_digest last_block_hash_;
-    size_t minimum_start_height_;
+    const size_t minimum_start_height_;
 };
 
 } // namespace node

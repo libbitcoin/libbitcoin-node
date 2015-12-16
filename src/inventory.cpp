@@ -46,20 +46,50 @@ inventory::inventory(handshake& handshake, chain::blockchain& chain,
 {
 }
 
-void inventory::monitor(channel_ptr node)
-{
-    // Subscribe to new inventory messages.
-    node->subscribe_inventory(
-        std::bind(&inventory::receive_inv,
-            this, _1, _2, node));
+// Inventory utilities
+// ----------------------------------------------------------------------------
 
-    // Subscribe to new reorganizations.
-    blockchain_.subscribe_reorganize(
-        std::bind(&inventory::set_height,
-            this, _1, _2, _3, _4));
+std::string inventory::to_text(inventory_type_id type)
+{
+    switch (type)
+    {
+    case inventory_type_id::block:
+        return "block";
+    case inventory_type_id::transaction:
+        return "transaction";
+    case inventory_type_id::filtered_block:
+        return "filtered_block";
+    case inventory_type_id::error:
+        return "error";
+    case inventory_type_id::none:
+        return "none";
+    default:
+        return "undefined";
+    }
+};
+
+hash_list inventory::to_hashes(const inventory_list& inventories,
+    inventory_type_id type)
+{
+    hash_list hashes;
+    for (const auto& inventory: inventories)
+        if (inventory .type == type)
+            hashes.push_back(inventory.hash);
+
+    return hashes;
 }
 
-static size_t count(const inventory_list& inventories,
+inventory_list inventory::to_inventories(const hash_list& hashes,
+    inventory_type_id type)
+{
+    inventory_list inventories;
+    for (const auto& hash: hashes)
+        inventories.push_back({ type, hash });
+
+    return inventories;
+}
+
+size_t inventory::count(const inventory_list& inventories,
     inventory_type_id type_id)
 {
     const auto compare = [type_id](const inventory_vector_type& inventory)
@@ -69,6 +99,38 @@ static size_t count(const inventory_list& inventories,
 
     return std::count_if(inventories.begin(), inventories.end(), compare);
 }
+
+// Remove the last from the inventory list store the last from this list.
+void inventory::sanitize_block_hashes(hash_list& hashes)
+{
+    // last_block_hash_ used only here, guarded by non-concurrency guarantee.
+    auto it = std::find(hashes.begin(), hashes.end(), last_block_hash_);
+
+    if (it != hashes.end())
+        hashes.erase(it);
+
+    if (!hashes.empty())
+        last_block_hash_ = hashes.back();
+}
+
+// Startup
+// ----------------------------------------------------------------------------
+
+void inventory::monitor(channel_ptr node)
+{
+    // Subscribe to inventory messages.
+    node->subscribe_inventory(
+        std::bind(&inventory::receive_inv,
+            this, _1, _2, node));
+
+    // Subscribe to reorganizations.
+    blockchain_.subscribe_reorganize(
+        std::bind(&inventory::handle_reorg,
+            this, _1, _2, _3, _4));
+}
+
+// Handle inventory message
+// ----------------------------------------------------------------------------
 
 bool inventory::receive_inv(const std::error_code& ec,
     const inventory_type& packet, channel_ptr node)
@@ -101,7 +163,7 @@ bool inventory::receive_inv(const std::error_code& ec,
     log_debug(LOG_INVENTORY)
         << "Inventory BEGIN [" << peer << "] "
         << "txs (" << transactions << ") "
-        << "filters (" << filters << ")"
+        << "filters (" << filters << ") "
         << "blocks (" << blocks << ")";
 
     for (const auto& inventory: packet.inventories)
@@ -128,8 +190,9 @@ bool inventory::receive_inv(const std::error_code& ec,
         }
         else
         {
-            log_debug(LOG_INVENTORY)
-                << "Ignoring invalid inventory type from [" << peer << "] "
+            log_debug(LOG_SESSION)
+                << "Ignoring " << inventory::to_text(inventory.type)
+                << " inventory type from [" << peer << "] "
                 << encode_hash(inventory.hash);
         }
     }
@@ -144,58 +207,29 @@ bool inventory::receive_inv(const std::error_code& ec,
         new_filter_inventory(packet, node);
 
     if (transactions > 0 && accepting_transactions)
-        new_tx_inventory(packet, node);
+        new_transaction_inventory(packet, node);
 
     return true;
 }
 
+// Blocks
+// ----------------------------------------------------------------------------
+
+// Issue get_data for the missing blocks.
+// This doesn't test for orphan pool existence, but that's ok to miss.
 void inventory::new_block_inventory(const inventory_type& packet,
     channel_ptr node)
 {
-    // last_block_hash_ is guarded by subscriber queue, only used here.
+    auto blocks = to_hashes(packet.inventories, inventory_type_id::block);
+    sanitize_block_hashes(blocks);
 
-    // This doesn't test for orphan pool existence, but that should be rare.
-    for (const auto& inventory: packet.inventories)
-    {
-        if (inventory.type == inventory_type_id::block &&
-            inventory.hash != last_block_hash_)
-        {
-            // TODO: add blockchain.fetch_difference method.
-            // TODO: pass array of hashes and return those that do not exist.
-            blockchain_.fetch_block_header(inventory.hash,
-                std::bind(&inventory::get_block,
-                    this, _1, inventory.hash, node));
-        }
-    }
-
-    ////last_block_hash_ = getdata.inventories.back().hash;
+    blockchain_.fetch_missing_block_hashes(blocks,
+        std::bind(&inventory::get_blocks,
+            this, _1, _2, node));
 }
 
-void inventory::new_filter_inventory(const inventory_type& packet,
+void inventory::get_blocks(const std::error_code& ec, const hash_list& hashes,
     channel_ptr node)
-{
-    // we don't support filtered blocks so we shouldn't see this.
-}
-
-void inventory::new_tx_inventory(const inventory_type& packet, channel_ptr node)
-{
-    // If the tx doesn't exist in our mempool, issue getdata.
-    // This doesn't test for chain existence, but that should be rare.
-    for (const auto& inventory: packet.inventories)
-    {
-        if (inventory.type == inventory_type_id::transaction)
-        {
-            // TODO: add transaction_pool.fetch_difference method.
-            // TODO: pass array of hashes and return those that do not exist.
-            tx_pool_.exists(inventory.hash,
-                std::bind(&inventory::get_tx,
-                    this, _1, _2, inventory.hash, node));
-        }
-    }
-}
-
-void inventory::get_tx(const std::error_code& ec, bool exists,
-    const hash_digest& hash, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
@@ -203,15 +237,8 @@ void inventory::get_tx(const std::error_code& ec, bool exists,
     if (ec)
     {
         log_debug(LOG_INVENTORY)
-            << "Failure in getting transaction existence ["
-            << encode_hash(hash) << "] " << ec.message();
-        return;
-    }
-
-    if (exists)
-    {
-        log_debug(LOG_INVENTORY)
-            << "Transaction already exists [" << encode_hash(hash) << "]";
+            << "Failure in getting block existence for peer "
+            << node->address() << "] " << ec.message();
         return;
     }
 
@@ -220,7 +247,7 @@ void inventory::get_tx(const std::error_code& ec, bool exists,
         if (ec)
         {
             log_debug(LOG_INVENTORY)
-                << "Failure sending tx data request to [" 
+                << "Failure sending block data request to ["
                 << node->address() << "] " << ec.message();
             node->stop(ec);
             return;
@@ -228,36 +255,44 @@ void inventory::get_tx(const std::error_code& ec, bool exists,
     };
 
     log_debug(LOG_INVENTORY)
-        << "Requesting transaction [" << encode_hash(hash) << "]";
+        << "Requesting " << hashes.size() << " blocks from ["
+        << node->address() << "]";
 
-    const inventory_vector_type inventory
+    const get_data_type request
     {
-        inventory_type_id::transaction,
-        hash
+        to_inventories(hashes, inventory_type_id::block)
     };
 
-    const get_data_type request{ { inventory } };
     node->send(request, handle_error);
 }
 
-void inventory::get_block(const std::error_code& ec, const hash_digest& hash,
+// Transactions
+// ----------------------------------------------------------------------------
+
+// Issue get_data for the missing transactions.
+// This doesn't test for chain existence, but that's ok to miss.
+void inventory::new_transaction_inventory(const inventory_type& packet,
     channel_ptr node)
+{
+    const auto transactions = to_hashes(packet.inventories,
+        inventory_type_id::transaction);
+
+    tx_pool_.fetch_missing_hashes(transactions,
+        std::bind(&inventory::get_transactions,
+            this, _1, _2, node));
+}
+
+void inventory::get_transactions(const std::error_code& ec,
+    const hash_list& hashes, channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return;
 
-    if (ec && ec != error::not_found)
+    if (ec)
     {
         log_debug(LOG_INVENTORY)
-            << "Failure in getting block existence ["
-            << encode_hash(hash) << "] " << ec.message();
-        return;
-    }
-
-    if (!ec)
-    {
-        log_debug(LOG_INVENTORY)
-            << "Block already exists [" << encode_hash(hash) << "]";
+            << "Failure in getting tx existence for peer "
+            << node->address() << "] " << ec.message();
         return;
     }
 
@@ -266,7 +301,7 @@ void inventory::get_block(const std::error_code& ec, const hash_digest& hash,
         if (ec)
         {
             log_debug(LOG_INVENTORY)
-                << "Failure sending block data request to [" 
+                << "Failure sending tx data request to ["
                 << node->address() << "] " << ec.message();
             node->stop(ec);
             return;
@@ -274,21 +309,31 @@ void inventory::get_block(const std::error_code& ec, const hash_digest& hash,
     };
 
     log_debug(LOG_INVENTORY)
-        << "Requesting block [" << encode_hash(hash) << "]";
+        << "Requesting " << hashes.size() << " txs from ["
+        << node->address() << "]";
 
-    const inventory_vector_type inventory
+    const get_data_type request
     {
-        inventory_type_id::block,
-        hash
+        to_inventories(hashes, inventory_type_id::transaction)
     };
 
-    const get_data_type request{ { inventory } };
     node->send(request, handle_error);
 }
 
-bool inventory::set_height(const std::error_code& ec,
-    uint32_t fork_point, const blockchain::block_list& new_blocks,
-    const blockchain::block_list& /* replaced_blocks */)
+// Filters (not supported)
+// ----------------------------------------------------------------------------
+
+// We don't support filtered blocks so we shouldn't see this.
+void inventory::new_filter_inventory(const inventory_type& packet,
+    channel_ptr node)
+{
+}
+
+// Handle reorganization (set height)
+// ----------------------------------------------------------------------------
+
+bool inventory::handle_reorg(const std::error_code& ec, uint32_t fork_point,
+    const blockchain::block_list& new_blocks, const blockchain::block_list&)
 {
     if (ec == error::service_stopped)
         return false;
@@ -322,9 +367,6 @@ void inventory::handle_set_height(const std::error_code& ec, uint32_t height)
 
     // atomic
     last_height_ = height;
-
-    log_debug(LOG_INVENTORY)
-        << "Reorg set start height [" << height << "]";
 }
 
 } // namespace node

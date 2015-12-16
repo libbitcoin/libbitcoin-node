@@ -20,6 +20,8 @@
 #ifndef LIBBITCOIN_NODE_RESPONDER_HPP
 #define LIBBITCOIN_NODE_RESPONDER_HPP
 
+#include <atomic>
+#include <cstddef>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
@@ -30,10 +32,15 @@ namespace node {
 class BCN_API responder
 {
 public:
-    responder(chain::blockchain& chain, chain::transaction_pool& tx_pool);
+    responder(chain::blockchain& chain, chain::transaction_pool& tx_pool,
+        size_t minimum_start_height);
     void monitor(network::channel_ptr node);
 
 private:
+    bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
+        const chain::blockchain::block_list& new_blocks,
+        const chain::blockchain::block_list&);
+
     bool receive_get_data(const std::error_code& ec,
         const get_data_type& packet, network::channel_ptr node);
     bool receive_get_blocks(const std::error_code& ec,
@@ -72,6 +79,8 @@ private:
 
     chain::blockchain& blockchain_;
     chain::transaction_pool& tx_pool_;
+    std::atomic<uint64_t> last_height_;
+    const size_t minimum_start_height_;
 };
 
 } // node

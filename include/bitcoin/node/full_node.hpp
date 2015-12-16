@@ -122,11 +122,8 @@ protected:
     virtual bool recieve_tx(const std::error_code& ec,
         const transaction_type& tx, network::channel_ptr node);
 
-    // HACK: this is for access to broadcast_new_blocks to facilitate server
-    // inheritance of full_node. The organization should be refactored.
-    virtual void broadcast_new_blocks(const std::error_code& ec,
-        uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& replaced_blocks);
+    // Broadcast new blocks to all peers.
+    virtual void broadcast(const chain::blockchain::block_list& blocks);
 
     // These must be bc types.
     bc::ofstream debug_file_;

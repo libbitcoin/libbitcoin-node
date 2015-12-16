@@ -41,9 +41,13 @@ poller::poller(threadpool& pool, blockchain& chain)
 {
 }
 
+// Startup
+// ----------------------------------------------------------------------------
+
 // Start monitoring this channel.
 void poller::monitor(channel_ptr node)
 {
+    // Subscribe to block messages.
     node->subscribe_block(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
@@ -55,9 +59,13 @@ void poller::monitor(channel_ptr node)
 
     // TODO: consider deferring this ask on inbound connections.
     // The caller may intend only to post a transaction and disconnect.
+
     // Issue the initial ask for blocks.
     handle_revive(error::success, node);
 }
+
+// Handle block receipt timeout (revivial)
+// ----------------------------------------------------------------------------
 
 void poller::handle_revive(const std::error_code& ec, channel_ptr node)
 {
@@ -72,8 +80,11 @@ void poller::handle_revive(const std::error_code& ec, channel_ptr node)
     request_blocks(null_hash, node);
 }
 
-bool poller::receive_block(const std::error_code& ec,
-    const block_type& block, channel_ptr node)
+// Handle block message
+// ----------------------------------------------------------------------------
+
+bool poller::receive_block(const std::error_code& ec, const block_type& block,
+    channel_ptr node)
 {
     if (ec == error::channel_stopped)
         return false;
@@ -147,6 +158,9 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
     }
 }
 
+// Request blocks (500 at startup and revivial, fill gap otherwise)
+// ----------------------------------------------------------------------------
+
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
     // strand guards last_ members.
@@ -184,7 +198,7 @@ void poller::ask_blocks(const std::error_code& ec,
         << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
         << locator.size() << ") to [" << stop << "]";
 
-    const auto handle_error = [node](const std::error_code& ec)
+    const auto handle_error = [node](std::error_code ec)
     {
         if (ec)
         {

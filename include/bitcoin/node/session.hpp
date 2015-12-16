@@ -43,15 +43,17 @@ public:
     void start(completion_handler handle_complete);
     void stop(completion_handler handle_complete);
 
-private:
-    void handle_start(const std::error_code& ec,
-        completion_handler handle_complete);
-    bool new_channel(const std::error_code& ec,
-        network::channel_ptr node);
+    void broadcast(const chain::blockchain::block_list& blocks);
 
-    bool broadcast_new_blocks(const std::error_code& ec, uint32_t fork_point,
+private:
+    bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& replaced_blocks);
+        const chain::blockchain::block_list&);
+
+    void handle_started(const std::error_code& ec,
+        completion_handler handle_complete);
+    bool handle_new_channel(const std::error_code& ec,
+        network::channel_ptr node);
 
     network::protocol& protocol_;
     chain::blockchain& blockchain_;
@@ -59,9 +61,7 @@ private:
     node::poller& poller_;
     node::responder& responder_;
     node::inventory& inventory_;
-    size_t minimum_start_height_;
-
-    friend class full_node;
+    const size_t minimum_start_height_;
 };
 
 } // namespace node

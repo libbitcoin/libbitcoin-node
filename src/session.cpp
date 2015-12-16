@@ -52,10 +52,13 @@ session::session(protocol& protocol, blockchain& blockchain,
 {
 }
 
+// Startup/Shutdown
+// ----------------------------------------------------------------------------
+
 void session::start(completion_handler handle_complete)
 {
     protocol_.start(
-        std::bind(&session::handle_start,
+        std::bind(&session::handle_started,
             this, _1, handle_complete));
 }
 
@@ -64,7 +67,7 @@ void session::stop(completion_handler handle_complete)
     protocol_.stop(handle_complete);
 }
 
-void session::handle_start(const std::error_code& ec,
+void session::handle_started(const std::error_code& ec,
     completion_handler handle_complete)
 {
     if (ec)
@@ -75,20 +78,23 @@ void session::handle_start(const std::error_code& ec,
         return;
     }
 
-    // Subscribe to new connections.
+    // Subscribe to connections.
     protocol_.subscribe_channel(
-        std::bind(&session::new_channel,
+        std::bind(&session::handle_new_channel,
             this, _1, _2));
 
-    // Subscribe to new reorganizations.
+    // Subscribe to reorganizations.
     blockchain_.subscribe_reorganize(
-        std::bind(&session::broadcast_new_blocks,
+        std::bind(&session::handle_reorg,
             this, _1, _2, _3, _4));
 
     handle_complete(ec);
 }
 
-bool session::new_channel(const std::error_code& ec, channel_ptr node)
+// Handle new channel created
+// ----------------------------------------------------------------------------
+
+bool session::handle_new_channel(const std::error_code& ec, channel_ptr node)
 {
     if (ec == error::service_stopped)
         return false;
@@ -104,9 +110,17 @@ bool session::new_channel(const std::error_code& ec, channel_ptr node)
     return true;
 }
 
-bool session::broadcast_new_blocks(const std::error_code& ec,
-    uint32_t fork_point, const blockchain::block_list& new_blocks,
-    const blockchain::block_list& /* replaced_blocks */)
+// Handle reorganization (broadcasting new blocks to all peers)
+// ----------------------------------------------------------------------------
+
+// public:
+void session::broadcast(const blockchain::block_list& blocks)
+{
+    handle_reorg(error::success, 0, blocks, {});
+}
+
+bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
+    const blockchain::block_list& new_blocks, const blockchain::block_list&)
 {
     if (ec == error::service_stopped)
         return false;
@@ -119,27 +133,22 @@ bool session::broadcast_new_blocks(const std::error_code& ec,
     }
 
     // Don't bother publishing blocks when in the initial blockchain download.
-    if (fork_point < minimum_start_height_)
+    if (fork_point > 0 && fork_point < minimum_start_height_)
         return true;
 
     // Broadcast new blocks inventory.
     inventory_type blocks_inventory;
     for (const auto block: new_blocks)
     {
-        const inventory_vector_type inventory
-        {
-            inventory_type_id::block,
-            hash_block_header(block->header)
-        };
-
-        blocks_inventory.inventories.push_back(inventory);
+        const auto hash = hash_block_header(block->header);
+        blocks_inventory.inventories.push_back({ inventory_type_id::block, hash });
     }
 
     log_debug(LOG_SESSION)
         << "Broadcasting block inventory [" 
         << blocks_inventory.inventories.size() << "]";
 
-    const auto broadcast_handler = [](const std::error_code& ec, size_t count)
+    const auto broadcast_handler = [](std::error_code ec, size_t count)
     {
         if (ec)
             log_debug(LOG_SESSION)
