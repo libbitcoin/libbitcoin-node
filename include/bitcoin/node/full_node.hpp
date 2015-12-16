@@ -28,6 +28,7 @@
 #include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/indexer.hpp>
+#include <bitcoin/node/inventory.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
@@ -113,7 +114,7 @@ protected:
 
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
-    virtual void new_channel(const std::error_code& ec,
+    virtual bool new_channel(const std::error_code& ec,
         network::channel_ptr node);
 
     // New transaction message from the network.
@@ -121,11 +122,8 @@ protected:
     virtual bool recieve_tx(const std::error_code& ec,
         const transaction_type& tx, network::channel_ptr node);
 
-    // HACK: this is for access to broadcast_new_blocks to facilitate server
-    // inheritance of full_node. The organization should be refactored.
-    virtual void broadcast_new_blocks(const std::error_code& ec,
-        uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-        const chain::blockchain::block_list& replaced_blocks);
+    // Broadcast new blocks to all peers.
+    virtual void broadcast(const chain::blockchain::block_list& blocks);
 
     // These must be bc types.
     bc::ofstream debug_file_;
@@ -145,6 +143,7 @@ protected:
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;
+    node::inventory inventory_;
     node::session session_;
 
 private:

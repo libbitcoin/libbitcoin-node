@@ -32,6 +32,7 @@
 #include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/indexer.hpp>
+#include <bitcoin/node/inventory.hpp>
 #include <bitcoin/node/logging.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
@@ -188,16 +189,20 @@ full_node::full_node(const settings_type& config)
         blockchain_),
     responder_(
         blockchain_,
-        tx_pool_),
-    session_(
-        /* TODO: use node treads here? */
-        network_threads_,
+        tx_pool_,
+        config.minimum_start_height()),
+    inventory_(
         handshake_,
+        blockchain_,
+        tx_pool_,
+        config.minimum_start_height()),
+    session_(
         protocol_,
         blockchain_,
-        poller_,
         tx_pool_,
-        responder_, 
+        poller_,
+        responder_,
+        inventory_,
         config.minimum_start_height())
 {
 }
@@ -374,17 +379,17 @@ void full_node::handle_stop(const std::error_code& ec,
     promise.set_value(ec);
 }
 
-void full_node::new_channel(const std::error_code& ec, channel_ptr node)
+bool full_node::new_channel(const std::error_code& ec, channel_ptr node)
 {
     // This is the sentinel code for protocol stopping (and node is nullptr).
     if (ec == error::service_stopped)
-        return;
+        return false;
 
     if (ec)
     {
         log_info(LOG_NODE)
             << format(BN_CONNECTION_START_ERROR) % ec.message();
-        return;
+        return false;
     }
 
     // Subscribe to transaction messages from this node.
@@ -392,10 +397,7 @@ void full_node::new_channel(const std::error_code& ec, channel_ptr node)
         std::bind(&full_node::recieve_tx,
             this, _1, _2, node));
 
-    // Stay subscribed to new connections.
-    protocol_.subscribe_channel(
-        std::bind(&full_node::new_channel,
-            this, _1, _2));
+    return true;
 }
 
 bool full_node::recieve_tx(const std::error_code& ec,
@@ -480,13 +482,9 @@ void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
         tx_indexer_.index(tx, handle_index);
 }
 
-// HACK: this is for access to broadcast_new_blocks to facilitate server
-// inheritance of full_node. The organization should be refactored.
-void full_node::broadcast_new_blocks(const std::error_code& ec,
-    uint32_t fork_point, const chain::blockchain::block_list& new_blocks,
-    const chain::blockchain::block_list& replaced_blocks)
+void full_node::broadcast(const chain::blockchain::block_list& blocks)
 {
-    session_.broadcast_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
+    session_.broadcast(blocks);
 }
 
 } // namspace node
