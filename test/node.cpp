@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_getx_responder__does_not_throw)
 
     threadpool threads;
     blockchain_impl blockchain(threads, prefix);
-    transaction_pool transactions(threads, blockchain);
+    transaction_pool transactions(threads, blockchain, 2000, false);
     responder responder(blockchain, transactions, 0);
 
     blockchain.start();
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_session__does_not_throw)
     handshake handshake(threads);
     protocol protocol(threads, hosts, handshake, network);
     blockchain_impl blockchain(threads, prefix);
-    transaction_pool transactions(threads, blockchain);
+    transaction_pool transactions(threads, blockchain, 2000, false);
     poller poller(threads, blockchain);
     responder responder(blockchain, transactions, 0);
     inventory inventory(handshake, blockchain, transactions, 0);

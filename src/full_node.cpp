@@ -93,6 +93,7 @@ const settings_type full_node::defaults
     {
         NODE_THREADS,
         NODE_TRANSACTION_POOL_CAPACITY,
+        NODE_TRANSACTION_POOL_CONSISTENCY,
         NODE_PEERS,
         NODE_BLACKLISTS
     },
@@ -181,7 +182,8 @@ full_node::full_node(const settings_type& config)
     tx_pool_(
         memory_threads_,
         blockchain_,
-        config.node.transaction_pool_capacity),
+        config.node.transaction_pool_capacity,
+        config.node.transaction_pool_consistency),
     tx_indexer_(
         memory_threads_),
     poller_(

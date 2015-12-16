@@ -41,6 +41,7 @@ namespace node {
 // [node]
 #define NODE_THREADS                        4
 #define NODE_TRANSACTION_POOL_CAPACITY      2000
+#define NODE_TRANSACTION_POOL_CONSISTENCY   false
 #define NODE_PEERS                          {}
 #define NODE_BLACKLISTS                     {}
 
