@@ -21,10 +21,7 @@
 
 #include <cstddef>
 #include <system_error>
-#include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/inventory.hpp>
-#include <bitcoin/node/poller.hpp>
-#include <bitcoin/node/responder.hpp>
+#include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -137,16 +134,14 @@ bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
         return true;
 
     // Broadcast new blocks inventory.
-    inventory_type blocks_inventory;
-    for (const auto block: new_blocks)
+    const inventory_type block_inventory
     {
-        const auto hash = hash_block_header(block->header);
-        blocks_inventory.inventories.push_back({ inventory_type_id::block, hash });
-    }
+        inventory::to_inventories(new_blocks)
+    };
 
     log_debug(LOG_SESSION)
         << "Broadcasting block inventory [" 
-        << blocks_inventory.inventories.size() << "]";
+        << block_inventory.inventories.size() << "]";
 
     const auto broadcast_handler = [](std::error_code ec, size_t count)
     {
@@ -160,7 +155,7 @@ bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
 
     // TODO: optimize by not broadcasting to the node from which it came, by
     // maintaining each peer's last known checkpoint.
-    protocol_.broadcast(blocks_inventory, broadcast_handler);
+    protocol_.broadcast(block_inventory, broadcast_handler);
     return true;
 }
 

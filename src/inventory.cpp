@@ -89,6 +89,17 @@ inventory_list inventory::to_inventories(const hash_list& hashes,
     return inventories;
 }
 
+inventory_list inventory::to_inventories(const blockchain::block_list& blocks)
+{
+    static const auto type = inventory_type_id::block;
+
+    inventory_list inventories;
+    for (const auto block: blocks)
+        inventories.push_back({ type, hash_block_header(block->header) });
+
+    return inventories;
+}
+
 size_t inventory::count(const inventory_list& inventories,
     inventory_type_id type_id)
 {
