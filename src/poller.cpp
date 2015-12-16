@@ -56,12 +56,6 @@ void poller::monitor(channel_ptr node)
     node->set_revival_handler(
         std::bind(&poller::handle_revive,
             this, _1, node));
-
-    // TODO: consider deferring this ask on inbound connections.
-    // The caller may intend only to post a transaction and disconnect.
-
-    // Issue the initial ask for blocks.
-    handle_revive(error::success, node);
 }
 
 // Handle block receipt timeout (revivial)
