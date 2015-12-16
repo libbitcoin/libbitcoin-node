@@ -360,6 +360,8 @@ bool inventory::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
 
+    // TODO: configure handshake with minimum_start_height so that it can
+    // disable relay from new peers until synced to the last checkpoint.
     handshake_.set_start_height(height, 
         std::bind(&inventory::handle_set_height,
             this, _1, height));

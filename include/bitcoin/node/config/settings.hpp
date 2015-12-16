@@ -31,6 +31,7 @@ struct BCN_API settings
 {
     uint32_t threads;
     uint32_t transaction_pool_capacity;
+    bool transaction_pool_consistency;
     config::endpoint::list peers;
     config::authority::list blacklists;
 };
