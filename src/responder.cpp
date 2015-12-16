@@ -153,20 +153,15 @@ bool responder::receive_get_data(const std::error_code& ec,
 // Block
 // ----------------------------------------------------------------------------
 
-// It is a problem that we may not be responding in requested order.
 void responder::new_block_get_data(const get_data_type& packet,
     channel_ptr node)
 {
     // This doesn't test for orphan pool existence, but that should be rare.
     for (const auto& inventory: packet.inventories)
-    {
         if (inventory.type == inventory_type_id::block)
-        {
             chain::fetch_block(blockchain_, inventory.hash,
                 std::bind(&responder::send_block,
                     this, _1, _2, inventory.hash, node));
-        }
-    }
 }
 
 // Should we look in the orphan pool first?
@@ -231,17 +226,14 @@ void responder::send_block_not_found(const hash_digest& block_hash,
 // Transaction
 // ----------------------------------------------------------------------------
 
-// It is a problem that we may not be responding in requested order.
 void responder::new_tx_get_data(const get_data_type& packet, channel_ptr node)
 {
     // This doesn't test for chain existence, but that should be rare.
     for (const auto& inventory: packet.inventories)
-    {
         if (inventory.type == inventory_type_id::transaction)
             tx_pool_.fetch(inventory.hash,
                 std::bind(&responder::send_pool_tx,
                     this, _1, _2, inventory.hash, node));
-    }
 }
 
 void responder::send_pool_tx(const std::error_code& ec,
@@ -378,7 +370,7 @@ void responder::send_inventory_not_found(inventory_type_id type_id,
     //};
 
     //const get_data_type not_found{ { block_inventory } };
-    //node->send(not_found, handler);
+    //node->send(not_found, send_handler);
 }
 
 // Handle get_blocks message
@@ -399,15 +391,39 @@ bool responder::receive_get_blocks(const std::error_code& ec,
         return false;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: Implement.
-    ///////////////////////////////////////////////////////////////////////////
+    blockchain_.fetch_locator_block_hashes(get_blocks,
+        std::bind(&responder::send_block_inventory,
+            this, _1, _2, node));
 
     log_info(LOG_RESPONDER)
         << "Failure handling a get_blocks request: feature not yet supported.";
 
     // Resubscribe is disabled to prevent logging subsequent requests.
     return false;
+}
+
+void responder::send_block_inventory(const std::error_code& ec,
+    const hash_list& hashes, channel_ptr node)
+{
+    const auto count = hashes.size();
+    const auto send_handler = [node, count](std::error_code ec)
+    {
+        if (ec)
+            log_debug(LOG_RESPONDER)
+                << "Failure sending block inventory to ["
+                << node->address() << "]";
+        else
+            log_debug(LOG_RESPONDER)
+                << "Sent block inventory (" << count
+                << ") to [" << node->address() << "]";
+    };
+
+    const inventory_type response
+    {
+        inventory::to_inventories(hashes, inventory_type_id::block)
+    };
+
+    node->send(response, send_handler);
 }
 
 // Handle reorganization (set local height)

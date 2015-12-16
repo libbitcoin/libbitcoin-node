@@ -39,6 +39,8 @@ public:
         inventory_type_id type);
     static inventory_list to_inventories(const hash_list& hashes,
         inventory_type_id type);
+    static inventory_list to_inventories(
+        const chain::blockchain::block_list& blocks);
 
     inventory(network::handshake& handshake, chain::blockchain& chain,
         chain::transaction_pool& tx_pool, size_t minimum_start_height);
