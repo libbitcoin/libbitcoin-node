@@ -31,32 +31,37 @@ using std::placeholders::_2;
 using namespace bc::chain;
 using namespace bc::network;
 
+// Respond to peer get_data and get_blocks messages.
 responder::responder(blockchain& blockchain, transaction_pool& tx_pool)
-  : blockchain_(blockchain), tx_pool_(tx_pool)
+  : blockchain_(blockchain),
+    tx_pool_(tx_pool)
 {
 }
 
 void responder::monitor(channel_ptr node)
 {
-    // Subscribe to serve tx and blocks.
+    // Subscribe to serve tx, filters and blocks.
     node->subscribe_get_data(
         std::bind(&responder::receive_get_data,
             this, _1, _2, node));
+
+    // Subscribe to new get_blocks requests.
+    node->subscribe_get_blocks(
+        std::bind(&responder::receive_get_blocks,
+            this, _1, _2, node));
 }
 
-// TODO: consolidate to libbitcoin utils.
-static size_t inventory_count(const inventory_list& inventories,
+static size_t count(const inventory_list& inventories,
     inventory_type_id type_id)
 {
-    size_t count = 0;
-    for (const auto& inventory: inventories)
-        if (inventory.type == type_id)
-            ++count;
+    const auto compare = [type_id](const inventory_vector_type& inventory)
+    {
+        return inventory.type == type_id;
+    };
 
-    return count;
+    return std::count_if(inventories.begin(), inventories.end(), compare);
 }
 
-// We don't seem to be getting getdata requests.
 bool responder::receive_get_data(const std::error_code& ec,
     const get_data_type& packet, channel_ptr node)
 {
@@ -68,56 +73,108 @@ bool responder::receive_get_data(const std::error_code& ec,
     if (ec)
     {
         log_debug(LOG_RESPONDER)
-            << "Failure in receive get data ["
+            << "Failure in receive get_data ["
             << peer << "] " << ec.message();
         node->stop(ec);
         return false;
     }
 
-    const auto blocks = inventory_count(packet.inventories,
+    // TODO: we should disable all until synced.
+    static const auto sending_blocks = true;
+    static const auto sending_filters = false;
+    static const auto sending_transactions = true;
+
+    const auto blocks = count(packet.inventories,
         inventory_type_id::block);
-    const auto transactions = inventory_count(packet.inventories,
+    const auto filters = count(packet.inventories,
+        inventory_type_id::filtered_block);
+    const auto transactions = count(packet.inventories,
         inventory_type_id::transaction);
 
-    log_debug(LOG_RESPONDER)
+    log_debug(LOG_SESSION)
         << "Getdata BEGIN [" << peer << "] "
         << "txs (" << transactions << ") "
+        << "filters (" << filters << ")"
         << "blocks (" << blocks << ")";
 
     for (const auto& inventory: packet.inventories)
     {
-        switch (inventory.type)
+        if (inventory.type == inventory_type_id::block && sending_blocks)
         {
-            case inventory_type_id::transaction:
-                log_debug(LOG_RESPONDER)
-                    << "Transaction inventory for [" << peer << "] "
-                    << encode_hash(inventory.hash);
-                tx_pool_.fetch(inventory.hash,
-                    std::bind(&responder::send_pool_tx,
-                        this, _1, _2, inventory.hash, node));
-                break;
-
-            case inventory_type_id::block:
-                log_debug(LOG_RESPONDER)
-                    << "Block inventory for [" << peer << "] "
-                    << encode_hash(inventory.hash);
-                fetch_block(blockchain_, inventory.hash,
-                    std::bind(&responder::send_block,
-                        this, _1, _2, inventory.hash, node));
-                break;
-
-            case inventory_type_id::error:
-            case inventory_type_id::none:
-            default:
-                log_debug(LOG_RESPONDER)
-                    << "Ignoring invalid inventory type for [" << peer << "]";
+            log_debug(LOG_SESSION)
+                << "Block get_data from [" << peer << "] "
+                << encode_hash(inventory.hash);
+        }
+        else if (inventory.type == inventory_type_id::filtered_block &&
+            sending_filters)
+        {
+            log_debug(LOG_SESSION)
+                << "Filtred block get_data from [" << peer << "] "
+                << encode_hash(inventory.hash);
+        }
+        else if (inventory.type == inventory_type_id::transaction &&
+            sending_transactions)
+        {
+            log_debug(LOG_SESSION)
+                << "Transaction get_data from [" << peer << "] "
+                << encode_hash(inventory.hash);
+        }
+        else
+        {
+            log_debug(LOG_SESSION)
+                << "Ignoring invalid get_data type from [" << peer << "] "
+                << encode_hash(inventory.hash);
         }
     }
 
-    log_debug(LOG_RESPONDER)
-        << "Inventory END [" << peer << "]";
+    log_debug(LOG_SESSION)
+        << "Getdata END [" << peer << "]";
+
+    if (blocks > 0 && sending_blocks)
+        new_block_get_data(packet, node);
+
+    if (filters > 0 && sending_filters)
+        new_filter_get_data(packet, node);
+
+    if (transactions > 0 && sending_transactions)
+        new_tx_get_data(packet, node);
 
     return true;
+}
+
+// It is a problem that we may not be responding in requested order.
+void responder::new_block_get_data(const get_data_type& packet,
+    channel_ptr node)
+{
+    // This doesn't test for orphan pool existence, but that should be rare.
+    for (const auto& inventory: packet.inventories)
+    {
+        if (inventory.type == inventory_type_id::block)
+        {
+            chain::fetch_block(blockchain_, inventory.hash,
+                std::bind(&responder::send_block,
+                    this, _1, _2, inventory.hash, node));
+        }
+    }
+}
+
+void responder::new_filter_get_data(const get_data_type& packet,
+    channel_ptr node)
+{
+    // we don't support filtered blocks so we shouldn't see this.
+}
+
+// It is a problem that we may not be responding in requested order.
+void responder::new_tx_get_data(const get_data_type& packet, channel_ptr node)
+{
+    // This doesn't test for chain existence, but that should be rare.
+    for (const auto& inventory: packet.inventories)
+    {
+        if (inventory.type == inventory_type_id::transaction)
+            tx_pool_.fetch(inventory.hash,
+                std::bind(&responder::send_pool_tx,
+                    this, _1, _2, inventory.hash, node));
+    }
 }
 
 void responder::send_pool_tx(const std::error_code& ec,
@@ -132,10 +189,13 @@ void responder::send_pool_tx(const std::error_code& ec,
             << "Transaction for [" << node->address()
             << "] not in mempool [" << encode_hash(tx_hash) << "]";
 
-        // It wasn't in the mempool, so relay the request to the blockchain.
-        blockchain_.fetch_transaction(tx_hash,
-            std::bind(&responder::send_chain_tx,
-                this, _1, _2, tx_hash, node));
+        ////// It wasn't in the mempool, so relay the request to the blockchain.
+        ////// This is a non-standard protocol implementation.
+        ////blockchain_.fetch_transaction(tx_hash,
+        ////    std::bind(&responder::send_chain_tx,
+        ////        this, _1, _2, tx_hash, node));
+
+        send_tx_not_found(tx_hash, node);
         return;
     }
 
@@ -192,8 +252,7 @@ void responder::send_tx(const transaction_type& tx, const hash_digest& tx_hash,
     {
         if (ec)
             log_debug(LOG_RESPONDER)
-                << "Failure sending tx for ["
-                << node->address() << "]";
+                << "Failure sending tx for [" << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
                 << "Sent tx for [" << node->address()
@@ -251,8 +310,7 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
     {
         if (ec)
             log_debug(LOG_RESPONDER)
-                << "Failure sending block for ["
-                << node->address() << "]";
+                << "Failure sending block for [" << node->address() << "]";
         else
             log_debug(LOG_RESPONDER)
                 << "Sent block for [" << node->address()
@@ -285,7 +343,14 @@ void responder::send_inventory_not_found(inventory_type_id type_id,
     const hash_digest& hash, channel_ptr node,
     channel_proxy::send_handler handler)
 {
-    // There's currently no way to send this message.
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: Implement.
+    ///////////////////////////////////////////////////////////////////////////
+
+    log_debug(LOG_RESPONDER)
+        << "Failure sending notfound for [" << node->address()
+        << "] feature not yet supported.";
+
     //const inventory_vector_type block_inventory
     //{
     //    type_id,
@@ -294,6 +359,32 @@ void responder::send_inventory_not_found(inventory_type_id type_id,
 
     //const get_data_type not_found{ { block_inventory } };
     //node->send(not_found, handler);
+}
+
+bool responder::receive_get_blocks(const std::error_code& ec,
+    const get_blocks_type& get_blocks, channel_ptr node)
+{
+    if (ec == error::channel_stopped)
+        return false;
+
+    if (ec)
+    {
+        log_debug(LOG_SESSION)
+            << "Failure in receiving get_blocks ["
+            << node->address() << "] " << ec.message();
+        node->stop(ec);
+        return false;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: Implement.
+    ///////////////////////////////////////////////////////////////////////////
+
+    log_info(LOG_SESSION)
+        << "Failure handling a get_blocks request: feature not yet supported.";
+
+    // Resubscribe is disabled to prevent logging subsequent requests.
+    return false;
 }
 
 } // node

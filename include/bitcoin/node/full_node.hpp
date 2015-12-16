@@ -28,6 +28,7 @@
 #include <bitcoin/node/config/settings_type.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/indexer.hpp>
+#include <bitcoin/node/inventory.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 #include <bitcoin/node/session.hpp>
@@ -113,7 +114,7 @@ protected:
 
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
-    virtual void new_channel(const std::error_code& ec,
+    virtual bool new_channel(const std::error_code& ec,
         network::channel_ptr node);
 
     // New transaction message from the network.
@@ -145,6 +146,7 @@ protected:
     node::indexer tx_indexer_;
     node::poller poller_;
     node::responder responder_;
+    node::inventory inventory_;
     node::session session_;
 
 private:

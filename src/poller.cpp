@@ -31,10 +31,10 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using boost::asio::io_service;
 
+/// Request block inventory, receive and store blocks.
 poller::poller(threadpool& pool, blockchain& chain)
   : strand_(pool),
     blockchain_(chain),
-    last_block_hash_(null_hash),
     last_locator_begin_(null_hash),
     last_hash_stop_(null_hash),
     last_block_ask_node_(nullptr)
@@ -44,81 +44,33 @@ poller::poller(threadpool& pool, blockchain& chain)
 // Start monitoring this channel.
 void poller::monitor(channel_ptr node)
 {
-    //////node->subscribe_inventory(
-    //////    std::bind(&poller::receive_inv,
-    //////        this, _1, _2, node));
-
     node->subscribe_block(
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 
+    // Revive channel with a new getblocks request if it stops getting blocks.
+    node->set_revival_handler(
+        std::bind(&poller::handle_revive,
+            this, _1, node));
+
     // TODO: consider deferring this ask on inbound connections.
     // The caller may intend only to post a transaction and disconnect.
     // Issue the initial ask for blocks.
-    request_blocks(null_hash, node);
+    handle_revive(error::success, node);
 }
 
-// Dead code, temp retain for example.
-//bool poller::receive_inv(const std::error_code& ec,
-//    const inventory_type& packet, channel_ptr node)
-//{
-//    if (ec == error::channel_stopped)
-//        return false;
-//
-//    const auto peer = node->address();
-//
-//    if (ec)
-//    {
-//        log_debug(LOG_POLLER)
-//            << "Failure in receive inventory ["
-//            << peer << "] " << ec.message();
-//        node->stop(ec);
-//        return false;
-//    }
-//
-//    log_debug(LOG_POLLER)
-//        << "Inventory BEGIN [" << peer << "] ("
-//        << packet.inventories.size() << ")";
-//
-//    get_data_type getdata;
-//    for (const auto& inventory: packet.inventories)
-//    {
-//        // Filter out non-block inventories
-//        if (inventory.type == inventory_type_id::block)
-//        {
-//            log_debug(LOG_POLLER)
-//                << "Block inventory from [" << peer << "] "
-//                << encode_hash(inventory.hash);
-//
-//            // Exclude the last block asked for.
-//            // Presumably this is because it's convenient/fast to do.
-//            // TODO: filter out blocks we already have so we aren't
-//            // re-requesting block data for them. Presumably we could
-//            // have obtained them on another channel even though we 
-//            // did ask for them on this channel.
-//            if (inventory.hash != last_block_hash_)
-//                getdata.inventories.push_back(inventory);
-//        }
-//    }
-//
-//    log_debug(LOG_POLLER)
-//        << "Inventory END [" << peer << "]";
-//
-//    // The session is also subscribed to inv, so we don't handle tx here.
-//    if (getdata.inventories.empty())
-//    {
-//        // If empty there is no ask, resulting in a stall.
-//        log_debug(LOG_POLLER) 
-//            << "Received empty filtered block inventory.";
-//    }
-//    else
-//    {
-//        last_block_hash_ = getdata.inventories.back().hash;
-//        node->send(getdata, handle_send_packet);
-//    }
-//
-//    return true;
-//}
+void poller::handle_revive(const std::error_code& ec, channel_ptr node)
+{
+    if (ec)
+    {
+        log_error(LOG_SESSION)
+            << "Failure in initial block request: " << ec.message();
+        return;
+    }
+
+    // Send an inv request for 500 blocks.
+    request_blocks(null_hash, node);
+}
 
 bool poller::receive_block(const std::error_code& ec,
     const block_type& block, channel_ptr node)
@@ -135,13 +87,12 @@ bool poller::receive_block(const std::error_code& ec,
     }
 
     blockchain_.store(block,
-        strand_.wrap(&poller::handle_store_block,
+        std::bind(&poller::handle_store_block,
             this, _1, _2, hash_block_header(block.header), node));
 
     // Reset the revival timer because we just recieved a block from this peer.
     // Once we are at the top this will end up polling the peer.
     node->reset_revival();
-
     return true;
 }
 
@@ -198,13 +149,12 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
-    // TODO: cache this so we are not constantly hitting the blockchain for it.
+    // strand guards last_ members.
     fetch_block_locator(blockchain_,
         strand_.wrap(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
 
-// Not having orphans will cause a stall unless mitigated.
 void poller::ask_blocks(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
@@ -248,7 +198,7 @@ void poller::ask_blocks(const std::error_code& ec,
     const get_blocks_type packet{ locator, hash_stop };
     node->send(packet, handle_error);
 
-    // Update last values.
+    // guarded
     last_locator_begin_ = locator.front();
     last_hash_stop_ = hash_stop;
     last_block_ask_node_ = node.get();
@@ -257,6 +207,7 @@ void poller::ask_blocks(const std::error_code& ec,
 bool poller::is_duplicate_block_ask(const block_locator_type& locator,
     const hash_digest& hash_stop, channel_ptr node)
 {
+    // guarded by ask_blocks
     return
         last_locator_begin_ == locator.front() &&
         last_hash_stop_ == hash_stop && hash_stop != null_hash &&

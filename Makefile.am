@@ -37,6 +37,7 @@ src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
     src/indexer.cpp \
+    src/inventory.cpp \
     src/logging.cpp \
     src/poller.cpp \
     src/responder.cpp \
@@ -82,6 +83,7 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/full_node.hpp \
     include/bitcoin/node/indexer.hpp \
+    include/bitcoin/node/inventory.hpp \
     include/bitcoin/node/logging.hpp \
     include/bitcoin/node/poller.hpp \
     include/bitcoin/node/responder.hpp \

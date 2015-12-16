@@ -72,6 +72,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
+    <ClCompile Include="..\..\..\..\src\inventory.cpp" />
     <ClCompile Include="..\..\..\..\src\responder.cpp" />
     <ClCompile Include="..\..\..\..\src\logging.cpp" />
     <ClCompile Include="..\..\..\..\src\poller.cpp" />
@@ -84,6 +85,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\config\settings_type.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\inventory.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\responder.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\logging.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp" />

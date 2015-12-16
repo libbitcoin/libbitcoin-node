@@ -35,23 +35,20 @@ public:
         bc::network::channel_ptr node);
 
 private:
-    ////bool receive_inv(const std::error_code& ec,
-    ////    const inventory_type& packet, bc::network::channel_ptr node);
     bool receive_block(const std::error_code& ec,
         const block_type& block, bc::network::channel_ptr node);
     void handle_store_block(const std::error_code& ec, block_info info,
         const hash_digest& block_hash, bc::network::channel_ptr node);
+
+    void handle_revive(const std::error_code& ec, network::channel_ptr node);
     void ask_blocks(const std::error_code& ec,
-        const block_locator_type& locator,
-        const hash_digest& hash_stop, bc::network::channel_ptr node);
+        const block_locator_type& locator, const hash_digest& hash_stop,
+        bc::network::channel_ptr node);
     bool is_duplicate_block_ask(const block_locator_type& locator,
         const hash_digest& hash_stop, bc::network::channel_ptr node);
 
     sequencer strand_;
     chain::blockchain& blockchain_;
-
-    // Last hash from an inventory packet.
-    hash_digest last_block_hash_;
 
     // Last hash from a block locator.
     hash_digest last_locator_begin_;

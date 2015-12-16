@@ -36,6 +36,21 @@ public:
 private:
     bool receive_get_data(const std::error_code& ec,
         const get_data_type& packet, network::channel_ptr node);
+    bool receive_get_blocks(const std::error_code& ec,
+        const get_blocks_type& packet, network::channel_ptr node);
+
+    void new_tx_get_data(const get_data_type& packet,
+        network::channel_ptr node);
+    void handle_tx_exists(const std::error_code& ec, bool exists,
+        const hash_digest& hash, network::channel_ptr node);
+
+    void new_block_get_data(const get_data_type& packet,
+        network::channel_ptr node);
+    void handle_block_exists(const std::error_code& ec,
+        const hash_digest& hash, network::channel_ptr node);
+
+    void new_filter_get_data(const get_data_type& packet,
+        network::channel_ptr node);
 
     void send_pool_tx(const std::error_code& ec, const transaction_type& tx,
         const hash_digest& tx_hash, network::channel_ptr node);
