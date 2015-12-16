@@ -77,6 +77,9 @@ private:
         const hash_digest& hash, network::channel_ptr node,
         network::channel_proxy::send_handler handler);
 
+    void send_block_inventory(const std::error_code& ec,
+        const hash_list& hashes, network::channel_ptr node);
+
     chain::blockchain& blockchain_;
     chain::transaction_pool& tx_pool_;
     std::atomic<uint64_t> last_height_;
