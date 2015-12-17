@@ -391,8 +391,7 @@ bool responder::receive_get_blocks(const std::error_code& ec,
         return false;
     }
 
-    const auto sending_blocks = last_height_ >= minimum_start_height_;
-    if (!sending_blocks)
+    if (last_height_ < minimum_start_height_)
     {
         log_debug(LOG_RESPONDER)
             << "Ignoring get_blocks from [" << node->address() << "]";
