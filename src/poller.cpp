@@ -19,6 +19,8 @@
  */
 #include <bitcoin/node/poller.hpp>
 
+#include <atomic>
+#include <cstddef>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 
@@ -29,11 +31,14 @@ using namespace bc::chain;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
-using boost::asio::io_service;
+using std::placeholders::_3;
+using std::placeholders::_4;
 
 /// Request block inventory, receive and store blocks.
-poller::poller(blockchain& chain)
-  : blockchain_(chain)
+poller::poller(blockchain& chain, size_t minimum_start_height)
+  : blockchain_(chain),
+    last_height_(0),
+    minimum_start_height_(minimum_start_height)
 {
 }
 
@@ -52,6 +57,11 @@ void poller::monitor(channel_ptr node)
     node->set_revival_handler(
         std::bind(&poller::handle_revive,
             this, _1, node));
+
+    // Subscribe to reorganizations.
+    blockchain_.subscribe_reorganize(
+        std::bind(&poller::handle_reorg,
+            this, _1, _2, _3, _4));
 
     // Make initial block inventory request.
     handle_revive(error::success, node);
@@ -130,9 +140,13 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
             log_debug(LOG_POLLER)
                 << "Potential block [" << encode_hash(block_hash) << "]";
 
+            // We suspend this during sync because it isn't necessary and block
+            // announcements and loss of order can cause excessive backlogging.
+            if (last_height_ < minimum_start_height_)
+                return;
+
             // This is how we get the peer to send us blocks we are
             // missing between the top of our chain and the orphan.
-            // But we should never see this unless we are losing order.
             request_blocks(block_hash, node);
             break;
 
@@ -197,6 +211,32 @@ void poller::ask_blocks(const std::error_code& ec,
     const get_blocks_type packet{ locator, hash_stop };
     node->send(packet, handle_error);
 }
+
+// Handle reorganization (set local height)
+// ----------------------------------------------------------------------------
+
+bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
+    const blockchain::block_list& new_blocks, const blockchain::block_list&)
+{
+    if (ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        log_error(LOG_RESPONDER)
+            << "Failure handling reorg: " << ec.message();
+        return false;
+    }
+
+    // Start height is limited to max_uint32 by satoshi protocol (version).
+    BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
+    const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
+
+    // atomic
+    last_height_ = height;
+    return true;
+}
+
 
 } // namespace node
 } // namespace libbitcoin
