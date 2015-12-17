@@ -47,8 +47,6 @@ public:
     void monitor(network::channel_ptr node);
 
 private:
-    void sanitize_block_hashes(hash_list& hashes);
-
     bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list&);
@@ -74,7 +72,6 @@ private:
     chain::blockchain& blockchain_;
     chain::transaction_pool& tx_pool_;
     std::atomic<uint64_t> last_height_;
-    hash_digest last_block_hash_;
     const size_t minimum_start_height_;
 };
 
