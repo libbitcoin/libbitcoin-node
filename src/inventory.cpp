@@ -110,20 +110,6 @@ size_t inventory::count(const inventory_list& inventories,
     return std::count_if(inventories.begin(), inventories.end(), compare);
 }
 
-// This should be implemented on a per-channel basis, if at all.
-////// Remove the last from the inventory list store the last from this list.
-////void inventory::sanitize_block_hashes(hash_list& hashes)
-////{
-////    // last_block_hash_ used only here, guarded by non-concurrency guarantee.
-////    auto it = std::find(hashes.begin(), hashes.end(), last_block_hash_);
-////
-////    if (it != hashes.end())
-////        hashes.erase(it);
-////
-////    if (!hashes.empty())
-////        last_block_hash_ = hashes.back();
-////}
-
 // Startup
 // ----------------------------------------------------------------------------
 
@@ -232,7 +218,6 @@ void inventory::new_block_inventory(const inventory_type& packet,
     channel_ptr node)
 {
     auto blocks = to_hashes(packet.inventories, inventory_type_id::block);
-    ////sanitize_block_hashes(blocks);
 
     blockchain_.fetch_missing_block_hashes(blocks,
         std::bind(&inventory::get_blocks,
