@@ -154,8 +154,8 @@ bool inventory::receive_inv(const std::error_code& ec,
     if (ec)
     {
         log_debug(LOG_INVENTORY)
-            << "Failure in receive inventory ["
-            << peer << "] " << ec.message();
+            << "Failure in receive inventory [" << peer << "] "
+            << ec.message();
         node->stop(ec);
         return false;
     }

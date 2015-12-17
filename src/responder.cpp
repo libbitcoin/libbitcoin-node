@@ -80,8 +80,8 @@ bool responder::receive_get_data(const std::error_code& ec,
     if (ec)
     {
         log_debug(LOG_RESPONDER)
-            << "Failure in receive get_data ["
-            << peer << "] " << ec.message();
+            << "Failure in receive get_data [" << peer << "] "
+            << ec.message();
         node->stop(ec);
         return false;
     }
@@ -391,15 +391,21 @@ bool responder::receive_get_blocks(const std::error_code& ec,
         return false;
     }
 
+    const auto sending_blocks = last_height_ >= minimum_start_height_;
+    if (!sending_blocks)
+    {
+        log_debug(LOG_RESPONDER)
+            << "Ignoring get_blocks from [" << node->address() << "]";
+        return true;
+    }
+
     blockchain_.fetch_locator_block_hashes(get_blocks,
         std::bind(&responder::send_block_inventory,
             this, _1, _2, node));
 
     log_info(LOG_RESPONDER)
         << "Failure handling a get_blocks request: feature not yet supported.";
-
-    // Resubscribe is disabled to prevent logging subsequent requests.
-    return false;
+    return true;
 }
 
 void responder::send_block_inventory(const std::error_code& ec,
