@@ -41,7 +41,6 @@ inventory::inventory(handshake& handshake, chain::blockchain& chain,
     blockchain_(chain),
     tx_pool_(tx_pool),
     last_height_(0),
-    last_block_hash_(null_hash),
     minimum_start_height_(minimum_start_height)
 {
 }
@@ -109,19 +108,6 @@ size_t inventory::count(const inventory_list& inventories,
     };
 
     return std::count_if(inventories.begin(), inventories.end(), compare);
-}
-
-// Remove the last from the inventory list store the last from this list.
-void inventory::sanitize_block_hashes(hash_list& hashes)
-{
-    // last_block_hash_ used only here, guarded by non-concurrency guarantee.
-    auto it = std::find(hashes.begin(), hashes.end(), last_block_hash_);
-
-    if (it != hashes.end())
-        hashes.erase(it);
-
-    if (!hashes.empty())
-        last_block_hash_ = hashes.back();
 }
 
 // Startup
@@ -232,7 +218,6 @@ void inventory::new_block_inventory(const inventory_type& packet,
     channel_ptr node)
 {
     auto blocks = to_hashes(packet.inventories, inventory_type_id::block);
-    sanitize_block_hashes(blocks);
 
     blockchain_.fetch_missing_block_hashes(blocks,
         std::bind(&inventory::get_blocks,
