@@ -19,6 +19,8 @@
  */
 #include <bitcoin/node/poller.hpp>
 
+#include <atomic>
+#include <cstddef>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 
@@ -29,15 +31,14 @@ using namespace bc::chain;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
-using boost::asio::io_service;
+using std::placeholders::_3;
+using std::placeholders::_4;
 
 /// Request block inventory, receive and store blocks.
-poller::poller(threadpool& pool, blockchain& chain)
-  : strand_(pool),
-    blockchain_(chain),
-    last_locator_begin_(null_hash),
-    last_hash_stop_(null_hash),
-    last_block_ask_node_(nullptr)
+poller::poller(blockchain& chain, size_t minimum_start_height)
+  : blockchain_(chain),
+    last_height_(0),
+    minimum_start_height_(minimum_start_height)
 {
 }
 
@@ -52,10 +53,18 @@ void poller::monitor(channel_ptr node)
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 
-    // Revive channel with a new getblocks request if it stops getting blocks.
+    // Poll channel with a new getblocks request after stop getting blocks.
     node->set_revival_handler(
         std::bind(&poller::handle_revive,
             this, _1, node));
+
+    // Subscribe to reorganizations.
+    blockchain_.subscribe_reorganize(
+        std::bind(&poller::handle_reorg,
+            this, _1, _2, _3, _4));
+
+    // Make initial block inventory request.
+    handle_revive(error::success, node);
 }
 
 // Handle block receipt timeout (revivial)
@@ -131,8 +140,13 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
             log_debug(LOG_POLLER)
                 << "Potential block [" << encode_hash(block_hash) << "]";
 
-            // This is how we get other nodes to send us the blocks we are
-            // missing from the top of our chain to the orphan.
+            // We suspend this during sync because it isn't necessary and block
+            // announcements and loss of order can cause excessive backlogging.
+            if (last_height_ < minimum_start_height_)
+                return;
+
+            // This is how we get the peer to send us blocks we are
+            // missing between the top of our chain and the orphan.
             request_blocks(block_hash, node);
             break;
 
@@ -157,9 +171,8 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
-    // strand guards last_ members.
     fetch_block_locator(blockchain_,
-        strand_.wrap(&poller::ask_blocks,
+        std::bind(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
 
@@ -178,16 +191,8 @@ void poller::ask_blocks(const std::error_code& ec,
     }
 
     BITCOIN_ASSERT(!locator.empty());
-    
-    if (is_duplicate_block_ask(locator, hash_stop, node))
-    {
-        log_debug(LOG_POLLER)
-            << "Skipping duplicate ask blocks with locator front ["
-            << encode_hash(locator.front()) << "]";
-        return;
-    }
-    
     const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
+
     log_debug(LOG_POLLER)
         << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
         << locator.size() << ") to [" << stop << "]";
@@ -205,22 +210,33 @@ void poller::ask_blocks(const std::error_code& ec,
     // Send get_blocks request.
     const get_blocks_type packet{ locator, hash_stop };
     node->send(packet, handle_error);
-
-    // guarded
-    last_locator_begin_ = locator.front();
-    last_hash_stop_ = hash_stop;
-    last_block_ask_node_ = node.get();
 }
 
-bool poller::is_duplicate_block_ask(const block_locator_type& locator,
-    const hash_digest& hash_stop, channel_ptr node)
+// Handle reorganization (set local height)
+// ----------------------------------------------------------------------------
+
+bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
+    const blockchain::block_list& new_blocks, const blockchain::block_list&)
 {
-    // guarded by ask_blocks
-    return
-        last_locator_begin_ == locator.front() &&
-        last_hash_stop_ == hash_stop && hash_stop != null_hash &&
-        last_block_ask_node_ == node.get();
+    if (ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        log_error(LOG_RESPONDER)
+            << "Failure handling reorg: " << ec.message();
+        return false;
+    }
+
+    // Start height is limited to max_uint32 by satoshi protocol (version).
+    BITCOIN_ASSERT((bc::max_uint32 - fork_point) >= new_blocks.size());
+    const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
+
+    // atomic
+    last_height_ = height;
+    return true;
 }
+
 
 } // namespace node
 } // namespace libbitcoin

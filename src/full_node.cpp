@@ -187,8 +187,8 @@ full_node::full_node(const settings_type& config)
     tx_indexer_(
         memory_threads_),
     poller_(
-        memory_threads_,
-        blockchain_),
+        blockchain_,
+        config.minimum_start_height()),
     responder_(
         blockchain_,
         tx_pool_,

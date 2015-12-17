@@ -20,6 +20,8 @@
 #ifndef LIBBITCOIN_NODE_POLLER_HPP
 #define LIBBITCOIN_NODE_POLLER_HPP
 
+#include <atomic>
+#include <cstddef>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -29,12 +31,16 @@ namespace node {
 class BCN_API poller
 {
 public:
-    poller(threadpool& pool, chain::blockchain& chain);
+    poller(chain::blockchain& chain, size_t minimum_start_height);
     void monitor(bc::network::channel_ptr node);
     void request_blocks(const hash_digest& block_hash,
         bc::network::channel_ptr node);
 
 private:
+    bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
+        const chain::blockchain::block_list& new_blocks,
+        const chain::blockchain::block_list&);
+
     bool receive_block(const std::error_code& ec,
         const block_type& block, bc::network::channel_ptr node);
     void handle_store_block(const std::error_code& ec, block_info info,
@@ -44,16 +50,10 @@ private:
     void ask_blocks(const std::error_code& ec,
         const block_locator_type& locator, const hash_digest& hash_stop,
         bc::network::channel_ptr node);
-    bool is_duplicate_block_ask(const block_locator_type& locator,
-        const hash_digest& hash_stop, bc::network::channel_ptr node);
 
-    sequencer strand_;
     chain::blockchain& blockchain_;
-
-    // Last hash from a block locator.
-    hash_digest last_locator_begin_;
-    hash_digest last_hash_stop_;
-    bc::network::channel* last_block_ask_node_;
+    std::atomic<uint64_t> last_height_;
+    const size_t minimum_start_height_;
 };
 
 } // namespace node
