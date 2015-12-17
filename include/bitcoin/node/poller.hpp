@@ -29,7 +29,7 @@ namespace node {
 class BCN_API poller
 {
 public:
-    poller(threadpool& pool, chain::blockchain& chain);
+    poller(chain::blockchain& chain);
     void monitor(bc::network::channel_ptr node);
     void request_blocks(const hash_digest& block_hash,
         bc::network::channel_ptr node);
@@ -44,16 +44,8 @@ private:
     void ask_blocks(const std::error_code& ec,
         const block_locator_type& locator, const hash_digest& hash_stop,
         bc::network::channel_ptr node);
-    bool is_duplicate_block_ask(const block_locator_type& locator,
-        const hash_digest& hash_stop, bc::network::channel_ptr node);
 
-    sequencer strand_;
     chain::blockchain& blockchain_;
-
-    // Last hash from a block locator.
-    hash_digest last_locator_begin_;
-    hash_digest last_hash_stop_;
-    bc::network::channel* last_block_ask_node_;
 };
 
 } // namespace node

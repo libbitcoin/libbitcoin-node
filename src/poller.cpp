@@ -32,12 +32,8 @@ using std::placeholders::_2;
 using boost::asio::io_service;
 
 /// Request block inventory, receive and store blocks.
-poller::poller(threadpool& pool, blockchain& chain)
-  : strand_(pool),
-    blockchain_(chain),
-    last_locator_begin_(null_hash),
-    last_hash_stop_(null_hash),
-    last_block_ask_node_(nullptr)
+poller::poller(blockchain& chain)
+  : blockchain_(chain)
 {
 }
 
@@ -52,10 +48,13 @@ void poller::monitor(channel_ptr node)
         std::bind(&poller::receive_block,
             this, _1, _2, node));
 
-    // Revive channel with a new getblocks request if it stops getting blocks.
+    // Poll channel with a new getblocks request after stop getting blocks.
     node->set_revival_handler(
         std::bind(&poller::handle_revive,
             this, _1, node));
+
+    // Make initial block inventory request.
+    handle_revive(error::success, node);
 }
 
 // Handle block receipt timeout (revivial)
@@ -131,8 +130,9 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
             log_debug(LOG_POLLER)
                 << "Potential block [" << encode_hash(block_hash) << "]";
 
-            // This is how we get other nodes to send us the blocks we are
-            // missing from the top of our chain to the orphan.
+            // This is how we get the peer to send us blocks we are
+            // missing between the top of our chain and the orphan.
+            // But we should never see this unless we are losing order.
             request_blocks(block_hash, node);
             break;
 
@@ -157,9 +157,8 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
-    // strand guards last_ members.
     fetch_block_locator(blockchain_,
-        strand_.wrap(&poller::ask_blocks,
+        std::bind(&poller::ask_blocks,
             this, _1, _2, block_hash, node));
 }
 
@@ -178,16 +177,8 @@ void poller::ask_blocks(const std::error_code& ec,
     }
 
     BITCOIN_ASSERT(!locator.empty());
-    
-    if (is_duplicate_block_ask(locator, hash_stop, node))
-    {
-        log_debug(LOG_POLLER)
-            << "Skipping duplicate ask blocks with locator front ["
-            << encode_hash(locator.front()) << "]";
-        return;
-    }
-    
     const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
+
     log_debug(LOG_POLLER)
         << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
         << locator.size() << ") to [" << stop << "]";
@@ -205,21 +196,6 @@ void poller::ask_blocks(const std::error_code& ec,
     // Send get_blocks request.
     const get_blocks_type packet{ locator, hash_stop };
     node->send(packet, handle_error);
-
-    // guarded
-    last_locator_begin_ = locator.front();
-    last_hash_stop_ = hash_stop;
-    last_block_ask_node_ = node.get();
-}
-
-bool poller::is_duplicate_block_ask(const block_locator_type& locator,
-    const hash_digest& hash_stop, channel_ptr node)
-{
-    // guarded by ask_blocks
-    return
-        last_locator_begin_ == locator.front() &&
-        last_hash_stop_ == hash_stop && hash_stop != null_hash &&
-        last_block_ask_node_ == node.get();
 }
 
 } // namespace node
