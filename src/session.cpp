@@ -116,6 +116,7 @@ void session::broadcast(const blockchain::block_list& blocks)
     handle_reorg(error::success, 0, blocks, {});
 }
 
+// TODO: don't broadcast reorg inventory to peers who have given us the block.
 bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     const blockchain::block_list& new_blocks, const blockchain::block_list&)
 {
