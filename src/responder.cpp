@@ -400,7 +400,7 @@ bool responder::receive_get_blocks(const std::error_code& ec,
 
     // The threshold prevents a peer from creating an unnecessary backlog
     // for itself in the case where it is requesting without having processed
-    // all of its existing backlog.
+    // all of its existing backlog. This also reduces its load on us.
     blockchain_.fetch_locator_block_hashes(get_blocks, node->threshold(),
         std::bind(&responder::send_block_inventory,
             this, _1, _2, node));
