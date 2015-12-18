@@ -19,8 +19,8 @@
  */
 #include <bitcoin/node/poller.hpp>
 
-#include <atomic>
 #include <cstddef>
+#include <memory>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 
@@ -100,7 +100,9 @@ bool poller::receive_block(const std::error_code& ec, const block_type& block,
         return false;
     }
 
-    blockchain_.store(block,
+    // Move the block to the blockchain queue.
+    // This may keep the channel instance alive for a long time after stop.
+    blockchain_.store(std::make_shared<block_type>(block),
         std::bind(&poller::handle_store_block,
             this, _1, _2, hash_block_header(block.header), node));
 
@@ -145,8 +147,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
             if (last_height_ < minimum_start_height_)
                 return;
 
-            // This is how we get the peer to send us blocks we are
-            // missing between the top of our chain and the orphan.
+            // This is how we get missing blocks between top and the orphan.
             request_blocks(block_hash, node);
             break;
 

@@ -154,8 +154,6 @@ bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
                 << "Broadcast block inventory to (" << count << ") nodes.";
     };
 
-    // TODO: optimize by not broadcasting to the node from which it came, by
-    // maintaining each peer's last known checkpoint.
     protocol_.broadcast(block_inventory, broadcast_handler);
     return true;
 }
