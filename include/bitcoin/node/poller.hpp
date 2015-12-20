@@ -46,7 +46,7 @@ private:
     void handle_store_block(const std::error_code& ec, block_info info,
         const hash_digest& block_hash, bc::network::channel_ptr node);
 
-    void handle_revive(const std::error_code& ec, network::channel_ptr node);
+    void handle_poll(const std::error_code& ec, network::channel_ptr node);
     void ask_blocks(const std::error_code& ec,
         const block_locator_type& locator, const hash_digest& hash_stop,
         bc::network::channel_ptr node);

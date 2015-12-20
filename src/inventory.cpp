@@ -157,11 +157,11 @@ bool inventory::receive_inv(const std::error_code& ec,
     const auto transactions = count(packet.inventories,
         inventory_type_id::transaction);
 
-    log_debug(LOG_INVENTORY)
-        << "Inventory BEGIN [" << peer << "] "
-        << "txs (" << transactions << ") "
-        << "filters (" << filters << ") "
-        << "blocks (" << blocks << ")";
+    //log_debug(LOG_INVENTORY)
+    //    << "Inventory BEGIN [" << peer << "] "
+    //    << "txs (" << transactions << ") "
+    //    << "filters (" << filters << ") "
+    //    << "blocks (" << blocks << ")";
 
     for (const auto& inventory: packet.inventories)
     {
@@ -189,13 +189,13 @@ bool inventory::receive_inv(const std::error_code& ec,
         {
             log_debug(LOG_SESSION)
                 << "Ignoring " << inventory::to_text(inventory.type)
-                << " inventory type from [" << peer << "] "
+                << " inventory from [" << peer << "] "
                 << encode_hash(inventory.hash);
         }
     }
 
-    log_debug(LOG_INVENTORY)
-        << "Inventory END [" << peer << "]";
+    //log_debug(LOG_INVENTORY)
+    //    << "Inventory END [" << peer << "]";
 
     if (blocks > 0 && accepting_blocks)
         new_block_inventory(packet, node);
@@ -235,6 +235,13 @@ void inventory::get_blocks(const std::error_code& ec, const hash_list& hashes,
         log_debug(LOG_INVENTORY)
             << "Failure in getting block existence for peer "
             << node->address() << "] " << ec.message();
+        return;
+    }
+
+    if (hashes.empty())
+    {
+        log_debug(LOG_INVENTORY)
+            << "No missing blocks from [" << node->address() << "] inventory";
         return;
     }
 
@@ -289,6 +296,14 @@ void inventory::get_transactions(const std::error_code& ec,
         log_debug(LOG_INVENTORY)
             << "Failure in getting tx existence for peer "
             << node->address() << "] " << ec.message();
+        return;
+    }
+
+    if (hashes.empty())
+    {
+        log_debug(LOG_INVENTORY)
+            << "No missing transactions from [" << node->address()
+            << "] inventory";
         return;
     }
 

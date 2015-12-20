@@ -54,8 +54,8 @@ void poller::monitor(channel_ptr node)
             this, _1, _2, node));
 
     // Poll channel with a new getblocks request after stop getting blocks.
-    node->set_revival_handler(
-        std::bind(&poller::handle_revive,
+    node->set_poll_handler(
+        std::bind(&poller::handle_poll,
             this, _1, node));
 
     // Subscribe to reorganizations.
@@ -64,18 +64,19 @@ void poller::monitor(channel_ptr node)
             this, _1, _2, _3, _4));
 
     // Make initial block inventory request.
-    handle_revive(error::success, node);
+    handle_poll(error::success, node);
 }
 
-// Handle block receipt timeout (revivial)
+// Handle block polling timeout
 // ----------------------------------------------------------------------------
 
-void poller::handle_revive(const std::error_code& ec, channel_ptr node)
+void poller::handle_poll(const std::error_code& ec, channel_ptr node)
 {
     if (ec)
     {
         log_error(LOG_SESSION)
-            << "Failure in initial block request: " << ec.message();
+            << "Failure in block poll: " << ec.message();
+        node->stop(ec);
         return;
     }
 
@@ -106,9 +107,9 @@ bool poller::receive_block(const std::error_code& ec, const block_type& block,
         std::bind(&poller::handle_store_block,
             this, _1, _2, hash_block_header(block.header), node));
 
-    // Reset the revival timer because we just recieved a block from this peer.
+    // Reset the poll timer because we just recieved a block from this peer.
     // Once we are at the top this will end up polling the peer.
-    node->reset_revival();
+    node->reset_poll();
     return true;
 }
 
@@ -167,7 +168,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
     }
 }
 
-// Request blocks (500 at startup and revivial, fill gap otherwise)
+// Request blocks (next 500 when polling, up to gap otherwise)
 // ----------------------------------------------------------------------------
 
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
@@ -195,7 +196,7 @@ void poller::ask_blocks(const std::error_code& ec,
     const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
 
     log_debug(LOG_POLLER)
-        << "Ask for blocks from [" << encode_hash(locator.front()) << "]("
+        << "Ask for blocks from [" << encode_hash(locator.front()) << "] ("
         << locator.size() << ") to [" << stop << "]";
 
     const auto handle_error = [node](std::error_code ec)

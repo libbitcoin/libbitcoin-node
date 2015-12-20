@@ -98,11 +98,11 @@ bool responder::receive_get_data(const std::error_code& ec,
     const auto transactions = inventory::count(packet.inventories,
         inventory_type_id::transaction);
 
-    log_debug(LOG_RESPONDER)
-        << "Getdata BEGIN [" << peer << "] "
-        << "txs (" << transactions << ") "
-        << "filters (" << filters << ") "
-        << "blocks (" << blocks << ")";
+    ////log_debug(LOG_RESPONDER)
+    ////    << "Getdata BEGIN [" << peer << "] "
+    ////    << "txs (" << transactions << ") "
+    ////    << "filters (" << filters << ") "
+    ////    << "blocks (" << blocks << ")";
 
     for (const auto& inventory: packet.inventories)
     {
@@ -130,13 +130,13 @@ bool responder::receive_get_data(const std::error_code& ec,
         {
             log_debug(LOG_RESPONDER)
                 << "Ignoring " << inventory::to_text(inventory.type)
-                << " get_data type from [" << peer << "] "
+                << " get_data from [" << peer << "] "
                 << encode_hash(inventory.hash);
         }
     }
 
-    log_debug(LOG_RESPONDER)
-        << "Getdata END [" << peer << "]";
+    ////log_debug(LOG_RESPONDER)
+    ////    << "Getdata END [" << peer << "]";
 
     if (blocks > 0 && sending_blocks)
         new_block_get_data(packet, node);

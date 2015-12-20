@@ -141,8 +141,8 @@ bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     };
 
     log_debug(LOG_SESSION)
-        << "Broadcasting block inventory [" 
-        << block_inventory.inventories.size() << "]";
+        << "Broadcasting block inventory (" 
+        << block_inventory.inventories.size() << ")";
 
     const auto broadcast_handler = [](std::error_code ec, size_t count)
     {
