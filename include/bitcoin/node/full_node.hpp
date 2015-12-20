@@ -57,7 +57,7 @@ namespace node {
 #define NETWORK_THREADS                     4
 #define NETWORK_INBOUND_PORT                protocol_port
 #define NETWORK_INBOUND_CONNECTION_LIMIT    0
-#define NETWORK_OUTBOUND_CONNECTIONS        2
+#define NETWORK_OUTBOUND_CONNECTIONS        1
 #define NETWORK_CONNECT_TIMEOUT_SECONDS     5
 #define NETWORK_CHANNEL_HANDSHAKE_SECONDS   15
 #define NETWORK_CHANNEL_POLL_SECONDS        1
