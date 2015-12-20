@@ -33,6 +33,8 @@ using std::placeholders::_4;
 using namespace bc::chain;
 using namespace bc::network;
 
+static constexpr size_t max_block_inventory_size = 500;
+
 // Subscribe to inventory messages and request needed blocks and txs.
 // Subscribe to reorgs to set and maintain current blockchain height.
 inventory::inventory(handshake& handshake, chain::blockchain& chain,
@@ -148,7 +150,8 @@ bool inventory::receive_inv(const std::error_code& ec,
 
     static const auto accepting_blocks = true;
     static const auto accepting_filters = false;
-    const auto accepting_transactions = last_height_ >= minimum_start_height_;
+    const auto accepting_transactions = 
+        last_height_.load() >= minimum_start_height_;
 
     const auto blocks = count(packet.inventories,
         inventory_type_id::block);
@@ -219,6 +222,17 @@ void inventory::new_block_inventory(const inventory_type& packet,
 {
     auto blocks = to_hashes(packet.inventories, inventory_type_id::block);
 
+    // This is DoS protection, otherwise a peer could tie up our database.
+    const auto size = packet.inventories.size();
+    if (size > max_block_inventory_size)
+    {
+        log_debug(LOG_INVENTORY)
+            << "Invalid block inventory size (" << size << ") from ["
+            << node->address() << "] ";
+        node->stop(error::channel_stopped);
+        return;
+    }
+
     blockchain_.fetch_missing_block_hashes(blocks,
         std::bind(&inventory::get_blocks,
             this, _1, _2, node));
@@ -261,6 +275,13 @@ void inventory::get_blocks(const std::error_code& ec, const hash_list& hashes,
         << "Requesting " << hashes.size() << " blocks from ["
         << node->address() << "]";
 
+    for (const auto& hash: hashes)
+    {
+        log_debug(LOG_INVENTORY)
+            << "Requesting " << encode_hash(hash)
+            << " from [" << node->address() << "]";
+    }
+
     const get_data_type request
     {
         to_inventories(hashes, inventory_type_id::block)
@@ -285,6 +306,7 @@ void inventory::new_transaction_inventory(const inventory_type& packet,
             this, _1, _2, node));
 }
 
+// TODO: set size limit.
 void inventory::get_transactions(const std::error_code& ec,
     const hash_list& hashes, channel_ptr node)
 {
@@ -379,7 +401,7 @@ void inventory::handle_set_height(const std::error_code& ec, uint32_t height)
     }
 
     // atomic
-    last_height_ = height;
+    last_height_.store(height);
 }
 
 } // namespace node

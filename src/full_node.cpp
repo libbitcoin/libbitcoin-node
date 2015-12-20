@@ -92,6 +92,7 @@ const settings_type full_node::defaults
     bc::node::settings
     {
         NODE_THREADS,
+        NODE_MINIMUM_BYTES_PER_MINUTE,
         NODE_TRANSACTION_POOL_CAPACITY,
         NODE_TRANSACTION_POOL_CONSISTENCY,
         NODE_PEERS,
@@ -188,7 +189,8 @@ full_node::full_node(const settings_type& config)
         memory_threads_),
     poller_(
         blockchain_,
-        config.minimum_start_height()),
+        config.minimum_start_height(),
+        config.node.minimum_bytes_per_minute),
     responder_(
         blockchain_,
         tx_pool_,

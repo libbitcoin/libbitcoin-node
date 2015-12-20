@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <mutex>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -31,9 +32,10 @@ namespace node {
 class BCN_API poller
 {
 public:
-    poller(chain::blockchain& chain, size_t minimum_start_height);
+    poller(chain::blockchain& chain, size_t minimum_start_height,
+        size_t minimum_bytes_per_minute);
     void monitor(bc::network::channel_ptr node);
-    void request_blocks(const hash_digest& block_hash,
+    void request_blocks(const hash_digest& hash_stop,
         bc::network::channel_ptr node);
 
 private:
@@ -47,13 +49,18 @@ private:
         const hash_digest& block_hash, bc::network::channel_ptr node);
 
     void handle_poll(const std::error_code& ec, network::channel_ptr node);
-    void ask_blocks(const std::error_code& ec,
+    void handle_sync(const std::error_code& ec, network::channel_ptr node);
+    void handle_fetch_locator(const std::error_code& ec,
         const block_locator_type& locator, const hash_digest& hash_stop,
         bc::network::channel_ptr node);
 
     chain::blockchain& blockchain_;
+    std::atomic<size_t> block_bytes_;
     std::atomic<uint64_t> last_height_;
+    hash_digest last_block_;
+    std::mutex last_block_mutex_;
     const size_t minimum_start_height_;
+    const size_t minimum_bytes_per_minute_;
 };
 
 } // namespace node

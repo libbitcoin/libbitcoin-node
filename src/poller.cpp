@@ -21,6 +21,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 
@@ -35,10 +36,14 @@ using std::placeholders::_3;
 using std::placeholders::_4;
 
 /// Request block inventory, receive and store blocks.
-poller::poller(blockchain& chain, size_t minimum_start_height)
+poller::poller(blockchain& chain, size_t minimum_start_height,
+    size_t minimum_bytes_per_minute)
   : blockchain_(chain),
+    block_bytes_(0),
     last_height_(0),
-    minimum_start_height_(minimum_start_height)
+    last_block_(null_hash),
+    minimum_start_height_(minimum_start_height),
+    minimum_bytes_per_minute_(minimum_bytes_per_minute)
 {
 }
 
@@ -58,16 +63,22 @@ void poller::monitor(channel_ptr node)
         std::bind(&poller::handle_poll,
             this, _1, node));
 
+    // Monitor channel sync rate and stop channel if below minimum configured.
+    node->set_sync_handler(
+        std::bind(&poller::handle_sync,
+            this, _1, node));
+
     // Subscribe to reorganizations.
     blockchain_.subscribe_reorganize(
         std::bind(&poller::handle_reorg,
             this, _1, _2, _3, _4));
 
-    // Make initial block inventory request.
+    // Make initial block inventory request and initialize sync timer.
     handle_poll(error::success, node);
+    node->reset_sync();
 }
 
-// Handle block polling timeout
+// Handle block polling timeouts
 // ----------------------------------------------------------------------------
 
 void poller::handle_poll(const std::error_code& ec, channel_ptr node)
@@ -82,6 +93,38 @@ void poller::handle_poll(const std::error_code& ec, channel_ptr node)
 
     // Send an inv request for 500 blocks.
     request_blocks(null_hash, node);
+}
+
+void poller::handle_sync(const std::error_code& ec, channel_ptr node)
+{
+    if (ec)
+    {
+        log_error(LOG_SESSION)
+            << "Failure in block sync: " << ec.message();
+        node->stop(ec);
+        return;
+    }
+
+    // Sync is complete, stop tracking sync rate.
+    if (last_height_.load() >= minimum_start_height_)
+        return;
+
+    const auto block_bytes = block_bytes_.load();
+    log_info(LOG_SESSION)
+        << "Block bytes per minute (" << block_bytes << ") ["
+        << node->address() << "]";
+
+    if (block_bytes < minimum_bytes_per_minute_)
+    {
+        log_info(LOG_SESSION)
+            << "Dropping slow channel [" << node->address() << "]";
+        node->stop(error::channel_stopped);
+        return;
+    }
+
+    // Reset for next minute.
+    block_bytes_.store(0);
+    node->reset_sync();
 }
 
 // Handle block message
@@ -107,12 +150,18 @@ bool poller::receive_block(const std::error_code& ec, const block_type& block,
         std::bind(&poller::handle_store_block,
             this, _1, _2, hash_block_header(block.header), node));
 
-    // Reset the poll timer because we just recieved a block from this peer.
+    // Reset the poll timer because we just received a block from this peer.
     // Once we are at the top this will end up polling the peer.
+    // If for some reason we don't get the last requested block from the peer
+    // this will not get reset, resulting in a stall (caught by sync timer).
     node->reset_poll();
+
+    // Track the download rate for block sync.
+    block_bytes_ += static_cast<uint32_t>(satoshi_raw_size(block));
     return true;
 }
 
+// This executes on the blockchain ordered strand.
 void poller::handle_store_block(const std::error_code& ec, block_info info,
     const hash_digest& block_hash, channel_ptr node)
 {
@@ -145,7 +194,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
             // We suspend this during sync because it isn't necessary and block
             // announcements and loss of order can cause excessive backlogging.
-            if (last_height_ < minimum_start_height_)
+            if (last_height_.load() < minimum_start_height_)
                 return;
 
             // This is how we get missing blocks between top and the orphan.
@@ -171,14 +220,41 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 // Request blocks (next 500 when polling, up to gap otherwise)
 // ----------------------------------------------------------------------------
 
-void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
+void poller::request_blocks(const hash_digest& hash_stop, channel_ptr node)
 {
-    fetch_block_locator(blockchain_,
-        std::bind(&poller::ask_blocks,
-            this, _1, _2, block_hash, node));
+    hash_digest last_block;
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    if (true)
+    {
+        std::lock_guard<std::mutex> lock(last_block_mutex_);
+
+        last_block = last_block_;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Avoid requesting from the same start as last request to this peer.
+    // After our top block moves (up or down) this will no longer block.
+    // This does not guarantee prevention, it's just an optimization.
+    const auto& threshold = node->own_threshold();
+    if (threshold == last_block && last_block != null_hash)
+        return;
+
+    // When syncing below a checkpoint there is no need for a full locator.
+    const auto last_height = last_height_.load();
+    if (last_height < minimum_start_height_ && last_block != null_hash)
+    {
+        const block_locator_type locator { last_block };
+        handle_fetch_locator(error::success, locator, hash_stop, node);
+        return;
+    }
+
+    blockchain_.fetch_block_locator(
+        std::bind(&poller::handle_fetch_locator,
+            this, _1, _2, hash_stop, node));
 }
 
-void poller::ask_blocks(const std::error_code& ec,
+void poller::handle_fetch_locator(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
 {
@@ -196,8 +272,8 @@ void poller::ask_blocks(const std::error_code& ec,
     const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
 
     log_debug(LOG_POLLER)
-        << "Ask for blocks from [" << encode_hash(locator.front()) << "] ("
-        << locator.size() << ") to [" << stop << "]";
+        << "Ask for block inventory from [" << encode_hash(locator.front())
+        << "] (" << locator.size() << ") to [" << stop << "]";
 
     const auto handle_error = [node](std::error_code ec)
     {
@@ -212,6 +288,9 @@ void poller::ask_blocks(const std::error_code& ec,
     // Send get_blocks request.
     const get_blocks_type packet{ locator, hash_stop };
     node->send(packet, handle_error);
+
+    // We save the high start block here to prevent a redundant future request.
+    node->set_own_threshold(locator.front());
 }
 
 // Handle reorganization (set local height)
@@ -235,8 +314,16 @@ bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
 
     // atomic
-    last_height_ = height;
+    last_height_.store(height);
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    std::lock_guard<std::mutex> lock(last_block_mutex_);
+
+    // Save the hash of the top block, for own_threshold test - atomic.
+    last_block_ = hash_block_header(new_blocks.back()->header);
     return true;
+    ///////////////////////////////////////////////////////////////////////////
 }
 
 
