@@ -33,7 +33,7 @@ class BCN_API poller
 public:
     poller(chain::blockchain& chain, size_t minimum_start_height);
     void monitor(bc::network::channel_ptr node);
-    void request_blocks(const hash_digest& block_hash,
+    void request_blocks(const hash_digest& hash_stop,
         bc::network::channel_ptr node);
 
 private:
@@ -47,7 +47,7 @@ private:
         const hash_digest& block_hash, bc::network::channel_ptr node);
 
     void handle_poll(const std::error_code& ec, network::channel_ptr node);
-    void ask_blocks(const std::error_code& ec,
+    void handle_fetch_locator(const std::error_code& ec,
         const block_locator_type& locator, const hash_digest& hash_stop,
         bc::network::channel_ptr node);
 

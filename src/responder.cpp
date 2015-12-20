@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/responder.hpp>
 
+#include <cmath>
 #include <functional>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
@@ -33,6 +34,11 @@ using std::placeholders::_3;
 using std::placeholders::_4;
 using namespace bc::chain;
 using namespace bc::network;
+
+// The largest reasonable search is 10 for the first block of 10 hashes,
+// 1 for the genesis block, 1 for disparity between peers and log2(top)
+// for the exponential back-off algorithm.
+static constexpr size_t locator_allowance = 12;
 
 // Respond to peer get_data and get_blocks messages.
 // Subscribe to reorgs to set and maintain current blockchain height.
@@ -87,7 +93,7 @@ bool responder::receive_get_data(const std::error_code& ec,
     }
 
     // Peer can inspect our version.height in handshake.
-    const auto sending_blocks = last_height_ >= minimum_start_height_;
+    const auto sending_blocks = last_height_.load() >= minimum_start_height_;
     const auto sending_transactions = sending_blocks;
     static const auto sending_filters = false;
 
@@ -153,6 +159,8 @@ bool responder::receive_get_data(const std::error_code& ec,
 // Block
 // ----------------------------------------------------------------------------
 
+// TODO: set size limit.
+// BUGBUG: fetch_block is not ordered, which will mess with peer sync.
 void responder::new_block_get_data(const get_data_type& packet,
     channel_ptr node)
 {
@@ -226,6 +234,8 @@ void responder::send_block_not_found(const hash_digest& block_hash,
 // Transaction
 // ----------------------------------------------------------------------------
 
+// TODO: set size limit.
+// TODO: determine if order is expected.
 void responder::new_tx_get_data(const get_data_type& packet, channel_ptr node)
 {
     // This doesn't test for chain existence, but that should be rare.
@@ -391,11 +401,27 @@ bool responder::receive_get_blocks(const std::error_code& ec,
         return false;
     }
 
-    if (last_height_ < minimum_start_height_)
+    const auto last_height = last_height_.load();
+    if (last_height < minimum_start_height_)
     {
         log_debug(LOG_RESPONDER)
             << "Ignoring get_blocks from [" << node->address() << "]";
         return true;
+    }
+
+    // The locator cannot be longer than allowed by our chain length.
+    const auto allowance = static_cast<size_t>(std::log2(last_height) +
+        locator_allowance);
+
+    // This is DoS protection, otherwise a peer could tie up our database. 
+    const auto size = get_blocks.start_hashes.size();
+    if (size > allowance)
+    {
+        log_debug(LOG_RESPONDER)
+            << "Invalid get_blocks locator size (" << size  << ") from ["
+            << node->address() << "] ";
+        node->stop(error::channel_stopped);
+        return false;
     }
 
     // The peer threshold prevents a peer from creating an unnecessary backlog
@@ -404,7 +430,7 @@ bool responder::receive_get_blocks(const std::error_code& ec,
     // This could cause a problem during a reorg, where the peer regresses
     // and one of its other peers populates the chain back to this level. In
     // that case we would not respond but our peer's other peer should.
-    blockchain_.fetch_locator_block_hashes(get_blocks, node->peer_threshold(),
+    blockchain_.fetch_locator_blocks(get_blocks, node->peer_threshold(),
         std::bind(&responder::send_block_inventory,
             this, _1, _2, node));
 
@@ -469,7 +495,7 @@ bool responder::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
 
     // atomic
-    last_height_ = height;
+    last_height_.store(height);
     return true;
 }
 

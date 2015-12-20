@@ -114,6 +114,7 @@ bool poller::receive_block(const std::error_code& ec, const block_type& block,
     return true;
 }
 
+// This executes on the blockchain ordered strand.
 void poller::handle_store_block(const std::error_code& ec, block_info info,
     const hash_digest& block_hash, channel_ptr node)
 {
@@ -146,7 +147,7 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
             // We suspend this during sync because it isn't necessary and block
             // announcements and loss of order can cause excessive backlogging.
-            if (last_height_ < minimum_start_height_)
+            if (last_height_.load() < minimum_start_height_)
                 return;
 
             // This is how we get missing blocks between top and the orphan.
@@ -172,17 +173,33 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 // Request blocks (next 500 when polling, up to gap otherwise)
 // ----------------------------------------------------------------------------
 
-void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
+void poller::request_blocks(const hash_digest& hash_stop, channel_ptr node)
 {
+
     // Avoid requesting from the same start as last request to this peer.
     // After our top block moves (up or down) this will no longer block.
-    if (last_block_.load() != node->own_threshold())
-        fetch_block_locator(blockchain_,
-            std::bind(&poller::ask_blocks,
-                this, _1, _2, block_hash, node));
+    // This does not guarantee prevention, it's just an optimization.
+    const auto last_block = last_block_.load();
+    const auto& threshold = node->own_threshold();
+    if (threshold == last_block && last_block != null_hash)
+        return;
+
+    // When syncing below a checkpoint there is no need for a full locator.
+    // But a good percentage of peers appear to require it.
+    ////const auto last_height = last_height_.load();
+    ////if (last_height < minimum_start_height_ && last_block != null_hash)
+    ////{
+    ////    const block_locator_type locator { last_block };
+    ////    handle_fetch_locator(error::success, locator, hash_stop, node);
+    ////    return;
+    ////}
+
+    blockchain_.fetch_block_locator(
+        std::bind(&poller::handle_fetch_locator,
+            this, _1, _2, hash_stop, node));
 }
 
-void poller::ask_blocks(const std::error_code& ec,
+void poller::handle_fetch_locator(const std::error_code& ec,
     const block_locator_type& locator, const hash_digest& hash_stop,
     channel_ptr node)
 {
@@ -200,8 +217,8 @@ void poller::ask_blocks(const std::error_code& ec,
     const auto stop = hash_stop == null_hash ? "500" : encode_hash(hash_stop);
 
     log_debug(LOG_POLLER)
-        << "Ask for blocks from [" << encode_hash(locator.front()) << "] ("
-        << locator.size() << ") to [" << stop << "]";
+        << "Ask for block inventory from [" << encode_hash(locator.front())
+        << "] (" << locator.size() << ") to [" << stop << "]";
 
     const auto handle_error = [node](std::error_code ec)
     {
@@ -242,7 +259,7 @@ bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     const auto height = static_cast<uint32_t>(fork_point + new_blocks.size());
 
     // atomic
-    last_height_ = height;
+    last_height_.store(height);
 
     // Save the hash of the top block, for own_threshold test - atomic.
     last_block_.store(hash_block_header(new_blocks.back()->header));
