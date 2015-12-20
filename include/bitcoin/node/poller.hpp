@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <mutex>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -56,7 +57,8 @@ private:
     chain::blockchain& blockchain_;
     std::atomic<size_t> block_bytes_;
     std::atomic<uint64_t> last_height_;
-    std::atomic<hash_digest> last_block_;
+    hash_digest last_block_;
+    std::mutex last_block_mutex_;
     const size_t minimum_start_height_;
     const size_t minimum_bytes_per_minute_;
 };

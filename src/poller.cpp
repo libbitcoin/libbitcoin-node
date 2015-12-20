@@ -21,6 +21,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 
@@ -221,10 +222,20 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
 void poller::request_blocks(const hash_digest& hash_stop, channel_ptr node)
 {
+    hash_digest last_block;
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    if (true)
+    {
+        std::lock_guard<std::mutex> lock(last_block_mutex_);
+
+        last_block = last_block_;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
     // Avoid requesting from the same start as last request to this peer.
     // After our top block moves (up or down) this will no longer block.
     // This does not guarantee prevention, it's just an optimization.
-    const auto last_block = last_block_.load();
     const auto& threshold = node->own_threshold();
     if (threshold == last_block && last_block != null_hash)
         return;
@@ -305,9 +316,14 @@ bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     // atomic
     last_height_.store(height);
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    std::lock_guard<std::mutex> lock(last_block_mutex_);
+
     // Save the hash of the top block, for own_threshold test - atomic.
-    last_block_.store(hash_block_header(new_blocks.back()->header));
+    last_block_ = hash_block_header(new_blocks.back()->header);
     return true;
+    ///////////////////////////////////////////////////////////////////////////
 }
 
 
