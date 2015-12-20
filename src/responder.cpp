@@ -398,10 +398,13 @@ bool responder::receive_get_blocks(const std::error_code& ec,
         return true;
     }
 
-    // The threshold prevents a peer from creating an unnecessary backlog
+    // The peer threshold prevents a peer from creating an unnecessary backlog
     // for itself in the case where it is requesting without having processed
     // all of its existing backlog. This also reduces its load on us.
-    blockchain_.fetch_locator_block_hashes(get_blocks, node->threshold(),
+    // This could cause a problem during a reorg, where the peer regresses
+    // and one of its other peers populates the chain back to this level. In
+    // that case we would not respond but our peer's other peer should.
+    blockchain_.fetch_locator_block_hashes(get_blocks, node->peer_threshold(),
         std::bind(&responder::send_block_inventory,
             this, _1, _2, node));
 
@@ -413,6 +416,14 @@ bool responder::receive_get_blocks(const std::error_code& ec,
 void responder::send_block_inventory(const std::error_code& ec,
     const hash_list& hashes, channel_ptr node)
 {
+    // Satoshi clients return the top block in this case.
+    if (hashes.empty())
+    {
+        log_debug(LOG_RESPONDER)
+            << "Ignoring empty request from peer [" << node->address() << "]";
+        return;
+    }
+
     const auto count = hashes.size();
     const auto send_handler = [node, count](std::error_code ec)
     {
@@ -432,6 +443,9 @@ void responder::send_block_inventory(const std::error_code& ec,
     };
 
     node->send(response, send_handler);
+
+    // We use the high start sent here as the lowest stop in next get_blocks.
+    node->set_peer_threshold(hashes.back());
 }
 
 // Handle reorganization (set local height)

@@ -53,6 +53,7 @@ private:
 
     chain::blockchain& blockchain_;
     std::atomic<uint64_t> last_height_;
+    std::atomic<hash_digest> last_block_;
     const size_t minimum_start_height_;
 };
 

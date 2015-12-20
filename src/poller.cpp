@@ -38,6 +38,7 @@ using std::placeholders::_4;
 poller::poller(blockchain& chain, size_t minimum_start_height)
   : blockchain_(chain),
     last_height_(0),
+    last_block_(null_hash),
     minimum_start_height_(minimum_start_height)
 {
 }
@@ -173,9 +174,12 @@ void poller::handle_store_block(const std::error_code& ec, block_info info,
 
 void poller::request_blocks(const hash_digest& block_hash, channel_ptr node)
 {
-    fetch_block_locator(blockchain_,
-        std::bind(&poller::ask_blocks,
-            this, _1, _2, block_hash, node));
+    // Avoid requesting from the same start as last request to this peer.
+    // After our top block moves (up or down) this will no longer block.
+    if (last_block_.load() != node->own_threshold())
+        fetch_block_locator(blockchain_,
+            std::bind(&poller::ask_blocks,
+                this, _1, _2, block_hash, node));
 }
 
 void poller::ask_blocks(const std::error_code& ec,
@@ -212,6 +216,9 @@ void poller::ask_blocks(const std::error_code& ec,
     // Send get_blocks request.
     const get_blocks_type packet{ locator, hash_stop };
     node->send(packet, handle_error);
+
+    // We save the high start block here to prevent a redundant future request.
+    node->set_own_threshold(locator.front());
 }
 
 // Handle reorganization (set local height)
@@ -236,6 +243,9 @@ bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
 
     // atomic
     last_height_ = height;
+
+    // Save the hash of the top block, for own_threshold test - atomic.
+    last_block_.store(hash_block_header(new_blocks.back()->header));
     return true;
 }
 
