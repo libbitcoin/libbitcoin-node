@@ -30,6 +30,7 @@ namespace node {
 struct BCN_API settings
 {
     uint32_t threads;
+    uint32_t minimum_bytes_per_minute;
     uint32_t transaction_pool_capacity;
     bool transaction_pool_consistency;
     config::endpoint::list peers;
