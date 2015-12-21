@@ -21,6 +21,7 @@
 
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/inventory.hpp>
@@ -173,8 +174,9 @@ void responder::new_block_get_data(const get_data_type& packet,
 }
 
 // Should we look in the orphan pool first?
-void responder::send_block(const std::error_code& ec, const block_type& block,
-    const hash_digest& block_hash, channel_ptr node)
+void responder::send_block(const std::error_code& ec,
+    std::shared_ptr<block_type> block, const hash_digest& block_hash,
+    channel_ptr node)
 {
     if (ec == error::service_stopped)
         return;
@@ -209,7 +211,7 @@ void responder::send_block(const std::error_code& ec, const block_type& block,
                 << "] " << encode_hash(block_hash);
     };
 
-    node->send(block, send_handler);
+    node->send(*block, send_handler);
 }
 
 void responder::send_block_not_found(const hash_digest& block_hash,
