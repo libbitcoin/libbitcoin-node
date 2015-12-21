@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <memory>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
@@ -68,8 +69,9 @@ private:
     void send_tx_not_found(const hash_digest& tx_hash,
         network::channel_ptr node);
 
-    void send_block(const std::error_code& ec, const block_type& block,
-        const hash_digest& block_hash, network::channel_ptr node);
+    void send_block(const std::error_code& ec,
+        std::shared_ptr<block_type> block, const hash_digest& block_hash,
+        network::channel_ptr node);
     void send_block_not_found(const hash_digest& block_hash,
         network::channel_ptr node);
 
