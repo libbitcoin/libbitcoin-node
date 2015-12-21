@@ -318,8 +318,7 @@ void session::request_tx_data(const code& ec, const hash_digest& hash,
 
 void session::new_block_inventory(const hash_digest& hash, channel::ptr node)
 {
-    const auto request_block = [this, hash, node]
-        (const code ec, const block block)
+    const auto request_block = [this, hash, node](const code ec, uint64_t)
     {
         if (ec == error::not_found)
         {
@@ -342,9 +341,7 @@ void session::new_block_inventory(const hash_digest& hash, channel::ptr node)
             << "Block already exists [" << encode_hash(hash) << "]";
     };
 
-    // TODO: optimize with chain_.block_exists(block_hash, handler) function.
-    // If the block doesn't exist, issue getdata for block.
-    block_fetcher::fetch(blockchain_, hash, request_block);
+    blockchain_.fetch_block_height(hash, request_block);
 }
 
 void session::request_block_data(const hash_digest& hash, channel::ptr node)

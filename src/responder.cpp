@@ -222,7 +222,7 @@ void responder::send_tx_not_found(const hash_digest& hash, channel::ptr node)
 }
 
 // Should we look in the orphan pool first?
-void responder::send_block(const code& ec, const block& block,
+void responder::send_block(const code& ec, const std::shared_ptr<block> block,
     const hash_digest& block_hash, channel::ptr node)
 {
     if (ec == error::service_stopped)
@@ -259,7 +259,7 @@ void responder::send_block(const code& ec, const block& block,
                 << "] " << encode_hash(block_hash);
     };
 
-    node->send(block, send_handler);
+    node->send(*block, send_handler);
 }
 
 void responder::send_block_not_found(const hash_digest& block_hash,

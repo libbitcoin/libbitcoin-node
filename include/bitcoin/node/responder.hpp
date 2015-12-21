@@ -46,7 +46,7 @@ private:
         network::channel::ptr node);
     void send_tx_not_found(const hash_digest& hash,
         network::channel::ptr node);
-    void send_block(const code& ec, const chain::block& block,
+    void send_block(const code& ec, const std::shared_ptr<chain::block> block,
         const hash_digest& block_hash, network::channel::ptr node);
     void send_block_not_found(const hash_digest& block_hash,
         network::channel::ptr node);
