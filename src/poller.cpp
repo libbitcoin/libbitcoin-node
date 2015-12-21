@@ -295,6 +295,10 @@ void poller::handle_fetch_locator(const std::error_code& ec,
 
 // Handle reorganization (set local height)
 // ----------------------------------------------------------------------------
+// Ideally we want to poll each peer immediately following each reorg.
+// This allows us to get the next inv as soon as possible. We would advance the
+// threshold value of each peer to that level of request made.
+// We currrently use a short per-peer timer and test for reorg in each.
 
 bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     const blockchain::block_list& new_blocks, const blockchain::block_list&)
@@ -325,7 +329,6 @@ bool poller::handle_reorg(const std::error_code& ec, uint32_t fork_point,
     return true;
     ///////////////////////////////////////////////////////////////////////////
 }
-
 
 } // namespace node
 } // namespace libbitcoin
