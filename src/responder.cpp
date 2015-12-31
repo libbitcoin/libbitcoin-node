@@ -432,9 +432,9 @@ bool responder::receive_get_blocks(const std::error_code& ec,
     // This could cause a problem during a reorg, where the peer regresses
     // and one of its other peers populates the chain back to this level. In
     // that case we would not respond but our peer's other peer should.
-    blockchain_.fetch_locator_blocks(get_blocks, node->peer_threshold(),
-        std::bind(&responder::send_block_inventory,
-            this, _1, _2, node));
+    ////blockchain_.fetch_locator_blocks(get_blocks, node->peer_threshold(),
+    ////    std::bind(&responder::send_block_inventory,
+    ////        this, _1, _2, node));
 
     log_info(LOG_RESPONDER)
         << "Failure handling a get_blocks request: feature not yet supported.";
