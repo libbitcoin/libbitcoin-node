@@ -101,11 +101,11 @@ void responder::receive_get_data(const code& ec, const get_data& packet,
 
             case inventory_type_id::block:
                 log::debug(LOG_RESPONDER)
-                    << "Block getdata for [" << peer << "] "
+                    << "Ignoring block getdata for [" << peer << "] "
                     << encode_hash(inventory.hash);
-                block_fetcher::fetch(blockchain_, inventory.hash,
-                    std::bind(&responder::send_block,
-                        this, _1, _2, inventory.hash, node));
+                ////block_fetcher::fetch(blockchain_, inventory.hash,
+                ////    std::bind(&responder::send_block,
+                ////        this, _1, _2, inventory.hash, node));
                 break;
 
             case inventory_type_id::error:

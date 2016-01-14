@@ -45,7 +45,7 @@ public:
 private:
     void new_channel(const code& ec, network::channel::ptr node);
 
-    void handle_new_blocks(const code& ec, uint64_t fork_point,
+    bool handle_new_blocks(const code& ec, uint64_t fork_point,
         const blockchain::block_chain::list& new_blocks,
         const blockchain::block_chain::list& replaced_blocks);
 

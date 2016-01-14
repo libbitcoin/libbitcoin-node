@@ -55,6 +55,7 @@ static const configuration default_configuration()
     defaults.node.blocks_per_second = NODE_BLOCKS_PER_SECOND;
     defaults.node.headers_per_second = NODE_HEADERS_PER_SECOND;
     defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
+    defaults.node.transaction_pool_consistency = NODE_TRANSACTION_POOL_CONSISTENCY;
     defaults.node.peers = NODE_PEERS;
     defaults.chain.threads = BLOCKCHAIN_THREADS;
     defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
@@ -71,7 +72,7 @@ static const configuration default_configuration()
     defaults.network.connect_batch_size = NETWORK_CONNECT_BATCH_SIZE;
     defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
-    defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
+    defaults.network.channel_poll_seconds = NETWORK_CHANNEL_POLL_SECONDS;
     defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
     defaults.network.channel_inactivity_minutes = NETWORK_CHANNEL_INACTIVITY_MINUTES;
     defaults.network.channel_expiration_minutes = NETWORK_CHANNEL_EXPIRATION_MINUTES;
@@ -99,7 +100,8 @@ full_node::full_node(const configuration& config)
     blockchain_(database_threads_, config.chain),
     memory_threads_(config.node.threads, thread_priority::low),
     tx_pool_(memory_threads_, blockchain_,
-        config.node.transaction_pool_capacity),
+        config.node.transaction_pool_capacity,
+        config.node.transaction_pool_consistency),
     network_(config.network),
     node_threads_(config.network.threads, thread_priority::low),
     tx_indexer_(node_threads_),
@@ -406,11 +408,12 @@ void full_node::handle_tx_indexed(const code& ec, const hash_digest& hash)
 
 // HACK: this is for access to handle_new_blocks to facilitate server
 // inheritance of full_node. The organization should be refactored.
-void full_node::handle_new_blocks(const code& ec, uint64_t fork_point,
+bool full_node::handle_new_blocks(const code& ec, uint64_t fork_point,
     const block_chain::list& new_blocks,
     const block_chain::list& replaced_blocks)
 {
-    session_.handle_new_blocks(ec, fork_point, new_blocks, replaced_blocks);
+    return session_.handle_new_blocks(ec, fork_point, new_blocks,
+        replaced_blocks);
 }
 
 } // namspace node

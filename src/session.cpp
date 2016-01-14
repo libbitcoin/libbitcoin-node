@@ -90,7 +90,7 @@ void session::new_channel(const code& ec, channel::ptr node)
     };
 
     // Revive channel with a new getblocks request if it stops getting blocks.
-    node->set_revival_handler(revive);
+    node->set_poll_handler(revive);
     
     ////////// Subscribe to new inventory requests.
     ////////node->subscribe<inventory>(
@@ -114,18 +114,18 @@ void session::new_channel(const code& ec, channel::ptr node)
     responder_.monitor(node);
 }
 
-void session::handle_new_blocks(const code& ec, uint64_t fork_point,
+bool session::handle_new_blocks(const code& ec, uint64_t fork_point,
     const block_chain::list& new_blocks,
     const block_chain::list& /* replaced_blocks */)
 {
     if (ec == error::service_stopped)
-        return;
+        return false;
 
     if (ec)
     {
         log::error(LOG_SESSION)
             << "Failure in reorganize: " << ec.message();
-        return;
+        return false;
     }
 
     // Start height is limited to max_uint32 by satoshi protocol (version).
@@ -137,14 +137,9 @@ void session::handle_new_blocks(const code& ec, uint64_t fork_point,
     log::debug(LOG_SESSION)
         << "Reorganize set start height [" << height << "]";
 
-    // Resubscribe to new reorganizations.
-    blockchain_.subscribe_reorganize(
-        std::bind(&session::handle_new_blocks,
-            this, _1, _2, _3, _4));
-
     // Don't bother publishing blocks when in the initial blockchain download.
     if (fork_point < last_checkpoint_height_)
-        return;
+        return true;
 
     // Broadcast new blocks inventory.
     inventory blocks_inventory;
@@ -179,6 +174,7 @@ void session::handle_new_blocks(const code& ec, uint64_t fork_point,
     // Could optimize by not broadcasting to the node from which it came.
     const auto unhandled = [](const code){};
     network_.broadcast(blocks_inventory, broadcast_handler, unhandled);
+    return true;
 }
 
 // Put this on a short timer following lack of block inv.
@@ -384,7 +380,7 @@ void session::request_block_data(const hash_digest& hash, channel::ptr node)
     //
     // If the peer is just unresponsive but we are not at its top, we will end
     // up timing out or expiring the channel.
-    node->reset_revival();
+    node->reset_poll();
 }
 
 // TODO: We don't currently respond to peers making getblocks requests.

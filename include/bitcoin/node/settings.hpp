@@ -33,6 +33,7 @@ namespace node {
 #define NODE_BLOCKS_PER_SECOND              16
 #define NODE_HEADERS_PER_SECOND             10000
 #define NODE_TRANSACTION_POOL_CAPACITY      10000
+#define NODE_TRANSACTION_POOL_CONSISTENCY   false
 #define NODE_PEERS                          config::endpoint::list()
 
 struct BCN_API settings
@@ -42,6 +43,7 @@ struct BCN_API settings
     uint32_t blocks_per_second;
     uint32_t headers_per_second;
     uint32_t transaction_pool_capacity;
+    bool transaction_pool_consistency;
     config::endpoint::list peers;
 };
 

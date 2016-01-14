@@ -90,10 +90,10 @@ protected:
     /// New transaction has been validated and accepted into the pool.
     virtual void handle_tx_validated(const code& ec,
         const chain::transaction& tx, const hash_digest& hash,
-        const chain::index_list& unconfirmed);
+        const index_list& unconfirmed);
 
     /// New block(s) have been accepted into the chain.
-    virtual void handle_new_blocks(const code& ec, uint64_t fork_point,
+    virtual bool handle_new_blocks(const code& ec, uint64_t fork_point,
         const blockchain::block_chain::list& new_blocks,
         const blockchain::block_chain::list& replaced_blocks);
 
@@ -118,7 +118,7 @@ protected:
 
 private:
     static std::string format(const config::authority& authority);
-    static std::string format(const chain::index_list& unconfirmed);
+    static std::string format(const index_list& unconfirmed);
 
     void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_network_start(const code& ec, result_handler handler);

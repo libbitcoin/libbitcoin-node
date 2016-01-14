@@ -61,7 +61,7 @@ static const configuration default_configuration()
     defaults.network.connect_batch_size = NETWORK_CONNECT_BATCH_SIZE;
     defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
     defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
-    defaults.network.channel_revival_minutes = NETWORK_CHANNEL_REVIVAL_MINUTES;
+    defaults.network.channel_poll_seconds = NETWORK_CHANNEL_POLL_SECONDS;
     defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
     defaults.network.channel_inactivity_minutes = NETWORK_CHANNEL_INACTIVITY_MINUTES;
     defaults.network.channel_expiration_minutes = NETWORK_CHANNEL_EXPIRATION_MINUTES;

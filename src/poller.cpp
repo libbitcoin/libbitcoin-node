@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/poller.hpp>
 
+#include <memory>
 #include <bitcoin/blockchain.hpp>
 
 namespace libbitcoin {
@@ -71,8 +72,10 @@ void poller::receive_block(const code& ec, const block& block,
     //////    std::bind(&poller::receive_block,
     //////        this, _1, _2, node));
 
-    blockchain_.store(block,
-        dispatch_.ordered_delegate(&poller::handle_store_block,
+    const auto block_ptr = std::make_shared<chain::block>(block);
+
+    blockchain_.store(block_ptr,
+        std::bind(&poller::handle_store_block,
             this, _1, _2, block.header.hash(), node));
 }
 
@@ -131,8 +134,8 @@ void poller::handle_store_block(const code& ec, const block_info& info,
 
 void poller::request_blocks(const hash_digest& stop, channel::ptr node)
 {
-    block_locator_fetcher::fetch(blockchain_,
-        dispatch_.ordered_delegate(&poller::get_blocks,
+    blockchain_.fetch_block_locator(
+        std::bind(&poller::get_blocks,
             this, _1, _2, stop, node));
 }
 

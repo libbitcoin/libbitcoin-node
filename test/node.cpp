@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(node_test__construct_responder__does_not_throw)
 
     threadpool threads;
     blockchain_impl blockchain(threads, config.chain);
-    transaction_pool transactions(threads, blockchain, 42);
+    transaction_pool transactions(threads, blockchain, 42, false);
     responder responder(blockchain, transactions);
 
     // TODO: handle blockchain start.
