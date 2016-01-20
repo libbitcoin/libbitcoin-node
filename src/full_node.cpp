@@ -422,10 +422,10 @@ bool full_node::recieve_tx(const std::error_code& ec,
     {
         const auto hash = encode_hash(hash_transaction(tx));
 
-        if (ec)
+        if (ec && ec != error::service_stopped)
             log_warning(LOG_NODE)
             << format(BN_TX_CONFIRM_FAILURE) % hash % ec.message();
-        else
+        else if (!ec)
             log_debug(LOG_NODE)
                 << format(BN_TX_CONFIRMED) % hash;
 
