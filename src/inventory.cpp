@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/session.hpp>
 
+#include <cstdint>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/inventory.hpp>
@@ -114,6 +115,11 @@ size_t inventory::count(const inventory_list& inventories,
 
 // Startup
 // ----------------------------------------------------------------------------
+
+void inventory::set_start_height(uint64_t height)
+{
+    last_height_ = height;
+}
 
 void inventory::monitor(channel_ptr node)
 {

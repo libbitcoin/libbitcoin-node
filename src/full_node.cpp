@@ -370,6 +370,9 @@ void full_node::set_height(const std::error_code& ec, uint64_t height,
         promise.set_value(ec);
     };
 
+    poller_.set_start_height(height);
+    inventory_.set_start_height(height);
+    responder_.set_start_height(height);
     handshake_.set_start_height(height, handle_set_height);
 }
 

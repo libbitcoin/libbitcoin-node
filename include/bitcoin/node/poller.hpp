@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <mutex>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
@@ -35,6 +36,7 @@ public:
     poller(chain::blockchain& chain, size_t minimum_start_height,
         size_t minimum_bytes_per_minute);
     void monitor(bc::network::channel_ptr node);
+    void set_start_height(uint64_t height);
     void request_blocks(const hash_digest& hash_stop,
         bc::network::channel_ptr node);
 

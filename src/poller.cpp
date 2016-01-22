@@ -20,6 +20,7 @@
 #include <bitcoin/node/poller.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <system_error>
@@ -49,6 +50,11 @@ poller::poller(blockchain& chain, size_t minimum_start_height,
 
 // Startup
 // ----------------------------------------------------------------------------
+
+void poller::set_start_height(uint64_t height)
+{
+    last_height_ = height;
+}
 
 // Start monitoring this channel.
 void poller::monitor(channel_ptr node)

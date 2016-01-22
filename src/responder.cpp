@@ -20,6 +20,7 @@
 #include <bitcoin/node/responder.hpp>
 
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <system_error>
@@ -54,6 +55,11 @@ responder::responder(blockchain& blockchain, transaction_pool& tx_pool,
 
 // Startup
 // ----------------------------------------------------------------------------
+
+void responder::set_start_height(uint64_t height)
+{
+    last_height_ = height;
+}
 
 void responder::monitor(channel_ptr node)
 {

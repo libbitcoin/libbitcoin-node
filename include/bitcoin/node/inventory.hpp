@@ -45,6 +45,7 @@ public:
     inventory(network::handshake& handshake, chain::blockchain& chain,
         chain::transaction_pool& tx_pool, size_t minimum_start_height);
     void monitor(network::channel_ptr node);
+    void set_start_height(uint64_t height);
 
 private:
     bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
