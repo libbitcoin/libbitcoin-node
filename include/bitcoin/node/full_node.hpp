@@ -110,9 +110,6 @@ public:
     virtual threadpool& pool();
 
 protected:
-    // Result of store operation in transaction pool.
-    virtual void new_unconfirm_valid_tx(const std::error_code& code,
-        const index_list& unconfirmed, const transaction_type& tx);
 
     // New channel has been started.
     // Subscribe to new transaction messages from the network.
@@ -124,8 +121,9 @@ protected:
     virtual bool recieve_tx(const std::error_code& ec,
         const transaction_type& tx, network::channel_ptr node);
 
-    // Broadcast new blocks to all peers.
-    virtual void broadcast(const chain::blockchain::block_list& blocks);
+    // Result of store operation in transaction pool.
+    virtual bool accepted_tx(const std::error_code& code,
+        const index_list& unconfirmed, const transaction_type& tx);
 
     // These must be bc types.
     bc::ofstream debug_file_;
@@ -153,6 +151,12 @@ private:
         std::promise<std::error_code>& promise);
     void handle_stop(const std::error_code& ec,
         std::promise<std::error_code>& promise);
+
+    void handle_store(const std::error_code& ec, const hash_digest& hash);
+    void handle_confirm(const std::error_code& ec, const transaction_type& tx);
+    void handle_index(const std::error_code& ec, const hash_digest& hash);
+    void handle_deindex(const std::error_code& ec, const hash_digest& hash);
+
     void set_height(const std::error_code& ec, uint64_t height,
         std::promise<std::error_code>& promise);
 };

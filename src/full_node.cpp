@@ -220,6 +220,18 @@ static std::string format_blacklist(const config::authority& authority)
     return formatted;
 }
 
+static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
+{
+    if (unconfirmed.empty())
+        return "";
+
+    std::vector<std::string> inputs;
+    for (const auto input : unconfirmed)
+        inputs.push_back(boost::lexical_cast<std::string>(input));
+
+    return bc::join(inputs, ",");
+}
+
 bool full_node::start(const settings_type& config)
 {
     // Set up logging for node background threads.
@@ -283,10 +295,9 @@ bool full_node::stop()
     // Wait for stop completion.
     auto success = !promise.get_future().get();
 
-    // Try and close blockchain database even if session stop failed.
-    // Blockchain stop is currently non-blocking, so the result is misleading.
-    // No need to stop tx_pool, it will get a shutdown notification from this.
-    if (!blockchain_.stop())
+    // Try and close blockchain databases even if session stop failed.
+    // Blockchain stops are non-blocking, so the result is misleading.
+    if (!tx_pool_.stop() || !blockchain_.stop())
         success = false;
 
     // Stop threadpools.
@@ -343,6 +354,11 @@ void full_node::handle_start(const std::error_code& ec,
         std::bind(&full_node::new_channel,
             this, _1, _2));
 
+    // Subscribe to mempool acceptances.
+    tx_pool_.subscribe_transaction(
+        std::bind(&full_node::accepted_tx,
+            this, _1, _2, _3));
+
     promise.set_value(ec);
 }
 
@@ -370,6 +386,9 @@ void full_node::set_height(const std::error_code& ec, uint64_t height,
         promise.set_value(ec);
     };
 
+    poller_.set_start_height(height);
+    inventory_.set_start_height(height);
+    responder_.set_start_height(height);
     handshake_.set_start_height(height, handle_set_height);
 }
 
@@ -404,6 +423,7 @@ bool full_node::new_channel(const std::error_code& ec, channel_ptr node)
     return true;
 }
 
+// Called when a new tx is received from a peer.
 bool full_node::recieve_tx(const std::error_code& ec,
     const transaction_type& tx, channel_ptr node)
 {
@@ -417,78 +437,93 @@ bool full_node::recieve_tx(const std::error_code& ec,
         return false;
     }
 
-    // Called when the transaction becomes confirmed in a block.
-    const auto handle_confirm = [this, tx](const std::error_code& ec)
-    {
-        const auto hash = encode_hash(hash_transaction(tx));
-
-        if (ec && ec != error::service_stopped)
-            log_warning(LOG_NODE)
-            << format(BN_TX_CONFIRM_FAILURE) % hash % ec.message();
-        else if (!ec)
-            log_debug(LOG_NODE)
-                << format(BN_TX_CONFIRMED) % hash;
-
-        const auto handle_deindex = [hash](const std::error_code& ec)
-        {
-            if (ec)
-                log_error(LOG_NODE)
-                    << format(BN_TX_DEINDEX_FAILURE) % hash % ec.message();
-        };
-
-        tx_indexer_.deindex(tx, handle_deindex);
-    };
-
     // Validate and store the tx in the transaction mempool.
-    tx_pool_.store(tx, handle_confirm,
-        std::bind(&full_node::new_unconfirm_valid_tx,
-            this, _1, _2, tx));
+    tx_pool_.store(tx,
+        std::bind(&full_node::handle_confirm,
+            this, _1, _2),
+        std::bind(&full_node::handle_store,
+            this, _1, hash_transaction(tx)));
 
     return true;
 }
 
-static std::string format_unconfirmed_inputs(const index_list& unconfirmed)
-{
-    if (unconfirmed.empty())
-        return "";
-
-    std::vector<std::string> inputs;
-    for (const auto input: unconfirmed)
-        inputs.push_back(boost::lexical_cast<std::string>(input));
-
-    return bc::join(inputs, ",");
-}
-
-void full_node::new_unconfirm_valid_tx(const std::error_code& ec,
+// Called by subscription to memory pool acceptance.
+bool full_node::accepted_tx(const std::error_code& ec,
     const index_list& unconfirmed, const transaction_type& tx)
 {
-    const auto hash = encode_hash(hash_transaction(tx));
+    if (ec == error::service_stopped)
+        return false;
 
-    const auto handle_index = [hash](const std::error_code& ec)
-    {
-        if (ec)
-            log_error(LOG_NODE)
-                << format(BN_TX_INDEX_FAILURE) % hash % ec.message();
-    };
+    const auto hash = hash_transaction(tx);
+    const auto encoded = encode_hash(hash);
 
     if (ec)
+    {
         log_debug(LOG_NODE)
-            << format(BN_TX_ACCEPT_FAILURE) % hash % ec.message();
-    else if (unconfirmed.empty())
+            << format(BN_TX_ACCEPT_FAILURE) % encoded % ec.message();
+        return false;
+    }
+
+    if (unconfirmed.empty())
         log_debug(LOG_NODE)
-            << format(BN_TX_ACCEPTED) % hash;
+            << format(BN_TX_ACCEPTED) % encoded;
     else
         log_debug(LOG_NODE)
-            << format(BN_TX_ACCEPTED_WITH_INPUTS) % hash %
+            << format(BN_TX_ACCEPTED_WITH_INPUTS) % encoded %
                 format_unconfirmed_inputs(unconfirmed);
-        
-    if (!ec)
-        tx_indexer_.index(tx, handle_index);
+
+    tx_indexer_.index(tx,
+        std::bind(&full_node::handle_index,
+            this, _1, hash));
+
+    return true;
 }
 
-void full_node::broadcast(const chain::blockchain::block_list& blocks)
+// Called when the transaction is confirmed in a block.
+void full_node::handle_confirm(const std::error_code& ec,
+    const transaction_type& tx)
 {
-    session_.broadcast(blocks);
+    const auto hash = hash_transaction(tx);
+    const auto encoded = encode_hash(hash_transaction(tx));
+
+    // Allow deindex on service stop.
+    if (ec && ec != error::service_stopped)
+        log_warning(LOG_NODE)
+            << format(BN_TX_CONFIRM_FAILURE) % encoded % ec.message();
+    else if (!ec)
+        log_debug(LOG_NODE)
+            << format(BN_TX_CONFIRMED) % encoded;
+
+    tx_indexer_.deindex(tx, 
+        std::bind(&full_node::handle_deindex,
+            this, _1, hash));
+}
+
+// Called after the tx is stored in the tx memory pool.
+void full_node::handle_store(const std::error_code& ec,
+    const hash_digest& hash)
+{
+    if (ec)
+        log_debug(LOG_NODE)
+            << format(BN_TX_ACCEPT_FAILURE) % encode_hash(hash) % ec.message();
+}
+
+// Called after the tx is added to the tx mempool index.
+void full_node::handle_index(const std::error_code& ec,
+    const hash_digest& hash)
+{
+    if (ec)
+        log_error(LOG_NODE)
+            << format(BN_TX_INDEX_FAILURE) % encode_hash(hash) % ec.message();
+}
+
+// Called after tx is removed from mempool index.
+void full_node::handle_deindex(const std::error_code& ec,
+    const hash_digest& hash)
+{
+    if (ec)
+        log_error(LOG_NODE)
+            << format(BN_TX_DEINDEX_FAILURE) % encode_hash(hash) % ec.message();
 }
 
 } // namspace node

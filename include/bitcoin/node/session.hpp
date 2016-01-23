@@ -46,7 +46,7 @@ public:
     void broadcast(const chain::blockchain::block_list& blocks);
 
 private:
-    bool handle_reorg(const std::error_code& ec, uint32_t fork_point,
+    bool handle_reorg(const std::error_code& ec, uint64_t fork_point,
         const chain::blockchain::block_list& new_blocks,
         const chain::blockchain::block_list&);
 
