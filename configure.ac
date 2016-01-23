@@ -11,7 +11,7 @@
 AC_PREREQ([2.65])
 
 # Process command-line arguments and perform initialization and verification.
-AC_INIT([libbitcoin-node], [2.3.0], [genjix@riseup.net])
+AC_INIT([libbitcoin-node], [2.4.0], [eric@voskuil.org])
 
 # Do compilation tests.
 AC_LANG(C++)
@@ -165,10 +165,10 @@ AS_CASE([${bash_completiondir}], [yes],
      AC_MSG_NOTICE([bash_completion_LIBS : ${bash_completion_LIBS}])],
     [AC_SUBST([bash_completion_PKG], [])])
 
-# Require bitcoin-blockchain of at least version 2.3.0 and output ${bitcoin_blockchain_CPPFLAGS/LIBS/PKG}.
+# Require bitcoin-blockchain of at least version 2.4.0 and output ${bitcoin_blockchain_CPPFLAGS/LIBS/PKG}.
 #------------------------------------------------------------------------------
-PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain >= 2.3.0])
-AC_SUBST([bitcoin_blockchain_PKG], ['libbitcoin-blockchain >= 2.3.0'])
+PKG_CHECK_MODULES([bitcoin_blockchain], [libbitcoin-blockchain >= 2.4.0])
+AC_SUBST([bitcoin_blockchain_PKG], ['libbitcoin-blockchain >= 2.4.0'])
 AC_SUBST([bitcoin_blockchain_CPPFLAGS], [${bitcoin_blockchain_CFLAGS}])
 AC_MSG_NOTICE([bitcoin_blockchain_CPPFLAGS : ${bitcoin_blockchain_CPPFLAGS}])
 AC_MSG_NOTICE([bitcoin_blockchain_LIBS : ${bitcoin_blockchain_LIBS}])
