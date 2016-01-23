@@ -117,7 +117,7 @@ void session::broadcast(const blockchain::block_list& blocks)
 }
 
 // TODO: don't broadcast reorg inventory to peers who have given us the block.
-bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
+bool session::handle_reorg(const std::error_code& ec, uint64_t fork_point,
     const blockchain::block_list& new_blocks, const blockchain::block_list&)
 {
     if (ec == error::service_stopped)
@@ -144,14 +144,14 @@ bool session::handle_reorg(const std::error_code& ec, uint32_t fork_point,
         << "Broadcasting block inventory (" 
         << block_inventory.inventories.size() << ")";
 
-    const auto broadcast_handler = [](std::error_code ec, size_t count)
+    const auto broadcast_handler = [](std::error_code ec, size_t)
     {
         if (ec)
             log_debug(LOG_SESSION)
                 << "Failure broadcasting block inventory: " << ec.message();
         else
             log_debug(LOG_SESSION)
-                << "Broadcast block inventory to (" << count << ") nodes.";
+                << "Broadcast block inventory.";
     };
 
     protocol_.broadcast(block_inventory, broadcast_handler);
