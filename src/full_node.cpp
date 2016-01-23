@@ -355,6 +355,11 @@ void full_node::handle_start(const std::error_code& ec,
         std::bind(&full_node::new_channel,
             this, _1, _2));
 
+    // Subscribe to mempool acceptances.
+    tx_pool_.subscribe_transaction(
+        std::bind(&full_node::accepted_tx,
+            this, _1, _2, _3));
+
     promise.set_value(ec);
 }
 
@@ -415,11 +420,6 @@ bool full_node::new_channel(const std::error_code& ec, channel_ptr node)
     node->subscribe_transaction(
         std::bind(&full_node::recieve_tx,
             this, _1, _2, node));
-
-    // Subscribe to mempool acceptances.
-    tx_pool_.subscribe_transaction(
-        std::bind(&full_node::accepted_tx,
-            this, _1, _2, _3));
 
     return true;
 }
