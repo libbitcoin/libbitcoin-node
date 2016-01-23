@@ -295,10 +295,9 @@ bool full_node::stop()
     // Wait for stop completion.
     auto success = !promise.get_future().get();
 
-    // Try and close blockchain database even if session stop failed.
-    // Blockchain stop is currently non-blocking, so the result is misleading.
-    // No need to stop tx_pool, it will get a shutdown notification from this.
-    if (!blockchain_.stop())
+    // Try and close blockchain databases even if session stop failed.
+    // Blockchain stops are non-blocking, so the result is misleading.
+    if (!tx_pool_.stop() || !blockchain_.stop())
         success = false;
 
     // Stop threadpools.
