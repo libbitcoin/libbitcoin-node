@@ -71,10 +71,6 @@ private:
     node::responder& responder_;
     std::atomic<uint64_t> last_height_;
     size_t last_checkpoint_height_;
-
-    // HACK: this is for access to handle_new_blocks to facilitate server
-    // inheritance of full_node. The organization should be refactored.
-    friend class full_node;
 };
 
 } // namespace node

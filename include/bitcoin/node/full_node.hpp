@@ -92,11 +92,6 @@ protected:
         const chain::transaction& tx, const hash_digest& hash,
         const index_list& unconfirmed);
 
-    /// New block(s) have been accepted into the chain.
-    virtual bool handle_new_blocks(const code& ec, uint64_t fork_point,
-        const blockchain::block_chain::list& new_blocks,
-        const blockchain::block_chain::list& replaced_blocks);
-
     // These must be libbitcoin streams.
     bc::ofstream debug_file_;
     bc::ofstream error_file_;

@@ -22,7 +22,6 @@
 #include <future>
 #include <system_error>
 #include <bitcoin/blockchain.hpp>
-#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/poller.hpp>
 #include <bitcoin/node/responder.hpp>
 

@@ -407,15 +407,5 @@ void full_node::handle_tx_indexed(const code& ec, const hash_digest& hash)
             << "Added transaction [" << encoded << "] to memory pool index.";
 }
 
-// HACK: this is for access to handle_new_blocks to facilitate server
-// inheritance of full_node. The organization should be refactored.
-bool full_node::handle_new_blocks(const code& ec, uint64_t fork_point,
-    const block_chain::list& new_blocks,
-    const block_chain::list& replaced_blocks)
-{
-    return session_.handle_new_blocks(ec, fork_point, new_blocks,
-        replaced_blocks);
-}
-
 } // namspace node
 } //namespace libbitcoin
