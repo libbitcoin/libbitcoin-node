@@ -256,6 +256,7 @@ void full_node::stop(result_handler handler)
     node_threads_.shutdown();
     database_threads_.shutdown();
     memory_threads_.shutdown();
+    tx_pool_.stop(/* handler */);
     blockchain_.stop(/* handler */);
     network_.stop([](code){});
 
