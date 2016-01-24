@@ -71,14 +71,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\p2p_node.cpp" />
     <ClCompile Include="..\..\..\..\src\protocol_block_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\protocol_header_sync.cpp" />
-    <ClCompile Include="..\..\..\..\src\responder.cpp" />
-    <ClCompile Include="..\..\..\..\src\poller.cpp" />
-    <ClCompile Include="..\..\..\..\src\session.cpp" />
-    <ClCompile Include="..\..\..\..\src\indexer.cpp" />
     <ClCompile Include="..\..\..\..\src\session_block_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\session_header_sync.cpp" />
   </ItemGroup>
@@ -86,14 +81,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_block_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_header_sync.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\responder.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\poller.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\session.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\indexer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session_block_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />

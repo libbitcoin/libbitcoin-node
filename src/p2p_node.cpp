@@ -28,8 +28,6 @@
 namespace libbitcoin {
 namespace node {
 
-#define LOG_NODE "LOG_P2P_NODE"
-
 using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::config;

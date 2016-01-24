@@ -28,6 +28,8 @@
 namespace libbitcoin {
 namespace node {
 
+#define LOG_NODE "node"
+
 /// A full node on the Bitcoin P2P network.
 class BCN_API p2p_node
   : public network::p2p
