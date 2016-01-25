@@ -290,7 +290,7 @@ void responder::send_inventory_not_found(inventory_type_id type_id,
         hash
     };
 
-    const not_found lost{ { block_inventory } };
+    const not_found lost({ block_inventory });
     node->send(lost, handler);
 }
 
