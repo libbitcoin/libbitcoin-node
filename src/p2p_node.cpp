@@ -38,23 +38,12 @@ using std::placeholders::_2;
 static const configuration default_configuration()
 {
     configuration defaults;
-    defaults.node.threads = NODE_THREADS;
-    defaults.node.quorum = 2;
-    defaults.node.blocks_per_second = 16;
-    defaults.node.headers_per_second = 1000;
-    defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
-    defaults.node.peers = NODE_PEERS;
-    defaults.chain.threads = BLOCKCHAIN_THREADS;
-    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
-    defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
-    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_MAINNET;
-    defaults.chain.database_path = boost::filesystem::path("c:\\blockchain");
-    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_MAINNET;
+
     defaults.network.threads = NETWORK_THREADS;
     defaults.network.identifier = NETWORK_IDENTIFIER_MAINNET;
-    defaults.network.inbound_port = 0;
-    defaults.network.connection_limit = 0;
-    defaults.network.outbound_connections = 5;
+    defaults.network.inbound_port = NETWORK_INBOUND_PORT_MAINNET;
+    defaults.network.connection_limit = NETWORK_CONNECTION_LIMIT;
+    defaults.network.outbound_connections = NETWORK_OUTBOUND_CONNECTIONS;
     defaults.network.manual_retry_limit = NETWORK_MANUAL_RETRY_LIMIT;
     defaults.network.connect_batch_size = NETWORK_CONNECT_BATCH_SIZE;
     defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
@@ -66,12 +55,28 @@ static const configuration default_configuration()
     defaults.network.channel_germination_seconds = NETWORK_CHANNEL_GERMINATION_SECONDS;
     defaults.network.host_pool_capacity = NETWORK_HOST_POOL_CAPACITY;
     defaults.network.relay_transactions = NETWORK_RELAY_TRANSACTIONS;
-    defaults.network.hosts_file = boost::filesystem::path("c:\\blockchain\\bn-hosts.cache");
-    defaults.network.debug_file = boost::filesystem::path("c:\\blockchain\\bn-debug.log");
-    defaults.network.error_file = boost::filesystem::path("c:\\blockchain\\bn-error.log");
+    defaults.network.hosts_file = NETWORK_HOSTS_FILE;
+    defaults.network.debug_file = NETWORK_DEBUG_FILE;
+    defaults.network.error_file = NETWORK_ERROR_FILE;
     defaults.network.self = NETWORK_SELF;
     defaults.network.blacklists = NETWORK_BLACKLISTS;
     defaults.network.seeds = NETWORK_SEEDS_MAINNET;
+
+    defaults.chain.threads = BLOCKCHAIN_THREADS;
+    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
+    defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
+    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_MAINNET;
+    defaults.chain.database_path = BLOCKCHAIN_DATABASE_PATH;
+    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_MAINNET;
+
+    defaults.node.threads = NODE_THREADS;
+    defaults.node.quorum = NODE_QUORUM;
+    defaults.node.blocks_per_second = NODE_BLOCKS_PER_SECOND;
+    defaults.node.headers_per_second = NODE_HEADERS_PER_SECOND;
+    defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
+    defaults.node.transaction_pool_consistency = NODE_TRANSACTION_POOL_CONSISTENCY;
+    defaults.node.peers = NODE_PEERS;
+
     return defaults;
 };
 
@@ -83,6 +88,13 @@ p2p_node::p2p_node(const configuration& configuration)
     blockchain_pool_(0),
     blockchain_(blockchain_pool_, configuration.chain)
 {
+}
+
+// Blockchain query interface.
+// ----------------------------------------------------------------------------
+block_chain& p2p_node::query()
+{
+    return blockchain_;
 }
 
 // Start sequence.

@@ -43,6 +43,9 @@ public:
     /// Destruct the full node.
     ~p2p_node();
 
+    /// Blockchain query interface.
+    blockchain::block_chain& query();
+
     /// Invoke startup and seeding sequence, call from constructing thread.
     void start(result_handler handler) override;
 
