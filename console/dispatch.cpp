@@ -85,7 +85,7 @@ using namespace bc::wallet;
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-static void display_history(const std::error_code& ec,
+static void display_history(const code& ec,
     const block_chain::history& history,
     const wallet::payment_address& address, std::ostream& output)
 {
