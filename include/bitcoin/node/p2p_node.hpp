@@ -46,6 +46,9 @@ public:
     /// Blockchain query interface.
     blockchain::block_chain& query();
 
+    /// Transaction pool interface.
+    blockchain::transaction_pool& pool();
+
     /// Invoke startup and seeding sequence, call from constructing thread.
     void start(result_handler handler) override;
 
@@ -77,8 +80,9 @@ private:
     configuration configuration_;
 
     // TODO: move into blockchain constuctor.
-    threadpool blockchain_pool_;
+    threadpool blockchain_threadpool_;
     blockchain::blockchain_impl blockchain_;
+    blockchain::transaction_pool transaction_pool_;
 };
 
 } // namspace node

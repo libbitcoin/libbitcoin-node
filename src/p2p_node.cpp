@@ -63,8 +63,10 @@ static const configuration default_configuration()
     defaults.network.seeds = NETWORK_SEEDS_MAINNET;
 
     defaults.chain.threads = BLOCKCHAIN_THREADS;
-    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
     defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
+    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
+    defaults.chain.transaction_pool_capacity = BLOCKCHAIN_TRANSACTION_POOL_CAPACITY;
+    defaults.chain.transaction_pool_consistency = BLOCKCHAIN_TRANSACTION_POOL_CONSISTENCY;
     defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_MAINNET;
     defaults.chain.database_path = BLOCKCHAIN_DATABASE_PATH;
     defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_MAINNET;
@@ -73,8 +75,6 @@ static const configuration default_configuration()
     defaults.node.quorum = NODE_QUORUM;
     defaults.node.blocks_per_second = NODE_BLOCKS_PER_SECOND;
     defaults.node.headers_per_second = NODE_HEADERS_PER_SECOND;
-    defaults.node.transaction_pool_capacity = NODE_TRANSACTION_POOL_CAPACITY;
-    defaults.node.transaction_pool_consistency = NODE_TRANSACTION_POOL_CONSISTENCY;
     defaults.node.peers = NODE_PEERS;
 
     return defaults;
@@ -85,8 +85,9 @@ const configuration p2p_node::defaults = default_configuration();
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     configuration_(configuration),
-    blockchain_pool_(0),
-    blockchain_(blockchain_pool_, configuration.chain)
+    blockchain_threadpool_(0),
+    blockchain_(blockchain_threadpool_, configuration.chain),
+    transaction_pool_(blockchain_threadpool_, blockchain_, configuration.chain)
 {
 }
 
@@ -95,6 +96,13 @@ p2p_node::p2p_node(const configuration& configuration)
 block_chain& p2p_node::query()
 {
     return blockchain_;
+}
+
+// Transaction pool interface.
+// ----------------------------------------------------------------------------
+transaction_pool& p2p_node::pool()
+{
+    return transaction_pool_;
 }
 
 // Start sequence.
@@ -110,8 +118,9 @@ void p2p_node::start(result_handler handler)
 
     // We use distinct threadpools so priority can be adjusted independently.
     // TODO: move threadpool into blockchain start and make restartable.
-    blockchain_pool_.join();
-    blockchain_pool_.spawn(configuration_.chain.threads, thread_priority::low);
+    blockchain_threadpool_.join();
+    blockchain_threadpool_.spawn(configuration_.chain.threads,
+        thread_priority::low);
 
     blockchain_.start(
         std::bind(&p2p_node::handle_blockchain_start,
@@ -264,7 +273,7 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
 
 void p2p_node::stop(result_handler handler)
 {
-    blockchain_pool_.shutdown();
+    blockchain_threadpool_.shutdown();
 
     // This is the end of the derived stop sequence.
     p2p::stop(handler);
@@ -281,7 +290,7 @@ p2p_node::~p2p_node()
 void p2p_node::close()
 {
     stop([](code){});
-    blockchain_pool_.join();
+    blockchain_threadpool_.join();
 
     // This is the end of the destruct sequence.
     p2p::close();
