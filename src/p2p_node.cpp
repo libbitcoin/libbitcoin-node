@@ -273,6 +273,8 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
 
 void p2p_node::stop(result_handler handler)
 {
+    blockchain_.stop();
+    transaction_pool_.stop();
     blockchain_threadpool_.shutdown();
 
     // This is the end of the derived stop sequence.
@@ -282,18 +284,22 @@ void p2p_node::stop(result_handler handler)
 // Destruct sequence.
 // ----------------------------------------------------------------------------
 
-p2p_node::~p2p_node()
-{
-    close();
-}
-
 void p2p_node::close()
 {
-    stop([](code){});
+    p2p_node::stop(unhandled);
+
     blockchain_threadpool_.join();
 
     // This is the end of the destruct sequence.
     p2p::close();
+}
+
+p2p_node::~p2p_node()
+{
+    // A reference cycle cannot exist with this class, since we don't capture
+    // shared pointers to it. Therefore this will always clear subscriptions.
+    // This allows for shutdown based on destruct without need to call stop.
+    p2p_node::close();
 }
 
 } // namspace node
