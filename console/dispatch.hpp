@@ -32,9 +32,9 @@ enum console_result : int
 
 namespace libbitcoin {
 namespace node {
-
-console_result run(p2p_node& node);
-void monitor_stop(p2p_node& node, p2p_node::result_handler);
+    
+console_result wait_for_stop(p2p_node& node);
+void monitor_for_stop(p2p_node& node, p2p_node::result_handler);
 
 void handle_started(const code& ec, p2p_node& node);
 void handle_running(const code& ec);

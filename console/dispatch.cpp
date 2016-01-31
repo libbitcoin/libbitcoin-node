@@ -245,8 +245,7 @@ console_result dispatch(int argc, const char* argv[], std::istream& input,
     // The stop handlers are registered in start.
     node.start(std::bind(handle_started, _1, std::ref(node)));
 
-    // BUGBUG: node.stop can be invoked prior to completion of node.start.
-    return run(node);
+    return wait_for_stop(node);
 }
 
 // This is called at the end of seeding.
@@ -259,7 +258,7 @@ void handle_started(const code& ec, p2p_node& node)
         return;
     }
 
-    // TODO: seperate sync from run and invoke independently.
+    // Start running the node (header and block sync for now).
     node.run(std::bind(handle_running, _1));
 }
 
@@ -276,21 +275,21 @@ void handle_running(const code& ec)
     // The service is running now, waiting on us to call stop.
 }
 
-console_result run(p2p_node& node)
+console_result wait_for_stop(p2p_node& node)
 {
     // Set up the stop handler.
     std::promise<code> promise;
     const auto stop_handler = [&promise](code ec) { promise.set_value(ec); };
 
     // Wait for completion.
-    monitor_stop(node, stop_handler);
+    monitor_for_stop(node, stop_handler);
 
     // Block until the stop handler is invoked.
     const auto result = promise.get_future().get();
     return result ? console_result::failure : console_result::okay;
 }
 
-void monitor_stop(p2p_node& node, p2p::result_handler handler)
+void monitor_for_stop(p2p_node& node, p2p::result_handler handler)
 {
     using namespace std::chrono;
     using namespace std::this_thread;
