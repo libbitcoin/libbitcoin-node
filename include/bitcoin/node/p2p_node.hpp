@@ -35,6 +35,10 @@ class BCN_API p2p_node
   : public network::p2p
 {
 public:
+    typedef blockchain::organizer::reorganize_handler reorganize_handler;
+    typedef blockchain::transaction_pool::transaction_handler
+        transaction_handler;
+
     static const configuration defaults;
 
     /// Construct the full node.
@@ -43,27 +47,37 @@ public:
     /// Destruct the full node.
     ~p2p_node();
 
-    /// Blockchain query interface.
-    blockchain::block_chain& query();
-
-    /// Transaction pool interface.
-    blockchain::transaction_pool& pool();
+    // ------------------------------------------------------------------------
 
     /// Invoke startup and seeding sequence, call from constructing thread.
-    void start(result_handler handler) override;
+    virtual void start(result_handler handler) override;
 
     /// Synchronize the blockchain and then begin long running sessions,
     /// call from start result handler. Call base method to skip sync.
-    void run(result_handler handler) override;
+    virtual void run(result_handler handler) override;
+
+    /// Subscribe to blockchain reorganization and stop events.
+    virtual void subscribe_blockchain(reorganize_handler handler);
+
+    /// Subscribe to transaction pool acceptance and stop events.
+    virtual void subscribe_transaction_pool(transaction_handler handler);
 
     /// Non-blocking call to coalesce all work, start may be reinvoked after.
     /// Handler returns the result of file save operations.
-    void stop(result_handler handler) override;
+    virtual void stop(result_handler handler) override;
 
     /// Blocking call to coalesce all work and then terminate all threads.
     /// Call from thread that constructed this class, or don't call at all.
     /// This calls stop, and start may be reinvoked after calling this.
-    void close() override;
+    virtual void close() override;
+
+protected:
+
+    /// Blockchain query interface.
+    virtual blockchain::block_chain& query();
+
+    /// Transaction pool interface.
+    virtual blockchain::transaction_pool& pool();
 
 private:
     void handle_blockchain_start(const code& ec, result_handler handler);

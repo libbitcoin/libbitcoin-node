@@ -40,10 +40,10 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 // TODO: move to config.
-static constexpr size_t header_rate_seconds = 10;
+static constexpr size_t header_period_seconds = 10;
 
 static constexpr size_t full_headers = 2000;
-static const asio::duration ten_seconds(0, 0, header_rate_seconds);
+static const asio::seconds header_period(header_period_seconds);
 
 protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
     channel::ptr channel, uint32_t minimum_rate, size_t first_height,
@@ -170,7 +170,7 @@ void protocol_header_sync::start(event_handler handler)
     }
 
     auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
-    protocol_timer::start(ten_seconds, BIND2(handle_event, _1, complete));
+    protocol_timer::start(header_period, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
 
@@ -265,7 +265,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     }
 
     // It was a timeout, so ten more seconds have passed.
-    current_second_ += header_rate_seconds;
+    current_second_ += header_period_seconds;
 
     // Drop the channel if it falls below the min sync rate.
     if (current_rate() < minimum_rate_)

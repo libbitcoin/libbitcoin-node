@@ -82,6 +82,11 @@ static const configuration default_configuration()
 
 const configuration p2p_node::defaults = default_configuration();
 
+///////////////////////////////////////////////////////////////////////////////
+// TODO: move blockchain threadpool into blockchain and transaction pool start.
+// This requires that the blockchain components support start, stop and close.
+///////////////////////////////////////////////////////////////////////////////
+
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     configuration_(configuration),
@@ -91,15 +96,14 @@ p2p_node::p2p_node(const configuration& configuration)
 {
 }
 
-// Blockchain query interface.
+// Properties.
 // ----------------------------------------------------------------------------
+
 block_chain& p2p_node::query()
 {
     return blockchain_;
 }
 
-// Transaction pool interface.
-// ----------------------------------------------------------------------------
 transaction_pool& p2p_node::pool()
 {
     return transaction_pool_;
@@ -116,8 +120,6 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
-    // We use distinct threadpools so priority can be adjusted independently.
-    // TODO: move threadpool into blockchain start and make restartable.
     blockchain_threadpool_.join();
     blockchain_threadpool_.spawn(configuration_.chain.threads,
         thread_priority::low);
@@ -266,6 +268,20 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
 
     // This is the end of the derived run sequence.
     p2p::run(handler);
+}
+
+// Stop sequence.
+// ----------------------------------------------------------------------------
+
+void p2p_node::subscribe_blockchain(reorganize_handler handler)
+{
+    query().subscribe_reorganize(handler);
+
+}
+
+void p2p_node::subscribe_transaction_pool(transaction_handler handler)
+{
+    pool().subscribe_transaction(handler);
 }
 
 // Stop sequence.
