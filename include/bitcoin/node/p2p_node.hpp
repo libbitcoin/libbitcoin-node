@@ -71,7 +71,8 @@ public:
     /// This calls stop, and start may be reinvoked after calling this.
     virtual void close() override;
 
-protected:
+//// Must expose directly for now.
+////protected:
 
     /// Blockchain query interface.
     virtual blockchain::block_chain& query();
