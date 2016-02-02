@@ -35,11 +35,14 @@ lib_LTLIBRARIES = src/libbitcoin-node.la
 src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdir}\" ${bitcoin_blockchain_CPPFLAGS}
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS}
 src_libbitcoin_node_la_SOURCES = \
+    src/configuration.cpp \
     src/p2p_node.cpp \
+    src/parser.cpp \
     src/protocol_block_sync.cpp \
     src/protocol_header_sync.cpp \
     src/session_block_sync.cpp \
-    src/session_header_sync.cpp
+    src/session_header_sync.cpp \
+    src/settings.cpp
 
 # local: test/libbitcoin_node_test
 #------------------------------------------------------------------------------
@@ -81,6 +84,7 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/p2p_node.hpp \
+    include/bitcoin/node/parser.hpp \
     include/bitcoin/node/protocol_block_sync.hpp \
     include/bitcoin/node/protocol_header_sync.hpp \
     include/bitcoin/node/session_block_sync.hpp \

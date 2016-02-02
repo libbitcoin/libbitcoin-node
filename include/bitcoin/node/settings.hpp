@@ -26,16 +26,15 @@
 
 namespace libbitcoin {
 namespace node {
-    
-/// default settings
-#define NODE_THREADS                        4
-#define NODE_QUORUM                         8
-#define NODE_BLOCKS_PER_SECOND              16
-#define NODE_HEADERS_PER_SECOND             10000
-#define NODE_PEERS                          config::endpoint::list()
 
+/// Common node configuration settings, thread safe.
 struct BCN_API settings
 {
+    /// Default instances.
+    static const settings mainnet;
+    static const settings testnet;
+
+    /// Properties.
     uint32_t threads;
     uint32_t quorum;
     uint32_t headers_per_second;

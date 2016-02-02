@@ -39,10 +39,8 @@ public:
     typedef blockchain::transaction_pool::transaction_handler
         transaction_handler;
 
-    static const configuration defaults;
-
     /// Construct the full node.
-    p2p_node(const configuration& configuration);
+    p2p_node(const configuration& configuration=configuration::mainnet);
 
     /// Destruct the full node.
     ~p2p_node();

@@ -19,6 +19,8 @@
  */
 #include <bitcoin/node/p2p_node.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -30,57 +32,9 @@ namespace node {
 
 using namespace bc::blockchain;
 using namespace bc::chain;
-using namespace bc::config;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
-
-static const configuration default_configuration()
-{
-    configuration defaults;
-
-    defaults.network.threads = NETWORK_THREADS;
-    defaults.network.identifier = NETWORK_IDENTIFIER_MAINNET;
-    defaults.network.inbound_port = NETWORK_INBOUND_PORT_MAINNET;
-    defaults.network.connection_limit = NETWORK_CONNECTION_LIMIT;
-    defaults.network.outbound_connections = NETWORK_OUTBOUND_CONNECTIONS;
-    defaults.network.manual_retry_limit = NETWORK_MANUAL_RETRY_LIMIT;
-    defaults.network.connect_batch_size = NETWORK_CONNECT_BATCH_SIZE;
-    defaults.network.connect_timeout_seconds = NETWORK_CONNECT_TIMEOUT_SECONDS;
-    defaults.network.channel_handshake_seconds = NETWORK_CHANNEL_HANDSHAKE_SECONDS;
-    defaults.network.channel_poll_seconds = NETWORK_CHANNEL_POLL_SECONDS;
-    defaults.network.channel_heartbeat_minutes = NETWORK_CHANNEL_HEARTBEAT_MINUTES;
-    defaults.network.channel_inactivity_minutes = NETWORK_CHANNEL_INACTIVITY_MINUTES;
-    defaults.network.channel_expiration_minutes = NETWORK_CHANNEL_EXPIRATION_MINUTES;
-    defaults.network.channel_germination_seconds = NETWORK_CHANNEL_GERMINATION_SECONDS;
-    defaults.network.host_pool_capacity = NETWORK_HOST_POOL_CAPACITY;
-    defaults.network.relay_transactions = NETWORK_RELAY_TRANSACTIONS;
-    defaults.network.hosts_file = NETWORK_HOSTS_FILE;
-    defaults.network.debug_file = NETWORK_DEBUG_FILE;
-    defaults.network.error_file = NETWORK_ERROR_FILE;
-    defaults.network.self = NETWORK_SELF;
-    defaults.network.blacklists = NETWORK_BLACKLISTS;
-    defaults.network.seeds = NETWORK_SEEDS_MAINNET;
-
-    defaults.chain.threads = BLOCKCHAIN_THREADS;
-    defaults.chain.history_start_height = BLOCKCHAIN_HISTORY_START_HEIGHT;
-    defaults.chain.block_pool_capacity = BLOCKCHAIN_BLOCK_POOL_CAPACITY;
-    defaults.chain.transaction_pool_capacity = BLOCKCHAIN_TRANSACTION_POOL_CAPACITY;
-    defaults.chain.transaction_pool_consistency = BLOCKCHAIN_TRANSACTION_POOL_CONSISTENCY;
-    defaults.chain.use_testnet_rules = BLOCKCHAIN_TESTNET_RULES_MAINNET;
-    defaults.chain.database_path = BLOCKCHAIN_DATABASE_PATH;
-    defaults.chain.checkpoints = BLOCKCHAIN_CHECKPOINTS_MAINNET;
-
-    defaults.node.threads = NODE_THREADS;
-    defaults.node.quorum = NODE_QUORUM;
-    defaults.node.blocks_per_second = NODE_BLOCKS_PER_SECOND;
-    defaults.node.headers_per_second = NODE_HEADERS_PER_SECOND;
-    defaults.node.peers = NODE_PEERS;
-
-    return defaults;
-};
-
-const configuration p2p_node::defaults = default_configuration();
 
 ///////////////////////////////////////////////////////////////////////////////
 // TODO: move blockchain threadpool into blockchain and transaction pool start.

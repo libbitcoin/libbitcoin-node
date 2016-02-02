@@ -23,6 +23,35 @@
 #include <iostream>
 #include <bitcoin/node.hpp>
 
+// Localizable messages.
+#define BN_INITCHAIN \
+    "Please wait while initializing %1% directory..."
+#define BN_INITCHAIN_DIR_NEW \
+    "Failed to create directory %1% with error, '%2%'."
+#define BN_INITCHAIN_DIR_EXISTS \
+    "Failed because the directory %1% already exists."
+#define BN_INITCHAIN_DIR_TEST \
+    "Failed to test directory %1% with error, '%2%'."
+#define BN_NODE_SHUTTING_DOWN \
+    "The node is stopping..."
+#define BN_NODE_START_FAIL \
+    "The node failed to start."
+#define BN_NODE_STOP_FAIL \
+    "The node failed to stop."
+#define BN_NODE_START_SUCCESS \
+    "The node is starting, type CTRL-C to stop."
+#define BN_NODE_STOPPING \
+    "Please wait while unmapping %1% directory..."
+#define BN_NODE_STARTING \
+    "Please wait while mapping %1% directory..."
+#define BN_UNINITIALIZED_CHAIN \
+    "The %1% directory is not initialized."
+#define BN_VERSION_MESSAGE \
+    "\nVersion Information:\n\n" \
+    "libbitcoin-node:       %1%\n" \
+    "libbitcoin-blockchain: %2%\n" \
+    "libbitcoin:            %3%"
+
 enum console_result : int
 {
     failure = -1,

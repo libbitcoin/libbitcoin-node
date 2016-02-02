@@ -33,6 +33,15 @@
     <ClCompile Include="..\..\..\..\src\session_block_sync.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parser.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\settings.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\configuration.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
@@ -63,6 +72,9 @@
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session_block_sync.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
   </ItemGroup>

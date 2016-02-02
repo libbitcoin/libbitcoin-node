@@ -33,47 +33,6 @@
 namespace libbitcoin {
 namespace node {
 
-// Localizable messages.
-#define BN_FETCH_HISTORY_SUCCESS \
-    "Fetched history for [%1%]\n"
-#define BN_FETCH_HISTORY_FAIL \
-    "Fetch history failed for [%1%] : %2%\n"
-#define BN_FETCH_HISTORY_INPUT \
-    "Input [%1%] : %2% %3% %4%\n"
-#define BN_FETCH_HISTORY_OUTPUT \
-    "Output [%1%] : %2% %3% %4%\n"
-#define BN_FETCH_HISTORY_SPEND \
-    "Spend : %1%\n"
-#define BN_INVALID_ADDRESS \
-    "Invalid address."
-#define BN_INITCHAIN \
-    "Please wait while initializing %1% directory..."
-#define BN_INITCHAIN_DIR_NEW \
-    "Failed to create directory %1% with error, '%2%'."
-#define BN_INITCHAIN_DIR_EXISTS \
-    "Failed because the directory %1% already exists."
-#define BN_INITCHAIN_DIR_TEST \
-    "Failed to test directory %1% with error, '%2%'."
-#define BN_NODE_SHUTTING_DOWN \
-    "The node is stopping..."
-#define BN_NODE_START_FAIL \
-    "The node failed to start."
-#define BN_NODE_STOP_FAIL \
-    "The node failed to stop."
-#define BN_NODE_START_SUCCESS \
-    "The node is starting, type CTRL-C to stop."
-#define BN_NODE_STOPPING \
-    "Please wait while unmapping %1% directory..."
-#define BN_NODE_STARTING \
-    "Please wait while mapping %1% directory..."
-#define BN_UNINITIALIZED_CHAIN \
-    "The %1% directory is not initialized."
-#define BN_VERSION_MESSAGE \
-    "\nVersion Information:\n\n" \
-    "libbitcoin-node:       %1%\n" \
-    "libbitcoin-blockchain: %2%\n" \
-    "libbitcoin:            %3%"
-
 using boost::format;
 using std::placeholders::_1;
 using namespace boost::system;
@@ -85,35 +44,12 @@ using namespace bc::wallet;
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-static void display_history(const code& ec,
-    const block_chain::history& history,
-    const wallet::payment_address& address, std::ostream& output)
-{
-    if (ec)
-    {
-        output << format(BN_FETCH_HISTORY_FAIL) % address.encoded() %
-            ec.message();
-        return;
-    }
-
-    output << format(BN_FETCH_HISTORY_SUCCESS) % address.encoded();
-
-    for (const auto& row: history)
-    {
-        const auto hash = bc::encode_hash(row.point.hash);
-        if (row.kind == block_chain::point_kind::output)
-            output << format(BN_FETCH_HISTORY_OUTPUT) % hash %
-                row.point.index % row.height % row.value;
-        else
-            output << format(BN_FETCH_HISTORY_INPUT) % hash %
-                row.point.index % row.height % row.value;
-    }
-}
-
 static void display_version(std::ostream& stream)
 {
-    stream << format(BN_VERSION_MESSAGE) % LIBBITCOIN_NODE_VERSION % 
-        LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_VERSION << std::endl;
+    stream << format(BN_VERSION_MESSAGE) %
+        LIBBITCOIN_NODE_VERSION % 
+        LIBBITCOIN_BLOCKCHAIN_VERSION % 
+        LIBBITCOIN_VERSION << std::endl;
 }
 
 // Create the directory as a convenience for the user, and then use it
@@ -197,8 +133,8 @@ static console_result process_arguments(int argc, const char* argv[],
     return console_result::okay;
 }
 
-// Unfortunately these must be static.
-static auto done = false;
+// Static handler for catching termination signals.
+static auto stopped = false;
 static void interrupt_handler(int code)
 {
     signal(SIGINT, interrupt_handler);
@@ -206,14 +142,14 @@ static void interrupt_handler(int code)
     signal(SIGABRT, interrupt_handler);
 
     if (code != 0)
-        done = true;
+        stopped = true;
 }
 
 console_result dispatch(int argc, const char* argv[], std::istream& input,
     std::ostream& output, std::ostream& error)
 {
     // Config is hardwired for now.
-    const auto config = p2p_node::defaults;
+    const auto config = configuration::mainnet;
     const auto directory = config.chain.database_path;
 
     // Handle command line arguments.
@@ -254,7 +190,7 @@ void handle_started(const code& ec, p2p_node& node)
     if (ec)
     {
         log::info(LOG_NODE) << BN_NODE_START_FAIL;
-        done = true;
+        stopped = true;
         return;
     }
 
@@ -268,7 +204,7 @@ void handle_running(const code& ec)
     if (ec)
     {
         log::info(LOG_NODE) << BN_NODE_START_FAIL;
-        done = true;
+        stopped = true;
         return;
     }
 
@@ -281,7 +217,7 @@ console_result wait_for_stop(p2p_node& node)
     std::promise<code> promise;
     const auto stop_handler = [&promise](code ec) { promise.set_value(ec); };
 
-    // Wait for completion.
+    // Monitor stopped for completion.
     monitor_for_stop(node, stop_handler);
 
     // Block until the stop handler is invoked.
@@ -294,12 +230,12 @@ void monitor_for_stop(p2p_node& node, p2p::result_handler handler)
     using namespace std::chrono;
     using namespace std::this_thread;
     std::string command;
-    
+
     interrupt_handler(0);
     log::info(LOG_NODE) << BN_NODE_START_SUCCESS;
 
-    while (!done)
-        sleep_for(milliseconds(100));
+    while (!stopped)
+        sleep_for(milliseconds(10));
 
     log::info(LOG_NODE) << BN_NODE_SHUTTING_DOWN;
     node.stop(handler);
