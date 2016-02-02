@@ -100,7 +100,7 @@ options_metadata parser::load_environment()
         // This composes with the cmdline options and inits to system path.
         BN_CONFIG_VARIABLE,
         value<path>(&settings.file)->composing()
-            ->default_value(default_config_path()),
+            ->default_value(config_default_path()),
         "The path to the configuration settings file."
     );
 
