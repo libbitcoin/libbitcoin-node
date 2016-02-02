@@ -30,6 +30,8 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
+#define BN_APPLICATION_NAME "bn"
+
 namespace libbitcoin {
 namespace node {
 
@@ -43,7 +45,32 @@ using namespace bc::network;
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
-static void display_version(std::ostream& stream)
+static void display_invalid_parameter(std::ostream& stream,
+    const std::string& message)
+{
+    // English-only hack to patch missing arg name in boost exception message.
+    std::string clean_message(message);
+    boost::replace_all(clean_message, "for option is invalid", "is invalid");
+    stream << format(BN_INVALID_PARAMETER) % clean_message << std::endl;
+}
+
+static void show_help(parser& metadata, std::ostream& stream)
+{
+    printer help(metadata.load_options(), metadata.load_arguments(),
+        BN_APPLICATION_NAME, BN_INFORMATION_MESSAGE);
+    help.initialize();
+    help.commandline(stream);
+}
+
+static void show_settings(parser& metadata, std::ostream& stream)
+{
+    printer print(metadata.load_settings(), BN_APPLICATION_NAME,
+        BN_SETTINGS_MESSAGE);
+    print.initialize();
+    print.settings(stream);
+}
+
+static void show_version(std::ostream& stream)
 {
     stream << format(BN_VERSION_MESSAGE) %
         LIBBITCOIN_NODE_VERSION % 
@@ -68,7 +95,7 @@ static console_result init_chain(const path& directory, bool testnet,
         return console_result::failure;
     }
 
-    output << format(BN_INITCHAIN) % directory << std::endl;
+    output << format(BN_INITIALIZING_CHAIN) % directory << std::endl;
 
     const auto prefix = directory.string();
     const auto genesis = testnet ? testnet_genesis_block() :
@@ -96,38 +123,67 @@ static console_result verify_chain(const path& directory, std::ostream& error)
     return console_result::okay;
 }
 
-// Cheesy command line processor (replace with libbitcoin processor).
-static console_result process_arguments(int argc, const char* argv[],
-    const path& directory, std::ostream& output, std::ostream& error)
+static console_result run(const configuration& configuration,
+    std::ostream& output, std::ostream& error)
 {
-    if (argc > 1)
-    {
-        std::string argument(argv[1]);
+    // TODO: make member of new dispatch class.
+    p2p_node node(configuration);
 
-        if (argument == "-h" || argument == "--help")
-        {
-            output << "bn [--help] [--mainnet] [--testnet] [--version]" << std::endl;
-            return console_result::not_started;
-        }
-        else if (argument == "-v" || argument == "--version")
-        {
-            display_version(output);
-            return console_result::not_started;
-        }
-        else if (argument == "-m" || argument == "--mainnet")
-        {
-            return init_chain(directory, false, output, error);
-        }
-        else if (argument == "-t" || argument == "--testnet")
-        {
-            return init_chain(directory, true, output, error);
-        }
-        else
-        {
-            error << "Invalid argument: " << argument << std::endl;
-            return console_result::failure;
-        }
+    // TODO: initialize on construct of new dispatch class.
+    // These must be libbitcoin streams.
+    bc::ofstream debug_file(configuration.network.debug_file.string(), append);
+    bc::ofstream error_file(configuration.network.error_file.string(), append);
+    initialize_logging(debug_file, error_file, bc::cout, bc::cerr);
+
+    static const auto startup = "================= startup ==================";
+    log::debug(LOG_NODE) << startup;
+    log::info(LOG_NODE) << startup;
+    log::warning(LOG_NODE) << startup;
+    log::error(LOG_NODE) << startup;
+    log::fatal(LOG_NODE) << startup;
+    log::info(LOG_NODE) << BN_NODE_STARTING;
+
+    // Ensure the blockchain directory is initialized (at least exists).
+    const auto result = verify_chain(configuration.chain.database_path, error);
+    if (result != console_result::okay)
+        return result;
+
+    // The stop handlers are registered in start.
+    node.start(std::bind(handle_started, _1, std::ref(node)));
+
+    // Block until the node is stopped.
+    return wait_for_stop(node);
+}
+
+// Load argument, environment and config and then run the node.
+console_result dispatch(int argc, const char* argv[], std::istream&,
+    std::ostream& output, std::ostream& error)
+{
+    parser metadata;
+    std::string error_message;
+
+    if (!metadata.parse(error_message, argc, argv))
+    {
+        display_invalid_parameter(error, error_message);
+        return console_result::failure;
     }
+
+    const auto settings = metadata.settings;
+    if (!settings.file.empty())
+        output << format(BN_USING_CONFIG_FILE) % settings.file << std::endl;
+
+    if (settings.help)
+        show_help(metadata, output);
+    else if (settings.settings)
+        show_settings(metadata, output);
+    else if (settings.version)
+        show_version(output);
+    else if (settings.main_network)
+        return init_chain(settings.chain.database_path, false, output, error);
+    else if (settings.test_network)
+        return init_chain(settings.chain.database_path, true, output, error);
+    else
+        return run(settings, output, error);
 
     return console_result::okay;
 }
@@ -140,76 +196,47 @@ static void interrupt_handler(int code)
     signal(SIGTERM, interrupt_handler);
     signal(SIGABRT, interrupt_handler);
 
-    if (code != 0)
+    if (code != 0 && !stopped)
+    {
+        bc::cout << format(BN_NODE_STOPPING) % code << std::endl;
         stopped = true;
+    }
 }
 
-console_result dispatch(int argc, const char* argv[], std::istream& input,
-    std::ostream& output, std::ostream& error)
-{
-    // Config is hardwired for now.
-    const auto config = configuration::mainnet;
-    const auto directory = config.chain.database_path;
-
-    // Handle command line arguments.
-    auto result = process_arguments(argc, argv, directory, output, error);
-    if (result != console_result::okay)
-        return result;
-
-    // Ensure the blockchain directory is initialized (at least exists).
-    result = verify_chain(directory, bc::cerr);
-    if (result != console_result::okay)
-        return result;
-
-    // These must be libbitcoin streams.
-    bc::ofstream debug_file(config.network.debug_file.string(), append);
-    bc::ofstream error_file(config.network.error_file.string(), append);
-    initialize_logging(debug_file, error_file, bc::cout, bc::cerr);
-
-    static const auto startup = "================= startup ==================";
-    log::debug(LOG_NODE) << startup;
-    log::info(LOG_NODE) << startup;
-    log::warning(LOG_NODE) << startup;
-    log::error(LOG_NODE) << startup;
-    log::fatal(LOG_NODE) << startup;
-
-    log::info(LOG_NODE) << format(BN_NODE_STARTING) % directory;
-
-    p2p_node node(config);
-
-    // The stop handlers are registered in start.
-    node.start(std::bind(handle_started, _1, std::ref(node)));
-
-    return wait_for_stop(node);
-}
-
+// TODO: use node as member.
 // This is called at the end of seeding.
 void handle_started(const code& ec, p2p_node& node)
 {
     if (ec)
     {
-        log::info(LOG_NODE) << BN_NODE_START_FAIL;
+        log::info(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
         stopped = true;
         return;
     }
 
     // Start running the node (header and block sync for now).
-    node.run(std::bind(handle_running, _1));
+    node.run(std::bind(handle_running, _1, std::ref(node)));
 }
 
+// TODO: use node as member.
 // This is called at the end of block sync, though execution continues after.
-void handle_running(const code& ec)
+void handle_running(const code& ec, p2p_node&)
 {
     if (ec)
     {
-        log::info(LOG_NODE) << BN_NODE_START_FAIL;
+        log::info(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
         stopped = true;
         return;
     }
 
-    // The service is running now, waiting on us to call stop.
+    // The node is running now, waiting on stopped to be set to true.
+
+    ///////////////////////////////////////////////////////////////////////////
+    // ATTACH ADDITIONAL SERVICES HERE
+    ///////////////////////////////////////////////////////////////////////////
 }
 
+// TODO: use node as member.
 console_result wait_for_stop(p2p_node& node)
 {
     // Set up the stop handler.
@@ -220,10 +247,19 @@ console_result wait_for_stop(p2p_node& node)
     monitor_for_stop(node, stop_handler);
 
     // Block until the stop handler is invoked.
-    const auto result = promise.get_future().get();
-    return result ? console_result::failure : console_result::okay;
+    const auto ec = promise.get_future().get();
+
+    if (ec)
+    {
+        log::info(LOG_NODE) << format(BN_NODE_STOP_FAIL) % ec.message();
+        return console_result::failure;
+    }
+
+    log::info(LOG_NODE) << BN_NODE_STOPPED;
+    return console_result::okay;
 }
 
+// TODO: use node as member.
 void monitor_for_stop(p2p_node& node, p2p::result_handler handler)
 {
     using namespace std::chrono;
@@ -231,12 +267,12 @@ void monitor_for_stop(p2p_node& node, p2p::result_handler handler)
     std::string command;
 
     interrupt_handler(0);
-    log::info(LOG_NODE) << BN_NODE_START_SUCCESS;
+    log::info(LOG_NODE) << BN_NODE_STARTED;
 
     while (!stopped)
         sleep_for(milliseconds(10));
 
-    log::info(LOG_NODE) << BN_NODE_SHUTTING_DOWN;
+    log::info(LOG_NODE) << BN_NODE_UNMAPPING;
     node.stop(handler);
 }
 

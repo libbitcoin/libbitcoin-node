@@ -24,7 +24,14 @@
 #include <bitcoin/node.hpp>
 
 // Localizable messages.
-#define BN_INITCHAIN \
+#define BN_SETTINGS_MESSAGE \
+    "These are the configuration settings that can be set."
+#define BN_INFORMATION_MESSAGE \
+    "Runs a full bitcoin node with additional client-server query protocol."
+
+#define BN_UNINITIALIZED_CHAIN \
+    "The %1% directory is not initialized."
+#define BN_INITIALIZING_CHAIN \
     "Please wait while initializing %1% directory..."
 #define BN_INITCHAIN_DIR_NEW \
     "Failed to create directory %1% with error, '%2%'."
@@ -32,20 +39,27 @@
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_DIR_TEST \
     "Failed to test directory %1% with error, '%2%'."
-#define BN_NODE_SHUTTING_DOWN \
-    "The node is stopping..."
-#define BN_NODE_START_FAIL \
-    "The node failed to start."
-#define BN_NODE_STOP_FAIL \
-    "The node failed to stop."
-#define BN_NODE_START_SUCCESS \
-    "The node is starting, type CTRL-C to stop."
-#define BN_NODE_STOPPING \
-    "Please wait while unmapping %1% directory..."
+
 #define BN_NODE_STARTING \
-    "Please wait while mapping %1% directory..."
-#define BN_UNINITIALIZED_CHAIN \
-    "The %1% directory is not initialized."
+    "Please wait while the node is starting..."
+#define BN_NODE_START_FAIL \
+    "The node failed to start with error, %1%."
+#define BN_NODE_STARTED \
+    "The node is started, press CTRL-C to stop."
+
+#define BN_NODE_STOPPING \
+    "Please wait while the node is stopping (code: %1%)..."
+#define BN_NODE_UNMAPPING \
+    "Please wait while files are unmapped..."
+#define BN_NODE_STOP_FAIL \
+    "The node stopped with error, %1%."
+#define BN_NODE_STOPPED \
+    "The node stopped successfully."
+
+#define BN_USING_CONFIG_FILE \
+    "Using config file: %1%"
+#define BN_INVALID_PARAMETER \
+    "Error: %1%"
 #define BN_VERSION_MESSAGE \
     "\nVersion Information:\n\n" \
     "libbitcoin-node:       %1%\n" \
@@ -57,9 +71,8 @@ namespace node {
     
 console_result wait_for_stop(p2p_node& node);
 void monitor_for_stop(p2p_node& node, p2p_node::result_handler);
-
 void handle_started(const code& ec, p2p_node& node);
-void handle_running(const code& ec);
+void handle_running(const code& ec, p2p_node& node);
 
 // Load arguments and config and then run the node.
 console_result dispatch(int argc, const char* argv[], std::istream&,

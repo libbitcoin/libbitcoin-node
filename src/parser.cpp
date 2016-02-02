@@ -330,5 +330,40 @@ options_metadata parser::load_settings()
     return description;
 }
 
+bool parser::parse(std::string& out_error, int argc, const char* argv[])
+{
+    try
+    {
+        auto file = false;
+        variables_map variables;
+        load_command_variables(variables, argc, argv);
+        load_environment_variables(variables, BN_ENVIRONMENT_VARIABLE_PREFIX);
+
+        // Don't load the rest if any of these options are specified.
+        if (!get_option(variables, BN_VERSION_VARIABLE) && 
+            !get_option(variables, BN_SETTINGS_VARIABLE) &&
+            !get_option(variables, BN_HELP_VARIABLE))
+        {
+            // Returns true if the settings were loaded from a file.
+            file = load_configuration_variables(variables, BN_CONFIG_VARIABLE);
+        }
+
+        // Update bound variables in metadata.settings.
+        notify(variables);
+
+        // Clear the config file path if it wasn't used.
+        if (!file)
+            settings.file.clear();
+    }
+    catch (const boost::program_options::error& e)
+    {
+        // This is obtained from boost, which circumvents our localization.
+        out_error = e.what();
+        return false;
+    }
+
+    return true;
+}
+
 } // namespace node
 } // namespace libbitcoin
