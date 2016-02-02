@@ -52,13 +52,6 @@
     "libbitcoin-blockchain: %2%\n" \
     "libbitcoin:            %3%"
 
-enum console_result : int
-{
-    failure = -1,
-    okay = 0,
-    not_started = 1
-};
-
 namespace libbitcoin {
 namespace node {
     
