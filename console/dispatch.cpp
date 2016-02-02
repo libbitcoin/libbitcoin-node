@@ -40,7 +40,6 @@ using namespace boost::filesystem;
 using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::network;
-using namespace bc::wallet;
 
 constexpr auto append = std::ofstream::out | std::ofstream::app;
 
