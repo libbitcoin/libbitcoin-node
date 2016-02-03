@@ -65,9 +65,6 @@ BOOST_AUTO_TEST_CASE(node_test__threadpool__always__does_not_throw)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-////// TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
-////BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
-////
 ////BOOST_AUTO_TEST_CASE(node_test__construct_responder__does_not_throw)
 ////{
 ////    // WARNING: file system side effect, use unique relative path.
