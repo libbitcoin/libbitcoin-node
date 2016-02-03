@@ -126,6 +126,12 @@ static console_result verify_chain(const path& directory, std::ostream& error)
 static console_result run(const configuration& configuration,
     std::ostream& output, std::ostream& error)
 {
+    // This must be verified before node/blockchain construct.
+    // Ensure the blockchain directory is initialized (at least exists).
+    const auto result = verify_chain(configuration.chain.database_path, error);
+    if (result != console_result::okay)
+        return result;
+
     // TODO: make member of new dispatch class.
     p2p_node node(configuration);
 
@@ -142,11 +148,6 @@ static console_result run(const configuration& configuration,
     log::error(LOG_NODE) << startup;
     log::fatal(LOG_NODE) << startup;
     log::info(LOG_NODE) << BN_NODE_STARTING;
-
-    // Ensure the blockchain directory is initialized (at least exists).
-    const auto result = verify_chain(configuration.chain.database_path, error);
-    if (result != console_result::okay)
-        return result;
 
     // The stop handlers are registered in start.
     node.start(std::bind(handle_started, _1, std::ref(node)));
