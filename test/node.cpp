@@ -18,93 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
 #include <bitcoin/node.hpp>
 
 using namespace bc;
-using namespace bc::blockchain;
-using namespace bc::network;
-using namespace bc::node;
-using namespace boost;
 
-struct low_thread_priority_fixture
-{
-    low_thread_priority_fixture()
-    {
-        set_thread_priority(thread_priority::lowest);
-    }
-
-    ~low_thread_priority_fixture()
-    {
-        set_thread_priority(thread_priority::normal);
-    }
-};
-
-static void uninitchain(filesystem::path& path)
-{
-    boost::filesystem::remove_all(path);
-}
-
-static void initchain(filesystem::path& path)
-{
-    uninitchain(path);
-    boost::filesystem::create_directories(path);
-    database::initialize(path, mainnet_genesis_block());
-}
-
-// TODO: move construction expressions into BOOST_REQUIRE_NO_THROW.
-BOOST_FIXTURE_TEST_SUITE(node_tests, low_thread_priority_fixture)
+BOOST_AUTO_TEST_SUITE(node_tests)
 
 // Just a basic test to get some coverage output.
-BOOST_AUTO_TEST_CASE(node_test__threadpool__always__does_not_throw)
+BOOST_AUTO_TEST_CASE(node_test)
 {
-    threadpool threads;
-    threads.shutdown();
-    threads.join();
+    BOOST_REQUIRE(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-////BOOST_AUTO_TEST_CASE(node_test__construct_responder__does_not_throw)
-////{
-////    // WARNING: file system side effect, use unique relative path.
-////    configuration config;
-////    config.chain.database_path = "node_test/construct_responder";
-////    initchain(config.chain.database_path);
-////
-////    threadpool threads;
-////    block_chain_impl blockchain(threads, config.chain);
-////    transaction_pool transactions(threads, blockchain, 42, false);
-////    responder responder(blockchain, transactions);
-////
-////    // TODO: handle blockchain start.
-////    blockchain.start([](code){});
-////    transactions.start();
-////    blockchain.stop();
-////    threads.shutdown();
-////    threads.join();
-////
-////    ////uninitchain(prefix);
-////}
-////
-////BOOST_AUTO_TEST_CASE(node_test__construct_poller__does_not_throw)
-////{
-////    // WARNING: file system side effect, use unique relative path.
-////    configuration config;
-////    config.chain.database_path = "node_test/construct_poller";
-////    initchain(config.chain.database_path);
-////
-////    threadpool threads;
-////    block_chain_impl blockchain(threads, config.chain);
-////    poller poller(threads, blockchain);
-////
-////    // TODO: handle blockchain start.
-////    blockchain.start([](code){});
-////    blockchain.stop();
-////    threads.shutdown();
-////    threads.join();
-////
-////    ////uninitchain(prefix);
-////}
-////
-////BOOST_AUTO_TEST_SUITE_END()
