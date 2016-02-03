@@ -30,9 +30,8 @@ namespace node {
 /// Common node configuration settings, thread safe.
 struct BCN_API settings
 {
-    /// Default instances.
-    static const settings mainnet;
-    static const settings testnet;
+    /// Default instance.
+    static const settings defaults;
 
     /// Properties.
     uint32_t threads;

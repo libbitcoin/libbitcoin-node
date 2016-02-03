@@ -26,13 +26,13 @@ namespace node {
 
 static const configuration mainnet_defaults()
 {
-    return configuration(node::settings::mainnet,
+    return configuration(node::settings::defaults,
         blockchain::settings::mainnet, network::settings::mainnet);
 };
 
 static const configuration testnet_defaults()
 {
-    return configuration(node::settings::testnet,
+    return configuration(node::settings::defaults,
         blockchain::settings::testnet, network::settings::testnet);
 };
 

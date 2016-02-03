@@ -299,31 +299,31 @@ options_metadata parser::load_settings()
     (
         "node.threads",
         value<uint32_t>(&settings.node.threads)->
-            default_value(node::settings::mainnet.threads),
+            default_value(node::settings::defaults.threads),
         "The number of threads in the node threadpool, defaults to 4."
     )
     (
         "node.quorum",
         value<uint32_t>(&settings.node.quorum)->
-            default_value(node::settings::mainnet.quorum),
+            default_value(node::settings::defaults.quorum),
         "The number of peers to survey during sync, defaults to 8."
     )
     (
         "node.blocks_per_second",
         value<uint32_t>(&settings.node.blocks_per_second)->
-            default_value(node::settings::mainnet.blocks_per_second),
+            default_value(node::settings::defaults.blocks_per_second),
         "The minimum block rate required from a peer during block sync, defaults to 16."
     )
     (
         "node.headers_per_second",
         value<uint32_t>(&settings.node.headers_per_second)->
-            default_value(node::settings::mainnet.headers_per_second),
+            default_value(node::settings::defaults.headers_per_second),
         "The minimum header rate required from a peer during header sync, defaults to 10000."
     )
     (
         "node.peer",
         value<config::endpoint::list>(&settings.node.peers)->
-            multitoken()->default_value(node::settings::mainnet.peers),
+            multitoken()->default_value(node::settings::defaults.peers),
         "Persistent host:port to augment discovered hosts, multiple entries allowed."
     );
 
