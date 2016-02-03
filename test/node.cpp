@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_SUITE_END()
 ////    initchain(config.chain.database_path);
 ////
 ////    threadpool threads;
-////    blockchain_impl blockchain(threads, config.chain);
+////    block_chain_impl blockchain(threads, config.chain);
 ////    transaction_pool transactions(threads, blockchain, 42, false);
 ////    responder responder(blockchain, transactions);
 ////
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_SUITE_END()
 ////    initchain(config.chain.database_path);
 ////
 ////    threadpool threads;
-////    blockchain_impl blockchain(threads, config.chain);
+////    block_chain_impl blockchain(threads, config.chain);
 ////    poller poller(threads, blockchain);
 ////
 ////    // TODO: handle blockchain start.

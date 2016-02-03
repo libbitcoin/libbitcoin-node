@@ -94,7 +94,7 @@ private:
 
     // TODO: move into blockchain constuctor.
     threadpool blockchain_threadpool_;
-    blockchain::blockchain_impl blockchain_;
+    blockchain::block_chain_impl blockchain_;
     blockchain::transaction_pool transaction_pool_;
 };
 
