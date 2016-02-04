@@ -109,7 +109,10 @@ void p2p_node::handle_fetch_height(const code& ec, uint64_t height,
         return;
     }
 
-    set_height(height);
+    // TODO: iron this out.
+    BITCOIN_ASSERT(height <= bc::max_size_t);
+    const auto safe_height = static_cast<size_t>(height);
+    set_height(safe_height);
 
     // This is the end of the derived start sequence.
     // Stopped is true and no network threads until after this call.
