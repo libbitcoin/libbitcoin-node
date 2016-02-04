@@ -21,7 +21,7 @@
 
 #include <cstddef>
 #include <memory>
-#include <bitcoin/blockchain.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocol_header_sync.hpp>

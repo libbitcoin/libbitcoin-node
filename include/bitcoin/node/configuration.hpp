@@ -26,6 +26,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
 

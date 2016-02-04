@@ -24,7 +24,8 @@
 #include <string>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
-#include <bitcoin/node.hpp>
+#include <bitcoin/blockchain.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/settings.hpp>
 
@@ -38,7 +39,6 @@ namespace node {
 using namespace boost::filesystem;
 using namespace boost::program_options;
 using namespace bc::config;
-using namespace bc::network;
 
 options_metadata parser::load_options()
 {

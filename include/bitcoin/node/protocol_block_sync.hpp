@@ -25,9 +25,9 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/bitcoin.hpp>
 
 namespace libbitcoin {
 namespace node {

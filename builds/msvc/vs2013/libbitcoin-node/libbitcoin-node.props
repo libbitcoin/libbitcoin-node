@@ -32,6 +32,7 @@
     <Import Project="$(SolutionDir)libbitcoin.import.props" />
     <Import Project="$(SolutionDir)libbitcoin-consensus.import.props" />
     <Import Project="$(SolutionDir)libbitcoin-blockchain.import.props" />
+    <Import Project="$(SolutionDir)libbitcoin-network.import.props" />
   </ImportGroup>  
 
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'dynamic'">
@@ -39,18 +40,21 @@
     <Linkage-libbitcoin>dynamic</Linkage-libbitcoin>
     <Linkage-libbitcoin-consensus>dynamic</Linkage-libbitcoin-consensus>
     <Linkage-libbitcoin-blockchain>dynamic</Linkage-libbitcoin-blockchain>
+    <Linkage-libbitcoin-network>dynamic</Linkage-libbitcoin-network>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
     <Linkage-secp256k1>ltcg</Linkage-secp256k1>
     <Linkage-libbitcoin>ltcg</Linkage-libbitcoin>
     <Linkage-libbitcoin-consensus>ltcg</Linkage-libbitcoin-consensus>
     <Linkage-libbitcoin-blockchain>ltcg</Linkage-libbitcoin-blockchain>
+    <Linkage-libbitcoin-network>ltcg</Linkage-libbitcoin-network>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'static'">
     <Linkage-secp256k1>static</Linkage-secp256k1>
     <Linkage-libbitcoin>static</Linkage-libbitcoin>
     <Linkage-libbitcoin-consensus>static</Linkage-libbitcoin-consensus>
     <Linkage-libbitcoin-blockchain>static</Linkage-libbitcoin-blockchain>
+    <Linkage-libbitcoin-network>static</Linkage-libbitcoin-network>
   </PropertyGroup>
 
   <!-- Messages -->
@@ -60,6 +64,7 @@
     <Message Text="Linkage-libbitcoin  : $(Linkage-libbitcoin)" Importance="high"/>
     <Message Text="Linkage-_consensus  : $(Linkage-libbitcoin-consensus)" Importance="high"/>
     <Message Text="Linkage-_blockchain : $(Linkage-libbitcoin-blockchain)" Importance="high"/>
+    <Message Text="Linkage-_network    : $(Linkage-libbitcoin-network)" Importance="high"/>
   </Target>
 
 </Project>
