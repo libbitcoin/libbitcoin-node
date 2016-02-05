@@ -20,9 +20,54 @@
 #ifndef LIBBITCOIN_NODE_DISPATCH_HPP
 #define LIBBITCOIN_NODE_DISPATCH_HPP
 
+#include <future>
 #include <iostream>
+#include <memory>
 #include <bitcoin/node.hpp>
 
+namespace libbitcoin {
+namespace node {
+
+class executive
+  : public std::enable_shared_from_this<executive>
+{
+public:
+    typedef std::shared_ptr<executive> ptr;
+
+    executive(parser& metadata, std::istream&, std::ostream& output,
+        std::ostream& error);
+
+    /// This class is not copyable.
+    executive(const executive&) = delete;
+    void operator=(const executive&) = delete;
+
+    /// Invoke the command indicated by the metadata.
+    bool invoke();
+
+private:
+
+    void do_help();
+    void do_settings();
+    void do_version();
+    bool do_initchain();
+
+    bool run();
+    bool verify();
+    bool wait_on_stop();
+    void monitor_stop(p2p_node::result_handler);
+    void handle_started(const code& ec);
+    void handle_running(const code& ec);
+    void handle_stopped(const code& ec, std::promise<code>& promise);
+
+    p2p_node::ptr node_;
+    parser& metadata_;
+    std::istream& input_;
+    std::ostream& output_;
+    std::ostream& error_;
+    bc::ofstream debug_file_;
+    bc::ofstream error_file_;
+};
+    
 // Localizable messages.
 #define BN_SETTINGS_MESSAGE \
     "These are the configuration settings that can be set."
@@ -33,11 +78,11 @@
     "The %1% directory is not initialized."
 #define BN_INITIALIZING_CHAIN \
     "Please wait while initializing %1% directory..."
-#define BN_INITCHAIN_DIR_NEW \
+#define BN_INITCHAIN_NEW \
     "Failed to create directory %1% with error, '%2%'."
-#define BN_INITCHAIN_DIR_EXISTS \
+#define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
-#define BN_INITCHAIN_DIR_TEST \
+#define BN_INITCHAIN_TRY \
     "Failed to test directory %1% with error, '%2%'."
 
 #define BN_NODE_STARTING \
@@ -58,25 +103,11 @@
 
 #define BN_USING_CONFIG_FILE \
     "Using config file: %1%"
-#define BN_INVALID_PARAMETER \
-    "Error: %1%"
 #define BN_VERSION_MESSAGE \
     "\nVersion Information:\n\n" \
     "libbitcoin-node:       %1%\n" \
     "libbitcoin-blockchain: %2%\n" \
     "libbitcoin:            %3%"
-
-namespace libbitcoin {
-namespace node {
-    
-console_result wait_for_stop(p2p_node& node);
-void monitor_for_stop(p2p_node& node, p2p_node::result_handler);
-void handle_started(const code& ec, p2p_node& node);
-void handle_running(const code& ec, p2p_node& node);
-
-// Load arguments and config and then run the node.
-console_result dispatch(int argc, const char* argv[], std::istream&,
-    std::ostream& output, std::ostream& error);
 
 } // namespace node
 } // namespace libbitcoin

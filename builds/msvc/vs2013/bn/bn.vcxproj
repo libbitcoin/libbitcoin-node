@@ -58,10 +58,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\console\dispatch.hpp" />
+    <ClInclude Include="..\..\..\..\console\executive.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\console\dispatch.cpp" />
+    <ClCompile Include="..\..\..\..\console\executive.cpp" />
     <ClCompile Include="..\..\..\..\console\main.cpp" />
   </ItemGroup>
   <ItemGroup>

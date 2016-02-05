@@ -21,6 +21,7 @@
 #define LIBBITCOIN_NODE_P2P_NODE_HPP
 
 #include <cstdint>
+#include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -36,6 +37,7 @@ class BCN_API p2p_node
   : public network::p2p
 {
 public:
+    typedef std::shared_ptr<p2p_node> ptr;
     typedef blockchain::organizer::reorganize_handler reorganize_handler;
     typedef blockchain::transaction_pool::transaction_handler
         transaction_handler;

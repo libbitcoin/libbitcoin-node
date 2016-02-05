@@ -20,7 +20,7 @@
 #ifndef LIBBITCOIN_NODE_PARSER_HPP
 #define LIBBITCOIN_NODE_PARSER_HPP
 
-#include <string>
+#include <ostream>
 #include <boost/filesystem.hpp>
 #include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,7 +36,7 @@ class BCN_API parser
 {
 public:
     /// Parse all configuration into member settings.
-    virtual bool parse(std::string& out_error, int argc, const char* argv[]);
+    virtual bool parse(int argc, const char* argv[], std::ostream& error);
 
     /// Load command line options (named).
     virtual options_metadata load_options();
@@ -51,7 +51,7 @@ public:
     virtual options_metadata load_environment();
 
     /// The populated configuration settings values.
-    configuration settings;
+    configuration configuration;
 };  
 
 } // namespace node
