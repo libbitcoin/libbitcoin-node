@@ -20,43 +20,57 @@
 #ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
 #define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
-#include <cstdint>
+#include <cstddef>
 #include <string>
 #include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
+
+// Not localizable.
+#define BN_HELP_VARIABLE "help"
+#define BN_SETTINGS_VARIABLE "settings"
+#define BN_VERSION_VARIABLE "version"
+
+// This must be lower case but the env var part can be any case.
+#define BN_CONFIG_VARIABLE "config"
+
+// This must match the case of the env var.
+#define BN_ENVIRONMENT_VARIABLE_PREFIX "BN_"
     
+/// Full node configuration, thread safe.
 class BCN_API configuration
 {
 public:
-    configuration()
-    {
-    }
+    /// Default instances.
+    static const configuration mainnet;
+    static const configuration testnet;
 
-    configuration(
-        const node::settings& node_settings,
+    configuration();
+    configuration(const node::settings& node_settings,
         const blockchain::settings& chain_settings,
-        const network::settings& network_settings)
-      : node(node_settings),
-        chain(chain_settings),
-        network(network_settings)
-    {
-    }
+        const network::settings& network_settings);
 
-    // Convenience.
-    virtual size_t last_checkpoint_height() const
-    {
-        return chain.checkpoints.empty() ? 0 : 
-            chain.checkpoints.back().height();
-    }
+    /// Convenience.
+    virtual size_t last_checkpoint_height() const;
 
-    // settings
+    /// Options.
+    bool help;
+    bool main_network;
+    bool settings;
+    bool test_network;
+    bool version;
+
+    /// Options and environment vars.
+    boost::filesystem::path file;
+
+    /// Settings.
     node::settings node;
     blockchain::settings chain;
     network::settings network;
