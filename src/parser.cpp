@@ -46,30 +46,30 @@ options_metadata parser::load_options()
     description.add_options()
     (
         BN_CONFIG_VARIABLE,
-        value<path>(&configuration.file),
+        value<path>(&configured.file),
         "The path to the configuration settings file."
     )
     (
         BN_HELP_VARIABLE ",h",
-        value<bool>(&configuration.help)->
+        value<bool>(&configured.help)->
             default_value(false)->zero_tokens(),
         "Get list of options for this command."
     )
     (
         "initchain,i",
-        value<bool>(&configuration.initchain)->
+        value<bool>(&configured.initchain)->
             default_value(false)->zero_tokens(),
         "Initialize the blockchain in the configured directory."
     )
     (
         BN_SETTINGS_VARIABLE ",s",
-        value<bool>(&configuration.settings)->
+        value<bool>(&configured.settings)->
             default_value(false)->zero_tokens(),
         "Display the loaded configuration settings."
     )
     (
         BN_VERSION_VARIABLE ",v",
-        value<bool>(&configuration.version)->
+        value<bool>(&configured.version)->
             default_value(false)->zero_tokens(),
         "Get version information."
     );
@@ -93,7 +93,7 @@ options_metadata parser::load_environment()
         // The case must match the other declarations for it to compose.
         // This composes with the cmdline options and inits to system path.
         BN_CONFIG_VARIABLE,
-        value<path>(&configuration.file)->composing()
+        value<path>(&configured.file)->composing()
             ->default_value(config_default_path()),
         "The path to the configuration settings file."
     );
@@ -108,133 +108,133 @@ options_metadata parser::load_settings()
     /* [network] */
     (
         "network.threads",
-        value<uint32_t>(&configuration.network.threads)->
+        value<uint32_t>(&configured.network.threads)->
             default_value(network::settings::mainnet.threads),
         "The number of threads in the network threadpool, defaults to 4."
     )
     (
         "network.identifier",
-        value<uint32_t>(&configuration.network.identifier)->
+        value<uint32_t>(&configured.network.identifier)->
             default_value(network::settings::mainnet.identifier),
         "The magic number for message headers, defaults to 3652501241."
     )
     (
         "network.inbound_port",
-        value<uint16_t>(&configuration.network.inbound_port)->
+        value<uint16_t>(&configured.network.inbound_port)->
             default_value(network::settings::mainnet.inbound_port),
         "The port for incoming connections, defaults to 8333."
     )
     (
         "network.connection_limit",
-        value<uint32_t>(&configuration.network.connection_limit)->
+        value<uint32_t>(&configured.network.connection_limit)->
             default_value(network::settings::mainnet.connection_limit),
         "The target number of total network connections, defaults to 16."
     )
     (
         "network.outbound_connections",
-        value<uint32_t>(&configuration.network.outbound_connections)->
+        value<uint32_t>(&configured.network.outbound_connections)->
             default_value(network::settings::mainnet.outbound_connections),
         "The target number of outgoing network connections, defaults to 8."
     )
     (
         "network.manual_retry_limit",
-        value<uint32_t>(&configuration.network.manual_retry_limit)->
+        value<uint32_t>(&configured.network.manual_retry_limit)->
             default_value(network::settings::mainnet.manual_retry_limit),
         "The retry limit for manual connection establishment, defaults to 0 (forever)."
     )
     (
         "network.connect_batch_size",
-        value<uint32_t>(&configuration.network.connect_batch_size)->
+        value<uint32_t>(&configured.network.connect_batch_size)->
             default_value(network::settings::mainnet.connect_batch_size),
         "The number of concurrent attempts to estalish one connection, defaults to 5."
     )
     (
         "network.connect_timeout_seconds",
-        value<uint32_t>(&configuration.network.connect_timeout_seconds)->
+        value<uint32_t>(&configured.network.connect_timeout_seconds)->
             default_value(network::settings::mainnet.connect_timeout_seconds),
         "The time limit for connection establishment, defaults to 5."
     )
     (
         "network.channel_handshake_seconds",
-        value<uint32_t>(&configuration.network.channel_handshake_seconds)->
+        value<uint32_t>(&configured.network.channel_handshake_seconds)->
             default_value(network::settings::mainnet.channel_handshake_seconds),
         "The time limit to complete the connection handshake, defaults to 30."
     )
     (
         "network.channel_poll_seconds",
-        value<uint32_t>(&configuration.network.channel_poll_seconds)->
+        value<uint32_t>(&configured.network.channel_poll_seconds)->
             default_value(network::settings::mainnet.channel_poll_seconds),
         "The polling interval for initial block download, defaults to 1."
     )
     (
         "network.channel_heartbeat_minutes",
-        value<uint32_t>(&configuration.network.channel_heartbeat_minutes)->
+        value<uint32_t>(&configured.network.channel_heartbeat_minutes)->
             default_value(network::settings::mainnet.channel_heartbeat_minutes),
         "The time between ping messages, defaults to 5."
     )
     (
         "network.channel_inactivity_minutes",
-        value<uint32_t>(&configuration.network.channel_inactivity_minutes)->
+        value<uint32_t>(&configured.network.channel_inactivity_minutes)->
             default_value(network::settings::mainnet.channel_inactivity_minutes),
         "The inactivity time limit for any connection, defaults to 30."
     )
     (
         "network.channel_expiration_minutes",
-        value<uint32_t>(&configuration.network.channel_expiration_minutes)->
+        value<uint32_t>(&configured.network.channel_expiration_minutes)->
             default_value(network::settings::mainnet.channel_expiration_minutes),
         "The maximum age limit for an outbound connection, defaults to 90."
     )
     (
         "network.channel_germination_seconds",
-        value<uint32_t>(&configuration.network.channel_germination_seconds)->
+        value<uint32_t>(&configured.network.channel_germination_seconds)->
             default_value(network::settings::mainnet.channel_germination_seconds),
         "The maximum time limit for obtaining seed addresses, defaults to 30."
     )
     (
         "network.host_pool_capacity",
-        value<uint32_t>(&configuration.network.host_pool_capacity)->
+        value<uint32_t>(&configured.network.host_pool_capacity)->
             default_value(network::settings::mainnet.host_pool_capacity),
         "The maximum number of peer hosts in the pool, defaults to 1000."
     )
     (
         "network.relay_transactions",
-        value<bool>(&configuration.network.relay_transactions)->
+        value<bool>(&configured.network.relay_transactions)->
             default_value(network::settings::mainnet.relay_transactions),
         "Request that peers relay transactions, defaults to true."
     )
     (
         "network.hosts_file",
-        value<path>(&configuration.network.hosts_file)->
+        value<path>(&configured.network.hosts_file)->
             default_value(network::settings::mainnet.hosts_file),
         "The peer hosts cache file path, defaults to 'hosts.cache'."
     )
     (
         "network.debug_file",
-        value<path>(&configuration.network.debug_file)->
+        value<path>(&configured.network.debug_file)->
             default_value(network::settings::mainnet.debug_file),
         "The debug log file path, defaults to 'debug.log'."
     )
     (
         "network.error_file",
-        value<path>(&configuration.network.error_file)->
+        value<path>(&configured.network.error_file)->
             default_value(network::settings::mainnet.error_file),
         "The error log file path, defaults to 'error.log'."
     )
     (
         "network.self",
-        value<config::authority>(&configuration.network.self)->
+        value<config::authority>(&configured.network.self)->
             multitoken()->default_value(network::settings::mainnet.self),
         "The advertised public address of this node, defaults to none."
     )
     (
         "network.blacklist",
-        value<config::authority::list>(&configuration.network.blacklists)->
+        value<config::authority::list>(&configured.network.blacklists)->
             multitoken()->default_value(network::settings::mainnet.blacklists),
         "IP address to disallow as a peer, multiple entries allowed."
     )
     (
         "network.seed",
-        value<config::endpoint::list>(&configuration.network.seeds)->
+        value<config::endpoint::list>(&configured.network.seeds)->
             multitoken()->default_value(network::settings::mainnet.seeds),
         "A seed node for initializing the host pool, multiple entries allowed."
     )
@@ -242,49 +242,49 @@ options_metadata parser::load_settings()
     /* [blockchain] */
     (
         "blockchain.threads",
-        value<uint32_t>(&configuration.chain.threads)->
+        value<uint32_t>(&configured.chain.threads)->
             default_value(blockchain::settings::mainnet.threads),
         "The number of threads in the blockchain threadpool, defaults to 6."
     )
     (
         "blockchain.history_start_height",
-        value<uint32_t>(&configuration.chain.history_start_height)->
+        value<uint32_t>(&configured.chain.history_start_height)->
             default_value(blockchain::settings::mainnet.history_start_height),
         "The history index start height, defaults to 0."
     )
     (
         "blockchain.block_pool_capacity",
-        value<uint32_t>(&configuration.chain.block_pool_capacity)->
+        value<uint32_t>(&configured.chain.block_pool_capacity)->
             default_value(blockchain::settings::mainnet.block_pool_capacity),
         "The maximum number of orphan blocks in the pool, defaults to 50."
     )
     (
         "blockchain.transaction_pool_capacity",
-        value<uint32_t>(&configuration.chain.transaction_pool_capacity)->
+        value<uint32_t>(&configured.chain.transaction_pool_capacity)->
             default_value(blockchain::settings::mainnet.transaction_pool_capacity),
         "The maximum number of transactions in the pool, defaults to 2000."
     )
     (
         "blockchain.transaction_pool_consistency",
-        value<bool>(&configuration.chain.transaction_pool_consistency)->
+        value<bool>(&configured.chain.transaction_pool_consistency)->
             default_value(blockchain::settings::mainnet.transaction_pool_consistency),
         "Enforce consistency between the pool and the blockchain, defaults to false."
     )
     (
         "blockchain.use_testnet_rules",
-        value<bool>(&configuration.chain.use_testnet_rules)->
+        value<bool>(&configured.chain.use_testnet_rules)->
             default_value(blockchain::settings::mainnet.use_testnet_rules),
         "Use testnet rules for determination of work required, defaults to false."
     )
     (
         "blockchain.database_path",
-        value<path>(&configuration.chain.database_path)->
+        value<path>(&configured.chain.database_path)->
             default_value(blockchain::settings::mainnet.database_path),
         "The blockchain database directory, defaults to 'blockchain'."
     )
     (
         "blockchain.checkpoint",
-        value<config::checkpoint::list>(&configuration.chain.checkpoints)->
+        value<config::checkpoint::list>(&configured.chain.checkpoints)->
             multitoken()->default_value(blockchain::settings::mainnet.checkpoints),
         "A hash:height checkpoint, multiple entries allowed."
     )
@@ -292,31 +292,31 @@ options_metadata parser::load_settings()
     /* [node] */
     (
         "node.threads",
-        value<uint32_t>(&configuration.node.threads)->
+        value<uint32_t>(&configured.node.threads)->
             default_value(node::settings::defaults.threads),
         "The number of threads in the node threadpool, defaults to 4."
     )
     (
         "node.quorum",
-        value<uint32_t>(&configuration.node.quorum)->
+        value<uint32_t>(&configured.node.quorum)->
             default_value(node::settings::defaults.quorum),
         "The number of peers to survey during sync, defaults to 8."
     )
     (
         "node.blocks_per_second",
-        value<uint32_t>(&configuration.node.blocks_per_second)->
+        value<uint32_t>(&configured.node.blocks_per_second)->
             default_value(node::settings::defaults.blocks_per_second),
         "The minimum block rate required from a peer during block sync, defaults to 16."
     )
     (
         "node.headers_per_second",
-        value<uint32_t>(&configuration.node.headers_per_second)->
+        value<uint32_t>(&configured.node.headers_per_second)->
             default_value(node::settings::defaults.headers_per_second),
         "The minimum header rate required from a peer during header sync, defaults to 10000."
     )
     (
         "node.peer",
-        value<config::endpoint::list>(&configuration.node.peers)->
+        value<config::endpoint::list>(&configured.node.peers)->
             multitoken()->default_value(node::settings::defaults.peers),
         "Persistent host:port to augment discovered hosts, multiple entries allowed."
     );
@@ -347,7 +347,7 @@ bool parser::parse(int argc, const char* argv[], std::ostream& error)
 
         // Clear the config file path if it wasn't used.
         if (!file)
-            configuration.file.clear();
+            configured.file.clear();
     }
     catch (const boost::program_options::error& e)
     {

@@ -159,7 +159,7 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
 
     const auto start_handler =
         std::bind(&p2p_node::handle_headers_synchronized,
-            shared_from_base<p2p_node>(), _1, block_height, handler);
+            shared_from_base<p2p_node>(), _1, top.height(), handler);
 
     // The instance is retained by the stop handler (i.e. until shutdown).
     attach<session_header_sync>(hashes_, top, configuration_)->

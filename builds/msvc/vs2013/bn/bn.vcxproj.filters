@@ -15,12 +15,12 @@
     <ClCompile Include="..\..\..\..\console\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\console\executive.cpp">
+    <ClCompile Include="..\..\..\..\console\executor.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\console\executive.hpp">
+    <ClInclude Include="..\..\..\..\console\executor.hpp">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_DISPATCH_HPP
-#define LIBBITCOIN_NODE_DISPATCH_HPP
+#ifndef LIBBITCOIN_NODE_EXECUTOR_HPP
+#define LIBBITCOIN_NODE_EXECUTOR_HPP
 
 #include <future>
 #include <iostream>
@@ -28,24 +28,23 @@
 namespace libbitcoin {
 namespace node {
 
-class executive
-  : public std::enable_shared_from_this<executive>
+class executor
+  : public std::enable_shared_from_this<executor>
 {
 public:
-    typedef std::shared_ptr<executive> ptr;
+    typedef std::shared_ptr<executor> ptr;
 
-    executive(parser& metadata, std::istream&, std::ostream& output,
+    executor(parser& metadata, std::istream&, std::ostream& output,
         std::ostream& error);
 
     /// This class is not copyable.
-    executive(const executive&) = delete;
-    void operator=(const executive&) = delete;
+    executor(const executor&) = delete;
+    void operator=(const executor&) = delete;
 
     /// Invoke the command indicated by the metadata.
     bool invoke();
 
 private:
-
     void do_help();
     void do_settings();
     void do_version();
@@ -54,16 +53,15 @@ private:
     bool run();
     bool verify();
     bool wait_on_stop();
+    void initialize_output();
     void monitor_stop(p2p_node::result_handler);
-    void handle_started(const code& ec);
-    void handle_running(const code& ec);
+    void handle_seeded(const code& ec);
+    void handle_synchronized(const code& ec);
     void handle_stopped(const code& ec, std::promise<code>& promise);
 
     p2p_node::ptr node_;
     parser& metadata_;
-    std::istream& input_;
     std::ostream& output_;
-    std::ostream& error_;
     bc::ofstream debug_file_;
     bc::ofstream error_file_;
 };
@@ -85,12 +83,18 @@ private:
 #define BN_INITCHAIN_TRY \
     "Failed to test directory %1% with error, '%2%'."
 
+#define BN_NODE_INTERRUPT \
+    "Press CTRL-C to stop the node."
 #define BN_NODE_STARTING \
     "Please wait while the node is starting..."
 #define BN_NODE_START_FAIL \
     "The node failed to start with error, %1%."
 #define BN_NODE_STARTED \
-    "The node is started, press CTRL-C to stop."
+    "Blockchain is started."
+#define BN_NODE_SEEDED \
+    "Seeding is complete."
+#define BN_NODE_SYNCHRONIZED \
+    "Synchronization is complete."
 
 #define BN_NODE_STOPPING \
     "Please wait while the node is stopping (code: %1%)..."
@@ -108,6 +112,8 @@ private:
     "libbitcoin-node:       %1%\n" \
     "libbitcoin-blockchain: %2%\n" \
     "libbitcoin:            %3%"
+#define BN_LOG_HEADER \
+    "================= startup =================="
 
 } // namespace node
 } // namespace libbitcoin

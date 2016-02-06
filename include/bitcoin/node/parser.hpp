@@ -51,7 +51,7 @@ public:
     virtual options_metadata load_environment();
 
     /// The populated configuration settings values.
-    configuration configuration;
+    configuration configured;
 };  
 
 } // namespace node

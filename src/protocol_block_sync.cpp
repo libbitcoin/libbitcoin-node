@@ -201,6 +201,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
 
     // If we reached the target height the sync is complete.
     if (current_height() > target_height_)
+    ////if (true)
     {
         complete(error::success);
         return false;

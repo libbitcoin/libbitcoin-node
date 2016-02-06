@@ -21,7 +21,7 @@
 #include <memory>
 #include <string>
 #include <bitcoin/node.hpp>
-#include "executive.hpp"
+#include "executor.hpp"
 
 BC_USE_LIBBITCOIN_MAIN
 
@@ -44,6 +44,6 @@ int bc::main(int argc, char* argv[])
     if (!metadata.parse(argc, args, cerr))
         return console_result::failure;
 
-    const auto host = std::make_shared<executive>(metadata, cin, cout, cerr);
+    const auto host = std::make_shared<executor>(metadata, cin, cout, cerr);
     return host->invoke() ? console_result::okay : console_result::failure;
 }

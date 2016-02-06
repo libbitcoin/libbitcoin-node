@@ -67,8 +67,8 @@ bin_PROGRAMS = console/bn
 console_bn_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
 console_bn_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 console_bn_SOURCES = \
-    console/executive.cpp \
-    console/executive.hpp \
+    console/executor.cpp \
+    console/executor.hpp \
     console/main.cpp
 
 endif WITH_CONSOLE
