@@ -45,33 +45,33 @@ options_metadata parser::load_options()
     options_metadata description("options");
     description.add_options()
     (
-        BN_CONFIG_VARIABLE,
+        BN_CONFIG_VARIABLE ",c",
         value<path>(&configured.file),
-        "The path to the configuration settings file."
+        "Specify path to a configuration settings file."
     )
     (
         BN_HELP_VARIABLE ",h",
         value<bool>(&configured.help)->
             default_value(false)->zero_tokens(),
-        "Get list of options for this command."
+        "Display command line options."
     )
     (
         "initchain,i",
         value<bool>(&configured.initchain)->
             default_value(false)->zero_tokens(),
-        "Initialize the blockchain in the configured directory."
+        "Initialize blockchain in the configured directory."
     )
     (
         BN_SETTINGS_VARIABLE ",s",
         value<bool>(&configured.settings)->
             default_value(false)->zero_tokens(),
-        "Display the loaded configuration settings."
+        "Display all configuration settings."
     )
     (
         BN_VERSION_VARIABLE ",v",
         value<bool>(&configured.version)->
             default_value(false)->zero_tokens(),
-        "Get version information."
+        "Display version information."
     );
 
     return description;

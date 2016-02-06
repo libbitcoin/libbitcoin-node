@@ -91,7 +91,10 @@ void executor::initialize_output()
     log::fatal(LOG_NODE) << BN_LOG_HEADER;
 
     const auto file = metadata_.configured.file;
-    log::info(LOG_NODE) << format(BN_USING_CONFIG_FILE) % file;
+    if (file.empty())
+        log::info(LOG_NODE) << BN_USING_DEFAULT_CONFIG;
+    else
+        log::info(LOG_NODE) << format(BN_USING_CONFIG_FILE) % file;
 }
 
 // ----------------------------------------------------------------------------
@@ -294,6 +297,7 @@ void executor::monitor_stop(p2p::result_handler handler)
     log::info(LOG_NODE) << BN_NODE_UNMAPPING;
     node_->stop(handler);
     node_->close();
+    node_ = nullptr;
 }
 
 } // namespace node

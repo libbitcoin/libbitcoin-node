@@ -88,7 +88,7 @@ private:
 #define BN_NODE_STARTING \
     "Please wait while the node is starting..."
 #define BN_NODE_START_FAIL \
-    "The node failed to start with error, %1%."
+    "Node failed to start with error, %1%."
 #define BN_NODE_STARTED \
     "Blockchain is started."
 #define BN_NODE_SEEDED \
@@ -101,12 +101,14 @@ private:
 #define BN_NODE_UNMAPPING \
     "Please wait while files are unmapped..."
 #define BN_NODE_STOP_FAIL \
-    "The node stopped with error, %1%."
+    "Node stopped with error, %1%."
 #define BN_NODE_STOPPED \
-    "The node stopped successfully."
+    "Node stopped successfully."
 
 #define BN_USING_CONFIG_FILE \
     "Using config file: %1%"
+#define BN_USING_DEFAULT_CONFIG \
+    "Using default configuration settings."
 #define BN_VERSION_MESSAGE \
     "\nVersion Information:\n\n" \
     "libbitcoin-node:       %1%\n" \
