@@ -19,7 +19,6 @@
  */
 #include <iostream>
 #include <memory>
-#include <string>
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
 
