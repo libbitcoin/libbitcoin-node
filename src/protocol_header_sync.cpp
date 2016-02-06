@@ -243,6 +243,7 @@ bool protocol_header_sync::handle_receive(const code& ec,
     }
 
     send_get_headers(complete);
+    ////complete(error::success);
     return true;
 }
 

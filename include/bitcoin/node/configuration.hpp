@@ -62,9 +62,8 @@ public:
 
     /// Options.
     bool help;
-    bool main_network;
+    bool initchain;
     bool settings;
-    bool test_network;
     bool version;
 
     /// Options and environment vars.

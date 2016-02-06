@@ -80,7 +80,7 @@ void p2p_node::start(result_handler handler)
 
     blockchain_.start(
         std::bind(&p2p_node::handle_blockchain_start,
-            this, _1, handler));
+            shared_from_base<p2p_node>(), _1, handler));
 }
 
 void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
@@ -95,7 +95,7 @@ void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
 
     blockchain_.fetch_last_height(
         std::bind(&p2p_node::handle_fetch_height,
-            this, _1, _2, handler));
+            shared_from_base<p2p_node>(), _1, _2, handler));
 }
 
 void p2p_node::handle_fetch_height(const code& ec, uint64_t height,
@@ -135,7 +135,7 @@ void p2p_node::run(result_handler handler)
 
     blockchain_.fetch_block_header(current_height,
         std::bind(&p2p_node::handle_fetch_header,
-            this, _1, _2, current_height, handler));
+            shared_from_base<p2p_node>(), _1, _2, current_height, handler));
 }
 
 void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
@@ -157,10 +157,13 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
 
     const config::checkpoint top(block_header.hash(), block_height);
 
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, top, configuration_)->start(
+    const auto start_handler =
         std::bind(&p2p_node::handle_headers_synchronized,
-            this, _1, block_height, handler));
+            shared_from_base<p2p_node>(), _1, top.height(), handler);
+
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    attach<session_header_sync>(hashes_, top, configuration_)->
+        start(start_handler);
 }
 
 void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
@@ -196,10 +199,13 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
         << "Completed header synchronization [" << start_height << "-"
         << end_height << "]";
 
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_block_sync>(hashes_, start_height, configuration_)->start(
+    const auto start_handler =
         std::bind(&p2p_node::handle_blocks_synchronized,
-            this, _1, start_height, handler));
+            shared_from_base<p2p_node>(), _1, start_height, handler);
+
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    attach<session_block_sync>(hashes_, start_height, configuration_)->
+        start(start_handler);
 }
 
 void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
