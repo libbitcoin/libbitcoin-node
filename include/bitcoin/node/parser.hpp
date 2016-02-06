@@ -21,7 +21,6 @@
 #define LIBBITCOIN_NODE_PARSER_HPP
 
 #include <ostream>
-#include <boost/filesystem.hpp>
 #include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/configuration.hpp>

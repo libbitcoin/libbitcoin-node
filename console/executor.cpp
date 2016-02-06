@@ -20,6 +20,7 @@
 #include "executor.hpp"
 
 #include <chrono>
+#include <csignal>
 #include <functional>
 #include <future>
 #include <iostream>
@@ -90,7 +91,8 @@ void executor::initialize_output()
     log::error(LOG_NODE) << BN_LOG_HEADER;
     log::fatal(LOG_NODE) << BN_LOG_HEADER;
 
-    const auto file = metadata_.configured.file;
+    const auto& file = metadata_.configured.file;
+
     if (file.empty())
         log::info(LOG_NODE) << BN_USING_DEFAULT_CONFIG;
     else
@@ -119,8 +121,10 @@ void executor::do_settings()
 
 void executor::do_version()
 {
-    output_ << format(BN_VERSION_MESSAGE) % LIBBITCOIN_NODE_VERSION %
-        LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_VERSION << std::endl;
+    output_ << format(BN_VERSION_MESSAGE) %
+        LIBBITCOIN_NODE_VERSION %
+        LIBBITCOIN_BLOCKCHAIN_VERSION %
+        LIBBITCOIN_VERSION << std::endl;
 }
 
 // Emit to the logs.
@@ -157,7 +161,7 @@ bool executor::do_initchain()
 
 bool executor::invoke()
 {
-    const auto config = metadata_.configured;
+    const auto& config = metadata_.configured;
 
     if (config.help)
     {
@@ -297,6 +301,8 @@ void executor::monitor_stop(p2p::result_handler handler)
     log::info(LOG_NODE) << BN_NODE_UNMAPPING;
     node_->stop(handler);
     node_->close();
+
+    // This is the end of the run sequence.
     node_ = nullptr;
 }
 
