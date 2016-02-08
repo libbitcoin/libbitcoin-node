@@ -83,7 +83,7 @@ size_t protocol_header_sync::current_rate() const
     return (hashes_.size() - start_size_) / current_second_;
 }
 
-bool protocol_header_sync::chained(const header& header,
+bool protocol_header_sync::linked(const header& header,
     const hash_digest& hash) const
 {
     return header.previous_block_hash == hash;
@@ -136,7 +136,7 @@ bool protocol_header_sync::merge_headers(const headers& message)
     {
         const auto current = header.hash();
 
-        if (!chained(header, previous) || !checks(current, next_height()))
+        if (!linked(header, previous) || !checks(current, next_height()))
         {
             rollback();
             return false;
@@ -231,7 +231,7 @@ bool protocol_header_sync::handle_receive(const code& ec,
 
     log::info(LOG_PROTOCOL)
         << "Synced headers " << next_height() - message.elements.size()
-        << "-" << next_height() << " from [" << authority() << "]";
+        << "-" << next_height() - 1 << " from [" << authority() << "]";
 
     // If we received fewer than 2000 the peer is exhausted.
     if (message.elements.size() < full_headers)
@@ -243,7 +243,6 @@ bool protocol_header_sync::handle_receive(const code& ec,
     }
 
     send_get_headers(complete);
-    ////complete(error::success);
     return true;
 }
 

@@ -45,10 +45,11 @@ static constexpr size_t full_blocks = 50000;
 static_assert(full_blocks > 1, "unmitigated overflow risk");
 
 session_block_sync::session_block_sync(threadpool& pool, p2p& network,
-    hash_list& hashes, size_t start, const configuration& configuration)
+    const hash_list& hashes, size_t first_height,
+    const configuration& configuration)
   : session_batch(pool, network, configuration.network, false),
     hashes_(hashes),
-    start_height_(start),
+    first_height_(first_height),
     configuration_(configuration),
     CONSTRUCT_TRACK(session_block_sync)
 {
@@ -62,8 +63,7 @@ void session_block_sync::start(result_handler handler)
     session::start(CONCURRENT2(handle_started, _1, handler));
 }
 
-void session_block_sync::handle_started(const code& ec,
-    result_handler handler)
+void session_block_sync::handle_started(const code& ec, result_handler handler)
 {
     if (ec)
     {
@@ -78,59 +78,68 @@ void session_block_sync::handle_started(const code& ec,
 
     // This is the end of the start sequence.
     for (size_t scope = 0; scope < scopes; ++scope)
-        new_connection(connector, scope, complete);
+    {
+        const auto start_index = scope * full_blocks;
+        const auto start_height = first_height_ + start_index;
+
+        const auto remainder = hashes_.size() - start_index;
+        const auto count = std::min(full_blocks, remainder);
+        const auto end_height = start_height + count - 1;
+
+        new_connection(start_height, end_height, connector, complete);
+    }
 }
 
 // Header sync sequence.
 // ----------------------------------------------------------------------------
 
-void session_block_sync::new_connection(connector::ptr connect, size_t scope,
-    result_handler handler)
+void session_block_sync::new_connection(size_t start, size_t end,
+    connector::ptr connect, result_handler handler)
 {
     if (stopped())
     {
         log::debug(LOG_NETWORK)
-            << "Suspending block sync session (" << scope << ").";
+            << "Suspending block sync session (" << start << ").";
         return;
     }
 
     log::debug(LOG_NETWORK)
-        << "Starting block sync session (" << scope << ")";
+        << "Starting block sync session (" << start << ")";
 
     // BLOCK SYNC CONNECT
-    this->connect(connect, 
-        BIND5(handle_connect, _1, _2, connect, scope, handler));
+    this->connect(connect,
+        BIND6(handle_connect, _1, _2, start, end, connect, handler));
 }
 
 void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
-    connector::ptr connect, size_t scope, result_handler handler)
+    size_t start, size_t end, connector::ptr connect, result_handler handler)
 {
     if (ec)
     {
         log::debug(LOG_NETWORK)
-            << "Failure connecting block sync channel (" << scope << ") "
-            << ec.message();
-        new_connection(connect, scope, handler);
+            << "Failure connecting block sync channel (" << start
+            << ") " << ec.message();
+        new_connection(start, end, connect, handler);
         return;
     }
 
     log::info(LOG_NETWORK)
-        << "Connected to block sync channel (" << scope << ") ["
+        << "Connected to block sync channel (" << start << ") ["
         << channel->authority() << "]";
 
     register_channel(channel,
-        BIND5(handle_channel_start, _1, connect, channel, scope, handler),
-        BIND2(handle_channel_stop, _1, scope));
+        BIND6(handle_channel_start, _1, start, end, connect, channel, handler),
+        BIND3(handle_channel_stop, _1, start, end));
 }
 
-void session_block_sync::handle_channel_start(const code& ec,
-    connector::ptr connect, channel::ptr channel, size_t scope,
+void session_block_sync::handle_channel_start(const code& ec, size_t start,
+    size_t end, connector::ptr connect, channel::ptr channel,
     result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_complete(ec, connect, scope, handler);
+        handle_complete(ec, start, end, connect, handler);
         return;
     }
 
@@ -138,29 +147,30 @@ void session_block_sync::handle_channel_start(const code& ec,
 
     attach<protocol_ping>(channel)->start(settings_);
     attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_block_sync>(channel, rate, start_height_, scope, hashes_)->
-        start(BIND4(handle_complete, _1, connect, scope, handler));
+    attach<protocol_block_sync>(channel, first_height_, start, end, rate,
+        hashes_)->start(BIND5(handle_complete, _1, _2, end, connect, handler));
 };
 
-// The handler is passed on to the next start call.
-void session_block_sync::handle_complete(const code& ec,
-    network::connector::ptr connect, size_t scope, result_handler handler)
+// We ignore the result code here.
+void session_block_sync::handle_complete(const code&, size_t start,
+    size_t end, network::connector::ptr connect, result_handler handler)
 {
-    if (ec)
+    // There is no failure scenario, loop until done (add timer).
+    if (start <= end)
     {
-        new_connection(connect, scope, handler);
+        new_connection(start, end, connect, handler);
         return;
     }
 
     // This is the end of the block sync sequence.
-    // There is no failure scenario (add timer).
     handler(error::success);
 }
 
-void session_block_sync::handle_channel_stop(const code& ec, size_t scope)
+void session_block_sync::handle_channel_stop(const code& ec, size_t start,
+    size_t)
 {
     log::debug(LOG_NETWORK)
-        << "Block sync channel (" << scope << ") stopped: "
+        << "Block sync channel (" << start << ") stopped: "
         << ec.message();
 }
 

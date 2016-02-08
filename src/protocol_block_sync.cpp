@@ -42,52 +42,45 @@ using std::placeholders::_2;
 // TODO: move to config.
 static constexpr size_t block_rate_seconds = 10;
 
-static constexpr size_t full_blocks = 50000;
-static const asio::duration ten_seconds(0, 0, block_rate_seconds);
+static const asio::seconds block_rate(block_rate_seconds);
 
+// TODO: pass end-height vs. count.
 protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
-    channel::ptr channel, uint32_t minimum_rate, size_t first_height,
-    size_t scope, const hash_list& hashes)
+    channel::ptr channel, size_t first_height, size_t start_height,
+    size_t end_height, uint32_t minimum_rate, const hash_list& hashes)
   : protocol_timer(pool, channel, true, NAME),
     current_second_(0),
-    hash_index_(scope * full_blocks),
-    start_index_(hash_index_),
+    index_(start_height - first_height),
     first_height_(first_height),
-    target_height_(target(first_height, hash_index_, hashes)),
+    start_height_(start_height),
+    end_height_(end_height),
+    count_(end_height - start_height + 1),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
-    if (hashes_.empty())
-        throw std::length_error("block hash list is empty");
-
-    if (scope >= bc::max_size_t / full_blocks || hash_index_ >= hashes.size())
-        throw std::length_error("invalid scope");
+    BITCOIN_ASSERT(start_height <= end_height);
+    BITCOIN_ASSERT(first_height_ <= start_height_);
+    BITCOIN_ASSERT(count_ <= hashes_.size());
+    BITCOIN_ASSERT(index_ <= hashes_.size() - count_);
 }
 
-// Utilities
+// Utilities.
 // ----------------------------------------------------------------------------
-
-size_t protocol_block_sync::target(size_t first_height, size_t start_index,
-    const hash_list& hashes)
-{
-    const auto count = std::min(hashes.size() - start_index, full_blocks);
-    return first_height + start_index + count - 1;
-}
-
-size_t protocol_block_sync::current_height() const
-{
-    return first_height_ + hash_index_;
-}
 
 size_t protocol_block_sync::current_rate() const
 {
-    return (hash_index_ - start_index_) / current_second_;
+    return (next_height() - start_height_) / current_second_;
 }
 
-const hash_digest& protocol_block_sync::current_hash() const
+size_t protocol_block_sync::next_height() const
 {
-    return hashes_[hash_index_];
+    return first_height_ + index_;
+}
+
+const hash_digest& protocol_block_sync::next_hash() const
+{
+    return hashes_[index_];
 }
 
 message::get_data protocol_block_sync::build_get_data() const
@@ -98,17 +91,15 @@ message::get_data protocol_block_sync::build_get_data() const
         packet.inventories.push_back({ inventory_type_id::block, hash });
     };
 
-    const auto start = hashes_.begin() + start_index_;
-    const auto start_height = first_height_ + start_index_;
-    const size_t count = target_height_ - start_height + 1;
-    std::for_each(start, start + count, copy);
+    const auto start = hashes_.begin() + index_;
+    std::for_each(start, start + count_, copy);
 
     log::info(LOG_NETWORK)
-        << "Count: " << count
-        << ", start_index: " << start_index_
+        << "Count: " << count_
+        << ", start_index: " << index_
         << ", first_height: " << first_height_
-        << ", start_height: " << start_height
-        << ", target_height: " << target_height_;
+        << ", start_height: " << start_height_
+        << ", end_height: " << end_height_;
 
     return packet;
 }
@@ -116,21 +107,22 @@ message::get_data protocol_block_sync::build_get_data() const
 // Start sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::start(event_handler handler)
+void protocol_block_sync::start(count_handler handler)
 {
-    if (peer_version().start_height < target_height_)
+    // version.start_height is the top of the peer's chain.
+    if (peer_version().start_height < end_height_)
     {
         log::info(LOG_NETWORK)
             << "Start height (" << peer_version().start_height
-            << ") below block sync target (" << target_height_ << ") from ["
+            << ") below block sync target (" << end_height_ << ") from ["
             << authority() << "]";
 
-        handler(error::channel_stopped);
+        handler(error::channel_stopped, next_height());
         return;
     }
 
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
-    protocol_timer::start(ten_seconds, BIND2(handle_event, _1, complete));
+    protocol_timer::start(block_rate, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(block, handle_receive, _1, _2, complete);
 
@@ -180,7 +172,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     // A block must match the request in order to be accepted.
-    if (current_hash() != message.header.hash())
+    if (next_hash() != message.header.hash())
     {
         log::info(LOG_PROTOCOL)
             << "Out of order block " << encode_hash(message.header.hash())
@@ -192,18 +184,17 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     log::info(LOG_PROTOCOL)
-        << "Synced block #" << current_height() << " from ["
+        << "Synced block #" << next_height() << " from ["
         << authority() << "]";
 
-    ///////////////////////////////////////////////////
-    // TODO: commit block here, from another thread. //
-    ///////////////////////////////////////////////////
+    //////////////////////////////
+    // TODO: commit block here. //
+    //////////////////////////////
 
-    ++hash_index_;
+    ++index_;
 
-    // If we reached the target height the sync is complete.
-    if (current_height() > target_height_)
-    ////if (true)
+    // If our next block is past the end height the sync is complete.
+    if (next_height() > end_height_)
     {
         complete(error::success);
         return false;
@@ -245,10 +236,10 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 }
 
 void protocol_block_sync::blocks_complete(const code& ec,
-    event_handler handler)
+    count_handler handler)
 {
     // This is the end of the block sync sequence.
-    handler(ec);
+    handler(ec, next_height());
 
     // The session does not need to handle the stop.
     stop(error::channel_stopped);

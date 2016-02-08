@@ -37,27 +37,28 @@ public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
     session_block_sync(threadpool& pool, network::p2p& network,
-        hash_list& hashes, size_t start, const configuration& configuration);
+        const hash_list& hashes, size_t first_height,
+        const configuration& configuration);
 
     void start(result_handler handler);
 
 private:
     void handle_started(const code& ec, result_handler handler);
-    void new_connection(network::connector::ptr connect, size_t scope,
-        result_handler handler);
+    void new_connection(size_t start, size_t end,
+        network::connector::ptr connect, result_handler handler);
     void handle_connect(const code& ec, network::channel::ptr channel,
-        network::connector::ptr connect, size_t scope, result_handler handler);
-    void handle_complete(const code& ec, network::connector::ptr connect,
-        size_t scope, result_handler handler);
-
-    void handle_channel_start(const code& ec, network::connector::ptr connect,
-        network::channel::ptr channel, size_t scope, result_handler handler);
-    void handle_channel_stop(const code& ec, size_t scope);
+        size_t start, size_t end, network::connector::ptr connect,
+        result_handler handler);
+    void handle_complete(const code& ec, size_t start, size_t end,
+        network::connector::ptr connect, result_handler handler);
+    void handle_channel_start(const code& ec, size_t start, size_t end,
+        network::connector::ptr connect, network::channel::ptr channel,
+        result_handler handler);
+    void handle_channel_stop(const code& ec, size_t start, size_t end);
 
     // This is guarded by the non-restartable session constraint.
-    hash_list& hashes_;
-
-    const size_t start_height_;
+    const hash_list& hashes_;
+    const size_t first_height_;
     const configuration& configuration_;
 };
 
