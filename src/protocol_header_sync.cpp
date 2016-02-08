@@ -267,7 +267,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     // It was a timeout, so ten more seconds have passed.
     current_second_ += header_period_seconds;
 
-    // Drop the channel if it falls below the min sync rate.
+    // Drop the channel if it falls below the min sync rate averaged over all.
     if (current_rate() < minimum_rate_)
     {
         log::info(LOG_PROTOCOL)

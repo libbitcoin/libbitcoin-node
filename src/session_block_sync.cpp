@@ -143,11 +143,11 @@ void session_block_sync::handle_channel_start(const code& ec, size_t start,
         return;
     }
 
-    const auto rate = configuration_.node.blocks_per_second;
+    const auto byte_rate = configuration_.node.block_bytes_per_second;
 
     attach<protocol_ping>(channel)->start(settings_);
     attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_block_sync>(channel, first_height_, start, end, rate,
+    attach<protocol_block_sync>(channel, first_height_, start, end, byte_rate,
         hashes_)->start(BIND5(handle_complete, _1, _2, end, connect, handler));
 };
 
