@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <stdexcept>
 #include <bitcoin/bitcoin.hpp>
 
 INITIALIZE_TRACK(bc::node::protocol_block_sync);
@@ -57,10 +58,11 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     hashes_(hashes),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
-    // TODO: convert to exceptions (public API).
-    BITCOIN_ASSERT_MSG(scope < bc::max_size_t / full_blocks, "Invalid scope.");
-    BITCOIN_ASSERT_MSG(hash_index_ < hashes.size(), "Invalid scope.");
-    BITCOIN_ASSERT_MSG(!hashes_.empty(), "The block hash list is empty.");
+    if (hashes_.empty())
+        throw std::length_error("block hash list is empty");
+
+    if (scope >= bc::max_size_t / full_blocks || hash_index_ >= hashes.size())
+        throw std::length_error("invalid scope");
 }
 
 // Utilities
