@@ -70,7 +70,7 @@ private:
     void rollback();
     bool merge_headers(const message::headers& message);
     bool checks(const hash_digest& hash, size_t height) const;
-    bool chained(const chain::header& header, const hash_digest& hash) const;
+    bool linked(const chain::header& header, const hash_digest& hash) const;
     bool proof_of_work(const chain::header& header, size_t height) const;
 
     void send_get_headers(event_handler complete);

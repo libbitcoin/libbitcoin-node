@@ -45,34 +45,33 @@ public:
      * Construct a block sync protocol instance.
      * @param[in]  pool          The thread pool used by the protocol.
      * @param[in]  channel       The channel on which to start the protocol.
+     * @param[in]  first_height  The height of the first block in hashes.
+     * @param[in]  start_height  The height of the first block in sync range.
+     * @param[in]  count         The number of blocks to sync.
      * @param[in]  minimum_rate  The minimum sync rate in blocks per minute.
-     * @param[in]  first_height  The height of the first entry in headers.
-     * @param[in]  scope         The block of responsibility [1-50,000].
      * @param[in]  hashes        The ordered set of block hashes to sync.
      */
     protocol_block_sync(threadpool& pool, network::p2p&,
-        network::channel::ptr channel, uint32_t minimum_rate,
-        size_t first_height, size_t scope, const hash_list& hashes);
+        network::channel::ptr channel, size_t first_height,
+        size_t start_height, size_t count, uint32_t minimum_rate,
+        const hash_list& hashes);
 
     /**
      * Start the protocol.
      * @param[in]  handler  The handler to call upon sync completion.
      */
-    void start(event_handler handler);
+    void start(count_handler handler);
 
 private:
-    static size_t target(size_t first_height, size_t start_index,
-        const hash_list& hashes);
-
+    size_t next_height() const;
     size_t current_rate() const;
-    size_t current_height() const;
-    const hash_digest& current_hash() const;
+    const hash_digest& next_hash() const;
     message::get_data build_get_data() const;
 
     void send_get_blocks(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
-    void blocks_complete(const code& ec, event_handler handler);
+    void blocks_complete(const code& ec, count_handler handler);
     bool handle_receive(const code& ec, const message::block& message,
         event_handler complete);
 
@@ -80,11 +79,12 @@ private:
     size_t current_second_;
 
     // This is write-guarded by the block message subscriber strand.
-    std::atomic<size_t> hash_index_;
+    std::atomic<size_t> index_;
 
-    const size_t start_index_;
+    const size_t count_;
     const size_t first_height_;
-    const size_t target_height_;
+    const size_t start_height_;
+    const size_t end_height_;
     const uint32_t minimum_rate_;
     const hash_list& hashes_;
 };
