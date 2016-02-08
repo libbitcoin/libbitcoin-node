@@ -123,9 +123,9 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
         BIND2(handle_channel_stop, _1, scope));
 }
 
-void session_block_sync::handle_channel_start(
-    const code& ec, connector::ptr connect, channel::ptr channel,
-    size_t scope, result_handler handler)
+void session_block_sync::handle_channel_start(const code& ec,
+    connector::ptr connect, channel::ptr channel, size_t scope,
+    result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
