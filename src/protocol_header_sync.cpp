@@ -223,7 +223,7 @@ bool protocol_header_sync::handle_receive(const code& ec,
 
     if (!merge_headers(message))
     {
-        log::info(LOG_PROTOCOL)
+        log::warning(LOG_PROTOCOL)
             << "Failure merging headers from [" << authority() << "]";
         complete(error::previous_block_invalid);
         return false;

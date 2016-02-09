@@ -175,7 +175,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     // A block must match the request in order to be accepted.
     if (next_hash() != message.header.hash())
     {
-        log::info(LOG_PROTOCOL)
+        log::warning(LOG_PROTOCOL)
             << "Out of order block " << encode_hash(message.header.hash())
             << " from [" << authority() << "] (ignored)";
 
