@@ -208,13 +208,6 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
         std::bind(&p2p_node::handle_blocks_synchronized,
             shared_from_base<p2p_node>(), _1, first_height, handler);
 
-    ////
-    //// TODO: create intermediate session_chain : session_batch
-    //// pass through p2p_node to session constructors, or possibly
-    //// stop update/replace attach<> and just construct session here.
-    //// same for protocol.
-    ////
-
     // The instance is retained by the stop handler (i.e. until shutdown).
     attach<session_block_sync>(hashes_, first_height, configuration_,
         blockchain_)->start(start_handler);
@@ -245,7 +238,7 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
     p2p::run(handler);
 }
 
-// Stop sequence.
+// Subscribers.
 // ----------------------------------------------------------------------------
 
 void p2p_node::subscribe_blockchain(reorganize_handler handler)
