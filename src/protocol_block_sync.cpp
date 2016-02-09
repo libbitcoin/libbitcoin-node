@@ -49,6 +49,7 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     channel::ptr channel, size_t first_height, size_t start_height,
     size_t end_height, uint32_t minimum_rate, const hash_list& hashes)
   : protocol_timer(pool, channel, true, NAME),
+    byte_count_(0),
     current_second_(0),
     index_(start_height - first_height),
     first_height_(first_height),
@@ -70,7 +71,7 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
 
 size_t protocol_block_sync::current_rate() const
 {
-    return (next_height() - start_height_) / current_second_;
+    return byte_count_ / block_rate_seconds;
 }
 
 size_t protocol_block_sync::next_height() const
@@ -174,7 +175,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     // A block must match the request in order to be accepted.
     if (next_hash() != message.header.hash())
     {
-        log::info(LOG_PROTOCOL)
+        log::warning(LOG_PROTOCOL)
             << "Out of order block " << encode_hash(message.header.hash())
             << " from [" << authority() << "] (ignored)";
 
@@ -191,6 +192,11 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     // TODO: commit block here. //
     //////////////////////////////
 
+    const auto size = message.serialized_size();
+    BITCOIN_ASSERT(byte_count_ <= max_size_t - size);
+    byte_count_ += size;
+
+    BITCOIN_ASSERT(index_ < max_size_t);
     ++index_;
 
     // If our next block is past the end height the sync is complete.
@@ -224,15 +230,18 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
     // It was a timeout, so ten more seconds have passed.
     current_second_ += block_rate_seconds;
 
-    // Drop the channel if it falls below the min sync rate.
+    // Drop the channel if it falls below the min sync rate in the window.
     if (current_rate() < minimum_rate_)
     {
         log::info(LOG_PROTOCOL)
-            << "Block sync rate (" << current_rate() << "/min) from ["
+            << "Block sync rate (" << current_rate() << "/sec) from ["
             << authority() << "]";
         complete(error::channel_timeout);
         return;
     }
+
+    // Reset bytes-per-period accumulator.
+    byte_count_ = 0;
 }
 
 void protocol_block_sync::blocks_complete(const code& ec,

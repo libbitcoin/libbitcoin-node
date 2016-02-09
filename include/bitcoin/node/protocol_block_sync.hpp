@@ -48,7 +48,7 @@ public:
      * @param[in]  first_height  The height of the first block in hashes.
      * @param[in]  start_height  The height of the first block in sync range.
      * @param[in]  count         The number of blocks to sync.
-     * @param[in]  minimum_rate  The minimum sync rate in blocks per minute.
+     * @param[in]  minimum_rate  The minimum sync rate in bytes per second.
      * @param[in]  hashes        The ordered set of block hashes to sync.
      */
     protocol_block_sync(threadpool& pool, network::p2p&,
@@ -76,6 +76,7 @@ private:
         event_handler complete);
 
     // This is guarded by protocol_timer/deadline contract (exactly one call).
+    size_t byte_count_;
     size_t current_second_;
 
     // This is write-guarded by the block message subscriber strand.

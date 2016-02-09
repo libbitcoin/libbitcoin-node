@@ -27,7 +27,7 @@ static const settings settings_defaults()
     settings value;
     value.threads = 4;
     value.quorum = 8;
-    value.blocks_per_second = 16;
+    value.block_bytes_per_second = 100000;
     value.headers_per_second = 10000;
     value.peers = { {} };
     return value;
