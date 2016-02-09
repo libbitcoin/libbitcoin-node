@@ -21,6 +21,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -33,7 +34,8 @@ namespace node {
 
 #define CLASS session_block_sync
 #define NAME "session_block_sync"
-
+    
+using namespace blockchain;
 using namespace config;
 using namespace network;
 using std::placeholders::_1;
@@ -44,14 +46,15 @@ static constexpr size_t full_blocks = 50000;
 // There is overflow risk only if full_blocks is 1 (with max_size_t hashes).
 static_assert(full_blocks > 1, "unmitigated overflow risk");
 
-session_block_sync::session_block_sync(threadpool& pool, p2p& network,
-    const hash_list& hashes, size_t first_height,
-    const configuration& configuration)
-  : session_batch(pool, network, configuration.network, false),
+session_block_sync::session_block_sync(p2p& network, const hash_list& hashes,
+    size_t first_height, const configuration& configuration,
+    block_chain& chain)
+  : session_batch(network, false),
     offset_((hashes.size() / full_blocks) + 1),
     first_height_(first_height),
     hashes_(hashes),
     configuration_(configuration),
+    blockchain_(chain),
     CONSTRUCT_TRACK(session_block_sync)
 {
 }
@@ -124,9 +127,9 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
         BIND2(handle_channel_stop, _1, partition));
 }
 
-void session_block_sync::handle_channel_start(const code& ec, size_t start_height,
-    size_t partition, connector::ptr connect, channel::ptr channel,
-    result_handler handler)
+void session_block_sync::handle_channel_start(const code& ec,
+    size_t start_height, size_t partition, connector::ptr connect,
+    channel::ptr channel, result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
@@ -137,10 +140,11 @@ void session_block_sync::handle_channel_start(const code& ec, size_t start_heigh
 
     const auto byte_rate = configuration_.node.block_bytes_per_second;
 
-    attach<protocol_ping>(channel)->start(settings_);
-    attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_block_sync>(channel, first_height_, start_height, offset_, byte_rate, hashes_)->
-        start(BIND5(handle_complete, _1, _2, partition, connect, handler));
+    attach<protocol_ping>(channel)->start();
+    attach<protocol_address>(channel)->start();
+    attach<protocol_block_sync>(channel, first_height_, start_height, offset_,
+        byte_rate, hashes_, blockchain_)->start(
+            BIND5(handle_complete, _1, _2, partition, connect, handler));
 };
 
 // We ignore the result code here.

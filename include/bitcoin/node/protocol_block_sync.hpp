@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -43,18 +44,19 @@ public:
 
     /**
      * Construct a block sync protocol instance.
-     * @param[in]  pool          The thread pool used by the protocol.
+     * @param[in]  network       The network interface.
      * @param[in]  channel       The channel on which to start the protocol.
      * @param[in]  first_height  The height of the first block in hashes.
      * @param[in]  start_height  The height of the first block in sync range.
      * @param[in]  offset        The offset of this sync partition.
      * @param[in]  minimum_rate  The minimum sync rate in bytes per second.
      * @param[in]  hashes        The ordered set of block hashes to sync.
+     * @param[in]  blockchain    The blockchain interface.
      */
-    protocol_block_sync(threadpool& pool, network::p2p&,
-        network::channel::ptr channel, size_t first_height,
-        size_t start_height, size_t offset, uint32_t minimum_rate,
-        const hash_list& hashes);
+    protocol_block_sync(network::p2p& network, network::channel::ptr channel,
+        size_t first_height, size_t start_height, size_t offset,
+        uint32_t minimum_rate, const hash_list& hashes,
+        blockchain::block_chain& chain);
 
     /**
      * Start the protocol.
@@ -87,6 +89,7 @@ private:
     const size_t start_height_;
     const uint32_t minimum_rate_;
     const hash_list& hashes_;
+    blockchain::block_chain& blockchain_;
 };
 
 } // namespace network

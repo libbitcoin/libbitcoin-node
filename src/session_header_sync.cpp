@@ -38,15 +38,14 @@ using namespace network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-session_header_sync::session_header_sync(threadpool& pool, p2p& network,
-    hash_list& hashes, const config::checkpoint& top,
-    const configuration& configuration)
-  : session_batch(pool, network, configuration.network, false),
+session_header_sync::session_header_sync(p2p& network, hash_list& hashes,
+    const config::checkpoint& top, const configuration& configuration)
+  : session_batch(network, false),
     votes_(0),
-    hashes_(hashes),
-    checkpoints_(configuration.chain.checkpoints),
     start_height_(top.height()),
     configuration_(configuration),
+    checkpoints_(configuration.chain.checkpoints),
+    hashes_(hashes),
     CONSTRUCT_TRACK(session_header_sync)
 {
     // Seed the headers list with the top block, matching start_height.
@@ -115,9 +114,8 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
         BIND1(handle_channel_stop, _1));
 }
 
-void session_header_sync::handle_channel_start(
-    const code& ec, connector::ptr connect, channel::ptr channel,
-    result_handler handler)
+void session_header_sync::handle_channel_start(const code& ec,
+    connector::ptr connect, channel::ptr channel, result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
@@ -128,10 +126,10 @@ void session_header_sync::handle_channel_start(
 
     const auto rate = configuration_.node.headers_per_second;
 
-    attach<protocol_ping>(channel)->start(settings_);
-    attach<protocol_address>(channel)->start(settings_);
+    attach<protocol_ping>(channel)->start();
+    attach<protocol_address>(channel)->start();
     attach<protocol_header_sync>(channel, rate, start_height_, hashes_,
-        checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
+        checkpoints_)-> start(BIND3(handle_complete, _1, connect, handler));
 };
 
 // The handler is passed on to the next start call.

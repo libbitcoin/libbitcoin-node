@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,9 +37,9 @@ class BCN_API session_block_sync
 public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
-    session_block_sync(threadpool& pool, network::p2p& network,
-        const hash_list& hashes, size_t first_height,
-        const configuration& configuration);
+    session_block_sync(network::p2p& network, const hash_list& hashes,
+        size_t first_height, const configuration& configuration,
+        blockchain::block_chain& chain);
 
     void start(result_handler handler);
 
@@ -60,6 +61,7 @@ private:
     const size_t first_height_;
     const hash_list& hashes_;
     const configuration& configuration_;
+    blockchain::block_chain& blockchain_;
 };
 
 } // namespace node

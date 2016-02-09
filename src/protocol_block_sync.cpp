@@ -23,7 +23,8 @@
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/blockchain.hpp>
+#include <bitcoin/network.hpp>
 
 INITIALIZE_TRACK(bc::node::protocol_block_sync);
 
@@ -33,6 +34,7 @@ namespace node {
 #define NAME "block_sync"
 #define CLASS protocol_block_sync
 
+using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::message;
 using namespace bc::network;
@@ -43,10 +45,11 @@ using std::placeholders::_2;
 static constexpr size_t block_rate_window_seconds = 10;
 static const asio::seconds block_rate(block_rate_window_seconds);
 
-protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
+protocol_block_sync::protocol_block_sync(p2p& network,
     channel::ptr channel, size_t first_height, size_t start_height,
-    size_t offset, uint32_t minimum_rate, const hash_list& hashes)
-  : protocol_timer(pool, channel, true, NAME),
+    size_t offset, uint32_t minimum_rate, const hash_list& hashes,
+    block_chain& chain)
+  : protocol_timer(network, channel, true, NAME),
     byte_count_(0),
     index_(start_height - first_height),
     first_height_(first_height),
@@ -54,6 +57,7 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     offset_(offset),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
+    blockchain_(chain),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
     BITCOIN_ASSERT(index_ < hashes_.size());
