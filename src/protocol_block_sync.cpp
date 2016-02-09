@@ -39,12 +39,10 @@ using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// TODO: move to config.
-static constexpr size_t block_rate_seconds = 10;
+// We measure the block rate in a moving 10 second window.
+static constexpr size_t block_rate_window_seconds = 10;
+static const asio::seconds block_rate(block_rate_window_seconds);
 
-static const asio::seconds block_rate(block_rate_seconds);
-
-// TODO: pass end-height vs. count.
 protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     channel::ptr channel, size_t first_height, size_t start_height,
     size_t offset, uint32_t minimum_rate, const hash_list& hashes)
@@ -67,17 +65,30 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
 
 size_t protocol_block_sync::current_rate() const
 {
-    return byte_count_ / block_rate_seconds;
+    return byte_count_ / block_rate_window_seconds;
 }
 
-size_t protocol_block_sync::next_height() const
+size_t protocol_block_sync::current_height() const
 {
     return first_height_ + index_;
 }
 
-const hash_digest& protocol_block_sync::next_hash() const
+const hash_digest& protocol_block_sync::current_hash() const
 {
     return hashes_[index_];
+}
+
+bool protocol_block_sync::next_block(const block& message)
+{
+    const auto block_size = message.serialized_size();
+
+    BITCOIN_ASSERT(byte_count_ <= max_size_t - block_size);
+    byte_count_ += block_size;
+
+    BITCOIN_ASSERT(index_ <= max_size_t - offset_);
+    index_ += offset_;
+
+    return index_ < hashes_.size();
 }
 
 message::get_data protocol_block_sync::build_get_data() const
@@ -106,7 +117,7 @@ void protocol_block_sync::start(count_handler handler)
             << "Start height (" << peer_top << ") below block sync target ("
             << headers_top << ") from [" << authority() << "]";
 
-        handler(error::channel_stopped, next_height());
+        handler(error::channel_stopped, current_height());
         return;
     }
 
@@ -161,7 +172,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     // A block must match the request in order to be accepted.
-    if (next_hash() != message.header.hash())
+    if (current_hash() != message.header.hash())
     {
         log::warning(LOG_PROTOCOL)
             << "Out of order block " << encode_hash(message.header.hash())
@@ -173,24 +184,19 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     log::info(LOG_PROTOCOL)
-        << "Synced block #" << next_height() << " from ["
+        << "Synced block #" << current_height() << " from ["
         << authority() << "]";
 
     //////////////////////////////
     // TODO: commit block here. //
     //////////////////////////////
 
-    const auto size = message.serialized_size();
-    BITCOIN_ASSERT(byte_count_ <= max_size_t - size);
-    byte_count_ += size;
-
-    BITCOIN_ASSERT(index_ <= max_size_t - offset_);
-    index_ += offset_;
 
     // If our next block is below the end the sync is incomplete.
-    if (index_ < hashes_.size())
+    if (next_block(message))
         return true;
 
+    // This is the end of the sync loop.
     complete(error::success);
     return false;
 }
@@ -231,7 +237,7 @@ void protocol_block_sync::blocks_complete(const code& ec,
     count_handler handler)
 {
     // This is the end of the block sync sequence.
-    handler(ec, next_height());
+    handler(ec, current_height());
 
     // The session does not need to handle the stop.
     stop(error::channel_stopped);

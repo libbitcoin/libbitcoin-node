@@ -61,10 +61,10 @@ public:
     void start(event_handler handler);
 
 private:
-    static size_t target(size_t first_height, hash_list& headers,
+    static size_t last_height(size_t first_height, hash_list& headers,
         const config::checkpoint::list& checkpoints);
 
-    size_t next_height() const;
+    size_t current_height() const;
     size_t current_rate() const;
 
     void rollback();
@@ -89,7 +89,7 @@ private:
     const uint32_t minimum_rate_;
     const size_t start_size_;
     const size_t first_height_;
-    const size_t target_height_;
+    const size_t last_height_;
     const config::checkpoint::list& checkpoints_;
 };
 
