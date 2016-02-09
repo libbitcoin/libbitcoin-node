@@ -47,13 +47,13 @@ public:
      * @param[in]  channel       The channel on which to start the protocol.
      * @param[in]  first_height  The height of the first block in hashes.
      * @param[in]  start_height  The height of the first block in sync range.
-     * @param[in]  count         The number of blocks to sync.
+     * @param[in]  offset        The offset of this sync partition.
      * @param[in]  minimum_rate  The minimum sync rate in bytes per second.
      * @param[in]  hashes        The ordered set of block hashes to sync.
      */
     protocol_block_sync(threadpool& pool, network::p2p&,
         network::channel::ptr channel, size_t first_height,
-        size_t start_height, size_t count, uint32_t minimum_rate,
+        size_t start_height, size_t offset, uint32_t minimum_rate,
         const hash_list& hashes);
 
     /**
@@ -77,15 +77,13 @@ private:
 
     // This is guarded by protocol_timer/deadline contract (exactly one call).
     size_t byte_count_;
-    size_t current_second_;
 
     // This is write-guarded by the block message subscriber strand.
     std::atomic<size_t> index_;
 
-    const size_t count_;
+    const size_t offset_;
     const size_t first_height_;
     const size_t start_height_;
-    const size_t end_height_;
     const uint32_t minimum_rate_;
     const hash_list& hashes_;
 };
