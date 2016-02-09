@@ -44,16 +44,16 @@ public:
 
 private:
     void handle_started(const code& ec, result_handler handler);
-    void new_connection(size_t start, size_t partition,
+    void new_connection(size_t start_height, size_t partition,
         network::connector::ptr connect, result_handler handler);
     void handle_connect(const code& ec, network::channel::ptr channel,
-        size_t start, size_t partition, network::connector::ptr connect,
+        size_t start_height, size_t partition, network::connector::ptr connect,
         result_handler handler);
-    void handle_complete(const code& ec, size_t start, size_t partition,
+    void handle_complete(const code& ec, size_t start_height, size_t partition,
         network::connector::ptr connect, result_handler handler);
-    void handle_channel_start(const code& ec, size_t start, size_t partition,
-        network::connector::ptr connect, network::channel::ptr channel,
-        result_handler handler);
+    void handle_channel_start(const code& ec, size_t start_height,
+        size_t partition, network::connector::ptr connect,
+        network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec, size_t partition);
 
     const size_t offset_;

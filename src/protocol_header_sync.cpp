@@ -54,7 +54,7 @@ protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
     minimum_rate_(minimum_rate),
     start_size_(hashes.size()),
     first_height_(first_height),
-    target_height_(target(first_height, hashes, checkpoints)),
+    last_height_(last_height(first_height, hashes, checkpoints)),
     checkpoints_(checkpoints),
     CONSTRUCT_TRACK(protocol_header_sync)
 {
@@ -65,7 +65,7 @@ protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
 // Utilities
 // ----------------------------------------------------------------------------
 
-size_t protocol_header_sync::target(size_t first_height,
+size_t protocol_header_sync::last_height(size_t first_height,
     hash_list& headers, const checkpoint::list& checkpoints)
 {
     const auto current_block = first_height + headers.size() - 1;
@@ -73,7 +73,7 @@ size_t protocol_header_sync::target(size_t first_height,
         std::max(checkpoints.back().height(), current_block);
 }
 
-size_t protocol_header_sync::next_height() const
+size_t protocol_header_sync::current_height() const
 {
     return hashes_.size() + first_height_;
 }
@@ -91,7 +91,7 @@ bool protocol_header_sync::linked(const header& header,
 
 bool protocol_header_sync::checks(const hash_digest& hash, size_t height) const
 {
-    if (height > target_height_)
+    if (height > last_height_)
         return true;
 
     return checkpoint::validate(hash, height, checkpoints_);
@@ -100,10 +100,13 @@ bool protocol_header_sync::checks(const hash_digest& hash, size_t height) const
 bool protocol_header_sync::proof_of_work(const header& header,
     size_t height) const
 {
-    if (height <= target_height_)
+    if (height <= last_height_)
         return true;
 
     // TODO: determine if the PoW for this block is valid.
+    // This allows us to collect headers beyond the last checkpoint.
+    // We can attempt to fill these blocks and the the sync will terminate at
+    // the last validated block (i.e. above the last checkpoint).
     return true;
 }
 
@@ -136,13 +139,13 @@ bool protocol_header_sync::merge_headers(const headers& message)
     {
         const auto current = header.hash();
 
-        if (!linked(header, previous) || !checks(current, next_height()))
+        if (!linked(header, previous) || !checks(current, current_height()))
         {
             rollback();
             return false;
         }
 
-        if (!proof_of_work(header, next_height()))
+        if (!proof_of_work(header, current_height()))
             return false;
 
         previous = current;
@@ -157,12 +160,13 @@ bool protocol_header_sync::merge_headers(const headers& message)
 
 void protocol_header_sync::start(event_handler handler)
 {
-    if (peer_version().start_height < target_height_)
+    const auto peer_top = peer_version().start_height;
+
+    if (peer_top < last_height_)
     {
         log::info(LOG_NETWORK)
-            << "Start height (" << peer_version().start_height
-            << ") below header sync target (" << target_height_ << ") from ["
-            << authority() << "]";
+            << "Start height (" << peer_top << ") below header sync target ("
+            << last_height_ << ") from [" << authority() << "]";
 
         // This is a successful vote.
         handler(error::success);
@@ -230,14 +234,14 @@ bool protocol_header_sync::handle_receive(const code& ec,
     }
 
     log::info(LOG_PROTOCOL)
-        << "Synced headers " << next_height() - message.elements.size()
-        << "-" << next_height() - 1 << " from [" << authority() << "]";
+        << "Synced headers " << current_height() - message.elements.size()
+        << "-" << current_height() - 1 << " from [" << authority() << "]";
 
     // If we received fewer than 2000 the peer is exhausted.
     if (message.elements.size() < full_headers)
     {
-        // If we reached the target height the sync is a success.
-        const auto success = next_height() > target_height_;
+        // If we reached the last height the sync is a success.
+        const auto success = current_height() > last_height_;
         complete(success ? error::success : error::operation_failed);
         return false;
     }

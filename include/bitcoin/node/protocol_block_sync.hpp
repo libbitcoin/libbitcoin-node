@@ -63,10 +63,11 @@ public:
     void start(count_handler handler);
 
 private:
-    size_t next_height() const;
+    size_t current_height() const;
     size_t current_rate() const;
-    const hash_digest& next_hash() const;
+    const hash_digest& current_hash() const;
     message::get_data build_get_data() const;
+    bool next_block(const message::block& message);
 
     void send_get_blocks(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
