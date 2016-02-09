@@ -192,16 +192,16 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
     }
 
     // First height in hew headers.
-    const auto start_height = block_height + 1;
-    const auto end_height = start_height + hashes_.size() - 1;
+    const auto first_height = block_height + 1;
+    const auto end_height = first_height + hashes_.size() - 1;
 
     log::info(LOG_NETWORK)
-        << "Completed header synchronization [" << start_height << "-"
+        << "Completed header synchronization [" << first_height << "-"
         << end_height << "]";
 
     const auto start_handler =
         std::bind(&p2p_node::handle_blocks_synchronized,
-            shared_from_base<p2p_node>(), _1, start_height, handler);
+            shared_from_base<p2p_node>(), _1, first_height, handler);
 
     ////
     //// TODO: create intermediate session_chain : session_batch
@@ -211,7 +211,7 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
     ////
 
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_block_sync>(hashes_, start_height, configuration_)->
+    attach<session_block_sync>(hashes_, first_height, configuration_)->
         start(start_handler);
 }
 
