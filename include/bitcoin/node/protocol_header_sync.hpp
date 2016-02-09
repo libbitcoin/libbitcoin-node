@@ -42,16 +42,15 @@ public:
 
     /**
      * Construct a header sync protocol instance.
-     * @param[in]  pool          The thread pool used by the protocol.
+     * @param[in]  network       The network interface.
      * @param[in]  channel       The channel on which to start the protocol.
      * @param[in]  minimum_rate  The minimum sync rate in headers per second.
      * @param[in]  first_height  The height of the first entry in headers.
      * @param[in]  hashes        The ordered set of block hashes when cmplete.
      * @param[in]  checkpoints   The ordered blockchain checkpoints.
      */
-    protocol_header_sync(threadpool& pool, network::p2p&,
-        network::channel::ptr channel, uint32_t minimum_rate,
-        size_t first_height, hash_list& hashes,
+    protocol_header_sync(network::p2p& network, network::channel::ptr channel,
+        uint32_t minimum_rate, size_t first_height, hash_list& hashes,
         const config::checkpoint::list& checkpoints);
 
     /**

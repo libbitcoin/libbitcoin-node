@@ -50,6 +50,9 @@ public:
 
     // ------------------------------------------------------------------------
 
+    /// Return a reference to the node configuration.
+    virtual const configuration& configured() const;
+
     /// Invoke startup and seeding sequence, call from constructing thread.
     virtual void start(result_handler handler) override;
 
@@ -76,7 +79,7 @@ public:
 ////protected:
 
     /// Blockchain query interface.
-    virtual blockchain::block_chain& query();
+    virtual blockchain::block_chain& chain();
 
     /// Transaction pool interface.
     virtual blockchain::transaction_pool& pool();
@@ -92,8 +95,9 @@ private:
     void handle_blocks_synchronized(const code& ec, size_t start_height,
         result_handler handler);
 
+    // These are guarded by the non-restartable node constraint.
     hash_list hashes_;
-    configuration configuration_;
+    const configuration configuration_;
 
     // TODO: move into blockchain constuctor.
     threadpool blockchain_threadpool_;

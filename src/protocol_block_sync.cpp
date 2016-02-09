@@ -23,7 +23,8 @@
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/blockchain.hpp>
+#include <bitcoin/network.hpp>
 
 INITIALIZE_TRACK(bc::node::protocol_block_sync);
 
@@ -33,6 +34,7 @@ namespace node {
 #define NAME "block_sync"
 #define CLASS protocol_block_sync
 
+using namespace bc::blockchain;
 using namespace bc::config;
 using namespace bc::message;
 using namespace bc::network;
@@ -43,10 +45,11 @@ using std::placeholders::_2;
 static constexpr size_t block_rate_window_seconds = 10;
 static const asio::seconds block_rate(block_rate_window_seconds);
 
-protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
+protocol_block_sync::protocol_block_sync(p2p& network,
     channel::ptr channel, size_t first_height, size_t start_height,
-    size_t offset, uint32_t minimum_rate, const hash_list& hashes)
-  : protocol_timer(pool, channel, true, NAME),
+    size_t offset, uint32_t minimum_rate, const hash_list& hashes,
+    block_chain& chain)
+  : protocol_timer(network, channel, true, NAME),
     byte_count_(0),
     index_(start_height - first_height),
     first_height_(first_height),
@@ -54,6 +57,7 @@ protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     offset_(offset),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
+    blockchain_(chain),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
     BITCOIN_ASSERT(index_ < hashes_.size());
@@ -183,14 +187,12 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
         return true;
     }
 
-    log::info(LOG_PROTOCOL)
-        << "Synced block #" << current_height() << " from ["
-        << authority() << "]";
+    // TODO: pass all network messages as shared pointer.
+    const auto block_ptr = std::make_shared<block>(message);
 
-    //////////////////////////////
-    // TODO: commit block here. //
-    //////////////////////////////
-
+    // Async commit block here.
+    blockchain_.import(block_ptr,
+        BIND3(handle_import, _1, current_height(), complete));
 
     // If our next block is below the end the sync is incomplete.
     if (next_block(message))
@@ -199,6 +201,26 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     // This is the end of the sync loop.
     complete(error::success);
     return false;
+}
+
+void protocol_block_sync::handle_import(const code& ec, size_t height,
+    event_handler complete)
+{
+    if (stopped())
+        return;
+
+    if (ec)
+    {
+        log::error(LOG_PROTOCOL)
+            << "Failure importing block #" << height << " from ["
+            << authority() << "] " << ec.message();
+        complete(ec);
+        return;
+    }
+
+    log::info(LOG_PROTOCOL)
+        << "Imported block #" << height << " from ["
+        << authority() << "]";
 }
 
 // This is fired by the base timer and stop handler.

@@ -22,7 +22,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/network.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 
 INITIALIZE_TRACK(bc::node::protocol_header_sync);
 
@@ -45,10 +46,10 @@ static constexpr size_t header_period_seconds = 10;
 static constexpr size_t full_headers = 2000;
 static const asio::seconds header_period(header_period_seconds);
 
-protocol_header_sync::protocol_header_sync(threadpool& pool, p2p&,
+protocol_header_sync::protocol_header_sync(p2p& network,
     channel::ptr channel, uint32_t minimum_rate, size_t first_height,
     hash_list& hashes, const checkpoint::list& checkpoints)
-  : protocol_timer(pool, channel, true, NAME),
+  : protocol_timer(network, channel, true, NAME),
     hashes_(hashes),
     current_second_(0),
     minimum_rate_(minimum_rate),

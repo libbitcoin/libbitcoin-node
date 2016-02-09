@@ -53,7 +53,7 @@ p2p_node::p2p_node(const configuration& configuration)
 // Properties.
 // ----------------------------------------------------------------------------
 
-block_chain& p2p_node::query()
+block_chain& p2p_node::chain()
 {
     return blockchain_;
 }
@@ -65,6 +65,11 @@ transaction_pool& p2p_node::pool()
 
 // Start sequence.
 // ----------------------------------------------------------------------------
+
+const configuration& p2p_node::configured() const
+{
+    return configuration_;
+}
 
 void p2p_node::start(result_handler handler)
 {
@@ -162,8 +167,8 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
             shared_from_base<p2p_node>(), _1, top.height(), handler);
 
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, top, configuration_)->
-        start(start_handler);
+    attach<session_header_sync>(hashes_, top, configuration_)->start(
+        start_handler);
 }
 
 void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
@@ -203,16 +208,9 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
         std::bind(&p2p_node::handle_blocks_synchronized,
             shared_from_base<p2p_node>(), _1, first_height, handler);
 
-    ////
-    //// TODO: create intermediate session_chain : session_batch
-    //// pass through p2p_node to session constructors, or possibly
-    //// stop update/replace attach<> and just construct session here.
-    //// same for protocol.
-    ////
-
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_block_sync>(hashes_, first_height, configuration_)->
-        start(start_handler);
+    attach<session_block_sync>(hashes_, first_height, configuration_,
+        blockchain_)->start(start_handler);
 }
 
 void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
@@ -240,12 +238,12 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
     p2p::run(handler);
 }
 
-// Stop sequence.
+// Subscribers.
 // ----------------------------------------------------------------------------
 
 void p2p_node::subscribe_blockchain(reorganize_handler handler)
 {
-    query().subscribe_reorganize(handler);
+    chain().subscribe_reorganize(handler);
 
 }
 
