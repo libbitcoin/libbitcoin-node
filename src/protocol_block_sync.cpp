@@ -47,23 +47,19 @@ static const asio::seconds block_rate(block_rate_seconds);
 // TODO: pass end-height vs. count.
 protocol_block_sync::protocol_block_sync(threadpool& pool, p2p&,
     channel::ptr channel, size_t first_height, size_t start_height,
-    size_t end_height, uint32_t minimum_rate, const hash_list& hashes)
+    size_t offset, uint32_t minimum_rate, const hash_list& hashes)
   : protocol_timer(pool, channel, true, NAME),
     byte_count_(0),
-    current_second_(0),
     index_(start_height - first_height),
     first_height_(first_height),
     start_height_(start_height),
-    end_height_(end_height),
-    count_(end_height - start_height + 1),
+    offset_(offset),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
-    BITCOIN_ASSERT(start_height <= end_height);
+    BITCOIN_ASSERT(index_ < hashes_.size());
     BITCOIN_ASSERT(first_height_ <= start_height_);
-    BITCOIN_ASSERT(count_ <= hashes_.size());
-    BITCOIN_ASSERT(index_ <= hashes_.size() - count_);
 }
 
 // Utilities.
@@ -87,20 +83,11 @@ const hash_digest& protocol_block_sync::next_hash() const
 message::get_data protocol_block_sync::build_get_data() const
 {
     get_data packet;
-    const auto copy = [&packet](const hash_digest& hash)
+    for (auto index = index_.load(); index < hashes_.size(); index += offset_)
     {
+        const auto& hash = hashes_[index];
         packet.inventories.push_back({ inventory_type_id::block, hash });
-    };
-
-    const auto start = hashes_.begin() + index_;
-    std::for_each(start, start + count_, copy);
-
-    log::info(LOG_NETWORK)
-        << "Count: " << count_
-        << ", start_index: " << index_
-        << ", first_height: " << first_height_
-        << ", start_height: " << start_height_
-        << ", end_height: " << end_height_;
+    }
 
     return packet;
 }
@@ -110,13 +97,14 @@ message::get_data protocol_block_sync::build_get_data() const
 
 void protocol_block_sync::start(count_handler handler)
 {
-    // version.start_height is the top of the peer's chain.
-    if (peer_version().start_height < end_height_)
+    const auto peer_top = peer_version().start_height;
+    const auto headers_top = first_height_ + hashes_.size() - 1;
+
+    if (peer_top < headers_top)
     {
         log::info(LOG_NETWORK)
-            << "Start height (" << peer_version().start_height
-            << ") below block sync target (" << end_height_ << ") from ["
-            << authority() << "]";
+            << "Start height (" << peer_top << ") below block sync target ("
+            << headers_top << ") from [" << authority() << "]";
 
         handler(error::channel_stopped, next_height());
         return;
@@ -196,17 +184,15 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     BITCOIN_ASSERT(byte_count_ <= max_size_t - size);
     byte_count_ += size;
 
-    BITCOIN_ASSERT(index_ < max_size_t);
-    ++index_;
+    BITCOIN_ASSERT(index_ <= max_size_t - offset_);
+    index_ += offset_;
 
-    // If our next block is past the end height the sync is complete.
-    if (next_height() > end_height_)
-    {
-        complete(error::success);
-        return false;
-    }
+    // If our next block is below the end the sync is incomplete.
+    if (index_ < hashes_.size())
+        return true;
 
-    return true;
+    complete(error::success);
+    return false;
 }
 
 // This is fired by the base timer and stop handler.
@@ -226,9 +212,6 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         complete(ec);
         return;
     }
-
-    // It was a timeout, so ten more seconds have passed.
-    current_second_ += block_rate_seconds;
 
     // Drop the channel if it falls below the min sync rate in the window.
     if (current_rate() < minimum_rate_)

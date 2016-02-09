@@ -48,8 +48,9 @@ session_block_sync::session_block_sync(threadpool& pool, p2p& network,
     const hash_list& hashes, size_t first_height,
     const configuration& configuration)
   : session_batch(pool, network, configuration.network, false),
-    hashes_(hashes),
+    offset_((hashes.size() / full_blocks) + 1),
     first_height_(first_height),
+    hashes_(hashes),
     configuration_(configuration),
     CONSTRUCT_TRACK(session_block_sync)
 {
@@ -72,74 +73,65 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
     }
 
     // Parallelize into full_blocks (50k) sized groups and synchronize.
-    const auto scopes = (hashes_.size() / full_blocks) + 1;
-    const auto complete = synchronize(handler, scopes, NAME);
+    const auto complete = synchronize(handler, offset_, NAME);
     const auto connector = create_connector();
 
     // This is the end of the start sequence.
-    for (size_t scope = 0; scope < scopes; ++scope)
-    {
-        const auto start_index = scope * full_blocks;
-        const auto start_height = first_height_ + start_index;
-
-        const auto remainder = hashes_.size() - start_index;
-        const auto count = std::min(full_blocks, remainder);
-        const auto end_height = start_height + count - 1;
-
-        new_connection(start_height, end_height, connector, complete);
-    }
+    for (size_t part = 0; part < offset_; ++part)
+        new_connection(first_height_ + part, part, connector, complete);
 }
 
 // Header sync sequence.
 // ----------------------------------------------------------------------------
 
-void session_block_sync::new_connection(size_t start, size_t end,
+void session_block_sync::new_connection(size_t start, size_t partition,
     connector::ptr connect, result_handler handler)
 {
     if (stopped())
     {
         log::debug(LOG_NETWORK)
-            << "Suspending block sync session (" << start << ").";
+            << "Suspending block sync session (" << partition << ").";
         return;
     }
 
     log::debug(LOG_NETWORK)
-        << "Starting block sync session (" << start << ")";
+        << "Starting block sync session (" << partition << ")";
 
     // BLOCK SYNC CONNECT
     this->connect(connect,
-        BIND6(handle_connect, _1, _2, start, end, connect, handler));
+        BIND6(handle_connect, _1, _2, start, partition, connect, handler));
 }
 
 void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
-    size_t start, size_t end, connector::ptr connect, result_handler handler)
+    size_t start, size_t partition, connector::ptr connect,
+    result_handler handler)
 {
     if (ec)
     {
         log::debug(LOG_NETWORK)
-            << "Failure connecting block sync channel (" << start
+            << "Failure connecting block sync channel (" << partition
             << ") " << ec.message();
-        new_connection(start, end, connect, handler);
+        new_connection(start, partition, connect, handler);
         return;
     }
 
     log::info(LOG_NETWORK)
-        << "Connected to block sync channel (" << start << ") ["
+        << "Connected to block sync channel (" << partition << ") ["
         << channel->authority() << "]";
 
     register_channel(channel,
-        BIND6(handle_channel_start, _1, start, end, connect, channel, handler),
-        BIND3(handle_channel_stop, _1, start, end));
+        BIND6(handle_channel_start, _1, start, partition, connect, channel, handler),
+        BIND2(handle_channel_stop, _1, partition));
 }
 
 void session_block_sync::handle_channel_start(const code& ec, size_t start,
-    size_t end, connector::ptr connect, channel::ptr channel,
+    size_t partition, connector::ptr connect, channel::ptr channel,
     result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_complete(ec, start, end, connect, handler);
+        handle_complete(ec, start, partition, connect, handler);
         return;
     }
 
@@ -147,18 +139,18 @@ void session_block_sync::handle_channel_start(const code& ec, size_t start,
 
     attach<protocol_ping>(channel)->start(settings_);
     attach<protocol_address>(channel)->start(settings_);
-    attach<protocol_block_sync>(channel, first_height_, start, end, byte_rate,
-        hashes_)->start(BIND5(handle_complete, _1, _2, end, connect, handler));
+    attach<protocol_block_sync>(channel, first_height_, start, offset_, byte_rate, hashes_)->
+        start(BIND5(handle_complete, _1, _2, partition, connect, handler));
 };
 
 // We ignore the result code here.
 void session_block_sync::handle_complete(const code&, size_t start,
-    size_t end, network::connector::ptr connect, result_handler handler)
+    size_t partition, network::connector::ptr connect, result_handler handler)
 {
     // There is no failure scenario, loop until done (add timer).
-    if (start <= end)
+    if (start <= hashes_.size())
     {
-        new_connection(start, end, connect, handler);
+        new_connection(start, partition, connect, handler);
         return;
     }
 
@@ -166,11 +158,10 @@ void session_block_sync::handle_complete(const code&, size_t start,
     handler(error::success);
 }
 
-void session_block_sync::handle_channel_stop(const code& ec, size_t start,
-    size_t)
+void session_block_sync::handle_channel_stop(const code& ec, size_t partition)
 {
     log::debug(LOG_NETWORK)
-        << "Block sync channel (" << start << ") stopped: "
+        << "Block sync channel (" << partition << ") stopped: "
         << ec.message();
 }
 
