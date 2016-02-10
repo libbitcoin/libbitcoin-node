@@ -23,9 +23,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -37,7 +38,8 @@ public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
     session_header_sync(network::p2p& network, hash_list& hashes,
-        const config::checkpoint& top, const configuration& configuration);
+        const config::checkpoint& top, const settings& settings,
+        const blockchain::settings& chain_settings);
 
     void start(result_handler handler);
 
@@ -57,7 +59,7 @@ private:
     void handle_channel_stop(const code& ec);
 
     const size_t start_height_;
-    const configuration& configuration_;
+    const settings& settings_;
 
     // These are guarded by the non-restartable session constraint.
     size_t votes_;

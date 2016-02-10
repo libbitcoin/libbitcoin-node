@@ -25,8 +25,8 @@
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,7 +38,7 @@ public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
     session_block_sync(network::p2p& network, const hash_list& hashes,
-        size_t first_height, const configuration& configuration,
+        size_t first_height, const settings& settings,
         blockchain::block_chain& chain);
 
     void start(result_handler handler);
@@ -60,7 +60,7 @@ private:
     const size_t offset_;
     const size_t first_height_;
     const hash_list& hashes_;
-    const configuration& configuration_;
+    const settings& settings_;
     blockchain::block_chain& blockchain_;
 };
 
