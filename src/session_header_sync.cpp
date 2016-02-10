@@ -21,10 +21,11 @@
 
 #include <cstddef>
 #include <memory>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocol_header_sync.hpp>
+#include <bitcoin/node/settings.hpp>
 
 INITIALIZE_TRACK(bc::node::session_header_sync);
 
@@ -39,12 +40,13 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 session_header_sync::session_header_sync(p2p& network, hash_list& hashes,
-    const config::checkpoint& top, const configuration& configuration)
+    const config::checkpoint& top, const settings& settings,
+    const blockchain::settings& chain_settings)
   : session_batch(network, false),
     votes_(0),
     start_height_(top.height()),
-    configuration_(configuration),
-    checkpoints_(configuration.chain.checkpoints),
+    settings_(settings),
+    checkpoints_(chain_settings.checkpoints),
     hashes_(hashes),
     CONSTRUCT_TRACK(session_header_sync)
 {
@@ -124,7 +126,7 @@ void session_header_sync::handle_channel_start(const code& ec,
         return;
     }
 
-    const auto rate = configuration_.node.headers_per_second;
+    const auto rate = settings_.headers_per_second;
 
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
@@ -141,7 +143,7 @@ void session_header_sync::handle_complete(const code& ec,
 
     // We require a number successful peer syncs, for maximizing height.
     // They do not have to agree, as this is not conflict resolution.
-    if (ec || votes_ < configuration_.node.quorum)
+    if (ec || votes_ < settings_.quorum)
     {
         new_connection(connect, handler);
         return;

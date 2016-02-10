@@ -23,9 +23,9 @@
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocol_block_sync.hpp>
+#include <bitcoin/node/settings.hpp>
 
 INITIALIZE_TRACK(bc::node::session_block_sync);
 
@@ -47,13 +47,12 @@ static constexpr size_t full_blocks = 50000;
 static_assert(full_blocks > 1, "unmitigated overflow risk");
 
 session_block_sync::session_block_sync(p2p& network, const hash_list& hashes,
-    size_t first_height, const configuration& configuration,
-    block_chain& chain)
+    size_t first_height, const settings& settings, block_chain& chain)
   : session_batch(network, false),
     offset_((hashes.size() / full_blocks) + 1),
     first_height_(first_height),
     hashes_(hashes),
-    configuration_(configuration),
+    settings_(settings),
     blockchain_(chain),
     CONSTRUCT_TRACK(session_block_sync)
 {
@@ -138,7 +137,7 @@ void session_block_sync::handle_channel_start(const code& ec,
         return;
     }
 
-    const auto byte_rate = configuration_.node.block_bytes_per_second;
+    const auto byte_rate = settings_.block_bytes_per_second;
 
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
