@@ -275,7 +275,9 @@ void p2p_node::close()
 {
     p2p_node::stop(unhandled);
 
+    // TODO: hide these in blockchain.
     blockchain_threadpool_.join();
+    database_.stop();
 
     // This is the end of the destruct sequence.
     p2p::close();
