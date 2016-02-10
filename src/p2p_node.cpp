@@ -45,7 +45,8 @@ p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     settings_(configuration.node),
     blockchain_threadpool_(0),
-    blockchain_(blockchain_threadpool_, configuration.chain),
+    database_(configuration.database),
+    blockchain_(blockchain_threadpool_, database_, configuration.chain),
     transaction_pool_(blockchain_threadpool_, blockchain_, configuration.chain)
 {
 }
