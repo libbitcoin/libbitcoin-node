@@ -53,8 +53,10 @@ public:
     static const configuration testnet;
 
     configuration();
-    configuration(const node::settings& node_settings,
+    configuration(
+        const node::settings& node_settings,
         const blockchain::settings& chain_settings,
+        const database::settings& database_settings,
         const network::settings& network_settings);
 
     /// Convenience.
@@ -72,6 +74,7 @@ public:
     /// Settings.
     node::settings node;
     blockchain::settings chain;
+    database::settings database;
     network::settings network;
 };
 

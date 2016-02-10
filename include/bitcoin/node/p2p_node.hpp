@@ -99,8 +99,11 @@ private:
     hash_list hashes_;
     const settings& settings_;
 
-    // TODO: move into blockchain constructor.
+    // TODO: hide this in blockchain.
     threadpool blockchain_threadpool_;
+
+    // TODO: move database and txpool into blockchain (use factory).
+    bc::database::data_base database_;
     blockchain::block_chain_impl blockchain_;
     blockchain::transaction_pool transaction_pool_;
 };

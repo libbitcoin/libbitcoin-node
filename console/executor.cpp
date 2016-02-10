@@ -38,6 +38,7 @@ using std::placeholders::_1;
 using namespace boost::system;
 using namespace bc::blockchain;
 using namespace bc::config;
+using namespace bc::database;
 using namespace bc::network;
 
 static constexpr int no_interrupt = 0;
@@ -133,7 +134,7 @@ bool executor::do_initchain()
     initialize_output();
 
     error_code ec;
-    const auto& directory = metadata_.configured.chain.database_path;
+    const auto& directory = metadata_.configured.database.directory;
 
     if (create_directories(directory, ec))
     {
@@ -143,7 +144,7 @@ bool executor::do_initchain()
         const auto genesis = metadata_.configured.chain.use_testnet_rules ?
             testnet_genesis_block() : mainnet_genesis_block();
 
-        return database::initialize(directory, genesis);
+        return data_base::initialize(directory, genesis);
     }
 
     if (ec.value() == directory_exists)
@@ -250,7 +251,7 @@ void executor::handle_synchronized(const code& ec)
 bool executor::verify()
 {
     error_code ec;
-    const auto& directory = metadata_.configured.chain.database_path;
+    const auto& directory = metadata_.configured.database.directory;
 
     if (exists(directory, ec))
         return true;
