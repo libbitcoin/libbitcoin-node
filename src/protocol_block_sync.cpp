@@ -95,6 +95,11 @@ bool protocol_block_sync::next_block(const block& message)
     return index_ < hashes_.size();
 }
 
+// TODO: build a chunk at a time until complete.
+// TODO: start with one chunk and ask for next chunk as soon as backlog goes
+// below chunk size. This ensures that backlog will remain between 1-2 chunks
+// until there are no more to request. If backlog drops to zero then close
+// channel. Don't close a slow channel while it still has backlog.
 message::get_data protocol_block_sync::build_get_data() const
 {
     get_data packet;
@@ -190,9 +195,9 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     // TODO: pass all network messages as shared pointer.
     const auto block_ptr = std::make_shared<block>(message);
 
-    // Async commit block here.
-    blockchain_.import(block_ptr,
-        BIND3(handle_import, _1, current_height(), complete));
+    ////////// Async commit block here.
+    ////////blockchain_.import(block_ptr,
+    ////////    BIND3(handle_import, _1, current_height(), complete));
 
     // If our next block is below the end the sync is incomplete.
     if (next_block(message))

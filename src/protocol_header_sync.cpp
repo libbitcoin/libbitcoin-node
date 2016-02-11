@@ -111,6 +111,7 @@ bool protocol_header_sync::proof_of_work(const header& header,
     return true;
 }
 
+// TODO: ensure that this is correct (using valid block sync).
 void protocol_header_sync::rollback()
 {
     if (!checkpoints_.empty())
