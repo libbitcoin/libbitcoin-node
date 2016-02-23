@@ -192,12 +192,14 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
         return true;
     }
 
-    // TODO: pass all network messages as shared pointer.
+    // Synchronous block commit block here.
+    const auto height = current_height();
     const auto block_ptr = std::make_shared<block>(message);
+    blockchain_.import(block_ptr, height);
 
-    ////////// Async commit block here.
-    ////////blockchain_.import(block_ptr,
-    ////////    BIND3(handle_import, _1, current_height(), complete));
+    log::info(LOG_PROTOCOL)
+        << "Imported block #" << height << " from ["
+        << authority() << "]";
 
     // If our next block is below the end the sync is incomplete.
     if (next_block(message))
@@ -206,26 +208,6 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     // This is the end of the sync loop.
     complete(error::success);
     return false;
-}
-
-void protocol_block_sync::handle_import(const code& ec, size_t height,
-    event_handler complete)
-{
-    if (stopped())
-        return;
-
-    if (ec)
-    {
-        log::error(LOG_PROTOCOL)
-            << "Failure importing block #" << height << " from ["
-            << authority() << "] " << ec.message();
-        complete(ec);
-        return;
-    }
-
-    log::info(LOG_PROTOCOL)
-        << "Imported block #" << height << " from ["
-        << authority() << "]";
 }
 
 // This is fired by the base timer and stop handler.
