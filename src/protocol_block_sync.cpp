@@ -55,6 +55,7 @@ protocol_block_sync::protocol_block_sync(p2p& network,
     first_height_(first_height),
     start_height_(start_height),
     offset_(offset),
+    channel_(start_height % offset),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
     blockchain_(chain),
@@ -192,14 +193,16 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
         return true;
     }
 
-    // Synchronous block commit block here.
     const auto height = current_height();
     const auto block_ptr = std::make_shared<block>(message);
-    blockchain_.import(block_ptr, height);
 
-    log::info(LOG_PROTOCOL)
-        << "Imported block #" << height << " from ["
-        << authority() << "]";
+    // Synchronous block commit block here.
+    if (blockchain_.import(block_ptr, height))
+    {
+        log::info(LOG_PROTOCOL)
+            << "Imported block #" << height << " for (" << channel_
+            << ") from [" << authority() << "]";
+    }
 
     // If our next block is below the end the sync is incomplete.
     if (next_block(message))
@@ -227,6 +230,9 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         complete(ec);
         return;
     }
+
+    // BUGBUG: this causes unnecessary timeout of channels simply because of
+    // lock contention. Instead drop a channel if it drops to zero entries.
 
     // Drop the channel if it falls below the min sync rate in the window.
     if (current_rate() < minimum_rate_)

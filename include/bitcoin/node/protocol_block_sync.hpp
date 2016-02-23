@@ -85,6 +85,7 @@ private:
     std::atomic<size_t> index_;
 
     const size_t offset_;
+    const size_t channel_;
     const size_t first_height_;
     const size_t start_height_;
     const uint32_t minimum_rate_;
