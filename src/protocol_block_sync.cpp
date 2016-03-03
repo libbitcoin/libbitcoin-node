@@ -123,7 +123,7 @@ void protocol_block_sync::start(count_handler handler)
 
     if (peer_top < headers_top)
     {
-        log::info(LOG_NETWORK)
+        log::info(LOG_PROTOCOL)
             << "Start height (" << peer_top << ") below block sync target ("
             << headers_top << ") from [" << authority() << "]";
 
@@ -196,7 +196,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     const auto height = current_height();
     const auto block_ptr = std::make_shared<block>(message);
 
-    // Synchronous block commit block here.
+    // Block commit block here.
     if (blockchain_.import(block_ptr, height))
     {
         log::info(LOG_PROTOCOL)

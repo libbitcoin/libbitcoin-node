@@ -91,12 +91,12 @@ void session_block_sync::new_connection(size_t start_height, size_t partition,
 {
     if (stopped())
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Suspending block sync session (" << partition << ").";
         return;
     }
 
-    log::debug(LOG_NETWORK)
+    log::debug(LOG_SESSION)
         << "Starting block sync session (" << partition << ")";
 
     // BLOCK SYNC CONNECT
@@ -110,14 +110,14 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
 {
     if (ec)
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Failure connecting block sync channel (" << partition
             << ") " << ec.message();
         new_connection(start_height, partition, connect, handler);
         return;
     }
 
-    log::info(LOG_NETWORK)
+    log::info(LOG_SESSION)
         << "Connected to block sync channel (" << partition << ") ["
         << channel->authority() << "]";
 
@@ -166,7 +166,7 @@ void session_block_sync::handle_complete(const code&, size_t start_height,
 
 void session_block_sync::handle_channel_stop(const code& ec, size_t partition)
 {
-    log::debug(LOG_NETWORK)
+    log::debug(LOG_SESSION)
         << "Block sync channel (" << partition << ") stopped: "
         << ec.message();
 }

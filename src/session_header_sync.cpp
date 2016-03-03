@@ -88,7 +88,7 @@ void session_header_sync::new_connection(connector::ptr connect,
 {
     if (stopped())
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Suspending header sync session.";
         return;
     }
@@ -102,7 +102,7 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
 {
     if (ec)
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Failure connecting header sync channel: " << ec.message();
         new_connection(connect, handler);
         return;
@@ -159,7 +159,7 @@ void session_header_sync::handle_complete(const code& ec,
 
 void session_header_sync::handle_channel_stop(const code& ec)
 {
-    log::debug(LOG_NETWORK)
+    log::debug(LOG_SESSION)
         << "Header sync channel stopped: " << ec.message();
 }
 

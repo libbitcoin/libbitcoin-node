@@ -166,7 +166,7 @@ void protocol_header_sync::start(event_handler handler)
 
     if (peer_top < last_height_)
     {
-        log::info(LOG_NETWORK)
+        log::info(LOG_PROTOCOL)
             << "Start height (" << peer_top << ") below header sync target ("
             << last_height_ << ") from [" << authority() << "]";
 
