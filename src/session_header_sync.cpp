@@ -131,7 +131,7 @@ void session_header_sync::handle_channel_start(const code& ec,
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
     attach<protocol_header_sync>(channel, rate, start_height_, hashes_,
-        checkpoints_)-> start(BIND3(handle_complete, _1, connect, handler));
+        checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
 };
 
 // The handler is passed on to the next start call.
