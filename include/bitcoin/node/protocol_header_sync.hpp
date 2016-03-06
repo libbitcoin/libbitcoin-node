@@ -67,7 +67,7 @@ private:
     size_t current_rate() const;
 
     void rollback();
-    bool merge_headers(const message::headers& message);
+    bool merge_headers(message::headers::ptr message);
     bool checks(const hash_digest& hash, size_t height) const;
     bool linked(const chain::header& header, const hash_digest& hash) const;
     bool proof_of_work(const chain::header& header, size_t height) const;
@@ -76,7 +76,7 @@ private:
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
     void headers_complete(const code& ec, event_handler handler);
-    bool handle_receive(const code& ec, const message::headers& message,
+    bool handle_receive(const code& ec, message::headers::ptr message,
         event_handler complete);
 
     // This is write-guarded by the header message subscriber strand.

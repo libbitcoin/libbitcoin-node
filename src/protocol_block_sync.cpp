@@ -166,7 +166,7 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-bool protocol_block_sync::handle_receive(const code& ec, const block& message,
+bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
     event_handler complete)
 {
     if (stopped())
@@ -182,10 +182,10 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     // A block must match the request in order to be accepted.
-    if (current_hash() != message.header.hash())
+    if (current_hash() != message->header.hash())
     {
         log::warning(LOG_PROTOCOL)
-            << "Out of order block " << encode_hash(message.header.hash())
+            << "Out of order block " << encode_hash(message->header.hash())
             << " from [" << authority() << "] (ignored)";
 
         // We either received a block anounce or we have a misbehaving peer.
@@ -194,10 +194,9 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     const auto height = current_height();
-    const auto block_ptr = std::make_shared<block>(message);
 
     // Block commit block here.
-    if (blockchain_.import(block_ptr, height))
+    if (blockchain_.import(message, height))
     {
         log::info(LOG_PROTOCOL)
             << "Imported block #" << height << " for (" << channel_
@@ -205,7 +204,7 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     // If our next block is below the end the sync is incomplete.
-    if (next_block(message))
+    if (next_block(*message))
         return true;
 
     // This is the end of the sync loop.
