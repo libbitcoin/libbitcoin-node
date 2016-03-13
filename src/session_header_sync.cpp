@@ -27,8 +27,6 @@
 #include <bitcoin/node/protocol_header_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 
-INITIALIZE_TRACK(bc::node::session_header_sync);
-
 namespace libbitcoin {
 namespace node {
 

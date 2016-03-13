@@ -25,8 +25,6 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 
-INITIALIZE_TRACK(bc::node::protocol_header_sync);
-
 namespace libbitcoin {
 namespace node {
 

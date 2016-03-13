@@ -26,8 +26,6 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 
-INITIALIZE_TRACK(bc::node::protocol_block_sync);
-
 namespace libbitcoin {
 namespace node {
 
