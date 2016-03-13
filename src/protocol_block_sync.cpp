@@ -166,6 +166,10 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
+// The message subscriber implements an optimization to bypass queueing of
+// block messages. This requires that this handler never call back into the
+// subscriber. Otherwise a deadlock will result. This in turn requires that
+// the 'complete' parameter handler never call into the message subscriber.
 bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
     event_handler complete)
 {
