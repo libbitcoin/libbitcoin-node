@@ -203,14 +203,21 @@ bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
         log::info(LOG_PROTOCOL)
             << "Imported block #" << height << " for (" << channel_
             << ") from [" << authority() << "]";
+
+        // If our next block is below the end the sync is incomplete.
+        if (next_block(*message))
+            return true;
+
+        // This is the end of the sync loop.
+        complete(error::success);
+    }
+    else
+    {
+        log::info(LOG_PROTOCOL)
+            << "Stopped before importing block: " << height;
+        complete(error::channel_stopped);
     }
 
-    // If our next block is below the end the sync is incomplete.
-    if (next_block(*message))
-        return true;
-
-    // This is the end of the sync loop.
-    complete(error::success);
     return false;
 }
 
