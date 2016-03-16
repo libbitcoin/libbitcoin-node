@@ -110,7 +110,7 @@ options_metadata parser::load_settings()
         "network.threads",
         value<uint32_t>(&configured.network.threads)->
             default_value(network::settings::mainnet.threads),
-        "The number of threads in the network threadpool, defaults to 4."
+        "The number of threads in the network threadpool, defaults to 50."
     )
     (
         "network.identifier",
@@ -182,7 +182,7 @@ options_metadata parser::load_settings()
         "network.channel_expiration_minutes",
         value<uint32_t>(&configured.network.channel_expiration_minutes)->
             default_value(network::settings::mainnet.channel_expiration_minutes),
-        "The maximum age limit for an outbound connection, defaults to 90."
+        "The maximum age limit for an outbound connection, defaults to 1440."
     )
     (
         "network.channel_germination_seconds",
@@ -241,16 +241,18 @@ options_metadata parser::load_settings()
 
     /* [database] */
     (
+        // database::settings::mainnet.history_start_height
         "database.history_start_height",
         value<uint32_t>(&configured.database.history_start_height)->
-            default_value(database::settings::mainnet.history_start_height),
-        "The lower limit of spend indexing, defaults to 0."
+            default_value(500000),
+        "The lower limit of spend indexing, defaults to 500000."
     )
     (
+        // database::settings::mainnet.stealth_start_height
         "database.stealth_start_height",
         value<uint32_t>(&configured.database.stealth_start_height)->
-            default_value(database::settings::mainnet.stealth_start_height),
-        "The lower limit of stealth indexing, defaults to 350000."
+            default_value(500000),
+        "The lower limit of stealth indexing, defaults to 500000."
     )
     (
         "database.directory",
@@ -261,10 +263,11 @@ options_metadata parser::load_settings()
 
     /* [blockchain] */
     (
+        // blockchain::settings::mainnet.threads
         "blockchain.threads",
         value<uint32_t>(&configured.chain.threads)->
-            default_value(blockchain::settings::mainnet.threads),
-        "The number of threads in the blockchain threadpool, defaults to 6."
+            default_value(2),
+        "The number of threads in the blockchain threadpool, defaults to 2."
     )
     (
         "blockchain.block_pool_capacity",
@@ -299,16 +302,10 @@ options_metadata parser::load_settings()
 
     /* [node] */
     (
-        "node.threads",
-        value<uint32_t>(&configured.node.threads)->
-            default_value(node::settings::defaults.threads),
-        "The number of threads in the node threadpool, defaults to 4."
-    )
-    (
         "node.quorum",
         value<uint32_t>(&configured.node.quorum)->
             default_value(node::settings::defaults.quorum),
-        "The number of peers to survey during sync, defaults to 8."
+        "The number of peers to survey during sync, defaults to 2."
     )
     (
         "node.block_bytes_per_second",
