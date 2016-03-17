@@ -27,8 +27,6 @@
 #include <bitcoin/node/protocol_header_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 
-INITIALIZE_TRACK(bc::node::session_header_sync);
-
 namespace libbitcoin {
 namespace node {
 
@@ -88,7 +86,7 @@ void session_header_sync::new_connection(connector::ptr connect,
 {
     if (stopped())
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Suspending header sync session.";
         return;
     }
@@ -102,7 +100,7 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
 {
     if (ec)
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Failure connecting header sync channel: " << ec.message();
         new_connection(connect, handler);
         return;
@@ -131,7 +129,7 @@ void session_header_sync::handle_channel_start(const code& ec,
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
     attach<protocol_header_sync>(channel, rate, start_height_, hashes_,
-        checkpoints_)-> start(BIND3(handle_complete, _1, connect, handler));
+        checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
 };
 
 // The handler is passed on to the next start call.
@@ -159,7 +157,7 @@ void session_header_sync::handle_complete(const code& ec,
 
 void session_header_sync::handle_channel_stop(const code& ec)
 {
-    log::debug(LOG_NETWORK)
+    log::debug(LOG_SESSION)
         << "Header sync channel stopped: " << ec.message();
 }
 

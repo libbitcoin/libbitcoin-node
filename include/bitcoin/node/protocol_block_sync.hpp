@@ -75,8 +75,7 @@ private:
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
     void blocks_complete(const code& ec, count_handler handler);
-    void handle_import(const code& ec, size_t height, event_handler complete);
-    bool handle_receive(const code& ec, const message::block& message,
+    bool handle_receive(const code& ec, message::block::ptr message,
         event_handler complete);
 
     // This is guarded by protocol_timer/deadline contract (exactly one call).
@@ -86,6 +85,7 @@ private:
     std::atomic<size_t> index_;
 
     const size_t offset_;
+    const size_t channel_;
     const size_t first_height_;
     const size_t start_height_;
     const uint32_t minimum_rate_;

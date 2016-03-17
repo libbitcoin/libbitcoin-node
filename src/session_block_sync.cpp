@@ -27,8 +27,6 @@
 #include <bitcoin/node/protocol_block_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 
-INITIALIZE_TRACK(bc::node::session_block_sync);
-
 namespace libbitcoin {
 namespace node {
 
@@ -41,6 +39,7 @@ using namespace network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+//// (401000 - 350000) / 6000 + 1 = 9 peers and 5666 per peer.
 static constexpr size_t full_blocks = 50000;
 
 // There is overflow risk only if full_blocks is 1 (with max_size_t hashes).
@@ -49,7 +48,7 @@ static_assert(full_blocks > 1, "unmitigated overflow risk");
 session_block_sync::session_block_sync(p2p& network, const hash_list& hashes,
     size_t first_height, const settings& settings, block_chain& chain)
   : session_batch(network, false),
-    offset_((hashes.size() / full_blocks) + 1),
+    offset_((hashes.size() - 0) / full_blocks + 1),
     first_height_(first_height),
     hashes_(hashes),
     settings_(settings),
@@ -80,7 +79,7 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
 
     // This is the end of the start sequence.
     for (size_t part = 0; part < offset_; ++part)
-        new_connection(first_height_ + part, part, connector, complete);
+        new_connection(first_height_ + 0 + part, part, connector, complete);
 }
 
 // Block sync sequence.
@@ -91,13 +90,13 @@ void session_block_sync::new_connection(size_t start_height, size_t partition,
 {
     if (stopped())
     {
-        log::debug(LOG_NETWORK)
-            << "Suspending block sync session (" << partition << ").";
+        log::debug(LOG_SESSION)
+            << "Suspending block sync partition (" << partition << ").";
         return;
     }
 
-    log::debug(LOG_NETWORK)
-        << "Starting block sync session (" << partition << ")";
+    log::debug(LOG_SESSION)
+        << "Starting block sync partition (" << partition << ")";
 
     // BLOCK SYNC CONNECT
     this->connect(connect,
@@ -110,14 +109,14 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
 {
     if (ec)
     {
-        log::debug(LOG_NETWORK)
+        log::debug(LOG_SESSION)
             << "Failure connecting block sync channel (" << partition
             << ") " << ec.message();
         new_connection(start_height, partition, connect, handler);
         return;
     }
 
-    log::info(LOG_NETWORK)
+    log::info(LOG_SESSION)
         << "Connected to block sync channel (" << partition << ") ["
         << channel->authority() << "]";
 
@@ -166,7 +165,7 @@ void session_block_sync::handle_complete(const code&, size_t start_height,
 
 void session_block_sync::handle_channel_stop(const code& ec, size_t partition)
 {
-    log::debug(LOG_NETWORK)
+    log::debug(LOG_SESSION)
         << "Block sync channel (" << partition << ") stopped: "
         << ec.message();
 }

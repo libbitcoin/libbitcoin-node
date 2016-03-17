@@ -26,8 +26,6 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 
-INITIALIZE_TRACK(bc::node::protocol_block_sync);
-
 namespace libbitcoin {
 namespace node {
 
@@ -55,6 +53,7 @@ protocol_block_sync::protocol_block_sync(p2p& network,
     first_height_(first_height),
     start_height_(start_height),
     offset_(offset),
+    channel_(start_height % offset),
     minimum_rate_(minimum_rate),
     hashes_(hashes),
     blockchain_(chain),
@@ -122,7 +121,7 @@ void protocol_block_sync::start(count_handler handler)
 
     if (peer_top < headers_top)
     {
-        log::info(LOG_NETWORK)
+        log::info(LOG_PROTOCOL)
             << "Start height (" << peer_top << ") below block sync target ("
             << headers_top << ") from [" << authority() << "]";
 
@@ -165,7 +164,11 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-bool protocol_block_sync::handle_receive(const code& ec, const block& message,
+// The message subscriber implements an optimization to bypass queueing of
+// block messages. This requires that this handler never call back into the
+// subscriber. Otherwise a deadlock will result. This in turn requires that
+// the 'complete' parameter handler never call into the message subscriber.
+bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
     event_handler complete)
 {
     if (stopped())
@@ -181,10 +184,10 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
     }
 
     // A block must match the request in order to be accepted.
-    if (current_hash() != message.header.hash())
+    if (current_hash() != message->header.hash())
     {
         log::warning(LOG_PROTOCOL)
-            << "Out of order block " << encode_hash(message.header.hash())
+            << "Out of order block " << encode_hash(message->header.hash())
             << " from [" << authority() << "] (ignored)";
 
         // We either received a block anounce or we have a misbehaving peer.
@@ -192,40 +195,30 @@ bool protocol_block_sync::handle_receive(const code& ec, const block& message,
         return true;
     }
 
-    // TODO: pass all network messages as shared pointer.
-    const auto block_ptr = std::make_shared<block>(message);
+    const auto height = current_height();
 
-    ////////// Async commit block here.
-    ////////blockchain_.import(block_ptr,
-    ////////    BIND3(handle_import, _1, current_height(), complete));
-
-    // If our next block is below the end the sync is incomplete.
-    if (next_block(message))
-        return true;
-
-    // This is the end of the sync loop.
-    complete(error::success);
-    return false;
-}
-
-void protocol_block_sync::handle_import(const code& ec, size_t height,
-    event_handler complete)
-{
-    if (stopped())
-        return;
-
-    if (ec)
+    // Block commit block here.
+    if (blockchain_.import(message, height))
     {
-        log::error(LOG_PROTOCOL)
-            << "Failure importing block #" << height << " from ["
-            << authority() << "] " << ec.message();
-        complete(ec);
-        return;
+        log::info(LOG_PROTOCOL)
+            << "Imported block #" << height << " for (" << channel_
+            << ") from [" << authority() << "]";
+
+        // If our next block is below the end the sync is incomplete.
+        if (next_block(*message))
+            return true;
+
+        // This is the end of the sync loop.
+        complete(error::success);
+    }
+    else
+    {
+        log::info(LOG_PROTOCOL)
+            << "Stopped before importing block: " << height;
+        complete(error::channel_stopped);
     }
 
-    log::info(LOG_PROTOCOL)
-        << "Imported block #" << height << " from ["
-        << authority() << "]";
+    return false;
 }
 
 // This is fired by the base timer and stop handler.
@@ -245,6 +238,9 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         complete(ec);
         return;
     }
+
+    // BUGBUG: this causes unnecessary timeout of channels simply because of
+    // lock contention. Instead drop a channel if it drops to zero entries.
 
     // Drop the channel if it falls below the min sync rate in the window.
     if (current_rate() < minimum_rate_)

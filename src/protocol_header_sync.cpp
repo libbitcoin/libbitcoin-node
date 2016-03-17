@@ -25,8 +25,6 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 
-INITIALIZE_TRACK(bc::node::protocol_header_sync);
-
 namespace libbitcoin {
 namespace node {
 
@@ -41,7 +39,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 // TODO: move to config.
-static constexpr size_t header_period_seconds = 10;
+static constexpr size_t header_period_seconds = 5;
 
 static constexpr size_t full_headers = 2000;
 static const asio::seconds header_period(header_period_seconds);
@@ -133,11 +131,11 @@ void protocol_header_sync::rollback()
 // It's not necessary to roll back for invalid PoW. We just stop and move to
 // another peer. As long as we are getting valid PoW there is no way to know
 // we aren't of on a fork, so moving on is sufficient (and generally faster).
-bool protocol_header_sync::merge_headers(const headers& message)
+bool protocol_header_sync::merge_headers(headers::ptr message)
 {
     auto previous = hashes_.back();
 
-    for (const auto& header: message.elements)
+    for (const auto& header: message->elements)
     {
         const auto current = header.hash();
 
@@ -166,7 +164,7 @@ void protocol_header_sync::start(event_handler handler)
 
     if (peer_top < last_height_)
     {
-        log::info(LOG_NETWORK)
+        log::info(LOG_PROTOCOL)
             << "Start height (" << peer_top << ") below header sync target ("
             << last_height_ << ") from [" << authority() << "]";
 
@@ -212,8 +210,8 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-bool protocol_header_sync::handle_receive(const code& ec,
-    const headers& message, event_handler complete)
+bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
+    event_handler complete)
 {
     if (stopped())
         return false;
@@ -236,11 +234,11 @@ bool protocol_header_sync::handle_receive(const code& ec,
     }
 
     log::info(LOG_PROTOCOL)
-        << "Synced headers " << current_height() - message.elements.size()
+        << "Synced headers " << current_height() - message->elements.size()
         << "-" << current_height() - 1 << " from [" << authority() << "]";
 
     // If we received fewer than 2000 the peer is exhausted.
-    if (message.elements.size() < full_headers)
+    if (message->elements.size() < full_headers)
     {
         // If we reached the last height the sync is a success.
         const auto success = current_height() > last_height_;

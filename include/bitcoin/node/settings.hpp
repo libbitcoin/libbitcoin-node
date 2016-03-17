@@ -34,7 +34,6 @@ struct BCN_API settings
     static const settings defaults;
 
     /// Properties.
-    uint32_t threads;
     uint32_t quorum;
     uint32_t headers_per_second;
     uint32_t block_bytes_per_second;
