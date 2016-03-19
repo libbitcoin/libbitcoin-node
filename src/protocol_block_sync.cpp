@@ -239,9 +239,6 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         return;
     }
 
-    // BUGBUG: this causes unnecessary timeout of channels simply because of
-    // lock contention. Instead drop a channel if it drops to zero entries.
-
     // Drop the channel if it falls below the min sync rate in the window.
     if (current_rate() < minimum_rate_)
     {
