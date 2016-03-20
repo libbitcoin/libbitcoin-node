@@ -53,7 +53,7 @@ block_chain& p2p_node::chain()
 
 transaction_pool& p2p_node::pool()
 {
-    return blockchain_.transaction_pool();
+    return blockchain_.pool();
 }
 
 // Start sequence.
