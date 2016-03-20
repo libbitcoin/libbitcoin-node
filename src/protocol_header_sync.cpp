@@ -169,7 +169,7 @@ void protocol_header_sync::start(event_handler handler)
             << last_height_ << ") from [" << authority() << "]";
 
         // This is a successful vote.
-        handler(error::success);
+        headers_complete(error::success, handler);
         return;
     }
 

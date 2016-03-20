@@ -125,7 +125,7 @@ void protocol_block_sync::start(count_handler handler)
             << "Start height (" << peer_top << ") below block sync target ("
             << headers_top << ") from [" << authority() << "]";
 
-        handler(error::channel_stopped, current_height());
+        blocks_complete(error::channel_stopped, handler);
         return;
     }
 
