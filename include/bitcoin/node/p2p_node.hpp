@@ -85,6 +85,8 @@ public:
     virtual blockchain::transaction_pool& pool();
 
 private:
+    void handle_stopped(const code& ec);
+    void handle_blockchain_stopped(const code& ec, result_handler handler);
     void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_fetch_header(const code& ec, const chain::header& block_header,
         size_t block_height, result_handler handler);
@@ -93,17 +95,11 @@ private:
     void handle_blocks_synchronized(const code& ec, size_t start_height,
         result_handler handler);
 
-    // These are guarded by the non-restartable node constraint.
+    // This is guarded by the non-restartable node constraint.
     hash_list hashes_;
+
     const settings& settings_;
-
-    // TODO: hide this in blockchain.
-    threadpool blockchain_threadpool_;
-
-    // TODO: move database and txpool into blockchain (use factory).
-    bc::database::data_base database_;
     blockchain::block_chain_impl blockchain_;
-    blockchain::transaction_pool transaction_pool_;
 };
 
 } // namspace node
