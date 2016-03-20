@@ -36,18 +36,10 @@ using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-///////////////////////////////////////////////////////////////////////////////
-// TODO: move blockchain threadpool into blockchain and transaction pool start.
-// This requires that the blockchain components support start, stop and close.
-///////////////////////////////////////////////////////////////////////////////
-
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     settings_(configuration.node),
-    blockchain_threadpool_(0),
-    database_(configuration.database),
-    blockchain_(blockchain_threadpool_, database_, configuration.chain),
-    transaction_pool_(blockchain_threadpool_, blockchain_, configuration.chain)
+    blockchain_(configuration.chain, configuration.database)
 {
 }
 
@@ -61,7 +53,7 @@ block_chain& p2p_node::chain()
 
 transaction_pool& p2p_node::pool()
 {
-    return transaction_pool_;
+    return blockchain_.pool();
 }
 
 // Start sequence.
@@ -80,11 +72,6 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
-    // TODO: move into blockchain.
-    blockchain_threadpool_.join();
-    blockchain_threadpool_.spawn(blockchain_.chain_settings().threads,
-        thread_priority::low);
-
     blockchain_.start(
         std::bind(&p2p_node::handle_blockchain_start,
             shared_from_base<p2p_node>(), _1, handler));
@@ -100,26 +87,16 @@ void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
         return;
     }
 
-    blockchain_.fetch_last_height(
-        std::bind(&p2p_node::handle_fetch_height,
-            shared_from_base<p2p_node>(), _1, _2, handler));
-}
-
-void p2p_node::handle_fetch_height(const code& ec, uint64_t height,
-    result_handler handler)
-{
-    if (ec)
+    size_t height;
+    if (!blockchain_.get_last_height(height))
     {
-        log::error(LOG_SESSION)
-            << "Failure fetching blockchain start height: " << ec.message();
-        handler(ec);
+        log::error(LOG_NODE)
+            << "The blockchain is not initialized with a genensis block.";
+        handler(error::operation_failed);
         return;
     }
 
-    // TODO: iron this out.
-    BITCOIN_ASSERT(height <= bc::max_size_t);
-    const auto safe_height = static_cast<size_t>(height);
-    set_height(safe_height);
+    set_height(height);
 
     // This is the end of the derived start sequence.
     // Stopped is true and no network threads until after this call.
@@ -156,7 +133,7 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
 
     if (ec)
     {
-        log::error(LOG_SESSION)
+        log::error(LOG_NODE)
             << "Failure fetching blockchain start header: " << ec.message();
         handler(ec);
         return;
@@ -185,7 +162,7 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
 
     if (ec)
     {
-        log::error(LOG_NETWORK)
+        log::error(LOG_NODE)
             << "Failure synchronizing headers: " << ec.message();
         handler(ec);
         return;
@@ -193,7 +170,7 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
 
     if (hashes_.empty())
     {
-        log::info(LOG_NETWORK)
+        log::info(LOG_NODE)
             << "Completed header synchronization.";
         handle_blocks_synchronized(error::success, block_height, handler);
         return;
@@ -203,7 +180,7 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
     const auto first_height = block_height + 1;
     const auto end_height = first_height + hashes_.size() - 1;
 
-    log::info(LOG_NETWORK)
+    log::info(LOG_NODE)
         << "Completed header synchronization [" << first_height << "-"
         << end_height << "]";
 
@@ -227,13 +204,13 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
 
     if (ec)
     {
-        log::error(LOG_NETWORK)
+        log::error(LOG_NODE)
             << "Failure synchronizing blocks: " << ec.message();
         handler(ec);
         return;
     }
 
-    log::info(LOG_NETWORK)
+    log::info(LOG_NODE)
         << "Completed block synchronization [" << start_height
         << "-" << height() << "]";
 
@@ -260,9 +237,17 @@ void p2p_node::subscribe_transaction_pool(transaction_handler handler)
 
 void p2p_node::stop(result_handler handler)
 {
-    blockchain_.stop();
-    transaction_pool_.stop();
-    blockchain_threadpool_.shutdown();
+    blockchain_.stop(
+        std::bind(&p2p_node::handle_blockchain_stopped,
+            this, _1, handler));
+}
+
+void p2p_node::handle_blockchain_stopped(const code& ec,
+    result_handler handler)
+{
+    if (ec)
+        log::error(LOG_NODE)
+            << "Blockchain shutdown error: " << ec.message();
 
     // This is the end of the derived stop sequence.
     p2p::stop(handler);
@@ -271,21 +256,23 @@ void p2p_node::stop(result_handler handler)
 // Destruct sequence.
 // ----------------------------------------------------------------------------
 
-void p2p_node::close()
-{
-    p2p_node::stop(unhandled);
-
-    // TODO: hide these in blockchain.
-    blockchain_threadpool_.join();
-    database_.stop();
-
-    // This is the end of the destruct sequence.
-    p2p::close();
-}
-
 p2p_node::~p2p_node()
 {
+    // This allows for shutdown based on destruct without need to call stop.
     p2p_node::close();
+}
+
+void p2p_node::close()
+{
+    p2p_node::stop(
+        std::bind(&p2p_node::handle_stopped,
+            this, _1));
+}
+
+void p2p_node::handle_stopped(const code&)
+{
+    // This is the end of the destruct sequence.
+    blockchain_.close();
 }
 
 } // namspace node

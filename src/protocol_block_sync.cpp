@@ -125,7 +125,7 @@ void protocol_block_sync::start(count_handler handler)
             << "Start height (" << peer_top << ") below block sync target ("
             << headers_top << ") from [" << authority() << "]";
 
-        handler(error::channel_stopped, current_height());
+        blocks_complete(error::channel_stopped, handler);
         return;
     }
 
@@ -238,9 +238,6 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         complete(ec);
         return;
     }
-
-    // BUGBUG: this causes unnecessary timeout of channels simply because of
-    // lock contention. Instead drop a channel if it drops to zero entries.
 
     // Drop the channel if it falls below the min sync rate in the window.
     if (current_rate() < minimum_rate_)
