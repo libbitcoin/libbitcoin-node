@@ -208,13 +208,15 @@ bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
         if (next_block(*message))
             return true;
 
-        // This is the end of the sync loop.
+        // This is the end of the sync loop, normal termination.
         complete(error::success);
     }
     else
     {
         log::info(LOG_PROTOCOL)
             << "Stopped before importing block: " << height;
+
+        // This should not happen, since the network must stop first.
         complete(error::channel_stopped);
     }
 
