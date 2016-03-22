@@ -237,7 +237,7 @@ void p2p_node::subscribe_transaction_pool(transaction_handler handler)
 
 void p2p_node::stop(result_handler handler)
 {
-    blockchain_.stop(
+    p2p::stop(
         std::bind(&p2p_node::handle_blockchain_stopped,
             this, _1, handler));
 }
@@ -247,10 +247,10 @@ void p2p_node::handle_blockchain_stopped(const code& ec,
 {
     if (ec)
         log::error(LOG_NODE)
-            << "Blockchain shutdown error: " << ec.message();
+            << "Network shutdown error: " << ec.message();
 
     // This is the end of the derived stop sequence.
-    p2p::stop(handler);
+    blockchain_.stop(handler);
 }
 
 // Destruct sequence.
