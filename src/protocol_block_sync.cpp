@@ -40,7 +40,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 // We measure the block rate in a moving 10 second window.
-static constexpr size_t block_rate_window_seconds = 1;
+static constexpr size_t block_rate_window_seconds = 5;
 static const asio::seconds block_rate(block_rate_window_seconds);
 
 protocol_block_sync::protocol_block_sync(p2p& network,
