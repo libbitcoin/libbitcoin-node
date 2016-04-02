@@ -18,4 +18,4 @@ $ sudo ldconfig
 
 libbitcoin-node is now installed in `/usr/local/`.
 
-Currently the `bitcoin-node` console app is for demonstration purposes only. See [libbitcoin-server](https://github.com/libbitcoin/libbitcoin-server) for current full node functionality.
+In version2 the `bitcoin-node` console app is for demonstration purposes only. See [libbitcoin-server](https://github.com/libbitcoin/libbitcoin-server) for release quality full node functionality.
