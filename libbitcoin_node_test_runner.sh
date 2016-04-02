@@ -18,4 +18,4 @@ BOOST_UNIT_TEST_OPTIONS=\
 
 # Run tests.
 #==============================================================================
-./test/libbitcoin_node_test ${BOOST_UNIT_TEST_OPTIONS}
+./test/libbitcoin_node_test ${BOOST_UNIT_TEST_OPTIONS} > test.log
