@@ -27,11 +27,12 @@
 namespace libbitcoin {
 namespace node {
 
-/// Common node configuration settings, thread safe.
-struct BCN_API settings
+/// Common database configuration settings, properties not thread safe.
+class BCN_API settings
 {
-    /// Default instance.
-    static const settings defaults;
+public:
+    settings();
+    settings(bc::settings context);
 
     /// Properties.
     uint32_t quorum;

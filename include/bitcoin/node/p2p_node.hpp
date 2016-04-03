@@ -43,7 +43,7 @@ public:
         transaction_handler;
 
     /// Construct the full node.
-    p2p_node(const configuration& configuration=configuration::mainnet);
+    p2p_node(const configuration& configuration);
 
     /// Destruct the full node.
     ~p2p_node();
