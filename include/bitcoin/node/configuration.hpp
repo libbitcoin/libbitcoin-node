@@ -48,19 +48,8 @@ namespace node {
 class BCN_API configuration
 {
 public:
-    /// Default instances.
-    static const configuration mainnet;
-    static const configuration testnet;
-
-    configuration();
-    configuration(
-        const node::settings& node_settings,
-        const blockchain::settings& chain_settings,
-        const database::settings& database_settings,
-        const network::settings& network_settings);
-
-    /// Convenience.
-    virtual size_t last_checkpoint_height() const;
+    configuration(bc::settings context);
+    configuration(const configuration& other);
 
     /// Options.
     bool help;
@@ -76,6 +65,9 @@ public:
     blockchain::settings chain;
     database::settings database;
     network::settings network;
+
+    /// Helpers.
+    size_t last_checkpoint_height() const;
 };
 
 } // namespace node

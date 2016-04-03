@@ -22,18 +22,18 @@
 namespace libbitcoin {
 namespace node {
 
-static const settings settings_defaults()
+settings::settings()
+  : quorum(2),
+    headers_per_second(10000),
+    block_bytes_per_second(100000)
 {
-    settings value;
-    value.quorum = 2;
-    value.block_bytes_per_second = 100000;
-    value.headers_per_second = 10000;
-    ////value.peers = { {} };
-    return value;
-};
+}
 
-
-const settings settings::defaults = settings_defaults();
+// There are no current distinctions spanning chain contexts.
+settings::settings(bc::settings context)
+  : settings()
+{
+}
 
 } // namespace node
 } // namespace libbitcoin
