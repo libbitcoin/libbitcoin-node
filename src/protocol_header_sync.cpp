@@ -38,7 +38,7 @@ using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// TODO: move to config.
+// We measure the header rate in a moving 5 second window.
 static constexpr size_t header_period_seconds = 5;
 
 static constexpr size_t full_headers = 2000;
