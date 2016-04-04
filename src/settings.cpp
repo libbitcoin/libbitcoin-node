@@ -23,8 +23,7 @@ namespace libbitcoin {
 namespace node {
 
 settings::settings()
-  : quorum(2),
-    headers_per_second(10000),
+  : headers_per_second(10000),
     block_bytes_per_second(100000)
 {
 }
