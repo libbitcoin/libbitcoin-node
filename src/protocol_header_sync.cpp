@@ -90,9 +90,6 @@ bool protocol_header_sync::linked(const header& header,
 
 bool protocol_header_sync::checks(const hash_digest& hash, size_t height) const
 {
-    if (height > last_height_)
-        return true;
-
     return checkpoint::validate(hash, height, checkpoints_);
 }
 
@@ -191,7 +188,9 @@ void protocol_header_sync::send_get_headers(event_handler complete)
         return;
 
     BITCOIN_ASSERT_MSG(!hashes_.empty(), "The start header must be set.");
-    const get_headers packet{ { hashes_.back() }, null_hash };
+
+    const auto stop_hash = checkpoints_.back().hash();
+    const get_headers packet{ { hashes_.back() }, stop_hash };
 
     SEND2(packet, handle_send, _1, complete);
 }
@@ -237,15 +236,22 @@ bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
         << "Synced headers " << current_height() - message->elements.size()
         << "-" << current_height() - 1 << " from [" << authority() << "]";
 
-    // If we received fewer than 2000 the peer is exhausted.
-    if (message->elements.size() < full_headers)
+
+    // If we reached the last height the sync is complete/success.
+    if (current_height() > last_height_)
     {
-        // If we reached the last height the sync is a success.
-        const auto success = current_height() > last_height_;
-        complete(success ? error::success : error::operation_failed);
+        complete(error::success);
         return false;
     }
 
+    // If we received fewer than 2000 the peer is exhausted, try another.
+    if (message->elements.size() < full_headers)
+    {
+        complete(error::operation_failed);
+        return false;
+    }
+
+    // This peer has more headers.
     send_get_headers(complete);
     return true;
 }

@@ -41,17 +41,13 @@ session_header_sync::session_header_sync(p2p& network, hash_list& hashes,
     const config::checkpoint& top, const settings& settings,
     const blockchain::settings& chain_settings)
   : session_batch(network, false),
-    votes_(0),
-    start_height_(top.height()),
+    top_(top),
     settings_(settings),
     checkpoints_(chain_settings.checkpoints),
     hashes_(hashes),
     CONSTRUCT_TRACK(session_header_sync)
 {
-    // Seed the headers list with the top block, matching start_height.
-    hashes_.push_back(top.hash());
-
-    // Checkpoints must be sorted but may not be so in config.
+    // Sort is required here but not in configuration settings.
     config::checkpoint::sort(checkpoints_);
 }
 
@@ -72,7 +68,15 @@ void session_header_sync::handle_started(const code& ec,
         return;
     }
 
-    votes_ = 0;
+    // We only sync up to the last checkpoint.
+    if (checkpoints_.empty() || top_.height() >= checkpoints_.back().height())
+    {
+        handler(error::success);
+        return;
+    }
+
+    // Seed the headers list with the top block (will clear upon return).
+    hashes_.push_back(top_.hash());
 
     // This is the end of the start sequence.
     new_connection(create_connector(), handler);
@@ -128,7 +132,7 @@ void session_header_sync::handle_channel_start(const code& ec,
 
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
-    attach<protocol_header_sync>(channel, rate, start_height_, hashes_,
+    attach<protocol_header_sync>(channel, rate, top_.height(), hashes_,
         checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
 };
 
@@ -136,12 +140,7 @@ void session_header_sync::handle_channel_start(const code& ec,
 void session_header_sync::handle_complete(const code& ec,
     network::connector::ptr connect, result_handler handler)
 {
-    if (!ec)
-        ++votes_;
-
-    // We require a number successful peer syncs, for maximizing height.
-    // They do not have to agree, as this is not conflict resolution.
-    if (ec || votes_ < settings_.quorum)
+    if (ec)
     {
         new_connection(connect, handler);
         return;

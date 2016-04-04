@@ -73,6 +73,12 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
         return;
     }
 
+    if (hashes_.empty())
+    {
+        handler(error::success);
+        return;
+    }
+
     // Parallelize into full_blocks (50k) sized groups and synchronize.
     const auto complete = synchronize(handler, offset_, NAME);
     const auto connector = create_connector();

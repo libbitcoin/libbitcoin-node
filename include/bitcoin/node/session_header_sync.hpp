@@ -58,11 +58,10 @@ private:
         network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec);
 
-    const size_t start_height_;
     const settings& settings_;
+    const config::checkpoint top_;
 
-    // These are guarded by the non-restartable session constraint.
-    size_t votes_;
+    // These are not properly guarded.
     config::checkpoint::list checkpoints_;
     hash_list& hashes_;
 };
