@@ -168,20 +168,12 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
         return;
     }
 
-    if (hashes_.empty())
-    {
-        log::info(LOG_NODE)
-            << "Completed header synchronization.";
-        handle_blocks_synchronized(error::success, block_height, handler);
-        return;
-    }
-
     // First height in hew headers.
     const auto first_height = block_height + 1;
     const auto end_height = first_height + hashes_.size() - 1;
 
     log::info(LOG_NODE)
-        << "Completed header synchronization [" << first_height << "-"
+        << "Starting block synchronization [" << first_height << "-"
         << end_height << "]";
 
     const auto start_handler =

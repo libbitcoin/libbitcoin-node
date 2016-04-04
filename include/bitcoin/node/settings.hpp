@@ -35,7 +35,6 @@ public:
     settings(bc::settings context);
 
     /// Properties.
-    uint32_t quorum;
     uint32_t headers_per_second;
     uint32_t block_bytes_per_second;
     config::endpoint::list peers;
