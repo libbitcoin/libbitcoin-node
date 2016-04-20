@@ -30,28 +30,18 @@
 namespace libbitcoin {
 namespace node {
         
-/**
- * Blocks sync protocol.
- */
+/// Blocks sync protocol, thread safe.
 class BCN_API protocol_block_sync
   : public network::protocol_timer, public track<protocol_block_sync>
 {
 public:
     typedef std::shared_ptr<protocol_block_sync> ptr;
 
-    /**
-     * Construct a block sync protocol instance.
-     * @param[in]  network  The network interface.
-     * @param[in]  channel  The channel on which to start the protocol.
-     * @param[in]  row      The channel row in the reservation table.
-     */
+    /// Construct a block sync protocol instance.
     protocol_block_sync(network::p2p& network, network::channel::ptr channel,
         reservation::ptr row);
 
-    /**
-     * Start the protocol.
-     * @param[in]  handler  The handler to call upon sync completion.
-     */
+    /// Start the protocol.
     void start(event_handler handler);
 
 private:

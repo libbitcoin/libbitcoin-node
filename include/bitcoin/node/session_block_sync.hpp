@@ -33,6 +33,7 @@
 namespace libbitcoin {
 namespace node {
 
+/// Class to manage initial block download connections, thread safe.
 class BCN_API session_block_sync
   : public network::session_batch, track<session_block_sync>
 {

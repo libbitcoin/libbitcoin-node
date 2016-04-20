@@ -32,7 +32,7 @@
 namespace libbitcoin {
 namespace node {
 
-// Thread safe.
+// Class to manage a set of reservation objects during sync, thread safe.
 class BCN_API reservations
 {
 public:
@@ -42,6 +42,7 @@ public:
         float arithmentic_mean;
         float standard_deviation;
     } rate_summary;
+
     typedef std::shared_ptr<reservations> ptr;
 
     /// Construct a reservation table of reservations, allocating hashes evenly
@@ -84,10 +85,6 @@ private:
     // Protected by mutex.
     reservation::list table_;
     mutable upgrade_mutex mutex_;
-
-    // Settings.
-    const float factor_;
-    const size_t block_request_;
 };
 
 } // namespace node

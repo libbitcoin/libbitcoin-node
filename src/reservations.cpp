@@ -35,18 +35,13 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-// The allowed number of standard deviations below the norm.
-static constexpr float rate_factor = 1.0f;
-
 // The protocol maximum size of get data block requests.
 static constexpr size_t max_block_request = 50000;
 
 reservations::reservations(hash_queue& hashes, block_chain& chain,
     const settings& settings)
   : hashes_(hashes),
-    blockchain_(chain),
-    factor_(rate_factor),
-    block_request_(max_block_request)
+    blockchain_(chain)
 {
     initialize(settings.download_connections);
 }
@@ -151,7 +146,7 @@ void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
 
-    const auto max_rows = max_size_t / block_request_;
+    const auto max_rows = max_size_t / max_block_request;
     auto rows = std::min(max_rows, size);
 
     // Critical Section
@@ -172,7 +167,7 @@ void reservations::initialize(size_t size)
     }
 
     // Allocate no more than 50k headers per row.
-    const auto max_allocation = rows * block_request_;
+    const auto max_allocation = rows * max_block_request;
 
     // Allocate no more than 50k headers per row.
     const auto allocation = std::min(blocks, max_allocation);
@@ -184,7 +179,7 @@ void reservations::initialize(size_t size)
     table_.reserve(rows);
 
     for (auto row = 0; row < rows; ++row)
-        table_.push_back(std::make_shared<reservation>(self, row, factor_));
+        table_.push_back(std::make_shared<reservation>(self, row));
 
     size_t height;
     hash_digest hash;
@@ -259,7 +254,7 @@ bool reservations::reserve(reservation::ptr minimal)
 
     // Allocate no more than 50k headers to this row.
     const auto existing = minimal->size();
-    const auto allocation = std::min(size, block_request_ - existing);
+    const auto allocation = std::min(size, max_block_request - existing);
 
     size_t height;
     hash_digest hash;

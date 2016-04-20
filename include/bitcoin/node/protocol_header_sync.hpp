@@ -32,31 +32,19 @@
 namespace libbitcoin {
 namespace node {
         
-/**
- * Headers sync protocol.
- */
+/// Headers sync protocol, thread safe.
 class BCN_API protocol_header_sync
   : public network::protocol_timer, public track<protocol_header_sync>
 {
 public:
     typedef std::shared_ptr<protocol_header_sync> ptr;
 
-    /**
-     * Construct a header sync protocol instance.
-     * @param[in]  network       The network interface.
-     * @param[in]  channel       The channel on which to start the protocol.
-     * @param[in]  hashes        The ordered set of block hashes when cmplete.
-     * @param[in]  minimum_rate  The minimum sync rate in headers per second.
-     * @param[in]  checkpoints   The ordered blockchain checkpoints.
-     */
+    /// Construct a header sync protocol instance.
     protocol_header_sync(network::p2p& network, network::channel::ptr channel,
         hash_queue& hashes, uint32_t minimum_rate,
         const config::checkpoint::list& checkpoints);
 
-    /**
-     * Start the protocol.
-     * @param[in]  handler  The handler to call upon sync completion.
-     */
+    /// Start the protocol.
     void start(event_handler handler);
 
 private:

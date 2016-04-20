@@ -31,7 +31,8 @@
 
 namespace libbitcoin {
 namespace node {
-
+    
+/// Class to manage initial header download connection, thread safe.
 class BCN_API session_header_sync
   : public network::session_batch, track<session_header_sync>
 {
@@ -55,7 +56,6 @@ private:
         network::connector::ptr connect, result_handler handler);
     void handle_complete(const code& ec, network::connector::ptr connect,
         result_handler handler);
-
     void handle_channel_start(const code& ec, network::connector::ptr connect,
         network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec);

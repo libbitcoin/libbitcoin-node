@@ -37,7 +37,7 @@ namespace node {
 
 class reservations;
 
-// Thread safe.
+// Class to manage hashes during sync, thread safe.
 class BCN_API reservation
   : public enable_shared_from_base<reservation>
 {
@@ -46,7 +46,7 @@ public:
     typedef std::vector<reservation::ptr> list;
 
     /// Construct a block reservation with the specified identifier.
-    reservation(reservations& reservations, size_t slot, float rate_factor);
+    reservation(reservations& reservations, size_t slot);
 
     /// The sequential identifier of this reservation.
     size_t slot() const;
@@ -97,6 +97,7 @@ private:
         std::chrono::system_clock::duration import;
         std::chrono::system_clock::time_point time;
     } import_record;
+
     typedef std::vector<import_record> rate_history;
 
     // A bidirection map is used for efficient hash and height retrieval.
@@ -116,9 +117,6 @@ private:
 
     // The sequential identifier of the reservation instance.
     const size_t slot_;
-
-    // The allowable amount of standard deviation from the norm.
-    const float factor_;
 
     // Thread safe.
     std::atomic<bool> idle_;

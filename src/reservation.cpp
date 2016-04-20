@@ -36,13 +36,14 @@ using namespace bc::chain;
 // The window for the rate moving average.
 static const seconds rate_window(10);
 
+// The allowed number of standard deviations below the norm.
+static constexpr float deviation = 1.0f;
+
 // Log the rate block of block download in seconds.
 static constexpr size_t duration_to_seconds = 10 * 1000 * 1000;
 
-reservation::reservation(reservations& reservations, size_t slot,
-    float rate_factor)
+reservation::reservation(reservations& reservations, size_t slot)
   : slot_(slot),
-    factor_(rate_factor),
     idle_(true),
     rate_(0),
     adjusted_rate_(0),
@@ -89,8 +90,8 @@ bool reservation::expired() const
     const auto adjusted_rate = adjusted_rate_.load();
     const auto statistics = reservations_.rates();
     const auto deviation = adjusted_rate - statistics.arithmentic_mean;
-    const auto acceptable_deviation = factor_ * statistics.standard_deviation;
-    const auto outlier = abs(deviation) > acceptable_deviation;
+    const auto allowed_deviation = deviation * statistics.standard_deviation;
+    const auto outlier = abs(deviation) > allowed_deviation;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
