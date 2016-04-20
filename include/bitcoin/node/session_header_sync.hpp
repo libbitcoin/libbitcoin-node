@@ -26,6 +26,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 #include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
@@ -37,13 +38,14 @@ class BCN_API session_header_sync
 public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
-    session_header_sync(network::p2p& network, hash_list& hashes,
-        const config::checkpoint& top, const settings& settings,
-        const blockchain::settings& chain_settings);
+    session_header_sync(network::p2p& network, hash_queue& hashes,
+        const settings& settings, const blockchain::settings& chain_settings);
 
     void start(result_handler handler);
 
 private:
+    static config::checkpoint::list sort(config::checkpoint::list checkpoints);
+
     void handle_started(const code& ec, result_handler handler);
     void new_connection(network::connector::ptr connect,
         result_handler handler);
@@ -58,12 +60,14 @@ private:
         network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec);
 
-    const settings& settings_;
-    const config::checkpoint top_;
+    // Thread safe.
+    hash_queue& hashes_;
 
-    // These are not properly guarded.
-    config::checkpoint::list checkpoints_;
-    hash_list& hashes_;
+    // This does not require guard because we only use one channel.
+    uint32_t minimum_rate_;
+
+    const settings& settings_;
+    const config::checkpoint::list checkpoints_;
 };
 
 } // namespace node

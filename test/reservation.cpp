@@ -17,31 +17,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SETTINGS_HPP
-#define LIBBITCOIN_NODE_SETTINGS_HPP
+#include <boost/test/unit_test.hpp>
+#include <bitcoin/node.hpp>
 
-#include <cstdint>
-#include <bitcoin/bitcoin.hpp>
-#include <bitcoin/node/define.hpp>
+using namespace bc;
 
-namespace libbitcoin {
-namespace node {
+BOOST_AUTO_TEST_SUITE(reservation_tests)
 
-/// Common database configuration settings, properties not thread safe.
-class BCN_API settings
+// Just a basic test to get some coverage output.
+BOOST_AUTO_TEST_CASE(reservation_test)
 {
-public:
-    static uint32_t number_of_cores();
+    BOOST_REQUIRE(true);
+}
 
-    settings();
-    settings(bc::settings context);
-
-    /// Properties.
-    uint32_t download_connections;
-    config::endpoint::list peers;
-};
-
-} // namespace node
-} // namespace libbitcoin
-
-#endif
+BOOST_AUTO_TEST_SUITE_END()

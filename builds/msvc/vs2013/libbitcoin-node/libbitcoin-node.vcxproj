@@ -71,10 +71,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\hash_queue.cpp" />
+    <ClCompile Include="..\..\..\..\src\reservation.cpp" />
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\p2p_node.cpp" />
     <ClCompile Include="..\..\..\..\src\protocol_block_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\protocol_header_sync.cpp" />
+    <ClCompile Include="..\..\..\..\src\reservations.cpp" />
     <ClCompile Include="..\..\..\..\src\session_block_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\session_header_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\parser.cpp" />
@@ -82,12 +85,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\hash_queue.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\reservation.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_block_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_header_sync.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\reservations.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session_block_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\session_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />

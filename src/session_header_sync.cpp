@@ -24,6 +24,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 #include <bitcoin/node/protocol_header_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 
@@ -37,18 +38,25 @@ using namespace network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-session_header_sync::session_header_sync(p2p& network, hash_list& hashes,
-    const config::checkpoint& top, const settings& settings,
-    const blockchain::settings& chain_settings)
+// The starting minimum header download rate, exponentially backs off.
+static constexpr uint32_t headers_per_second = 10000;
+
+// Sort is required here but not in configuration settings.
+session_header_sync::session_header_sync(p2p& network, hash_queue& hashes,
+    const settings& settings, const blockchain::settings& chain_settings)
   : session_batch(network, false),
-    top_(top),
-    settings_(settings),
-    checkpoints_(chain_settings.checkpoints),
     hashes_(hashes),
+    settings_(settings),
+    minimum_rate_(headers_per_second),
+    checkpoints_(sort(chain_settings.checkpoints)),
     CONSTRUCT_TRACK(session_header_sync)
 {
-    // Sort is required here but not in configuration settings.
-    config::checkpoint::sort(checkpoints_);
+}
+
+// Checkpoints are not sorted in config but must be here.
+checkpoint::list session_header_sync::sort(checkpoint::list checkpoints)
+{
+    return checkpoint::sort(checkpoints);
 }
 
 // Start sequence.
@@ -68,15 +76,20 @@ void session_header_sync::handle_started(const code& ec,
         return;
     }
 
-    // We only sync up to the last checkpoint.
-    if (checkpoints_.empty() || top_.height() >= checkpoints_.back().height())
+    // The hash list must be seeded with at least one trusted hash.
+    if (hashes_.empty())
+    {
+        handler(error::operation_failed);
+        return;
+    }
+
+    // Sync up to the last checkpoint or trusted entry only.
+    if (checkpoints_.empty() ||
+        hashes_.last_height() >= checkpoints_.back().height())
     {
         handler(error::success);
         return;
     }
-
-    // Seed the headers list with the top block (will clear upon return).
-    hashes_.push_back(top_.hash());
 
     // This is the end of the start sequence.
     new_connection(create_connector(), handler);
@@ -128,30 +141,27 @@ void session_header_sync::handle_channel_start(const code& ec,
         return;
     }
 
-    const auto rate = settings_.headers_per_second;
-
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
-    attach<protocol_header_sync>(channel, rate, top_.height(), hashes_,
-        checkpoints_)->start(BIND3(handle_complete, _1, connect, handler));
+    attach<protocol_header_sync>(channel, hashes_, minimum_rate_, checkpoints_)
+        ->start(BIND3(handle_complete, _1, connect, handler));
 };
 
-// The handler is passed on to the next start call.
 void session_header_sync::handle_complete(const code& ec,
     network::connector::ptr connect, result_handler handler)
 {
-    if (ec)
+    if (!ec)
     {
-        new_connection(connect, handler);
+        // This is the end of the header sync sequence.
+        handler(ec);
         return;
     }
 
-    // Remove the seed (top) block hash so we only return new headers.
-    hashes_.erase(hashes_.begin());
+    // Reduce the rate minimum so that we don't get hung up.
+    minimum_rate_ /= 2;
 
-    // This is the end of the header sync sequence.
-    // There is no failure scenario (add timer).
-    handler(error::success);
+    // There is no failure scenario, we ignore the result code here.
+    new_connection(connect, handler);
 }
 
 void session_header_sync::handle_channel_stop(const code& ec)

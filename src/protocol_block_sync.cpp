@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/reservation.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -32,122 +33,65 @@ namespace node {
 #define NAME "block_sync"
 #define CLASS protocol_block_sync
 
-using namespace bc::blockchain;
-using namespace bc::config;
 using namespace bc::message;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// We measure the block rate in a moving 5 second window.
-static constexpr size_t block_rate_window_seconds = 5;
-static const asio::seconds block_rate(block_rate_window_seconds);
+// The interval in which block download rate is tested.
+static const asio::seconds expiry_interval(5);
 
-protocol_block_sync::protocol_block_sync(p2p& network,
-    channel::ptr channel, size_t first_height, size_t start_height,
-    size_t offset, uint32_t minimum_rate, const hash_list& hashes,
-    block_chain& chain)
+protocol_block_sync::protocol_block_sync(p2p& network, channel::ptr channel,
+    reservation::ptr row)
   : protocol_timer(network, channel, true, NAME),
-    byte_count_(0),
-    index_(start_height - first_height),
-    first_height_(first_height),
-    start_height_(start_height),
-    offset_(offset),
-    channel_(start_height % offset),
-    minimum_rate_(minimum_rate),
-    hashes_(hashes),
-    blockchain_(chain),
+    reservation_(row),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
-    BITCOIN_ASSERT(index_ < hashes_.size());
-    BITCOIN_ASSERT(first_height_ <= start_height_);
-}
-
-// Utilities.
-// ----------------------------------------------------------------------------
-
-size_t protocol_block_sync::current_rate() const
-{
-    return byte_count_ / block_rate_window_seconds;
-}
-
-size_t protocol_block_sync::current_height() const
-{
-    return first_height_ + index_;
-}
-
-const hash_digest& protocol_block_sync::current_hash() const
-{
-    return hashes_[index_];
-}
-
-bool protocol_block_sync::next_block(const block& message)
-{
-    const auto block_size = message.serialized_size();
-
-    BITCOIN_ASSERT(byte_count_ <= max_size_t - block_size);
-    byte_count_ += block_size;
-
-    BITCOIN_ASSERT(index_ <= max_size_t - offset_);
-    index_ += offset_;
-
-    return index_ < hashes_.size();
-}
-
-// TODO: build a chunk at a time until complete.
-// TODO: start with one chunk and ask for next chunk as soon as backlog goes
-// below chunk size. This ensures that backlog will remain between 1-2 chunks
-// until there are no more to request. If backlog drops to zero then close
-// channel. Don't close a slow channel while it still has backlog.
-message::get_data protocol_block_sync::build_get_data() const
-{
-    get_data packet;
-    for (auto index = index_.load(); index < hashes_.size(); index += offset_)
-    {
-        const auto& hash = hashes_[index];
-        packet.inventories.push_back({ inventory_type_id::block, hash });
-    }
-
-    return packet;
 }
 
 // Start sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::start(count_handler handler)
+void protocol_block_sync::start(event_handler handler)
 {
-    const auto peer_top = peer_version().start_height;
-    const auto headers_top = first_height_ + hashes_.size() - 1;
-
-    if (peer_top < headers_top)
-    {
-        log::info(LOG_PROTOCOL)
-            << "Start height (" << peer_top << ") below block sync target ("
-            << headers_top << ") from [" << authority() << "]";
-
-        blocks_complete(error::channel_stopped, handler);
-        return;
-    }
-
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
-    protocol_timer::start(block_rate, BIND2(handle_event, _1, complete));
+    protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(block, handle_receive, _1, _2, complete);
 
     // This is the end of the start sequence.
-    send_get_blocks(complete);
+    send_get_blocks(complete, true);
 }
 
-// Block sync sequence.
+// Peer sync sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::send_get_blocks(event_handler complete)
+void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
 {
     if (stopped())
         return;
 
-    // This is sent only once in this protocol, for a maximum of 50k blocks.
-    SEND2(build_get_data(), handle_send, _1, complete);
+    // If the channel has been drained of hashes we are done.
+    if (reservation_->empty())
+    {
+        log::info(LOG_PROTOCOL)
+            << "Stopping complete slot (" << reservation_->slot() << ").";
+        complete(error::success);
+        return;
+    }
+
+    // We may have a new set of hashes to request.
+    const auto packet = reservation_->request(reset);
+
+    // Or the hashes may have already been requested.
+    if (packet.inventories.empty())
+        return;
+
+    log::debug(LOG_PROTOCOL)
+        << "Sending request of " << packet.inventories.size()
+        << " hashes for slot (" << reservation_->slot() << ").";
+
+    SEND2(packet, handle_send, _1, complete);
 }
 
 void protocol_block_sync::handle_send(const code& ec, event_handler complete)
@@ -157,9 +101,9 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
 
     if (ec)
     {
-        log::debug(LOG_PROTOCOL)
-            << "Failure sending get data to sync [" << authority() << "] "
-            << ec.message();
+        log::warning(LOG_PROTOCOL)
+            << "Failure sending request to slot (" << reservation_->slot()
+            << ") " << ec.message();
         complete(ec);
     }
 }
@@ -177,50 +121,26 @@ bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
     if (ec)
     {
         log::debug(LOG_PROTOCOL)
-            << "Failure receiving block from sync ["
-            << authority() << "] " << ec.message();
+            << "Receive failure on slot (" << reservation_->slot() << ") "
+            << ec.message();
         complete(ec);
         return false;
     }
 
-    // A block must match the request in order to be accepted.
-    if (current_hash() != message->header.hash())
-    {
-        log::warning(LOG_PROTOCOL)
-            << "Out of order block " << encode_hash(message->header.hash())
-            << " from [" << authority() << "] (ignored)";
+    // Add the block to the blockchain store.
+    reservation_->import(message);
 
-        // We either received a block anounce or we have a misbehaving peer.
-        // Ignore and continue until success or hitting the rate limiter.
-        return true;
-    }
-
-    const auto height = current_height();
-
-    // Block commit block here.
-    if (blockchain_.import(message, height))
+    if (reservation_->partitioned())
     {
         log::info(LOG_PROTOCOL)
-            << "Imported block #" << height << " for (" << channel_
-            << ") from [" << authority() << "]";
-
-        // If our next block is below the end the sync is incomplete.
-        if (next_block(*message))
-            return true;
-
-        // This is the end of the sync loop, normal termination.
-        complete(error::success);
-    }
-    else
-    {
-        log::info(LOG_PROTOCOL)
-            << "Stopped before importing block: " << height;
-
-        // This should not happen, since the network must stop first.
+            << "Restarting partitioned slot (" << reservation_->slot() << ").";
         complete(error::channel_stopped);
+        return false;
     }
 
-    return false;
+    // Request more blocks if our reservation has been expanded.
+    send_get_blocks(complete, false);
+    return true;
 }
 
 // This is fired by the base timer and stop handler.
@@ -234,32 +154,39 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 
     if (ec && ec != error::channel_timeout)
     {
-        log::warning(LOG_PROTOCOL)
-            << "Failure in block sync timer for [" << authority() << "] "
-            << ec.message();
+        log::info(LOG_PROTOCOL)
+            << "Failure in block sync timer for slot (" << reservation_->slot()
+            << ") " << ec.message();
         complete(ec);
         return;
     }
 
-    // Drop the channel if it falls below the min sync rate in the window.
-    if (current_rate() < minimum_rate_)
+    if (reservation_->expired())
     {
         log::info(LOG_PROTOCOL)
-            << "Block sync rate (" << current_rate() << "/sec) from ["
-            << authority() << "]";
+            << "Restarting slow slot (" << reservation_->slot() << ")";
         complete(error::channel_timeout);
         return;
     }
 
-    // Reset bytes-per-period accumulator.
-    byte_count_ = 0;
+    // Do not return sucess here, we need to make sure the race for new hashes
+    // doesn't result in a segment of hashes getting dropped by success here.
+    if (reservation_->empty())
+    {
+        log::debug(LOG_PROTOCOL)
+            << "Reservation is empty (" << reservation_->slot() << ") "
+            << ec.message();
+        complete(error::channel_timeout);
+    }
 }
 
 void protocol_block_sync::blocks_complete(const code& ec,
-    count_handler handler)
+    event_handler handler)
 {
-    // This is the end of the block sync sequence.
-    handler(ec, current_height());
+    reservation_->set_idle();
+
+    // This is the end of the peer sync sequence.
+    handler(ec);
 
     // The session does not need to handle the stop.
     stop(error::channel_stopped);

@@ -36,10 +36,13 @@ src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdi
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/configuration.cpp \
+    src/hash_queue.cpp \
     src/p2p_node.cpp \
     src/parser.cpp \
     src/protocol_block_sync.cpp \
     src/protocol_header_sync.cpp \
+    src/reservation.cpp \
+    src/reservations.cpp \
     src/session_block_sync.cpp \
     src/session_header_sync.cpp \
     src/settings.cpp
@@ -54,8 +57,11 @@ check_PROGRAMS = test/libbitcoin_node_test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 test_libbitcoin_node_test_SOURCES = \
+    test/hash_queue.cpp \
     test/main.cpp \
-    test/node.cpp
+    test/node.cpp \
+    test/reservation.cpp \
+    test/reservations.cpp
 
 endif WITH_TESTS
 
@@ -83,10 +89,13 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
+    include/bitcoin/node/hash_queue.hpp \
     include/bitcoin/node/p2p_node.hpp \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/protocol_block_sync.hpp \
     include/bitcoin/node/protocol_header_sync.hpp \
+    include/bitcoin/node/reservation.hpp \
+    include/bitcoin/node/reservations.hpp \
     include/bitcoin/node/session_block_sync.hpp \
     include/bitcoin/node/session_header_sync.hpp \
     include/bitcoin/node/settings.hpp \

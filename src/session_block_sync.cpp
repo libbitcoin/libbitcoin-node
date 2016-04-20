@@ -24,7 +24,9 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 #include <bitcoin/node/protocol_block_sync.hpp>
+#include <bitcoin/node/reservation.hpp>
 #include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
@@ -39,20 +41,12 @@ using namespace network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-//// (401000 - 350000) / 6000 + 1 = 9 peers and 5666 per peer.
-static constexpr size_t full_blocks = 50000;
-
-// There is overflow risk only if full_blocks is 1 (with max_size_t hashes).
-static_assert(full_blocks > 1, "unmitigated overflow risk");
-
-session_block_sync::session_block_sync(p2p& network, const hash_list& hashes,
-    size_t first_height, const settings& settings, block_chain& chain)
+session_block_sync::session_block_sync(p2p& network, hash_queue& hashes,
+    block_chain& chain, const settings& settings)
   : session_batch(network, false),
-    offset_((hashes.size() - 0) / full_blocks + 1),
-    first_height_(first_height),
-    hashes_(hashes),
-    settings_(settings),
     blockchain_(chain),
+    settings_(settings),
+    reservations_(hashes, chain, settings),
     CONSTRUCT_TRACK(session_block_sync)
 {
 }
@@ -73,107 +67,110 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
         return;
     }
 
-    if (hashes_.empty())
+    // Copy the reservations table.
+    const auto table = reservations_.table();
+
+    if (table.empty())
     {
         handler(error::success);
         return;
     }
 
-    // Parallelize into full_blocks (50k) sized groups and synchronize.
-    const auto complete = synchronize(handler, offset_, NAME);
     const auto connector = create_connector();
+    const auto complete = synchronize(handler, table.size(), NAME);
 
     // This is the end of the start sequence.
-    for (size_t part = 0; part < offset_; ++part)
-        new_connection(first_height_ + 0 + part, part, connector, complete);
+    for (const auto row: table)
+        new_connection(connector, row, complete);
 }
 
 // Block sync sequence.
 // ----------------------------------------------------------------------------
 
-void session_block_sync::new_connection(size_t start_height, size_t partition,
-    connector::ptr connect, result_handler handler)
+void session_block_sync::new_connection(connector::ptr connect,
+    reservation::ptr row, result_handler handler)
 {
     if (stopped())
     {
         log::debug(LOG_SESSION)
-            << "Suspending block sync partition (" << partition << ").";
+            << "Suspending slot (" << row ->slot() << ").";
         return;
     }
 
     log::debug(LOG_SESSION)
-        << "Starting block sync partition (" << partition << ")";
+        << "Starting slot (" << row->slot() << ").";
 
     // BLOCK SYNC CONNECT
     this->connect(connect,
-        BIND6(handle_connect, _1, _2, start_height, partition, connect, handler));
+        BIND5(handle_connect, _1, _2, connect, row, handler));
 }
 
 void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
-    size_t start_height, size_t partition, connector::ptr connect,
-    result_handler handler)
+    connector::ptr connect, reservation::ptr row, result_handler handler)
 {
     if (ec)
     {
         log::debug(LOG_SESSION)
-            << "Failure connecting block sync channel (" << partition
-            << ") " << ec.message();
-        new_connection(start_height, partition, connect, handler);
+            << "Failure connecting slot (" << row->slot() << ") "
+            << ec.message();
+        new_connection(connect, row, handler);
         return;
     }
 
     log::info(LOG_SESSION)
-        << "Connected to block sync channel (" << partition << ") ["
+        << "Connected slot (" << row->slot() << ") ["
         << channel->authority() << "]";
 
     register_channel(channel,
-        BIND6(handle_channel_start, _1, start_height, partition, connect, channel, handler),
-        BIND2(handle_channel_stop, _1, partition));
+        BIND5(handle_channel_start, _1, channel, connect, row, handler),
+        BIND2(handle_channel_stop, _1, row));
 }
 
 void session_block_sync::handle_channel_start(const code& ec,
-    size_t start_height, size_t partition, connector::ptr connect,
-    channel::ptr channel, result_handler handler)
+    channel::ptr channel, connector::ptr connect, reservation::ptr row,
+    result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_complete(ec, start_height, partition, connect, handler);
+        handle_complete(ec, connect, row, handler);
         return;
     }
-
-    const auto byte_rate = settings_.block_bytes_per_second;
 
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
-    attach<protocol_block_sync>(channel, first_height_, start_height, offset_,
-        byte_rate, hashes_, blockchain_)->start(
-            BIND5(handle_complete, _1, _2, partition, connect, handler));
+    attach<protocol_block_sync>(channel, row)->start(
+        BIND4(handle_complete, _1, connect, row, handler));
 };
 
-// We ignore the result code here.
-void session_block_sync::handle_complete(const code&, size_t start_height,
-    size_t partition, network::connector::ptr connect, result_handler handler)
+void session_block_sync::handle_complete(const code& ec,
+    network::connector::ptr connect, reservation::ptr row,
+    result_handler handler)
 {
-    BITCOIN_ASSERT(start_height >= first_height_);
-    const auto index = start_height - first_height_;
-
-    // There is no failure scenario, loop until done (add timer).
-    if (index < hashes_.size())
+    if (!ec)
     {
-        new_connection(start_height, partition, connect, handler);
+        reservations_.remove(row);
+
+        log::debug(LOG_SESSION)
+            << "Completed slot (" << row->slot() << ")";;
+
+        // This is the end of the block sync sequence.
+        handler(ec);
         return;
     }
 
-    // This is the end of the block sync sequence.
-    handler(error::success);
+    log::debug(LOG_SESSION)
+        << "Closed slot (" << row->slot() << ") with error: " << ec.message();
+
+    // There is no failure scenario, we ignore the result code here.
+    new_connection(connect, row, handler);
 }
 
-void session_block_sync::handle_channel_stop(const code& ec, size_t partition)
+void session_block_sync::handle_channel_stop(const code& ec,
+    reservation::ptr row)
 {
     log::debug(LOG_SESSION)
-        << "Block sync channel (" << partition << ") stopped: "
-        << ec.message();
+        << "Channel stopped on slot (" << row->slot() << ") " << ec.message();
 }
 
 } // namespace node
