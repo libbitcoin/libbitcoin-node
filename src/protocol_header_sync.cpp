@@ -202,7 +202,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     // Drop the channel if it falls below the min sync rate averaged over all.
     if (sync_rate() < minimum_rate_)
     {
-        log::info(LOG_PROTOCOL)
+        log::debug(LOG_PROTOCOL)
             << "Header sync rate (" << sync_rate() << "/sec) from ["
             << authority() << "]";
         complete(error::channel_timeout);

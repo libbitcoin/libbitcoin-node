@@ -82,13 +82,14 @@ void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
 {
     if (ec)
     {
-        log::info(LOG_NODE)
+        log::error(LOG_NODE)
             << "Blockchain failed to start: " << ec.message();
         handler(ec);
         return;
     }
 
     size_t height;
+
     if (!blockchain_.get_last_height(height))
     {
         log::error(LOG_NODE)

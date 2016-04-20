@@ -117,7 +117,7 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
         return;
     }
 
-    log::info(LOG_SESSION)
+    log::debug(LOG_SESSION)
         << "Connected slot (" << row->slot() << ") ["
         << channel->authority() << "]";
 
@@ -160,7 +160,7 @@ void session_block_sync::handle_complete(const code& ec,
     }
 
     log::debug(LOG_SESSION)
-        << "Closed slot (" << row->slot() << ") with error: " << ec.message();
+        << "Closed slot (" << row->slot() << ") " << ec.message();
 
     // There is no failure scenario, we ignore the result code here.
     new_connection(connect, row, handler);

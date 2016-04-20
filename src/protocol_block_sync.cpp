@@ -74,7 +74,7 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
     // If the channel has been drained of hashes we are done.
     if (reservation_->empty())
     {
-        log::info(LOG_PROTOCOL)
+        log::debug(LOG_PROTOCOL)
             << "Stopping complete slot (" << reservation_->slot() << ").";
         complete(error::success);
         return;
@@ -132,7 +132,7 @@ bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
 
     if (reservation_->partitioned())
     {
-        log::info(LOG_PROTOCOL)
+        log::debug(LOG_PROTOCOL)
             << "Restarting partitioned slot (" << reservation_->slot() << ").";
         complete(error::channel_stopped);
         return false;
@@ -154,7 +154,7 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 
     if (ec && ec != error::channel_timeout)
     {
-        log::info(LOG_PROTOCOL)
+        log::debug(LOG_PROTOCOL)
             << "Failure in block sync timer for slot (" << reservation_->slot()
             << ") " << ec.message();
         complete(ec);
@@ -163,7 +163,7 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 
     if (reservation_->expired())
     {
-        log::info(LOG_PROTOCOL)
+        log::debug(LOG_PROTOCOL)
             << "Restarting slow slot (" << reservation_->slot() << ")";
         complete(error::channel_timeout);
         return;

@@ -123,7 +123,7 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
         return;
     }
 
-    log::info(LOG_NETWORK)
+    log::debug(LOG_NETWORK)
         << "Connected to header sync channel [" << channel->authority() << "]";
 
     register_channel(channel,
