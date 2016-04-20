@@ -61,7 +61,7 @@ public:
     bool expired() const;
 
     /// Sets the idle state to true. Call when channel is stopped.
-    void reservation::set_idle();
+    void set_idle();
 
     /// True if the reservation is not applied to a channel.
     bool idle() const;
