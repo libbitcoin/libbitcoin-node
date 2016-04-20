@@ -146,7 +146,7 @@ void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
 
-    const auto max_rows = max_size_t / max_block_request;
+    const size_t max_rows = max_size_t / max_block_request;
     auto rows = std::min(max_rows, size);
 
     // Critical Section
