@@ -27,50 +27,32 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
         
-/**
- * Headers sync protocol.
- */
+/// Headers sync protocol, thread safe.
 class BCN_API protocol_header_sync
   : public network::protocol_timer, public track<protocol_header_sync>
 {
 public:
     typedef std::shared_ptr<protocol_header_sync> ptr;
 
-    /**
-     * Construct a header sync protocol instance.
-     * @param[in]  network       The network interface.
-     * @param[in]  channel       The channel on which to start the protocol.
-     * @param[in]  minimum_rate  The minimum sync rate in headers per second.
-     * @param[in]  first_height  The height of the first entry in headers.
-     * @param[in]  hashes        The ordered set of block hashes when cmplete.
-     * @param[in]  checkpoints   The ordered blockchain checkpoints.
-     */
+    /// Construct a header sync protocol instance.
     protocol_header_sync(network::p2p& network, network::channel::ptr channel,
-        uint32_t minimum_rate, size_t first_height, hash_list& hashes,
+        hash_queue& hashes, uint32_t minimum_rate,
         const config::checkpoint::list& checkpoints);
 
-    /**
-     * Start the protocol.
-     * @param[in]  handler  The handler to call upon sync completion.
-     */
+    /// Start the protocol.
     void start(event_handler handler);
 
 private:
-    static size_t last_height(size_t first_height, hash_list& headers,
+    static size_t final_height(hash_queue& headers,
         const config::checkpoint::list& checkpoints);
 
-    size_t current_height() const;
-    size_t current_rate() const;
-
-    void rollback();
-    bool merge_headers(message::headers::ptr message);
-    bool checks(const hash_digest& hash, size_t height) const;
-    bool linked(const chain::header& header, const hash_digest& hash) const;
-    bool proof_of_work(const chain::header& header, size_t height) const;
+    size_t sync_rate() const;
+    size_t next_height() const;
 
     void send_get_headers(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
@@ -79,16 +61,15 @@ private:
     bool handle_receive(const code& ec, message::headers::ptr message,
         event_handler complete);
 
-    // This is write-guarded by the header message subscriber strand.
-    hash_list& hashes_;
+    // Thread safe and guarded by sequential header sync.
+    hash_queue& hashes_;
 
     // This is guarded by protocol_timer/deadline contract (exactly one call).
     size_t current_second_;
 
     const uint32_t minimum_rate_;
     const size_t start_size_;
-    const size_t first_height_;
-    const size_t last_height_;
+    const size_t final_height_;
     const config::checkpoint::list& checkpoints_;
 };
 

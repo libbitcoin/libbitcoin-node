@@ -26,42 +26,44 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
+#include <bitcoin/node/reservations.hpp>
 #include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
 
+/// Class to manage initial block download connections, thread safe.
 class BCN_API session_block_sync
   : public network::session_batch, track<session_block_sync>
 {
 public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
-    session_block_sync(network::p2p& network, const hash_list& hashes,
-        size_t first_height, const settings& settings,
-        blockchain::block_chain& chain);
+    session_block_sync(network::p2p& network, hash_queue& hashes,
+        blockchain::block_chain& chain, const settings& settings);
 
     void start(result_handler handler);
 
 private:
     void handle_started(const code& ec, result_handler handler);
-    void new_connection(size_t start_height, size_t partition,
-        network::connector::ptr connect, result_handler handler);
+    void new_connection(network::connector::ptr connect,
+        reservation::ptr row, result_handler handler);
+    void handle_complete(const code& ec, network::connector::ptr connect,
+        reservation::ptr row, result_handler handler);
     void handle_connect(const code& ec, network::channel::ptr channel,
-        size_t start_height, size_t partition, network::connector::ptr connect,
+        network::connector::ptr connect, reservation::ptr row,
         result_handler handler);
-    void handle_complete(const code& ec, size_t start_height, size_t partition,
-        network::connector::ptr connect, result_handler handler);
-    void handle_channel_start(const code& ec, size_t start_height,
-        size_t partition, network::connector::ptr connect,
-        network::channel::ptr channel, result_handler handler);
-    void handle_channel_stop(const code& ec, size_t partition);
+    void handle_channel_start(const code& ec, network::channel::ptr channel,
+        network::connector::ptr connect, reservation::ptr row,
+        result_handler handler);
+    void handle_channel_stop(const code& ec, reservation::ptr row);
 
-    const size_t offset_;
-    const size_t first_height_;
-    const hash_list& hashes_;
-    const settings& settings_;
+    // These are thread safe.
     blockchain::block_chain& blockchain_;
+    reservations reservations_;
+
+    const settings& settings_;
 };
 
 } // namespace node

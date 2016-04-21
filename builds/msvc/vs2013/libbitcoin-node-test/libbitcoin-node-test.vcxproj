@@ -65,8 +65,11 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\test\hash_queue.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
+    <ClCompile Include="..\..\..\..\test\reservation.cpp" />
+    <ClCompile Include="..\..\..\..\test\reservations.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

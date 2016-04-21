@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <functional>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 
 namespace libbitcoin {
@@ -38,118 +39,48 @@ using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// We measure the header rate in a moving 5 second window.
-static constexpr size_t header_period_seconds = 5;
+// The protocol maximum size for get data header requests.
+static constexpr size_t max_header_response = 2000;
 
-static constexpr size_t full_headers = 2000;
-static const asio::seconds header_period(header_period_seconds);
+// The interval in which header download rate is measured and tested.
+static const asio::seconds expiry_interval(5);
 
 protocol_header_sync::protocol_header_sync(p2p& network,
-    channel::ptr channel, uint32_t minimum_rate, size_t first_height,
-    hash_list& hashes, const checkpoint::list& checkpoints)
+    channel::ptr channel, hash_queue& hashes, uint32_t minimum_rate,
+    const checkpoint::list& checkpoints)
   : protocol_timer(network, channel, true, NAME),
     hashes_(hashes),
     current_second_(0),
     minimum_rate_(minimum_rate),
     start_size_(hashes.size()),
-    first_height_(first_height),
-    last_height_(last_height(first_height, hashes, checkpoints)),
+    final_height_(final_height(hashes, checkpoints)),
     checkpoints_(checkpoints),
     CONSTRUCT_TRACK(protocol_header_sync)
 {
-    // TODO: convert to exception (public API).
-    BITCOIN_ASSERT_MSG(!hashes_.empty(), "The starting header must be set.");
 }
 
 // Utilities
 // ----------------------------------------------------------------------------
 
-size_t protocol_header_sync::last_height(size_t first_height,
-    hash_list& headers, const checkpoint::list& checkpoints)
+// We assume here that hashes in the initial list are ordered and trusted.
+// Typically the initial list would contain one hash from the chain top.
+size_t protocol_header_sync::final_height(hash_queue& hashes,
+    const checkpoint::list& checkpoints)
 {
-    const auto current_block = first_height + headers.size() - 1;
-    return checkpoints.empty() ? current_block :
-        std::max(checkpoints.back().height(), current_block);
+    const auto last_height = hashes.last_height();
+    return checkpoints.empty() ? last_height :
+        std::max(checkpoints.back().height(), last_height);
 }
 
-size_t protocol_header_sync::current_height() const
+size_t protocol_header_sync::next_height() const
 {
-    return hashes_.size() + first_height_;
+    return hashes_.last_height() + 1;
 }
 
-size_t protocol_header_sync::current_rate() const
+size_t protocol_header_sync::sync_rate() const
 {
+    // We can never roll back prior to start size since it's min final height.
     return (hashes_.size() - start_size_) / current_second_;
-}
-
-bool protocol_header_sync::linked(const header& header,
-    const hash_digest& hash) const
-{
-    return header.previous_block_hash == hash;
-}
-
-bool protocol_header_sync::checks(const hash_digest& hash, size_t height) const
-{
-    return checkpoint::validate(hash, height, checkpoints_);
-}
-
-bool protocol_header_sync::proof_of_work(const header& header,
-    size_t height) const
-{
-    if (height <= last_height_)
-        return true;
-
-    // TODO: determine if the PoW for this block is valid.
-    // This allows us to collect headers beyond the last checkpoint.
-    // We can attempt to fill these blocks and the the sync will terminate at
-    // the last validated block (i.e. above the last checkpoint).
-    return true;
-}
-
-// TODO: ensure that this is correct (using valid block sync).
-void protocol_header_sync::rollback()
-{
-    if (!checkpoints_.empty())
-    {
-        for (auto it = checkpoints_.rbegin(); it != checkpoints_.rend(); ++it)
-        {
-            auto match = std::find(hashes_.begin(), hashes_.end(), it->hash());
-            if (match != hashes_.end())
-            {
-                hashes_.erase(++match, hashes_.end());
-                return;
-            }
-        }
-    }
-
-    hashes_.resize(1);
-}
-
-// It's not necessary to roll back for invalid PoW. We just stop and move to
-// another peer. As long as we are getting valid PoW there is no way to know
-// we aren't of on a fork, so moving on is sufficient (and generally faster).
-bool protocol_header_sync::merge_headers(headers::ptr message)
-{
-    auto previous = hashes_.back();
-
-    for (const auto& header: message->elements)
-    {
-        const auto current = header.hash();
-
-        if (!linked(header, previous) || !checks(current, current_height()))
-        {
-            rollback();
-            return false;
-        }
-
-        if (!proof_of_work(header, current_height()))
-            return false;
-
-        previous = current;
-        hashes_.push_back(current);
-    }
-
-    return true;
 }
 
 // Start sequence.
@@ -157,21 +88,8 @@ bool protocol_header_sync::merge_headers(headers::ptr message)
 
 void protocol_header_sync::start(event_handler handler)
 {
-    const auto peer_top = peer_version().start_height;
-
-    if (peer_top < last_height_)
-    {
-        log::info(LOG_PROTOCOL)
-            << "Start height (" << peer_top << ") below header sync target ("
-            << last_height_ << ") from [" << authority() << "]";
-
-        // This is a successful vote.
-        headers_complete(error::success, handler);
-        return;
-    }
-
     auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
-    protocol_timer::start(header_period, BIND2(handle_event, _1, complete));
+    protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
 
@@ -187,10 +105,11 @@ void protocol_header_sync::send_get_headers(event_handler complete)
     if (stopped())
         return;
 
-    BITCOIN_ASSERT_MSG(!hashes_.empty(), "The start header must be set.");
-
-    const auto stop_hash = checkpoints_.back().hash();
-    const get_headers packet{ { hashes_.back() }, stop_hash };
+    const get_headers packet
+    {
+        { hashes_.last_hash() },
+        checkpoints_.back().hash()
+    };
 
     SEND2(packet, handle_send, _1, complete);
 }
@@ -224,7 +143,8 @@ bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
         return false;
     }
 
-    if (!merge_headers(message))
+    // A merge failure includes automatic rollback to last trust point.
+    if (!hashes_.push(message))
     {
         log::warning(LOG_PROTOCOL)
             << "Failure merging headers from [" << authority() << "]";
@@ -232,20 +152,22 @@ bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
         return false;
     }
 
+    const auto next = next_height();
+
     log::info(LOG_PROTOCOL)
-        << "Synced headers " << current_height() - message->elements.size()
-        << "-" << current_height() - 1 << " from [" << authority() << "]";
+        << "Synced headers " << next - message->elements.size()
+        << "-" << (next - 1) << " from [" << authority() << "]";
 
 
     // If we reached the last height the sync is complete/success.
-    if (current_height() > last_height_)
+    if (next > final_height_)
     {
         complete(error::success);
         return false;
     }
 
     // If we received fewer than 2000 the peer is exhausted, try another.
-    if (message->elements.size() < full_headers)
+    if (message->elements.size() < max_header_response)
     {
         complete(error::operation_failed);
         return false;
@@ -275,14 +197,14 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     }
 
     // It was a timeout, so ten more seconds have passed.
-    current_second_ += header_period_seconds;
+    current_second_ += expiry_interval.total_seconds();
 
     // Drop the channel if it falls below the min sync rate averaged over all.
-    if (current_rate() < minimum_rate_)
+    if (sync_rate() < minimum_rate_)
     {
-        log::info(LOG_PROTOCOL)
-            << "Header sync rate (" << current_rate()
-            << "/sec) from [" << authority() << "]";
+        log::debug(LOG_PROTOCOL)
+            << "Header sync rate (" << sync_rate() << "/sec) from ["
+            << authority() << "]";
         complete(error::channel_timeout);
         return;
     }

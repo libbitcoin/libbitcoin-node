@@ -26,6 +26,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -90,16 +91,16 @@ private:
     void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_fetch_header(const code& ec, const chain::header& block_header,
         size_t block_height, result_handler handler);
-    void handle_headers_synchronized(const code& ec, size_t block_height,
-        result_handler handler);
-    void handle_blocks_synchronized(const code& ec, size_t start_height,
-        result_handler handler);
+    void handle_headers_synchronized(const code& ec, result_handler handler);
+    void handle_blocks_synchronized(const code& ec, result_handler handler);
 
-    // This is guarded by the non-restartable node constraint.
-    hash_list hashes_;
+    // This is thread safe and guarded by the non-restartable node constraint.
+    hash_queue hashes_;
+
+    // This is thread safe.
+    blockchain::block_chain_impl blockchain_;
 
     const settings& settings_;
-    blockchain::block_chain_impl blockchain_;
 };
 
 } // namspace node

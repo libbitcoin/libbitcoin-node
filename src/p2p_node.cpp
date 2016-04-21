@@ -38,8 +38,9 @@ using std::placeholders::_2;
 
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
-    settings_(configuration.node),
-    blockchain_(configuration.chain, configuration.database)
+    hashes_(configuration.chain.checkpoints),
+    blockchain_(configuration.chain, configuration.database),
+    settings_(configuration.node)
 {
 }
 
@@ -81,13 +82,14 @@ void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
 {
     if (ec)
     {
-        log::info(LOG_NODE)
+        log::error(LOG_NODE)
             << "Blockchain failed to start: " << ec.message();
         handler(ec);
         return;
     }
 
     size_t height;
+
     if (!blockchain_.get_last_height(height))
     {
         log::error(LOG_NODE)
@@ -139,19 +141,23 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
         return;
     }
 
+    log::info(LOG_NODE)
+        << "Blockchain start height is (" << block_height << ").";
+
+    // Add the seed entry, the top trusted block hash.
+    hashes_.initialize(block_header.hash(), block_height);
     const auto chain_settings = blockchain_.chain_settings();
-    const config::checkpoint top(block_header.hash(), block_height);
 
     const auto start_handler =
         std::bind(&p2p_node::handle_headers_synchronized,
-            shared_from_base<p2p_node>(), _1, top.height(), handler);
+            shared_from_base<p2p_node>(), _1, handler);
 
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, top, settings_, chain_settings)->
+    attach<session_header_sync>(hashes_, settings_, chain_settings)->
         start(start_handler);
 }
 
-void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
+void p2p_node::handle_headers_synchronized(const code& ec,
     result_handler handler)
 {
     if (stopped())
@@ -168,24 +174,25 @@ void p2p_node::handle_headers_synchronized(const code& ec, size_t block_height,
         return;
     }
 
-    // First height in hew headers.
-    const auto first_height = block_height + 1;
-    const auto end_height = first_height + hashes_.size() - 1;
-
-    log::info(LOG_NODE)
-        << "Starting block synchronization [" << first_height << "-"
-        << end_height << "]";
+    // Remove the seed entry so we don't try to sync it.
+    if (!hashes_.pop())
+    {
+        log::error(LOG_NODE)
+            << "Failure synchronizing headers, no seed entry.";
+        handler(error::operation_failed);
+        return;
+    }
 
     const auto start_handler =
         std::bind(&p2p_node::handle_blocks_synchronized,
-            shared_from_base<p2p_node>(), _1, first_height, handler);
+            shared_from_base<p2p_node>(), _1, handler);
 
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_block_sync>(hashes_, first_height, settings_, blockchain_)->
+    attach<session_block_sync>(hashes_, blockchain_, settings_)->
         start(start_handler);
 }
 
-void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
+void p2p_node::handle_blocks_synchronized(const code& ec,
     result_handler handler)
 {
     if (stopped())
@@ -202,9 +209,7 @@ void p2p_node::handle_blocks_synchronized(const code& ec, size_t start_height,
         return;
     }
 
-    log::info(LOG_NODE)
-        << "Completed block synchronization [" << start_height
-        << "-" << height() << "]";
+    // TODO: validate chain is complete.
 
     // This is the end of the derived run sequence.
     p2p::run(handler);

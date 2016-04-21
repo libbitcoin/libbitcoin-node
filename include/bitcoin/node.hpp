@@ -18,10 +18,13 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/hash_queue.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/protocol_block_sync.hpp>
 #include <bitcoin/node/protocol_header_sync.hpp>
+#include <bitcoin/node/reservation.hpp>
+#include <bitcoin/node/reservations.hpp>
 #include <bitcoin/node/session_block_sync.hpp>
 #include <bitcoin/node/session_header_sync.hpp>
 #include <bitcoin/node/settings.hpp>

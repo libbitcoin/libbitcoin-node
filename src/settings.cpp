@@ -19,12 +19,19 @@
  */
 #include <bitcoin/node/settings.hpp>
 
+#include <thread>
+
 namespace libbitcoin {
 namespace node {
 
+////uint32_t settings::number_of_cores()
+////{
+////    const auto cores = std::thread::hardware_concurrency();
+////    return cores > 0 ? cores : 8;
+////}
+
 settings::settings()
-  : headers_per_second(10000),
-    block_bytes_per_second(100000)
+  : download_connections(8 /* number_of_cores() */)
 {
 }
 
