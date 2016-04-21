@@ -95,17 +95,17 @@ bool reservation::expired() const
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    log::debug(LOG_PROTOCOL)
-        << "Statistics for slot (" << slot() << ")"
-        << " spd:" << (rate * duration_to_seconds)
-        << " adj:" << (adjusted_rate * duration_to_seconds)
-        << " avg:" << (statistics.arithmentic_mean * duration_to_seconds)
-        << " dev:" << (deviation * duration_to_seconds)
-        << " sdv:" << (statistics.standard_deviation * duration_to_seconds)
-        << " cnt:" << (statistics.active_count)
-        << " neg:" << (below_average ? "T" : "F")
-        << " out:" << (outlier ? "T" : "F")
-        << " exp:" << (expired ? "T" : "F");
+    ////log::debug(LOG_PROTOCOL)
+    ////    << "Statistics for slot (" << slot() << ")"
+    ////    << " spd:" << (rate * duration_to_seconds)
+    ////    << " adj:" << (adjusted_rate * duration_to_seconds)
+    ////    << " avg:" << (statistics.arithmentic_mean * duration_to_seconds)
+    ////    << " dev:" << (deviation * duration_to_seconds)
+    ////    << " sdv:" << (statistics.standard_deviation * duration_to_seconds)
+    ////    << " cnt:" << (statistics.active_count)
+    ////    << " neg:" << (below_average ? "T" : "F")
+    ////    << " out:" << (outlier ? "T" : "F")
+    ////    << " exp:" << (expired ? "T" : "F");
 
     return expired;
 }
@@ -179,9 +179,6 @@ void reservation::update_rate_history(size_t size,
     rate_.store(rate);
     adjusted_rate_.store(adjusted_rate);
 
-    ////const auto percent = discount.count() > 0 ?
-    ////    1.0f * cost.count() / discount.count() : 0.0f;
-    ////
     ////log::debug(LOG_PROTOCOL)
     ////    << "Records (" << slot() << ") "
     ////    << " size: " << size
@@ -190,7 +187,6 @@ void reservation::update_rate_history(size_t size,
     ////    << " totl: " << total
     ////    << " time: " << period_count
     ////    << " disc: " << import_count
-    ////    << " perc: " << percent
     ////    << " full: " << (full ? "true" : "false");
 }
 
@@ -299,7 +295,7 @@ void reservation::import(block::ptr block)
 
     if (success)
     {
-        const auto formatter = 
+        static const auto formatter = 
             "Imported block #%06i (%02i) [%s] %07.3f %-01.2f%%";
 
         const auto slower_rate = rate_.load();

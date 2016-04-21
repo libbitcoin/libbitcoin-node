@@ -103,7 +103,7 @@ private:
     // A bidirection map is used for efficient hash and height retrieval.
     typedef boost::bimaps::bimap<
         boost::bimaps::unordered_set_of<hash_digest>,
-        boost::bimaps::set_of<uint32_t >> hash_heights;
+        boost::bimaps::set_of<uint32_t>> hash_heights;
 
     // Return rate history to startup state.
     void clear_rate_history();
