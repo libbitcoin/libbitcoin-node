@@ -38,6 +38,9 @@ using namespace network;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+// The minimum rate back off factor, must be < 1.
+static constexpr float back_off_factor = 0.75f;
+
 // The starting minimum header download rate, exponentially backs off.
 static constexpr uint32_t headers_per_second = 10000;
 
@@ -51,6 +54,7 @@ session_header_sync::session_header_sync(p2p& network, hash_queue& hashes,
     checkpoints_(sort(chain_settings.checkpoints)),
     CONSTRUCT_TRACK(session_header_sync)
 {
+    static_assert(back_off_factor < 1, "invalid back-off factor");
 }
 
 // Checkpoints are not sorted in config but must be here.
@@ -158,7 +162,7 @@ void session_header_sync::handle_complete(const code& ec,
     }
 
     // Reduce the rate minimum so that we don't get hung up.
-    minimum_rate_ /= 2;
+    minimum_rate_ = static_cast<uint32_t>(minimum_rate_ * back_off_factor);
 
     // There is no failure scenario, we ignore the result code here.
     new_connection(connect, handler);
