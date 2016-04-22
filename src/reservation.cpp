@@ -37,7 +37,7 @@ using namespace bc::chain;
 static const seconds rate_window(10);
 
 // The allowed number of standard deviations below the norm.
-static constexpr float deviation = 1.0f;
+static constexpr float factor = 1.0f;
 
 // Log the rate block of block download in seconds.
 static constexpr size_t duration_to_seconds = 10 * 1000 * 1000;
@@ -90,22 +90,23 @@ bool reservation::expired() const
     const auto adjusted_rate = adjusted_rate_.load();
     const auto statistics = reservations_.rates();
     const auto deviation = adjusted_rate - statistics.arithmentic_mean;
-    const auto allowed_deviation = deviation * statistics.standard_deviation;
-    const auto outlier = abs(deviation) > allowed_deviation;
+    const auto absolute_deviation = abs(deviation);
+    const auto allowed_deviation = factor * statistics.standard_deviation;
+    const auto outlier = absolute_deviation > allowed_deviation;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    ////log::debug(LOG_PROTOCOL)
-    ////    << "Statistics for slot (" << slot() << ")"
-    ////    << " spd:" << (rate * duration_to_seconds)
-    ////    << " adj:" << (adjusted_rate * duration_to_seconds)
-    ////    << " avg:" << (statistics.arithmentic_mean * duration_to_seconds)
-    ////    << " dev:" << (deviation * duration_to_seconds)
-    ////    << " sdv:" << (statistics.standard_deviation * duration_to_seconds)
-    ////    << " cnt:" << (statistics.active_count)
-    ////    << " neg:" << (below_average ? "T" : "F")
-    ////    << " out:" << (outlier ? "T" : "F")
-    ////    << " exp:" << (expired ? "T" : "F");
+    log::debug(LOG_PROTOCOL)
+        << "Statistics for slot (" << slot() << ")"
+        << " spd:" << (rate * duration_to_seconds)
+        << " adj:" << (adjusted_rate * duration_to_seconds)
+        << " avg:" << (statistics.arithmentic_mean * duration_to_seconds)
+        << " dev:" << (deviation * duration_to_seconds)
+        << " sdv:" << (statistics.standard_deviation * duration_to_seconds)
+        << " cnt:" << (statistics.active_count)
+        << " neg:" << (below_average ? "T" : "F")
+        << " out:" << (outlier ? "T" : "F")
+        << " exp:" << (expired ? "T" : "F");
 
     return expired;
 }
