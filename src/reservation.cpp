@@ -22,6 +22,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <boost/format.hpp>
 #include <bitcoin/bitcoin.hpp>
@@ -33,20 +34,24 @@ namespace node {
 using namespace std::chrono;
 using namespace bc::chain;
 
-// The window for the rate moving average.
-static const seconds rate_window(10);
-
 // The allowed number of standard deviations below the norm.
-static constexpr float deviation = 1.0f;
+static constexpr float factor = 1.0f;
 
-// Log the rate block of block download in seconds.
-static constexpr size_t duration_to_seconds = 10 * 1000 * 1000;
+// The minimum amount of block history to move the state from idle.
+static constexpr size_t minimum_history = 3;
+
+// TODO: move to config, since this can stall the sync.
+// The minimum amount of block history to move the state from idle.
+// If a new channel can't achieve 3 blocks in 15 seconds (0.2b/s) it will drop.
+static constexpr size_t max_seconds_per_block = 5;
+
+// The window for the rate moving average.
+static constexpr size_t micro_per_second = 1000 * 1000;
+static const duration<int64_t, std::micro> rate_window(minimum_history * max_seconds_per_block * micro_per_second);
 
 reservation::reservation(reservations& reservations, size_t slot)
   : slot_(slot),
-    idle_(true),
-    rate_(0),
-    adjusted_rate_(0),
+    rate_({ true, 0, 0, 0 }),
     pending_(true),
     partitioned_(false),
     reservations_(reservations)
@@ -58,63 +63,81 @@ size_t reservation::slot() const
     return slot_;
 }
 
-system_clock::time_point reservation::current_time() const
+high_resolution_clock::time_point reservation::now() const
 {
-    return system_clock::now();
+    return high_resolution_clock::now();
 }
 
 // Rate methods.
 //-----------------------------------------------------------------------------
 
-void reservation::set_idle()
+// Clears rate/history but leaves hashes unchanged.
+void reservation::reset()
 {
-    rate_.store(0);
-    adjusted_rate_.store(0);
-    idle_.store(true);
+    set_rate({ true, 0, 0, 0 });
+    clear_history();
 }
 
+// Shortcut for rate().idle call.
 bool reservation::idle() const
 {
-    return idle_.load();
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    shared_lock lock(rate_mutex_);
+
+    return rate_.idle;
+    ///////////////////////////////////////////////////////////////////////////
 }
 
-float reservation::rate() const
+void reservation::set_rate(const summary_record& rate)
 {
-    return adjusted_rate_.load();
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock lock(rate_mutex_);
+
+    rate_ = rate;
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+reservation::summary_record reservation::rate() const
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    shared_lock lock(rate_mutex_);
+
+    return rate_;
+    ///////////////////////////////////////////////////////////////////////////
 }
 
 // Ignore idleness here, called only from an active channel, avoiding a race.
 bool reservation::expired() const
 {
-    const auto rate = rate_.load();
-    const auto adjusted_rate = adjusted_rate_.load();
+    const auto record = rate();
+    const auto normal_rate = record.normal();
     const auto statistics = reservations_.rates();
-    const auto deviation = adjusted_rate - statistics.arithmentic_mean;
-    const auto allowed_deviation = deviation * statistics.standard_deviation;
-    const auto outlier = abs(deviation) > allowed_deviation;
+    const auto deviation = normal_rate - statistics.arithmentic_mean;
+    const auto absolute_deviation = abs(deviation);
+    const auto allowed_deviation = factor * statistics.standard_deviation;
+    const auto outlier = absolute_deviation > allowed_deviation;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    ////log::debug(LOG_PROTOCOL)
-    ////    << "Statistics for slot (" << slot() << ")"
-    ////    << " spd:" << (rate * duration_to_seconds)
-    ////    << " adj:" << (adjusted_rate * duration_to_seconds)
-    ////    << " avg:" << (statistics.arithmentic_mean * duration_to_seconds)
-    ////    << " dev:" << (deviation * duration_to_seconds)
-    ////    << " sdv:" << (statistics.standard_deviation * duration_to_seconds)
-    ////    << " cnt:" << (statistics.active_count)
-    ////    << " neg:" << (below_average ? "T" : "F")
-    ////    << " out:" << (outlier ? "T" : "F")
-    ////    << " exp:" << (expired ? "T" : "F");
+    log::debug(LOG_PROTOCOL)
+        << "Statistics for slot (" << slot() << ")"
+        << " adj:" << (normal_rate * micro_per_second)
+        << " avg:" << (statistics.arithmentic_mean * micro_per_second)
+        << " dev:" << (deviation * micro_per_second)
+        << " sdv:" << (statistics.standard_deviation * micro_per_second)
+        << " cnt:" << (statistics.active_count)
+        << " neg:" << (below_average ? "T" : "F")
+        << " out:" << (outlier ? "T" : "F")
+        << " exp:" << (expired ? "T" : "F");
 
     return expired;
 }
 
-void reservation::clear_rate_history()
+void reservation::clear_history()
 {
-    rate_.store(0);
-    adjusted_rate_.store(0);
-
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(history_mutex_);
@@ -123,70 +146,68 @@ void reservation::clear_rate_history()
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Duration counts are normalized once cast to system_clock::duration.
-void reservation::update_rate_history(size_t size,
-    const system_clock::duration& cost)
+// It is possible to get a rate update after idling and before starting anew.
+// This can reduce the average during startup of the new channel until start.
+void reservation::update_rate(size_t events, uint64_t database)
 {
-    const auto now = current_time();
-    const auto limit = now - rate_window;
-    system_clock::duration import(0);
-    float total = 0;
-
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     history_mutex_.lock();
 
-    const auto records = history_.size();
+    // Lock before getting time to prevent negative duration.
+    const auto time = now();
+
+    // The upper limit of submission time for in-window entries.
+    const auto limit = time - rate_window;
+
+    summary_record rate{ false, 0, 0, 0 };
+    const auto start = history_.size();
 
     // Remove expired entries from the head of the queue.
     for (auto it = history_.begin(); it != history_.end() && it->time < limit;
         it = history_.erase(it));
-
-    const auto full = records > history_.size();
+        
+    // Determine if we have filled the window.
+    const auto full = start > history_.size();
 
     // Add the new entry to the tail of the queue.
-    history_.push_back({ size, cost, now });
+    history_.push_back({ events, database, time });
 
-    //------------------------------------------------------------------------
-    history_mutex_.unlock_and_lock_shared();
+    // We can't set the rate until we have a period (2+ data points).
+    if (history_.size() < minimum_history)
+    {
+        history_mutex_.unlock();
+        //---------------------------------------------------------------------
+        return;
+    }
 
     // Calculate the rate summary.
     for (const auto& record: history_)
     {
-        // TODO: guard against overflows.
-        total += record.size;
-        import += record.import;
+        BITCOIN_ASSERT(rate.events <= max_size_t - record.events);
+        rate.events += record.events;
+        BITCOIN_ASSERT(rate.database <= max_uint64 - record.database);
+        rate.database += record.database;
     }
 
     // If we have deleted any entries then use the full period.
-    const auto period = full ? rate_window : now - history_.front().time;
+    const auto window = full ? rate_window : (time - history_.front().time);
+    const auto count = duration_cast<microseconds>(window).count();
 
-    history_mutex_.unlock_shared();
+    // The time difference should never be negative.
+    rate.window = static_cast<uint64_t>(count);
+
+    history_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    const auto import_count = import.count();
-    const auto period_count = period.count();
-
-    auto rate = total / period_count;
-    auto adjusted_rate = total / (period_count - import_count);
-
-    if (rate != rate)
-        rate = 0;
-
-    if (adjusted_rate != adjusted_rate)
-        adjusted_rate = 0;
-
-    rate_.store(rate);
-    adjusted_rate_.store(adjusted_rate);
+    // Update the rate cache.
+    set_rate(rate);
 
     ////log::debug(LOG_PROTOCOL)
     ////    << "Records (" << slot() << ") "
-    ////    << " size: " << size
-    ////    << " cost: " << cost.count()
-    ////    << " recs: " << records
-    ////    << " totl: " << total
-    ////    << " time: " << period_count
-    ////    << " disc: " << import_count
+    ////    << " size: " << rate.events
+    ////    << " time: " << divide<double>(rate.window, micro_per_second)
+    ////    << " cost: " << divide<double>(rate.database, micro_per_second)
     ////    << " full: " << (full ? "true" : "false");
 }
 
@@ -214,18 +235,19 @@ size_t reservation::size() const
 }
 
 // Obtain and clear the outstanding blocks request.
-message::get_data reservation::request(bool reset)
+message::get_data reservation::request(bool new_channel)
 {
     message::get_data packet;
 
-    if (reset)
-        clear_rate_history();
+    // We are a new channel, clear history and rate data, next block starts.
+    if (new_channel)
+        reset();
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
-    if (!reset && !pending_)
+    if (!new_channel && !pending_)
     {
         hash_mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
@@ -273,10 +295,6 @@ void reservation::import(block::ptr block)
     const auto hash = block->header.hash();
     const auto encoded = encode_hash(hash);
 
-    // This prevents inclusion of a reservation rate before the first block.
-    // Expiration does not consider idelness so delay does not prevent closure.
-    idle_.store(false);
-
     if (!find_height_and_erase(hash, height))
     {
         log::debug(LOG_PROTOCOL)
@@ -291,34 +309,22 @@ void reservation::import(block::ptr block)
         success = reservations_.import(block, height);
     };
 
+    // Do the block import with timer.
     const auto cost = timer<microseconds>::duration(importer);
 
     if (success)
     {
+        const auto size = /*block->header.transaction_count*/ 1u;
+        update_rate(size, static_cast<uint64_t>(cost.count()));
+
         static const auto formatter = 
-            "Imported block #%06i (%02i) [%s] %07.3f %-01.2f%%";
+            "Imported block #%06i (%02i) [%s] %06.2f %-01.2f%%";
 
-        const auto slower_rate = rate_.load();
-        const auto faster_rate = adjusted_rate_.load();
-
-        // Convert rates to time per block based on common block count.
-        const auto lesser_time = 1 / faster_rate;
-        const auto greater_time = 1 / slower_rate;
-
-        // Calculate the percentage of total time spent in the database.
-        const auto factor = (greater_time - lesser_time) / greater_time;
-        const auto percent = factor != factor ? 0.0f : 100 * factor;
-
-        // Convert the total time to seconds.
-        auto rate = slower_rate * duration_to_seconds;
-        rate = rate != rate ? 0.0f : rate;
+        const auto record = rate();
 
         log::info(LOG_PROTOCOL)
-            << boost::format(formatter) % height % slot() % encoded % rate %
-            percent;
-
-        const auto size = /*block->header.transaction_count*/ 1u;
-        update_rate_history(size, cost);
+            << boost::format(formatter) % height % slot() % encoded %
+            (record.total() * micro_per_second) % (record.ratio() * 100);
     }
     else
     {

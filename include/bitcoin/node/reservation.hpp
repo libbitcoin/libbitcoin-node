@@ -20,7 +20,6 @@
 #ifndef LIBBITCOIN_NODE_RESERVATION_HPP
 #define LIBBITCOIN_NODE_RESERVATION_HPP
 
-#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -42,8 +41,42 @@ class BCN_API reservation
   : public enable_shared_from_base<reservation>
 {
 public:
+    typedef struct
+    {
+        bool idle;
+        size_t events;
+        uint64_t database;
+        uint64_t window;
+
+        double normal() const
+        {
+            // If these values are close we can overflow (infinity).
+            BITCOIN_ASSERT(database <= window);
+
+            return divide<double>(events, window - database);
+        }
+
+        double total() const
+        {
+            return divide<double>(events, window);
+        }
+
+        double ratio() const
+        {
+            return divide<double>(database, window);
+        }
+    } summary_record;
+
     typedef std::shared_ptr<reservation> ptr;
     typedef std::vector<reservation::ptr> list;
+
+    // Coerce division into double and error into zero.
+    template<typename Quotient, typename Dividend, typename Divisor>
+    static Quotient divide(Dividend dividend, Divisor divisor)
+    {
+        const auto quotient = static_cast<Quotient>(dividend) / divisor;
+        return std::isnan(quotient) ? 0.0 : quotient;
+    }
 
     /// Construct a block reservation with the specified identifier.
     reservation(reservations& reservations, size_t slot);
@@ -61,17 +94,20 @@ public:
     bool expired() const;
 
     /// Sets the idle state to true. Call when channel is stopped.
-    void set_idle();
+    void reset();
 
     /// True if the reservation is not applied to a channel.
     bool idle() const;
 
     /// The current cached average block import rate excluding import time.
-    float rate() const;
+    void set_rate(const summary_record& rate);
+
+    /// The current cached average block import rate excluding import time.
+    summary_record rate() const;
 
     /// The block data request message for the outstanding block hashes.
-    /// Set reset if the preceding request was unsuccessful or discarded.
-    message::get_data request(bool reset);
+    /// Set new if the preceding request was unsuccessful or discarded.
+    message::get_data request(bool new_channel);
 
     /// Add the block hash to the reservation.
     void insert(const hash_digest& hash, size_t height);
@@ -88,14 +124,14 @@ public:
 protected:
 
     // Isolation of side effect to enable unit testing.
-    virtual std::chrono::system_clock::time_point current_time() const;
+    virtual std::chrono::high_resolution_clock::time_point now() const;
 
 private:
     typedef struct
     {
-        size_t size;
-        std::chrono::system_clock::duration import;
-        std::chrono::system_clock::time_point time;
+        size_t events;
+        uint64_t database;
+        std::chrono::high_resolution_clock::time_point time;
     } import_record;
 
     typedef std::vector<import_record> rate_history;
@@ -106,23 +142,23 @@ private:
         boost::bimaps::set_of<uint32_t>> hash_heights;
 
     // Return rate history to startup state.
-    void clear_rate_history();
+    void clear_history();
 
     // Get the height of the block hash, remove and return true if it is found.
     bool find_height_and_erase(const hash_digest& hash, uint32_t& out_height);
 
     // Update rate history to reflect an additional block of the given size.
-    void update_rate_history(size_t size,
-        const std::chrono::system_clock::duration& cost);
+    void update_rate(size_t events, uint64_t database);
 
     // The sequential identifier of the reservation instance.
     const size_t slot_;
 
     // Thread safe.
-    std::atomic<bool> idle_;
-    std::atomic<float> rate_;
-    std::atomic<float> adjusted_rate_;
     reservations& reservations_;
+
+    // Protected by rate mutex.
+    summary_record rate_;
+    mutable upgrade_mutex rate_mutex_;
 
     // Protected by history mutex.
     rate_history history_;

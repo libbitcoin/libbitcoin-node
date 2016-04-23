@@ -57,7 +57,7 @@ bool reservations::import(block::ptr block, size_t height)
 
 // A statistical summary of block import rates.
 // This computation is not synchronized across rows because rates are cached.
-reservations::rate_summary reservations::rates() const
+reservations::rate_statistics reservations::rates() const
 {
     // Copy row pointer table to prevent need for lock during iteration.
     auto rows = table();
@@ -68,38 +68,31 @@ reservations::rate_summary reservations::rates() const
 
     // Remove idle rows.
     rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
-    const auto row_count = rows.size();
+    const auto active_rows = rows.size();
 
-    // Guard against division by zero.
-    if (row_count == 0)
-        return{ row_count, 0, 0 };
-
-    // Optimize for trivial computation.
-    if (row_count == 1)
-        return{ row_count, rows.front()->rate(), 0 };
-
-    std::vector<float> rates(row_count);
-    const auto transformation = [](reservation::ptr row)
+    std::vector<double> rates(active_rows);
+    const auto normal_rate = [](reservation::ptr row)
     {
-        return row->rate();
+        return row->rate().normal();
     };
 
     // Convert to a rates table.
-    std::transform(rows.begin(), rows.end(), rates.begin(), transformation);
-    const float values = std::accumulate(rates.begin(), rates.end(), 0.0f);
+    std::transform(rows.begin(), rows.end(), rates.begin(), normal_rate);
+    const auto values = std::accumulate(rates.begin(), rates.end(), 0.0);
 
     // Calculate mean and sum of deviations.
-    const float arithmetic_mean = values / row_count;
-    const auto summary = [arithmetic_mean](float initial, float rate)
+    const auto mean = reservation::divide<double>(values, active_rows);
+    const auto summary = [mean](double initial, double rate)
     {
-        const auto difference = arithmetic_mean - rate;
+        const auto difference = mean - rate;
         return initial + (difference * difference);
     };
 
-    // Calculate the stnadard deviation in the rate deviations.
-    float squares = std::accumulate(rates.begin(), rates.end(), 0.0f, summary);
-    float standard_deviation = sqrt(squares / row_count);
-    return{ row_count, arithmetic_mean, standard_deviation };
+    // Calculate the standard deviation in the rate deviations.
+    auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
+    auto quotient = reservation::divide<double>(squares, active_rows);
+    auto standard_deviation = sqrt(quotient);
+    return{ active_rows, mean, standard_deviation };
 }
 
 // Table methods.

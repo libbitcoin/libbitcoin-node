@@ -39,9 +39,9 @@ public:
     typedef struct
     {
         size_t active_count;
-        float arithmentic_mean;
-        float standard_deviation;
-    } rate_summary;
+        double arithmentic_mean;
+        double standard_deviation;
+    } rate_statistics;
 
     typedef std::shared_ptr<reservations> ptr;
 
@@ -51,7 +51,7 @@ public:
         const settings& settings);
 
     /// The averate and standard deviation of block import rates.
-    rate_summary rates() const;
+    rate_statistics rates() const;
 
     /// Return a copy of the reservation table.
     reservation::list table() const;

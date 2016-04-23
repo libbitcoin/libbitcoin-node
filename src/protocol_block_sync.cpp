@@ -80,10 +80,10 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
         return;
     }
 
-    // We may have a new set of hashes to request.
+    // We may be a new channel (reset) or may have a new packet.
     const auto packet = reservation_->request(reset);
 
-    // Or the hashes may have already been requested.
+    // Or we may be the same channel and with hashes already requested.
     if (packet.inventories.empty())
         return;
 
@@ -183,7 +183,8 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 void protocol_block_sync::blocks_complete(const code& ec,
     event_handler handler)
 {
-    reservation_->set_idle();
+    // We are no longer receiving blocks, so exclude from average.
+    reservation_->reset();
 
     // This is the end of the peer sync sequence.
     handler(ec);
