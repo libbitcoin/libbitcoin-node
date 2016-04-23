@@ -35,7 +35,12 @@ using namespace std::chrono;
 using namespace bc::chain;
 
 // The allowed number of standard deviations below the norm.
-static constexpr float factor = 1.0f;
+// With 1 channel this factor is irrelevant, no channels are dropped.
+// With 2 channels a < 1.0 factor will drop a channel on every test.
+// With 2 channels a 1.0 factor will fluctuate based on rounding deviations.
+// With 2 channels a > 1.0 factor will prevent all channel drops.
+// With 3+ channels the factor determines allowed deviation from the norm.
+static constexpr float factor = 1.01f;
 
 // The minimum amount of block history to move the state from idle.
 static constexpr size_t minimum_history = 3;
@@ -318,7 +323,7 @@ void reservation::import(block::ptr block)
         update_rate(size, static_cast<uint64_t>(cost.count()));
 
         static const auto formatter = 
-            "Imported block #%06i (%02i) [%s] %06.2f %-01.2f%%";
+            "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";
 
         const auto record = rate();
 
