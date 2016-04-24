@@ -142,13 +142,13 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
     }
 
     log::info(LOG_NODE)
-        << "Blockchain start height is (" << block_height << ").";
+        << "Blockchain height is (" << block_height << ").";
 
     // TODO: scan block heights to top to determine first missing block.
     // Use the block prior to the first missing block as the seed.
 
     // TODO: upon completion of header collection, loop over headers and
-    // remove any that already exists in the chain. Sync the remainder.
+    // remove any that already exist in the chain. Sync the remainder.
 
     // Add the seed entry, the top trusted block hash.
     hashes_.initialize(block_header.hash(), block_height);

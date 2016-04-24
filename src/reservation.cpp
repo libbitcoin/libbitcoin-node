@@ -35,12 +35,12 @@ using namespace std::chrono;
 using namespace bc::chain;
 
 // The allowed number of standard deviations below the norm.
-// With 1 channel this factor is irrelevant, no channels are dropped.
-// With 2 channels a < 1.0 factor will drop a channel on every test.
-// With 2 channels a 1.0 factor will fluctuate based on rounding deviations.
-// With 2 channels a > 1.0 factor will prevent all channel drops.
-// With 3+ channels the factor determines allowed deviation from the norm.
-static constexpr float factor = 1.01f;
+// With 1 channel this multiple is irrelevant, no channels are dropped.
+// With 2 channels a < 1.0 multiple will drop a channel on every test.
+// With 2 channels a 1.0 multiple will fluctuate based on rounding deviations.
+// With 2 channels a > 1.0 multiple will prevent all channel drops.
+// With 3+ channels the multiple determines allowed deviation from the norm.
+static constexpr float multiple = 1.01f;
 
 // The minimum amount of block history to move the state from idle.
 static constexpr size_t minimum_history = 3;
@@ -121,8 +121,8 @@ bool reservation::expired() const
     const auto normal_rate = record.normal();
     const auto statistics = reservations_.rates();
     const auto deviation = normal_rate - statistics.arithmentic_mean;
-    const auto absolute_deviation = abs(deviation);
-    const auto allowed_deviation = factor * statistics.standard_deviation;
+    const auto absolute_deviation = std::fabs(deviation);
+    const auto allowed_deviation = multiple * statistics.standard_deviation;
     const auto outlier = absolute_deviation > allowed_deviation;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
