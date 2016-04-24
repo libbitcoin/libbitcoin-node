@@ -148,7 +148,7 @@ private:
     bool find_height_and_erase(const hash_digest& hash, uint32_t& out_height);
 
     // Update rate history to reflect an additional block of the given size.
-    void update_rate(size_t events, uint64_t database);
+    void update_rate(size_t events, const std::chrono::microseconds& database);
 
     // The sequential identifier of the reservation instance.
     const size_t slot_;
