@@ -179,7 +179,8 @@ void reservation::update_rate(size_t events, const microseconds& database)
     const auto full = initial_size > history_.size();
 
     // Add the new entry to the tail of the queue.
-    history_.push_back({ events, database.count(), start });
+    const auto cost = static_cast<uint64_t>(database.count());
+    history_.push_back({ events, cost, start });
 
     // We can't set the rate until we have a period (2+ data points).
     if (history_.size() < minimum_history)
