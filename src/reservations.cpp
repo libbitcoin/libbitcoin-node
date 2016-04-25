@@ -41,7 +41,8 @@ static constexpr size_t max_block_request = 50000;
 reservations::reservations(hash_queue& hashes, block_chain& chain,
     const settings& settings)
   : hashes_(hashes),
-    blockchain_(chain)
+    blockchain_(chain),
+    timeout_(settings.block_timeout_seconds)
 {
     initialize(settings.download_connections);
 }
@@ -172,7 +173,7 @@ void reservations::initialize(size_t size)
     table_.reserve(rows);
 
     for (auto row = 0; row < rows; ++row)
-        table_.push_back(std::make_shared<reservation>(self, row));
+        table_.push_back(std::make_shared<reservation>(self, row, timeout_));
 
     size_t height;
     hash_digest hash;

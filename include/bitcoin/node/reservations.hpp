@@ -85,6 +85,8 @@ private:
     // Protected by mutex.
     reservation::list table_;
     mutable upgrade_mutex mutex_;
+
+    const uint32_t timeout_;
 };
 
 } // namespace node
