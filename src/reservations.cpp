@@ -42,6 +42,7 @@ reservations::reservations(hash_queue& hashes, block_chain& chain,
     const settings& settings)
   : hashes_(hashes),
     blockchain_(chain),
+    max_request_(max_block_request),
     timeout_(settings.block_timeout_seconds)
 {
     initialize(settings.download_connections);
@@ -77,12 +78,12 @@ reservations::rate_statistics reservations::rates() const
         return row->rate().normal();
     };
 
-    // Convert to a rates table.
+    // Convert to a rates table and sum.
     std::transform(rows.begin(), rows.end(), rates.begin(), normal_rate);
-    const auto values = std::accumulate(rates.begin(), rates.end(), 0.0);
+    const auto total = std::accumulate(rates.begin(), rates.end(), 0.0);
 
     // Calculate mean and sum of deviations.
-    const auto mean = reservation::divide<double>(values, active_rows);
+    const auto mean = reservation::divide<double>(total, active_rows);
     const auto summary = [mean](double initial, double rate)
     {
         const auto difference = mean - rate;
@@ -139,18 +140,15 @@ void reservations::remove(reservation::ptr row)
 void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
-
-    const size_t max_rows = max_size_t / max_block_request;
+    const size_t max_rows = max_size_t / max_request_;
     auto rows = std::min(max_rows, size);
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock_upgrade();
 
-    // The total number of blocks to sync.
-    const auto blocks = hashes_.size();
-
     // Ensure that there is at least one block per row.
+    const auto blocks = hashes_.size();
     rows = std::min(rows, blocks);
 
     if (rows == 0)
@@ -161,19 +159,16 @@ void reservations::initialize(size_t size)
     }
 
     // Allocate no more than 50k headers per row.
-    const auto max_allocation = rows * max_block_request;
-
-    // Allocate no more than 50k headers per row.
+    const auto max_allocation = rows * max_request_;
     const auto allocation = std::min(blocks, max_allocation);
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
 
-    auto& self = *this;
     table_.reserve(rows);
 
     for (auto row = 0; row < rows; ++row)
-        table_.push_back(std::make_shared<reservation>(self, row, timeout_));
+        table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
 
     size_t height;
     hash_digest hash;
@@ -196,35 +191,33 @@ void reservations::initialize(size_t size)
         << "Reserved " << allocation << " blocks to " << rows << " slots.";
 }
 
-void reservations::populate(reservation::ptr minimal)
+bool reservations::populate(reservation::ptr minimal)
 {
+    bool populated;
+
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock();
 
-    const auto reserved = reserve(minimal);
-
-    if (!reserved)
-        partition(minimal);
+    // Take from unallocated or allocated hashes.
+    populated = reserve(minimal) || partition(minimal);
 
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    if (reserved)
+    if (populated)
         log::debug(LOG_PROTOCOL)
-            << "Reserved " << minimal->size() << " blocks to slot ("
+            << "Populated " << minimal->size() << " blocks to slot ("
             << minimal->slot() << ").";
+
+    return populated;
 }
 
 // This can cause reduction of an active reservation.
-void reservations::partition(reservation::ptr minimal)
+bool reservations::partition(reservation::ptr minimal)
 {
-    // A false ptr indicates there are no partitionable rows.
     const auto maximal = find_maximal();
-
-    // Do not select self as it would be pontless and produce deadlock.
-    if (maximal && maximal != minimal)
-        maximal->partition(minimal);
+    return maximal && maximal != minimal && maximal->partition(minimal);
 }
 
 reservation::ptr reservations::find_maximal()
@@ -243,12 +236,9 @@ reservation::ptr reservations::find_maximal()
 
 bool reservations::reserve(reservation::ptr minimal)
 {
-    // The unallocated blocks to sync.
     const auto size = hashes_.size();
-
-    // Allocate no more than 50k headers to this row.
     const auto existing = minimal->size();
-    const auto allocation = std::min(size, max_block_request - existing);
+    const auto allocation = std::min(size, max_request_ - existing);
 
     size_t height;
     hash_digest hash;
@@ -259,7 +249,7 @@ bool reservations::reserve(reservation::ptr minimal)
         minimal->insert(hash, height);
     }
 
-    // Accept any size here so we don't need to compensate in partitioning.
+    // This may become empty between insert and this test, which is okay.
     return !minimal->empty();
 }
 

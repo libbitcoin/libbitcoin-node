@@ -82,14 +82,20 @@ public:
     reservation(reservations& reservations, size_t slot,
         uint32_t block_timeout_seconds);
 
+    /// Ensure there are no remaining reserved hashes.
+    ~reservation();
+
     /// The sequential identifier of this reservation.
     size_t slot() const;
 
-    /// True if there are any outstanding blocks.
+    /// True if there are currently no hashes.
     bool empty() const;
 
     /// The number of outstanding blocks.
     size_t size() const;
+
+    /// The reservation is empty and will remain so.
+    bool stopped() const;
 
     /// True if block import rate was more than one standard deviation low.
     bool expired() const;
@@ -120,7 +126,7 @@ public:
     bool partitioned();
 
     /// Move half of the reservation to the specified reservation.
-    void partition(reservation::ptr minimal);
+    bool partition(reservation::ptr minimal);
 
 protected:
 
@@ -151,9 +157,6 @@ private:
     // Update rate history to reflect an additional block of the given size.
     void update_rate(size_t events, const std::chrono::microseconds& database);
 
-    const size_t slot_;
-    const std::chrono::microseconds rate_window_;
-
     // Thread safe.
     reservations& reservations_;
 
@@ -165,11 +168,18 @@ private:
     rate_history history_;
     mutable upgrade_mutex history_mutex_;
 
+    // Protected by stop mutex.
+    bool stopped_;
+    mutable shared_mutex stop_mutex_;
+
     // Protected by hash mutex.
     bool pending_;
     bool partitioned_;
     hash_heights heights_;
     mutable upgrade_mutex hash_mutex_;
+
+    const size_t slot_;
+    const std::chrono::microseconds rate_window_;
 };
 
 } // namespace node

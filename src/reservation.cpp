@@ -50,13 +50,19 @@ static constexpr size_t micro_per_second = 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
     uint32_t block_timeout_seconds)
-  : slot_(slot),
-    rate_window_(minimum_history * block_timeout_seconds * micro_per_second),
-    rate_({ true, 0, 0, 0 }),
+  : rate_({ true, 0, 0, 0 }),
+    stopped_(false),
     pending_(true),
     partitioned_(false),
-    reservations_(reservations)
+    reservations_(reservations),
+    slot_(slot),
+    rate_window_(minimum_history * block_timeout_seconds * micro_per_second)
 {
+}
+
+reservation::~reservation()
+{
+    BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
 }
 
 size_t reservation::slot() const
@@ -123,16 +129,16 @@ bool reservation::expired() const
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    log::debug(LOG_PROTOCOL)
-        << "Statistics for slot (" << slot() << ")"
-        << " adj:" << (normal_rate * micro_per_second)
-        << " avg:" << (statistics.arithmentic_mean * micro_per_second)
-        << " dev:" << (deviation * micro_per_second)
-        << " sdv:" << (statistics.standard_deviation * micro_per_second)
-        << " cnt:" << (statistics.active_count)
-        << " neg:" << (below_average ? "T" : "F")
-        << " out:" << (outlier ? "T" : "F")
-        << " exp:" << (expired ? "T" : "F");
+    ////log::debug(LOG_PROTOCOL)
+    ////    << "Statistics for slot (" << slot() << ")"
+    ////    << " adj:" << (normal_rate * micro_per_second)
+    ////    << " avg:" << (statistics.arithmentic_mean * micro_per_second)
+    ////    << " dev:" << (deviation * micro_per_second)
+    ////    << " sdv:" << (statistics.standard_deviation * micro_per_second)
+    ////    << " cnt:" << (statistics.active_count)
+    ////    << " neg:" << (below_average ? "T" : "F")
+    ////    << " out:" << (outlier ? "T" : "F")
+    ////    << " exp:" << (expired ? "T" : "F");
 
     return expired;
 }
@@ -228,6 +234,16 @@ size_t reservation::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
+bool reservation::stopped() const
+{
+    // Critical Section (stop)
+    ///////////////////////////////////////////////////////////////////////////
+    shared_lock lock(stop_mutex_);
+
+    return stopped_;
+    ///////////////////////////////////////////////////////////////////////////
+}
+
 // Obtain and clear the outstanding blocks request.
 message::get_data reservation::request(bool new_channel)
 {
@@ -248,21 +264,20 @@ message::get_data reservation::request(bool new_channel)
         return packet;
     }
 
-    auto height = heights_.right.begin();
-    const auto end = heights_.right.end();
-    const auto id = message::inventory_type_id::block;
-
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    hash_mutex_.unlock_upgrade_and_lock();
-
     // Build get_blocks request message.
-    for (; height != end; ++height)
+    for (auto height = heights_.right.begin(); height != heights_.right.end();
+        ++height)
     {
+        static const auto id = message::inventory_type_id::block;
         const message::inventory_vector inventory{ id, height->second };
         packet.inventories.emplace_back(inventory);
     }
 
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    hash_mutex_.unlock_upgrade_and_lock();
+
     pending_ = false;
+
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
@@ -308,13 +323,11 @@ void reservation::import(block::ptr block)
 
     if (success)
     {
-        const auto size = /*block->header.transaction_count*/ 1u;
-        update_rate(size, cost);
-
-        static const auto formatter = 
-            "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";
-
+        static const auto unit_size = 1u;
+        update_rate(unit_size, cost);
         const auto record = rate();
+        static const auto formatter =
+            "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";
 
         log::info(LOG_PROTOCOL)
             << boost::format(formatter) % height % slot() % encoded %
@@ -327,8 +340,14 @@ void reservation::import(block::ptr block)
             << encoded << "]";
     }
 
-    if (empty())
-        reservations_.populate(shared_from_this());
+    // Critical Section (stop)
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock(stop_mutex_);
+
+    // Populate returns true if any were added. Never populate after stopped.
+    if (!stopped_)
+        stopped_ = !reservations_.populate(shared_from_this());
+    ///////////////////////////////////////////////////////////////////////////
 }
 
 bool reservation::partitioned()
@@ -341,8 +360,10 @@ bool reservation::partitioned()
     {
         //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         hash_mutex_.unlock_upgrade_and_lock();
+
         partitioned_ = false;
         pending_ = true;
+
         hash_mutex_.unlock();
         //---------------------------------------------------------------------
         return true;
@@ -355,9 +376,9 @@ bool reservation::partitioned()
 }
 
 // Give the minimal row ~ half of our hashes.
-void reservation::partition(reservation::ptr minimal)
+bool reservation::partition(reservation::ptr minimal)
 {
-    // Critical Section
+    // Critical Section (hash)
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
@@ -372,7 +393,7 @@ void reservation::partition(reservation::ptr minimal)
     {
         hash_mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
-        return;
+        return false;
     }
 
     auto it = heights_.right.begin();
@@ -390,12 +411,23 @@ void reservation::partition(reservation::ptr minimal)
     minimal->pending_ = true;
     partitioned_ = !heights_.empty();
 
+    // Critical Section (stop)
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock(stop_mutex_);
+
+    // If the chanel has been emptied it will no repopulate.
+    if (!partitioned_)
+        stopped_ = true;
+    ///////////////////////////////////////////////////////////////////////////
+
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
     log::debug(LOG_PROTOCOL)
         << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
         << ") to slot (" << minimal->slot() << ") leaving [" << size() << "].";
+
+    return true;
 }
 
 bool reservation::find_height_and_erase(const hash_digest& hash,
