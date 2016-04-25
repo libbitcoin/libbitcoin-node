@@ -151,9 +151,6 @@ private:
     // Update rate history to reflect an additional block of the given size.
     void update_rate(size_t events, const std::chrono::microseconds& database);
 
-    const size_t slot_;
-    const std::chrono::microseconds rate_window_;
-
     // Thread safe.
     reservations& reservations_;
 
@@ -170,6 +167,9 @@ private:
     bool partitioned_;
     hash_heights heights_;
     mutable upgrade_mutex hash_mutex_;
+
+    const size_t slot_;
+    const std::chrono::microseconds rate_window_;
 };
 
 } // namespace node
