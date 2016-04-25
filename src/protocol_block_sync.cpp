@@ -71,8 +71,7 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
     if (stopped())
         return;
 
-    // If the channel has been drained of hashes we are done.
-    if (reservation_->empty())
+    if (reservation_->stopped())
     {
         log::debug(LOG_PROTOCOL)
             << "Stopping complete slot (" << reservation_->slot() << ").";
@@ -161,22 +160,22 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         return;
     }
 
+    // This results from other channels taking this channel's hashes in
+    // combination with this channel's peer not responding to the last request.
+    // Causing a successful stop here prevents channel startup just to stop.
+    if (reservation_->stopped())
+    {
+        log::debug(LOG_PROTOCOL)
+            << "Stopping complete slot (" << reservation_->slot() << ").";
+        complete(error::success);
+    }
+
     if (reservation_->expired())
     {
         log::debug(LOG_PROTOCOL)
             << "Restarting slow slot (" << reservation_->slot() << ")";
         complete(error::channel_timeout);
         return;
-    }
-
-    // Do not return sucess here, we need to make sure the race for new hashes
-    // doesn't result in a segment of hashes getting dropped by success here.
-    if (reservation_->empty())
-    {
-        log::debug(LOG_PROTOCOL)
-            << "Reservation is empty (" << reservation_->slot() << ") "
-            << ec.message();
-        complete(error::channel_timeout);
     }
 }
 
@@ -187,6 +186,7 @@ void protocol_block_sync::blocks_complete(const code& ec,
     reservation_->reset();
 
     // This is the end of the peer sync sequence.
+    // If there is no error the hash list must be empty and remain so.
     handler(ec);
 
     // The session does not need to handle the stop.

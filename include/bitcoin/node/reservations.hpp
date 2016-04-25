@@ -21,6 +21,7 @@
 #define LIBBITCOIN_NODE_RESERVATIONS_HPP
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <bitcoin/blockchain.hpp>
@@ -60,7 +61,7 @@ public:
     bool import(chain::block::ptr block, size_t height);
 
     /// Populate a starved row by taking half of the hashes from a weak row.
-    void populate(reservation::ptr minimal);
+    bool populate(reservation::ptr minimal);
 
     /// Remove the row from the reservation table if found.
     void remove(reservation::ptr row);
@@ -73,7 +74,7 @@ private:
     reservation::ptr find_maximal();
 
     // Move half of the maximal reservation to the specified reservation.
-    void partition(reservation::ptr minimal);
+    bool partition(reservation::ptr minimal);
 
     // Move the maximum unreserved hashes to the specified reservation.
     bool reserve(reservation::ptr minimal);
@@ -86,6 +87,7 @@ private:
     reservation::list table_;
     mutable upgrade_mutex mutex_;
 
+    const size_t max_request_;
     const uint32_t timeout_;
 };
 
