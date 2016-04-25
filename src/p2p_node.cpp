@@ -142,7 +142,13 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
     }
 
     log::info(LOG_NODE)
-        << "Blockchain start height is (" << block_height << ").";
+        << "Blockchain height is (" << block_height << ").";
+
+    // TODO: scan block heights to top to determine first missing block.
+    // Use the block prior to the first missing block as the seed.
+
+    // TODO: upon completion of header collection, loop over headers and
+    // remove any that already exist in the chain. Sync the remainder.
 
     // Add the seed entry, the top trusted block hash.
     hashes_.initialize(block_header.hash(), block_height);
@@ -209,7 +215,24 @@ void p2p_node::handle_blocks_synchronized(const code& ec,
         return;
     }
 
-    // TODO: validate chain is complete.
+    size_t chain_height;
+
+    if (!blockchain_.get_last_height(chain_height))
+    {
+        log::error(LOG_NODE)
+            << "The blockchain is corrupt.";
+        handler(error::operation_failed);
+        return;
+    }
+
+    // Node height was unchanged as there is no subscription during sync.
+    set_height(chain_height);
+
+    // TODO: skip this message if there was no sync.
+    // TODO: fail if chain height is not the same as the sync target.
+    // Generalize the final_height() function from protocol_header_sync.
+    log::info(LOG_NODE)
+        << "Blockchain height is (" << chain_height << ").";
 
     // This is the end of the derived run sequence.
     p2p::run(handler);

@@ -59,9 +59,13 @@ private:
         result_handler handler);
     void handle_channel_stop(const code& ec, reservation::ptr row);
 
+    void reset_timer(network::connector::ptr connect);
+    void handle_timer(const code& ec, network::connector::ptr connect);
+
     // These are thread safe.
     blockchain::block_chain& blockchain_;
     reservations reservations_;
+    deadline::ptr timer_;
 
     const settings& settings_;
 };

@@ -35,27 +35,23 @@ using namespace std::chrono;
 using namespace bc::chain;
 
 // The allowed number of standard deviations below the norm.
-// With 1 channel this factor is irrelevant, no channels are dropped.
-// With 2 channels a < 1.0 factor will drop a channel on every test.
-// With 2 channels a 1.0 factor will fluctuate based on rounding deviations.
-// With 2 channels a > 1.0 factor will prevent all channel drops.
-// With 3+ channels the factor determines allowed deviation from the norm.
-static constexpr float factor = 1.01f;
+// With 1 channel this multiple is irrelevant, no channels are dropped.
+// With 2 channels a < 1.0 multiple will drop a channel on every test.
+// With 2 channels a 1.0 multiple will fluctuate based on rounding deviations.
+// With 2 channels a > 1.0 multiple will prevent all channel drops.
+// With 3+ channels the multiple determines allowed deviation from the norm.
+static constexpr float multiple = 1.01f;
 
 // The minimum amount of block history to move the state from idle.
 static constexpr size_t minimum_history = 3;
 
-// TODO: move to config, since this can stall the sync.
-// The minimum amount of block history to move the state from idle.
-// If a new channel can't achieve 3 blocks in 15 seconds (0.2b/s) it will drop.
-static constexpr size_t max_seconds_per_block = 5;
-
-// The window for the rate moving average.
+// Simple conversion factor, since we trace in micro and report in seconds.
 static constexpr size_t micro_per_second = 1000 * 1000;
-static const duration<int64_t, std::micro> rate_window(minimum_history * max_seconds_per_block * micro_per_second);
 
-reservation::reservation(reservations& reservations, size_t slot)
+reservation::reservation(reservations& reservations, size_t slot,
+    uint32_t block_timeout_seconds)
   : slot_(slot),
+    rate_window_(minimum_history * block_timeout_seconds * micro_per_second),
     rate_({ true, 0, 0, 0 }),
     pending_(true),
     partitioned_(false),
@@ -121,8 +117,8 @@ bool reservation::expired() const
     const auto normal_rate = record.normal();
     const auto statistics = reservations_.rates();
     const auto deviation = normal_rate - statistics.arithmentic_mean;
-    const auto absolute_deviation = abs(deviation);
-    const auto allowed_deviation = factor * statistics.standard_deviation;
+    const auto absolute_deviation = std::fabs(deviation);
+    const auto allowed_deviation = multiple * statistics.standard_deviation;
     const auto outlier = absolute_deviation > allowed_deviation;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
@@ -153,32 +149,27 @@ void reservation::clear_history()
 
 // It is possible to get a rate update after idling and before starting anew.
 // This can reduce the average during startup of the new channel until start.
-void reservation::update_rate(size_t events, uint64_t database)
+void reservation::update_rate(size_t events, const microseconds& database)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     history_mutex_.lock();
 
-    // Lock before getting time to prevent negative duration.
-    const auto time = now();
-
-    // The upper limit of submission time for in-window entries.
-    const auto limit = time - rate_window;
-
     summary_record rate{ false, 0, 0, 0 };
-    const auto start = history_.size();
+    const auto end = now();
+    const auto event_start = end - microseconds(database);
+    const auto start = end - rate_window_;
+    const auto history_count = history_.size();
 
     // Remove expired entries from the head of the queue.
-    for (auto it = history_.begin(); it != history_.end() && it->time < limit;
+    for (auto it = history_.begin(); it != history_.end() && it->time < start;
         it = history_.erase(it));
-        
-    // Determine if we have filled the window.
-    const auto full = start > history_.size();
 
-    // Add the new entry to the tail of the queue.
-    history_.push_back({ events, database, time });
+    const auto window_full = history_count > history_.size();
+    const auto event_cost = static_cast<uint64_t>(database.count());
+    history_.push_back({ events, event_cost, event_start });
 
-    // We can't set the rate until we have a period (2+ data points).
+    // We can't set the rate until we have a period (two or more data points).
     if (history_.size() < minimum_history)
     {
         history_mutex_.unlock();
@@ -186,7 +177,7 @@ void reservation::update_rate(size_t events, uint64_t database)
         return;
     }
 
-    // Calculate the rate summary.
+    // Summarize event count and database cost.
     for (const auto& record: history_)
     {
         BITCOIN_ASSERT(rate.events <= max_size_t - record.events);
@@ -195,11 +186,9 @@ void reservation::update_rate(size_t events, uint64_t database)
         rate.database += record.database;
     }
 
-    // If we have deleted any entries then use the full period.
-    const auto window = full ? rate_window : (time - history_.front().time);
-    const auto count = duration_cast<microseconds>(window).count();
-
-    // The time difference should never be negative.
+    // Calculate the duration of the rate window.
+    auto window = window_full ? rate_window_ : (end - history_.front().time);
+    auto count = duration_cast<microseconds>(window).count();
     rate.window = static_cast<uint64_t>(count);
 
     history_mutex_.unlock();
@@ -320,7 +309,7 @@ void reservation::import(block::ptr block)
     if (success)
     {
         const auto size = /*block->header.transaction_count*/ 1u;
-        update_rate(size, static_cast<uint64_t>(cost.count()));
+        update_rate(size, cost);
 
         static const auto formatter = 
             "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";

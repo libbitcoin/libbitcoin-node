@@ -34,12 +34,15 @@ namespace node {
 
 #define CLASS session_block_sync
 #define NAME "session_block_sync"
-    
+
 using namespace blockchain;
 using namespace config;
 using namespace network;
 using std::placeholders::_1;
 using std::placeholders::_2;
+
+// The interval in which all-channel block download performance is tested.
+static const asio::seconds regulator_interval(5);
 
 session_block_sync::session_block_sync(p2p& network, hash_queue& hashes,
     block_chain& chain, const settings& settings)
@@ -56,6 +59,8 @@ session_block_sync::session_block_sync(p2p& network, hash_queue& hashes,
 
 void session_block_sync::start(result_handler handler)
 {
+    // TODO: create session_timer base class and pass interval via start.
+    timer_ = std::make_shared<deadline>(pool_, regulator_interval);
     session::start(CONCURRENT2(handle_started, _1, handler));
 }
 
@@ -82,6 +87,8 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
     // This is the end of the start sequence.
     for (const auto row: table)
         new_connection(connector, row, complete);
+
+    ////reset_timer(connector);
 }
 
 // Block sync sequence.
@@ -149,18 +156,16 @@ void session_block_sync::handle_complete(const code& ec,
 {
     if (!ec)
     {
+        timer_->stop();
         reservations_.remove(row);
 
         log::debug(LOG_SESSION)
-            << "Completed slot (" << row->slot() << ")";;
+            << "Completed slot (" << row->slot() << ")";
 
         // This is the end of the block sync sequence.
         handler(ec);
         return;
     }
-
-    log::debug(LOG_SESSION)
-        << "Closed slot (" << row->slot() << ") " << ec.message();
 
     // There is no failure scenario, we ignore the result code here.
     new_connection(connect, row, handler);
@@ -169,8 +174,44 @@ void session_block_sync::handle_complete(const code& ec,
 void session_block_sync::handle_channel_stop(const code& ec,
     reservation::ptr row)
 {
-    log::debug(LOG_SESSION)
+    log::info(LOG_SESSION)
         << "Channel stopped on slot (" << row->slot() << ") " << ec.message();
+}
+
+// Timer.
+// ----------------------------------------------------------------------------
+
+// private:
+void session_block_sync::reset_timer(connector::ptr connect)
+{
+    if (stopped())
+        return;
+
+    timer_->start(BIND2(handle_timer, _1, connect));
+}
+
+void session_block_sync::handle_timer(const code& ec, connector::ptr connect)
+{
+    if (stopped())
+        return;
+
+    log::debug(LOG_PROTOCOL)
+        << "Fired session_block_sync timer: " << ec.message();
+
+    ////// TODO: If (ratio < 50%) add a channel.
+    ////// TODO: push into reservations_ iplementation.
+    ////// TODO: add a boolean increment method to the synchronizer and pass here.
+    ////const size_t id = reservations_.table().size();
+    ////const auto row = std::make_shared<reservation>(reservations_, id);
+    ////const synchronizer<result_handler> handler({}, 0, "name", true);
+
+    ////if (true)
+    ////    new_connection(connect, row, handler);
+
+    ////// TODO: If (ratio - (1/row_count) > 50%) drop the slowest channel.
+    ////// reservations_.prune();
+
+    reset_timer(connect);
 }
 
 } // namespace node

@@ -79,7 +79,8 @@ public:
     }
 
     /// Construct a block reservation with the specified identifier.
-    reservation(reservations& reservations, size_t slot);
+    reservation(reservations& reservations, size_t slot,
+        uint32_t block_timeout_seconds);
 
     /// The sequential identifier of this reservation.
     size_t slot() const;
@@ -148,10 +149,10 @@ private:
     bool find_height_and_erase(const hash_digest& hash, uint32_t& out_height);
 
     // Update rate history to reflect an additional block of the given size.
-    void update_rate(size_t events, uint64_t database);
+    void update_rate(size_t events, const std::chrono::microseconds& database);
 
-    // The sequential identifier of the reservation instance.
     const size_t slot_;
+    const std::chrono::microseconds rate_window_;
 
     // Thread safe.
     reservations& reservations_;
