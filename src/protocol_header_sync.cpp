@@ -144,7 +144,7 @@ bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
     }
 
     // A merge failure includes automatic rollback to last trust point.
-    if (!hashes_.push(message))
+    if (!hashes_.enqueue(message))
     {
         log::warning(LOG_PROTOCOL)
             << "Failure merging headers from [" << authority() << "]";
