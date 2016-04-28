@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_HASH_QUEUE_HPP
-#define LIBBITCOIN_HASH_QUEUE_HPP
+#ifndef LIBBITCOIN_HEADER_QUEUE_HPP
+#define LIBBITCOIN_HEADER_QUEUE_HPP
 
 #include <cstddef>
 #include <vector>
@@ -28,12 +28,12 @@
 namespace libbitcoin {
 namespace node {
 
-// A smart queue for chaining blockchain header hashes, thread safe.
-class BCN_API hash_queue
+// A smart queue for chaining blockchain headers, thread safe.
+class BCN_API header_queue
 {
 public:
     /// Construct a block hash list with specified height offset.
-    hash_queue(const config::checkpoint::list& checkpoints);
+    header_queue(const config::checkpoint::list& checkpoints);
 
     /// True if the list is empty.
     bool empty() const;

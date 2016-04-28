@@ -16,21 +16,27 @@
     <Filter Include="include\bitcoin\node">
       <UniqueIdentifier>{e513ccb7-7e1c-430b-97aa-62646cfaf4ae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\bitcoin\node\utility">
+      <UniqueIdentifier>{5b0363e1-951d-42e4-8bcd-50c87e95fc45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\protocols">
+      <UniqueIdentifier>{1e6f4f56-de6b-4d13-8795-4c992dd084e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\sessions">
+      <UniqueIdentifier>{cc7b70d1-bd1e-4b32-8d1c-2780a6815dd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\protocols">
+      <UniqueIdentifier>{9f154799-8973-48b5-8504-fa9ffa5b99ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{4dfd493e-557f-4572-9e4f-18cdaf82d055}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\utility">
+      <UniqueIdentifier>{ab239a4e-9f2e-476a-ac8c-4c4e8acd06ff}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\p2p_node.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocol_header_sync.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocol_block_sync.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\session_header_sync.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\session_block_sync.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\parser.cpp">
@@ -42,14 +48,29 @@
     <ClCompile Include="..\..\..\..\src\configuration.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\reservation.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\..\..\..\src\utility\reservation.cpp">
+      <Filter>src\utility</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\reservations.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\..\..\..\src\utility\reservations.cpp">
+      <Filter>src\utility</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\hash_queue.cpp">
-      <Filter>src</Filter>
+    <ClCompile Include="..\..\..\..\src\utility\performance.cpp">
+      <Filter>src\utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_block_sync.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_header_sync.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_sync.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_sync.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\utility\header_queue.cpp">
+      <Filter>src\utility</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -71,29 +92,32 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\p2p_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_header_sync.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocol_block_sync.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\session_header_sync.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\session_block_sync.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\reservation.hpp">
-      <Filter>include\bitcoin\node</Filter>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\performance.hpp">
+      <Filter>include\bitcoin\node\utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\reservations.hpp">
-      <Filter>include\bitcoin\node</Filter>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservation.hpp">
+      <Filter>include\bitcoin\node\utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\hash_queue.hpp">
-      <Filter>include\bitcoin\node</Filter>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservations.hpp">
+      <Filter>include\bitcoin\node\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_sync.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_sync.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_header_sync.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_block_sync.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\header_queue.hpp">
+      <Filter>include\bitcoin\node\utility</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

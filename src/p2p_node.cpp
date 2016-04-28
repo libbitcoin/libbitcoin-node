@@ -24,8 +24,8 @@
 #include <functional>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
-#include <bitcoin/node/session_block_sync.hpp>
-#include <bitcoin/node/session_header_sync.hpp>
+#include <bitcoin/node/sessions/session_block_sync.hpp>
+#include <bitcoin/node/sessions/session_header_sync.hpp>
 
 namespace libbitcoin {
 namespace node {

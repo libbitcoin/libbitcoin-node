@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/reservations.hpp>
+#include <bitcoin/node/utility/reservations.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -27,7 +27,9 @@
 #include <utility>
 #include <vector>
 #include <bitcoin/bitcoin.hpp>
-#include <bitcoin/node/reservation.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/performance.hpp>
+#include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,7 +40,7 @@ using namespace bc::chain;
 // The protocol maximum size of get data block requests.
 static constexpr size_t max_block_request = 50000;
 
-reservations::reservations(hash_queue& hashes, block_chain& chain,
+reservations::reservations(header_queue& hashes, block_chain& chain,
     const settings& settings)
   : hashes_(hashes),
     blockchain_(chain),
@@ -83,7 +85,7 @@ reservations::rate_statistics reservations::rates() const
     const auto total = std::accumulate(rates.begin(), rates.end(), 0.0);
 
     // Calculate mean and sum of deviations.
-    const auto mean = reservation::divide<double>(total, active_rows);
+    const auto mean = divide<double>(total, active_rows);
     const auto summary = [mean](double initial, double rate)
     {
         const auto difference = mean - rate;
@@ -92,7 +94,7 @@ reservations::rate_statistics reservations::rates() const
 
     // Calculate the standard deviation in the rate deviations.
     auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
-    auto quotient = reservation::divide<double>(squares, active_rows);
+    auto quotient = divide<double>(squares, active_rows);
     auto standard_deviation = sqrt(quotient);
     return{ active_rows, mean, standard_deviation };
 }

@@ -27,7 +27,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/hash_queue.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -41,14 +41,14 @@ public:
 
     /// Construct a header sync protocol instance.
     protocol_header_sync(network::p2p& network, network::channel::ptr channel,
-        hash_queue& hashes, uint32_t minimum_rate,
+        header_queue& hashes, uint32_t minimum_rate,
         const config::checkpoint::list& checkpoints);
 
     /// Start the protocol.
     void start(event_handler handler);
 
 private:
-    static size_t final_height(hash_queue& headers,
+    static size_t final_height(header_queue& headers,
         const config::checkpoint::list& checkpoints);
 
     size_t sync_rate() const;
@@ -62,7 +62,7 @@ private:
         event_handler complete);
 
     // Thread safe and guarded by sequential header sync.
-    hash_queue& hashes_;
+    header_queue& hashes_;
 
     // This is guarded by protocol_timer/deadline contract (exactly one call).
     size_t current_second_;

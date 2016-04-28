@@ -17,16 +17,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/session_header_sync.hpp>
+#include <bitcoin/node/sessions/session_header_sync.hpp>
 
 #include <cstddef>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/hash_queue.hpp>
-#include <bitcoin/node/protocol_header_sync.hpp>
+#include <bitcoin/node/protocols/protocol_header_sync.hpp>
 #include <bitcoin/node/settings.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -45,7 +45,7 @@ static constexpr float back_off_factor = 0.75f;
 static constexpr uint32_t headers_per_second = 10000;
 
 // Sort is required here but not in configuration settings.
-session_header_sync::session_header_sync(p2p& network, hash_queue& hashes,
+session_header_sync::session_header_sync(p2p& network, header_queue& hashes,
     const settings& settings, const blockchain::settings& chain_settings)
   : session_batch(network, false),
     hashes_(hashes),

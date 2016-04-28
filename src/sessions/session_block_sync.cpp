@@ -17,17 +17,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/session_block_sync.hpp>
+#include <bitcoin/node/sessions/session_block_sync.hpp>
 
 #include <cstddef>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/hash_queue.hpp>
-#include <bitcoin/node/protocol_block_sync.hpp>
-#include <bitcoin/node/reservation.hpp>
+#include <bitcoin/node/protocols/protocol_block_sync.hpp>
 #include <bitcoin/node/settings.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -44,7 +44,7 @@ using std::placeholders::_2;
 // The interval in which all-channel block download performance is tested.
 static const asio::seconds regulator_interval(5);
 
-session_block_sync::session_block_sync(p2p& network, hash_queue& hashes,
+session_block_sync::session_block_sync(p2p& network, header_queue& hashes,
     block_chain& chain, const settings& settings)
   : session_batch(network, false),
     blockchain_(chain),

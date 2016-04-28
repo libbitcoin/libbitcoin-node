@@ -30,6 +30,7 @@
 #include <boost/bimap/unordered_set_of.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/utility/performance.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -41,42 +42,8 @@ class BCN_API reservation
   : public enable_shared_from_base<reservation>
 {
 public:
-    typedef struct
-    {
-        bool idle;
-        size_t events;
-        uint64_t database;
-        uint64_t window;
-
-        double normal() const
-        {
-            // If these values are close we can overflow (infinity).
-            BITCOIN_ASSERT(database <= window);
-
-            return divide<double>(events, window - database);
-        }
-
-        double total() const
-        {
-            return divide<double>(events, window);
-        }
-
-        double ratio() const
-        {
-            return divide<double>(database, window);
-        }
-    } summary_record;
-
     typedef std::shared_ptr<reservation> ptr;
     typedef std::vector<reservation::ptr> list;
-
-    // Coerce division into double and error into zero.
-    template<typename Quotient, typename Dividend, typename Divisor>
-    static Quotient divide(Dividend dividend, Divisor divisor)
-    {
-        const auto quotient = static_cast<Quotient>(dividend) / divisor;
-        return std::isnan(quotient) ? 0.0 : quotient;
-    }
 
     /// Construct a block reservation with the specified identifier.
     reservation(reservations& reservations, size_t slot,
@@ -107,10 +74,10 @@ public:
     bool idle() const;
 
     /// The current cached average block import rate excluding import time.
-    void set_rate(const summary_record& rate);
+    void set_rate(const performance& rate);
 
     /// The current cached average block import rate excluding import time.
-    summary_record rate() const;
+    performance rate() const;
 
     /// The block data request message for the outstanding block hashes.
     /// Set new if the preceding request was unsuccessful or discarded.
@@ -161,7 +128,7 @@ private:
     reservations& reservations_;
 
     // Protected by rate mutex.
-    summary_record rate_;
+    performance rate_;
     mutable upgrade_mutex rate_mutex_;
 
     // Protected by history mutex.

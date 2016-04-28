@@ -9,7 +9,7 @@
 # Define tests and options.
 #==============================================================================
 BOOST_UNIT_TEST_OPTIONS=\
-"--run_test=node_tests,hash_queue_tests,reservation_tests,reservations_tests "\
+"--run_test=node_tests,header_queue_tests,reservation_tests,reservations_tests "\
 "--show_progress=no "\
 "--detect_memory_leak=0 "\
 "--report_level=no "\
