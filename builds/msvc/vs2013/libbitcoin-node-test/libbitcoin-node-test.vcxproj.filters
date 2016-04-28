@@ -24,5 +24,8 @@
     <ClCompile Include="..\..\..\..\test\header_queue.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\test\performance.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

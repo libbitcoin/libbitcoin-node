@@ -61,6 +61,7 @@ test_libbitcoin_node_test_SOURCES = \
     test/header_queue.cpp \
     test/main.cpp \
     test/node.cpp \
+    test/performance.cpp \
     test/reservation.cpp \
     test/reservations.cpp
 

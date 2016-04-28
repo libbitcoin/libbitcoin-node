@@ -68,6 +68,7 @@
     <ClCompile Include="..\..\..\..\test\header_queue.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
+    <ClCompile Include="..\..\..\..\test\performance.cpp" />
     <ClCompile Include="..\..\..\..\test\reservation.cpp" />
     <ClCompile Include="..\..\..\..\test\reservations.cpp" />
   </ItemGroup>

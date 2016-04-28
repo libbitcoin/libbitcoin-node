@@ -53,7 +53,7 @@ template<typename Quotient, typename Dividend, typename Divisor>
 static Quotient divide(Dividend dividend, Divisor divisor)
 {
     const auto quotient = static_cast<Quotient>(dividend) / divisor;
-    return std::isnan(quotient) ? 0.0 : quotient;
+    return std::isnan(quotient) || std::isinf(quotient) ? 0.0 : quotient;
 }
 
 } // namespace node
