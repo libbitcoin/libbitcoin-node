@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_RESERVATIONS_HPP
 #define LIBBITCOIN_NODE_RESERVATIONS_HPP
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -66,6 +67,12 @@ public:
     /// Remove the row from the reservation table if found.
     void remove(reservation::ptr row);
 
+    /// The max size of a block request.
+    size_t max_request();
+
+    /// Set the max size of a block request (defaults to 50000).
+    void set_max_request(size_t value);
+
 private:
     // Create the specified number of reservations and distribute hashes.
     void initialize(size_t size);
@@ -87,8 +94,8 @@ private:
     reservation::list table_;
     mutable upgrade_mutex mutex_;
 
-    const size_t max_request_;
     const uint32_t timeout_;
+    std::atomic<size_t> max_request_;
 };
 
 } // namespace node

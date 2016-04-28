@@ -28,4 +28,9 @@
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\test\reservations.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

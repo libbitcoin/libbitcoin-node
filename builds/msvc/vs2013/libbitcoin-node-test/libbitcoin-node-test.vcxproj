@@ -111,4 +111,7 @@
       <Project>{5FFB5F52-0772-4404-BB2F-39BE5F82A158}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\test\reservations.hpp" />
+  </ItemGroup>
 </Project>
