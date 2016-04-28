@@ -63,7 +63,7 @@ reservation::reservation(reservations& reservations, size_t slot,
 
 reservation::~reservation()
 {
-    BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
+    ////BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
 }
 
 size_t reservation::slot() const

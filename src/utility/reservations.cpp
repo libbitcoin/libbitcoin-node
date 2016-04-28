@@ -50,6 +50,18 @@ reservations::reservations(header_queue& hashes, block_chain& chain,
     initialize(settings.download_connections);
 }
 
+// Exposed for test to be able to control the request size.
+size_t reservations::max_request()
+{
+    return max_request_.load();
+}
+
+// Exposed for test to be able to control the request size.
+void reservations::set_max_request(size_t value)
+{
+    max_request_.store(value);
+}
+
 bool reservations::import(block::ptr block, size_t height)
 {
     // Thread safe.
@@ -142,7 +154,7 @@ void reservations::remove(reservation::ptr row)
 void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
-    const size_t max_rows = max_size_t / max_request_;
+    const size_t max_rows = max_size_t / max_request_.load();
     auto rows = std::min(max_rows, size);
 
     // Critical Section
@@ -161,7 +173,7 @@ void reservations::initialize(size_t size)
     }
 
     // Allocate no more than 50k headers per row.
-    const auto max_allocation = rows * max_request_;
+    const auto max_allocation = rows * max_request_.load();
     const auto allocation = std::min(blocks, max_allocation);
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -240,7 +252,7 @@ bool reservations::reserve(reservation::ptr minimal)
 {
     const auto size = hashes_.size();
     const auto existing = minimal->size();
-    const auto allocation = std::min(size, max_request_ - existing);
+    const auto allocation = std::min(size, max_request_.load() - existing);
 
     size_t height;
     hash_digest hash;

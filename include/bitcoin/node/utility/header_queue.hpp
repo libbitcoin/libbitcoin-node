@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_HEADER_QUEUE_HPP
-#define LIBBITCOIN_HEADER_QUEUE_HPP
+#ifndef LIBBITCOIN_NODE_HEADER_QUEUE_HPP
+#define LIBBITCOIN_NODE_HEADER_QUEUE_HPP
 
 #include <cstddef>
 #include <vector>
