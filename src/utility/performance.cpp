@@ -26,10 +26,8 @@ namespace node {
 
 double performance::normal() const
 {
-    // If these values are close we can overflow (infinity).
-    BITCOIN_ASSERT(database <= window);
-
-    return divide<double>(events, window - database);
+    // If numerator is small we can overflow (infinity).
+    return divide<double>(events, static_cast<double>(window) - database);
 }
 
 double performance::total() const
