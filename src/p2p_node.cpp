@@ -181,7 +181,7 @@ void p2p_node::handle_headers_synchronized(const code& ec,
     }
 
     // Remove the seed entry so we don't try to sync it.
-    if (!hashes_.pop())
+    if (!hashes_.dequeue())
     {
         log::error(LOG_NODE)
             << "Failure synchronizing headers, no seed entry.";

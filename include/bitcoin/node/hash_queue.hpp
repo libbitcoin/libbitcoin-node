@@ -51,21 +51,18 @@ public:
     hash_digest last_hash() const;
 
     /// Remove the first count of hashes, return true if satisfied.
-    bool pop(size_t count=1);
+    bool dequeue(size_t count=1);
 
     /// Obtain and remove the first hash.
-    bool pop(hash_digest& out_hash, size_t& out_height);
-
-    /// Place a hash on the queue.
-    void push(const hash_digest& hash);
+    bool dequeue(hash_digest& out_hash, size_t& out_height);
 
     /// Merge the hashes in the message with those in the queue.
-    bool push(message::headers::ptr message);
+    bool enqueue(message::headers::ptr message);
 
-    /// Reclaim unused head space.
-    void shrink();
+    /// Clear the queue and populate the hash at the given height.
+    void initialize(const config::checkpoint& check);
 
-    /// Clear the queue and populate one hash at the given height.
+    /// Clear the queue and populate the hash at the given height.
     void initialize(const hash_digest& hash, size_t height);
 
 private:
@@ -81,8 +78,8 @@ private:
     // Roll back the list to the last checkpoint.
     void rollback();
 
-    // Merge a set of block hashes to the list, validating linkage.
-    bool merge(message::headers::ptr message);
+    // Merge a list of block hashes to the list, validating linkage.
+    bool merge(const chain::header::list& headers);
 
     // Determine if the hash violates a checkpoint.
     bool check(const hash_digest& hash, size_t height) const;

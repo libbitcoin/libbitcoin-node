@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <bitcoin/blockchain.hpp>
 
 namespace libbitcoin {
@@ -89,15 +90,9 @@ hash_digest hash_queue::last_hash() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void hash_queue::shrink()
+void hash_queue::initialize(const checkpoint& check)
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    unique_lock(mutex_);
-
-    list_.erase(list_.begin(), head_);
-    head_ = list_.begin();
-    ///////////////////////////////////////////////////////////////////////////
+    initialize(check.hash(), check.height());
 }
 
 void hash_queue::initialize(const hash_digest& hash, size_t height)
@@ -123,7 +118,7 @@ void hash_queue::initialize(const hash_digest& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-bool hash_queue::pop(size_t count)
+bool hash_queue::dequeue(size_t count)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -176,7 +171,8 @@ bool hash_queue::pop(size_t count)
     return true;
 }
 
-bool hash_queue::pop(hash_digest& out_hash, size_t& out_height)
+// This allows the list to become emptied, which breaks the chain.
+bool hash_queue::dequeue(hash_digest& out_hash, size_t& out_height)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -204,40 +200,13 @@ bool hash_queue::pop(hash_digest& out_hash, size_t& out_height)
     return true;
 }
 
-void hash_queue::push(const hash_digest& hash)
+bool hash_queue::enqueue(headers::ptr message)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock_upgrade();
 
-    // Iterators may are invalidated when capacity is increased.
-    const auto capacity = list_.size() == list_.capacity();
-
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    mutex_.unlock_upgrade_and_lock();
-
-    if (capacity)
-    {
-        list_.erase(list_.begin(), head_);
-        head_ = list_.begin();
-    }
-
-    list_.emplace_back(hash);
-
-    if (capacity || list_.size() == 1)
-        head_ = list_.begin();
-
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-bool hash_queue::push(headers::ptr message)
-{
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_upgrade();
-
-    // Cannot merge into an empty chain.
+    // Cannot merge into an empty chain (must be initialized and not cleared).
     if (is_empty())
     {
         mutex_.unlock_upgrade();
@@ -248,7 +217,7 @@ bool hash_queue::push(headers::ptr message)
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
 
-    const auto result = merge(message);
+    const auto result = merge(message->elements);
 
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
@@ -260,12 +229,15 @@ bool hash_queue::push(headers::ptr message)
 //-----------------------------------------------------------------------------
 
 // TODO: add PoW validation to reduce importance of intermediate checkpoints.
-bool hash_queue::merge(headers::ptr message)
+bool hash_queue::merge(const header::list& headers)
 {
-    // In case emplacement exceeds capacity and invalidate the header pointer.
+    // If we exceed capacity the header pointer becomes invalid, so prevent.
+    const auto size = get_size();
     list_.erase(list_.begin(), head_);
+    list_.reserve(size + headers.size());
+    head_ = list_.begin();
 
-    for (const auto& header: message->elements)
+    for (const auto& header: headers)
     {
         const auto& new_hash = header.hash();
         const auto next_height = last_height() + 1;
@@ -274,14 +246,12 @@ bool hash_queue::merge(headers::ptr message)
         if (!linked(header, last_hash) || !check(new_hash, next_height))
         {
             rollback();
-            head_ = list_.begin();
             return false;
         }
 
         list_.emplace_back(new_hash);
     }
 
-    head_ = list_.begin();
     return true;
 }
 

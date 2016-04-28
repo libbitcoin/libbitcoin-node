@@ -179,7 +179,7 @@ void reservations::initialize(size_t size)
     {
         for (size_t row = 0; row < rows; ++row)
         {
-            hashes_.pop(hash, height);
+            hashes_.dequeue(hash, height);
             table_[row]->insert(hash, height);
         }
     }
@@ -245,7 +245,7 @@ bool reservations::reserve(reservation::ptr minimal)
 
     for (size_t block = 0; block < allocation; ++block)
     {
-        hashes_.pop(hash, height);
+        hashes_.dequeue(hash, height);
         minimal->insert(hash, height);
     }
 
