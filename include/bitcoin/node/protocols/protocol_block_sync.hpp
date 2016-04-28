@@ -25,7 +25,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/reservation.hpp>
+#include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
 namespace node {

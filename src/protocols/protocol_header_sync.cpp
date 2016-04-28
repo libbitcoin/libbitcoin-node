@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocol_header_sync.hpp>
+#include <bitcoin/node/protocols/protocol_header_sync.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/hash_queue.hpp>
 #include <bitcoin/node/p2p_node.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -46,7 +46,7 @@ static constexpr size_t max_header_response = 2000;
 static const asio::seconds expiry_interval(5);
 
 protocol_header_sync::protocol_header_sync(p2p& network,
-    channel::ptr channel, hash_queue& hashes, uint32_t minimum_rate,
+    channel::ptr channel, header_queue& hashes, uint32_t minimum_rate,
     const checkpoint::list& checkpoints)
   : protocol_timer(network, channel, true, NAME),
     hashes_(hashes),
@@ -64,7 +64,7 @@ protocol_header_sync::protocol_header_sync(p2p& network,
 
 // We assume here that hashes in the initial list are ordered and trusted.
 // Typically the initial list would contain one hash from the chain top.
-size_t protocol_header_sync::final_height(hash_queue& hashes,
+size_t protocol_header_sync::final_height(header_queue& hashes,
     const checkpoint::list& checkpoints)
 {
     const auto last_height = hashes.last_height();

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/reservation.hpp>
+#include <bitcoin/node/utility/reservation.hpp>
 
 #include <chrono>
 #include <cmath>
@@ -26,7 +26,8 @@
 #include <utility>
 #include <boost/format.hpp>
 #include <bitcoin/bitcoin.hpp>
-#include <bitcoin/node/reservations.hpp>
+#include <bitcoin/node/utility/performance.hpp>
+#include <bitcoin/node/utility/reservations.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -96,7 +97,7 @@ bool reservation::idle() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::set_rate(const summary_record& rate)
+void reservation::set_rate(const performance& rate)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -106,7 +107,7 @@ void reservation::set_rate(const summary_record& rate)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-reservation::summary_record reservation::rate() const
+performance reservation::rate() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -161,7 +162,7 @@ void reservation::update_rate(size_t events, const microseconds& database)
     ///////////////////////////////////////////////////////////////////////////
     history_mutex_.lock();
 
-    summary_record rate{ false, 0, 0, 0 };
+    performance rate{ false, 0, 0, 0 };
     const auto end = now();
     const auto event_start = end - microseconds(database);
     const auto start = end - rate_window_;

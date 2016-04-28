@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/hash_queue.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -33,14 +33,14 @@ using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::message;
 
-hash_queue::hash_queue(const config::checkpoint::list& checkpoints)
+header_queue::header_queue(const config::checkpoint::list& checkpoints)
   : height_(0),
     head_(list_.begin()),
     checkpoints_(checkpoints)
 {
 }
 
-bool hash_queue::empty() const
+bool header_queue::empty() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -50,7 +50,7 @@ bool hash_queue::empty() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-size_t hash_queue::size() const
+size_t header_queue::size() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@ size_t hash_queue::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-size_t hash_queue::first_height() const
+size_t header_queue::first_height() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@ size_t hash_queue::first_height() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-size_t hash_queue::last_height() const
+size_t header_queue::last_height() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -80,7 +80,7 @@ size_t hash_queue::last_height() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-hash_digest hash_queue::last_hash() const
+hash_digest header_queue::last_hash() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -90,12 +90,12 @@ hash_digest hash_queue::last_hash() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void hash_queue::initialize(const checkpoint& check)
+void header_queue::initialize(const checkpoint& check)
 {
     initialize(check.hash(), check.height());
 }
 
-void hash_queue::initialize(const hash_digest& hash, size_t height)
+void header_queue::initialize(const hash_digest& hash, size_t height)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -118,7 +118,7 @@ void hash_queue::initialize(const hash_digest& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-bool hash_queue::dequeue(size_t count)
+bool header_queue::dequeue(size_t count)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ bool hash_queue::dequeue(size_t count)
 }
 
 // This allows the list to become emptied, which breaks the chain.
-bool hash_queue::dequeue(hash_digest& out_hash, size_t& out_height)
+bool header_queue::dequeue(hash_digest& out_hash, size_t& out_height)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -200,7 +200,7 @@ bool hash_queue::dequeue(hash_digest& out_hash, size_t& out_height)
     return true;
 }
 
-bool hash_queue::enqueue(headers::ptr message)
+bool header_queue::enqueue(headers::ptr message)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -229,7 +229,7 @@ bool hash_queue::enqueue(headers::ptr message)
 //-----------------------------------------------------------------------------
 
 // TODO: add PoW validation to reduce importance of intermediate checkpoints.
-bool hash_queue::merge(const header::list& headers)
+bool header_queue::merge(const header::list& headers)
 {
     // If we exceed capacity the header pointer becomes invalid, so prevent.
     const auto size = get_size();
@@ -255,7 +255,7 @@ bool hash_queue::merge(const header::list& headers)
     return true;
 }
 
-void hash_queue::rollback()
+void header_queue::rollback()
 {
     if (!checkpoints_.empty())
     {
@@ -283,30 +283,30 @@ void hash_queue::rollback()
     head_ = list_.begin();
 }
 
-bool hash_queue::check(const hash_digest& hash, size_t height) const
+bool header_queue::check(const hash_digest& hash, size_t height) const
 {
     return checkpoint::validate(hash, height, checkpoints_);
 }
 
-bool hash_queue::linked(const chain::header& header,
+bool header_queue::linked(const chain::header& header,
     const hash_digest& hash) const
 {
     return header.previous_block_hash == hash;
 }
 
-bool hash_queue::is_empty() const
+bool header_queue::is_empty() const
 {
     return get_size() == 0;
 }
 
-size_t hash_queue::get_size() const
+size_t header_queue::get_size() const
 {
     hash_list::const_iterator it = head_;
     const auto value = std::distance(it, list_.end());
     return value;
 }
 
-size_t hash_queue::last() const
+size_t header_queue::last() const
 {
     return is_empty() ? height_ : height_ + get_size() - 1;
 }

@@ -26,9 +26,9 @@
 #include <vector>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/hash_queue.hpp>
-#include <bitcoin/node/reservation.hpp>
 #include <bitcoin/node/settings.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -48,10 +48,10 @@ public:
 
     /// Construct a reservation table of reservations, allocating hashes evenly
     // among the rows up to the limit of a single get headers p2p request.
-    reservations(hash_queue& hashes, blockchain::block_chain& chain,
+    reservations(header_queue& hashes, blockchain::block_chain& chain,
         const settings& settings);
 
-    /// The averate and standard deviation of block import rates.
+    /// The average and standard deviation of block import rates.
     rate_statistics rates() const;
 
     /// Return a copy of the reservation table.
@@ -80,7 +80,7 @@ private:
     bool reserve(reservation::ptr minimal);
 
     // Thread safe.
-    hash_queue& hashes_;
+    header_queue& hashes_;
     blockchain::block_chain& blockchain_;
 
     // Protected by mutex.

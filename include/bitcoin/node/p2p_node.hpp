@@ -26,7 +26,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/hash_queue.hpp>
+#include <bitcoin/node/utility/header_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -95,7 +95,7 @@ private:
     void handle_blocks_synchronized(const code& ec, result_handler handler);
 
     // This is thread safe and guarded by the non-restartable node constraint.
-    hash_queue hashes_;
+    header_queue hashes_;
 
     // This is thread safe.
     blockchain::block_chain_impl blockchain_;
