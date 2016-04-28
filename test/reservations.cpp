@@ -357,6 +357,56 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__no_population)
     BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
 }
 
+BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_empty_table__no_partition)
+{
+    node::settings settings;
+    settings.download_connections = 3;
+    blockchain_fixture blockchain;
+    config::checkpoint::list checkpoints;
+    header_queue hashes(checkpoints);
+
+    // Initialize with a known header so we can import its block later.
+    const auto message = message_factory(3, null_hash);
+    auto& elements = message->elements;
+    const auto genesis_header = elements[0];
+    hashes.initialize(genesis_header.hash(), 0);
+    elements.erase(std::find(elements.begin(), elements.end(), elements[0]));
+    BOOST_REQUIRE_EQUAL(elements.size(), 2u);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 3u);
+
+    // There are no hashes in reserve.
+    BOOST_REQUIRE(hashes.empty());
+
+    // Declare blocks that hash to the allocated headers.
+    // Blocks are evenly distrubuted (every third to each row).
+    const auto block0 = std::make_shared<block>(block{ genesis_header });
+    const auto block1 = std::make_shared<block>(block{ elements[0] });
+    const auto block2 = std::make_shared<block>(block{ elements[1] });
+
+    // All rows have one hash.
+    BOOST_REQUIRE_EQUAL(table[0]->size(), 1u); // 0
+    BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 1
+    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 2
+
+    // Remvoe all rows from the member table.
+    reserves.remove(table[0]);
+    reserves.remove(table[1]);
+    reserves.remove(table[2]);
+    BOOST_REQUIRE(reserves.table().empty());
+
+    // Removing a block from the first row of the cached table must result in
+    // one less hash in that row and no partitioning of other rows, since they
+    // are no longer accessible from the member table.
+    table[0]->import(block0);
+    BOOST_REQUIRE_EQUAL(table[0]->size(), 0u); //
+    BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 1
+    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 2
+}
+
 BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
 {
     node::settings settings;
@@ -404,7 +454,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE(table[1]->idle());
     BOOST_REQUIRE(table[2]->idle());
 
-    // All rows have one hash.
+    // All rows have three hashes.
     BOOST_REQUIRE_EQUAL(table[0]->size(), 3u); // 0/3/6
     BOOST_REQUIRE_EQUAL(table[1]->size(), 3u); // 1/4/7
     BOOST_REQUIRE_EQUAL(table[2]->size(), 3u); // 2/5/8
