@@ -252,7 +252,12 @@ bool reservations::reserve(reservation::ptr minimal)
 {
     const auto size = hashes_.size();
     const auto existing = minimal->size();
-    const auto allocation = std::min(size, max_request_.load() - existing);
+    const auto max_request = max_request_.load();
+
+    if (existing >= max_request)
+        return true;
+
+    const auto allocation = std::min(size, max_request - existing);
 
     size_t height;
     hash_digest hash;

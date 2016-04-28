@@ -345,7 +345,7 @@ void reservation::import(block::ptr block)
     ///////////////////////////////////////////////////////////////////////////
     unique_lock(stop_mutex_);
 
-    // Populate returns true if any were added. Never populate after stopped.
+    // Populate returns, true if not empty. Never populate after stopped.
     if (!stopped_)
         stopped_ = !reservations_.populate(shared_from_this());
     ///////////////////////////////////////////////////////////////////////////
