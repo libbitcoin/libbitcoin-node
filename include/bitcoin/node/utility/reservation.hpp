@@ -74,10 +74,10 @@ public:
     bool idle() const;
 
     /// The current cached average block import rate excluding import time.
-    void set_rate(const performance& rate);
+    performance rate() const;
 
     /// The current cached average block import rate excluding import time.
-    performance rate() const;
+    void set_rate(const performance& rate);
 
     /// The block data request message for the outstanding block hashes.
     /// Set new if the preceding request was unsuccessful or discarded.

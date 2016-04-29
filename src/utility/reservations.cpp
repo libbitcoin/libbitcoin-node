@@ -70,7 +70,7 @@ reservations::rate_statistics reservations::rates() const
         return row->idle();
     };
 
-    // Remove idle rows.
+    // Remove idle rows from the table.
     rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
     const auto active_rows = rows.size();
 
@@ -95,7 +95,7 @@ reservations::rate_statistics reservations::rates() const
     // Calculate the standard deviation in the rate deviations.
     auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
     auto quotient = divide<double>(squares, active_rows);
-    auto standard_deviation = sqrt(quotient);
+    auto standard_deviation = std::sqrt(quotient);
     return{ active_rows, mean, standard_deviation };
 }
 
