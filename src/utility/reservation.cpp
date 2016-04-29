@@ -63,6 +63,7 @@ reservation::reservation(reservations& reservations, size_t slot,
 
 reservation::~reservation()
 {
+    // This complicates unit testing and isn't strictly necessary.
     ////BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
 }
 
@@ -345,7 +346,7 @@ void reservation::import(block::ptr block)
     ///////////////////////////////////////////////////////////////////////////
     unique_lock(stop_mutex_);
 
-    // Populate returns true if any were added. Never populate after stopped.
+    // Populate returns, true if not empty. Never populate after stopped.
     if (!stopped_)
         stopped_ = !reservations_.populate(shared_from_this());
     ///////////////////////////////////////////////////////////////////////////

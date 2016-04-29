@@ -50,18 +50,6 @@ reservations::reservations(header_queue& hashes, block_chain& chain,
     initialize(settings.download_connections);
 }
 
-// Exposed for test to be able to control the request size.
-size_t reservations::max_request()
-{
-    return max_request_.load();
-}
-
-// Exposed for test to be able to control the request size.
-void reservations::set_max_request(size_t value)
-{
-    max_request_.store(value);
-}
-
 bool reservations::import(block::ptr block, size_t height)
 {
     // Thread safe.
@@ -82,7 +70,7 @@ reservations::rate_statistics reservations::rates() const
         return row->idle();
     };
 
-    // Remove idle rows.
+    // Remove idle rows from the table.
     rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
     const auto active_rows = rows.size();
 
@@ -107,7 +95,7 @@ reservations::rate_statistics reservations::rates() const
     // Calculate the standard deviation in the rate deviations.
     auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
     auto quotient = divide<double>(squares, active_rows);
-    auto standard_deviation = sqrt(quotient);
+    auto standard_deviation = std::sqrt(quotient);
     return{ active_rows, mean, standard_deviation };
 }
 
@@ -154,7 +142,7 @@ void reservations::remove(reservation::ptr row)
 void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
-    const size_t max_rows = max_size_t / max_request_.load();
+    const size_t max_rows = max_size_t / max_request();
     auto rows = std::min(max_rows, size);
 
     // Critical Section
@@ -173,7 +161,7 @@ void reservations::initialize(size_t size)
     }
 
     // Allocate no more than 50k headers per row.
-    const auto max_allocation = rows * max_request_.load();
+    const auto max_allocation = rows * max_request();
     const auto allocation = std::min(blocks, max_allocation);
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -252,7 +240,12 @@ bool reservations::reserve(reservation::ptr minimal)
 {
     const auto size = hashes_.size();
     const auto existing = minimal->size();
-    const auto allocation = std::min(size, max_request_.load() - existing);
+    const auto max_block_request = max_request();
+
+    if (existing >= max_block_request)
+        return true;
+
+    const auto allocation = std::min(size, max_block_request - existing);
 
     size_t height;
     hash_digest hash;
@@ -265,6 +258,18 @@ bool reservations::reserve(reservation::ptr minimal)
 
     // This may become empty between insert and this test, which is okay.
     return !minimal->empty();
+}
+
+// Exposed for test to be able to control the request size.
+size_t reservations::max_request() const
+{
+    return max_request_.load();
+}
+
+// Exposed for test to be able to control the request size.
+void reservations::set_max_request(size_t value)
+{
+    max_request_.store(value);
 }
 
 } // namespace node
