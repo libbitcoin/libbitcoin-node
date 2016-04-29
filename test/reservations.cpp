@@ -547,6 +547,7 @@ BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_devi
     BOOST_REQUIRE_EQUAL(rates1.arithmentic_mean, 0.0);
     BOOST_REQUIRE_EQUAL(rates1.standard_deviation, 0.0);
 
+    // normalized rates: 5 / (2 - 1) = 5
     performance rate0;
     rate0.idle = false;
     rate0.events = 5;
@@ -565,16 +566,16 @@ BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_devi
     // There are three active (non-idle) rows.
     BOOST_REQUIRE_EQUAL(rates2.active_count, 3u);
 
-    // normalized rates: 5 / (2 - 1) = 5
-    // mean of active rows: (5 + 5 + 5) / 3 = 5
+    // mean: (5 + 5 + 5) / 3 = 5
     BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 5.0);
 
-    // variance: ((5-5)^2 + (5-5)^2 + (5-5)^2) / 3 = 0
-    // standard deviation: sqrt(0) = 0
+    // deviations: { 5-5=0, 5-5=0, 5-5=0 }
+    // variance: (0^2 + 0^2 + 0^2) / 3 = 0
+    // standard deviation: sqrt(0)
     BOOST_REQUIRE_EQUAL(rates2.standard_deviation, 0.0);
 }
 
-BOOST_AUTO_TEST_CASE(reservations__rates__four_reservations_one_idle__idle_excluded)
+BOOST_AUTO_TEST_CASE(reservations__rates__five_reservations_one_idle__idle_excluded)
 {
     node::settings settings;
     settings.download_connections = 5;
@@ -635,11 +636,12 @@ BOOST_AUTO_TEST_CASE(reservations__rates__four_reservations_one_idle__idle_exclu
     // There are three active (non-idle) rows.
     BOOST_REQUIRE_EQUAL(rates2.active_count, 4u);
 
-    // mean of active rows: (5 + 2 + 1 + 4) / 4 = 3
+    // mean: (5 + 2 + 1 + 4) / 4 = 3
     BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 3.0);
 
-    // variance: ((3-5)^2 + (3-2)^2 + (3-1)^2 + (3-4)^2) / 4 = 2.5
-    // standard deviation: sqrt(2.5) = 1.5811388300841898
+    // deviations: { 3-5=-2, 3-2=1, 3-1=-2, 3-4=-1 }
+    // variance: ((-2)^2 + 1^2 + 2^2 + (-1)^2) / 4 = 2.5
+    // standard deviation: sqrt(2.5)
     BOOST_REQUIRE_EQUAL(rates2.standard_deviation, std::sqrt(2.5));
 }
 

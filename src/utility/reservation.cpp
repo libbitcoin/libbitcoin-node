@@ -63,6 +63,7 @@ reservation::reservation(reservations& reservations, size_t slot,
 
 reservation::~reservation()
 {
+    // This complicates unit testing and isn't strictly necessary.
     ////BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
 }
 
