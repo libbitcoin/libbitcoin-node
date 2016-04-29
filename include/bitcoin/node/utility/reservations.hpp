@@ -68,7 +68,7 @@ public:
     void remove(reservation::ptr row);
 
     /// The max size of a block request.
-    size_t max_request();
+    size_t max_request() const;
 
     /// Set the max size of a block request (defaults to 50000).
     void set_max_request(size_t value);
