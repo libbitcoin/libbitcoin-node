@@ -209,24 +209,21 @@ BOOST_AUTO_TEST_CASE(reservations__table__hash_42__size_8_by_5_hashes_2)
 // remove
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(reservations__remove__empty__empty)
+BOOST_AUTO_TEST_CASE(reservations__remove__empty__does_not_throw)
 {
     node::settings settings;
     blockchain_fixture blockchain;
     config::checkpoint::list checkpoints;
     header_queue hashes(checkpoints);
     hashes.initialize(check42);
-
     reservations reserves(hashes, blockchain, settings);
-    const auto table1 = reserves.table();
-    BOOST_REQUIRE_EQUAL(table1.size(), 1u);
-    BOOST_REQUIRE(hashes.empty());
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 1u);
 
-    const auto row = table1[0];
-    BOOST_REQUIRE_EQUAL(row->slot(), 0u);
-
+    const auto row = table[0];
     reserves.remove(row);
     BOOST_REQUIRE(reserves.table().empty());
+    BOOST_REQUIRE_NO_THROW(reserves.remove(row));
 }
 
 BOOST_AUTO_TEST_CASE(reservations__remove__hash_4__size_3)
