@@ -527,25 +527,120 @@ BOOST_AUTO_TEST_CASE(reservations__rates__default__zeros)
     BOOST_REQUIRE_EQUAL(rates.standard_deviation, 0.0);
 }
 
-////BOOST_AUTO_TEST_CASE(reservations__rates__various__expected)
-////{
-////    node::settings settings;
-////    settings.download_connections = 3;
-////    blockchain_fixture blockchain;
-////    config::checkpoint::list checkpoints;
-////    header_queue hashes(checkpoints);
-////    const auto message = message_factory(2, check42.hash());
-////    hashes.initialize(check42);
-////    BOOST_REQUIRE(hashes.enqueue(message));
-////
-////    reservations reserves(hashes, blockchain, settings);
-////    const auto table = reserves.table();
-////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
-////
-////    // All rows have one hash.
-////    BOOST_REQUIRE_EQUAL(table[0]->size(), 1u);
-////    BOOST_REQUIRE_EQUAL(table[1]->size(), 1u);
-////    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u);
-////}
+BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_deviation)
+{
+    node::settings settings;
+    settings.download_connections = 3;
+    blockchain_fixture blockchain;
+    config::checkpoint::list checkpoints;
+    header_queue hashes(checkpoints);
+    const auto message = message_factory(2, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 3u);
+
+    const auto rates1 = reserves.rates();
+    BOOST_REQUIRE_EQUAL(rates1.active_count, 0u);
+    BOOST_REQUIRE_EQUAL(rates1.arithmentic_mean, 0.0);
+    BOOST_REQUIRE_EQUAL(rates1.standard_deviation, 0.0);
+
+    performance rate0;
+    rate0.idle = false;
+    rate0.events = 5;
+    rate0.database = 1;
+    rate0.window = 2;
+    performance rate1 = rate0;
+    performance rate2 = rate0;
+
+    // Simulate the rate summary on each channel by setting it directly.
+    table[0]->set_rate(rate0);
+    table[1]->set_rate(rate1);
+    table[2]->set_rate(rate2);
+
+    const auto rates2 = reserves.rates();
+
+    // There are three active (non-idle) rows.
+    BOOST_REQUIRE_EQUAL(rates2.active_count, 3u);
+
+    // normalized rates: 5 / (2 - 1) = 5
+    // mean of active rows: (5 + 5 + 5) / 3 = 5
+    BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 5.0);
+
+    // variance: ((5-5)^2 + (5-5)^2 + (5-5)^2) / 3 = 0
+    // standard deviation: sqrt(0) = 0
+    BOOST_REQUIRE_EQUAL(rates2.standard_deviation, 0.0);
+}
+
+BOOST_AUTO_TEST_CASE(reservations__rates__four_reservations_one_idle__idle_excluded)
+{
+    node::settings settings;
+    settings.download_connections = 5;
+    blockchain_fixture blockchain;
+    config::checkpoint::list checkpoints;
+    header_queue hashes(checkpoints);
+    const auto message = message_factory(4, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+
+    // normalized rate: 5 / (2 - 1) = 5
+    performance rate0;
+    rate0.idle = false;
+    rate0.events = 5;
+    rate0.database = 1;
+    rate0.window = 2;
+
+    // This rate is idle, so values must be excluded in rates computation.
+    performance rate1;
+    rate1.idle = true;
+    rate1.events = 42;
+    rate1.database = 42;
+    rate1.window = 42;
+
+    // normalized rate: 10 / (6 - 1) = 2
+    performance rate2;
+    rate2.idle = false;
+    rate2.events = 10;
+    rate2.database = 1;
+    rate2.window = 6;
+
+    // normalized rate: 3 / (6 - 3) = 1
+    performance rate3;
+    rate3.idle = false;
+    rate3.events = 3;
+    rate3.database = 3;
+    rate3.window = 6;
+
+    // normalized rate: 8 / (5 - 3) = 4
+    performance rate4;
+    rate4.idle = false;
+    rate4.events = 8;
+    rate4.database = 3;
+    rate4.window = 5;
+
+    // Simulate the rate summary on each channel by setting it directly.
+    table[0]->set_rate(rate0);
+    table[1]->set_rate(rate1);
+    table[2]->set_rate(rate2);
+    table[3]->set_rate(rate3);
+    table[4]->set_rate(rate4);
+
+    const auto rates2 = reserves.rates();
+
+    // There are three active (non-idle) rows.
+    BOOST_REQUIRE_EQUAL(rates2.active_count, 4u);
+
+    // mean of active rows: (5 + 2 + 1 + 4) / 4 = 3
+    BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 3.0);
+
+    // variance: ((3-5)^2 + (3-2)^2 + (3-1)^2 + (3-4)^2) / 4 = 2.5
+    // standard deviation: sqrt(2.5) = 1.5811388300841898
+    BOOST_REQUIRE_EQUAL(rates2.standard_deviation, std::sqrt(2.5));
+}
 
 BOOST_AUTO_TEST_SUITE_END()
