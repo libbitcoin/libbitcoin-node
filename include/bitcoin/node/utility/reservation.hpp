@@ -84,6 +84,9 @@ public:
     message::get_data request(bool new_channel);
 
     /// Add the block hash to the reservation.
+    void insert(const config::checkpoint& checkpoint);
+
+    /// Add the block hash to the reservation.
     void insert(const hash_digest& hash, size_t height);
 
     /// Add to the blockchain, with height determined by the reservation.
@@ -96,6 +99,9 @@ public:
     bool partition(reservation::ptr minimal);
 
 protected:
+
+    // Accessor for validating construction.
+    std::chrono::microseconds rate_window() const;
 
     // Isolation of side effect to enable unit testing.
     virtual std::chrono::high_resolution_clock::time_point now() const;

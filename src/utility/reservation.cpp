@@ -72,6 +72,11 @@ size_t reservation::slot() const
     return slot_;
 }
 
+std::chrono::microseconds reservation::rate_window() const
+{
+    return rate_window_;
+}
+
 high_resolution_clock::time_point reservation::now() const
 {
     return high_resolution_clock::now();
@@ -166,7 +171,7 @@ void reservation::update_rate(size_t events, const microseconds& database)
     performance rate{ false, 0, 0, 0 };
     const auto end = now();
     const auto event_start = end - microseconds(database);
-    const auto start = end - rate_window_;
+    const auto start = end - rate_window();
     const auto history_count = history_.size();
 
     // Remove expired entries from the head of the queue.
@@ -195,7 +200,7 @@ void reservation::update_rate(size_t events, const microseconds& database)
     }
 
     // Calculate the duration of the rate window.
-    auto window = window_full ? rate_window_ : (end - history_.front().time);
+    auto window = window_full ? rate_window() : (end - history_.front().time);
     auto count = duration_cast<microseconds>(window).count();
     rate.window = static_cast<uint64_t>(count);
 
@@ -284,6 +289,11 @@ message::get_data reservation::request(bool new_channel)
     ///////////////////////////////////////////////////////////////////////////
 
     return packet;
+}
+
+void reservation::insert(const config::checkpoint& checkpoint)
+{
+    insert(checkpoint.hash(), checkpoint.height());
 }
 
 void reservation::insert(const hash_digest& hash, size_t height)
