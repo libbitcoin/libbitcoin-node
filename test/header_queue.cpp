@@ -22,41 +22,16 @@
 #include <vector>
 #include <boost/test/unit_test.hpp>
 #include <bitcoin/node.hpp>
+#include "utility.hpp"
 
 using namespace bc;
 using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::node;
 using namespace bc::message;
+using namespace bc::node::test;
 
 BOOST_AUTO_TEST_SUITE(header_queue_tests)
-
-static const checkpoint check42{ "4242424242424242424242424242424242424242424242424242424242424242", 42 };
-static const checkpoint::list no_checks;
-static const checkpoint::list one_check{ check42 };
-
-// Create a headers message of specified size, using specified previous hash.
-static headers::ptr message_factory(size_t count, const hash_digest& hash)
-{
-    auto previous_hash = hash;
-    const auto headers = std::make_shared<message::headers>();
-    auto& elements = headers->elements;
-
-    for (size_t height = 0; height < count; ++height)
-    {
-        const header current_header{ 0, previous_hash, {}, 0, 0, 0, 0 };
-        elements.push_back(current_header);
-        previous_hash = current_header.hash();
-    }
-
-    return headers;
-}
-
-// Create a headers message of specified size, starting with a genesis header.
-static headers::ptr message_factory(size_t count)
-{
-    return message_factory(count, null_hash);
-}
 
 // empty
 //-----------------------------------------------------------------------------

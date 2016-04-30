@@ -28,110 +28,60 @@ namespace libbitcoin {
 namespace node {
 namespace test {
 
+#define DECLARE_RESERVATIONS(name, import) \
+config::checkpoint::list checkpoints; \
+header_queue hashes(checkpoints); \
+blockchain_fixture blockchain(import); \
+node::settings settings; \
+reservations name(hashes, blockchain, settings)
+
+extern const config::checkpoint check42;
+extern const config::checkpoint::list no_checks;
+extern const config::checkpoint::list one_check;
+
+// Create a headers message of specified size, using specified previous hash.
+extern message::headers::ptr message_factory(size_t count);
+extern message::headers::ptr message_factory(size_t count, const hash_digest& hash);
+
 class blockchain_fixture
   : public blockchain::block_chain
 {
 public:
-    blockchain_fixture(bool import_result=true)
-      : import_result_(import_result)
-    {
-    }
-
-    virtual void start(result_handler handler)
-    {
-    }
-
-    virtual void stop(result_handler handler)
-    {
-    }
-
-    virtual void close()
-    {
-    }
-
-    virtual bool import(chain::block::ptr block, uint64_t height)
-    {
-        return import_result_;
-    }
-
-    virtual void store(chain::block::ptr block, block_store_handler handler)
-    {
-    }
-
+    blockchain_fixture(bool import_result=true);
+    virtual void start(result_handler handler);
+    virtual void stop(result_handler handler);
+    virtual void close();
+    virtual bool import(chain::block::ptr block, uint64_t height);
+    virtual void store(chain::block::ptr block, block_store_handler handler);
     virtual void fetch_block_header(uint64_t height,
-        block_header_fetch_handler handler)
-    {
-    }
-
+        block_header_fetch_handler handler);
     virtual void fetch_block_header(const hash_digest& hash,
-        block_header_fetch_handler handler)
-    {
-    }
-
-    virtual void fetch_block_locator(block_locator_fetch_handler handle_fetch)
-    {
-    }
-
+        block_header_fetch_handler handler);
+    virtual void fetch_block_locator(block_locator_fetch_handler handle_fetch);
     virtual void fetch_locator_block_hashes(const message::get_blocks& locator,
         const hash_digest& threshold, size_t limit,
-        locator_block_hashes_fetch_handler handler)
-    {
-    }
-
+        locator_block_hashes_fetch_handler handler);
     virtual void fetch_missing_block_hashes(const hash_list& hashes,
-        missing_block_hashes_fetch_handler handler)
-    {
-    }
-
+        missing_block_hashes_fetch_handler handler);
     virtual void fetch_block_transaction_hashes(uint64_t height,
-        transaction_hashes_fetch_handler handler)
-    {
-    }
-
+        transaction_hashes_fetch_handler handler);
     virtual void fetch_block_transaction_hashes(const hash_digest& hash,
-        transaction_hashes_fetch_handler handler)
-    {
-    }
-
+        transaction_hashes_fetch_handler handler);
     virtual void fetch_block_height(const hash_digest& hash,
-        block_height_fetch_handler handler)
-    {
-    }
-
-    virtual void fetch_last_height(last_height_fetch_handler handler)
-    {
-    }
-
+        block_height_fetch_handler handler);
+    virtual void fetch_last_height(last_height_fetch_handler handler);
     virtual void fetch_transaction(const hash_digest& hash,
-        transaction_fetch_handler handler)
-    {
-    }
-
+        transaction_fetch_handler handler);
     virtual void fetch_transaction_index(const hash_digest& hash,
-        transaction_index_fetch_handler handler)
-    {
-    }
-
+        transaction_index_fetch_handler handler);
     virtual void fetch_spend(const chain::output_point& outpoint,
-        spend_fetch_handler handler)
-    {
-    }
-
+        spend_fetch_handler handler);
     virtual void fetch_history(const wallet::payment_address& address,
-        uint64_t limit, uint64_t from_height, history_fetch_handler handler)
-    {
-    }
-
+        uint64_t limit, uint64_t from_height, history_fetch_handler handler);
     virtual void fetch_stealth(const binary& prefix, uint64_t from_height,
-        stealth_fetch_handler handler)
-    {
-    }
-
+        stealth_fetch_handler handler);
     virtual void subscribe_reorganize(
-        blockchain::organizer::reorganize_handler handler)
-    {
-    }
-
+        blockchain::organizer::reorganize_handler handler);
 private:
     bool import_result_;
 };
