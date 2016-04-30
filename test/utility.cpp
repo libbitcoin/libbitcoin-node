@@ -19,9 +19,10 @@
  */
 #include "utility.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <bitcoin/blockchain.hpp>
+#include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -59,6 +60,26 @@ message::headers::ptr message_factory(size_t count, const hash_digest& hash)
     }
 
     return headers;
+}
+
+reservation_fixture::reservation_fixture(reservations& reservations,
+    size_t slot, uint32_t block_timeout_seconds,
+    std::chrono::high_resolution_clock::time_point now)
+  : reservation(reservations, slot, block_timeout_seconds),
+    now_(now)
+{
+}
+
+// Accessor
+std::chrono::microseconds reservation_fixture::rate_window() const
+{
+    return reservation::rate_window();
+}
+
+// Stub
+std::chrono::high_resolution_clock::time_point reservation_fixture::now() const
+{
+    return now_;
 }
 
 blockchain_fixture::blockchain_fixture(bool import_result)

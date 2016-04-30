@@ -20,9 +20,10 @@
 #ifndef LIBBITCOIN_NODE_TEST_RESERVATIONS_HPP
 #define LIBBITCOIN_NODE_TEST_RESERVATIONS_HPP
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <bitcoin/blockchain.hpp>
+#include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -42,6 +43,21 @@ extern const config::checkpoint::list one_check;
 // Create a headers message of specified size, using specified previous hash.
 extern message::headers::ptr message_factory(size_t count);
 extern message::headers::ptr message_factory(size_t count, const hash_digest& hash);
+
+class reservation_fixture
+  : public reservation
+{
+public:
+    reservation_fixture(reservations& reservations, size_t slot,
+        uint32_t block_timeout_seconds,
+        std::chrono::high_resolution_clock::time_point
+            now=std::chrono::high_resolution_clock::now());
+    std::chrono::microseconds rate_window() const;
+    std::chrono::high_resolution_clock::time_point now() const override;
+
+private:
+    std::chrono::high_resolution_clock::time_point now_;
+};
 
 class blockchain_fixture
   : public blockchain::block_chain
