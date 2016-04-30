@@ -71,6 +71,7 @@
     <ClCompile Include="..\..\..\..\test\performance.cpp" />
     <ClCompile Include="..\..\..\..\test\reservation.cpp" />
     <ClCompile Include="..\..\..\..\test\reservations.cpp" />
+    <ClCompile Include="..\..\..\..\test\settings.cpp" />
     <ClCompile Include="..\..\..\..\test\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
