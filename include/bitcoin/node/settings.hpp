@@ -31,8 +31,6 @@ namespace node {
 class BCN_API settings
 {
 public:
-    static uint32_t number_of_cores();
-
     settings();
     settings(bc::settings context);
 

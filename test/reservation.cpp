@@ -35,20 +35,25 @@ BOOST_AUTO_TEST_SUITE(reservation_tests)
 // rate
 //-----------------------------------------------------------------------------
 
-// Just a basic test to get some coverage output.
-BOOST_AUTO_TEST_CASE(reservations__rate__default__idle_zeros)
+BOOST_AUTO_TEST_CASE(reservation__empty__default__true)
 {
-    node::settings settings;
-    blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
-    hashes.initialize(check42);
-    reservations reserves(hashes, blockchain, settings);
+    DECLARE_RESERVATIONS(reserves, true);
 
-    reservation reserve(reserves, 42, 24);
-    BOOST_REQUIRE(true);
+    reservation reserve(reserves, 0, 0);
+    BOOST_REQUIRE(reserve.empty());
 }
 
+// slot
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__slot__construct_42__returns_42)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+
+    const size_t expected = 42;
+    reservation reserve(reserves, expected, 0);
+    BOOST_REQUIRE(reserve.empty());
+}
 
 // table
 //-----------------------------------------------------------------------------
