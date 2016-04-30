@@ -64,7 +64,8 @@ test_libbitcoin_node_test_SOURCES = \
     test/performance.cpp \
     test/reservation.cpp \
     test/reservations.cpp \
-    test/reservations.hpp
+    test/utility.cpp \
+    test/utility.hpp
 
 endif WITH_TESTS
 
