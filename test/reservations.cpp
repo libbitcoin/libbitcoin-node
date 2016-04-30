@@ -435,6 +435,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u); // 1/4
     BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 7
     BOOST_REQUIRE_EQUAL(table[2]->size(), 3u); // 2/5/8
+    BOOST_REQUIRE(table[1]->partitioned());
+    BOOST_REQUIRE(!table[1]->partitioned());
 
     // Remove another block from the first row (originally from the second).
     table[0]->import(block1);
@@ -447,6 +449,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u); // 2/5
     BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 7
     BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 8
+    BOOST_REQUIRE(table[2]->partitioned());
+    BOOST_REQUIRE(!table[2]->partitioned());
 
     // Remove another block from the first row (originally from the third).
     table[0]->import(block2);
@@ -458,8 +462,9 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     table[0]->import(block5);
     BOOST_REQUIRE_EQUAL(table[0]->size(), 1u); // 7
     BOOST_REQUIRE_EQUAL(table[1]->size(), 0u); //
-    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); //
+    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 8
     BOOST_REQUIRE(table[1]->stopped());
+    BOOST_REQUIRE(!table[1]->partitioned());
 
     // Remove another block from the first row (originally from the second).
     table[0]->import(block7);
@@ -467,6 +472,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[1]->size(), 0u); //
     BOOST_REQUIRE_EQUAL(table[2]->size(), 0u); //
     BOOST_REQUIRE(table[2]->stopped());
+    BOOST_REQUIRE(!table[2]->partitioned());
 
     // Remove another block from the first row (originally from the third).
     table[0]->import(block8);
