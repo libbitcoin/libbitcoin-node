@@ -220,38 +220,8 @@ BOOST_AUTO_TEST_CASE(reservations__remove__hash_4__size_3)
 // populate
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available__uncapped)
-{
-    node::settings settings;
-    settings.download_connections = 3;
-    blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
-    const auto message = message_factory(10, check42.hash());
-    hashes.initialize(check42);
-    BOOST_REQUIRE(hashes.enqueue(message));
-
-    reservations reserves(hashes, blockchain, settings);
-    const auto table = reserves.table();
-    BOOST_REQUIRE_EQUAL(table.size(), 3u);
-
-    // All rows have three hashes.
-    BOOST_REQUIRE_EQUAL(table[0]->size(), 3u);
-    BOOST_REQUIRE_EQUAL(table[1]->size(), 3u);
-    BOOST_REQUIRE_EQUAL(table[2]->size(), 3u);
-
-    // The reserved hashes are transfered to the row.
-    BOOST_REQUIRE_EQUAL(hashes.size(), 2u);
-    BOOST_REQUIRE(reserves.populate(table[1]));
-    BOOST_REQUIRE_EQUAL(hashes.size(), 0u);
-
-    // The row is increased by the reserve amount.
-    BOOST_REQUIRE_EQUAL(table[0]->size(), 3u);
-    BOOST_REQUIRE_EQUAL(table[1]->size(), 5u);
-    BOOST_REQUIRE_EQUAL(table[2]->size(), 3u);
-}
-
-BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available__capped)
+// TODO: add row empty test.
+BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available_row_not_empty__no_population)
 {
     node::settings settings;
     settings.download_connections = 3;
@@ -274,7 +244,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available__capped)
     BOOST_REQUIRE_EQUAL(table[1]->size(), 3u);
     BOOST_REQUIRE_EQUAL(table[2]->size(), 3u);
 
-    // The exsting population is greater than the max request, so no reserve.
+    // The row is not empty so must not cause a reserve.
     // The row is not empty so must not cause a repartitioning.
     BOOST_REQUIRE_EQUAL(hashes.size(), 1u);
     BOOST_REQUIRE(reserves.populate(table[1]));
