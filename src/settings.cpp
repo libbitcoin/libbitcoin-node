@@ -24,14 +24,9 @@
 namespace libbitcoin {
 namespace node {
 
-////uint32_t settings::number_of_cores()
-////{
-////    const auto cores = std::thread::hardware_concurrency();
-////    return cores > 0 ? cores : 8;
-////}
-
 settings::settings()
-  : download_connections(8 /* number_of_cores() */)
+  : block_timeout_seconds(5),
+    download_connections(8)
 {
 }
 
