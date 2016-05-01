@@ -152,6 +152,29 @@ BOOST_AUTO_TEST_CASE(reservation__set_rate__values__expected)
     BOOST_REQUIRE_EQUAL(rate.window, 3u);
 }
 
+// pending
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__pending__default__true)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    BOOST_REQUIRE(reserve.pending());
+}
+
+// set_pending
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__set_pending__false_true__false_true)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    reserve.set_pending(false);
+    BOOST_REQUIRE(!reserve.pending());
+    reserve.set_pending(true);
+    BOOST_REQUIRE(reserve.pending());
+}
+
 // rate_window
 //-----------------------------------------------------------------------------
 
@@ -227,27 +250,31 @@ BOOST_AUTO_TEST_CASE(reservation__idle__set_false__false)
 // insert
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1)
+BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1_pending)
 {
     DECLARE_RESERVATIONS(reserves, false);
-    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     BOOST_REQUIRE(reserve->empty());
+    reserve->set_pending(false);
     reserve->insert(checkpoint{ header.hash(), 42 });
     BOOST_REQUIRE_EQUAL(reserve->size(), 1u);
+    BOOST_REQUIRE(reserve->pending());
 }
 
 // TODO: verify pending.
-BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1)
+BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1_pending)
 {
     DECLARE_RESERVATIONS(reserves, false);
-    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     BOOST_REQUIRE(reserve->empty());
+    reserve->set_pending(false);
     reserve->insert(header.hash(), 42);
     BOOST_REQUIRE_EQUAL(reserve->size(), 1u);
+    BOOST_REQUIRE(reserve->pending());
 }
 
 // import
@@ -332,23 +359,114 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
 //-----------------------------------------------------------------------------
 
 // see: reservations__populate__hashes_empty__partition for positive test.
-BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false)
+BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false_pending)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0);
     BOOST_REQUIRE(!reserve.toggle_partitioned());
+    BOOST_REQUIRE(reserve.pending());
 }
 
 // request
 //-----------------------------------------------------------------------------
 
-// TODO: test pending, new_channel, empty, non_empty, unset pending.
-BOOST_AUTO_TEST_CASE(reservation__request__default_new_channel__empty)
+BOOST_AUTO_TEST_CASE(reservation__request__pending__empty_not_reset)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
-    const auto result = reserve.request(true);
+    reservation_fixture reserve(reserves, 0, 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    BOOST_REQUIRE(reserve.pending());
+
+    // Creates a request with no hashes reserved.
+    const auto result = reserve.request(false);
     BOOST_REQUIRE(result.inventories.empty());
+    BOOST_REQUIRE(!reserve.pending());
+
+    // The rate is not reset because the new channel parameter is false.
+    const auto rate = reserve.rate();
+    BOOST_REQUIRE(!rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 1u);
+    BOOST_REQUIRE_EQUAL(rate.database, 2u);
+    BOOST_REQUIRE_EQUAL(rate.window, 3u);
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__new_channel_pending__size_1_reset)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(1, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    BOOST_REQUIRE(reserve.pending());
+
+    // Creates a request with one hash reserved.
+    const auto result = reserve.request(true);
+    BOOST_REQUIRE_EQUAL(result.inventories.size(), 1u);
+    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE(!reserve.pending());
+
+    // The rate is reset because the new channel parameter is true.
+    const auto rate = reserve.rate();
+    BOOST_REQUIRE(rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 0u);
+    BOOST_REQUIRE_EQUAL(rate.database, 0u);
+    BOOST_REQUIRE_EQUAL(rate.window, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__new_channel__size_1_reset)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(1, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    reserve.set_pending(false);
+
+    // Creates a request with one hash reserved.
+    const auto result = reserve.request(true);
+    BOOST_REQUIRE_EQUAL(result.inventories.size(), 1u);
+    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE(!reserve.pending());
+
+    // The rate is reset because the new channel parameter is true.
+    const auto rate = reserve.rate();
+    BOOST_REQUIRE(rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 0u);
+    BOOST_REQUIRE_EQUAL(rate.database, 0u);
+    BOOST_REQUIRE_EQUAL(rate.window, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__three_hashes_pending__size_3)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(3, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.insert(message->elements[1].hash(), 1);
+    reserve.insert(message->elements[2].hash(), 2);
+    BOOST_REQUIRE(reserve.pending());
+
+    // Creates a request with 3 hashes reserved.
+    const auto result = reserve.request(false);
+    BOOST_REQUIRE_EQUAL(result.inventories.size(), 3u);
+    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE(result.inventories[1].hash == message->elements[1].hash());
+    BOOST_REQUIRE(result.inventories[2].hash == message->elements[2].hash());
+    BOOST_REQUIRE(!reserve.pending());
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__one_hash__empty)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(1, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.set_pending(false);
+
+    // Creates an empty request for not new and not pending scneario.
+    const auto result = reserve.request(false);
+    BOOST_REQUIRE(result.inventories.empty());
+    BOOST_REQUIRE(!reserve.pending());
 }
 
 // expired

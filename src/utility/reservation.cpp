@@ -72,6 +72,16 @@ size_t reservation::slot() const
     return slot_;
 }
 
+bool reservation::pending() const
+{
+    return pending_;
+}
+
+void reservation::set_pending(bool value)
+{
+    pending_ = value;
+}
+
 std::chrono::microseconds reservation::rate_window() const
 {
     return rate_window_;

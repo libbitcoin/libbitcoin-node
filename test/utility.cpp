@@ -77,12 +77,18 @@ std::chrono::microseconds reservation_fixture::rate_window() const
     return reservation::rate_window();
 }
 
-////// Accessor
-////void reservation_fixture::update_rate_accessor(size_t events,
-////    const std::chrono::microseconds& database)
-////{
-////    update_rate(events, database);
-////}
+// Accessor
+bool reservation_fixture::pending() const
+{
+    return reservation::pending();
+}
+
+// Accessor
+void reservation_fixture::set_pending(bool value)
+{
+    reservation::set_pending(value);
+}
+
 
 // Stub
 std::chrono::high_resolution_clock::time_point reservation_fixture::now() const

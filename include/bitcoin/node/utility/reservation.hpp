@@ -99,6 +99,11 @@ public:
     bool partition(reservation::ptr minimal);
 
 protected:
+    // Accessor for testability.
+    bool pending() const;
+
+    // Accessor for testability.
+    void set_pending(bool value);
 
     // Accessor for validating construction.
     std::chrono::microseconds rate_window() const;
