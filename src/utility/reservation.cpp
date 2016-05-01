@@ -390,24 +390,18 @@ bool reservation::toggle_partitioned()
 // Give the minimal row ~ half of our hashes.
 bool reservation::partition(reservation::ptr minimal)
 {
+    // This assumes that partition has been called under a table mutex.
+    if (minimal->size() > 0)
+        return false;
+
     // Critical Section (hash)
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
-    const auto own_size = heights_.size();
-
     // Take half of the maximal reservation, rounding up to get last entry.
+    const auto own_size = heights_.size();
     BITCOIN_ASSERT(own_size < max_size_t && (own_size + 1) / 2 <= max_uint32);
     const auto offset = static_cast<uint32_t>(own_size + 1) / 2;
-
-    // Prevent a max block request overflow.
-    if (offset <= minimal->size())
-    {
-        hash_mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
-        return false;
-    }
-
     auto it = heights_.right.begin();
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
