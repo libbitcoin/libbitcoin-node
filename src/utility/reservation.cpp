@@ -366,8 +366,8 @@ void reservation::import(block::ptr block)
     ///////////////////////////////////////////////////////////////////////////
     unique_lock(stop_mutex_);
 
-    // Populate returns, true if not empty. Never populate after stopped.
-    if (!stopped_)
+    // If empty try to get more hashes. Never populate after stopped.
+    if (!stopped_ && empty())
         stopped_ = !reservations_.populate(shared_from_this());
     ///////////////////////////////////////////////////////////////////////////
 }
@@ -397,12 +397,12 @@ bool reservation::toggle_partitioned()
     return false;
 }
 
-// Give the minimal row ~ half of our hashes.
+// Give the minimal row ~ half of our hashes, return false if minimal is empty.
 bool reservation::partition(reservation::ptr minimal)
 {
     // This assumes that partition has been called under a table mutex.
     if (!minimal->empty())
-        return false;
+        return true;
 
     // Critical Section (hash)
     ///////////////////////////////////////////////////////////////////////////
@@ -425,13 +425,14 @@ bool reservation::partition(reservation::ptr minimal)
     }
 
     partitioned_ = !heights_.empty();
-    minimal->pending_ = !minimal->empty();
+    const auto populated = !minimal->empty();
+    minimal->pending_ = populated;
 
     // Critical Section (stop)
     ///////////////////////////////////////////////////////////////////////////
     unique_lock(stop_mutex_);
 
-    // If the chanel has been emptied it will no repopulate.
+    // If the channel has been emptied it will no repopulate.
     if (!partitioned_)
         stopped_ = true;
     ///////////////////////////////////////////////////////////////////////////
@@ -439,12 +440,12 @@ bool reservation::partition(reservation::ptr minimal)
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    if (minimal->pending_)
+    if (populated)
         log::debug(LOG_PROTOCOL)
             << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
             << ") to (" << minimal->slot() << ") leaving [" << size() << "].";
 
-    return minimal->pending_;
+    return populated;
 }
 
 bool reservation::find_height_and_erase(const hash_digest& hash,

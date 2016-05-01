@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__uncap
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u);
     BOOST_REQUIRE_EQUAL(table[1]->size(), 1u);
 
-    // The reserve is reduced from 2 to 1 (limited by max_request default of 50000).
+    // The reserve is reduced from 2 to 0 (unlimited by max_request default of 50000).
     table[1]->import(block4);
     BOOST_REQUIRE_EQUAL(hashes.size(), 0u);
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u);

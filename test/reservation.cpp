@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(reservation__partition__minimal_not_empty__false_unchanged)
     const auto reserve1 = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto reserve2 = std::make_shared<reservation_fixture>(reserves, 1, 0);
     reserve2->insert(check42);
-    BOOST_REQUIRE(!reserve1->partition(reserve2));
+    BOOST_REQUIRE(reserve1->partition(reserve2));
     BOOST_REQUIRE_EQUAL(reserve2->size(), 1u);
 }
 
