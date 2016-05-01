@@ -224,6 +224,32 @@ BOOST_AUTO_TEST_CASE(reservation__idle__set_false__false)
     BOOST_REQUIRE(!reserve.idle());
 }
 
+// insert
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1)
+{
+    DECLARE_RESERVATIONS(reserves, false);
+    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
+    const auto message = message_factory(1, check42.hash());
+    const auto& header = message->elements[0];
+    BOOST_REQUIRE(reserve->empty());
+    reserve->insert(checkpoint{ header.hash(), 42 });
+    BOOST_REQUIRE_EQUAL(reserve->size(), 1u);
+}
+
+// TODO: verify pending.
+BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1)
+{
+    DECLARE_RESERVATIONS(reserves, false);
+    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
+    const auto message = message_factory(1, check42.hash());
+    const auto& header = message->elements[0];
+    BOOST_REQUIRE(reserve->empty());
+    reserve->insert(header.hash(), 42);
+    BOOST_REQUIRE_EQUAL(reserve->size(), 1u);
+}
+
 // import
 //-----------------------------------------------------------------------------
 
@@ -305,8 +331,8 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
 // toggle_partitioned
 //-----------------------------------------------------------------------------
 
-// TODO: more sceanrios.
-BOOST_AUTO_TEST_CASE(reservation__partitioned__default__false)
+// see: reservations__populate__hashes_empty__partition for positive test.
+BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false)
 {
     DECLARE_RESERVATIONS(reserves, true);
     reservation reserve(reserves, 0, 0);
@@ -316,7 +342,7 @@ BOOST_AUTO_TEST_CASE(reservation__partitioned__default__false)
 // request
 //-----------------------------------------------------------------------------
 
-// TODO: more sceanrios.
+// TODO: test pending, new_channel, empty, non_empty, unset pending.
 BOOST_AUTO_TEST_CASE(reservation__request__default_new_channel__empty)
 {
     DECLARE_RESERVATIONS(reserves, true);
@@ -328,7 +354,6 @@ BOOST_AUTO_TEST_CASE(reservation__request__default_new_channel__empty)
 // expired
 //-----------------------------------------------------------------------------
 
-// TODO: more sceanrios.
 BOOST_AUTO_TEST_CASE(reservation__expired__default__false)
 {
     DECLARE_RESERVATIONS(reserves, true);
@@ -336,6 +361,7 @@ BOOST_AUTO_TEST_CASE(reservation__expired__default__false)
     BOOST_REQUIRE(!reserve.expired());
 }
 
+////// TODO: test complex calculation.
 ////BOOST_AUTO_TEST_CASE(reservation__expired__default__false42)
 ////{
 ////    node::settings settings;

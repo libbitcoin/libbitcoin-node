@@ -289,7 +289,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__no_population)
     BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
 }
 
-BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available__partition)
+BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available__reserve)
 {
     node::settings settings;
     settings.download_connections = 2;
