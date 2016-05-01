@@ -129,7 +129,7 @@ bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
     // Add the block to the blockchain store.
     reservation_->import(message);
 
-    if (reservation_->partitioned())
+    if (reservation_->toggle_partitioned())
     {
         log::debug(LOG_PROTOCOL)
             << "Restarting partitioned slot (" << reservation_->slot() << ").";

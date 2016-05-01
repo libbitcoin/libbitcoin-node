@@ -93,7 +93,7 @@ public:
     void import(chain::block::ptr block);
 
     /// Determine if the reservation was partitioned and reset partition flag.
-    bool partitioned();
+    bool toggle_partitioned();
 
     /// Move half of the reservation to the specified reservation.
     bool partition(reservation::ptr minimal);

@@ -289,6 +289,34 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__no_population)
     BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
 }
 
+BOOST_AUTO_TEST_CASE(reservations__populate__hashes_available__reserve)
+{
+    node::settings settings;
+    settings.download_connections = 2;
+    blockchain_fixture blockchain;
+    config::checkpoint::list checkpoints;
+    header_queue hashes(checkpoints);
+    const auto message = message_factory(2, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 2u);
+
+    BOOST_REQUIRE_EQUAL(hashes.size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[0]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[1]->size(), 1u);
+
+    // The import of a block will cause populate to invoke reservation.
+    const auto block1 = std::make_shared<block>(block{ message->elements[0] });
+    table[1]->import(block1);
+
+    BOOST_REQUIRE_EQUAL(hashes.size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[0]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[1]->size(), 1u);
+}
+
 BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_empty_table__no_partition)
 {
     node::settings settings;
@@ -405,8 +433,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u); // 1/4
     BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 7
     BOOST_REQUIRE_EQUAL(table[2]->size(), 3u); // 2/5/8
-    BOOST_REQUIRE(table[1]->partitioned());
-    BOOST_REQUIRE(!table[1]->partitioned());
+    BOOST_REQUIRE(table[1]->toggle_partitioned());
+    BOOST_REQUIRE(!table[1]->toggle_partitioned());
 
     // Remove another block from the first row (originally from the second).
     table[0]->import(block1);
@@ -419,8 +447,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u); // 2/5
     BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 7
     BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 8
-    BOOST_REQUIRE(table[2]->partitioned());
-    BOOST_REQUIRE(!table[2]->partitioned());
+    BOOST_REQUIRE(table[2]->toggle_partitioned());
+    BOOST_REQUIRE(!table[2]->toggle_partitioned());
 
     // Remove another block from the first row (originally from the third).
     table[0]->import(block2);
@@ -434,7 +462,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[1]->size(), 0u); //
     BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 8
     BOOST_REQUIRE(table[1]->stopped());
-    BOOST_REQUIRE(!table[1]->partitioned());
+    BOOST_REQUIRE(!table[1]->toggle_partitioned());
 
     // Remove another block from the first row (originally from the second).
     table[0]->import(block7);
@@ -442,7 +470,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty__partition)
     BOOST_REQUIRE_EQUAL(table[1]->size(), 0u); //
     BOOST_REQUIRE_EQUAL(table[2]->size(), 0u); //
     BOOST_REQUIRE(table[2]->stopped());
-    BOOST_REQUIRE(!table[2]->partitioned());
+    BOOST_REQUIRE(!table[2]->toggle_partitioned());
 
     // Remove another block from the first row (originally from the third).
     table[0]->import(block8);

@@ -22,6 +22,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <thread>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
@@ -76,6 +77,13 @@ std::chrono::microseconds reservation_fixture::rate_window() const
     return reservation::rate_window();
 }
 
+////// Accessor
+////void reservation_fixture::update_rate_accessor(size_t events,
+////    const std::chrono::microseconds& database)
+////{
+////    update_rate(events, database);
+////}
+
 // Stub
 std::chrono::high_resolution_clock::time_point reservation_fixture::now() const
 {
@@ -101,6 +109,8 @@ void blockchain_fixture::close()
 
 bool blockchain_fixture::import(block::ptr block, uint64_t height)
 {
+    // This prevents a zero import cost, which is useful in testing timeout.
+    std::this_thread::sleep_for(std::chrono::microseconds(1));
     return import_result_;
 }
 
