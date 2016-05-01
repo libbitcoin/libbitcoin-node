@@ -193,16 +193,15 @@ void reservations::initialize(size_t size)
         << "Reserved " << allocation << " blocks to " << rows << " slots.";
 }
 
+// Call when minimal is empty.
 bool reservations::populate(reservation::ptr minimal)
 {
-    bool populated;
-
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock();
 
-    // Take from unallocated or allocated hashes.
-    populated = reserve(minimal) || partition(minimal);
+    // Take from unallocated or allocated hashes, true if minimal not empty.
+    const auto populated = reserve(minimal) || partition(minimal);
 
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
@@ -236,9 +235,10 @@ reservation::ptr reservations::find_maximal()
     return *std::max_element(table_.begin(), table_.end(), comparer);
 }
 
+// Return false if minimal is empty.
 bool reservations::reserve(reservation::ptr minimal)
 {
-    if (minimal->size() > 0)
+    if (!minimal->empty())
         return true;
 
     const auto allocation = std::min(hashes_.size(), max_request());
