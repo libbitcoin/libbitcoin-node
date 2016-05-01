@@ -72,6 +72,16 @@ size_t reservation::slot() const
     return slot_;
 }
 
+bool reservation::pending() const
+{
+    return pending_;
+}
+
+void reservation::set_pending(bool value)
+{
+    pending_ = value;
+}
+
 std::chrono::microseconds reservation::rate_window() const
 {
     return rate_window_;
@@ -391,7 +401,7 @@ bool reservation::toggle_partitioned()
 bool reservation::partition(reservation::ptr minimal)
 {
     // This assumes that partition has been called under a table mutex.
-    if (minimal->size() > 0)
+    if (!minimal->empty())
         return false;
 
     // Critical Section (hash)
@@ -414,8 +424,8 @@ bool reservation::partition(reservation::ptr minimal)
         it = heights_.right.erase(it);
     }
 
-    minimal->pending_ = true;
     partitioned_ = !heights_.empty();
+    minimal->pending_ = !minimal->empty();
 
     // Critical Section (stop)
     ///////////////////////////////////////////////////////////////////////////
@@ -429,11 +439,12 @@ bool reservation::partition(reservation::ptr minimal)
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    log::debug(LOG_PROTOCOL)
-        << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
-        << ") to slot (" << minimal->slot() << ") leaving [" << size() << "].";
+    if (minimal->pending_)
+        log::debug(LOG_PROTOCOL)
+            << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
+            << ") to (" << minimal->slot() << ") leaving [" << size() << "].";
 
-    return true;
+    return minimal->pending_;
 }
 
 bool reservation::find_height_and_erase(const hash_digest& hash,

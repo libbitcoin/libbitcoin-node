@@ -152,6 +152,29 @@ BOOST_AUTO_TEST_CASE(reservation__set_rate__values__expected)
     BOOST_REQUIRE_EQUAL(rate.window, 3u);
 }
 
+// pending
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__pending__default__true)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    BOOST_REQUIRE(reserve.pending());
+}
+
+// set_pending
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__set_pending__false_true__false_true)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    reserve.set_pending(false);
+    BOOST_REQUIRE(!reserve.pending());
+    reserve.set_pending(true);
+    BOOST_REQUIRE(reserve.pending());
+}
+
 // rate_window
 //-----------------------------------------------------------------------------
 
@@ -227,27 +250,31 @@ BOOST_AUTO_TEST_CASE(reservation__idle__set_false__false)
 // insert
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1)
+BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1_pending)
 {
     DECLARE_RESERVATIONS(reserves, false);
-    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     BOOST_REQUIRE(reserve->empty());
+    reserve->set_pending(false);
     reserve->insert(checkpoint{ header.hash(), 42 });
     BOOST_REQUIRE_EQUAL(reserve->size(), 1u);
+    BOOST_REQUIRE(reserve->pending());
 }
 
 // TODO: verify pending.
-BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1)
+BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1_pending)
 {
     DECLARE_RESERVATIONS(reserves, false);
-    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     BOOST_REQUIRE(reserve->empty());
+    reserve->set_pending(false);
     reserve->insert(header.hash(), 42);
     BOOST_REQUIRE_EQUAL(reserve->size(), 1u);
+    BOOST_REQUIRE(reserve->pending());
 }
 
 // import
@@ -331,24 +358,129 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
 // toggle_partitioned
 //-----------------------------------------------------------------------------
 
-// see: reservations__populate__hashes_empty__partition for positive test.
-BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false)
+// see reservations__populate__hashes_empty__partition for positive test.
+BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false_pending)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0);
     BOOST_REQUIRE(!reserve.toggle_partitioned());
+    BOOST_REQUIRE(reserve.pending());
+}
+
+// partition
+//-----------------------------------------------------------------------------
+
+// see reservations__populate__ for positive tests.
+BOOST_AUTO_TEST_CASE(reservation__partition__minimal_not_empty__false_unchanged)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    const auto reserve1 = std::make_shared<reservation_fixture>(reserves, 0, 0);
+    const auto reserve2 = std::make_shared<reservation_fixture>(reserves, 1, 0);
+    reserve2->insert(check42);
+    BOOST_REQUIRE(!reserve1->partition(reserve2));
+    BOOST_REQUIRE_EQUAL(reserve2->size(), 1u);
 }
 
 // request
 //-----------------------------------------------------------------------------
 
-// TODO: test pending, new_channel, empty, non_empty, unset pending.
-BOOST_AUTO_TEST_CASE(reservation__request__default_new_channel__empty)
+BOOST_AUTO_TEST_CASE(reservation__request__pending__empty_not_reset)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
-    const auto result = reserve.request(true);
+    reservation_fixture reserve(reserves, 0, 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    BOOST_REQUIRE(reserve.pending());
+
+    // Creates a request with no hashes reserved.
+    const auto result = reserve.request(false);
     BOOST_REQUIRE(result.inventories.empty());
+    BOOST_REQUIRE(!reserve.pending());
+
+    // The rate is not reset because the new channel parameter is false.
+    const auto rate = reserve.rate();
+    BOOST_REQUIRE(!rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 1u);
+    BOOST_REQUIRE_EQUAL(rate.database, 2u);
+    BOOST_REQUIRE_EQUAL(rate.window, 3u);
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__new_channel_pending__size_1_reset)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(1, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    BOOST_REQUIRE(reserve.pending());
+
+    // Creates a request with one hash reserved.
+    const auto result = reserve.request(true);
+    BOOST_REQUIRE_EQUAL(result.inventories.size(), 1u);
+    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE(!reserve.pending());
+
+    // The rate is reset because the new channel parameter is true.
+    const auto rate = reserve.rate();
+    BOOST_REQUIRE(rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 0u);
+    BOOST_REQUIRE_EQUAL(rate.database, 0u);
+    BOOST_REQUIRE_EQUAL(rate.window, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__new_channel__size_1_reset)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(1, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    reserve.set_pending(false);
+
+    // Creates a request with one hash reserved.
+    const auto result = reserve.request(true);
+    BOOST_REQUIRE_EQUAL(result.inventories.size(), 1u);
+    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE(!reserve.pending());
+
+    // The rate is reset because the new channel parameter is true.
+    const auto rate = reserve.rate();
+    BOOST_REQUIRE(rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 0u);
+    BOOST_REQUIRE_EQUAL(rate.database, 0u);
+    BOOST_REQUIRE_EQUAL(rate.window, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__three_hashes_pending__size_3)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(3, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.insert(message->elements[1].hash(), 1);
+    reserve.insert(message->elements[2].hash(), 2);
+    BOOST_REQUIRE(reserve.pending());
+
+    // Creates a request with 3 hashes reserved.
+    const auto result = reserve.request(false);
+    BOOST_REQUIRE_EQUAL(result.inventories.size(), 3u);
+    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE(result.inventories[1].hash == message->elements[1].hash());
+    BOOST_REQUIRE(result.inventories[2].hash == message->elements[2].hash());
+    BOOST_REQUIRE(!reserve.pending());
+}
+
+BOOST_AUTO_TEST_CASE(reservation__request__one_hash__empty)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation_fixture reserve(reserves, 0, 0);
+    const auto message = message_factory(1, null_hash);
+    reserve.insert(message->elements[0].hash(), 0);
+    reserve.set_pending(false);
+
+    // Creates an empty request for not new and not pending scneario.
+    const auto result = reserve.request(false);
+    BOOST_REQUIRE(result.inventories.empty());
+    BOOST_REQUIRE(!reserve.pending());
 }
 
 // expired
@@ -361,75 +493,59 @@ BOOST_AUTO_TEST_CASE(reservation__expired__default__false)
     BOOST_REQUIRE(!reserve.expired());
 }
 
-////// TODO: test complex calculation.
-////BOOST_AUTO_TEST_CASE(reservation__expired__default__false42)
-////{
-////    node::settings settings;
-////    settings.download_connections = 5;
-////    blockchain_fixture blockchain;
-////    config::checkpoint::list checkpoints;
-////    header_queue hashes(checkpoints);
-////    const auto message = message_factory(4, check42.hash());
-////    hashes.initialize(check42);
-////    BOOST_REQUIRE(hashes.enqueue(message));
-////
-////    reservations reserves(hashes, blockchain, settings);
-////    const auto table = reserves.table();
-////
-////    // normalized rate: 5 / (2 - 1) = 5
-////    performance rate0;
-////    rate0.idle = false;
-////    rate0.events = 5;
-////    rate0.database = 1;
-////    rate0.window = 2;
-////
-////    // This rate is idle, so values must be excluded in rates computation.
-////    performance rate1;
-////    rate1.idle = true;
-////    rate1.events = 42;
-////    rate1.database = 42;
-////    rate1.window = 42;
-////
-////    // normalized rate: 10 / (6 - 1) = 2
-////    performance rate2;
-////    rate2.idle = false;
-////    rate2.events = 10;
-////    rate2.database = 1;
-////    rate2.window = 6;
-////
-////    // normalized rate: 3 / (6 - 3) = 1
-////    performance rate3;
-////    rate3.idle = false;
-////    rate3.events = 3;
-////    rate3.database = 3;
-////    rate3.window = 6;
-////
-////    // normalized rate: 8 / (5 - 3) = 4
-////    performance rate4;
-////    rate4.idle = false;
-////    rate4.events = 8;
-////    rate4.database = 3;
-////    rate4.window = 5;
-////
-////    // Simulate the rate summary on each channel by setting it directly.
-////    table[0]->set_rate(rate0);
-////    table[1]->set_rate(rate1);
-////    table[2]->set_rate(rate2);
-////    table[3]->set_rate(rate3);
-////    table[4]->set_rate(rate4);
-////
-////    const auto rates2 = reserves.rates();
-////
-////    // There are three active (non-idle) rows.
-////    BOOST_REQUIRE_EQUAL(rates2.active_count, 4u);
-////
-////    // mean: (5 + 2 + 1 + 4) / 4 = 3
-////    BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 3.0);
-////
-////    // deviations: { 3-5=-2, 3-2=1, 3-1=-2, 3-4=-1 }
-////    // variance: ((-2)^2 + 1^2 + 2^2 + (-1)^2) / 4 = 2.5
-////    // standard deviation: sqrt(2.5)
-////    BOOST_REQUIRE_EQUAL(rates2.standard_deviation, std::sqrt(2.5));
-////}
+BOOST_AUTO_TEST_CASE(reservation__expired__various__expected)
+{
+    node::settings settings;
+    settings.download_connections = 5;
+    blockchain_fixture blockchain;
+    config::checkpoint::list checkpoints;
+    header_queue hashes(checkpoints);
+    const auto message = message_factory(4, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+
+    // Simulate the rate summary on each channel by setting it directly.
+
+    // normalized rate: 5 / (2 - 1) = 5
+    table[0]->set_rate({ false,  5,  1,  2 });
+
+    // normalized rate: 42 / (42 - 42) = 0
+    // This rate is idle, so values must be excluded in rates computation.
+    table[1]->set_rate({ true,  42, 42, 42 });
+
+    // normalized rate: 10 / (6 - 1) = 2
+    table[2]->set_rate({ false, 10,  1,  6 });
+
+    // normalized rate: 3 / (6 - 3) = 1
+    table[3]->set_rate({ false,  3,  3,  6 });
+
+    // normalized rate: 8 / (5 - 3) = 4
+    table[4]->set_rate({ false,  8,  3,  5 });
+
+    // see reservations__rates__five_reservations_one_idle__idle_excluded
+    const auto rates2 = reserves.rates();
+    BOOST_REQUIRE_EQUAL(rates2.active_count, 4u);
+    BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 3.0);
+
+    // standard deviation: ~ 1.58
+    BOOST_REQUIRE_EQUAL(rates2.standard_deviation, std::sqrt(2.5));
+
+    // deviation: 5 - 3 = +2
+    BOOST_REQUIRE(!table[0]->expired());
+
+    // deviation: 0 - 3 = -3
+    BOOST_REQUIRE(table[1]->expired());
+
+    // deviation: 2 - 3 = -1
+    BOOST_REQUIRE(!table[2]->expired());
+
+    // deviation: 1 - 3 = -2
+    BOOST_REQUIRE(table[3]->expired());
+
+    // deviation: 4 - 3 = +1
+    BOOST_REQUIRE(!table[4]->expired());
+}
 
 BOOST_AUTO_TEST_SUITE_END()

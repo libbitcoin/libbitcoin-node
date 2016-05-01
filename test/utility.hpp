@@ -54,8 +54,8 @@ public:
             now=std::chrono::high_resolution_clock::now());
     std::chrono::microseconds rate_window() const;
     std::chrono::high_resolution_clock::time_point now() const override;
-    ////void update_rate_accessor(size_t events,
-    ////    const std::chrono::microseconds& database);
+    bool pending() const;
+    void set_pending(bool value);
 
 private:
     std::chrono::high_resolution_clock::time_point now_;
