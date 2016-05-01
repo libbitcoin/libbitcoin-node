@@ -352,7 +352,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_empty_table__no_partit
     BOOST_REQUIRE_EQUAL(table[1]->size(), 1u); // 1
     BOOST_REQUIRE_EQUAL(table[2]->size(), 1u); // 2
 
-    // Remvoe all rows from the member table.
+    // Remove all rows from the member table.
     reserves.remove(table[0]);
     reserves.remove(table[1]);
     reserves.remove(table[2]);
