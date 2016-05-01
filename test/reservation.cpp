@@ -358,13 +358,27 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
 // toggle_partitioned
 //-----------------------------------------------------------------------------
 
-// see: reservations__populate__hashes_empty__partition for positive test.
+// see reservations__populate__hashes_empty__partition for positive test.
 BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false_pending)
 {
     DECLARE_RESERVATIONS(reserves, true);
     reservation_fixture reserve(reserves, 0, 0);
     BOOST_REQUIRE(!reserve.toggle_partitioned());
     BOOST_REQUIRE(reserve.pending());
+}
+
+// partition
+//-----------------------------------------------------------------------------
+
+// see reservations__populate__ for positive tests.
+BOOST_AUTO_TEST_CASE(reservation__partition__minimal_not_empty__false_unchanged)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    const auto reserve1 = std::make_shared<reservation_fixture>(reserves, 0, 0);
+    const auto reserve2 = std::make_shared<reservation_fixture>(reserves, 1, 0);
+    reserve2->insert(check42);
+    BOOST_REQUIRE(!reserve1->partition(reserve2));
+    BOOST_REQUIRE_EQUAL(reserve2->size(), 1u);
 }
 
 // request
