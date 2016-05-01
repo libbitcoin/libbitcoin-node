@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include <chrono>
 #include <memory>
 #include <boost/test/unit_test.hpp>
 #include <bitcoin/node.hpp>
@@ -29,6 +30,17 @@ using namespace bc::node;
 using namespace bc::node::test;
 
 BOOST_AUTO_TEST_SUITE(reservation_tests)
+
+// slot
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__slot__construct_42__42)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    const size_t expected = 42;
+    reservation reserve(reserves, expected, 0);
+    BOOST_REQUIRE(reserve.empty());
+}
 
 // empty
 //-----------------------------------------------------------------------------
@@ -75,17 +87,6 @@ BOOST_AUTO_TEST_CASE(reservation__size__duplicate_hash__1)
     BOOST_REQUIRE_EQUAL(reserve.size(), 1u);
 }
 
-// slot
-//-----------------------------------------------------------------------------
-
-BOOST_AUTO_TEST_CASE(reservation__slot__construct_42__42)
-{
-    DECLARE_RESERVATIONS(reserves, true);
-    const size_t expected = 42;
-    reservation reserve(reserves, expected, 0);
-    BOOST_REQUIRE(reserve.empty());
-}
-
 // stopped
 //-----------------------------------------------------------------------------
 
@@ -115,24 +116,6 @@ BOOST_AUTO_TEST_CASE(reservation__stopped__import_last_block__true)
     reserve->import(block1);
     BOOST_REQUIRE(reserve->empty());
     BOOST_REQUIRE(reserve->stopped());
-}
-
-// idle
-//-----------------------------------------------------------------------------
-
-BOOST_AUTO_TEST_CASE(reservation__idle__default__true)
-{
-    DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
-    BOOST_REQUIRE(reserve.idle());
-}
-
-BOOST_AUTO_TEST_CASE(reservation__idle__set_false__false)
-{
-    DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
-    reserve.set_rate({ false, 1, 2, 3 });
-    BOOST_REQUIRE(!reserve.idle());
 }
 
 // rate
@@ -169,23 +152,6 @@ BOOST_AUTO_TEST_CASE(reservation__set_rate__values__expected)
     BOOST_REQUIRE_EQUAL(rate.window, 3u);
 }
 
-// reset
-//-----------------------------------------------------------------------------
-
-// TODO: test history clearance by using update_rate.
-BOOST_AUTO_TEST_CASE(reservation__reset__values__defaults)
-{
-    DECLARE_RESERVATIONS(reserves, true);
-    reservation reserve(reserves, 0, 0);
-    reserve.set_rate({ false, 1, 2, 3 });
-    reserve.reset();
-    const auto rate = reserve.rate();
-    BOOST_REQUIRE(rate.idle);
-    BOOST_REQUIRE_EQUAL(rate.events, 0u);
-    BOOST_REQUIRE_EQUAL(rate.database, 0u);
-    BOOST_REQUIRE_EQUAL(rate.window, 0u);
-}
-
 // rate_window
 //-----------------------------------------------------------------------------
 
@@ -198,16 +164,79 @@ BOOST_AUTO_TEST_CASE(reservation__rate_window__construct_10__30_seconds)
     BOOST_REQUIRE_EQUAL(window.count(), expected * 1000 * 1000 * 3);
 }
 
+// reset
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__reset__values__defaults)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+
+    // The timeout cannot be exceeded because the current time is fixed.
+    static const uint32_t timeout = 1;
+    const auto now = std::chrono::high_resolution_clock::now();
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
+
+    // Create a history entry.
+    const auto message = message_factory(3, null_hash);
+    reserve->insert(message->elements[0].hash(), 0);
+    const auto block0 = std::make_shared<block>(block{ message->elements[0] });
+    const auto block1 = std::make_shared<block>(block{ message->elements[1] });
+    const auto block2 = std::make_shared<block>(block{ message->elements[2] });
+    reserve->import(block0);
+    reserve->import(block1);
+
+    // Idle checks assume minimum_history is set to 3.
+    BOOST_REQUIRE(reserve->idle());
+
+    // Set rate.
+    reserve->set_rate({ false, 1, 2, 3 });
+
+    // Clear rate and history.
+    reserve->reset();
+
+    // Confirm reset of rate.
+    const auto rate = reserve->rate();
+    BOOST_REQUIRE(rate.idle);
+    BOOST_REQUIRE_EQUAL(rate.events, 0u);
+    BOOST_REQUIRE_EQUAL(rate.database, 0u);
+    BOOST_REQUIRE_EQUAL(rate.window, 0u);
+
+    // Confirm clearance of history (non-idle indicated with third history).
+    reserve->import(block2);
+    BOOST_REQUIRE(reserve->idle());
+}
+
+// idle
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(reservation__idle__default__true)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation reserve(reserves, 0, 0);
+    BOOST_REQUIRE(reserve.idle());
+}
+
+BOOST_AUTO_TEST_CASE(reservation__idle__set_false__false)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+    reservation reserve(reserves, 0, 0);
+    reserve.set_rate({ false, 1, 2, 3 });
+    BOOST_REQUIRE(!reserve.idle());
+}
+
 // import
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(reservation__import__unsolicitied___empty)
+BOOST_AUTO_TEST_CASE(reservation__import__unsolicitied___empty_idle)
 {
     DECLARE_RESERVATIONS(reserves, true);
     const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    const auto block1 = std::make_shared<block>(block{ message->elements[0] });
+    const auto& header = message->elements[0];
+    const auto block1 = std::make_shared<block>(block{ header });
+    BOOST_REQUIRE(reserve->idle());
     reserve->import(block1);
+    BOOST_REQUIRE(reserve->idle());
     BOOST_REQUIRE(reserve->empty());
 }
 
@@ -216,26 +245,64 @@ BOOST_AUTO_TEST_CASE(reservation__import__fail__idle)
     DECLARE_RESERVATIONS(reserves, false);
     const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    reserve->insert(message->elements[0].hash(), 42);
-    const auto block1 = std::make_shared<block>(block{ message->elements[0] });
+    const auto& header = message->elements[0];
+    reserve->insert(header.hash(), 42);
+    const auto block1 = std::make_shared<block>(block{ header });
     BOOST_REQUIRE(reserve->idle());
     reserve->import(block1);
     BOOST_REQUIRE(reserve->idle());
 }
 
-////BOOST_AUTO_TEST_CASE(reservation__import__success__idle)
-////{
-////    DECLARE_RESERVATIONS(reserves, true);
-////    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
-////    const auto message = message_factory(1, check42.hash());
-////    reserve->insert(message->elements[0].hash(), 42);
-////    const auto block1 = std::make_shared<block>(block{ message->elements[0] });
-////    BOOST_REQUIRE(reserve->idle());
-////    reserve->import(block1);
-////    BOOST_REQUIRE(!reserve->idle());
-////}
+BOOST_AUTO_TEST_CASE(reservation__import__three_success_timeout__idle)
+{
+    DECLARE_RESERVATIONS(reserves, true);
 
-// partitioned
+    // If import time is non-zero the zero timeout will exceed and history will not accumulate.
+    static const uint32_t timeout = 0;
+    const auto now = std::chrono::high_resolution_clock::now();
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
+    const auto message = message_factory(3, null_hash);
+    reserve->insert(message->elements[0].hash(), 0);
+    reserve->insert(message->elements[1].hash(), 1);
+    reserve->insert(message->elements[2].hash(), 2);
+    const auto block0 = std::make_shared<block>(block{ message->elements[0] });
+    const auto block1 = std::make_shared<block>(block{ message->elements[1] });
+    const auto block2 = std::make_shared<block>(block{ message->elements[2] });
+    reserve->import(block0);
+    reserve->import(block1);
+    reserve->import(block2);
+
+    // Idle checks assume minimum_history is set to 3.
+    BOOST_REQUIRE(reserve->idle());
+}
+
+BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
+{
+    DECLARE_RESERVATIONS(reserves, true);
+
+    // The timeout cannot be exceeded because the current time is fixed.
+    static const uint32_t timeout = 1;
+    const auto now = std::chrono::high_resolution_clock::now();
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
+    const auto message = message_factory(3, null_hash);
+    reserve->insert(message->elements[0].hash(), 0);
+    reserve->insert(message->elements[1].hash(), 1);
+    reserve->insert(message->elements[2].hash(), 2);
+    const auto block0 = std::make_shared<block>(block{ message->elements[0] });
+    const auto block1 = std::make_shared<block>(block{ message->elements[1] });
+    const auto block2 = std::make_shared<block>(block{ message->elements[2] });
+
+    // Idle checks assume minimum_history is set to 3.
+    BOOST_REQUIRE(reserve->idle());
+    reserve->import(block0);
+    BOOST_REQUIRE(reserve->idle());
+    reserve->import(block1);
+    BOOST_REQUIRE(reserve->idle());
+    reserve->import(block2);
+    BOOST_REQUIRE(!reserve->idle());
+}
+
+// toggle_partitioned
 //-----------------------------------------------------------------------------
 
 // TODO: more sceanrios.
@@ -243,7 +310,7 @@ BOOST_AUTO_TEST_CASE(reservation__partitioned__default__false)
 {
     DECLARE_RESERVATIONS(reserves, true);
     reservation reserve(reserves, 0, 0);
-    BOOST_REQUIRE(!reserve.partitioned());
+    BOOST_REQUIRE(!reserve.toggle_partitioned());
 }
 
 // request
