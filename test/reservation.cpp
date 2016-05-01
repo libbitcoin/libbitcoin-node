@@ -493,75 +493,59 @@ BOOST_AUTO_TEST_CASE(reservation__expired__default__false)
     BOOST_REQUIRE(!reserve.expired());
 }
 
-////// TODO: test complex calculation.
-////BOOST_AUTO_TEST_CASE(reservation__expired__default__false42)
-////{
-////    node::settings settings;
-////    settings.download_connections = 5;
-////    blockchain_fixture blockchain;
-////    config::checkpoint::list checkpoints;
-////    header_queue hashes(checkpoints);
-////    const auto message = message_factory(4, check42.hash());
-////    hashes.initialize(check42);
-////    BOOST_REQUIRE(hashes.enqueue(message));
-////
-////    reservations reserves(hashes, blockchain, settings);
-////    const auto table = reserves.table();
-////
-////    // normalized rate: 5 / (2 - 1) = 5
-////    performance rate0;
-////    rate0.idle = false;
-////    rate0.events = 5;
-////    rate0.database = 1;
-////    rate0.window = 2;
-////
-////    // This rate is idle, so values must be excluded in rates computation.
-////    performance rate1;
-////    rate1.idle = true;
-////    rate1.events = 42;
-////    rate1.database = 42;
-////    rate1.window = 42;
-////
-////    // normalized rate: 10 / (6 - 1) = 2
-////    performance rate2;
-////    rate2.idle = false;
-////    rate2.events = 10;
-////    rate2.database = 1;
-////    rate2.window = 6;
-////
-////    // normalized rate: 3 / (6 - 3) = 1
-////    performance rate3;
-////    rate3.idle = false;
-////    rate3.events = 3;
-////    rate3.database = 3;
-////    rate3.window = 6;
-////
-////    // normalized rate: 8 / (5 - 3) = 4
-////    performance rate4;
-////    rate4.idle = false;
-////    rate4.events = 8;
-////    rate4.database = 3;
-////    rate4.window = 5;
-////
-////    // Simulate the rate summary on each channel by setting it directly.
-////    table[0]->set_rate(rate0);
-////    table[1]->set_rate(rate1);
-////    table[2]->set_rate(rate2);
-////    table[3]->set_rate(rate3);
-////    table[4]->set_rate(rate4);
-////
-////    const auto rates2 = reserves.rates();
-////
-////    // There are three active (non-idle) rows.
-////    BOOST_REQUIRE_EQUAL(rates2.active_count, 4u);
-////
-////    // mean: (5 + 2 + 1 + 4) / 4 = 3
-////    BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 3.0);
-////
-////    // deviations: { 3-5=-2, 3-2=1, 3-1=-2, 3-4=-1 }
-////    // variance: ((-2)^2 + 1^2 + 2^2 + (-1)^2) / 4 = 2.5
-////    // standard deviation: sqrt(2.5)
-////    BOOST_REQUIRE_EQUAL(rates2.standard_deviation, std::sqrt(2.5));
-////}
+BOOST_AUTO_TEST_CASE(reservation__expired__various__expected)
+{
+    node::settings settings;
+    settings.download_connections = 5;
+    blockchain_fixture blockchain;
+    config::checkpoint::list checkpoints;
+    header_queue hashes(checkpoints);
+    const auto message = message_factory(4, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+
+    // Simulate the rate summary on each channel by setting it directly.
+
+    // normalized rate: 5 / (2 - 1) = 5
+    table[0]->set_rate({ false,  5,  1,  2 });
+
+    // normalized rate: 42 / (42 - 42) = 0
+    // This rate is idle, so values must be excluded in rates computation.
+    table[1]->set_rate({ true,  42, 42, 42 });
+
+    // normalized rate: 10 / (6 - 1) = 2
+    table[2]->set_rate({ false, 10,  1,  6 });
+
+    // normalized rate: 3 / (6 - 3) = 1
+    table[3]->set_rate({ false,  3,  3,  6 });
+
+    // normalized rate: 8 / (5 - 3) = 4
+    table[4]->set_rate({ false,  8,  3,  5 });
+
+    // see reservations__rates__five_reservations_one_idle__idle_excluded
+    const auto rates2 = reserves.rates();
+    BOOST_REQUIRE_EQUAL(rates2.active_count, 4u);
+    BOOST_REQUIRE_EQUAL(rates2.arithmentic_mean, 3.0);
+
+    // standard deviation: ~ 1.58
+    BOOST_REQUIRE_EQUAL(rates2.standard_deviation, std::sqrt(2.5));
+
+    // deviation: 5 - 3 = +2
+    BOOST_REQUIRE(!table[0]->expired());
+
+    // deviation: 0 - 3 = -3
+    BOOST_REQUIRE(table[1]->expired());
+
+    // deviation: 2 - 3 = -1
+    BOOST_REQUIRE(!table[2]->expired());
+
+    // deviation: 1 - 3 = -2
+    BOOST_REQUIRE(table[3]->expired());
+
+    // deviation: 4 - 3 = +1
+    BOOST_REQUIRE(!table[4]->expired());
+}
 
 BOOST_AUTO_TEST_SUITE_END()
