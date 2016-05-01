@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__multiple_checkpoint_mismatch__false_
     {
         { expected_hash, expected_height },
         { /*message->elements[1].hash()*/ null_hash, check42.height() + 5 },
-        { message->elements[9].hash(), check42.height() + 10 },
+        { message->elements[8].hash(), check42.height() + 10 }
     };
 
     header_queue hashes(checkpoints);

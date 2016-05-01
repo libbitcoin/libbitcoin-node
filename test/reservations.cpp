@@ -443,7 +443,6 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     const auto block6 = std::make_shared<block>(block{ elements[5] });
     const auto block7 = std::make_shared<block>(block{ elements[6] });
     const auto block8 = std::make_shared<block>(block{ elements[7] });
-    const auto block9 = std::make_shared<block>(block{ elements[8] });
 
     // This will reset pending on all rows.
     BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 3u);
