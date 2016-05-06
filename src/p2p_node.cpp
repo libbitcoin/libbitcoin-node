@@ -73,6 +73,7 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
+    // The handler is invoked sequentially.
     blockchain_.start(
         std::bind(&p2p_node::handle_blockchain_start,
             shared_from_base<p2p_node>(), _1, handler));
@@ -100,6 +101,7 @@ void p2p_node::handle_blockchain_start(const code& ec, result_handler handler)
 
     set_height(height);
 
+    // This is invoked on a new thread.
     // This is the end of the derived start sequence.
     // Stopped is true and no network threads until after this call.
     p2p::start(handler);
@@ -119,6 +121,7 @@ void p2p_node::run(result_handler handler)
     // Ensure consistency in the case where member height is changing.
     const auto current_height = height();
 
+    // This is invoked on a new thread.
     blockchain_.fetch_block_header(current_height,
         std::bind(&p2p_node::handle_fetch_header,
             shared_from_base<p2p_node>(), _1, _2, current_height, handler));
@@ -158,6 +161,7 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
         std::bind(&p2p_node::handle_headers_synchronized,
             shared_from_base<p2p_node>(), _1, handler);
 
+    // This is invoked on a new thread.
     // The instance is retained by the stop handler (i.e. until shutdown).
     attach<session_header_sync>(hashes_, settings_, chain_settings)->
         start(start_handler);
@@ -193,6 +197,7 @@ void p2p_node::handle_headers_synchronized(const code& ec,
         std::bind(&p2p_node::handle_blocks_synchronized,
             shared_from_base<p2p_node>(), _1, handler);
 
+    // This is invoked on a new thread.
     // The instance is retained by the stop handler (i.e. until shutdown).
     attach<session_block_sync>(hashes_, blockchain_, settings_)->
         start(start_handler);
@@ -234,6 +239,7 @@ void p2p_node::handle_blocks_synchronized(const code& ec,
     log::info(LOG_NODE)
         << "Blockchain height is (" << chain_height << ").";
 
+    // This is invoked on a new thread.
     // This is the end of the derived run sequence.
     p2p::run(handler);
 }
