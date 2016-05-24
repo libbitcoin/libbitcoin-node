@@ -264,12 +264,11 @@ void p2p_node::subscribe_transaction_pool(transaction_handler handler)
 void p2p_node::stop(result_handler handler)
 {
     p2p::stop(
-        std::bind(&p2p_node::handle_blockchain_stopped,
-            this, _1, handler));
+        std::bind(&p2p_node::handle_p2p_stopped,
+            shared_from_base<p2p_node>(), _1, handler));
 }
 
-void p2p_node::handle_blockchain_stopped(const code& ec,
-    result_handler handler)
+void p2p_node::handle_p2p_stopped(const code& ec, result_handler handler)
 {
     if (ec)
         log::error(LOG_NODE)
@@ -292,7 +291,7 @@ void p2p_node::close()
 {
     p2p_node::stop(
         std::bind(&p2p_node::handle_stopped,
-            this, _1));
+            shared_from_base<p2p_node>(), _1));
 }
 
 void p2p_node::handle_stopped(const code&)

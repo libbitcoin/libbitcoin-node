@@ -87,7 +87,7 @@ public:
 
 private:
     void handle_stopped(const code& ec);
-    void handle_blockchain_stopped(const code& ec, result_handler handler);
+    void handle_p2p_stopped(const code& ec, result_handler handler);
     void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_fetch_header(const code& ec, const chain::header& block_header,
         size_t block_height, result_handler handler);
