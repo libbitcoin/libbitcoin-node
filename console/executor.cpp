@@ -19,6 +19,7 @@
  */
 #include "executor.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <csignal>
 #include <functional>
@@ -36,6 +37,9 @@ namespace node {
 
 using boost::format;
 using std::placeholders::_1;
+using std::placeholders::_2;
+using namespace std::chrono;
+using namespace std::this_thread;
 using namespace boost::system;
 using namespace bc::blockchain;
 using namespace bc::config;
@@ -46,12 +50,10 @@ static constexpr int no_interrupt = 0;
 static constexpr int directory_exists = 0;
 static constexpr int directory_not_found = 2;
 static constexpr auto append = std::ofstream::out | std::ofstream::app;
-
 static const auto application_name = "bn";
-static const auto stop_sensitivity = std::chrono::milliseconds(10);
 
 // Static interrupt state (unavoidable).
-static auto stopped_ = false;
+static std::atomic<bool> stopped_ = false;
 
 // Static handler for catching termination signals.
 static void initialize_interrupt(int code)
@@ -69,10 +71,10 @@ static void initialize_interrupt(int code)
     }
 
     // Signal the service to stop if not already signaled.
-    if (!stopped_)
+    if (!stopped_.load())
     {
         log::info(LOG_NODE) << format(BN_NODE_STOPPING) % code;
-        stopped_ = true;
+        stopped_.store(true);
     }
 }
 
@@ -101,8 +103,8 @@ void executor::initialize_output()
         log::info(LOG_NODE) << format(BN_USING_CONFIG_FILE) % file;
 }
 
-// ----------------------------------------------------------------------------
 // Command line options.
+// ----------------------------------------------------------------------------
 // Emit directly to standard output (not the log).
 
 void executor::do_help()
@@ -158,8 +160,8 @@ bool executor::do_initchain()
     return false;
 }
 
+// Invoke.
 // ----------------------------------------------------------------------------
-// Invoke an action based on command line option.
 
 bool executor::invoke()
 {
@@ -192,64 +194,11 @@ bool executor::invoke()
     return run();
 }
 
-// ----------------------------------------------------------------------------
 // Run sequence.
-
-bool executor::run()
-{
-    initialize_output();
-    initialize_interrupt(no_interrupt);
-
-    log::info(LOG_NODE) << BN_NODE_STARTING;
-
-    // Ensure the blockchain directory is initialized (at least exists).
-    if (!verify())
-        return false;
-
-    // Now that the directory is verified we can create the node for it.
-    node_ = std::make_shared<p2p_node>(metadata_.configured);
-
-    // Start seeding the node, stop handlers are registered in start.
-    node_->start(
-        std::bind(&executor::handle_seeded,
-            shared_from_this(), _1));
-
-    log::info(LOG_NODE) << BN_NODE_STARTED;
-
-    // Block until the node is stopped or there is an interrupt.
-    return wait_on_stop();
-}
-
-void executor::handle_seeded(const code& ec)
-{
-    if (ec)
-    {
-        log::error(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
-        stopped_ = true;
-        return;
-    }
-
-    node_->run(
-        std::bind(&executor::handle_synchronized,
-            shared_from_this(), _1));
-
-    log::info(LOG_NODE) << BN_NODE_SEEDED;
-}
-
-void executor::handle_synchronized(const code& ec)
-{
-    if (ec)
-    {
-        log::info(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
-        stopped_ = true;
-        return;
-    }
-
-    log::info(LOG_NODE) << BN_NODE_SYNCHRONIZED;
-}
+// ----------------------------------------------------------------------------
 
 // Use missing directory as a sentinel indicating lack of initialization.
-bool executor::verify()
+bool executor::verify_directory()
 {
     error_code ec;
     const auto& directory = metadata_.configured.database.directory;
@@ -268,44 +217,94 @@ bool executor::verify()
     return false;
 }
 
-bool executor::wait_on_stop()
+bool executor::run()
 {
-    std::promise<code> promise;
+    initialize_output();
+    initialize_interrupt(no_interrupt);
 
-    // Monitor stopped for completion.
-    monitor_stop(
-        std::bind(&executor::handle_stopped,
-            shared_from_this(), _1, std::ref(promise)));
+    log::info(LOG_NODE) << BN_NODE_STARTING;
 
-    // Block until the stop handler is invoked.
-    const auto ec = promise.get_future().get();
-
-    if (ec)
-    {
-        log::error(LOG_NODE) << format(BN_NODE_STOP_FAIL) % ec.message();
+    if (!verify_directory())
         return false;
-    }
 
-    log::info(LOG_NODE) << BN_NODE_STOPPED;
+    // Now that the directory is verified we can create the node for it.
+    node_ = std::make_shared<p2p_node>(metadata_.configured);
+
+    node_->start(
+        std::bind(&executor::handle_started,
+            shared_from_this(), _1));
+
+    monitor_stop();
     return true;
 }
 
-void executor::handle_stopped(const code& ec, std::promise<code>& promise)
+// Handle the completion of the start sequence and begin the run sequence.
+void executor::handle_started(const code& ec)
 {
-    promise.set_value(ec);
+    if (ec)
+    {
+        log::error(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
+        return;
+    }
+
+    log::info(LOG_NODE) << BN_NODE_SEEDED;
+
+    // This is the beginning of the stop sequence.
+    node_->subscribe_stop(
+        std::bind(&executor::handle_stopped,
+            shared_from_this(), _1));
+
+    // This is the beginning of the run sequence.
+    node_->run(
+        std::bind(&executor::handle_running,
+            shared_from_this(), _1));
 }
 
-void executor::monitor_stop(p2p::result_handler handler)
+// This is the end of the run sequence.
+void executor::handle_running(const code& ec)
+{
+    if (ec)
+        log::info(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
+    else
+        log::info(LOG_NODE) << BN_NODE_STARTED;
+}
+
+// In case the server stops on its own.
+void executor::handle_stopped(const code&)
+{
+    stopped_.store(true);
+}
+
+// In case the console is terminated with CTRL-C.
+void executor::monitor_stop()
 {
     while (!stopped_ && !node_->stopped())
-        std::this_thread::sleep_for(stop_sensitivity);
+        sleep_for(milliseconds(10));
 
     log::info(LOG_NODE) << BN_NODE_UNMAPPING;
-    node_->stop(handler);
-    node_->close();
 
-    // This is the end of the run sequence.
-    node_ = nullptr;
+    std::promise<code> done;
+
+    if (node_->stopped())
+        handle_node_stopped(error::success, done);
+    else
+        node_->stop(
+            std::bind(&executor::handle_node_stopped,
+                shared_from_this(), _1, std::ref(done)));
+
+    // block until server stop completes.
+    done.get_future();
+}
+
+// This is the end of the stop sequence.
+void executor::handle_node_stopped(const code& ec, std::promise<code>& done)
+{
+    if (ec)
+        log::info(LOG_NODE) << format(BN_NODE_STOP_FAIL) % ec.message();
+    else
+        log::info(LOG_NODE) << BN_NODE_STOPPED;
+
+    done.set_value(ec);
 }
 
 } // namespace node
