@@ -21,6 +21,7 @@
 #define LIBBITCOIN_NODE_P2P_NODE_HPP
 
 #include <cstdint>
+#include <future>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -46,13 +47,11 @@ public:
     /// Construct the full node.
     p2p_node(const configuration& configuration);
 
-    /// Destruct the full node.
-    ~p2p_node();
+    /// Ensure all threads are coalesced.
+    virtual ~p2p_node();
 
+    // Start/Run/Stop/Close sequences.
     // ------------------------------------------------------------------------
-
-    /// Return a reference to the node configuration.
-    virtual const settings& node_settings() const;
 
     /// Invoke startup and seeding sequence, call from constructing thread.
     virtual void start(result_handler handler) override;
@@ -60,12 +59,6 @@ public:
     /// Synchronize the blockchain and then begin long running sessions,
     /// call from start result handler. Call base method to skip sync.
     virtual void run(result_handler handler) override;
-
-    /// Subscribe to blockchain reorganization and stop events.
-    virtual void subscribe_blockchain(reorganize_handler handler);
-
-    /// Subscribe to transaction pool acceptance and stop events.
-    virtual void subscribe_transaction_pool(transaction_handler handler);
 
     /// Non-blocking call to coalesce all work, start may be reinvoked after.
     /// Handler returns the result of file save operations.
@@ -76,8 +69,11 @@ public:
     /// This calls stop, and start may be reinvoked after calling this.
     virtual void close() override;
 
-//// Must expose directly for now.
-////protected:
+    // Properties.
+    // ------------------------------------------------------------------------
+
+    /// Node configuration settings.
+    virtual const settings& node_settings() const;
 
     /// Blockchain query interface.
     virtual blockchain::block_chain& chain();
@@ -85,21 +81,29 @@ public:
     /// Transaction pool interface.
     virtual blockchain::transaction_pool& pool();
 
+    // Subscriptions.
+    // ------------------------------------------------------------------------
+
+    /// Subscribe to blockchain reorganization and stop events.
+    virtual void subscribe_blockchain(reorganize_handler handler);
+
+    /// Subscribe to transaction pool acceptance and stop events.
+    virtual void subscribe_transaction_pool(transaction_handler handler);
+
 private:
-    void handle_stopped(const code& ec);
-    void handle_blockchain_stopped(const code& ec, result_handler handler);
-    void handle_blockchain_start(const code& ec, result_handler handler);
     void handle_fetch_header(const code& ec, const chain::header& block_header,
         size_t block_height, result_handler handler);
     void handle_headers_synchronized(const code& ec, result_handler handler);
-    void handle_blocks_synchronized(const code& ec, result_handler handler);
+    void handle_network_stopped(const code& ec, result_handler handler);
 
-    // This is thread safe and guarded by the non-restartable node constraint.
+    void handle_started(const code& ec, result_handler handler);
+    void handle_running(const code& ec, result_handler handler);
+    void handle_stopped(const code& ec, result_handler handler);
+    void handle_closing(const code& ec, std::promise<code>& wait);
+
+    // These are thread safe.
     header_queue hashes_;
-
-    // This is thread safe.
     blockchain::block_chain_impl blockchain_;
-
     const settings& settings_;
 };
 
