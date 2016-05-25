@@ -272,13 +272,13 @@ p2p_node::~p2p_node()
 // Okay to ignore code as we are in the destructor, use stop if code is needed.
 void p2p_node::close()
 {
-    // This must block until handle_closing completes.
     std::promise<code> wait;
 
     p2p_node::stop(
         std::bind(&p2p_node::handle_closing,
             this, _1, std::ref(wait)));
 
+    // This blocks until handle_closing completes.
     wait.get_future();
     p2p::close();
 }
