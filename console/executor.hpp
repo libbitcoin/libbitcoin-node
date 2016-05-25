@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_EXECUTOR_HPP
 #define LIBBITCOIN_NODE_EXECUTOR_HPP
 
+#include <atomic>
 #include <future>
 #include <iostream>
 #include <memory>
@@ -51,19 +52,23 @@ private:
     bool do_initchain();
 
     bool run();
-    bool verify();
-    bool wait_on_stop();
+    bool verify_directory();
     void initialize_output();
-    void monitor_stop(p2p_node::result_handler);
-    void handle_seeded(const code& ec);
-    void handle_synchronized(const code& ec);
-    void handle_stopped(const code& ec, std::promise<code>& promise);
+    void monitor_stop();
 
-    p2p_node::ptr node_;
+    void handle_started(const code& ec);
+    void handle_running(const code& ec);
+    void handle_stopped(const code& ec);
+    void handle_node_stopped(const code& ec, std::promise<code>& done);
+
+    static std::atomic<bool> stopped_;
+    static void initialize_interrupt(int code);
+
     parser& metadata_;
     std::ostream& output_;
     bc::ofstream debug_file_;
     bc::ofstream error_file_;
+    p2p_node::ptr node_;
 };
     
 // Localizable messages.
@@ -89,12 +94,10 @@ private:
     "Please wait while the node is starting..."
 #define BN_NODE_START_FAIL \
     "Node failed to start with error, %1%."
-#define BN_NODE_STARTED \
-    "Blockchain is started."
 #define BN_NODE_SEEDED \
     "Seeding is complete."
-#define BN_NODE_SYNCHRONIZED \
-    "Synchronization is complete."
+#define BN_NODE_STARTED \
+    "Node is started."
 
 #define BN_NODE_STOPPING \
     "Please wait while the node is stopping (code: %1%)..."
