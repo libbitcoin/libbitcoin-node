@@ -244,6 +244,7 @@ void executor::handle_started(const code& ec)
     if (ec)
     {
         log::error(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
+        stopped_.store(true);
         return;
     }
 
@@ -264,9 +265,13 @@ void executor::handle_started(const code& ec)
 void executor::handle_running(const code& ec)
 {
     if (ec)
+    {
         log::info(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
-    else
-        log::info(LOG_NODE) << BN_NODE_STARTED;
+        stopped_.store(true);
+        return;
+    }
+
+    log::info(LOG_NODE) << BN_NODE_STARTED;
 }
 
 // In case the server stops on its own.
