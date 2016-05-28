@@ -269,7 +269,7 @@ p2p_node::~p2p_node()
 }
 
 // This must be called from the thread that constructed this class (see join).
-code p2p_node::close()
+void p2p_node::close()
 {
     std::promise<code> wait;
 
@@ -278,13 +278,8 @@ code p2p_node::close()
             this, _1, std::ref(wait)));
 
     // This blocks until handle_closing completes.
-    const auto ec1 = wait.get_future().get();
-
-    // We want to close base even if there is a failure on the derived close.
-    const auto ec2 = p2p::close();
-
-    // Prioritize the first close error.
-    return ec1 ? ec1 : ec2;
+    wait.get_future();
+    p2p::close();
 }
 
 void p2p_node::handle_closing(const code& ec, std::promise<code>& wait)
