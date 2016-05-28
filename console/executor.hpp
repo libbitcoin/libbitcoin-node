@@ -42,27 +42,29 @@ public:
     executor(const executor&) = delete;
     void operator=(const executor&) = delete;
 
-    /// Invoke the command indicated by the metadata.
-    bool invoke();
+    /// Invoke the menu command indicated by the metadata.
+    bool menu();
 
 private:
+    static void stop();
+    static void handle_stop(int code);
+
     void do_help();
     void do_settings();
     void do_version();
     bool do_initchain();
 
-    bool run();
-    bool verify_directory();
+    bool start();
     void initialize_output();
-    void monitor_stop();
+    bool verify_directory();
+    bool monitor_stop();
 
     void handle_started(const code& ec);
     void handle_running(const code& ec);
     void handle_stopped(const code& ec);
-    void handle_node_stopped(const code& ec, std::promise<code>& done);
 
+    // Termination state.
     static std::atomic<bool> stopped_;
-    static void initialize_interrupt(int code);
 
     parser& metadata_;
     std::ostream& output_;

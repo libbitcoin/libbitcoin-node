@@ -269,8 +269,7 @@ p2p_node::~p2p_node()
 }
 
 // This must be called from the thread that constructed this class (see join).
-// Okay to ignore code as we are in the destructor, use stop if code is needed.
-void p2p_node::close()
+code p2p_node::close()
 {
     std::promise<code> wait;
 
@@ -279,8 +278,13 @@ void p2p_node::close()
             this, _1, std::ref(wait)));
 
     // This blocks until handle_closing completes.
-    wait.get_future();
-    p2p::close();
+    const auto ec1 = wait.get_future().get();
+
+    // We want to close base even if there is a failure on the derived close.
+    const auto ec2 = p2p::close();
+
+    // Prioritize the first close error.
+    return ec1 ? ec1 : ec2;
 }
 
 void p2p_node::handle_closing(const code& ec, std::promise<code>& wait)
@@ -313,7 +317,6 @@ transaction_pool& p2p_node::pool()
 void p2p_node::subscribe_blockchain(reorganize_handler handler)
 {
     chain().subscribe_reorganize(handler);
-
 }
 
 void p2p_node::subscribe_transaction_pool(transaction_handler handler)
