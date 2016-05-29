@@ -245,13 +245,6 @@ options_metadata parser::load_settings()
 
     /* [blockchain] */
     (
-        // blockchain::settings::mainnet.threads
-        "blockchain.threads",
-        value<uint32_t>(&configured.chain.threads)->
-            default_value(2),
-        "The number of threads in the blockchain threadpool, defaults to 2."
-    )
-    (
         "blockchain.block_pool_capacity",
         value<uint32_t>(&configured.chain.block_pool_capacity),
         "The maximum number of orphan blocks in the pool, defaults to 50."
