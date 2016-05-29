@@ -40,7 +40,7 @@ using std::placeholders::_2;
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     hashes_(configuration.chain.checkpoints),
-    blockchain_(configuration.chain, configuration.database),
+    blockchain_(thread_pool(), configuration.chain, configuration.database),
     settings_(configuration.node)
 {
 }
@@ -104,6 +104,13 @@ void p2p_node::run(result_handler handler)
     // Ensure consistency in the case where member height is changing.
     const auto current_height = height();
 
+    // TODO: scan block heights to top to determine first missing block.
+    // Use the block prior to the first missing block as the seed.
+
+    // TODO: upon completion of header collection, loop over headers and
+    // remove any that already exist in the chain. Sync the remainder.
+    // This can be done by height or hash, as both are accurate with gaps.
+
     // This is invoked on a new thread.
     blockchain_.fetch_block_header(current_height,
         std::bind(&p2p_node::handle_fetch_header,
@@ -129,12 +136,6 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
 
     log::info(LOG_NODE)
         << "Blockchain height is (" << block_height << ").";
-
-    // TODO: scan block heights to top to determine first missing block.
-    // Use the block prior to the first missing block as the seed.
-
-    // TODO: upon completion of header collection, loop over headers and
-    // remove any that already exist in the chain. Sync the remainder.
 
     // Add the seed entry, the top trusted block hash.
     hashes_.initialize(block_header.hash(), block_height);
@@ -243,7 +244,7 @@ void p2p_node::handle_network_stopped(const code& ec, result_handler handler)
         log::error(LOG_NODE)
             << "Network shutdown error: " << ec.message();
 
-    // This is invoked on a new thread.
+    // This is invoked on the same thread.
     blockchain_.stop(
         std::bind(&p2p_node::handle_stopped,
             this, _1, handler));
