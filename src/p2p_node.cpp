@@ -217,7 +217,6 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     set_height(chain_height);
 
     // TODO: skip this message if there was no sync.
-    // TODO: fail if chain height is not the same as the sync target.
     // Generalize the final_height() function from protocol_header_sync.
     log::info(LOG_NODE)
         << "Blockchain height is (" << chain_height << ").";
