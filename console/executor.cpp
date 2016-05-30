@@ -19,13 +19,13 @@
  */
 #include "executor.hpp"
 
-#include <atomic>
 #include <chrono>
 #include <csignal>
 #include <functional>
 #include <future>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <boost/filesystem.hpp>
@@ -48,10 +48,9 @@ static constexpr int initialize_stop = 0;
 static constexpr int directory_exists = 0;
 static constexpr int directory_not_found = 2;
 static constexpr auto append = std::ofstream::out | std::ofstream::app;
-static const auto stop_sensitivity = milliseconds(10);
 static const auto application_name = "bn";
 
-std::atomic<bool> executor::stopped_(false);
+std::promise<code> executor::stopped_;
 
 executor::executor(parser& metadata, std::istream& input,
     std::ostream& output, std::ostream& error)
@@ -183,7 +182,7 @@ void executor::handle_started(const code& ec)
     if (ec)
     {
         log::error(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
-        stop();
+        stop(ec);
         return;
     }
 
@@ -206,7 +205,7 @@ void executor::handle_running(const code& ec)
     if (ec)
     {
         log::info(LOG_NODE) << format(BN_NODE_START_FAIL) % ec.message();
-        stop();
+        stop(ec);
         return;
     }
 
@@ -214,9 +213,9 @@ void executor::handle_running(const code& ec)
 }
 
 // In case the server stops on its own.
-void executor::handle_stopped(const code&)
+void executor::handle_stopped(const code& ec)
 {
-    stop();
+    stop(ec);
 }
 
 // Stop sequence.
@@ -233,22 +232,25 @@ void executor::handle_stop(int code)
         return;
 
     log::info(LOG_NODE) << format(BN_NODE_STOPPING) % code;
-    stop();
+    stop(error::success);
 }
 
-void executor::stop()
+void executor::stop(const code& ec)
 {
-    stopped_.store(true);
+    static std::once_flag stop_mutex;
+    std::call_once(stop_mutex, [&](){ stopped_.set_value(ec); });
 }
 
 void executor::monitor_stop()
 {
-    while (!stopped_.load())
-        sleep_for(stop_sensitivity);
+    // Wait for stop on this thread.
+    stopped_.get_future().wait();
 
     log::info(LOG_NODE) << BN_NODE_UNMAPPING;
 
+    // This must be called from main thread.
     node_->close();
+    node_.reset();
 
     // This is the end of the stop sequence.
     log::info(LOG_NODE) << BN_NODE_STOPPED;
