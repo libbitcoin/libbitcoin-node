@@ -152,13 +152,13 @@ bool executor::menu()
     }
 
     // There are no command line arguments, just run the node.
-    return start();
+    return run();
 }
 
-// Start sequence.
+// Run.
 // ----------------------------------------------------------------------------
 
-bool executor::start()
+bool executor::run()
 {
     initialize_output();
 
@@ -175,7 +175,16 @@ bool executor::start()
         std::bind(&executor::handle_started,
             this, _1));
 
-    monitor_stop();
+    // Wait for stop.
+    stopping_.get_future().wait();
+
+    log::info(LOG_NODE) << BN_NODE_STOPPING;
+
+    // Close must be called from main thread.
+    node_->close();
+    node_.reset();
+
+    log::info(LOG_NODE) << BN_NODE_STOPPED;
     return true;
 }
 
@@ -215,7 +224,7 @@ void executor::handle_running(const code& ec)
     log::info(LOG_NODE) << BN_NODE_STARTED;
 }
 
-// In case the server stops on its own.
+// This is the end of the stop sequence.
 void executor::handle_stopped(const code& ec)
 {
     stop(ec);
@@ -238,25 +247,11 @@ void executor::handle_stop(int code)
     stop(error::success);
 }
 
+// Manage the race between console stop and server stop.
 void executor::stop(const code& ec)
 {
     static std::once_flag stop_mutex;
     std::call_once(stop_mutex, [&](){ stopping_.set_value(ec); });
-}
-
-void executor::monitor_stop()
-{
-    // Wait for stop.
-    stopping_.get_future().wait();
-
-    log::info(LOG_NODE) << BN_NODE_STOPPING;
-
-    // This must be called from main thread.
-    node_->close();
-    node_.reset();
-
-    // This is the end of the stop sequence.
-    log::info(LOG_NODE) << BN_NODE_STOPPED;
 }
 
 // Utilities.

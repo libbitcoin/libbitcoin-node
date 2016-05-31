@@ -48,19 +48,18 @@ private:
     static void stop(const code& ec);
     static void handle_stop(int code);
 
+    void handle_started(const code& ec);
+    void handle_running(const code& ec);
+    void handle_stopped(const code& ec);
+
     void do_help();
     void do_settings();
     void do_version();
     bool do_initchain();
 
-    bool start();
     void initialize_output();
     bool verify_directory();
-    void monitor_stop();
-
-    void handle_started(const code& ec);
-    void handle_running(const code& ec);
-    void handle_stopped(const code& ec);
+    bool run();
 
     // Termination state.
     static std::promise<code> stopping_;
