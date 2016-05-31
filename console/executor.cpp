@@ -50,7 +50,7 @@ static constexpr int directory_not_found = 2;
 static constexpr auto append = std::ofstream::out | std::ofstream::app;
 static const auto application_name = "bn";
 
-std::promise<code> executor::stopped_;
+std::promise<code> executor::stopping_;
 
 executor::executor(parser& metadata, std::istream& input,
     std::ostream& output, std::ostream& error)
@@ -105,7 +105,10 @@ bool executor::do_initchain()
         const auto genesis = metadata_.configured.chain.use_testnet_rules ?
             chain::block::genesis_testnet() : chain::block::genesis_mainnet();
 
-        return data_base::initialize(directory, genesis);
+        const auto result = data_base::initialize(directory, genesis);
+
+        log::info(LOG_NODE) << BN_INITCHAIN_COMPLETE;
+        return result;
     }
 
     if (ec.value() == directory_exists)
@@ -238,13 +241,13 @@ void executor::handle_stop(int code)
 void executor::stop(const code& ec)
 {
     static std::once_flag stop_mutex;
-    std::call_once(stop_mutex, [&](){ stopped_.set_value(ec); });
+    std::call_once(stop_mutex, [&](){ stopping_.set_value(ec); });
 }
 
 void executor::monitor_stop()
 {
     // Wait for stop on this thread.
-    stopped_.get_future().wait();
+    stopping_.get_future().wait();
 
     log::info(LOG_NODE) << BN_NODE_UNMAPPING;
 

@@ -189,7 +189,7 @@ void reservations::initialize(size_t size)
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    log::debug(LOG_PROTOCOL)
+    log::debug(LOG_NODE)
         << "Reserved " << allocation << " blocks to " << rows << " slots.";
 }
 
@@ -207,7 +207,7 @@ bool reservations::populate(reservation::ptr minimal)
     ///////////////////////////////////////////////////////////////////////////
 
     if (populated)
-        log::debug(LOG_PROTOCOL)
+        log::debug(LOG_NODE)
             << "Populated " << minimal->size() << " blocks to slot ("
             << minimal->slot() << ").";
 

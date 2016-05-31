@@ -99,12 +99,12 @@ void session_block_sync::new_connection(connector::ptr connect,
 {
     if (stopped())
     {
-        log::debug(LOG_SESSION)
+        log::debug(LOG_NODE)
             << "Suspending slot (" << row ->slot() << ").";
         return;
     }
 
-    log::debug(LOG_SESSION)
+    log::debug(LOG_NODE)
         << "Starting slot (" << row->slot() << ").";
 
     // BLOCK SYNC CONNECT
@@ -117,14 +117,14 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
 {
     if (ec)
     {
-        log::debug(LOG_SESSION)
+        log::debug(LOG_NODE)
             << "Failure connecting slot (" << row->slot() << ") "
             << ec.message();
         new_connection(connect, row, handler);
         return;
     }
 
-    log::debug(LOG_SESSION)
+    log::debug(LOG_NODE)
         << "Connected slot (" << row->slot() << ") ["
         << channel->authority() << "]";
 
@@ -159,7 +159,7 @@ void session_block_sync::handle_complete(const code& ec,
         timer_->stop();
         reservations_.remove(row);
 
-        log::debug(LOG_SESSION)
+        log::debug(LOG_NODE)
             << "Completed slot (" << row->slot() << ")";
 
         // This is the end of the block sync sequence.
@@ -174,7 +174,7 @@ void session_block_sync::handle_complete(const code& ec,
 void session_block_sync::handle_channel_stop(const code& ec,
     reservation::ptr row)
 {
-    log::info(LOG_SESSION)
+    log::info(LOG_NODE)
         << "Channel stopped on slot (" << row->slot() << ") " << ec.message();
 }
 
@@ -195,7 +195,7 @@ void session_block_sync::handle_timer(const code& ec, connector::ptr connect)
     if (stopped())
         return;
 
-    log::debug(LOG_PROTOCOL)
+    log::debug(LOG_NODE)
         << "Fired session_block_sync timer: " << ec.message();
 
     ////// TODO: If (ratio < 50%) add a channel.

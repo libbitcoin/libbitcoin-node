@@ -63,7 +63,7 @@ private:
     void handle_stopped(const code& ec);
 
     // Termination state.
-    static std::promise<code> stopped_;
+    static std::promise<code> stopping_;
 
     parser& metadata_;
     std::ostream& output_;
@@ -88,6 +88,8 @@ private:
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_TRY \
     "Failed to test directory %1% with error, '%2%'."
+#define BN_INITCHAIN_COMPLETE \
+    "Completed initialization."
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
