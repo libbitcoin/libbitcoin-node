@@ -102,10 +102,10 @@ private:
 #define BN_NODE_STARTED \
     "Node is started."
 
+#define BN_NODE_SIGNALED \
+    "Stop signal detected (code: %1%)."
 #define BN_NODE_STOPPING \
-    "Please wait while the node is stopping (code: %1%)..."
-#define BN_NODE_UNMAPPING \
-    "Please wait while files are unmapped..."
+    "Please wait while the node is stopping..."
 #define BN_NODE_STOPPED \
     "Node stopped successfully."
 

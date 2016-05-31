@@ -234,7 +234,7 @@ void executor::handle_stop(int code)
     if (code == initialize_stop)
         return;
 
-    log::info(LOG_NODE) << format(BN_NODE_STOPPING) % code;
+    log::info(LOG_NODE) << format(BN_NODE_SIGNALED) % code;
     stop(error::success);
 }
 
@@ -246,10 +246,10 @@ void executor::stop(const code& ec)
 
 void executor::monitor_stop()
 {
-    // Wait for stop on this thread.
+    // Wait for stop.
     stopping_.get_future().wait();
 
-    log::info(LOG_NODE) << BN_NODE_UNMAPPING;
+    log::info(LOG_NODE) << BN_NODE_STOPPING;
 
     // This must be called from main thread.
     node_->close();
