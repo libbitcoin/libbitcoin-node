@@ -50,7 +50,7 @@ static constexpr int directory_not_found = 2;
 static constexpr auto append = std::ofstream::out | std::ofstream::app;
 static const auto application_name = "bn";
 
-std::promise<code> executor::stopped_;
+std::promise<code> executor::stopping_;
 
 executor::executor(parser& metadata, std::istream& input,
     std::ostream& output, std::ostream& error)
@@ -105,7 +105,10 @@ bool executor::do_initchain()
         const auto genesis = metadata_.configured.chain.use_testnet_rules ?
             chain::block::genesis_testnet() : chain::block::genesis_mainnet();
 
-        return data_base::initialize(directory, genesis);
+        const auto result = data_base::initialize(directory, genesis);
+
+        log::info(LOG_NODE) << BN_INITCHAIN_COMPLETE;
+        return result;
     }
 
     if (ec.value() == directory_exists)
@@ -149,13 +152,13 @@ bool executor::menu()
     }
 
     // There are no command line arguments, just run the node.
-    return start();
+    return run();
 }
 
-// Start sequence.
+// Run.
 // ----------------------------------------------------------------------------
 
-bool executor::start()
+bool executor::run()
 {
     initialize_output();
 
@@ -172,7 +175,16 @@ bool executor::start()
         std::bind(&executor::handle_started,
             this, _1));
 
-    monitor_stop();
+    // Wait for stop.
+    stopping_.get_future().wait();
+
+    log::info(LOG_NODE) << BN_NODE_STOPPING;
+
+    // Close must be called from main thread.
+    node_->close();
+    node_.reset();
+
+    log::info(LOG_NODE) << BN_NODE_STOPPED;
     return true;
 }
 
@@ -212,7 +224,7 @@ void executor::handle_running(const code& ec)
     log::info(LOG_NODE) << BN_NODE_STARTED;
 }
 
-// In case the server stops on its own.
+// This is the end of the stop sequence.
 void executor::handle_stopped(const code& ec)
 {
     stop(ec);
@@ -231,29 +243,15 @@ void executor::handle_stop(int code)
     if (code == initialize_stop)
         return;
 
-    log::info(LOG_NODE) << format(BN_NODE_STOPPING) % code;
+    log::info(LOG_NODE) << format(BN_NODE_SIGNALED) % code;
     stop(error::success);
 }
 
+// Manage the race between console stop and server stop.
 void executor::stop(const code& ec)
 {
     static std::once_flag stop_mutex;
-    std::call_once(stop_mutex, [&](){ stopped_.set_value(ec); });
-}
-
-void executor::monitor_stop()
-{
-    // Wait for stop on this thread.
-    stopped_.get_future().wait();
-
-    log::info(LOG_NODE) << BN_NODE_UNMAPPING;
-
-    // This must be called from main thread.
-    node_->close();
-    node_.reset();
-
-    // This is the end of the stop sequence.
-    log::info(LOG_NODE) << BN_NODE_STOPPED;
+    std::call_once(stop_mutex, [&](){ stopping_.set_value(ec); });
 }
 
 // Utilities.

@@ -48,22 +48,21 @@ private:
     static void stop(const code& ec);
     static void handle_stop(int code);
 
+    void handle_started(const code& ec);
+    void handle_running(const code& ec);
+    void handle_stopped(const code& ec);
+
     void do_help();
     void do_settings();
     void do_version();
     bool do_initchain();
 
-    bool start();
     void initialize_output();
     bool verify_directory();
-    void monitor_stop();
-
-    void handle_started(const code& ec);
-    void handle_running(const code& ec);
-    void handle_stopped(const code& ec);
+    bool run();
 
     // Termination state.
-    static std::promise<code> stopped_;
+    static std::promise<code> stopping_;
 
     parser& metadata_;
     std::ostream& output_;
@@ -88,6 +87,8 @@ private:
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_TRY \
     "Failed to test directory %1% with error, '%2%'."
+#define BN_INITCHAIN_COMPLETE \
+    "Completed initialization."
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
@@ -100,10 +101,10 @@ private:
 #define BN_NODE_STARTED \
     "Node is started."
 
+#define BN_NODE_SIGNALED \
+    "Stop signal detected (code: %1%)."
 #define BN_NODE_STOPPING \
-    "Please wait while the node is stopping (code: %1%)..."
-#define BN_NODE_UNMAPPING \
-    "Please wait while files are unmapped..."
+    "Please wait while the node is stopping..."
 #define BN_NODE_STOPPED \
     "Node stopped successfully."
 
