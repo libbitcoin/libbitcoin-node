@@ -111,7 +111,7 @@ void p2p_node::run(result_handler handler)
     // remove any that already exist in the chain. Sync the remainder.
     // This can be done by height or hash, as both are accurate with gaps.
 
-    // This is invoked on a new thread.
+    // This is invoked on the same thread.
     blockchain_.fetch_block_header(current_height,
         std::bind(&p2p_node::handle_fetch_header,
             this, _1, _2, current_height, handler));
