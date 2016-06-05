@@ -66,9 +66,9 @@ class blockchain_fixture
 {
 public:
     blockchain_fixture(bool import_result=true);
-    virtual void start(result_handler handler);
-    virtual void stop(result_handler handler);
-    virtual void close();
+    virtual bool start();
+    virtual bool stop();
+    virtual bool close();
     virtual bool import(chain::block::ptr block, uint64_t height);
     virtual void store(chain::block::ptr block, block_store_handler handler);
     virtual void fetch_block_header(uint64_t height,

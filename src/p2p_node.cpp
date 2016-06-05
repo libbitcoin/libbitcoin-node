@@ -22,7 +22,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <future>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
@@ -45,7 +44,12 @@ p2p_node::p2p_node(const configuration& configuration)
 {
 }
 
-// Start sequence.
+p2p_node::~p2p_node()
+{
+    p2p_node::close();
+}
+
+// Start.
 // ----------------------------------------------------------------------------
 
 void p2p_node::start(result_handler handler)
@@ -56,19 +60,11 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
-    // The handler is invoked sequentially.
-    blockchain_.start(
-        std::bind(&p2p_node::handle_started,
-            this, _1, handler));
-}
-
-void p2p_node::handle_started(const code& ec, result_handler handler)
-{
-    if (ec)
+    if (!blockchain_.start())
     {
         log::error(LOG_NODE)
-            << "Blockchain failed to start: " << ec.message();
-        handler(ec);
+            << "Blockchain failed to start.";
+        handler(error::operation_failed);
         return;
     }
 
@@ -84,8 +80,7 @@ void p2p_node::handle_started(const code& ec, result_handler handler)
 
     set_height(height);
 
-    // This is invoked on a new thread.
-    // This is the end of the derived start sequence.
+    // This is invoked on the same thread.
     // Stopped is true and no network threads until after this call.
     p2p::start(handler);
 }
@@ -226,66 +221,24 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     p2p::run(handler);
 }
 
-// Stop sequence.
+// Shutdown
 // ----------------------------------------------------------------------------
 
-void p2p_node::stop(result_handler handler)
+bool p2p_node::stop()
 {
-    // This is invoked on the same thread.
-    p2p::stop(
-        std::bind(&p2p_node::handle_network_stopped,
-            this, _1, handler));
-}
-
-void p2p_node::handle_network_stopped(const code& ec, result_handler handler)
-{
-    if (ec)
-        log::error(LOG_NODE)
-            << "Network shutdown error: " << ec.message();
-
-    // This is invoked on the same thread.
-    blockchain_.stop(
-        std::bind(&p2p_node::handle_stopped,
-            this, _1, handler));
-}
-
-void p2p_node::handle_stopped(const code& ec, result_handler handler)
-{
-    if (ec)
-        log::error(LOG_NODE)
-        << "Blockchain shutdown error: " << ec.message();
-
-    // This is the end of the derived stop sequence.
-    handler(ec);
-}
-
-// Close sequence.
-// ----------------------------------------------------------------------------
-
-// This allows for shutdown based on destruct without need to call stop.
-p2p_node::~p2p_node()
-{
-    p2p_node::close();
+    // Suspend new work last so we can use work to clear subscribers.
+    return blockchain_.stop() && p2p::stop();
 }
 
 // This must be called from the thread that constructed this class (see join).
-void p2p_node::close()
+bool p2p_node::close()
 {
-    std::promise<code> wait;
+    // Invoke own stop to signal work suspension.
+    if (!p2p_node::stop())
+        return false;
 
-    p2p_node::stop(
-        std::bind(&p2p_node::handle_closing,
-            this, _1, std::ref(wait)));
-
-    // This blocks until handle_closing completes.
-    wait.get_future();
-    p2p::close();
-}
-
-void p2p_node::handle_closing(const code& ec, std::promise<code>& wait)
-{
-    // This is the end of the derived close sequence.
-    wait.set_value(ec);
+    // Join threads first so that there is no activity on the chain at close.
+    return p2p::close() && blockchain_.close();
 }
 
 // Properties.

@@ -105,6 +105,8 @@ private:
     "Stop signal detected (code: %1%)."
 #define BN_NODE_STOPPING \
     "Please wait while the node is stopping..."
+#define BN_NODE_STOP_FAIL \
+    "Node failed to stop properly, see log."
 #define BN_NODE_STOPPED \
     "Node stopped successfully."
 

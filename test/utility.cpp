@@ -101,16 +101,19 @@ blockchain_fixture::blockchain_fixture(bool import_result)
 {
 }
 
-void blockchain_fixture::start(result_handler handler)
+bool blockchain_fixture::start()
 {
+    return false;
 }
 
-void blockchain_fixture::stop(result_handler handler)
+bool blockchain_fixture::stop()
 {
+    return false;
 }
 
-void blockchain_fixture::close()
+bool blockchain_fixture::close()
 {
+    return false;
 }
 
 bool blockchain_fixture::import(block::ptr block, uint64_t height)
