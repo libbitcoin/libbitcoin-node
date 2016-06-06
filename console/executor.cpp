@@ -187,7 +187,6 @@ bool executor::run()
     else
         log::info(LOG_NODE) << BN_NODE_STOP_FAIL;
 
-    node_.reset();
     return true;
 }
 
