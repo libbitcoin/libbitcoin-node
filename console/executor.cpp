@@ -171,6 +171,7 @@ bool executor::run()
     // Now that the directory is verified we can create the node for it.
     node_ = std::make_shared<p2p_node>(metadata_.configured);
 
+    // The callback may be returned on the same thread.
     node_->start(
         std::bind(&executor::handle_started,
             this, _1));
@@ -181,10 +182,11 @@ bool executor::run()
     log::info(LOG_NODE) << BN_NODE_STOPPING;
 
     // Close must be called from main thread.
-    node_->close();
-    node_.reset();
+    if (node_->close())
+        log::info(LOG_NODE) << BN_NODE_STOPPED;
+    else
+        log::info(LOG_NODE) << BN_NODE_STOP_FAIL;
 
-    log::info(LOG_NODE) << BN_NODE_STOPPED;
     return true;
 }
 
