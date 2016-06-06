@@ -22,7 +22,6 @@
 
 #include <future>
 #include <iostream>
-#include <memory>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
@@ -32,8 +31,6 @@ class executor
   : public enable_shared_from_base<executor>
 {
 public:
-    typedef std::shared_ptr<executor> ptr;
-
     executor(parser& metadata, std::istream&, std::ostream& output,
         std::ostream& error);
 
