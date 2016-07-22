@@ -22,7 +22,6 @@
 
 #include <cstddef>
 #include <string>
-#include <boost/date_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <bitcoin/blockchain.hpp>
