@@ -197,7 +197,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     }
 
     // It was a timeout, so ten more seconds have passed.
-    current_second_ += expiry_interval.total_seconds();
+    current_second_ += expiry_interval.count();
 
     // Drop the channel if it falls below the min sync rate averaged over all.
     if (sync_rate() < minimum_rate_)

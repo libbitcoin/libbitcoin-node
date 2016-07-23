@@ -19,7 +19,6 @@
  */
 #include "executor.hpp"
 
-#include <chrono>
 #include <csignal>
 #include <functional>
 #include <future>
@@ -27,7 +26,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
@@ -37,8 +35,6 @@ namespace node {
 
 using boost::format;
 using std::placeholders::_1;
-using namespace std::chrono;
-using namespace std::this_thread;
 using namespace boost::system;
 using namespace bc::config;
 using namespace bc::database;
