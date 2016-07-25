@@ -130,7 +130,7 @@ void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
     }
 
     log::info(LOG_NODE)
-        << "Blockchain height is (" << block_height << ").";
+        << "Blockchain start height is (" << block_height << ").";
 
     // Add the seed entry, the top trusted block hash.
     hashes_.initialize(block_header.hash(), block_height);
@@ -211,10 +211,9 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     // Node height was unchanged as there is no subscription during sync.
     set_height(chain_height);
 
-    // TODO: skip this message if there was no sync.
     // Generalize the final_height() function from protocol_header_sync.
     log::info(LOG_NODE)
-        << "Blockchain height is (" << chain_height << ").";
+        << "Node start height is (" << chain_height << ").";
 
     // This is invoked on a new thread.
     // This is the end of the derived run sequence.
