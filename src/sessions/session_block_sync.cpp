@@ -45,7 +45,7 @@ using std::placeholders::_2;
 static const asio::seconds regulator_interval(5);
 
 session_block_sync::session_block_sync(p2p& network, header_queue& hashes,
-    block_chain& chain, const settings& settings)
+    simple_chain& chain, const settings& settings)
   : session_batch(network, false),
     blockchain_(chain),
     settings_(settings),

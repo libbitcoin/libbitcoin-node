@@ -48,8 +48,8 @@ public:
     typedef std::shared_ptr<reservations> ptr;
 
     /// Construct a reservation table of reservations, allocating hashes evenly
-    // among the rows up to the limit of a single get headers p2p request.
-    reservations(header_queue& hashes, blockchain::block_chain& chain,
+    /// among the rows up to the limit of a single get headers p2p request.
+    reservations(header_queue& hashes, blockchain::simple_chain& chain,
         const settings& settings);
 
     /// The average and standard deviation of block import rates.
@@ -88,7 +88,7 @@ private:
 
     // Thread safe.
     header_queue& hashes_;
-    blockchain::block_chain& blockchain_;
+    blockchain::simple_chain& blockchain_;
 
     // Protected by mutex.
     reservation::list table_;

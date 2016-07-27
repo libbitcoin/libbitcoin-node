@@ -41,7 +41,7 @@ public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
     session_block_sync(network::p2p& network, header_queue& hashes,
-        blockchain::block_chain& chain, const settings& settings);
+        blockchain::simple_chain& chain, const settings& settings);
 
     void start(result_handler handler);
 
@@ -63,7 +63,7 @@ private:
     void handle_timer(const code& ec, network::connector::ptr connect);
 
     // These are thread safe.
-    blockchain::block_chain& blockchain_;
+    blockchain::simple_chain& blockchain_;
     reservations reservations_;
     deadline::ptr timer_;
 

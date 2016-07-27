@@ -40,7 +40,7 @@ using namespace bc::chain;
 // The protocol maximum size of get data block requests.
 static constexpr size_t max_block_request = 50000;
 
-reservations::reservations(header_queue& hashes, block_chain& chain,
+reservations::reservations(header_queue& hashes, simple_chain& chain,
     const settings& settings)
   : hashes_(hashes),
     blockchain_(chain),
