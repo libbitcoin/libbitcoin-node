@@ -96,44 +96,32 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    // Ensure consistency in the case where member height is changing.
-    const auto current_height = height();
+    header block_header;
+    const auto start_height = height();
 
-    // TODO: scan block heights to top to determine first missing block.
-    // Use the block prior to the first missing block as the seed.
-
-    // TODO: upon completion of header collection, loop over headers and
-    // remove any that already exist in the chain. Sync the remainder.
-    // This can be done by height or hash, as both are accurate with gaps.
-
-    // This is invoked on the same thread.
-    blockchain_.fetch_block_header(current_height,
-        std::bind(&p2p_node::handle_fetch_header,
-            this, _1, _2, current_height, handler));
-}
-
-void p2p_node::handle_fetch_header(const code& ec, const header& block_header,
-    size_t block_height, result_handler handler)
-{
-    if (stopped())
+    if (!blockchain_.get_header(block_header, start_height))
     {
-        handler(error::service_stopped);
+        log::error(LOG_NODE)
+            << "Blockchain header for start height (" << start_height
+            << ") not found.";
+        handler(error::not_found);
         return;
     }
 
-    if (ec)
+    uint64_t gap_height;
+    if (blockchain_.get_next_gap(gap_height, 0))
     {
         log::error(LOG_NODE)
-            << "Failure fetching blockchain start header: " << ec.message();
-        handler(ec);
+            << "Blockchain has a gap at block (" << gap_height << ").";
+        handler(error::operation_failed);
         return;
     }
 
     log::info(LOG_NODE)
-        << "Blockchain height is (" << block_height << ").";
+        << "Blockchain start height is (" << start_height << ").";
 
     // Add the seed entry, the top trusted block hash.
-    hashes_.initialize(block_header.hash(), block_height);
+    hashes_.initialize(block_header.hash(), start_height);
     const auto chain_settings = blockchain_.chain_settings();
 
     const auto start_handler =
@@ -162,6 +150,8 @@ void p2p_node::handle_headers_synchronized(const code& ec,
         handler(ec);
         return;
     }
+
+    // TODO: prune headers that exist in the database.
 
     // Remove the seed entry so we don't try to sync it.
     if (!hashes_.dequeue())
@@ -211,10 +201,9 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     // Node height was unchanged as there is no subscription during sync.
     set_height(chain_height);
 
-    // TODO: skip this message if there was no sync.
     // Generalize the final_height() function from protocol_header_sync.
     log::info(LOG_NODE)
-        << "Blockchain height is (" << chain_height << ").";
+        << "Node start height is (" << chain_height << ").";
 
     // This is invoked on a new thread.
     // This is the end of the derived run sequence.

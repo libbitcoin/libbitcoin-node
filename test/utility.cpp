@@ -89,7 +89,6 @@ void reservation_fixture::set_pending(bool value)
     reservation::set_pending(value);
 }
 
-
 // Stub
 std::chrono::high_resolution_clock::time_point reservation_fixture::now() const
 {
@@ -101,17 +100,42 @@ blockchain_fixture::blockchain_fixture(bool import_result)
 {
 }
 
-bool blockchain_fixture::start()
+bool blockchain_fixture::get_next_gap(uint64_t& out_height,
+    uint64_t start_height)
 {
     return false;
 }
 
-bool blockchain_fixture::stop()
+bool blockchain_fixture::get_difficulty(hash_number& out_difficulty,
+    uint64_t height)
 {
     return false;
 }
 
-bool blockchain_fixture::close()
+bool blockchain_fixture::get_header(header& out_header, uint64_t height)
+{
+    return false;
+}
+
+bool blockchain_fixture::get_height(uint64_t& out_height,
+    const hash_digest& block_hash)
+{
+    return false;
+}
+
+bool blockchain_fixture::get_last_height(size_t& out_height)
+{
+    return false;
+}
+
+bool blockchain_fixture::get_outpoint_transaction(hash_digest& out_transaction,
+    const output_point& outpoint)
+{
+    return false;
+}
+
+bool blockchain_fixture::get_transaction(transaction& out_transaction,
+    uint64_t& out_block_height, const hash_digest& transaction_hash)
 {
     return false;
 }
@@ -122,84 +146,15 @@ bool blockchain_fixture::import(block::ptr block, uint64_t height)
     std::this_thread::sleep_for(std::chrono::microseconds(1));
     return import_result_;
 }
-
-void blockchain_fixture::store(block::ptr block, block_store_handler handler)
+bool blockchain_fixture::push(block_detail::ptr block)
 {
+    return false;
 }
 
-void blockchain_fixture::fetch_block_header(uint64_t height,
-    block_header_fetch_handler handler)
+bool blockchain_fixture::pop_from(block_detail::list& out_blocks,
+    uint64_t height)
 {
-}
-
-void blockchain_fixture::fetch_block_header(const hash_digest& hash,
-    block_header_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_block_locator(
-    block_locator_fetch_handler handle_fetch)
-{
-}
-
-void blockchain_fixture::fetch_locator_block_hashes(
-    const message::get_blocks& locator, const hash_digest& threshold,
-    size_t limit, locator_block_hashes_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_missing_block_hashes(const hash_list& hashes,
-    missing_block_hashes_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_block_transaction_hashes(uint64_t height,
-    transaction_hashes_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_block_transaction_hashes(
-    const hash_digest& hash, transaction_hashes_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_block_height(const hash_digest& hash,
-    block_height_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_last_height(last_height_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_transaction(const hash_digest& hash,
-    transaction_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_transaction_index(const hash_digest& hash,
-    transaction_index_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_spend(const output_point& outpoint,
-    spend_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_history(const wallet::payment_address& address,
-    uint64_t limit, uint64_t from_height, history_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::fetch_stealth(const binary& prefix,
-    uint64_t from_height, stealth_fetch_handler handler)
-{
-}
-
-void blockchain_fixture::subscribe_reorganize(
-    organizer::reorganize_handler handler)
-{
+    return false;
 }
 
 } // namespace test

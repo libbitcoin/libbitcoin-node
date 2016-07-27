@@ -91,8 +91,6 @@ public:
     virtual void subscribe_transaction_pool(transaction_handler handler);
 
 private:
-    void handle_fetch_header(const code& ec, const chain::header& block_header,
-        size_t block_height, result_handler handler);
     void handle_headers_synchronized(const code& ec, result_handler handler);
     void handle_network_stopped(const code& ec, result_handler handler);
 

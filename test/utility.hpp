@@ -62,44 +62,24 @@ private:
 };
 
 class blockchain_fixture
-  : public blockchain::block_chain
+  : public blockchain::simple_chain
 {
 public:
     blockchain_fixture(bool import_result=true);
-    virtual bool start();
-    virtual bool stop();
-    virtual bool close();
-    virtual bool import(chain::block::ptr block, uint64_t height);
-    virtual void store(chain::block::ptr block, block_store_handler handler);
-    virtual void fetch_block_header(uint64_t height,
-        block_header_fetch_handler handler);
-    virtual void fetch_block_header(const hash_digest& hash,
-        block_header_fetch_handler handler);
-    virtual void fetch_block_locator(block_locator_fetch_handler handle_fetch);
-    virtual void fetch_locator_block_hashes(const message::get_blocks& locator,
-        const hash_digest& threshold, size_t limit,
-        locator_block_hashes_fetch_handler handler);
-    virtual void fetch_missing_block_hashes(const hash_list& hashes,
-        missing_block_hashes_fetch_handler handler);
-    virtual void fetch_block_transaction_hashes(uint64_t height,
-        transaction_hashes_fetch_handler handler);
-    virtual void fetch_block_transaction_hashes(const hash_digest& hash,
-        transaction_hashes_fetch_handler handler);
-    virtual void fetch_block_height(const hash_digest& hash,
-        block_height_fetch_handler handler);
-    virtual void fetch_last_height(last_height_fetch_handler handler);
-    virtual void fetch_transaction(const hash_digest& hash,
-        transaction_fetch_handler handler);
-    virtual void fetch_transaction_index(const hash_digest& hash,
-        transaction_index_fetch_handler handler);
-    virtual void fetch_spend(const chain::output_point& outpoint,
-        spend_fetch_handler handler);
-    virtual void fetch_history(const wallet::payment_address& address,
-        uint64_t limit, uint64_t from_height, history_fetch_handler handler);
-    virtual void fetch_stealth(const binary& prefix, uint64_t from_height,
-        stealth_fetch_handler handler);
-    virtual void subscribe_reorganize(
-        blockchain::organizer::reorganize_handler handler);
+    bool get_next_gap(uint64_t& out_height, uint64_t start_height);
+    bool get_difficulty(hash_number& out_difficulty, uint64_t height);
+    bool get_header(chain::header& out_header, uint64_t height);
+    bool get_height(uint64_t& out_height, const hash_digest& block_hash);
+    bool get_last_height(size_t& out_height);
+    bool get_outpoint_transaction(hash_digest& out_transaction,
+        const chain::output_point& outpoint);
+    bool get_transaction(chain::transaction& out_transaction,
+        uint64_t& out_block_height, const hash_digest& transaction_hash);
+    bool import(chain::block::ptr block, uint64_t height);
+    bool push(blockchain::block_detail::ptr block);
+    bool pop_from(blockchain::block_detail::list& out_blocks,
+        uint64_t height);
+
 private:
     bool import_result_;
 };
