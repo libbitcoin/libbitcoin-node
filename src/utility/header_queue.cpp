@@ -118,6 +118,37 @@ void header_queue::initialize(const hash_digest& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
+void header_queue::invalidate(size_t first_height, size_t count)
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    mutex_.lock_upgrade();
+
+    if (first_height < height_ || first_height > last())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        return;
+    }
+
+    const auto first = first_height - height_;
+    const auto end = std::min(first + count, size());
+
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    mutex_.unlock_upgrade_and_lock();
+
+    for (size_t index = first; index < end; ++index)
+        list_[index] = null_hash;
+
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+bool header_queue::valid(const hash_digest& hash)
+{
+    return hash != null_hash;
+}
+
 bool header_queue::dequeue(size_t count)
 {
     // Critical Section

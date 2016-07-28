@@ -42,7 +42,7 @@ public:
     /// Construct a header sync protocol instance.
     protocol_header_sync(network::p2p& network, network::channel::ptr channel,
         header_queue& hashes, uint32_t minimum_rate,
-        const config::checkpoint::list& checkpoints);
+        const config::checkpoint& last);
 
     /// Start the protocol.
     void start(event_handler handler);
@@ -69,8 +69,7 @@ private:
 
     const uint32_t minimum_rate_;
     const size_t start_size_;
-    const size_t final_height_;
-    const config::checkpoint::list& checkpoints_;
+    const config::checkpoint last_;
 };
 
 } // namespace network

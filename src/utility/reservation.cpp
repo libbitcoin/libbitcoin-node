@@ -292,9 +292,7 @@ message::get_data reservation::request(bool new_channel)
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
-
     pending_ = false;
-
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
@@ -362,13 +360,26 @@ void reservation::import(block::ptr block)
             << encoded << "]";
     }
 
-    // Critical Section (stop)
-    ///////////////////////////////////////////////////////////////////////////
-    unique_lock(stop_mutex_);
+    populate();
+}
 
-    // If empty try to get more hashes. Never populate after stopped.
+void reservation::populate()
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    stop_mutex_.lock_upgrade();
+
     if (!stopped_ && empty())
+    {
+        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        stop_mutex_.unlock_upgrade_and_lock();
         stopped_ = !reservations_.populate(shared_from_this());
+        stop_mutex_.unlock();
+        //---------------------------------------------------------------------
+        return;
+    }
+
+    stop_mutex_.unlock_upgrade();
     ///////////////////////////////////////////////////////////////////////////
 }
 
@@ -382,10 +393,8 @@ bool reservation::toggle_partitioned()
     {
         //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         hash_mutex_.unlock_upgrade_and_lock();
-
         partitioned_ = false;
         pending_ = true;
-
         hash_mutex_.unlock();
         //---------------------------------------------------------------------
         return true;
@@ -428,14 +437,16 @@ bool reservation::partition(reservation::ptr minimal)
     const auto populated = !minimal->empty();
     minimal->pending_ = populated;
 
-    // Critical Section (stop)
-    ///////////////////////////////////////////////////////////////////////////
-    unique_lock(stop_mutex_);
-
-    // If the channel has been emptied it will no repopulate.
     if (!partitioned_)
+    {
+        // Critical Section (stop)
+        ///////////////////////////////////////////////////////////////////////
+        unique_lock(stop_mutex_);
+
+        // If the channel has been emptied it will not repopulate.
         stopped_ = true;
-    ///////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////
+    }
 
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
@@ -468,9 +479,7 @@ bool reservation::find_height_and_erase(const hash_digest& hash,
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
-
     heights_.left.erase(it);
-
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 

@@ -64,10 +64,10 @@ message::headers::ptr message_factory(size_t count, const hash_digest& hash)
 }
 
 reservation_fixture::reservation_fixture(reservations& reservations,
-    size_t slot, uint32_t block_timeout_seconds,
-    std::chrono::high_resolution_clock::time_point now)
+    size_t gap, size_t slot, uint32_t block_timeout_seconds,
+    clock::time_point now)
   : reservation(reservations, slot, block_timeout_seconds),
-    now_(now)
+    gap_(gap), now_(now)
 {
 }
 

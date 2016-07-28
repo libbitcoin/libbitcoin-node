@@ -48,17 +48,17 @@ class reservation_fixture
   : public reservation
 {
 public:
-    reservation_fixture(reservations& reservations, size_t slot,
-        uint32_t block_timeout_seconds,
-        std::chrono::high_resolution_clock::time_point
-            now=std::chrono::high_resolution_clock::now());
+    typedef std::chrono::high_resolution_clock clock;
+    reservation_fixture(reservations& reservations, size_t gap, size_t slot,
+        uint32_t block_timeout_seconds, clock::time_point now = clock::now());
     std::chrono::microseconds rate_window() const;
-    std::chrono::high_resolution_clock::time_point now() const override;
+    clock::time_point now() const override;
     bool pending() const;
     void set_pending(bool value);
 
 private:
-    std::chrono::high_resolution_clock::time_point now_;
+    size_t gap_;
+    clock::time_point now_;
 };
 
 class blockchain_fixture
