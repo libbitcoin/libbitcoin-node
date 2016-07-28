@@ -142,8 +142,8 @@ void reservations::remove(reservation::ptr row)
 // Mark hashes for blocks we already have.
 void reservations::mark_existing()
 {
-    size_t gap;
-    size_t first = hashes_.first_height();
+    uint64_t gap;
+    auto first = hashes_.first_height();
 
     // Not thread safe. Returns false when first is > count (last gap).
     while (blockchain_.get_next_gap(gap, first))
