@@ -32,6 +32,7 @@ namespace node {
 
 using namespace bc::blockchain;
 using namespace bc::chain;
+using namespace bc::config;
 using namespace bc::network;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -68,18 +69,6 @@ void p2p_node::start(result_handler handler)
         return;
     }
 
-    size_t height;
-
-    if (!blockchain_.get_last_height(height))
-    {
-        log::error(LOG_NODE)
-            << "The blockchain is not initialized with a genensis block.";
-        handler(error::operation_failed);
-        return;
-    }
-
-    set_height(height);
-
     // This is invoked on the same thread.
     // Stopped is true and no network threads until after this call.
     p2p::start(handler);
@@ -96,41 +85,13 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    header block_header;
-    const auto start_height = height();
-
-    if (!blockchain_.get_header(block_header, start_height))
-    {
-        log::error(LOG_NODE)
-            << "Blockchain header for start height (" << start_height
-            << ") not found.";
-        handler(error::not_found);
-        return;
-    }
-
-    uint64_t gap_height;
-    if (blockchain_.get_next_gap(gap_height, 0))
-    {
-        log::error(LOG_NODE)
-            << "Blockchain has a gap at block (" << gap_height << ").";
-        handler(error::operation_failed);
-        return;
-    }
-
-    log::info(LOG_NODE)
-        << "Blockchain start height is (" << start_height << ").";
-
-    // Add the seed entry, the top trusted block hash.
-    hashes_.initialize(block_header.hash(), start_height);
-    const auto chain_settings = blockchain_.chain_settings();
-
     const auto start_handler =
         std::bind(&p2p_node::handle_headers_synchronized,
             this, _1, handler);
 
     // This is invoked on a new thread.
     // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, settings_, chain_settings)->
+    attach<session_header_sync>(hashes_, blockchain_)->
         start(start_handler);
 }
 
@@ -148,17 +109,6 @@ void p2p_node::handle_headers_synchronized(const code& ec,
         log::error(LOG_NODE)
             << "Failure synchronizing headers: " << ec.message();
         handler(ec);
-        return;
-    }
-
-    // TODO: prune headers that exist in the database.
-
-    // Remove the seed entry so we don't try to sync it.
-    if (!hashes_.dequeue())
-    {
-        log::error(LOG_NODE)
-            << "Failure synchronizing headers, no seed entry.";
-        handler(error::operation_failed);
         return;
     }
 
@@ -188,9 +138,9 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    size_t chain_height;
+    size_t height;
 
-    if (!blockchain_.get_last_height(chain_height))
+    if (!blockchain_.get_last_height(height))
     {
         log::error(LOG_NODE)
             << "The blockchain is corrupt.";
@@ -198,12 +148,11 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    // Node height was unchanged as there is no subscription during sync.
-    set_height(chain_height);
+    set_height(height);
 
     // Generalize the final_height() function from protocol_header_sync.
     log::info(LOG_NODE)
-        << "Node start height is (" << chain_height << ").";
+        << "Node start height is (" << height << ").";
 
     // This is invoked on a new thread.
     // This is the end of the derived run sequence.

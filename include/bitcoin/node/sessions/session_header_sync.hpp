@@ -39,8 +39,14 @@ class BCN_API session_header_sync
 public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
+    static code get_first(config::checkpoint& out_first,
+        blockchain::block_chain_impl& blockchain);
+
+    static code get_last(config::checkpoint& out_last,
+        blockchain::block_chain_impl& blockchain);
+
     session_header_sync(network::p2p& network, header_queue& hashes,
-        const settings& settings, const blockchain::settings& chain_settings);
+        blockchain::block_chain_impl& blockchain);
 
     void start(result_handler handler);
 
@@ -63,11 +69,10 @@ private:
     // Thread safe.
     header_queue& hashes_;
 
-    // This does not require guard because we only use one channel.
+    // These do not require guard because they are not used concurrently.
     uint32_t minimum_rate_;
-
-    const settings& settings_;
-    const config::checkpoint::list checkpoints_;
+    config::checkpoint last_;
+    blockchain::block_chain_impl& blockchain_;
 };
 
 } // namespace node

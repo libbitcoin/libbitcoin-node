@@ -74,8 +74,12 @@ public:
     void set_max_request(size_t value);
 
 private:
+
     // Create the specified number of reservations and distribute hashes.
     void initialize(size_t size);
+
+    // Mark hashes for blocks we already have.
+    void mark_existing();
 
     // Find the reservation with the most hashes.
     reservation::ptr find_maximal();

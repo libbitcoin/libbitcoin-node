@@ -32,6 +32,10 @@ namespace node {
 class BCN_API header_queue
 {
 public:
+
+    /// True if the specified hash is marked as a sentinel.
+    static bool valid(const hash_digest& hash);
+
     /// Construct a block hash list with specified height offset.
     header_queue(const config::checkpoint::list& checkpoints);
 
@@ -64,6 +68,9 @@ public:
 
     /// Clear the queue and populate the hash at the given height.
     void initialize(const hash_digest& hash, size_t height);
+
+    /// Mark the heights if they exist.
+    void invalidate(size_t first_height, size_t count);
 
 private:
     // True if the queue is empty (not locked).

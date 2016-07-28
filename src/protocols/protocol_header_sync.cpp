@@ -47,30 +47,19 @@ static const asio::seconds expiry_interval(5);
 
 protocol_header_sync::protocol_header_sync(p2p& network,
     channel::ptr channel, header_queue& hashes, uint32_t minimum_rate,
-    const checkpoint::list& checkpoints)
+    const checkpoint& last)
   : protocol_timer(network, channel, true, NAME),
     hashes_(hashes),
     current_second_(0),
     minimum_rate_(minimum_rate),
     start_size_(hashes.size()),
-    final_height_(final_height(hashes, checkpoints)),
-    checkpoints_(checkpoints),
+    last_(last),
     CONSTRUCT_TRACK(protocol_header_sync)
 {
 }
 
 // Utilities
 // ----------------------------------------------------------------------------
-
-// We assume here that hashes in the initial list are ordered and trusted.
-// Typically the initial list would contain one hash from the chain top.
-size_t protocol_header_sync::final_height(header_queue& hashes,
-    const checkpoint::list& checkpoints)
-{
-    const auto last_height = hashes.last_height();
-    return checkpoints.empty() ? last_height :
-        std::max(checkpoints.back().height(), last_height);
-}
 
 size_t protocol_header_sync::next_height() const
 {
@@ -108,7 +97,7 @@ void protocol_header_sync::send_get_headers(event_handler complete)
     const get_headers packet
     {
         { hashes_.last_hash() },
-        checkpoints_.back().hash()
+        last_.hash()
     };
 
     SEND2(packet, handle_send, _1, complete);
@@ -158,9 +147,8 @@ bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
         << "Synced headers " << next - message->elements.size()
         << "-" << (next - 1) << " from [" << authority() << "]";
 
-
-    // If we reached the last height the sync is complete/success.
-    if (next > final_height_)
+    // If we completed the last height the sync is complete/success.
+    if (next > last_.height())
     {
         complete(error::success);
         return false;

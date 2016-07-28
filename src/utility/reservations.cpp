@@ -139,6 +139,20 @@ void reservations::remove(reservation::ptr row)
 // Hash methods.
 //-----------------------------------------------------------------------------
 
+// Mark hashes for blocks we already have.
+void reservations::mark_existing()
+{
+    uint64_t gap;
+    auto first = hashes_.first_height();
+
+    // Not thread safe. Returns false when first is > count (last gap).
+    while (blockchain_.get_next_gap(gap, first))
+    {
+        hashes_.invalidate(first, gap - first);
+        first = gap + 1;
+    }
+}
+
 void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
@@ -167,11 +181,13 @@ void reservations::initialize(size_t size)
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
 
+    mark_existing();
     table_.reserve(rows);
 
     for (auto row = 0; row < rows; ++row)
         table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
 
+    size_t count = 0;
     size_t height;
     hash_digest hash;
 
@@ -182,15 +198,27 @@ void reservations::initialize(size_t size)
         for (size_t row = 0; row < rows; ++row)
         {
             hashes_.dequeue(hash, height);
-            table_[row]->insert(hash, height);
+
+            if (hashes_.valid(hash))
+            {
+                ++count;
+                table_[row]->insert(hash, height);
+            }
         }
     }
 
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
+    // TODO: Optimize by modifying the computations above to evenly dstribute
+    // gap reservations so that re-population is not required.
+
+    // This is required as any rows left empty above will not populate or stop.
+    for (auto row: table_)
+        row->populate();
+
     log::debug(LOG_NODE)
-        << "Reserved " << allocation << " blocks to " << rows << " slots.";
+        << "Reserved " << count << " blocks to " << rows << " slots.";
 }
 
 // Call when minimal is empty.
@@ -249,7 +277,9 @@ bool reservations::reserve(reservation::ptr minimal)
     for (size_t block = 0; block < allocation; ++block)
     {
         hashes_.dequeue(hash, height);
-        minimal->insert(hash, height);
+
+        if (hashes_.valid(hash))
+            minimal->insert(hash, height);
     }
 
     // This may become empty between insert and this test, which is okay.

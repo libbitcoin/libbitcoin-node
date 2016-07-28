@@ -98,6 +98,9 @@ public:
     /// Move half of the reservation to the specified reservation.
     bool partition(reservation::ptr minimal);
 
+    /// If not stopped and if empty try to get more hashes.
+    void populate();
+
 protected:
     // Accessor for testability.
     bool pending() const;
@@ -148,7 +151,7 @@ private:
 
     // Protected by stop mutex.
     bool stopped_;
-    mutable shared_mutex stop_mutex_;
+    mutable upgrade_mutex stop_mutex_;
 
     // Protected by hash mutex.
     bool pending_;

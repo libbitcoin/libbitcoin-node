@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(reservation__set_rate__values__expected)
 BOOST_AUTO_TEST_CASE(reservation__pending__default__true)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     BOOST_REQUIRE(reserve.pending());
 }
 
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(reservation__pending__default__true)
 BOOST_AUTO_TEST_CASE(reservation__set_pending__false_true__false_true)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     reserve.set_pending(false);
     BOOST_REQUIRE(!reserve.pending());
     reserve.set_pending(true);
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(reservation__rate_window__construct_10__30_seconds)
 {
     DECLARE_RESERVATIONS(reserves, true);
     const size_t expected = 10;
-    reservation_fixture reserve(reserves, 0, expected);
+    reservation_fixture reserve(reserves, 0, 0, expected);
     const auto window = reserve.rate_window();
     BOOST_REQUIRE_EQUAL(window.count(), expected * 1000 * 1000 * 3);
 }
@@ -197,7 +197,7 @@ BOOST_AUTO_TEST_CASE(reservation__reset__values__defaults)
     // The timeout cannot be exceeded because the current time is fixed.
     static const uint32_t timeout = 1;
     const auto now = std::chrono::high_resolution_clock::now();
-    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0, timeout, now);
 
     // Create a history entry.
     const auto message = message_factory(3, null_hash);
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(reservation__idle__set_false__false)
 BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1_pending)
 {
     DECLARE_RESERVATIONS(reserves, false);
-    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     BOOST_REQUIRE(reserve->empty());
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1_pending)
 BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1_pending)
 {
     DECLARE_RESERVATIONS(reserves, false);
-    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     BOOST_REQUIRE(reserve->empty());
@@ -313,7 +313,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success_timeout__idle)
     // If import time is non-zero the zero timeout will exceed and history will not accumulate.
     static const uint32_t timeout = 0;
     const auto now = std::chrono::high_resolution_clock::now();
-    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0, timeout, now);
     const auto message = message_factory(3, null_hash);
     reserve->insert(message->elements[0].hash(), 0);
     reserve->insert(message->elements[1].hash(), 1);
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
     // The timeout cannot be exceeded because the current time is fixed.
     static const uint32_t timeout = 1;
     const auto now = std::chrono::high_resolution_clock::now();
-    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
+    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0, timeout, now);
     const auto message = message_factory(3, null_hash);
     reserve->insert(message->elements[0].hash(), 0);
     reserve->insert(message->elements[1].hash(), 1);
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
 BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false_pending)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     BOOST_REQUIRE(!reserve.toggle_partitioned());
     BOOST_REQUIRE(reserve.pending());
 }
@@ -374,8 +374,8 @@ BOOST_AUTO_TEST_CASE(reservation__toggle_partitioned__default__false_pending)
 BOOST_AUTO_TEST_CASE(reservation__partition__minimal_not_empty__false_unchanged)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    const auto reserve1 = std::make_shared<reservation_fixture>(reserves, 0, 0);
-    const auto reserve2 = std::make_shared<reservation_fixture>(reserves, 1, 0);
+    const auto reserve1 = std::make_shared<reservation_fixture>(reserves, 0, 0, 0);
+    const auto reserve2 = std::make_shared<reservation_fixture>(reserves, 0, 1, 0);
     reserve2->insert(check42);
     BOOST_REQUIRE(reserve1->partition(reserve2));
     BOOST_REQUIRE_EQUAL(reserve2->size(), 1u);
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(reservation__partition__minimal_not_empty__false_unchanged)
 BOOST_AUTO_TEST_CASE(reservation__request__pending__empty_not_reset)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     reserve.set_rate({ false, 1, 2, 3 });
     BOOST_REQUIRE(reserve.pending());
 
@@ -407,7 +407,7 @@ BOOST_AUTO_TEST_CASE(reservation__request__pending__empty_not_reset)
 BOOST_AUTO_TEST_CASE(reservation__request__new_channel_pending__size_1_reset)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     const auto message = message_factory(1, null_hash);
     reserve.insert(message->elements[0].hash(), 0);
     reserve.set_rate({ false, 1, 2, 3 });
@@ -430,7 +430,7 @@ BOOST_AUTO_TEST_CASE(reservation__request__new_channel_pending__size_1_reset)
 BOOST_AUTO_TEST_CASE(reservation__request__new_channel__size_1_reset)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     const auto message = message_factory(1, null_hash);
     reserve.insert(message->elements[0].hash(), 0);
     reserve.set_rate({ false, 1, 2, 3 });
@@ -453,7 +453,7 @@ BOOST_AUTO_TEST_CASE(reservation__request__new_channel__size_1_reset)
 BOOST_AUTO_TEST_CASE(reservation__request__three_hashes_pending__size_3)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     const auto message = message_factory(3, null_hash);
     reserve.insert(message->elements[0].hash(), 0);
     reserve.insert(message->elements[1].hash(), 1);
@@ -472,7 +472,7 @@ BOOST_AUTO_TEST_CASE(reservation__request__three_hashes_pending__size_3)
 BOOST_AUTO_TEST_CASE(reservation__request__one_hash__empty)
 {
     DECLARE_RESERVATIONS(reserves, true);
-    reservation_fixture reserve(reserves, 0, 0);
+    reservation_fixture reserve(reserves, 0, 0, 0);
     const auto message = message_factory(1, null_hash);
     reserve.insert(message->elements[0].hash(), 0);
     reserve.set_pending(false);
