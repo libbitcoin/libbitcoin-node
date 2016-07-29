@@ -144,6 +144,7 @@ void header_queue::invalidate(size_t first_height, size_t count)
     ///////////////////////////////////////////////////////////////////////////
 }
 
+// static
 bool header_queue::valid(const hash_digest& hash)
 {
     return hash != null_hash;

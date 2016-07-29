@@ -249,8 +249,5 @@ code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop,
     return error::success;
 }
 
-// TODO: move gap detection to a single method that operates on the range.
-// This allows us to reduce the search space.
-
 } // namespace node
 } // namespace libbitcoin
