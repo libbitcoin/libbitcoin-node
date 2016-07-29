@@ -65,16 +65,17 @@ class blockchain_fixture
   : public blockchain::simple_chain
 {
 public:
-    blockchain_fixture(bool import_result=true);
-    bool get_next_gap(uint64_t& out_height, uint64_t start_height);
-    bool get_difficulty(hash_number& out_difficulty, uint64_t height);
-    bool get_header(chain::header& out_header, uint64_t height);
-    bool get_height(uint64_t& out_height, const hash_digest& block_hash);
-    bool get_last_height(size_t& out_height);
+    blockchain_fixture(bool import_result = true);
+    bool get_gap_range(uint64_t& out_first, uint64_t& out_last) const;
+    bool get_next_gap(uint64_t& out_height, uint64_t start_height) const;
+    bool get_difficulty(hash_number& out_difficulty, uint64_t height) const;
+    bool get_header(chain::header& out_header, uint64_t height) const;
+    bool get_height(uint64_t& out_height, const hash_digest& block_hash) const;
+    bool get_last_height(uint64_t& out_height) const;
     bool get_outpoint_transaction(hash_digest& out_transaction,
-        const chain::output_point& outpoint);
+        const chain::output_point& outpoint) const;
     bool get_transaction(chain::transaction& out_transaction,
-        uint64_t& out_block_height, const hash_digest& transaction_hash);
+        uint64_t& out_block_height, const hash_digest& transaction_hash) const;
     bool import(chain::block::ptr block, uint64_t height);
     bool push(blockchain::block_detail::ptr block);
     bool pop_from(blockchain::block_detail::list& out_blocks,

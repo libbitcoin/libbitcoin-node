@@ -143,13 +143,13 @@ void reservations::remove(reservation::ptr row)
 void reservations::mark_existing()
 {
     uint64_t gap;
-    auto first = hashes_.first_height();
+    auto start = hashes_.first_height();
 
     // Not thread safe. Returns false when first is > count (last gap).
-    while (blockchain_.get_next_gap(gap, first))
+    while (blockchain_.get_next_gap(gap, start))
     {
-        hashes_.invalidate(first, gap - first);
-        first = gap + 1;
+        hashes_.invalidate(start, gap - start);
+        start = gap + 1;
     }
 }
 

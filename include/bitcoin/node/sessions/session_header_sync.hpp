@@ -39,10 +39,8 @@ class BCN_API session_header_sync
 public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
-    static code get_first(config::checkpoint& out_first,
-        blockchain::block_chain_impl& blockchain);
-
-    static code get_last(config::checkpoint& out_last,
+    static code get_range(config::checkpoint& out_seed,
+        config::checkpoint& out_stop,
         blockchain::block_chain_impl& blockchain);
 
     session_header_sync(network::p2p& network, header_queue& hashes,
