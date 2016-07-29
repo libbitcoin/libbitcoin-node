@@ -100,42 +100,48 @@ blockchain_fixture::blockchain_fixture(bool import_result)
 {
 }
 
+bool blockchain_fixture::get_gap_range(uint64_t& out_first,
+    uint64_t& out_last) const
+{
+    return false;
+}
+
 bool blockchain_fixture::get_next_gap(uint64_t& out_height,
-    uint64_t start_height)
+    uint64_t start_height) const
 {
     return false;
 }
 
 bool blockchain_fixture::get_difficulty(hash_number& out_difficulty,
-    uint64_t height)
+    uint64_t height) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_header(header& out_header, uint64_t height)
+bool blockchain_fixture::get_header(header& out_header, uint64_t height) const
 {
     return false;
 }
 
 bool blockchain_fixture::get_height(uint64_t& out_height,
-    const hash_digest& block_hash)
+    const hash_digest& block_hash) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_last_height(size_t& out_height)
+bool blockchain_fixture::get_last_height(uint64_t& out_height) const
 {
     return false;
 }
 
 bool blockchain_fixture::get_outpoint_transaction(hash_digest& out_transaction,
-    const output_point& outpoint)
+    const output_point& outpoint) const
 {
     return false;
 }
 
 bool blockchain_fixture::get_transaction(transaction& out_transaction,
-    uint64_t& out_block_height, const hash_digest& transaction_hash)
+    uint64_t& out_block_height, const hash_digest& transaction_hash) const
 {
     return false;
 }

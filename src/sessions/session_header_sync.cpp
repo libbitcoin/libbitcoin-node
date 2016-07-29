@@ -91,34 +91,33 @@ void session_header_sync::handle_started(const code& ec,
         return;
     }
 
-    checkpoint first;
-    auto code = session_header_sync::get_first(first, blockchain_);
+    checkpoint seed;
+    auto code = session_header_sync::get_range(seed, last_, blockchain_);
 
     if (code)
     {
         log::error(LOG_NODE)
-            << "Error getting header sync first: " << code.message();
+            << "Error getting header sync range: " << code.message();
         handler(code);
         return;
     }
 
-    code = session_header_sync::get_last(last_, blockchain_);
-
-    if (code)
-    {
-        log::error(LOG_NODE)
-            << "Error getting header sync last: " << code.message();
-        handler(code);
-        return;
-    }
-
-    if (first == last_)
+    if (seed == last_)
     {
         handler(error::success);
         return;
     }
 
-    hashes_.initialize(first);
+    // The stop is either a block or a checkpoint, so it may be downloaded.
+    const auto stop_height = last_.height();
+
+    // The seed is a block that we already have, so it will not be downloaded.
+    const auto first_height = seed.height() + 1;
+
+    log::info(LOG_NODE)
+        << "Getting headers " << first_height << "-" << stop_height << ".";
+
+    hashes_.initialize(seed);
 
     // This is the end of the start sequence.
     new_connection(create_connector(), handler);
@@ -202,53 +201,56 @@ void session_header_sync::handle_channel_stop(const code& ec)
 // Utility.
 // ----------------------------------------------------------------------------
 
-// Using config and the blockchain detemine header sync first checkpoint.
-code session_header_sync::get_first(checkpoint& out_first,
+// Get the block hashes that bracket the range to download.
+code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop,
     block_chain_impl& blockchain)
 {
-    uint64_t gap_height;
-    static constexpr size_t genesis_height = 0;
+    uint64_t last_height;
 
-    if (!blockchain.get_next_gap(gap_height, genesis_height))
+    if (!blockchain.get_last_height(last_height))
         return error::operation_failed;
 
+    uint64_t last_gap;
+    uint64_t first_gap;
+    auto first_height = last_height;
+
+    if (blockchain.get_gap_range(first_gap, last_gap))
+    {
+        last_height = last_gap + 1;
+        first_height = first_gap - 1;
+    }
+
     header first_header;
-    const auto first_height = gap_height - 1;
 
     if (!blockchain.get_header(first_header, first_height))
         return error::not_found;
 
-    out_first = std::move(checkpoint{ first_header.hash(), first_height });
-    return error::success;
-}
-
-// Using config and the blockchain detemine header sync last checkpoint.
-code session_header_sync::get_last(checkpoint& out_last,
-    block_chain_impl& blockchain)
-{
-    size_t top_height;
-
-    if (!blockchain.get_last_height(top_height))
-        return error::operation_failed;
-
-    header last_header;
-    hash_digest last_hash;
     const auto& checkpoints = blockchain.chain_settings().checkpoints;
 
-    // Select the higher of the top or the last of any checkpoints.
-    const auto last_height = checkpoints.empty() ? top_height :
-        std::max(checkpoints.back().height(), top_height);
-
-    if (last_height != top_height)
-        last_hash = checkpoints.back().hash();
-    else if (blockchain.get_header(last_header, last_height))
-        last_hash = last_header.hash();
+    if (!checkpoints.empty() && checkpoints.back().height() > last_height)
+    {
+        out_stop = checkpoints.back();
+    }
+    else if (first_height == last_height)
+    {
+        out_stop = std::move(checkpoint{ first_header.hash(), first_height });
+    }
     else
-        return error::not_found;
+    {
+        header last_header;
 
-    out_last = std::move(checkpoint{ last_hash, last_height });
+        if (!blockchain.get_header(last_header, last_height))
+            return error::not_found;
+
+        out_stop = std::move(checkpoint{ last_header.hash(), last_height });
+    }
+
+    out_seed = std::move(checkpoint{ first_header.hash(), first_height });
     return error::success;
 }
+
+// TODO: move gap detection to a single method that operates on the range.
+// This allows us to reduce the search space.
 
 } // namespace node
 } // namespace libbitcoin

@@ -138,7 +138,7 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    size_t height;
+    uint64_t height;
 
     if (!blockchain_.get_last_height(height))
     {
@@ -148,7 +148,8 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    set_height(height);
+    BITCOIN_ASSERT(height <= max_size_t);
+    set_height(static_cast<size_t>(height));
 
     // Generalize the final_height() function from protocol_header_sync.
     log::info(LOG_NODE)
