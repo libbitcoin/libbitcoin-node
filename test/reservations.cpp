@@ -77,8 +77,7 @@ BOOST_AUTO_TEST_CASE(reservations__table__hash_1__size_1_by_1_hashes_empty)
 {
     node::settings settings;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     hashes.initialize(check42);
     reservations reserves(hashes, blockchain, settings);
     const auto table = reserves.table();
@@ -92,8 +91,7 @@ BOOST_AUTO_TEST_CASE(reservations__table__hash_4__size_4_by_1_hashes_empty)
 {
     node::settings settings;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(3, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -117,8 +115,7 @@ BOOST_AUTO_TEST_CASE(reservations__table__connections_5_hash_46__size_5_by_9_has
     node::settings settings;
     settings.download_connections = 5;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(45, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -143,8 +140,7 @@ BOOST_AUTO_TEST_CASE(reservations__table__hash_42__size_8_by_5_hashes_2)
 {
     node::settings settings;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(41, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -178,8 +174,7 @@ BOOST_AUTO_TEST_CASE(reservations__remove__empty__does_not_throw)
 {
     node::settings settings;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     hashes.initialize(check42);
     reservations reserves(hashes, blockchain, settings);
     const auto table = reserves.table();
@@ -195,8 +190,7 @@ BOOST_AUTO_TEST_CASE(reservations__remove__hash_4__size_3)
 {
     node::settings settings;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(3, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -217,6 +211,86 @@ BOOST_AUTO_TEST_CASE(reservations__remove__hash_4__size_3)
     BOOST_REQUIRE_EQUAL(table2[2]->slot(), 3u);
 }
 
+// initialize
+//-----------------------------------------------------------------------------
+// initialize is well covered by other tests, these test mark_existing.
+
+BOOST_AUTO_TEST_CASE(reservations__initialize__no_null__none_removed)
+{
+    node::settings settings;
+    blockchain_fixture blockchain;
+    header_queue hashes(no_checks);
+
+    // Create a chain segment with no null hashes.
+    const auto message = message_factory(3, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 4u);
+    BOOST_REQUIRE(hashes.empty());
+
+    // Even distribution.
+    BOOST_REQUIRE_EQUAL(table[0]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[1]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(reservations__initialize__first_null__removed_and_repopulated)
+{
+    node::settings settings;
+    blockchain_fixture blockchain;
+    header_queue hashes(no_checks);
+
+    // Create a chain segment starting with a null hash.
+    const auto message = message_factory(3, check0.hash());
+    hashes.initialize(check0);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 4u);
+    BOOST_REQUIRE(hashes.empty());
+
+    // First row was empty but repopulated from the second.
+    BOOST_REQUIRE_EQUAL(table[0]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
+
+    // The second row was drained and stopped.
+    BOOST_REQUIRE(table[1]->empty());
+    BOOST_REQUIRE(table[1]->stopped());
+}
+
+BOOST_AUTO_TEST_CASE(reservations__initialize__first_null_one_invalidated__removed_and_repopulated)
+{
+    node::settings settings;
+    blockchain_fixture blockchain;
+    header_queue hashes(no_checks);
+
+    // Create a chain segment starting with a null hash.
+    const auto message = message_factory(3, check0.hash());
+    hashes.initialize(check0);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    // Invalidate the third hash.
+    hashes.invalidate(2, 1);
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 4u);
+    BOOST_REQUIRE(hashes.empty());
+
+    // First row was empty but repopulated from the second.
+    // Third row was empty but repopulated from the first.
+    BOOST_REQUIRE(table[0]->empty());
+    BOOST_REQUIRE(table[1]->empty());
+    BOOST_REQUIRE_EQUAL(table[2]->size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
+}
+
 // populate
 //-----------------------------------------------------------------------------
 
@@ -225,8 +299,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_not_empty__no_
     node::settings settings;
     settings.download_connections = 3;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(9, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -256,8 +329,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_row_not_empty__no_popu
 {
     node::settings settings;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(3, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -290,8 +362,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_table_empty__no_popula
     node::settings settings;
     settings.download_connections = 3;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
 
     // Initialize with a known header so we can import its block later.
     const auto message = message_factory(3, null_hash);
@@ -340,8 +411,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__uncap
     node::settings settings;
     settings.download_connections = 3;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(7, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -375,8 +445,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__cappe
     node::settings settings;
     settings.download_connections = 3;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(7, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -413,8 +482,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     node::settings settings;
     settings.download_connections = 3;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
 
     // Initialize with a known header so we can import its block later.
     const auto message = message_factory(9, null_hash);
@@ -596,8 +664,7 @@ BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_devi
     node::settings settings;
     settings.download_connections = 3;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(2, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
@@ -644,8 +711,7 @@ BOOST_AUTO_TEST_CASE(reservations__rates__five_reservations_one_idle__idle_exclu
     node::settings settings;
     settings.download_connections = 5;
     blockchain_fixture blockchain;
-    config::checkpoint::list checkpoints;
-    header_queue hashes(checkpoints);
+    header_queue hashes(no_checks);
     const auto message = message_factory(4, check42.hash());
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));

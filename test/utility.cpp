@@ -33,10 +33,16 @@ using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::config;
 
+const config::checkpoint check0
+{
+    null_hash, 0
+};
+
 const config::checkpoint check42
 {
     "4242424242424242424242424242424242424242424242424242424242424242", 42
 };
+
 const config::checkpoint::list no_checks;
 const config::checkpoint::list one_check{ check42 };
 
@@ -47,9 +53,10 @@ message::headers::ptr message_factory(size_t count)
 }
 
 // Create a headers message of specified size, using specified previous hash.
-message::headers::ptr message_factory(size_t count, const hash_digest& hash)
+message::headers::ptr message_factory(size_t count, 
+    const hash_digest& previous)
 {
-    auto previous_hash = hash;
+    auto previous_hash = previous;
     const auto headers = std::make_shared<message::headers>();
     auto& elements = headers->elements;
 

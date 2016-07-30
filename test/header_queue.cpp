@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(header_queue__first_height__initialize_dequeue__initial_plu
 // last_height
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(header_queue__flast_height__no_checkpoints__default)
+BOOST_AUTO_TEST_CASE(header_queue__last_height__no_checkpoints__default)
 {
     header_queue hashes(no_checks);
     BOOST_REQUIRE_EQUAL(hashes.last_height(), 0u);
@@ -229,6 +229,121 @@ BOOST_AUTO_TEST_CASE(header_queue__last_hash__initialize_dequeue__null_hash)
     hashes.initialize(check42);
     BOOST_REQUIRE(hashes.dequeue());
     BOOST_REQUIRE(hashes.last_hash() == null_hash);
+}
+
+// initialize1
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(header_queue__initialize1__no_checkpoints__expected_hash)
+{
+    header_queue hashes(no_checks);
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.last_hash() == check42.hash());
+}
+
+// initialize2
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(header_queue__initialize2__no_checkpoints__expected_hash)
+{
+    header_queue hashes(no_checks);
+    hashes.initialize(check42.hash(), check42.height());
+    BOOST_REQUIRE(hashes.last_height() == check42.height());
+}
+
+// valid
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(header_queue__valid__null_hash__true)
+{
+    BOOST_REQUIRE(!header_queue::valid(null_hash));
+}
+
+BOOST_AUTO_TEST_CASE(header_queue__valid__non_null_hash__false)
+{
+    BOOST_REQUIRE(header_queue::valid(check42.hash()));
+}
+
+// invalidate
+//-----------------------------------------------------------------------------
+
+BOOST_AUTO_TEST_CASE(header_queue__invalidate__below_bound__unchanged)
+{
+    header_queue hashes(no_checks);
+    hashes.initialize(check42);
+
+    hashes.invalidate(check42.height() - 1, 1);
+    BOOST_REQUIRE_EQUAL(hashes.size(), 1u);
+
+    size_t height;
+    hash_digest hash;
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == check42.hash());
+}
+
+BOOST_AUTO_TEST_CASE(header_queue__invalidate__above_bound__unchanged)
+{
+    header_queue hashes(no_checks);
+    hashes.initialize(check42);
+
+    hashes.invalidate(check42.height() + 1, 1);
+    BOOST_REQUIRE_EQUAL(hashes.size(), 1u);
+
+    size_t height;
+    hash_digest hash;
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == check42.hash());
+}
+
+BOOST_AUTO_TEST_CASE(header_queue__invalidate__bounded__unchanged)
+{
+    const auto message = message_factory(7, check42.hash());
+
+    header_queue hashes(no_checks);
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+    BOOST_REQUIRE_EQUAL(hashes.size(), 8u);
+
+    // Invalidate hashes 1, 3, 4, and 7.
+    const auto first_height = check42.height();
+    hashes.invalidate(first_height + 1, 1);
+    hashes.invalidate(first_height + 3, 2);
+    hashes.invalidate(first_height + 7, 1);
+    BOOST_REQUIRE_EQUAL(hashes.size(), 8u);
+
+    size_t height;
+    hash_digest hash;
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == check42.hash());
+    BOOST_REQUIRE_EQUAL(height, first_height);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == null_hash);
+    BOOST_REQUIRE_EQUAL(height, first_height + 1);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == message->elements[1].hash());
+    BOOST_REQUIRE_EQUAL(height, first_height + 2);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == null_hash);
+    BOOST_REQUIRE_EQUAL(height, first_height + 3);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == null_hash);
+    BOOST_REQUIRE_EQUAL(height, first_height + 4);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == message->elements[4].hash());
+    BOOST_REQUIRE_EQUAL(height, first_height + 5);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == message->elements[5].hash());
+    BOOST_REQUIRE_EQUAL(height, first_height + 6);
+
+    BOOST_REQUIRE(hashes.dequeue(hash, height));
+    BOOST_REQUIRE(hash == null_hash);
+    BOOST_REQUIRE_EQUAL(height, first_height + 7);
 }
 
 // dequeue1

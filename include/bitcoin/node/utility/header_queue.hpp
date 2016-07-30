@@ -33,7 +33,7 @@ class BCN_API header_queue
 {
 public:
 
-    /// True if the specified hash is marked as a sentinel.
+    /// True if the specified hash is marked as removed.
     static bool valid(const hash_digest& hash);
 
     /// Construct a block hash list with specified height offset.

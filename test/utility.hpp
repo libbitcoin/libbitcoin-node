@@ -35,14 +35,16 @@ header_queue hashes(checkpoints); \
 blockchain_fixture blockchain(import); \
 node::settings settings; \
 reservations name(hashes, blockchain, settings)
-
+    
+extern const config::checkpoint check0;
 extern const config::checkpoint check42;
 extern const config::checkpoint::list no_checks;
 extern const config::checkpoint::list one_check;
 
 // Create a headers message of specified size, using specified previous hash.
 extern message::headers::ptr message_factory(size_t count);
-extern message::headers::ptr message_factory(size_t count, const hash_digest& hash);
+extern message::headers::ptr message_factory(size_t count,
+    const hash_digest& previous);
 
 class reservation_fixture
   : public reservation
