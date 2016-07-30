@@ -81,6 +81,10 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
         return;
     }
 
+    // TODO: expose valid block count from reservations and emit here.
+    log::info(LOG_NODE)
+        << "Getting blocks.";
+
     const auto connector = create_connector();
     const auto complete = synchronize(handler, table.size(), NAME);
 
