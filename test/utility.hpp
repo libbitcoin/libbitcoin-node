@@ -33,9 +33,9 @@ namespace test {
 config::checkpoint::list checkpoints; \
 header_queue hashes(checkpoints); \
 blockchain_fixture blockchain(import); \
-node::settings settings; \
-reservations name(hashes, blockchain, settings)
-    
+node::settings config; \
+reservations name(hashes, blockchain, config)
+
 extern const config::checkpoint check0;
 extern const config::checkpoint check42;
 extern const config::checkpoint::list no_checks;
@@ -51,7 +51,7 @@ class reservation_fixture
 {
 public:
     typedef std::chrono::high_resolution_clock clock;
-    reservation_fixture(reservations& reservations, size_t gap, size_t slot,
+    reservation_fixture(reservations& reservations, size_t slot,
         uint32_t block_timeout_seconds, clock::time_point now = clock::now());
     std::chrono::microseconds rate_window() const;
     clock::time_point now() const override;
@@ -59,7 +59,6 @@ public:
     void set_pending(bool value);
 
 private:
-    size_t gap_;
     clock::time_point now_;
 };
 
@@ -67,7 +66,8 @@ class blockchain_fixture
   : public blockchain::simple_chain
 {
 public:
-    blockchain_fixture(bool import_result = true);
+    blockchain_fixture(bool import_result=true, size_t gap_trigger=max_size_t,
+        size_t gap_height=max_size_t);
     bool get_gap_range(uint64_t& out_first, uint64_t& out_last) const;
     bool get_next_gap(uint64_t& out_height, uint64_t start_height) const;
     bool get_difficulty(hash_number& out_difficulty, uint64_t height) const;
@@ -85,6 +85,8 @@ public:
 
 private:
     bool import_result_;
+    size_t gap_trigger_;
+    size_t gap_height_;
 };
 
 } // namespace test
