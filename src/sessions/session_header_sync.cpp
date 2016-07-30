@@ -83,41 +83,8 @@ void session_header_sync::handle_started(const code& ec,
         return;
     }
 
-    if (!hashes_.empty())
-    {
-        log::error(LOG_NODE)
-            << "Header hash list must not be initialized.";
-        handler(error::operation_failed);
+    if (!initialize(handler))
         return;
-    }
-
-    checkpoint seed;
-    auto code = session_header_sync::get_range(seed, last_, blockchain_);
-
-    if (code)
-    {
-        log::error(LOG_NODE)
-            << "Error getting header sync range: " << code.message();
-        handler(code);
-        return;
-    }
-
-    if (seed == last_)
-    {
-        handler(error::success);
-        return;
-    }
-
-    // The stop is either a block or a checkpoint, so it may be downloaded.
-    const auto stop_height = last_.height();
-
-    // The seed is a block that we already have, so it will not be downloaded.
-    const auto first_height = seed.height() + 1;
-
-    log::info(LOG_NODE)
-        << "Getting headers " << first_height << "-" << stop_height << ".";
-
-    hashes_.initialize(seed);
 
     // This is the end of the start sequence.
     new_connection(create_connector(), handler);
@@ -200,6 +167,46 @@ void session_header_sync::handle_channel_stop(const code& ec)
 
 // Utility.
 // ----------------------------------------------------------------------------
+
+bool session_header_sync::initialize(result_handler handler)
+{
+    if (!hashes_.empty())
+    {
+        log::error(LOG_NODE)
+            << "Header hash list must not be initialized.";
+        handler(error::operation_failed);
+        return false;
+    }
+
+    checkpoint seed;
+    auto code = session_header_sync::get_range(seed, last_, blockchain_);
+
+    if (code)
+    {
+        log::error(LOG_NODE)
+            << "Error getting header sync range: " << code.message();
+        handler(code);
+        return false;
+    }
+
+    if (seed == last_)
+    {
+        handler(error::success);
+        return false;
+    }
+
+    // The stop is either a block or a checkpoint, so it may be downloaded.
+    const auto stop_height = last_.height();
+
+    // The seed is a block that we already have, so it will not be downloaded.
+    const auto first_height = seed.height() + 1;
+
+    log::info(LOG_NODE)
+        << "Getting headers " << first_height << "-" << stop_height << ".";
+
+    hashes_.initialize(seed);
+    return true;
+}
 
 // Get the block hashes that bracket the range to download.
 code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop,
