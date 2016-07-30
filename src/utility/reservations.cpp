@@ -153,36 +153,29 @@ void reservations::mark_existing()
     }
 }
 
+// No critical section because this is private to the constructor.
+// TODO: Optimize by modifying allocation loop to evenly dstribute gap
+// reservations so that re-population is not required. Alternatively
+// convert header_queue to a height/header map and remove instead of mark.
 void reservations::initialize(size_t size)
 {
     // Guard against overflow by capping size.
     const size_t max_rows = max_size_t / max_request();
     auto rows = std::min(max_rows, size);
 
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_upgrade();
-
     // Ensure that there is at least one block per row.
     const auto blocks = hashes_.size();
     rows = std::min(rows, blocks);
 
     if (rows == 0)
-    {
-        mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
         return;
-    }
+
+    mark_existing();
+    table_.reserve(rows);
 
     // Allocate no more than 50k headers per row.
     const auto max_allocation = rows * max_request();
     const auto allocation = std::min(blocks, max_allocation);
-
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    mutex_.unlock_upgrade_and_lock();
-
-    mark_existing();
-    table_.reserve(rows);
 
     for (auto row = 0; row < rows; ++row)
         table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
@@ -206,13 +199,6 @@ void reservations::initialize(size_t size)
             }
         }
     }
-
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-
-    // TODO: Optimize by modifying the computations above to evenly dstribute
-    // gap reservations so that re-population is not required. Alternatively
-    // convert header_queue to a height/header map and remove instead of mark.
 
     // This is required as any rows left empty above will not populate or stop.
     for (auto row: table_)
