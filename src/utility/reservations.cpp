@@ -211,7 +211,8 @@ void reservations::initialize(size_t size)
     ///////////////////////////////////////////////////////////////////////////
 
     // TODO: Optimize by modifying the computations above to evenly dstribute
-    // gap reservations so that re-population is not required.
+    // gap reservations so that re-population is not required. Alternatively
+    // convert header_queue to a height/header map and remove instead of mark.
 
     // This is required as any rows left empty above will not populate or stop.
     for (auto row: table_)

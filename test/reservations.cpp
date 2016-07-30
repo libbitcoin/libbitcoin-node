@@ -291,6 +291,31 @@ BOOST_AUTO_TEST_CASE(reservations__initialize__first_null_one_invalidated__remov
     BOOST_REQUIRE_EQUAL(table[3]->size(), 1u);
 }
 
+BOOST_AUTO_TEST_CASE(reservations__initialize__gap__removed_and_repopulated)
+{
+    node::settings settings;
+    const auto gap_trigger = check42.height();
+    const auto gap_height = gap_trigger + 2;
+    blockchain_fixture blockchain(true, gap_trigger, gap_height);
+    header_queue hashes(no_checks);
+
+    // Create a chain segment with no null hashes.
+    const auto message = message_factory(3, check42.hash());
+    hashes.initialize(check42);
+    BOOST_REQUIRE(hashes.enqueue(message));
+
+    reservations reserves(hashes, blockchain, settings);
+    const auto table = reserves.table();
+    BOOST_REQUIRE_EQUAL(table.size(), 4u);
+    BOOST_REQUIRE(hashes.empty());
+
+    // First drains third, second then drains first.
+    BOOST_REQUIRE(table[0]->empty());
+    BOOST_REQUIRE(table[2]->empty());
+    BOOST_CHECK_EQUAL(table[1]->size(), 1u);
+    BOOST_CHECK_EQUAL(table[3]->size(), 1u);
+}
+
 // populate
 //-----------------------------------------------------------------------------
 
