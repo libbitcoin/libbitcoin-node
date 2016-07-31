@@ -44,6 +44,11 @@ public:
 
     void start(result_handler handler);
 
+protected:
+    /// Override to attach and start specialized protocols upon channel start.
+    virtual void attach_protocols(network::channel::ptr channel,
+        network::connector::ptr connect, result_handler handler);
+
 private:
     static config::checkpoint::list sort(config::checkpoint::list checkpoints);
     static code get_range(config::checkpoint& out_seed,
