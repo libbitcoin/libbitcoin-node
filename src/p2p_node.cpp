@@ -160,6 +160,93 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     p2p::run(handler);
 }
 
+// Specializations.
+// ----------------------------------------------------------------------------
+// Create derived sessions and override these to inject from derived p2p node.
+
+// TODO: move to source files in node namespace.
+class session_manual
+  : public network::session_manual
+{
+public:
+    session_manual(p2p& network)
+      : network::session_manual(network)
+    {
+    }
+
+protected:
+    virtual void attach_protocols(channel::ptr channel) override
+    {
+        // TODO: attach additional protocols.
+        network::session_manual::attach_protocols(channel);
+    }
+};
+
+class session_inbound
+  : public network::session_inbound
+{
+public:
+    session_inbound(p2p& network)
+      : network::session_inbound(network)
+    {
+    }
+
+protected:
+    virtual void attach_protocols(channel::ptr channel) override
+    {
+        // TODO: attach additional protocols.
+        network::session_inbound::attach_protocols(channel);
+    }
+};
+
+class session_outbound
+  : public network::session_outbound
+{
+public:
+    session_outbound(p2p& network)
+      : network::session_outbound(network)
+    {
+    }
+
+protected:
+    virtual void attach_protocols(channel::ptr channel) override
+    {
+        // TODO: attach additional protocols.
+        network::session_outbound::attach_protocols(channel);
+    }
+};
+
+network::session_seed::ptr p2p_node::attach_seed_session()
+{
+    // The node does not customize the p2p seed session.
+    return p2p::attach_seed_session();
+}
+
+network::session_manual::ptr p2p_node::attach_manual_session()
+{
+    return attach<session_manual>();
+}
+
+network::session_inbound::ptr p2p_node::attach_inbound_session()
+{
+    return attach<node::session_inbound>();
+}
+
+network::session_outbound::ptr p2p_node::attach_outbound_session()
+{
+    return attach<node::session_outbound>();
+}
+
+session_header_sync::ptr p2p_node::attach_header_sync_session()
+{
+    return attach<session_header_sync>(hashes_, blockchain_);
+}
+
+session_block_sync::ptr p2p_node::attach_block_sync_session()
+{
+    return attach<session_block_sync>(hashes_, blockchain_, settings_);
+}
+
 // Shutdown
 // ----------------------------------------------------------------------------
 

@@ -136,11 +136,17 @@ void session_header_sync::handle_channel_start(const code& ec,
         return;
     }
 
+    attach_protocols(channel, connect, handler);
+}
+
+void session_header_sync::attach_protocols(channel::ptr channel,
+    connector::ptr connect, result_handler handler)
+{
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
     attach<protocol_header_sync>(channel, hashes_, minimum_rate_, last_)
         ->start(BIND3(handle_complete, _1, connect, handler));
-};
+}
 
 void session_header_sync::handle_complete(const code& ec,
     network::connector::ptr connect, result_handler handler)

@@ -28,6 +28,7 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/reservation.hpp>
 #include <bitcoin/node/utility/reservations.hpp>
 
 namespace libbitcoin {
@@ -44,6 +45,12 @@ public:
         blockchain::simple_chain& chain, const settings& settings);
 
     void start(result_handler handler);
+
+protected:
+    /// Override to attach and start specialized protocols upon channel start.
+    virtual void attach_protocols(network::channel::ptr channel,
+        network::connector::ptr connect, reservation::ptr row,
+        result_handler handler);
 
 private:
     void handle_started(const code& ec, result_handler handler);
