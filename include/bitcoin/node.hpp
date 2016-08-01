@@ -22,10 +22,15 @@
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
+#include <bitcoin/node/protocols/protocol_block.hpp>
 #include <bitcoin/node/protocols/protocol_block_sync.hpp>
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
+#include <bitcoin/node/protocols/protocol_transaction.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
 #include <bitcoin/node/sessions/session_header_sync.hpp>
+#include <bitcoin/node/sessions/session_inbound.hpp>
+#include <bitcoin/node/sessions/session_manual.hpp>
+#include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>

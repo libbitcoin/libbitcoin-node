@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2016 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -17,40 +17,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/protocols/protocol_block.hpp>
 
-#include <cstddef>
-#include <bitcoin/blockchain.hpp>
+#include <functional>
+#include <string>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-// Construct with defaults derived from given context.
-configuration::configuration(bc::settings context)
-  : help(false),
-    initchain(false),
-    settings(false),
-    version(false),
-    node(context),
-    chain(context),
-    database(context),
-    network(context)
+#define NAME "block"
+#define CLASS protocol_block
+
+using namespace bc::message;
+using namespace bc::network;
+using namespace std::placeholders;
+
+protocol_block::protocol_block(p2p& network, channel::ptr channel)
+  : protocol_events(network, channel, NAME),
+    CONSTRUCT_TRACK(protocol_block)
 {
 }
 
-// Copy constructor.
-configuration::configuration(const configuration& other)
-  : help(other.help),
-    initchain(other.initchain),
-    settings(other.settings),
-    version(other.version),
-    file(other.file),
-    node(other.node),
-    chain(other.chain),
-    database(other.database),
-    network(other.network)
+void protocol_block::start()
 {
+    log::info(LOG_NODE)
+        << "Starting block protocol.";
 }
 
 } // namespace node

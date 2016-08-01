@@ -39,10 +39,15 @@ src_libbitcoin_node_la_SOURCES = \
     src/p2p_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
+    src/protocols/protocol_block.cpp \
     src/protocols/protocol_block_sync.cpp \
     src/protocols/protocol_header_sync.cpp \
+    src/protocols/protocol_transaction.cpp \
     src/sessions/session_block_sync.cpp \
     src/sessions/session_header_sync.cpp \
+    src/sessions/session_inbound.cpp \
+    src/sessions/session_manual.cpp \
+    src/sessions/session_outbound.cpp \
     src/utility/header_queue.cpp \
     src/utility/performance.cpp \
     src/utility/reservation.cpp \
@@ -102,13 +107,18 @@ include_bitcoin_node_HEADERS = \
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
+    include/bitcoin/node/protocols/protocol_block.hpp \
     include/bitcoin/node/protocols/protocol_block_sync.hpp \
-    include/bitcoin/node/protocols/protocol_header_sync.hpp
+    include/bitcoin/node/protocols/protocol_header_sync.hpp \
+    include/bitcoin/node/protocols/protocol_transaction.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
     include/bitcoin/node/sessions/session_block_sync.hpp \
-    include/bitcoin/node/sessions/session_header_sync.hpp
+    include/bitcoin/node/sessions/session_header_sync.hpp \
+    include/bitcoin/node/sessions/session_inbound.hpp \
+    include/bitcoin/node/sessions/session_manual.hpp \
+    include/bitcoin/node/sessions/session_outbound.hpp
 
 include_bitcoin_node_utilitydir = ${includedir}/bitcoin/node/utility
 include_bitcoin_node_utility_HEADERS = \

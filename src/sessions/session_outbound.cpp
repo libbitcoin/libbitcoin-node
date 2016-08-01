@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2016 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -17,40 +17,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/sessions/session_outbound.hpp>
 
-#include <cstddef>
-#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/protocols/protocol_block.hpp>
+#include <bitcoin/node/protocols/protocol_transaction.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-// Construct with defaults derived from given context.
-configuration::configuration(bc::settings context)
-  : help(false),
-    initchain(false),
-    settings(false),
-    version(false),
-    node(context),
-    chain(context),
-    database(context),
-    network(context)
+using namespace bc::network;
+using namespace std::placeholders;
+
+session_outbound::session_outbound(p2p& network)
+  : network::session_outbound(network)
 {
+    log::info(LOG_NODE)
+        << "Starting outbound session.";
 }
 
-// Copy constructor.
-configuration::configuration(const configuration& other)
-  : help(other.help),
-    initchain(other.initchain),
-    settings(other.settings),
-    version(other.version),
-    file(other.file),
-    node(other.node),
-    chain(other.chain),
-    database(other.database),
-    network(other.network)
+void session_outbound::attach_protocols(channel::ptr channel)
 {
+    attach<protocol_ping>(channel)->start();
+    attach<protocol_address>(channel)->start();
+    attach<protocol_transaction>(channel)->start();
+    attach<protocol_block>(channel)->start();
 }
 
 } // namespace node

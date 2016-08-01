@@ -53,23 +53,23 @@ public:
     // ------------------------------------------------------------------------
 
     /// Invoke startup and seeding sequence, call from constructing thread.
-    virtual void start(result_handler handler) override;
+    void start(result_handler handler) override;
 
     /// Synchronize the blockchain and then begin long running sessions,
     /// call from start result handler. Call base method to skip sync.
-    virtual void run(result_handler handler) override;
+    void run(result_handler handler) override;
 
     // Shutdown.
     // ------------------------------------------------------------------------
 
     /// Idempotent call to signal work stop, start may be reinvoked after.
     /// Returns the result of file save operation.
-    virtual bool stop() override;
+    bool stop() override;
 
     /// Blocking call to coalesce all work and then terminate all threads.
     /// Call from thread that constructed this class, or don't call at all.
     /// This calls stop, and start may be reinvoked after calling this.
-    virtual bool close() override;
+    bool close() override;
 
     // Properties.
     // ------------------------------------------------------------------------
@@ -94,10 +94,10 @@ public:
 
 protected:
     /// Override to attach specialized p2p sessions.
-    virtual network::session_seed::ptr attach_seed_session() override;
-    virtual network::session_manual::ptr attach_manual_session() override;
-    virtual network::session_inbound::ptr attach_inbound_session() override;
-    virtual network::session_outbound::ptr attach_outbound_session() override;
+    ////network::session_seed::ptr attach_seed_session() override;
+    network::session_manual::ptr attach_manual_session() override;
+    network::session_inbound::ptr attach_inbound_session() override;
+    network::session_outbound::ptr attach_outbound_session() override;
 
     /// Override to attach specialized node sessions.
     virtual session_header_sync::ptr attach_header_sync_session();

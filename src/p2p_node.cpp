@@ -26,6 +26,9 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
 #include <bitcoin/node/sessions/session_header_sync.hpp>
+#include <bitcoin/node/sessions/session_inbound.hpp>
+#include <bitcoin/node/sessions/session_manual.hpp>
+#include <bitcoin/node/sessions/session_outbound.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -85,14 +88,13 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    const auto start_handler =
-        std::bind(&p2p_node::handle_headers_synchronized,
-            this, _1, handler);
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    const auto header_sync = attach_header_sync_session();
 
     // This is invoked on a new thread.
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_header_sync>(hashes_, blockchain_)->
-        start(start_handler);
+    header_sync->start(
+        std::bind(&p2p_node::handle_headers_synchronized,
+            this, _1, handler));
 }
 
 void p2p_node::handle_headers_synchronized(const code& ec,
@@ -112,14 +114,13 @@ void p2p_node::handle_headers_synchronized(const code& ec,
         return;
     }
 
-    const auto start_handler =
-        std::bind(&p2p_node::handle_running,
-            this, _1, handler);
+    // The instance is retained by the stop handler (i.e. until shutdown).
+    const auto block_sync = attach_block_sync_session();
 
     // This is invoked on a new thread.
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    attach<session_block_sync>(hashes_, blockchain_, settings_)->
-        start(start_handler);
+    block_sync->start(
+        std::bind(&p2p_node::handle_running,
+            this, _1, handler));
 }
 
 void p2p_node::handle_running(const code& ec, result_handler handler)
@@ -162,69 +163,13 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
 
 // Specializations.
 // ----------------------------------------------------------------------------
-// Create derived sessions and override these to inject from derived p2p node.
+// Create derived sessions and override these to inject from derived node.
 
-// TODO: move to source files in node namespace.
-class session_manual
-  : public network::session_manual
-{
-public:
-    session_manual(p2p& network)
-      : network::session_manual(network)
-    {
-    }
-
-protected:
-    virtual void attach_protocols(channel::ptr channel) override
-    {
-        // TODO: attach additional protocols.
-        network::session_manual::attach_protocols(channel);
-    }
-};
-
-class session_inbound
-  : public network::session_inbound
-{
-public:
-    session_inbound(p2p& network)
-      : network::session_inbound(network)
-    {
-    }
-
-protected:
-    virtual void attach_protocols(channel::ptr channel) override
-    {
-        // TODO: attach additional protocols.
-        network::session_inbound::attach_protocols(channel);
-    }
-};
-
-class session_outbound
-  : public network::session_outbound
-{
-public:
-    session_outbound(p2p& network)
-      : network::session_outbound(network)
-    {
-    }
-
-protected:
-    virtual void attach_protocols(channel::ptr channel) override
-    {
-        // TODO: attach additional protocols.
-        network::session_outbound::attach_protocols(channel);
-    }
-};
-
-network::session_seed::ptr p2p_node::attach_seed_session()
-{
-    // The node does not customize the p2p seed session.
-    return p2p::attach_seed_session();
-}
-
+// Must not connect until running, otherwise imports may conflict with sync.
+// But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr p2p_node::attach_manual_session()
 {
-    return attach<session_manual>();
+    return attach<node::session_manual>();
 }
 
 network::session_inbound::ptr p2p_node::attach_inbound_session()
@@ -239,7 +184,8 @@ network::session_outbound::ptr p2p_node::attach_outbound_session()
 
 session_header_sync::ptr p2p_node::attach_header_sync_session()
 {
-    return attach<session_header_sync>(hashes_, blockchain_);
+    const auto& checkpoints = blockchain_.chain_settings().checkpoints;
+    return attach<session_header_sync>(hashes_, blockchain_, checkpoints);
 }
 
 session_block_sync::ptr p2p_node::attach_block_sync_session()

@@ -34,7 +34,6 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(instance.node.peers.empty());
     BOOST_REQUIRE_EQUAL(instance.node.download_connections, 8u);
     BOOST_REQUIRE_EQUAL(instance.node.block_timeout_seconds, 5u);
 }
@@ -46,7 +45,6 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(instance.node.peers.empty());
     BOOST_REQUIRE_EQUAL(instance.node.download_connections, 8u);
     BOOST_REQUIRE_EQUAL(instance.node.block_timeout_seconds, 5u);
 }
@@ -58,7 +56,6 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(instance.node.peers.empty());
     BOOST_REQUIRE_EQUAL(instance.node.download_connections, 8u);
     BOOST_REQUIRE_EQUAL(instance.node.block_timeout_seconds, 5u);
 }
@@ -70,7 +67,6 @@ BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
     instance1.initchain = true;
     instance1.settings = true;
     instance1.version = true;
-    instance1.node.peers.push_back({});
     instance1.node.download_connections = 42;
     instance1.node.block_timeout_seconds = 24;
 
@@ -80,23 +76,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
     BOOST_REQUIRE(instance2.initchain);
     BOOST_REQUIRE(instance2.settings);
     BOOST_REQUIRE(instance2.version);
-    BOOST_REQUIRE_EQUAL(instance2.node.peers.size(), 1u);
     BOOST_REQUIRE_EQUAL(instance2.node.download_connections, 42u);
     BOOST_REQUIRE_EQUAL(instance2.node.block_timeout_seconds, 24u);
-}
-
-// last_checkpoint_height
-//-----------------------------------------------------------------------------
-
-// This class assumes that checkponts are previously sorted.
-BOOST_AUTO_TEST_CASE(configuration__last_checkpoint_height__none_context__expected)
-{
-    const size_t expected = 42;
-    node::configuration instance(bc::settings::none);
-    instance.chain.checkpoints.push_back({ "0000000000000000000000000000000000000000000000000000000000000001", 1 });
-    instance.chain.checkpoints.push_back({ "0000000000000000000000000000000000000000000000000000000000000002", 2 });
-    instance.chain.checkpoints.push_back({ "0000000000000000000000000000000000000000000000000000000000000042", expected });
-    BOOST_REQUIRE_EQUAL(instance.last_checkpoint_height(), expected);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

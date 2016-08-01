@@ -42,7 +42,7 @@ public:
         reservation::ptr row);
 
     /// Start the protocol.
-    void start(event_handler handler);
+    virtual void start(event_handler handler);
 
 private:
     void send_get_blocks(event_handler complete, bool reset);
@@ -55,7 +55,7 @@ private:
     reservation::ptr reservation_;
 };
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin
 
 #endif

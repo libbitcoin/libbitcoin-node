@@ -64,9 +64,6 @@ public:
     blockchain::settings chain;
     database::settings database;
     network::settings network;
-
-    /// Helpers.
-    size_t last_checkpoint_height() const;
 };
 
 } // namespace node

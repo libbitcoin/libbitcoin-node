@@ -72,6 +72,21 @@
     <ClCompile Include="..\..\..\..\src\utility\header_queue.cpp">
       <Filter>src\utility</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
@@ -118,6 +133,21 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\header_queue.hpp">
       <Filter>include\bitcoin\node\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

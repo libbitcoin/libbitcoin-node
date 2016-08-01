@@ -44,7 +44,7 @@ public:
     session_block_sync(network::p2p& network, header_queue& hashes,
         blockchain::simple_chain& chain, const settings& settings);
 
-    void start(result_handler handler);
+    virtual void start(result_handler handler);
 
 protected:
     /// Override to attach and start specialized protocols upon channel start.
