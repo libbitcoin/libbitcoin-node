@@ -53,11 +53,5 @@ configuration::configuration(const configuration& other)
 {
 }
 
-size_t configuration::last_checkpoint_height() const
-{
-    return chain.checkpoints.empty() ? 0 :
-        chain.checkpoints.back().height();
-}
-
 } // namespace node
 } // namespace libbitcoin

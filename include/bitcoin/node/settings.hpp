@@ -37,7 +37,6 @@ public:
     /// Properties.
     uint32_t block_timeout_seconds;
     uint32_t download_connections;
-    config::endpoint::list peers;
 };
 
 } // namespace node
