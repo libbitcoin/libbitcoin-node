@@ -26,6 +26,9 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
 #include <bitcoin/node/sessions/session_header_sync.hpp>
+#include <bitcoin/node/sessions/session_inbound.hpp>
+#include <bitcoin/node/sessions/session_manual.hpp>
+#include <bitcoin/node/sessions/session_outbound.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -162,14 +165,8 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
 // ----------------------------------------------------------------------------
 // Create derived sessions and override these to inject from derived node.
 
-network::session_seed::ptr p2p_node::attach_seed_session()
-{
-    // The node does not customize the p2p seed session.
-    return p2p::attach_seed_session();
-}
-
 // Must not connect until running, otherwise imports may conflict with sync.
-// But we establishe the session in network so caller doesn't need to run.
+// But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr p2p_node::attach_manual_session()
 {
     return attach<node::session_manual>();
