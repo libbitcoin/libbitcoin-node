@@ -42,7 +42,7 @@ using namespace bc::config;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// The minimum rate back off factor, must be < 1.
+// The minimum rate back off factor, must be < 1.0.
 static constexpr float back_off_factor = 0.75f;
 
 // The starting minimum header download rate, exponentially backs off.
@@ -50,20 +50,15 @@ static constexpr uint32_t headers_per_second = 10000;
 
 // Sort is required here but not in configuration settings.
 session_header_sync::session_header_sync(p2p& network, header_queue& hashes,
-    block_chain_impl& blockchain)
+    simple_chain& blockchain, const checkpoint::list& checkpoints)
   : session_batch(network, false),
     hashes_(hashes),
     minimum_rate_(headers_per_second),
     blockchain_(blockchain),
+    checkpoints_(checkpoint::sort(checkpoints)),
     CONSTRUCT_TRACK(session_header_sync)
 {
-    static_assert(back_off_factor < 1, "invalid back-off factor");
-}
-
-// Checkpoints are not sorted in config but must be here.
-checkpoint::list session_header_sync::sort(checkpoint::list checkpoints)
-{
-    return checkpoint::sort(checkpoints);
+    static_assert(back_off_factor < 1.0, "invalid back-off factor");
 }
 
 // Start sequence.
@@ -185,13 +180,13 @@ bool session_header_sync::initialize(result_handler handler)
     }
 
     checkpoint seed;
-    auto code = session_header_sync::get_range(seed, last_, blockchain_);
+    const auto ec = get_range(seed, last_);
 
-    if (code)
+    if (ec)
     {
         log::error(LOG_NODE)
-            << "Error getting header sync range: " << code.message();
-        handler(code);
+            << "Error getting header sync range: " << ec.message();
+        handler(ec);
         return false;
     }
 
@@ -215,19 +210,18 @@ bool session_header_sync::initialize(result_handler handler)
 }
 
 // Get the block hashes that bracket the range to download.
-code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop,
-    block_chain_impl& blockchain)
+code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop)
 {
     uint64_t last_height;
 
-    if (!blockchain.get_last_height(last_height))
+    if (!blockchain_.get_last_height(last_height))
         return error::operation_failed;
 
     uint64_t last_gap;
     uint64_t first_gap;
     auto first_height = last_height;
 
-    if (blockchain.get_gap_range(first_gap, last_gap))
+    if (blockchain_.get_gap_range(first_gap, last_gap))
     {
         last_height = last_gap + 1;
         first_height = first_gap - 1;
@@ -235,14 +229,12 @@ code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop,
 
     header first_header;
 
-    if (!blockchain.get_header(first_header, first_height))
+    if (!blockchain_.get_header(first_header, first_height))
         return error::not_found;
-
-    const auto& checkpoints = blockchain.chain_settings().checkpoints;
-
-    if (!checkpoints.empty() && checkpoints.back().height() > last_height)
+    
+    if (!checkpoints_.empty() && checkpoints_.back().height() > last_height)
     {
-        out_stop = checkpoints.back();
+        out_stop = checkpoints_.back();
     }
     else if (first_height == last_height)
     {
@@ -252,7 +244,7 @@ code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop,
     {
         header last_header;
 
-        if (!blockchain.get_header(last_header, last_height))
+        if (!blockchain_.get_header(last_header, last_height))
             return error::not_found;
 
         out_stop = std::move(checkpoint{ last_header.hash(), last_height });

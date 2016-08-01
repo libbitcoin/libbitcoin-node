@@ -40,9 +40,10 @@ public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
     session_header_sync(network::p2p& network, header_queue& hashes,
-        blockchain::block_chain_impl& blockchain);
+        blockchain::simple_chain& blockchain,
+        const config::checkpoint::list& checkpoints);
 
-    void start(result_handler handler);
+    virtual void start(result_handler handler);
 
 protected:
     /// Override to attach and start specialized protocols upon channel start.
@@ -50,11 +51,6 @@ protected:
         network::connector::ptr connect, result_handler handler);
 
 private:
-    static config::checkpoint::list sort(config::checkpoint::list checkpoints);
-    static code get_range(config::checkpoint& out_seed,
-        config::checkpoint& out_stop,
-        blockchain::block_chain_impl& blockchain);
-
     bool initialize(result_handler handler);
     void handle_started(const code& ec, result_handler handler);
     void new_connection(network::connector::ptr connect,
@@ -68,6 +64,7 @@ private:
     void handle_channel_start(const code& ec, network::connector::ptr connect,
         network::channel::ptr channel, result_handler handler);
     void handle_channel_stop(const code& ec);
+    code get_range(config::checkpoint& out_seed, config::checkpoint& out_stop);
 
     // Thread safe.
     header_queue& hashes_;
@@ -75,7 +72,8 @@ private:
     // These do not require guard because they are not used concurrently.
     uint32_t minimum_rate_;
     config::checkpoint last_;
-    blockchain::block_chain_impl& blockchain_;
+    blockchain::simple_chain& blockchain_;
+    const config::checkpoint::list checkpoints_;
 };
 
 } // namespace node
