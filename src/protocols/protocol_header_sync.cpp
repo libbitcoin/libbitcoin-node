@@ -208,5 +208,5 @@ void protocol_header_sync::headers_complete(const code& ec,
     stop(error::channel_stopped);
 }
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin

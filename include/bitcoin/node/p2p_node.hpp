@@ -94,10 +94,10 @@ public:
 
 protected:
     /// Override to attach specialized p2p sessions.
-    virtual network::session_seed::ptr attach_seed_session() override;
-    virtual network::session_manual::ptr attach_manual_session() override;
-    virtual network::session_inbound::ptr attach_inbound_session() override;
-    virtual network::session_outbound::ptr attach_outbound_session() override;
+    network::session_seed::ptr attach_seed_session() override;
+    network::session_manual::ptr attach_manual_session() override;
+    network::session_inbound::ptr attach_inbound_session() override;
+    network::session_outbound::ptr attach_outbound_session() override;
 
     /// Override to attach specialized node sessions.
     virtual session_header_sync::ptr attach_header_sync_session();

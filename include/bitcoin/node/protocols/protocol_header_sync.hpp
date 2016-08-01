@@ -45,7 +45,7 @@ public:
         const config::checkpoint& last);
 
     /// Start the protocol.
-    void start(event_handler handler);
+    virtual void start(event_handler handler);
 
 private:
     static size_t final_height(header_queue& headers,
@@ -72,7 +72,7 @@ private:
     const config::checkpoint last_;
 };
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin
 
 #endif
