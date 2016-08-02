@@ -21,6 +21,7 @@
 #define LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_HPP
 
 #include <memory>
+#include <string>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -39,6 +40,38 @@ public:
 
     /// Start the protocol.
     virtual void start();
+
+private:
+
+    // Sending.
+    //-------------------------------------------------------------------------
+
+    // requests
+    ////void send_memory_pool(const code& ec);              // inventory->transations
+    ////void send_get_data(const code& ec);                 // transaction
+
+    // responses/notifications
+    ////void send_inventory(const code& ec);                // memory_pool | announce
+    ////void send_transaction(const hash_digest& hash);     // get_data->transaction
+
+    // Receiving.
+    //-------------------------------------------------------------------------
+
+    ////// requests
+    ////bool handle_receive_get_data(const code& ec, message::get_data::ptr message);
+
+    ////// responses/notifications
+    ////bool handle_receive_inventory(const code& ec, message::inventory::ptr message);
+    ////bool handle_receive_transaction(const code& ec, message::transaction::ptr message);
+    ////bool handle_receive_not_found(const code& ec, message::not_found::ptr message);
+
+    // Other.
+    //-------------------------------------------------------------------------
+    ////void handle_store_transaction(const code& ec);
+    ////void handle_transaction_pool(const code& ec, ...);
+    void handle_send(const code& ec, const std::string& command);
+
+    const bool relay_;
 };
 
 } // namespace node

@@ -35,14 +35,31 @@ using namespace std::placeholders;
 
 protocol_transaction::protocol_transaction(p2p& network, channel::ptr channel)
   : protocol_events(network, channel, NAME),
+    relay_(peer_version().relay),
     CONSTRUCT_TRACK(protocol_transaction)
 {
 }
 
 void protocol_transaction::start()
 {
-    log::info(LOG_NODE)
-        << "Starting transaction protocol.";
+    // TODO: Request peer's memory pool when relay is enabled (our behavior).
+}
+
+// Handle all sends from one method, since all send failures cause stop.
+void protocol_transaction::handle_send(const code& ec,
+    const std::string& command)
+{
+    if (stopped())
+        return;
+
+    if (ec)
+    {
+        log::debug(LOG_NODE)
+            << "Failure sending " << command << " to [" << authority() << "] "
+            << ec.message();
+        stop(ec);
+        return;
+    }
 }
 
 } // namespace node

@@ -41,7 +41,7 @@ void session_outbound::attach_protocols(channel::ptr channel)
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
     attach<protocol_transaction>(channel)->start();
-    attach<protocol_block>(channel)->start();
+    ////attach<protocol_block>(channel, blockchain_)->start();
 }
 
 } // namespace node
