@@ -20,8 +20,10 @@
 #include <bitcoin/node/sessions/session_manual.hpp>
 
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/protocols/protocol_block.hpp>
-#include <bitcoin/node/protocols/protocol_transaction.hpp>
+#include <bitcoin/node/protocols/protocol_block_in.hpp>
+#include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -40,8 +42,10 @@ void session_manual::attach_protocols(channel::ptr channel)
 {
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
-    attach<protocol_transaction>(channel)->start();
-    ////attach<protocol_block>(channel, blockchain_)->start();
+    attach<protocol_transaction_in>(channel)->start();
+    attach<protocol_transaction_out>(channel)->start();
+    ////attach<protocol_block_in>(channel, blockchain_)->start();
+    ////attach<protocol_block_out>(channel, blockchain_)->start();
 }
 
 } // namespace node

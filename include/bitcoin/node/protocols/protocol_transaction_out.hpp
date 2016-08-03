@@ -17,50 +17,41 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_transaction.hpp>
+#ifndef LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_OUT_HPP
+#define LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_OUT_HPP
 
-#include <functional>
+#include <memory>
 #include <string>
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-#define NAME "transaction"
-#define CLASS protocol_transaction
-
-using namespace bc::message;
-using namespace bc::network;
-using namespace std::placeholders;
-
-protocol_transaction::protocol_transaction(p2p& network, channel::ptr channel)
-  : protocol_events(network, channel, NAME),
-    relay_(peer_version().relay),
-    CONSTRUCT_TRACK(protocol_transaction)
+class BCN_API protocol_transaction_out
+  : public network::protocol_events, track<protocol_transaction_out>
 {
-}
+public:
+    typedef std::shared_ptr<protocol_transaction_out> ptr;
 
-void protocol_transaction::start()
-{
-    // TODO: Request peer's memory pool when relay is enabled (our behavior).
-}
+    /// Construct a transaction protocol instance.
+    protocol_transaction_out(network::p2p& network, network::channel::ptr channel);
 
-// Handle all sends from one method, since all send failures cause stop.
-void protocol_transaction::handle_send(const code& ec,
-    const std::string& command)
-{
-    if (stopped())
-        return;
+    /// Start the protocol.
+    virtual void start();
 
-    if (ec)
-    {
-        log::debug(LOG_NODE)
-            << "Failure sending " << command << " to [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return;
-    }
-}
+private:
+    ////void send_inventory(const code& ec);
+    ////void send_transaction(const hash_digest& hash);
+    ////bool handle_receive_get_data(const code& ec, message::get_data::ptr message);
+    ////void handle_memory_pool(const code& ec, ...);
+
+    // Relay unconfirmed transactions to the peer.
+    const bool relay_to_peer_;
+};
 
 } // namespace node
 } // namespace libbitcoin
+
+#endif

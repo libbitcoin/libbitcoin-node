@@ -17,35 +17,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/sessions/session_outbound.hpp>
-
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+
+#include <functional>
+#include <string>
+#include <bitcoin/network.hpp>
 
 namespace libbitcoin {
 namespace node {
 
+#define NAME "transaction"
+#define CLASS protocol_transaction_in
+
+using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-session_outbound::session_outbound(p2p& network)
-  : network::session_outbound(network)
+protocol_transaction_in::protocol_transaction_in(p2p& network,
+    channel::ptr channel)
+  : protocol_events(network, channel, NAME),
+    relay_from_peer_(network.network_settings().relay_transactions),
+    CONSTRUCT_TRACK(protocol_transaction_in)
 {
-    log::info(LOG_NODE)
-        << "Starting outbound session.";
 }
 
-void session_outbound::attach_protocols(channel::ptr channel)
+// TODO: drop the channel if a peer relays transactions when !relay_from_peer_.
+void protocol_transaction_in::start()
 {
-    attach<protocol_ping>(channel)->start();
-    attach<protocol_address>(channel)->start();
-    attach<protocol_transaction_in>(channel)->start();
-    attach<protocol_transaction_out>(channel)->start();
-    ////attach<protocol_block_in>(channel, blockchain_)->start();
-    ////attach<protocol_block_out>(channel, blockchain_)->start();
+    if (relay_from_peer_)
+    {
+        // TODO: Request peer's memory pool when relay is enabled.
+        // This is not a protocol requirement, just our behavior.
+    }
 }
 
 } // namespace node
