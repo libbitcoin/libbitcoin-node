@@ -101,7 +101,7 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
     if (ec)
     {
         log::warning(LOG_NODE)
-            << "Failure sending request to slot (" << reservation_->slot()
+            << "Failure sending get blocks to slot (" << reservation_->slot()
             << ") " << ec.message();
         complete(ec);
     }
