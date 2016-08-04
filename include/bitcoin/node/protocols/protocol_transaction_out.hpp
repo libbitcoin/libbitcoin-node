@@ -21,7 +21,6 @@
 #define LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_OUT_HPP
 
 #include <memory>
-#include <string>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,18 +35,29 @@ public:
     typedef std::shared_ptr<protocol_transaction_out> ptr;
 
     /// Construct a transaction protocol instance.
-    protocol_transaction_out(network::p2p& network, network::channel::ptr channel);
+    protocol_transaction_out(network::p2p& network,
+        network::channel::ptr channel, blockchain::block_chain& blockchain,
+        blockchain::transaction_pool& pool);
 
     /// Start the protocol.
     virtual void start();
 
 private:
+    // Local type aliases.
+    typedef message::memory_pool::ptr memory_pool_ptr;
+    typedef message::get_data::ptr get_data_ptr;
+    typedef chain::point::indexes index_list;
+
     ////void send_inventory(const code& ec);
     ////void send_transaction(const hash_digest& hash);
-    ////bool handle_receive_get_data(const code& ec, message::get_data::ptr message);
-    ////void handle_memory_pool(const code& ec, ...);
+    ////bool handle_receive_get_data(const code& ec, get_data_ptr message);
+    ////void handle_receive_memory_pool(const code& ec, memory_pool_ptr message);
 
-    // Relay unconfirmed transactions to the peer.
+    bool handle_floated(const code& ec, const index_list& unconfirmed,
+        const chain::transaction& transaction);
+
+    blockchain::block_chain& blockchain_;
+    blockchain::transaction_pool& pool_;
     const bool relay_to_peer_;
 };
 

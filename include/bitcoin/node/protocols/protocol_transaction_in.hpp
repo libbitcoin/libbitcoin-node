@@ -21,7 +21,6 @@
 #define LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_IN_HPP
 
 #include <memory>
-#include <string>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,18 +35,30 @@ public:
     typedef std::shared_ptr<protocol_transaction_in> ptr;
 
     /// Construct a transaction protocol instance.
-    protocol_transaction_in(network::p2p& network, network::channel::ptr channel);
+    protocol_transaction_in(network::p2p& network,
+        network::channel::ptr channel, blockchain::block_chain& blockchain,
+        blockchain::transaction_pool& pool);
 
     /// Start the protocol.
     virtual void start();
 
 private:
-    ////void send_get_data(const code& ec);
-    ////bool handle_receive_inventory(const code& ec, message::inventory::ptr message);
-    ////bool handle_receive_transaction(const code& ec, message::transaction::ptr message);
-    ////void handle_store_transaction(const code& ec);
+    typedef message::inventory::ptr inventory_ptr;
+    typedef message::transaction::ptr transaction_ptr;
 
-    // Expect the peer to relay unconfirmed transactions to us.
+    void send_get_data(const code& ec, const hash_list& hashes);
+    bool handle_receive_inventory(const code& ec, inventory_ptr message);
+    bool handle_receive_transaction(const code& ec, transaction_ptr message);
+    void handle_store_validated(const code& ec, const chain::transaction& tx,
+        const hash_digest& hash, const chain::point::indexes& unconfirmed);
+    void handle_store_confirmed(const code& ec, const chain::transaction& tx,
+        const hash_digest& hash);
+
+    void handle_stop(const code&);
+    bool peer_supports_memory_pool_message();
+
+    blockchain::block_chain& blockchain_;
+    blockchain::transaction_pool& pool_;
     const bool relay_from_peer_;
 };
 

@@ -52,8 +52,7 @@ private:
     typedef message::block::ptr_list block_ptr_list;
 
     void send_get_headers_or_blocks(const code& ec);
-    void send_get_data(const code& ec, const hash_list& hashes,
-        message::inventory_type_id type_id);
+    void send_get_data(const code& ec, const hash_list& hashes);
 
     bool handle_receive_block(const code& ec, block_ptr message);
     bool handle_receive_headers(const code& ec, headers_ptr message);

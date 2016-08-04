@@ -169,17 +169,17 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
 // But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr p2p_node::attach_manual_session()
 {
-    return attach<node::session_manual>();
+    return attach<node::session_manual>(blockchain_, blockchain_.pool());
 }
 
 network::session_inbound::ptr p2p_node::attach_inbound_session()
 {
-    return attach<node::session_inbound>();
+    return attach<node::session_inbound>(blockchain_, blockchain_.pool());
 }
 
 network::session_outbound::ptr p2p_node::attach_outbound_session()
 {
-    return attach<node::session_outbound>();
+    return attach<node::session_outbound>(blockchain_, blockchain_.pool());
 }
 
 session_header_sync::ptr p2p_node::attach_header_sync_session()

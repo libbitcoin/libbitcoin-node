@@ -60,6 +60,7 @@ void protocol_block_in::start()
     protocol_timer::start(get_blocks_interval,
         BIND1(send_get_headers_or_blocks, _1));
 
+    SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
     SUBSCRIBE2(block, handle_receive_block, _1, _2);
 
@@ -130,7 +131,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     }
 }
 
-// Receive inventory sequence.
+// Receive headers|inventory sequence.
 //-----------------------------------------------------------------------------
 
 // This originates from send_header->annoucements and get_headers requests.
@@ -202,11 +203,10 @@ void protocol_block_in::handle_fetch_missing_orphans(const code& ec,
     }
 
     blockchain_.fetch_missing_block_hashes(block_hashes,
-        BIND3(send_get_data, _1, _2, inventory_type_id::block));
+        BIND2(send_get_data, _1, _2));
 }
 
-void protocol_block_in::send_get_data(const code& ec, const hash_list& hashes,
-    inventory_type_id type_id)
+void protocol_block_in::send_get_data(const code& ec, const hash_list& hashes)
 {
     if (stopped() || ec == error::service_stopped || hashes.empty())
         return;
@@ -220,8 +220,8 @@ void protocol_block_in::send_get_data(const code& ec, const hash_list& hashes,
         return;
     }
 
-    // inventory->get_data[blocks]
-    get_data request(hashes, type_id);
+    // inventory|headers->get_data[blocks]
+    get_data request(hashes, inventory_type_id::block);
     SEND2(request, handle_send, _1, request.command);
 }
 
