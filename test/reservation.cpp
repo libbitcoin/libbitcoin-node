@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(reservation__stopped__import_last_block__true)
     const auto message = message_factory(1, check42.hash());
     const auto& header1 = message->elements[0];
     reserve->insert(header1.hash(), 42);
-    const auto block1 = std::make_shared<block>(block{ header1 });
+    const auto block1 = std::make_shared<block>(block{ header1, {} });
     reserve->import(block1);
     BOOST_REQUIRE(reserve->empty());
     BOOST_REQUIRE(reserve->stopped());
@@ -202,9 +202,9 @@ BOOST_AUTO_TEST_CASE(reservation__reset__values__defaults)
     // Create a history entry.
     const auto message = message_factory(3, null_hash);
     reserve->insert(message->elements[0].hash(), 0);
-    const auto block0 = std::make_shared<block>(block{ message->elements[0] });
-    const auto block1 = std::make_shared<block>(block{ message->elements[1] });
-    const auto block2 = std::make_shared<block>(block{ message->elements[2] });
+    const auto block0 = std::make_shared<block>(block{ message->elements[0], {} });
+    const auto block1 = std::make_shared<block>(block{ message->elements[1], {} });
+    const auto block2 = std::make_shared<block>(block{ message->elements[2], {} });
     reserve->import(block0);
     reserve->import(block1);
 
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__unsolicitied___empty_idle)
     const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
-    const auto block1 = std::make_shared<block>(block{ header });
+    const auto block1 = std::make_shared<block>(block{ header, {} });
     BOOST_REQUIRE(reserve->idle());
     reserve->import(block1);
     BOOST_REQUIRE(reserve->idle());
@@ -300,7 +300,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__fail__idle)
     const auto message = message_factory(1, check42.hash());
     const auto& header = message->elements[0];
     reserve->insert(header.hash(), 42);
-    const auto block1 = std::make_shared<block>(block{ header });
+    const auto block1 = std::make_shared<block>(block{ header, {} });
     BOOST_REQUIRE(reserve->idle());
     reserve->import(block1);
     BOOST_REQUIRE(reserve->idle());
@@ -318,9 +318,9 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success_timeout__idle)
     reserve->insert(message->elements[0].hash(), 0);
     reserve->insert(message->elements[1].hash(), 1);
     reserve->insert(message->elements[2].hash(), 2);
-    const auto block0 = std::make_shared<block>(block{ message->elements[0] });
-    const auto block1 = std::make_shared<block>(block{ message->elements[1] });
-    const auto block2 = std::make_shared<block>(block{ message->elements[2] });
+    const auto block0 = std::make_shared<block>(block{ message->elements[0], {} });
+    const auto block1 = std::make_shared<block>(block{ message->elements[1], {} });
+    const auto block2 = std::make_shared<block>(block{ message->elements[2], {} });
     reserve->import(block0);
     reserve->import(block1);
     reserve->import(block2);
@@ -341,9 +341,9 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
     reserve->insert(message->elements[0].hash(), 0);
     reserve->insert(message->elements[1].hash(), 1);
     reserve->insert(message->elements[2].hash(), 2);
-    const auto block0 = std::make_shared<block>(block{ message->elements[0] });
-    const auto block1 = std::make_shared<block>(block{ message->elements[1] });
-    const auto block2 = std::make_shared<block>(block{ message->elements[2] });
+    const auto block0 = std::make_shared<block>(block{ message->elements[0], {} });
+    const auto block1 = std::make_shared<block>(block{ message->elements[1], {} });
+    const auto block2 = std::make_shared<block>(block{ message->elements[2], {} });
 
     // Idle checks assume minimum_history is set to 3.
     BOOST_REQUIRE(reserve->idle());
