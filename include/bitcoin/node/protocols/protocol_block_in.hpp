@@ -45,11 +45,11 @@ public:
 
 private:
     // Local type aliases.
-    typedef message::block::ptr block_ptr;
+    typedef message::block_message::ptr block_ptr;
     typedef message::headers::ptr headers_ptr;
     typedef message::inventory::ptr inventory_ptr;
     typedef message::not_found::ptr not_found_ptr;
-    typedef message::block::ptr_list block_ptr_list;
+    typedef message::block_message::ptr_list block_ptr_list;
 
     void send_get_headers_or_blocks(const code& ec);
     void send_get_data(const code& ec, const hash_list& hashes);

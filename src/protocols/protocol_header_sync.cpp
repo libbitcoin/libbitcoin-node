@@ -33,7 +33,6 @@ namespace node {
 #define CLASS protocol_header_sync
 
 using namespace bc::config;
-using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using std::placeholders::_1;
@@ -117,7 +116,7 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
+bool protocol_header_sync::handle_receive(const code& ec, headers_ptr message,
     event_handler complete)
 {
     if (stopped())

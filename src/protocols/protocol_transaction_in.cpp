@@ -51,6 +51,7 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
+    // TODO: subscribe to reorgs and resend memory_pool if blocks replaced.
     if (relay_from_peer_ && peer_supports_memory_pool_message())
     {
         // This is not a protocol requirement, just our behavior.
@@ -58,14 +59,14 @@ void protocol_transaction_in::start()
     }
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
-    SUBSCRIBE2(transaction, handle_receive_transaction, _1, _2);
+    SUBSCRIBE2(transaction_message, handle_receive_transaction, _1, _2);
 }
 
 // Receive inventory sequence.
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_in::handle_receive_inventory(const code& ec,
-    message::inventory::ptr message)
+    inventory_ptr message)
 {
     if (stopped())
         return false;
@@ -120,7 +121,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_in::handle_receive_transaction(const code& ec,
-    message::transaction::ptr message)
+    transaction_ptr message)
 {
     if (stopped())
         return false;
@@ -146,16 +147,22 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     log::debug(LOG_NODE)
         << "Potential transaction from [" << authority() << "].";
 
-    pool_.store(*message,
-        BIND3(handle_store_confirmed, _1, _2, _3),
-        BIND4(handle_store_validated, _1, _2, _3, _4));
+    ////// TODO: revise pool to broadcast transaction_message type.
+    ////pool_.store(*message,
+    ////    BIND3(handle_store_confirmed, _1, _2, _3),
+    ////    BIND4(handle_store_validated, _1, _2, _3, _4));
     return true;
 }
 
 // The transaction has been saved to the memory pool (or not).
+// This will be picked up by subscription in transaction->out and will cause
+// the transaction to be announced to relay-accepting peers. We want to avoid
+// echoing it back to the originating peer. To do this we should derive message
+// namespace types from chain types and add a reference to the source channel.
+// This also has the benefit of making the list of message classes independent.
 void protocol_transaction_in::handle_store_validated(const code& ec,
-    const transaction& tx, const hash_digest& hash,
-    const chain::point::indexes& unconfirmed)
+    const transaction_message& transaction, const hash_digest& hash,
+    const index_list& unconfirmed)
 {
     // Examples:
     // error::service_stopped
@@ -166,7 +173,7 @@ void protocol_transaction_in::handle_store_validated(const code& ec,
 
 // The transaction has been confirmed in a block.
 void protocol_transaction_in::handle_store_confirmed(const code& ec,
-    const transaction& tx, const hash_digest& hash)
+    const transaction_message& transaction, const hash_digest& hash)
 {
     // Examples:
     // error::service_stopped

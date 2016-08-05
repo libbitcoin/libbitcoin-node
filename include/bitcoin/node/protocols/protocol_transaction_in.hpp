@@ -43,15 +43,18 @@ public:
     virtual void start();
 
 private:
+    typedef chain::point::indexes index_list;
     typedef message::inventory::ptr inventory_ptr;
-    typedef message::transaction::ptr transaction_ptr;
+    typedef message::transaction_message::ptr transaction_ptr;
 
     void send_get_data(const code& ec, const hash_list& hashes);
     bool handle_receive_inventory(const code& ec, inventory_ptr message);
     bool handle_receive_transaction(const code& ec, transaction_ptr message);
-    void handle_store_validated(const code& ec, const chain::transaction& tx,
-        const hash_digest& hash, const chain::point::indexes& unconfirmed);
-    void handle_store_confirmed(const code& ec, const chain::transaction& tx,
+    void handle_store_validated(const code& ec, 
+        const message::transaction_message& transaction,
+        const hash_digest& hash, const index_list& unconfirmed);
+    void handle_store_confirmed(const code& ec,
+        const message::transaction_message& transaction,
         const hash_digest& hash);
 
     void handle_stop(const code&);

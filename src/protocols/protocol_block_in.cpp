@@ -62,7 +62,7 @@ void protocol_block_in::start()
 
     SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
-    SUBSCRIBE2(block, handle_receive_block, _1, _2);
+    SUBSCRIBE2(block_message, handle_receive_block, _1, _2);
 
     if (headers_from_peer_)
     {
@@ -261,8 +261,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
 // Receive block sequence.
 //-----------------------------------------------------------------------------
 
-bool protocol_block_in::handle_receive_block(const code& ec,
-    message::block::ptr message)
+bool protocol_block_in::handle_receive_block(const code& ec, block_ptr message)
 {
     if (stopped())
         return false;
@@ -316,7 +315,7 @@ void protocol_block_in::handle_store_block(const code& ec)
 //-----------------------------------------------------------------------------
 
 bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
-    const block::ptr_list& incoming, const block::ptr_list& outgoing)
+    const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
     ///////////////////////////////////////////////////////////////////////////
     // TODO: send new get_[blocks\header] request (see v2).

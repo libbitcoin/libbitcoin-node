@@ -75,7 +75,7 @@ void protocol_block_out::start()
 //-----------------------------------------------------------------------------
 
 bool protocol_block_out::handle_receive_send_headers(const code& ec,
-    message::send_headers::ptr message)
+    send_headers_ptr message)
 {
     if (stopped())
         return false;
@@ -100,7 +100,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
-    message::get_headers::ptr message)
+    get_headers_ptr message)
 {
     if (stopped())
         return false;
@@ -123,7 +123,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 }
 
 void protocol_block_out::handle_fetch_locator_headers(const code& ec,
-    const chain::header::list& headers)
+    const header_list& headers)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -146,7 +146,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_block_out::handle_receive_get_blocks(const code& ec,
-    message::get_blocks::ptr message)
+    get_blocks_ptr message)
 {
     if (stopped())
         return false;
@@ -192,7 +192,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_block_out::handle_receive_get_data(const code& ec,
-    message::get_data::ptr message)
+    get_data_ptr message)
 {
     if (stopped())
         return false;
@@ -206,19 +206,20 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    // Ignore non-block inventory requests in this protocol.
-    for (const auto& inventory: message->inventories)
-        if (inventory.type == inventory_type_id::block)
-            blockchain_.fetch_block(inventory.hash,
-                BIND3(send_block, _1, _2, inventory.hash));
-        else if (inventory.type == inventory_type_id::filtered_block)
-            blockchain_.fetch_merkle_block(inventory.hash,
-                BIND3(send_merkle_block, _1, _2, inventory.hash));
+    ////// TODO: revise blockchain to accept block_message type.
+    ////// Ignore non-block inventory requests in this protocol.
+    ////for (const auto& inventory: message->inventories)
+    ////    if (inventory.type == inventory_type_id::block)
+    ////        blockchain_.fetch_block(inventory.hash,
+    ////            BIND3(send_block, _1, _2, inventory.hash));
+    ////    else if (inventory.type == inventory_type_id::filtered_block)
+    ////        blockchain_.fetch_merkle_block(inventory.hash,
+    ////            BIND3(send_merkle_block, _1, _2, inventory.hash));
 
     return true;
 }
 
-void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
+void protocol_block_out::send_block(const code& ec, block_ptr block,
     const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
@@ -247,7 +248,7 @@ void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
 }
 
 void protocol_block_out::send_merkle_block(const code& ec,
-    message::merkle_block::ptr merkle, const hash_digest& hash)
+    merkle_block_ptr merkle, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -278,7 +279,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
-    const block::ptr_list& incoming, const block::ptr_list& outgoing)
+    const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
     ///////////////////////////////////////////////////////////////////////////
     // TODO: add host id to message subscriber to avoid block reflection.

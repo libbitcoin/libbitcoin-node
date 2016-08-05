@@ -54,7 +54,7 @@ private:
     ////void handle_receive_memory_pool(const code& ec, memory_pool_ptr message);
 
     bool handle_floated(const code& ec, const index_list& unconfirmed,
-        const chain::transaction& transaction);
+        const message::transaction_message& transaction);
 
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& pool_;
