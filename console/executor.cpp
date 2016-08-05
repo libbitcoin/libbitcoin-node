@@ -34,7 +34,7 @@ namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using std::placeholders::_1;
+using namespace std::placeholders;
 using namespace boost::system;
 using namespace bc::config;
 using namespace bc::database;

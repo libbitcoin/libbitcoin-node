@@ -38,8 +38,7 @@ namespace node {
 using namespace blockchain;
 using namespace config;
 using namespace network;
-using std::placeholders::_1;
-using std::placeholders::_2;
+using namespace std::placeholders;
 
 // The interval in which all-channel block download performance is tested.
 static const asio::seconds regulator_interval(5);

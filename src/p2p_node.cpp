@@ -37,8 +37,7 @@ using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::network;
-using std::placeholders::_1;
-using std::placeholders::_2;
+using namespace std::placeholders;
 
 p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),

@@ -35,8 +35,7 @@ namespace node {
 using namespace bc::config;
 using namespace bc::message;
 using namespace bc::network;
-using std::placeholders::_1;
-using std::placeholders::_2;
+using namespace std::placeholders;
 
 // The protocol maximum size for get data header requests.
 static constexpr size_t max_header_response = 2000;

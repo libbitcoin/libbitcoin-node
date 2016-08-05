@@ -35,8 +35,7 @@ namespace node {
 
 using namespace bc::message;
 using namespace bc::network;
-using std::placeholders::_1;
-using std::placeholders::_2;
+using namespace std::placeholders;
 
 // The interval in which block download rate is tested.
 static const asio::seconds expiry_interval(5);
