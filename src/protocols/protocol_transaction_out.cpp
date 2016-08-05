@@ -60,7 +60,7 @@ void protocol_transaction_out::start()
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_out::handle_floated(const code& ec,
-    const index_list&, const transaction_message& transaction)
+    const index_list& unconfirmed, transaction_ptr message)
 {
     ///////////////////////////////////////////////////////////////////////////
     // TODO: add host id to message subscriber to avoid tx reflection.

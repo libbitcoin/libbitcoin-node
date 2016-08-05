@@ -147,10 +147,9 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     log::debug(LOG_NODE)
         << "Potential transaction from [" << authority() << "].";
 
-    ////// TODO: revise pool to broadcast transaction_message type.
-    ////pool_.store(*message,
-    ////    BIND3(handle_store_confirmed, _1, _2, _3),
-    ////    BIND4(handle_store_validated, _1, _2, _3, _4));
+    pool_.store(message,
+        BIND2(handle_store_confirmed, _1, _2),
+        BIND3(handle_store_validated, _1, _2, _3));
     return true;
 }
 
@@ -161,8 +160,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 // namespace types from chain types and add a reference to the source channel.
 // This also has the benefit of making the list of message classes independent.
 void protocol_transaction_in::handle_store_validated(const code& ec,
-    const transaction_message& transaction, const hash_digest& hash,
-    const index_list& unconfirmed)
+    transaction_ptr message, const index_list& unconfirmed)
 {
     // Examples:
     // error::service_stopped
@@ -173,7 +171,7 @@ void protocol_transaction_in::handle_store_validated(const code& ec,
 
 // The transaction has been confirmed in a block.
 void protocol_transaction_in::handle_store_confirmed(const code& ec,
-    const transaction_message& transaction, const hash_digest& hash)
+    transaction_ptr message)
 {
     // Examples:
     // error::service_stopped

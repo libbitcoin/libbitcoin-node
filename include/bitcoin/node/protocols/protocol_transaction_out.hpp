@@ -44,6 +44,7 @@ public:
 
 private:
     // Local type aliases.
+    typedef message::transaction_message::ptr transaction_ptr;
     typedef message::memory_pool::ptr memory_pool_ptr;
     typedef message::get_data::ptr get_data_ptr;
     typedef chain::point::indexes index_list;
@@ -54,7 +55,7 @@ private:
     ////void handle_receive_memory_pool(const code& ec, memory_pool_ptr message);
 
     bool handle_floated(const code& ec, const index_list& unconfirmed,
-        const message::transaction_message& transaction);
+        transaction_ptr message);
 
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& pool_;

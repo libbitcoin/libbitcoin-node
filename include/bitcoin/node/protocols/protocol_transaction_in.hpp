@@ -50,12 +50,10 @@ private:
     void send_get_data(const code& ec, const hash_list& hashes);
     bool handle_receive_inventory(const code& ec, inventory_ptr message);
     bool handle_receive_transaction(const code& ec, transaction_ptr message);
-    void handle_store_validated(const code& ec, 
-        const message::transaction_message& transaction,
-        const hash_digest& hash, const index_list& unconfirmed);
+    void handle_store_validated(const code& ec, transaction_ptr message,
+        const index_list& unconfirmed);
     void handle_store_confirmed(const code& ec,
-        const message::transaction_message& transaction,
-        const hash_digest& hash);
+        const transaction_ptr message);
 
     void handle_stop(const code&);
     bool peer_supports_memory_pool_message();
