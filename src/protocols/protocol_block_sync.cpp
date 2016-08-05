@@ -35,8 +35,7 @@ namespace node {
 
 using namespace bc::message;
 using namespace bc::network;
-using std::placeholders::_1;
-using std::placeholders::_2;
+using namespace std::placeholders;
 
 // The interval in which block download rate is tested.
 static const asio::seconds expiry_interval(5);
@@ -57,7 +56,7 @@ void protocol_block_sync::start(event_handler handler)
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
     protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
-    SUBSCRIBE3(block, handle_receive, _1, _2, complete);
+    SUBSCRIBE3(block_message, handle_receive, _1, _2, complete);
 
     // This is the end of the start sequence.
     send_get_blocks(complete, true);
@@ -101,7 +100,7 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
     if (ec)
     {
         log::warning(LOG_NODE)
-            << "Failure sending request to slot (" << reservation_->slot()
+            << "Failure sending get blocks to slot (" << reservation_->slot()
             << ") " << ec.message();
         complete(ec);
     }
@@ -111,7 +110,7 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
 // block messages. This requires that this handler never call back into the
 // subscriber. Otherwise a deadlock will result. This in turn requires that
 // the 'complete' parameter handler never call into the message subscriber.
-bool protocol_block_sync::handle_receive(const code& ec, block::ptr message,
+bool protocol_block_sync::handle_receive(const code& ec, block_ptr message,
     event_handler complete)
 {
     if (stopped())

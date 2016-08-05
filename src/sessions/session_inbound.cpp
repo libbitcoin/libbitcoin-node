@@ -19,18 +19,25 @@
  */
 #include <bitcoin/node/sessions/session_inbound.hpp>
 
+#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/protocols/protocol_block.hpp>
-#include <bitcoin/node/protocols/protocol_transaction.hpp>
+#include <bitcoin/node/protocols/protocol_block_in.hpp>
+#include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 namespace libbitcoin {
 namespace node {
     
+using namespace bc::blockchain;
 using namespace bc::network;
 using namespace std::placeholders;
 
-session_inbound::session_inbound(p2p& network)
-  : network::session_inbound(network)
+session_inbound::session_inbound(p2p& network, block_chain& blockchain,
+    transaction_pool& pool)
+  : network::session_inbound(network),
+    blockchain_(blockchain),
+    pool_(pool)
 {
     log::info(LOG_NODE)
         << "Starting inbound session.";
@@ -40,8 +47,10 @@ void session_inbound::attach_protocols(channel::ptr channel)
 {
     attach<protocol_ping>(channel)->start();
     attach<protocol_address>(channel)->start();
-    attach<protocol_transaction>(channel)->start();
-    attach<protocol_block>(channel)->start();
+    attach<protocol_block_in>(channel, blockchain_)->start();
+    attach<protocol_block_out>(channel, blockchain_)->start();
+    attach<protocol_transaction_in>(channel, blockchain_, pool_)->start();
+    attach<protocol_transaction_out>(channel, blockchain_, pool_)->start();
 }
 
 } // namespace node

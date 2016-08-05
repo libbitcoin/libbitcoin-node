@@ -33,11 +33,9 @@ namespace node {
 #define CLASS protocol_header_sync
 
 using namespace bc::config;
-using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
-using std::placeholders::_1;
-using std::placeholders::_2;
+using namespace std::placeholders;
 
 // The protocol maximum size for get data header requests.
 static constexpr size_t max_header_response = 2000;
@@ -117,7 +115,7 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-bool protocol_header_sync::handle_receive(const code& ec, headers::ptr message,
+bool protocol_header_sync::handle_receive(const code& ec, headers_ptr message,
     event_handler complete)
 {
     if (stopped())
