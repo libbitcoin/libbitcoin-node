@@ -285,6 +285,11 @@ options_metadata parser::load_settings()
         "node.download_connections",
         value<uint32_t>(&configured.node.download_connections),
         "The maximum number of connections for initial block download, defaults to 8."
+    )
+    (
+        "node.transaction_pool_refresh",
+        value<bool>(&configured.node.transaction_pool_refresh),
+        "Refresh the transaction pool on reorganization and channel start, defaults to true."
     );
 
     return description;
