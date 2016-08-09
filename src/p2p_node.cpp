@@ -151,13 +151,42 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     BITCOIN_ASSERT(height <= max_size_t);
     set_height(static_cast<size_t>(height));
 
-    // Generalize the final_height() function from protocol_header_sync.
     log::info(LOG_NODE)
         << "Node start height is (" << height << ").";
 
+    subscribe_blockchain(
+        std::bind(&p2p_node::handle_reorganized,
+            this, _1, _2, _3, _4));
+
     // This is invoked on a new thread.
-    // This is the end of the derived run sequence.
+    // This is the end of the derived run startup sequence.
     p2p::run(handler);
+}
+
+// This maintains a height member.
+bool p2p_node::handle_reorganized(const code& ec, size_t fork_point,
+    const block_ptr_list& incoming, const block_ptr_list& outgoing)
+{
+    if (stopped() || ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Failure handling reorganization: " << ec.message();
+        stop();
+        return false;
+    }
+
+    for (const auto block: outgoing)
+        log::debug(LOG_NODE)
+            << "Reorganization discarded block ["
+            << encode_hash(block->header.hash()) << "]";
+
+    BITCOIN_ASSERT(max_size_t - fork_point >= incoming.size());
+    const auto height = fork_point + incoming.size();
+    set_height(height);
+    return true;
 }
 
 // Specializations.
