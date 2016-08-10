@@ -21,6 +21,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {
@@ -34,12 +35,24 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
+static constexpr auto memory_pool_version = 70002u;
+
+// TODO: derive from protocol_session_node abstract intermediate base class.
+// TODO: Pass p2p_node on construct, obtaining node configuration settings.
 protocol_transaction_in::protocol_transaction_in(p2p& network,
     channel::ptr channel, block_chain& blockchain, transaction_pool& pool)
   : protocol_events(network, channel, NAME),
     blockchain_(blockchain),
     pool_(pool),
+
+    // TODO: move relay to a derived class protocol_transaction_in_70001.
     relay_from_peer_(network.network_settings().relay_transactions),
+
+    // TODO: move memory_pool to a derived class protocol_transaction_in_70002.
+    peer_suports_memory_pool_(peer_version().value >= memory_pool_version),
+    refresh_pool_(relay_from_peer_ && peer_suports_memory_pool_
+        /*&& network.node_settings().transaction_pool_refresh*/),
+
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
@@ -51,11 +64,16 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
-    // TODO: subscribe to reorgs and resend memory_pool if blocks replaced.
-    if (relay_from_peer_ && peer_supports_memory_pool_message())
+    // TODO: move memory_pool to a derived class protocol_transaction_in_70002.
+    // Prior to this level the mempool message is not available.
+    if (refresh_pool_)
     {
-        // This is not a protocol requirement, just our behavior.
+        // Refresh transaction pool on connect.
         SEND2(memory_pool(), handle_send, _1, memory_pool::command);
+
+        // Refresh transaction pool on blockchain reorganization.
+        blockchain_.subscribe_reorganize(
+            BIND4(handle_reorganized, _1, _2, _3, _4));
     }
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
@@ -80,10 +98,12 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
         return false;
     }
 
-    hash_list transaction_hashes;
-    message->to_hashes(transaction_hashes, inventory_type_id::transaction);
+    const auto response = std::make_shared<get_data>();
+    message->reduce(response->inventories, inventory_type_id::transaction);
 
-    if (!relay_from_peer_ && !transaction_hashes.empty())
+    // TODO: move relay to a derived class protocol_transaction_in_70001.
+    // Prior to this level transaction relay is not configurable.
+    if (!relay_from_peer_ && !response->inventories.empty())
     {
         log::debug(LOG_NODE)
             << "Unexpected transaction inventory from [" << authority()
@@ -92,29 +112,51 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
         return false;
     }
 
-    // TODO: implement pool_.fetch_missing_transaction_hashes(...)
-    send_get_data(error::success, transaction_hashes);
+    // This is returned on a new thread.
+    // Remove matching transaction hashes found in the transaction pool.
+    pool_.filter(response, BIND2(handle_filter_floaters, _1, response));
     return true;
 }
 
-void protocol_transaction_in::send_get_data(const code& ec,
-    const hash_list& hashes)
+void protocol_transaction_in::handle_filter_floaters(const code& ec,
+    get_data_ptr message)
 {
-    if (stopped() || ec == error::service_stopped || hashes.empty())
+    if (stopped() || ec == error::service_stopped ||
+        message->inventories.empty())
         return;
 
     if (ec)
     {
         log::error(LOG_NODE)
-            << "Internal failure locating missing transaction hashes for ["
+            << "Internal failure locating pool transaction pool hashes for ["
+            << authority() << "] " << ec.message();
+        stop(ec);
+        return;
+    }
+
+    // BUGBUG: this removes spent transactions which it should not (see BIP30).
+    blockchain_.filter_transactions(message,
+        BIND2(send_get_data, _1, message));
+}
+
+void protocol_transaction_in::send_get_data(const code& ec,
+    get_data_ptr message)
+{
+    if (stopped() || ec == error::service_stopped || 
+        message->inventories.empty())
+        return;
+
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Internal failure locating confirmed transaction hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
         return;
     }
 
     // inventory->get_data[transaction]
-    get_data request(hashes, inventory_type_id::transaction);
-    SEND2(request, handle_send, _1, request.command);
+    SEND2(*message, handle_send, _1, message->command);
 }
 
 // Receive transaction sequence.
@@ -135,10 +177,12 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
         return false;
     }
 
+    // TODO: move relay to a derived class protocol_transaction_in_70001.
+    // Prior to this level transaction relay is not configurable.
     if (!relay_from_peer_)
     {
         log::debug(LOG_NODE)
-            << "Unexpected transaction from [" << authority() << "] "
+            << "Unexpected transaction relay from [" << authority() << "] "
             << ec.message();
         stop(ec);
         return false;
@@ -154,11 +198,8 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 }
 
 // The transaction has been saved to the memory pool (or not).
-// This will be picked up by subscription in transaction->out and will cause
-// the transaction to be announced to relay-accepting peers. We want to avoid
-// echoing it back to the originating peer. To do this we should derive message
-// namespace types from chain types and add a reference to the source channel.
-// This also has the benefit of making the list of message classes independent.
+// This will be picked up by subscription in transaction_out and will cause
+// the transaction to be announced to non-originating relay-accepting peers.
 void protocol_transaction_in::handle_store_validated(const code& ec,
     transaction_ptr message, const index_list& unconfirmed)
 {
@@ -167,6 +208,7 @@ void protocol_transaction_in::handle_store_validated(const code& ec,
     // error::input_not_found
     // error::validate_inputs_failed
     // error::duplicate
+    // error::success (transaction is valid and indexed into the mempool)
 }
 
 // The transaction has been confirmed in a block.
@@ -178,6 +220,35 @@ void protocol_transaction_in::handle_store_confirmed(const code& ec,
     // error::pool_filled
     // error::double_spend
     // error::blockchain_reorganized
+    // error::success (tx was found in a block and removed from the mempool)
+}
+
+// Subscription.
+//-----------------------------------------------------------------------------
+
+// TODO: move memory_pool to a derived class protocol_transaction_in_70002.
+// Prior to this level the mempool message is not available.
+bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
+    const block_ptr_list&, const block_ptr_list& outgoing)
+{
+    if (stopped() || ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Internal failure handling reorganization for ["
+            << authority() << "] " << ec.message();
+        stop(ec);
+        return false;
+    }
+
+    // If there are no outgoing blocks then the memory pool is intact.
+    if (outgoing.empty())
+        return true;
+
+    SEND2(memory_pool(), handle_send, _1, memory_pool::command);
+    return true;
 }
 
 // Stop.
@@ -187,15 +258,6 @@ void protocol_transaction_in::handle_stop(const code&)
 {
     log::debug(LOG_NETWORK)
         << "Stopped transaction_in protocol";
-}
-
-// Utility.
-//-----------------------------------------------------------------------------
-
-bool protocol_transaction_in::peer_supports_memory_pool_message()
-{
-    // TODO: move mempool supprt test to enum and version method.
-    return peer_version().value >= 70002;
 }
 
 } // namespace node

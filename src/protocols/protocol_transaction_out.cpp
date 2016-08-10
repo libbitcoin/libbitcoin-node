@@ -21,6 +21,7 @@
 
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {
@@ -39,21 +40,94 @@ protocol_transaction_out::protocol_transaction_out(p2p& network,
   : protocol_events(network, channel, NAME),
     blockchain_(blockchain),
     pool_(pool),
+
+    // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version().relay),
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
+
+// TODO: move not_found to derived class protocol_transaction_out_70001.
 
 // Start.
 //-----------------------------------------------------------------------------
 
 void protocol_transaction_out::start()
 {
+    // TODO: move relay to a derived class protocol_transaction_out_70001.
+    // Prior to this level transaction relay is not configurable.
     if (relay_to_peer_)
     {
         // Subscribe to transaction pool notifications and relay txs.
         pool_.subscribe_transaction(BIND3(handle_floated, _1, _2, _3));
     }
+}
+
+// Receive mempool sequence.
+//-----------------------------------------------------------------------------
+
+void protocol_transaction_out::handle_receive_memory_pool(const code& ec,
+    memory_pool_ptr)
+{
+    auto message = std::make_shared<inventory>();
+    pool_.inventory(message);
+    SEND2(*message, handle_send, _1, message->command);
+}
+
+// Receive get_data sequence.
+//-----------------------------------------------------------------------------
+
+bool protocol_transaction_out::handle_receive_get_data(const code& ec,
+    get_data_ptr message)
+{
+    if (stopped())
+        return false;
+
+    if (ec)
+    {
+        log::debug(LOG_NODE)
+            << "Failure getting inventory from [" << authority() << "] "
+            << ec.message();
+        stop(ec);
+        return false;
+    }
+
+    // TODO: these must return message objects or be copied!
+    // Ignore non-transaction inventory requests in this protocol.
+    for (const auto& inventory: message->inventories)
+        if (inventory.type == inventory_type_id::transaction)
+            blockchain_.fetch_transaction(inventory.hash,
+                BIND3(send_transaction, _1, _2, inventory.hash));
+
+    return true;
+}
+
+void protocol_transaction_out::send_transaction(const code& ec,
+    const chain::transaction& transaction, const hash_digest& hash)
+{
+    if (stopped() || ec == error::service_stopped)
+        return;
+
+    if (ec == error::not_found)
+    {
+        log::debug(LOG_NODE)
+            << "Transaction requested by [" << authority() << "] not found.";
+
+        const not_found reply{ { inventory_type_id::transaction, hash } };
+        SEND2(reply, handle_send, _1, reply.command);
+        return;
+    }
+
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Internal failure locating trnsaction requested by ["
+            << authority() << "] " << ec.message();
+        stop(ec);
+        return;
+    }
+
+    SEND2(transaction, handle_send, _1, transaction.command);
 }
 
 // Subscription.
@@ -62,11 +136,32 @@ void protocol_transaction_out::start()
 bool protocol_transaction_out::handle_floated(const code& ec,
     const index_list& unconfirmed, transaction_ptr message)
 {
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: add host id to message subscriber to avoid tx reflection.
-    // TODO: implement this handler.
-    ///////////////////////////////////////////////////////////////////////////
+    if (stopped() || ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Failure handling transaction float: " << ec.message();
+        stop(ec);
+        return false;
+    }
+
+    // Transactions are discovered and announced individually.
+    if (message->originator() != nonce())
+    {
+        static const auto id = inventory_type_id::transaction;
+        const inventory announcement{ { id, message->hash() } };
+        SEND2(announcement, handle_send, _1, announcement.command);
+    }
+
     return true;
+}
+
+void protocol_transaction_out::handle_stop(const code&)
+{
+    log::debug(LOG_NETWORK)
+        << "Stopped transaction_out protocol";
 }
 
 } // namespace node
