@@ -37,7 +37,6 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 static constexpr auto locator_cap = 500u;
-static constexpr auto send_headers_version = 70012u;
 
 protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
     block_chain& blockchain)
@@ -46,7 +45,9 @@ protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
     blockchain_(blockchain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
-    headers_to_peer_(bc::protocol_version >= send_headers_version),
+    headers_to_peer_(network.network_settings().protocol >=
+        version::level::bip130),
+
     CONSTRUCT_TRACK(protocol_block_out)
 {
 }
@@ -191,7 +192,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     }
 
     // Respond to get_blocks with inventory.
-    const inventory response(hashes, inventory_type_id::block);
+    const inventory response(hashes, inventory::type_id::block);
     SEND2(response, handle_send, _1, response.command);
 }
 
@@ -218,10 +219,10 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     // Ignore non-block inventory requests in this protocol.
     for (const auto& inventory: message->inventories)
     {
-        if (inventory.type == inventory_type_id::block)
+        if (inventory.type == inventory::type_id::block)
             blockchain_.fetch_block(inventory.hash,
                 BIND3(send_block, _1, _2, inventory.hash));
-        else if (inventory.type == inventory_type_id::filtered_block)
+        else if (inventory.type == inventory::type_id::filtered_block)
             blockchain_.fetch_merkle_block(inventory.hash,
                 BIND3(send_merkle_block, _1, _2, inventory.hash));
     }
@@ -241,7 +242,7 @@ void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
         log::debug(LOG_NODE)
             << "Block requested by [" << authority() << "] not found.";
 
-        const not_found reply{ { inventory_type_id::block, hash } };
+        const not_found reply{ { inventory::type_id::block, hash } };
         SEND2(reply, handle_send, _1, reply.command);
         return;
     }
@@ -255,7 +256,8 @@ void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
         return;
     }
 
-    SEND2(*block, handle_send, _1, block->command);
+    // TODO: eliminate copy.
+    SEND2(block_message(*block), handle_send, _1, block_message::command);
 }
 
 // TODO: move filtered_block to derived class protocol_block_out_70001.
@@ -270,7 +272,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
         log::debug(LOG_NODE)
             << "Merkle block requested by [" << authority() << "] not found.";
 
-        const not_found reply{ { inventory_type_id::filtered_block, hash } };
+        const not_found reply{ { inventory::type_id::filtered_block, hash } };
         SEND2(reply, handle_send, _1, reply.command);
         return;
     }
@@ -319,7 +321,7 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
         return true;
     }
 
-    static const auto id = inventory_type_id::block;
+    static const auto id = inventory::type_id::block;
     inventory announcement;
 
     for (const auto block: incoming)

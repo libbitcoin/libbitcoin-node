@@ -285,7 +285,7 @@ message::get_data reservation::request(bool new_channel)
     for (auto height = heights_.right.begin(); height != heights_.right.end();
         ++height)
     {
-        static const auto id = message::inventory_type_id::block;
+        static const auto id = message::inventory::type_id::block;
         const message::inventory_vector inventory{ id, height->second };
         packet.inventories.emplace_back(inventory);
     }

@@ -95,7 +95,7 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     // TODO: these must return message objects or be copied!
     // Ignore non-transaction inventory requests in this protocol.
     for (const auto& inventory: message->inventories)
-        if (inventory.type == inventory_type_id::transaction)
+        if (inventory.type == inventory::type_id::transaction)
             blockchain_.fetch_transaction(inventory.hash,
                 BIND3(send_transaction, _1, _2, inventory.hash));
 
@@ -113,7 +113,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         log::debug(LOG_NODE)
             << "Transaction requested by [" << authority() << "] not found.";
 
-        const not_found reply{ { inventory_type_id::transaction, hash } };
+        const not_found reply{ { inventory::type_id::transaction, hash } };
         SEND2(reply, handle_send, _1, reply.command);
         return;
     }
@@ -127,7 +127,9 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
     }
 
-    SEND2(transaction, handle_send, _1, transaction.command);
+    // TODO: eliminate copy.
+    SEND2(transaction_message(transaction), handle_send, _1,
+        transaction_message::command);
 }
 
 // Subscription.
@@ -150,7 +152,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
     // Transactions are discovered and announced individually.
     if (message->originator() != nonce())
     {
-        static const auto id = inventory_type_id::transaction;
+        static const auto id = inventory::type_id::transaction;
         const inventory announcement{ { id, message->hash() } };
         SEND2(announcement, handle_send, _1, announcement.command);
     }

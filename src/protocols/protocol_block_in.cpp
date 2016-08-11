@@ -38,7 +38,6 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
-static constexpr auto send_headers_version = 70012u;
 static const auto get_blocks_interval = asio::seconds(1);
 
 protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
@@ -48,7 +47,8 @@ protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
     stop_hash_(null_hash),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
-    headers_from_peer_(peer_version().value >= send_headers_version),
+    headers_from_peer_(peer_version().value >= version::level::bip130),
+
     CONSTRUCT_TRACK(protocol_block_in)
 {
 }
@@ -163,7 +163,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     // There is no benefit to this use of headers, in fact it is suboptimal.
     // In v3 headers will be used to build block tree before getting blocks.
     const auto response = std::make_shared<get_data>();
-    message->to_inventory(response->inventories, inventory_type_id::block);
+    message->to_inventory(response->inventories, inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
     blockchain_.filter_orphans(response,
@@ -188,7 +188,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     }
 
     const auto response = std::make_shared<get_data>();
-    message->reduce(response->inventories, inventory_type_id::block);
+    message->reduce(response->inventories, inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
     blockchain_.filter_orphans(response,
@@ -211,7 +211,7 @@ void protocol_block_in::handle_filter_orphans(const code& ec,
         stop(ec);
         return;
     }
-    
+
     // Remove block hashes found in the blockchain (dups not allowed).
     blockchain_.filter_blocks(message, BIND2(send_get_data, _1, message));
 }
@@ -255,7 +255,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
     }
 
     hash_list hashes;
-    message->to_hashes(hashes, inventory_type_id::block);
+    message->to_hashes(hashes, inventory::type_id::block);
 
     // The peer cannot locate a block that it told us it had.
     // This only results from reorganization assuming peer is proper.
