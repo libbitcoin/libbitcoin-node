@@ -26,7 +26,8 @@ namespace node {
 
 settings::settings()
   : block_timeout_seconds(5),
-    download_connections(8)
+    download_connections(8),
+    transaction_pool_refresh(true)
 {
 }
 

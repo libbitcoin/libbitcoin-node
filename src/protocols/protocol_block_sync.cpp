@@ -40,6 +40,7 @@ using namespace std::placeholders;
 // The interval in which block download rate is tested.
 static const asio::seconds expiry_interval(5);
 
+// Depends on protocol_header_sync, which requires protocol version 31800.
 protocol_block_sync::protocol_block_sync(p2p& network, channel::ptr channel,
     reservation::ptr row)
   : protocol_timer(network, channel, true, NAME),
@@ -79,17 +80,17 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
     }
 
     // We may be a new channel (reset) or may have a new packet.
-    const auto packet = reservation_->request(reset);
+    const auto request = reservation_->request(reset);
 
     // Or we may be the same channel and with hashes already requested.
-    if (packet.inventories.empty())
+    if (request.inventories.empty())
         return;
 
     log::debug(LOG_NODE)
-        << "Sending request of " << packet.inventories.size()
+        << "Sending request of " << request.inventories.size()
         << " hashes for slot (" << reservation_->slot() << ").";
 
-    SEND2(packet, handle_send, _1, complete);
+    SEND2(request, handle_send, _1, complete);
 }
 
 void protocol_block_sync::handle_send(const code& ec, event_handler complete)

@@ -54,8 +54,9 @@ private:
     typedef message::block_message::ptr_list block_ptr_list;
     typedef chain::header::list header_list;
 
-    void send_block(const code& ec, block_ptr block, const hash_digest& hash);
-    void send_merkle_block(const code& ec, merkle_block_ptr merkle,
+    void send_block(const code& ec, chain::block::ptr block,
+        const hash_digest& hash);
+    void send_merkle_block(const code& ec, merkle_block_ptr message,
         const hash_digest& hash);
 
     bool handle_receive_get_data(const code& ec, get_data_ptr message);

@@ -37,14 +37,17 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 static constexpr auto locator_cap = 500u;
-static constexpr auto send_headers_version = 70012u;
 
 protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
     block_chain& blockchain)
   : protocol_events(network, channel, NAME),
     threshold_(null_hash),
     blockchain_(blockchain),
-    headers_to_peer_(false),
+
+    // TODO: move send_headers to a derived class protocol_block_out_70012.
+    headers_to_peer_(network.network_settings().protocol >=
+        version::level::bip130),
+
     CONSTRUCT_TRACK(protocol_block_out)
 {
 }
@@ -56,12 +59,14 @@ void protocol_block_out::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
-    if (bc::protocol_version >= send_headers_version)
+    // TODO: move send_headers to a derived class protocol_block_out_70012.
+    if (headers_to_peer_)
     {
         // Send headers vs. inventory anncements if headers_to_peer_ is set.
         SUBSCRIBE2(send_headers, handle_receive_send_headers, _1, _2);
     }
 
+    // TODO: move get_headers to a derived class protocol_block_out_31800.
     SUBSCRIBE2(get_headers, handle_receive_get_headers, _1, _2);
     SUBSCRIBE2(get_blocks, handle_receive_get_blocks, _1, _2);
     SUBSCRIBE2(get_data, handle_receive_get_data, _1, _2);
@@ -74,6 +79,7 @@ void protocol_block_out::start()
 // Receive send_headers.
 //-----------------------------------------------------------------------------
 
+// TODO: move send_headers to a derived class protocol_block_out_70012.
 bool protocol_block_out::handle_receive_send_headers(const code& ec,
     send_headers_ptr message)
 {
@@ -99,6 +105,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 // Receive get_headers sequence.
 //-----------------------------------------------------------------------------
 
+// TODO: move get_headers to a derived class protocol_block_out_31800.
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
     get_headers_ptr message)
 {
@@ -122,6 +129,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     return true;
 }
 
+// TODO: move headers to a derived class protocol_block_out_31800.
 void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     const header_list& headers)
 {
@@ -160,7 +168,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // TODO: manage the locator threashold for this peer (see v2).
+    // TODO: manage the locator threshold for this peer (see v2).
     ///////////////////////////////////////////////////////////////////////////
 
     blockchain_.fetch_locator_block_hashes(*message, threshold_, locator_cap,
@@ -184,13 +192,14 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     }
 
     // Respond to get_blocks with inventory.
-    const inventory response(hashes, inventory_type_id::block);
+    const inventory response(hashes, inventory::type_id::block);
     SEND2(response, handle_send, _1, response.command);
 }
 
 // Receive get_data sequence.
 //-----------------------------------------------------------------------------
 
+// TODO: move filtered_block to derived class protocol_block_out_70001.
 bool protocol_block_out::handle_receive_get_data(const code& ec,
     get_data_ptr message)
 {
@@ -206,20 +215,23 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    ////// TODO: revise blockchain to accept block_message type.
-    ////// Ignore non-block inventory requests in this protocol.
-    ////for (const auto& inventory: message->inventories)
-    ////    if (inventory.type == inventory_type_id::block)
-    ////        blockchain_.fetch_block(inventory.hash,
-    ////            BIND3(send_block, _1, _2, inventory.hash));
-    ////    else if (inventory.type == inventory_type_id::filtered_block)
-    ////        blockchain_.fetch_merkle_block(inventory.hash,
-    ////            BIND3(send_merkle_block, _1, _2, inventory.hash));
+    // TODO: these must return message objects or be copied!
+    // Ignore non-block inventory requests in this protocol.
+    for (const auto& inventory: message->inventories)
+    {
+        if (inventory.type == inventory::type_id::block)
+            blockchain_.fetch_block(inventory.hash,
+                BIND3(send_block, _1, _2, inventory.hash));
+        else if (inventory.type == inventory::type_id::filtered_block)
+            blockchain_.fetch_merkle_block(inventory.hash,
+                BIND3(send_merkle_block, _1, _2, inventory.hash));
+    }
 
     return true;
 }
 
-void protocol_block_out::send_block(const code& ec, block_ptr block,
+// TODO: move not_found to derived class protocol_block_out_70001.
+void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
     const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
@@ -230,7 +242,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr block,
         log::debug(LOG_NODE)
             << "Block requested by [" << authority() << "] not found.";
 
-        const not_found reply{ { inventory_type_id::block, hash } };
+        const not_found reply{ { inventory::type_id::block, hash } };
         SEND2(reply, handle_send, _1, reply.command);
         return;
     }
@@ -244,11 +256,13 @@ void protocol_block_out::send_block(const code& ec, block_ptr block,
         return;
     }
 
-    SEND2(*block, handle_send, _1, block->command);
+    // TODO: eliminate copy.
+    SEND2(block_message(*block), handle_send, _1, block_message::command);
 }
 
+// TODO: move filtered_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_ptr merkle, const hash_digest& hash)
+    merkle_block_ptr message, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -258,7 +272,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
         log::debug(LOG_NODE)
             << "Merkle block requested by [" << authority() << "] not found.";
 
-        const not_found reply{ { inventory_type_id::filtered_block, hash } };
+        const not_found reply{ { inventory::type_id::filtered_block, hash } };
         SEND2(reply, handle_send, _1, reply.command);
         return;
     }
@@ -272,22 +286,50 @@ void protocol_block_out::send_merkle_block(const code& ec,
         return;
     }
 
-    SEND2(*merkle, handle_send, _1, merkle->command);
+    SEND2(*message, handle_send, _1, message->command);
 }
 
 // Subscription.
 //-----------------------------------------------------------------------------
 
+// TODO: make sure we are announcing older blocks first here.
 bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
     const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: add host id to message subscriber to avoid block reflection.
-    ///////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: send new get_blocks request (see v2).
-    // Select response via headers or inventory using headers_to_peer_.
-    ///////////////////////////////////////////////////////////////////////////
+    if (stopped() || ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        log::error(LOG_NODE)
+            << "Failure handling reorganization: " << ec.message();
+        stop(ec);
+        return false;
+    }
+
+    // TODO: move announce headers to a derived class protocol_block_in_70012.
+    if (headers_to_peer_)
+    {
+        headers announcement;
+
+        for (const auto block: incoming)
+            if (block->originator() != nonce())
+                announcement.elements.push_back(block->header);
+
+        if (!announcement.elements.empty())
+            SEND2(announcement, handle_send, _1, announcement.command);
+        return true;
+    }
+
+    static const auto id = inventory::type_id::block;
+    inventory announcement;
+
+    for (const auto block: incoming)
+        if (block->originator() != nonce())
+            announcement.inventories.push_back( { id, block->header.hash() });
+
+    if (!announcement.inventories.empty())
+        SEND2(announcement, handle_send, _1, announcement.command);
     return true;
 }
 

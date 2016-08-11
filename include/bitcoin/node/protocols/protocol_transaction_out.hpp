@@ -49,11 +49,13 @@ private:
     typedef message::get_data::ptr get_data_ptr;
     typedef chain::point::indexes index_list;
 
-    ////void send_inventory(const code& ec);
-    ////void send_transaction(const hash_digest& hash);
-    ////bool handle_receive_get_data(const code& ec, get_data_ptr message);
-    ////void handle_receive_memory_pool(const code& ec, memory_pool_ptr message);
+    void send_transaction(const code& ec,
+        const chain::transaction& transaction, const hash_digest& hash);
 
+    bool handle_receive_get_data(const code& ec, get_data_ptr message);
+    void handle_receive_memory_pool(const code& ec, memory_pool_ptr message);
+
+    void handle_stop(const code&);
     bool handle_floated(const code& ec, const index_list& unconfirmed,
         transaction_ptr message);
 

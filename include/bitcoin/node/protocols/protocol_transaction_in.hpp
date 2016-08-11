@@ -44,23 +44,29 @@ public:
 
 private:
     typedef chain::point::indexes index_list;
+    typedef message::get_data::ptr get_data_ptr;
     typedef message::inventory::ptr inventory_ptr;
     typedef message::transaction_message::ptr transaction_ptr;
+    typedef message::block_message::ptr_list block_ptr_list;
+    typedef message::block_message::ptr block_ptr;
 
-    void send_get_data(const code& ec, const hash_list& hashes);
+    void send_get_data(const code& ec, get_data_ptr message);
+    void handle_filter_floaters(const code& ec, get_data_ptr message);
     bool handle_receive_inventory(const code& ec, inventory_ptr message);
     bool handle_receive_transaction(const code& ec, transaction_ptr message);
+    void handle_store_confirmed(const code& ec, transaction_ptr message);
     void handle_store_validated(const code& ec, transaction_ptr message,
         const index_list& unconfirmed);
-    void handle_store_confirmed(const code& ec,
-        const transaction_ptr message);
+    bool handle_reorganized(const code& ec, size_t fork_point,
+        const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
     void handle_stop(const code&);
-    bool peer_supports_memory_pool_message();
 
     blockchain::block_chain& blockchain_;
     blockchain::transaction_pool& pool_;
+    const bool refresh_pool_;
     const bool relay_from_peer_;
+    const bool peer_suports_memory_pool_;
 };
 
 } // namespace node

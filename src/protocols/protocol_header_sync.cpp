@@ -43,6 +43,7 @@ static constexpr size_t max_header_response = 2000;
 // The interval in which header download rate is measured and tested.
 static const asio::seconds expiry_interval(5);
 
+// This class requires protocol version 31800.
 protocol_header_sync::protocol_header_sync(p2p& network,
     channel::ptr channel, header_queue& hashes, uint32_t minimum_rate,
     const checkpoint& last)
@@ -92,13 +93,13 @@ void protocol_header_sync::send_get_headers(event_handler complete)
     if (stopped())
         return;
 
-    const get_headers packet
+    const get_headers request
     {
         { hashes_.last_hash() },
         last_.hash()
     };
 
-    SEND2(packet, handle_send, _1, complete);
+    SEND2(request, handle_send, _1, complete);
 }
 
 void protocol_header_sync::handle_send(const code& ec, event_handler complete)
