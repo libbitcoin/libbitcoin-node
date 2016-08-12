@@ -207,18 +207,17 @@ void session_block_sync::handle_timer(const code& ec, connector::ptr connect)
     log::debug(LOG_NODE)
         << "Fired session_block_sync timer: " << ec.message();
 
-    ////// TODO: If (ratio < 50%) add a channel.
-    ////// TODO: push into reservations_ iplementation.
+    ////// TODO: If (total database time as a fn of total time) add a channel.
+    ////// TODO: push into reservations_ implementation.
     ////// TODO: add a boolean increment method to the synchronizer and pass here.
     ////const size_t id = reservations_.table().size();
     ////const auto row = std::make_shared<reservation>(reservations_, id);
     ////const synchronizer<result_handler> handler({}, 0, "name", true);
 
-    ////if (true)
-    ////    new_connection(connect, row, handler);
+    ////if (add) new_connection(connect, row, handler);
 
-    ////// TODO: If (ratio - (1/row_count) > 50%) drop the slowest channel.
-    ////// reservations_.prune();
+    ////// TODO: drop the slowest channel
+    //////If (drop) reservations_.prune();
 
     reset_timer(connect);
 }
