@@ -47,7 +47,11 @@ public:
     virtual void start(result_handler handler);
 
 protected:
-    /// Override to attach and start specialized protocols upon channel start.
+    /////// Overridden to attach and start specialized handshake.
+    ////void attach_handshake_protocols(network::channel::ptr channel,
+    ////    result_handler handle_started) override;
+
+    /// Override to attach and start specialized protocols after handshake.
     virtual void attach_protocols(network::channel::ptr channel,
         network::connector::ptr connect, reservation::ptr row,
         result_handler handler);
