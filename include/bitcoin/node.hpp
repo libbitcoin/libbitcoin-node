@@ -28,6 +28,7 @@
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+#include <bitcoin/node/protocols/protocol_version_quiet.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
 #include <bitcoin/node/sessions/session_header_sync.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
