@@ -80,6 +80,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_version_quiet.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_block_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_header_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp" />
@@ -103,6 +104,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_version_quiet.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_block_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />

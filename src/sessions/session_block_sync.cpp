@@ -25,6 +25,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_block_sync.hpp>
+#include <bitcoin/node/protocols/protocol_version_quiet.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
@@ -136,6 +137,12 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
         BIND2(handle_channel_stop, _1, row));
 }
 
+void session_block_sync::attach_handshake_protocols(channel::ptr channel,
+    result_handler handle_started)
+{
+    attach<protocol_version_quiet>(channel)->start(handle_started);
+}
+
 void session_block_sync::handle_channel_start(const code& ec,
     channel::ptr channel, connector::ptr connect, reservation::ptr row,
     result_handler handler)
@@ -207,18 +214,17 @@ void session_block_sync::handle_timer(const code& ec, connector::ptr connect)
     log::debug(LOG_NODE)
         << "Fired session_block_sync timer: " << ec.message();
 
-    ////// TODO: If (ratio < 50%) add a channel.
-    ////// TODO: push into reservations_ iplementation.
+    ////// TODO: If (total database time as a fn of total time) add a channel.
+    ////// TODO: push into reservations_ implementation.
     ////// TODO: add a boolean increment method to the synchronizer and pass here.
     ////const size_t id = reservations_.table().size();
     ////const auto row = std::make_shared<reservation>(reservations_, id);
     ////const synchronizer<result_handler> handler({}, 0, "name", true);
 
-    ////if (true)
-    ////    new_connection(connect, row, handler);
+    ////if (add) new_connection(connect, row, handler);
 
-    ////// TODO: If (ratio - (1/row_count) > 50%) drop the slowest channel.
-    ////// reservations_.prune();
+    ////// TODO: drop the slowest channel
+    //////If (drop) reservations_.prune();
 
     reset_timer(connect);
 }

@@ -28,6 +28,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
+#include <bitcoin/node/protocols/protocol_version_quiet.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
@@ -119,6 +120,12 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
     register_channel(channel,
         BIND4(handle_channel_start, _1, connect, channel, handler),
         BIND1(handle_channel_stop, _1));
+}
+
+void session_header_sync::attach_handshake_protocols(channel::ptr channel,
+    result_handler handle_started)
+{
+    attach<protocol_version_quiet>(channel)->start(handle_started);
 }
 
 void session_header_sync::handle_channel_start(const code& ec,

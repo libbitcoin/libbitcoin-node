@@ -168,6 +168,7 @@ void protocol_block_sync::handle_event(const code& ec, event_handler complete)
         log::debug(LOG_NODE)
             << "Stopping complete slot (" << reservation_->slot() << ").";
         complete(error::success);
+        return;
     }
 
     if (reservation_->expired())
