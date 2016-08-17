@@ -25,6 +25,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_block_sync.hpp>
+#include <bitcoin/node/protocols/protocol_version_quiet.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
@@ -136,13 +137,11 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
         BIND2(handle_channel_stop, _1, row));
 }
 
-////// Sessions that desire to customize the version message must override this.
-////void session_block_sync::attach_handshake_protocols(channel::ptr channel,
-////    result_handler handle_started)
-////{
-////    // TODO: replace with protocol_version_quiet : protocol_version (no relay).
-////    attach<protocol_version>(channel)->start(handle_started);
-////}
+void session_block_sync::attach_handshake_protocols(channel::ptr channel,
+    result_handler handle_started)
+{
+    attach<protocol_version_quiet>(channel)->start(handle_started);
+}
 
 void session_block_sync::handle_channel_start(const code& ec,
     channel::ptr channel, connector::ptr connect, reservation::ptr row,
