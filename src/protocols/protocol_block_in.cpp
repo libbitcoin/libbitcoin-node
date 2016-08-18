@@ -38,13 +38,14 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
-static const auto get_blocks_interval = asio::seconds(1);
+static const auto get_blocks_interval = asio::seconds(10);
 
 protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
     block_chain& blockchain)
   : protocol_timer(network, channel, perpetual_timer, NAME),
     blockchain_(blockchain),
-    stop_hash_(null_hash),
+    last_locator_top_(null_hash),
+    current_chain_top_(null_hash),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(peer_version().value >= version::level::bip130),
@@ -59,8 +60,7 @@ protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
 void protocol_block_in::start()
 {
     // Use perpetual protocol timer to prevent stall (our heartbeat).
-    protocol_timer::start(get_blocks_interval,
-        BIND1(send_get_blocks, _1));
+    protocol_timer::start(get_blocks_interval, BIND1(get_block_inventory, _1));
 
     // TODO: move headers to a derived class protocol_block_in_31800.
     SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
@@ -90,7 +90,7 @@ void protocol_block_in::start()
 //-----------------------------------------------------------------------------
 
 // This is fired by the callback (i.e. base timer and stop handler).
-void protocol_block_in::send_get_blocks(const code& ec)
+void protocol_block_in::get_block_inventory(const code& ec)
 {
     if (stopped())
         return;
@@ -104,14 +104,26 @@ void protocol_block_in::send_get_blocks(const code& ec)
         return;
     }
 
-    blockchain_.fetch_block_locator(
-        BIND2(handle_fetch_block_locator, _1, _2));
+    // This is also sent after each reorg.
+    send_get_blocks(null_hash);
+}
+
+void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
+{
+    const auto chain_top = current_chain_top_.load();
+    const auto last_locator_top = last_locator_top_.load();
+
+    // Avoid requesting from the same start as last request to this peer.
+    // This does not guarantee prevention, it's just an optimization.
+    if (chain_top == null_hash || last_locator_top != chain_top)
+        blockchain_.fetch_block_locator(
+            BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
-    const hash_list& locator)
+    const hash_list& locator, const hash_digest& stop_hash)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped() || ec == error::service_stopped || locator.empty())
         return;
 
     if (ec)
@@ -123,21 +135,25 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
         return;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: manage the stop_hash_ (see v2).
-    ///////////////////////////////////////////////////////////////////////////
+    log::debug(LOG_NODE)
+        << "Ask for block inventory from [" << encode_hash(locator.front())
+        << "] (" << locator.size() << ") to [" << 
+        (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
 
     // TODO: move get_headers to a derived class protocol_block_in_31800.
     if (headers_from_peer_)
     {
-        const get_headers request{ std::move(locator), stop_hash_ };
+        const get_headers request{ std::move(locator), stop_hash };
         SEND2(request, handle_send, _1, request.command);
     }
     else
     {
-        const get_blocks request{ std::move(locator), stop_hash_ };
+        const get_blocks request{ std::move(locator), stop_hash };
         SEND2(request, handle_send, _1, request.command);
     }
+
+    // Save the locator top to prevent a redundant future request.
+    last_locator_top_.store(locator.front());
 }
 
 // Receive headers|inventory sequence.
@@ -286,14 +302,18 @@ bool protocol_block_in::handle_receive_block(const code& ec, block_ptr message)
         return false;
     }
 
+    // Reset the timer because we just received a block from this peer.
+    // Once we are at the top this will end up polling the peer.
+    reset_timer();
+
     // We will pick this up in handle_reorganized.
     message->set_originator(nonce());
 
-    blockchain_.store(message, BIND1(handle_store_block, _1));
+    blockchain_.store(message, BIND2(handle_store_block, _1, message));
     return true;
 }
 
-void protocol_block_in::handle_store_block(const code& ec)
+void protocol_block_in::handle_store_block(const code& ec, block_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -320,6 +340,9 @@ void protocol_block_in::handle_store_block(const code& ec)
     // The block is accepted as an orphan, possibly for immediate acceptance.
     log::debug(LOG_NODE)
         << "Potential block from [" << authority() << "].";
+
+    // Ask the peer for blocks from the top up to this orphan.
+    send_get_blocks(message->header.hash());
 }
 
 // Subscription.
@@ -329,7 +352,7 @@ void protocol_block_in::handle_store_block(const code& ec)
 bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
     const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped() || ec == error::service_stopped || incoming.empty())
         return false;
 
     if (ec)
@@ -340,12 +363,19 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
         return false;
     }
 
+    // Update the top of the chain.
+    current_chain_top_.store(incoming.back()->header.hash());
+
+    // Ask the peer for blocks above our top (we also do this via stall timer).
+    send_get_blocks(null_hash);
+
     // Report the blocks that originated from this peer.
+    // If originating peer is dropped there will be no report here.
     for (const auto block: incoming)
         if (block->originator() == nonce())
             log::debug(LOG_NODE)
-                << "Accepted block [" << encode_hash(block->header.hash())
-                << "] from [" << authority() << "].";
+                << "Block [" << encode_hash(block->header.hash()) << "] from ["
+                << authority() << "].";
 
     return true;
 }
