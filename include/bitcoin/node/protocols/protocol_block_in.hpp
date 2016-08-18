@@ -52,7 +52,8 @@ private:
     typedef message::not_found::ptr not_found_ptr;
     typedef message::block_message::ptr_list block_ptr_list;
 
-    void send_get_blocks(const code& ec);
+    void get_block_inventory(const code& ec);
+    void send_get_blocks(const hash_digest& stop_hash);
     void send_get_data(const code& ec, get_data_ptr message);
 
     bool handle_receive_block(const code& ec, block_ptr message);
@@ -60,13 +61,15 @@ private:
     bool handle_receive_inventory(const code& ec, inventory_ptr message);
     bool handle_receive_not_found(const code& ec, not_found_ptr message);
     void handle_filter_orphans(const code& ec, get_data_ptr message);
-    void handle_fetch_block_locator(const code& ec, const hash_list& locator);
-    void handle_store_block(const code& ec);
+    void handle_store_block(const code& ec, block_ptr message);
+    void handle_fetch_block_locator(const code& ec, const hash_list& locator,
+        const hash_digest& stop_hash);
     bool handle_reorganized(const code& ec, size_t fork_point,
         const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
-    hash_digest stop_hash_;
     blockchain::block_chain& blockchain_;
+    bc::atomic<hash_digest> last_locator_top_;
+    bc::atomic<hash_digest> current_chain_top_;
     const bool headers_from_peer_;
 };
 
