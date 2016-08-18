@@ -20,6 +20,8 @@
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <cmath>
 #include <functional>
 #include <string>
 #include <bitcoin/blockchain.hpp>
@@ -36,12 +38,19 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
+// Protocol limit.
 static constexpr auto locator_cap = 500u;
+
+// The largest reasonable search is 10 for the first block of 10 hashes,
+// 1 for the genesis block, 1 for disparity between peers and log2(top)
+// for the exponential back-off algorithm.
+static constexpr auto locator_allowance = 12u;
 
 protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
     block_chain& blockchain)
   : protocol_events(network, channel, NAME),
-    threshold_(null_hash),
+    last_locator_top_(null_hash),
+    current_chain_height_(0),
     blockchain_(blockchain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
@@ -105,6 +114,17 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 // Receive get_headers sequence.
 //-----------------------------------------------------------------------------
 
+// The locator cannot be longer than allowed by our chain length.
+// This is DoS protection, otherwise a peer could tie up our database.
+// If we are not synced to near the height of peers then this effectively
+// prevents peers from syncing from us. Ideally we should use initial block
+// download to get close before enabling this protocol.
+size_t protocol_block_out::locator_limit() const
+{
+    const auto height = current_chain_height_.load();
+    return static_cast<size_t>(std::log2(height) + locator_allowance);
+}
+
 // TODO: move get_headers to a derived class protocol_block_out_31800.
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
     get_headers_ptr message)
@@ -120,11 +140,26 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
         return false;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: manage the locator threashold for this peer (see v2).
-    ///////////////////////////////////////////////////////////////////////////
+    const auto locator_size = message->start_hashes.size();
 
-    blockchain_.fetch_locator_block_headers(*message, threshold_, locator_cap,
+    if (locator_size > locator_limit())
+    {
+        log::debug(LOG_NODE)
+            << "Invalid get_headers locator size (" << locator_size
+            << ") from [" << authority() << "] ";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    // The peer threshold prevents a peer from creating an unnecessary backlog
+    // for itself in the case where it is requesting without having processed
+    // all of its existing backlog. This also reduces its load on us.
+    // This could cause a problem during a reorg, where the peer regresses
+    // and one of its other peers populates the chain back to this level. In
+    // that case we would not respond but our peer's other peer should.
+    const auto threshold = last_locator_top_.load();
+
+    blockchain_.fetch_locator_block_headers(*message, threshold, locator_cap,
         BIND2(handle_fetch_locator_headers, _1, _2));
     return true;
 }
@@ -167,11 +202,26 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: manage the locator threshold for this peer (see v2).
-    ///////////////////////////////////////////////////////////////////////////
+    const auto locator_size = message->start_hashes.size();
 
-    blockchain_.fetch_locator_block_hashes(*message, threshold_, locator_cap,
+    if (locator_size > locator_limit())
+    {
+        log::debug(LOG_NODE)
+            << "Invalid get_blocks locator size (" << locator_size
+            << ") from [" << authority() << "] ";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    // The peer threshold prevents a peer from creating an unnecessary backlog
+    // for itself in the case where it is requesting without having processed
+    // all of its existing backlog. This also reduces its load on us.
+    // This could cause a problem during a reorg, where the peer regresses
+    // and one of its other peers populates the chain back to this level. In
+    // that case we would not respond but our peer's other peer should.
+    const auto threshold = last_locator_top_.load();
+
+    blockchain_.fetch_locator_block_hashes(*message, threshold, locator_cap,
         BIND2(handle_fetch_locator_hashes, _1, _2));
     return true;
 }
@@ -194,6 +244,9 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     // Respond to get_blocks with inventory.
     const inventory response(hashes, inventory::type_id::block);
     SEND2(response, handle_send, _1, response.command);
+
+    // Save the locator top to limit an overlapping future request.
+    last_locator_top_.store(hashes.front());
 }
 
 // Receive get_data sequence.
@@ -293,6 +346,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 //-----------------------------------------------------------------------------
 
 // TODO: make sure we are announcing older blocks first here.
+// We never announce or inventory an orphan, only indexed blocks.
 bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
     const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
@@ -306,6 +360,11 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
         stop(ec);
         return false;
     }
+
+    // TODO: use p2p_node instead.
+    // Save the latest height.
+    BITCOIN_ASSERT(max_size_t - fork_point >= incoming.size());
+    current_chain_height_.store(fork_point + incoming.size());
 
     // TODO: move announce headers to a derived class protocol_block_in_70012.
     if (headers_to_peer_)
