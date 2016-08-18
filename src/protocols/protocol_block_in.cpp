@@ -363,6 +363,7 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
         return false;
     }
 
+    // TODO: use p2p_node instead.
     // Update the top of the chain.
     current_chain_top_.store(incoming.back()->header.hash());
 

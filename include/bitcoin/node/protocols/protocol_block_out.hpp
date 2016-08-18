@@ -72,8 +72,11 @@ private:
     bool handle_reorganized(const code& ec, size_t fork_point,
         const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
-    hash_digest threshold_;
+    size_t locator_limit() const;
+
     blockchain::block_chain& blockchain_;
+    bc::atomic<hash_digest> last_locator_top_;
+    std::atomic<size_t> current_chain_height_;
     std::atomic<bool> headers_to_peer_;
 };
 
