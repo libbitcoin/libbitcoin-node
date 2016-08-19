@@ -441,7 +441,7 @@ bool reservation::partition(reservation::ptr minimal)
     {
         // Critical Section (stop)
         ///////////////////////////////////////////////////////////////////////
-        unique_lock(stop_mutex_);
+        unique_lock lock(stop_mutex_);
 
         // If the channel has been emptied it will not repopulate.
         stopped_ = true;
