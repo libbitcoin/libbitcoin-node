@@ -41,6 +41,9 @@ protocol_transaction_out::protocol_transaction_out(p2p& network,
     blockchain_(blockchain),
     pool_(pool),
 
+    // TODO: move fee filter to a derived class protocol_transaction_out_70013.
+    minimum_fee_(0),
+
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version().relay),
     CONSTRUCT_TRACK(protocol_transaction_out)
@@ -61,6 +64,37 @@ void protocol_transaction_out::start()
         // Subscribe to transaction pool notifications and relay txs.
         pool_.subscribe_transaction(BIND3(handle_floated, _1, _2, _3));
     }
+
+    // TODO: move fee filter to a derived class protocol_transaction_out_70013.
+    // Filter announcements by fee if set.
+    SUBSCRIBE2(fee_filter, handle_receive_fee_filter, _1, _2);
+}
+
+// Receive send_headers.
+//-----------------------------------------------------------------------------
+
+// TODO: move fee_filters to a derived class protocol_transaction_out_70013.
+bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
+    fee_filter_ptr message)
+{
+    if (stopped())
+        return false;
+
+    if (ec)
+    {
+        log::debug(LOG_NODE)
+            << "Failure getting " << message->command << " from ["
+            << authority() << "] " << ec.message();
+        stop(ec);
+        return false;
+    }
+
+    // TODO: move fee filter to a derived class protocol_transaction_out_70013.
+    // Transaction annoucements will be filtered by fee amount.
+    minimum_fee_.store(message->minimum_fee);
+
+    // The fee filter may be adjusted.
+    return true;
 }
 
 // Receive mempool sequence.
@@ -149,8 +183,12 @@ bool protocol_transaction_out::handle_floated(const code& ec,
         return false;
     }
 
+    // TODO: move fee filter to a derived class protocol_transaction_out_70013.
+    // TODO: implement fee computation.
+    const uint64_t fee = 0;
+
     // Transactions are discovered and announced individually.
-    if (message->originator() != nonce())
+    if (message->originator() != nonce() && fee >= minimum_fee_.load())
     {
         static const auto id = inventory::type_id::transaction;
         const inventory announcement{ { id, message->hash() } };

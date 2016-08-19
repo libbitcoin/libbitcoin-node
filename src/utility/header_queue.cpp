@@ -44,7 +44,7 @@ bool header_queue::empty() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    shared_lock(mutex_);
+    shared_lock lock(mutex_);
 
     return is_empty();
     ///////////////////////////////////////////////////////////////////////////
@@ -54,7 +54,7 @@ size_t header_queue::size() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    shared_lock(mutex_);
+    shared_lock lock(mutex_);
 
     return get_size();
     ///////////////////////////////////////////////////////////////////////////
@@ -64,7 +64,7 @@ size_t header_queue::first_height() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    shared_lock(mutex_);
+    shared_lock lock(mutex_);
 
     return height_;
     ///////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ size_t header_queue::last_height() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    shared_lock(mutex_);
+    shared_lock lock(mutex_);
 
     return last();
     ///////////////////////////////////////////////////////////////////////////
@@ -84,7 +84,7 @@ hash_digest header_queue::last_hash() const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    shared_lock(mutex_);
+    shared_lock lock(mutex_);
 
     return is_empty() ? null_hash : list_.back();
     ///////////////////////////////////////////////////////////////////////////
@@ -132,7 +132,7 @@ void header_queue::invalidate(size_t first_height, size_t count)
     }
 
     const auto first = first_height - height_;
-    const auto end = std::min(first + count, size());
+    const auto end = std::min(first + count, get_size());
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
@@ -272,7 +272,7 @@ bool header_queue::merge(const header::list& headers)
     for (const auto& header: headers)
     {
         const auto& new_hash = header.hash();
-        const auto next_height = last_height() + 1;
+        const auto next_height = last() + 1;
         const auto& last_hash = is_empty() ? null_hash : list_.back();
 
         if (!linked(header, last_hash) || !check(new_hash, next_height))
