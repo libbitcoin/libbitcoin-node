@@ -136,9 +136,10 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     }
 
     log::debug(LOG_NODE)
-        << "Ask for block inventory from [" << encode_hash(locator.front())
-        << "] (" << locator.size() << ") to [" << 
-        (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
+        << "Ask [" << authority() << "] for block inventory from ["
+        << encode_hash(locator.front()) << "] (" << locator.size()
+        << ") to ["
+        << (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
 
     // TODO: move get_headers to a derived class protocol_block_in_31800.
     if (headers_from_peer_)
@@ -358,7 +359,8 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
     if (ec)
     {
         log::error(LOG_NODE)
-            << "Failure handling reorganization: " << ec.message();
+            << "Failure handling reorganization for [" << authority() << "] "
+            << ec.message();
         stop(ec);
         return false;
     }
