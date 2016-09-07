@@ -104,9 +104,8 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     if (!relay_from_peer_ && !response->inventories.empty())
     {
         log::debug(LOG_NODE)
-            << "Unexpected transaction inventory from [" << authority()
-            << "] " << ec.message();
-        stop(ec);
+            << "Unexpected transaction inventory from [" << authority() << "]";
+        stop(error::channel_stopped);
         return false;
     }
 
@@ -180,9 +179,8 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     if (!relay_from_peer_)
     {
         log::debug(LOG_NODE)
-            << "Unexpected transaction relay from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
+            << "Unexpected transaction relay from [" << authority() << "]";
+        stop(error::channel_stopped);
         return false;
     }
 
