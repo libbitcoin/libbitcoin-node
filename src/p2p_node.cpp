@@ -227,7 +227,18 @@ session_block_sync::ptr p2p_node::attach_block_sync_session()
 bool p2p_node::stop()
 {
     // Suspend new work last so we can use work to clear subscribers.
-    return blockchain_.stop() && p2p::stop();
+    const auto p2p_stop = p2p::stop();
+    const auto chain_stop = blockchain_.stop();
+
+    if (!p2p_stop)
+        log::error(LOG_NODE)
+            << "Failed to stop network.";
+
+    if (!chain_stop)
+        log::error(LOG_NODE)
+            << "Failed to stop database.";
+
+    return p2p_stop && chain_stop;
 }
 
 // This must be called from the thread that constructed this class (see join).
@@ -237,8 +248,18 @@ bool p2p_node::close()
     if (!p2p_node::stop())
         return false;
 
-    // Join threads first so that there is no activity on the chain at close.
-    return p2p::close() && blockchain_.close();
+    const auto p2p_close = p2p::close();
+    const auto chain_close = blockchain_.close();
+
+    if (!p2p_close)
+        log::error(LOG_NODE)
+            << "Failed to close network.";
+
+    if (!chain_close)
+        log::error(LOG_NODE)
+            << "Failed to close database.";
+
+    return p2p_close && chain_close;
 }
 
 // Properties.
