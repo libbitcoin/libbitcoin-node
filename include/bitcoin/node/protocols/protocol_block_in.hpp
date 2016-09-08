@@ -61,7 +61,8 @@ private:
     bool handle_receive_inventory(const code& ec, inventory_ptr message);
     bool handle_receive_not_found(const code& ec, not_found_ptr message);
     void handle_filter_orphans(const code& ec, get_data_ptr message);
-    void handle_store_block(const code& ec, block_ptr message);
+    void handle_store_block(const code& ec, uint64_t height,
+        block_ptr message);
     void handle_fetch_block_locator(const code& ec, const hash_list& locator,
         const hash_digest& stop_hash);
     bool handle_reorganized(const code& ec, size_t fork_point,

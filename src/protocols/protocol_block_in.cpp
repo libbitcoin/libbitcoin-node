@@ -104,7 +104,7 @@ void protocol_block_in::get_block_inventory(const code& ec)
         return;
     }
 
-    // This is also sent after each reorg.
+    // This is also sent after each accepted block.
     send_get_blocks(null_hash);
 }
 
@@ -135,20 +135,24 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
         return;
     }
 
-    log::debug(LOG_NODE)
-        << "Ask [" << authority() << "] for block inventory from ["
-        << encode_hash(locator.front()) << "] (" << locator.size()
-        << ") to ["
-        << (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
-
     // TODO: move get_headers to a derived class protocol_block_in_31800.
-    if (headers_from_peer_)
+    if (false)
     {
+        log::debug(LOG_NODE)
+            << "Ask [" << authority() << "] for headers from ["
+            << encode_hash(locator.front()) << "] through [" <<
+            (stop_hash == null_hash ? "2000" : encode_hash(stop_hash)) << "]";
+
         const get_headers request{ std::move(locator), stop_hash };
         SEND2(request, handle_send, _1, request.command);
     }
     else
     {
+        log::debug(LOG_NODE)
+            << "Ask [" << authority() << "] for block inventory from ["
+            << encode_hash(locator.front()) << "] through [" <<
+            (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
+
         const get_blocks request{ std::move(locator), stop_hash };
         SEND2(request, handle_send, _1, request.command);
     }
@@ -310,21 +314,24 @@ bool protocol_block_in::handle_receive_block(const code& ec, block_ptr message)
     // We will pick this up in handle_reorganized.
     message->set_originator(nonce());
 
-    blockchain_.store(message, BIND2(handle_store_block, _1, message));
+    blockchain_.store(message, BIND3(handle_store_block, _1, _2, message));
     return true;
 }
 
-void protocol_block_in::handle_store_block(const code& ec, block_ptr message)
+void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
+    block_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
         return;
+
+    const auto hash = encode_hash(message->header.hash());
 
     // Ignore the block that we already have, a common result.
     if (ec == error::duplicate)
     {
         log::debug(LOG_NODE)
-            << "Redundant block from [" << authority() << "] "
-            << ec.message();
+            << "Redundant block [" << hash << "] from ["
+            << authority() << "] " << ec.message();
         return;
     }
 
@@ -332,18 +339,26 @@ void protocol_block_in::handle_store_block(const code& ec, block_ptr message)
     if (ec)
     {
         log::warning(LOG_NODE)
-            << "Error storing block from [" << authority() << "] "
-            << ec.message();
+            << "Error storing block [" << hash << "] from ["
+            << authority() << "] " << ec.message();
         stop(ec);
         return;
     }
 
-    // The block is accepted as an orphan, possibly for immediate acceptance.
-    log::debug(LOG_NODE)
-        << "Potential block from [" << authority() << "].";
+    // The block remains in the orphan pool (disconnected from the chain).
+    if (height == 0)
+    {
+        log::debug(LOG_NODE)
+            << "Orphan block [" << hash << "] from [" << authority() << "].";
 
-    // Ask the peer for blocks from the top up to this orphan.
-    send_get_blocks(message->header.hash());
+        // Ask the peer for blocks from the chain top up to this orphan.
+        send_get_blocks(message->header.hash());
+        return;
+    }
+
+    // The block was accepted onto the chain, there is no gap.
+    log::debug(LOG_NODE)
+        << "Accepted block [" << hash << "] from [" << authority() << "].";
 }
 
 // Subscription.
@@ -369,16 +384,13 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
     // Update the top of the chain.
     current_chain_top_.store(incoming.back()->header.hash());
 
-    // Ask the peer for blocks above our top (we also do this via stall timer).
-    send_get_blocks(null_hash);
-
     // Report the blocks that originated from this peer.
     // If originating peer is dropped there will be no report here.
     for (const auto block: incoming)
         if (block->originator() == nonce())
             log::debug(LOG_NODE)
-                << "Block [" << encode_hash(block->header.hash()) << "] from ["
-                << authority() << "].";
+                << "Reorganized block [" << encode_hash(block->header.hash())
+                << "] from [" << authority() << "].";
 
     return true;
 }

@@ -39,7 +39,8 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 // Protocol limit.
-static constexpr auto locator_cap = 500u;
+static constexpr auto headers_cap = 2000u;
+static constexpr auto inventory_cap = 500u;
 
 // The largest reasonable search is 10 for the first block of 10 hashes,
 // 1 for the genesis block, 1 for disparity between peers and log2(top)
@@ -159,7 +160,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // that case we would not respond but our peer's other peer should.
     const auto threshold = last_locator_top_.load();
 
-    blockchain_.fetch_locator_block_headers(*message, threshold, locator_cap,
+    blockchain_.fetch_locator_block_headers(*message, threshold, headers_cap,
         BIND2(handle_fetch_locator_headers, _1, _2));
     return true;
 }
@@ -221,7 +222,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     // that case we would not respond but our peer's other peer should.
     const auto threshold = last_locator_top_.load();
 
-    blockchain_.fetch_locator_block_hashes(*message, threshold, locator_cap,
+    blockchain_.fetch_locator_block_hashes(*message, threshold, inventory_cap,
         BIND2(handle_fetch_locator_hashes, _1, _2));
     return true;
 }
