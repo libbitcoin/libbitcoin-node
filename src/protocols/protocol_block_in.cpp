@@ -48,7 +48,7 @@ protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
     current_chain_top_(null_hash),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
-    headers_from_peer_(peer_version().value >= version::level::bip130),
+    headers_from_peer_(negotiated_version() >= version::level::bip130),
 
     CONSTRUCT_TRACK(protocol_block_in)
 {
@@ -136,7 +136,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     }
 
     // TODO: move get_headers to a derived class protocol_block_in_31800.
-    if (false)
+    if (negotiated_version() >= version::level::headers)
     {
         log::debug(LOG_NODE)
             << "Ask [" << authority() << "] for headers from ["
