@@ -41,17 +41,20 @@ using namespace boost::program_options;
 using namespace bc::config;
 
 // Initialize configuration by copying the given instance.
-parser::parser(const configuration defaults)
+parser::parser(const configuration& defaults)
   : configured(defaults)
 {
 }
 
 // Initialize configuration using defaults of the given context.
-parser::parser(bc::settings context)
+parser::parser(const bc::settings& context)
   : configured(context)
 {
     // A node doesn't require history by default, and history is expensive.
     configured.database.history_start_height = 500000;
+
+    // A node exposes full node (1) network services by default.
+    configured.network.services = message::version::services::node_network;
 }
 
 options_metadata parser::load_options()
@@ -129,6 +132,11 @@ options_metadata parser::load_settings()
         "network.protocol",
         value<uint32_t>(&configured.network.protocol),
         "The network protocol version, defaults to 70012."
+    )
+    (
+        "network.services",
+        value<uint64_t>(&configured.network.services),
+        "The services exposed by network connections, defaults to 1 (full node)."
     )
     (
         "network.identifier",
