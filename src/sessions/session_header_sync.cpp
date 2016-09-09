@@ -144,8 +144,8 @@ void session_header_sync::handle_channel_start(const code& ec,
 void session_header_sync::attach_protocols(channel::ptr channel,
     connector::ptr connect, result_handler handler)
 {
-    attach<protocol_ping>(channel)->start();
-    attach<protocol_address>(channel)->start();
+    attach<protocol_ping_31402>(channel)->start();
+    attach<protocol_address_31402>(channel)->start();
     attach<protocol_header_sync>(channel, hashes_, minimum_rate_, last_)
         ->start(BIND3(handle_complete, _1, connect, handler));
 }

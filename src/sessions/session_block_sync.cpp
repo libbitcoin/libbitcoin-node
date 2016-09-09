@@ -160,8 +160,8 @@ void session_block_sync::handle_channel_start(const code& ec,
 void session_block_sync::attach_protocols(channel::ptr channel,
     connector::ptr connect, reservation::ptr row, result_handler handler)
 {
-    attach<protocol_ping>(channel)->start();
-    attach<protocol_address>(channel)->start();
+    attach<protocol_ping_31402>(channel)->start();
+    attach<protocol_address_31402>(channel)->start();
     attach<protocol_block_sync>(channel, row)->start(
         BIND4(handle_complete, _1, connect, row, handler));
 }

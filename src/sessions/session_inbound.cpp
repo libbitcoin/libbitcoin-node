@@ -45,8 +45,8 @@ session_inbound::session_inbound(p2p& network, block_chain& blockchain,
 
 void session_inbound::attach_protocols(channel::ptr channel)
 {
-    attach<protocol_ping>(channel)->start();
-    attach<protocol_address>(channel)->start();
+    attach<protocol_ping_31402>(channel)->start();
+    attach<protocol_address_31402>(channel)->start();
     attach<protocol_block_in>(channel, blockchain_)->start();
     ////attach<protocol_block_out>(channel, blockchain_)->start();
     ////attach<protocol_transaction_in>(channel, blockchain_, pool_)->start();

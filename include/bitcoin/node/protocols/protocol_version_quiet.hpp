@@ -28,7 +28,7 @@ namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_version_quiet
-  : public network::protocol_version
+  : public network::protocol_version_31402
 {
 public:
     typedef std::shared_ptr<protocol_version_quiet> ptr;
