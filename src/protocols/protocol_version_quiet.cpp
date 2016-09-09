@@ -36,6 +36,8 @@ void protocol_version_quiet::send_version(const message::version& self)
 {
     auto version = self;
     version.relay = false;
+    version.services = message::version::services::none;
+    version.address_sender.services = message::version::services::none;
     protocol_version::send_version(version);
 }
 
