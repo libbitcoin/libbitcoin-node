@@ -55,8 +55,7 @@ protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
     blockchain_(blockchain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
-    headers_to_peer_(network.network_settings().protocol >=
-        version::level::bip130),
+    headers_to_peer_(negotiated_version() >= version::level::bip130),
 
     CONSTRUCT_TRACK(protocol_block_out)
 {
