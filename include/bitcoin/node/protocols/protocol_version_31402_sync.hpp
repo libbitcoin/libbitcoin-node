@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_VERSION_31402_SYNC_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_VERSION_31402_SYNC_HPP
 
+#include <cstdint>
 #include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -35,7 +36,8 @@ public:
 
     /// Construct a quiet version protocol instance.
     protocol_version_31402_sync(network::p2p& network,
-        network::channel::ptr channel);
+        network::channel::ptr channel, uint32_t minimum_version,
+        uint64_t minimum_services);
 
 protected:
     /// Overridden to disable services.

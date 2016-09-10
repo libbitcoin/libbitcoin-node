@@ -140,10 +140,15 @@ void session_block_sync::handle_connect(const code& ec, channel::ptr channel,
 void session_block_sync::attach_handshake_protocols(channel::ptr channel,
     result_handler handle_started)
 {
+    const auto version = message::version::level::minimum;
+    const auto service = message::version::service::node_network;
+
     if (settings_.protocol_maximum >= message::version::level::bip61)
-        attach<protocol_version_70002_sync>(channel)->start(handle_started);
+        attach<protocol_version_70002_sync>(channel, version, service)->
+            start(handle_started);
     else
-        attach<protocol_version_31402_sync>(channel)->start(handle_started);
+        attach<protocol_version_31402_sync>(channel, version, service)->
+            start(handle_started);
 }
 
 void session_block_sync::handle_channel_start(const code& ec,
