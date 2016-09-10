@@ -88,13 +88,6 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    // Bypass initial block download for max protocol < 31800 (no get_headers).
-    if (protocol_maximum_ < message::version::level::headers)
-    {
-        handle_running(error::success, handler);
-        return;
-    }
-
     // The instance is retained by the stop handler (i.e. until shutdown).
     const auto header_sync = attach_header_sync_session();
 
