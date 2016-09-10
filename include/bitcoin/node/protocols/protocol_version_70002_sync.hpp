@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOL_VERSION_QUIET_HPP
-#define LIBBITCOIN_NODE_PROTOCOL_VERSION_QUIET_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOL_VERSION_70002_SYNC_HPP
+#define LIBBITCOIN_NODE_PROTOCOL_VERSION_70002_SYNC_HPP
 
 #include <memory>
 #include <bitcoin/network.hpp>
@@ -27,18 +27,18 @@
 namespace libbitcoin {
 namespace node {
 
-class BCN_API protocol_version_quiet
-  : public network::protocol_version
+class BCN_API protocol_version_70002_sync
+  : public network::protocol_version_70002
 {
 public:
-    typedef std::shared_ptr<protocol_version_quiet> ptr;
+    typedef std::shared_ptr<protocol_version_70002_sync> ptr;
 
     /// Construct a quiet version protocol instance.
-    protocol_version_quiet(network::p2p& network,
+    protocol_version_70002_sync(network::p2p& network,
         network::channel::ptr channel);
 
 protected:
-    /// Overridden to set relay to false.
+    /// Overridden to set relay to false and to disable services.
     void send_version(const message::version& self) override;
 };
 

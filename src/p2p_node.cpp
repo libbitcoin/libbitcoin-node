@@ -43,6 +43,7 @@ p2p_node::p2p_node(const configuration& configuration)
   : p2p(configuration.network),
     hashes_(configuration.chain.checkpoints),
     blockchain_(thread_pool(), configuration.chain, configuration.database),
+    protocol_maximum_(configuration.network.protocol_maximum),
     settings_(configuration.node)
 {
 }
@@ -84,6 +85,13 @@ void p2p_node::run(result_handler handler)
     if (stopped())
     {
         handler(error::service_stopped);
+        return;
+    }
+
+    // Bypass initial block download for max protocol < 31800 (no get_headers).
+    if (protocol_maximum_ < message::version::level::headers)
+    {
+        handle_running(error::success, handler);
         return;
     }
 

@@ -118,6 +118,7 @@ private:
     // These are thread safe.
     header_queue hashes_;
     blockchain::block_chain_impl blockchain_;
+    const uint32_t protocol_maximum_;
     const settings& settings_;
 };
 

@@ -77,8 +77,6 @@ private:
     blockchain::simple_chain& blockchain_;
     reservations reservations_;
     deadline::ptr timer_;
-
-    const settings& settings_;
 };
 
 } // namespace node

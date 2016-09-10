@@ -28,7 +28,8 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
-#include <bitcoin/node/protocols/protocol_version_quiet.hpp>
+#include <bitcoin/node/protocols/protocol_version_31402_sync.hpp>
+#include <bitcoin/node/protocols/protocol_version_70002_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
@@ -125,7 +126,10 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
 void session_header_sync::attach_handshake_protocols(channel::ptr channel,
     result_handler handle_started)
 {
-    attach<protocol_version_quiet>(channel)->start(handle_started);
+    if (settings_.protocol_maximum >= message::version::level::bip61)
+        attach<protocol_version_70002_sync>(channel)->start(handle_started);
+    else
+        attach<protocol_version_31402_sync>(channel)->start(handle_started);
 }
 
 void session_header_sync::handle_channel_start(const code& ec,
@@ -144,8 +148,15 @@ void session_header_sync::handle_channel_start(const code& ec,
 void session_header_sync::attach_protocols(channel::ptr channel,
     connector::ptr connect, result_handler handler)
 {
-    attach<protocol_ping>(channel)->start();
-    attach<protocol_address>(channel)->start();
+    BITCOIN_ASSERT(channel->negotiated_version() >=
+        message::version::level::headers);
+
+    if (channel->negotiated_version() >= message::version::level::bip31)
+        attach<protocol_ping_60001>(channel)->start();
+    else
+        attach<protocol_ping_31402>(channel)->start();
+
+    attach<protocol_address_31402>(channel)->start();
     attach<protocol_header_sync>(channel, hashes_, minimum_rate_, last_)
         ->start(BIND3(handle_complete, _1, connect, handler));
 }
