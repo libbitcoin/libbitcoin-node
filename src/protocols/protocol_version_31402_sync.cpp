@@ -19,6 +19,7 @@
  */
 #include <bitcoin/node/protocols/protocol_version_31402_sync.hpp>
 
+#include <cstdint>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {
@@ -27,8 +28,8 @@ namespace node {
 using namespace bc::network;
 
 protocol_version_31402_sync::protocol_version_31402_sync(p2p& network,
-    channel::ptr channel)
-  : protocol_version_31402(network, channel)
+    channel::ptr channel, uint32_t minimum_version, uint64_t minimum_services)
+  : protocol_version_31402(network, channel, minimum_version, minimum_services)
 {
 }
 
