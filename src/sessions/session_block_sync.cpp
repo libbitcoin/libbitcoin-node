@@ -47,7 +47,7 @@ static const asio::seconds regulator_interval(5);
 
 session_block_sync::session_block_sync(p2p& network, header_queue& hashes,
     simple_chain& chain, const settings& settings)
-  : session_batch(network, false),
+  : network::session_outbound(network, false),
     blockchain_(chain),
     reservations_(hashes, chain, settings),
     CONSTRUCT_TRACK(session_block_sync)
@@ -168,7 +168,7 @@ void session_block_sync::handle_channel_start(const code& ec,
 void session_block_sync::attach_protocols(channel::ptr channel,
     connector::ptr connect, reservation::ptr row, result_handler handler)
 {
-    // This level is nly required for the header sync portion.
+    // This level is only required for the header sync portion.
     ////BITCOIN_ASSERT(channel->negotiated_version() >=
     ////    message::version::level::headers);
 

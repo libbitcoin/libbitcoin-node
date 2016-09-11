@@ -36,7 +36,7 @@ namespace node {
 
 /// Class to manage initial block download connections, thread safe.
 class BCN_API session_block_sync
-  : public network::session_batch, track<session_block_sync>
+  : public network::session_outbound, track<session_block_sync>
 {
 public:
     typedef std::shared_ptr<session_block_sync> ptr;
@@ -44,7 +44,7 @@ public:
     session_block_sync(network::p2p& network, header_queue& hashes,
         blockchain::simple_chain& chain, const settings& settings);
 
-    virtual void start(result_handler handler);
+    void start(result_handler handler) override;
 
 protected:
     /// Overridden to attach and start specialized handshake.
