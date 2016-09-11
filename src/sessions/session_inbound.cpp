@@ -35,7 +35,7 @@ using namespace std::placeholders;
 
 session_inbound::session_inbound(p2p& network, block_chain& blockchain,
     transaction_pool& pool)
-  : network::session_inbound(network),
+  : network::session_inbound(network, true),
     blockchain_(blockchain),
     pool_(pool)
 {

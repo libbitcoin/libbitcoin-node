@@ -34,7 +34,7 @@ namespace node {
     
 /// Class to manage initial header download connection, thread safe.
 class BCN_API session_header_sync
-  : public network::session_batch, track<session_header_sync>
+  : public network::session_outbound, track<session_header_sync>
 {
 public:
     typedef std::shared_ptr<session_header_sync> ptr;
