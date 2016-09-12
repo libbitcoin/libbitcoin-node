@@ -171,10 +171,6 @@ void session_block_sync::handle_channel_start(const code& ec,
 void session_block_sync::attach_protocols(channel::ptr channel,
     connector::ptr connect, reservation::ptr row, result_handler handler)
 {
-    // This level is only required for the header sync portion.
-    ////BITCOIN_ASSERT(channel->negotiated_version() >=
-    ////    message::version::level::headers);
-
     if (channel->negotiated_version() >= message::version::level::bip31)
         attach<protocol_ping_60001>(channel)->start();
     else
