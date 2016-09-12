@@ -164,6 +164,12 @@ bool blockchain_fixture::get_transaction(transaction& out_transaction,
     return false;
 }
 
+bool blockchain_fixture::get_transaction_height(uint64_t& out_block_height,
+    const hash_digest& transaction_hash) const
+{
+    return false;
+}
+
 bool blockchain_fixture::import(block::ptr block, uint64_t height)
 {
     // This prevents a zero import cost, which is useful in testing timeout.

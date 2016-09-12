@@ -78,6 +78,8 @@ public:
         const chain::output_point& outpoint) const;
     bool get_transaction(chain::transaction& out_transaction,
         uint64_t& out_block_height, const hash_digest& transaction_hash) const;
+    bool get_transaction_height(uint64_t& out_block_height,
+        const hash_digest& transaction_hash) const;
     bool import(chain::block::ptr block, uint64_t height);
     bool push(blockchain::block_detail::ptr block);
     bool pop_from(blockchain::block_detail::list& out_blocks,
