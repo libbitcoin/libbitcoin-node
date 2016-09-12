@@ -122,7 +122,7 @@ private:
     const settings& settings_;
 };
 
-} // namspace node
+} // namespace node
 } //namespace libbitcoin
 
 #endif

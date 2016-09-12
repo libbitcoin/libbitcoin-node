@@ -294,5 +294,5 @@ void p2p_node::subscribe_transaction_pool(transaction_handler handler)
     pool().subscribe_transaction(handler);
 }
 
-} // namspace node
+} // namespace node
 } //namespace libbitcoin
