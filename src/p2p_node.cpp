@@ -88,14 +88,15 @@ void p2p_node::run(result_handler handler)
         return;
     }
 
-    // By setting no download connections checkpoints can be used without sync.
-    // This also allows the maximum protocol version to be set below headers.
-    if (settings_.download_connections == 0)
-    {
-        // This will spawn a new thread before returning.
-        handle_running(error::success, handler);
-        return;
-    }
+    // TODO: make this safe by requiring sync if gaps found.
+    ////// By setting no download connections checkpoints can be used without sync.
+    ////// This also allows the maximum protocol version to be set below headers.
+    ////if (settings_.download_connections == 0)
+    ////{
+    ////    // This will spawn a new thread before returning.
+    ////    handle_running(error::success, handler);
+    ////    return;
+    ////}
 
     // The instance is retained by the stop handler (i.e. until shutdown).
     const auto header_sync = attach_header_sync_session();
