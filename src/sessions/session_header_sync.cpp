@@ -28,8 +28,6 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
-#include <bitcoin/node/protocols/protocol_version_31402_sync.hpp>
-#include <bitcoin/node/protocols/protocol_version_70002_sync.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
@@ -126,15 +124,20 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
 void session_header_sync::attach_handshake_protocols(channel::ptr channel,
     result_handler handle_started)
 {
-    const auto version = message::version::level::headers;
-    const auto service = message::version::service::node_network;
+    // Don't use configured services, relay or min version for header sync.
+    const auto relay = false;
+    const auto own_version = settings_.protocol_maximum;
+    const auto own_services = message::version::service::none;
+    const auto minimum_version = message::version::level::headers;
+    const auto minimum_services = message::version::service::node_network;
 
-    if (settings_.protocol_maximum >= message::version::level::bip61)
-        attach<protocol_version_70002_sync>(channel, version, service)->
-            start(handle_started);
+    // The negotiated_version is initialized to the configured maximum.
+    if (channel->negotiated_version() >= message::version::level::bip61)
+        attach<protocol_version_70002>(channel, own_version, own_services,
+            minimum_version, minimum_services, relay)->start(handle_started);
     else
-        attach<protocol_version_31402_sync>(channel, version, service)->
-            start(handle_started);
+        attach<protocol_version_31402>(channel, own_version, own_services,
+            minimum_version, minimum_services)->start(handle_started);
 }
 
 void session_header_sync::handle_channel_start(const code& ec,
