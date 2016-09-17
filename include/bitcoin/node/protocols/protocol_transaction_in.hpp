@@ -55,9 +55,9 @@ private:
     bool handle_receive_inventory(const code& ec, inventory_ptr message);
     bool handle_receive_transaction(const code& ec, transaction_ptr message);
     void handle_store_confirmed(const code& ec, transaction_ptr message);
-    void handle_store_validated(const code& ec, transaction_ptr message,
-        const index_list& unconfirmed);
-    bool handle_reorganized(const code& ec, size_t fork_point,
+    void handle_store_validated(const code& ec, const index_list& unconfirmed,
+        transaction_ptr message);
+    bool handle_reorganized(const code& ec, size_t fork_height,
         const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
     void handle_stop(const code&);

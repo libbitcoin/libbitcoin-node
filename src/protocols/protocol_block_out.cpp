@@ -347,7 +347,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
 // TODO: make sure we are announcing older blocks first here.
 // We never announce or inventory an orphan, only indexed blocks.
-bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
+bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
     const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped)
@@ -363,8 +363,8 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_point,
 
     // TODO: use p2p_node instead.
     // Save the latest height.
-    BITCOIN_ASSERT(max_size_t - fork_point >= incoming.size());
-    current_chain_height_.store(fork_point + incoming.size());
+    BITCOIN_ASSERT(max_size_t - fork_height >= incoming.size());
+    current_chain_height_.store(fork_height + incoming.size());
 
     // TODO: move announce headers to a derived class protocol_block_in_70012.
     if (headers_to_peer_)
