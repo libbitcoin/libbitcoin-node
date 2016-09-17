@@ -189,7 +189,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 
     pool_.store(message,
         BIND2(handle_store_confirmed, _1, _2),
-        BIND3(handle_store_validated, _1, _2, _3));
+        BIND3(handle_store_validated, _1, _2, message));
     return true;
 }
 
@@ -197,7 +197,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 // This will be picked up by subscription in transaction_out and will cause
 // the transaction to be announced to non-originating relay-accepting peers.
 void protocol_transaction_in::handle_store_validated(const code& ec,
-    transaction_ptr message, const index_list& unconfirmed)
+    const index_list& unconfirmed, transaction_ptr message)
 {
     // Examples:
     // error::service_stopped

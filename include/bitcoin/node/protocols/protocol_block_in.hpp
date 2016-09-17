@@ -65,7 +65,7 @@ private:
         block_ptr message);
     void handle_fetch_block_locator(const code& ec, const hash_list& locator,
         const hash_digest& stop_hash);
-    bool handle_reorganized(const code& ec, size_t fork_point,
+    bool handle_reorganized(const code& ec, size_t fork_height,
         const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
     blockchain::block_chain& blockchain_;

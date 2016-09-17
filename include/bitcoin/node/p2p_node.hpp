@@ -106,7 +106,7 @@ protected:
 private:
     typedef message::block_message::ptr_list block_ptr_list;
 
-    bool handle_reorganized(const code& ec, size_t fork_point,
+    bool handle_reorganized(const code& ec, size_t fork_height,
         const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
     void handle_headers_synchronized(const code& ec, result_handler handler);

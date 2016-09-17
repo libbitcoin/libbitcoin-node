@@ -331,7 +331,7 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
     {
         log::debug(LOG_NODE)
             << "Redundant block [" << hash << "] from ["
-            << authority() << "] " << ec.message();
+            << authority() << "]";
         return;
     }
 
@@ -365,7 +365,7 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
 //-----------------------------------------------------------------------------
 
 // At least one block was accepted into the chain, originating from any peer.
-bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_point,
+bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
     const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped || incoming.empty())

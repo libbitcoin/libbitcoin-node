@@ -175,7 +175,7 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
 }
 
 // This maintains a height member.
-bool p2p_node::handle_reorganized(const code& ec, size_t fork_point,
+bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
     const block_ptr_list& incoming, const block_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped)
@@ -194,8 +194,8 @@ bool p2p_node::handle_reorganized(const code& ec, size_t fork_point,
             << "Reorganization discarded block ["
             << encode_hash(block->header.hash()) << "]";
 
-    BITCOIN_ASSERT(max_size_t - fork_point >= incoming.size());
-    const auto height = fork_point + incoming.size();
+    BITCOIN_ASSERT(max_size_t - fork_height >= incoming.size());
+    const auto height = fork_height + incoming.size();
     set_height(height);
     return true;
 }

@@ -69,7 +69,7 @@ private:
         const header_list& headers);
 
     void handle_stop(const code&);
-    bool handle_reorganized(const code& ec, size_t fork_point,
+    bool handle_reorganized(const code& ec, size_t fork_height,
         const block_ptr_list& incoming, const block_ptr_list& outgoing);
 
     size_t locator_limit() const;
