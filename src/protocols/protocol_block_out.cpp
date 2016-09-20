@@ -26,6 +26,7 @@
 #include <string>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -48,7 +49,7 @@ static constexpr auto inventory_cap = 500u;
 static constexpr auto locator_allowance = 12u;
 
 protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
-    block_chain& blockchain)
+    full_chain& blockchain)
   : protocol_events(network, channel, NAME),
     last_locator_top_(null_hash),
     current_chain_height_(0),
@@ -90,7 +91,7 @@ void protocol_block_out::start()
 
 // TODO: move send_headers to a derived class protocol_block_out_70012.
 bool protocol_block_out::handle_receive_send_headers(const code& ec,
-    send_headers_ptr message)
+    send_headers_const_ptr message)
 {
     if (stopped())
         return false;
@@ -127,7 +128,7 @@ size_t protocol_block_out::locator_limit() const
 
 // TODO: move get_headers to a derived class protocol_block_out_31800.
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
-    get_headers_ptr message)
+    get_headers_const_ptr message)
 {
     if (stopped())
         return false;
@@ -159,14 +160,14 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // that case we would not respond but our peer's other peer should.
     const auto threshold = last_locator_top_.load();
 
-    blockchain_.fetch_locator_block_headers(*message, threshold, headers_cap,
+    blockchain_.fetch_locator_block_headers(message, threshold, headers_cap,
         BIND2(handle_fetch_locator_headers, _1, _2));
     return true;
 }
 
 // TODO: move headers to a derived class protocol_block_out_31800.
 void protocol_block_out::handle_fetch_locator_headers(const code& ec,
-    const header_list& headers)
+    const chain::header::list& headers)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -181,7 +182,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     }
 
     // Respond to get_headers with headers.
-    const message::headers response(headers);
+    const message::headers response;///// (headers);
     SEND2(response, handle_send, _1, response.command);
 }
 
@@ -189,7 +190,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_block_out::handle_receive_get_blocks(const code& ec,
-    get_blocks_ptr message)
+    get_blocks_const_ptr message)
 {
     if (stopped())
         return false;
@@ -221,7 +222,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     // that case we would not respond but our peer's other peer should.
     const auto threshold = last_locator_top_.load();
 
-    blockchain_.fetch_locator_block_hashes(*message, threshold, inventory_cap,
+    blockchain_.fetch_locator_block_hashes(message, threshold, inventory_cap,
         BIND2(handle_fetch_locator_hashes, _1, _2));
     return true;
 }
@@ -254,7 +255,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
 
 // TODO: move filtered_block to derived class protocol_block_out_70001.
 bool protocol_block_out::handle_receive_get_data(const code& ec,
-    get_data_ptr message)
+    get_data_const_ptr message)
 {
     if (stopped())
         return false;
@@ -268,24 +269,25 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    // TODO: these must return message objects or be copied!
     // Ignore non-block inventory requests in this protocol.
     for (const auto& inventory: message->inventories)
     {
         if (inventory.type == inventory::type_id::block)
             blockchain_.fetch_block(inventory.hash,
-                BIND3(send_block, _1, _2, inventory.hash));
-        else if (inventory.type == inventory::type_id::filtered_block)
-            blockchain_.fetch_merkle_block(inventory.hash,
-                BIND3(send_merkle_block, _1, _2, inventory.hash));
+                BIND4(send_block, _1, _2, _3, inventory.hash));
+
+        // TODO: use blockchain_.fetch_block_transaction_hashes for this?
+        ////else if (inventory.type == inventory::type_id::filtered_block)
+        ////    blockchain_.fetch_merkle_block(inventory.hash,
+        ////        BIND3(send_merkle_block, _1, _2, inventory.hash));
     }
 
     return true;
 }
 
 // TODO: move not_found to derived class protocol_block_out_70001.
-void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
-    const hash_digest& hash)
+void protocol_block_out::send_block(const code& ec, block_ptr message,
+    uint64_t, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -309,13 +311,12 @@ void protocol_block_out::send_block(const code& ec, chain::block::ptr block,
         return;
     }
 
-    // TODO: eliminate copy.
-    SEND2(block_message(*block), handle_send, _1, block_message::command);
+    SEND2(*message, handle_send, _1, block_message::command);
 }
 
 // TODO: move filtered_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_ptr message, const hash_digest& hash)
+    merkle_block_const_ptr message, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -348,7 +349,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 // TODO: make sure we are announcing older blocks first here.
 // We never announce or inventory an orphan, only indexed blocks.
 bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
-    const block_ptr_list& incoming, const block_ptr_list& outgoing)
+    const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped)
         return false;

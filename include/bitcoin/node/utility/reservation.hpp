@@ -90,7 +90,7 @@ public:
     void insert(const hash_digest& hash, size_t height);
 
     /// Add to the blockchain, with height determined by the reservation.
-    void import(chain::block::ptr block);
+    void import(block_const_ptr block);
 
     /// Determine if the reservation was partitioned and reset partition flag.
     bool toggle_partitioned();

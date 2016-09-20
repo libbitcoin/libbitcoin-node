@@ -158,10 +158,10 @@ bool blockchain_fixture::get_outpoint_transaction(hash_digest& out_transaction,
     return false;
 }
 
-bool blockchain_fixture::get_transaction(transaction& out_transaction,
-    uint64_t& out_block_height, const hash_digest& transaction_hash) const
+transaction_ptr blockchain_fixture::get_transaction(uint64_t& out_block_height,
+    const hash_digest& transaction_hash) const
 {
-    return false;
+    return nullptr;
 }
 
 bool blockchain_fixture::get_transaction_height(uint64_t& out_block_height,
@@ -170,18 +170,18 @@ bool blockchain_fixture::get_transaction_height(uint64_t& out_block_height,
     return false;
 }
 
-bool blockchain_fixture::import(block::ptr block, uint64_t height)
+bool blockchain_fixture::import(block_const_ptr block, uint64_t height)
 {
     // This prevents a zero import cost, which is useful in testing timeout.
     std::this_thread::sleep_for(std::chrono::microseconds(1));
     return import_result_;
 }
-bool blockchain_fixture::push(block_detail::ptr block)
+bool blockchain_fixture::push(block_const_ptr block)
 {
     return false;
 }
 
-bool blockchain_fixture::pop_from(block_detail::list& out_blocks,
+bool blockchain_fixture::pop_from(block_const_ptr_list& out_blocks,
     uint64_t height)
 {
     return false;

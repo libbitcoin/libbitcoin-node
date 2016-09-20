@@ -23,6 +23,7 @@
 #include <functional>
 #include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -36,16 +37,15 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 protocol_transaction_out::protocol_transaction_out(p2p& network,
-    channel::ptr channel, block_chain& blockchain, transaction_pool& pool)
+    channel::ptr channel, full_chain& blockchain)
   : protocol_events(network, channel, NAME),
     blockchain_(blockchain),
-    pool_(pool),
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     minimum_fee_(0),
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
-    relay_to_peer_(peer_version().relay),
+    relay_to_peer_(peer_version()->relay),
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
@@ -62,7 +62,7 @@ void protocol_transaction_out::start()
     if (relay_to_peer_)
     {
         // Subscribe to transaction pool notifications and relay txs.
-        pool_.subscribe_transaction(BIND3(handle_floated, _1, _2, _3));
+        blockchain_.subscribe_transaction(BIND3(handle_floated, _1, _2, _3));
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
@@ -75,7 +75,7 @@ void protocol_transaction_out::start()
 
 // TODO: move fee_filters to a derived class protocol_transaction_out_70013.
 bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
-    fee_filter_ptr message)
+    fee_filter_const_ptr message)
 {
     if (stopped())
         return false;
@@ -101,18 +101,19 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 //-----------------------------------------------------------------------------
 
 void protocol_transaction_out::handle_receive_memory_pool(const code& ec,
-    memory_pool_ptr)
+    memory_pool_const_ptr)
 {
-    auto message = std::make_shared<inventory>();
-    pool_.inventory(message);
-    SEND2(*message, handle_send, _1, message->command);
+    ////// TODO: not implemented.
+    ////auto message = blockchain_.fetch_floaters();
+
+    ////SEND2(*message, handle_send, _1, message->command);
 }
 
 // Receive get_data sequence.
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_out::handle_receive_get_data(const code& ec,
-    get_data_ptr message)
+    get_data_const_ptr message)
 {
     if (stopped())
         return false;
@@ -126,18 +127,17 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    // TODO: these must return message objects or be copied!
     // Ignore non-transaction inventory requests in this protocol.
     for (const auto& inventory: message->inventories)
         if (inventory.type == inventory::type_id::transaction)
             blockchain_.fetch_transaction(inventory.hash,
-                BIND3(send_transaction, _1, _2, inventory.hash));
+                BIND4(send_transaction, _1, _2, _3, inventory.hash));
 
     return true;
 }
 
 void protocol_transaction_out::send_transaction(const code& ec,
-    const chain::transaction& transaction, const hash_digest& hash)
+    transaction_ptr transaction, uint64_t, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -161,16 +161,14 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
     }
 
-    // TODO: eliminate copy.
-    SEND2(transaction_message(transaction), handle_send, _1,
-        transaction_message::command);
+    SEND2(*transaction, handle_send, _1, transaction_message::command);
 }
 
 // Subscription.
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_out::handle_floated(const code& ec,
-    const index_list& unconfirmed, transaction_ptr message)
+    const chain::point::indexes& unconfirmed, transaction_const_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
         return false;
@@ -184,7 +182,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    // TODO: implement fee computation.
+    // TODO: implement fee computation (which requires utxo lookup).
     const uint64_t fee = 0;
 
     // Transactions are discovered and announced individually.

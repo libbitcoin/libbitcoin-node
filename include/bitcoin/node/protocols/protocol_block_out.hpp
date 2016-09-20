@@ -38,43 +38,37 @@ public:
 
     /// Construct a block protocol instance.
     protocol_block_out(network::p2p& network, network::channel::ptr channel,
-        blockchain::block_chain& blockchain);
+        blockchain::full_chain& blockchain);
 
     /// Start the protocol.
     virtual void start();
 
 private:
-    // Local type aliases.
-    typedef message::block_message::ptr block_ptr;
-    typedef message::get_data::ptr get_data_ptr;
-    typedef message::get_blocks::ptr get_blocks_ptr;
-    typedef message::get_headers::ptr get_headers_ptr;
-    typedef message::send_headers::ptr send_headers_ptr;
-    typedef message::merkle_block::ptr merkle_block_ptr;
-    typedef message::block_message::ptr_list block_ptr_list;
-    typedef chain::header::list header_list;
-
-    void send_block(const code& ec, chain::block::ptr block,
+    void send_block(const code& ec, block_ptr message, uint64_t height,
         const hash_digest& hash);
-    void send_merkle_block(const code& ec, merkle_block_ptr message,
+    void send_merkle_block(const code& ec, merkle_block_const_ptr message,
         const hash_digest& hash);
 
-    bool handle_receive_get_data(const code& ec, get_data_ptr message);
-    bool handle_receive_get_blocks(const code& ec, get_blocks_ptr message);
-    bool handle_receive_get_headers(const code& ec, get_headers_ptr message);
-    bool handle_receive_send_headers(const code& ec, send_headers_ptr message);
+    bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
+    bool handle_receive_get_blocks(const code& ec,
+        get_blocks_const_ptr message);
+    bool handle_receive_get_headers(const code& ec,
+        get_headers_const_ptr message);
+    bool handle_receive_send_headers(const code& ec,
+        send_headers_const_ptr message);
 
     void handle_fetch_locator_hashes(const code& ec, const hash_list& hashes);
     void handle_fetch_locator_headers(const code& ec, 
-        const header_list& headers);
+        const chain::header::list& headers);
 
     void handle_stop(const code&);
     bool handle_reorganized(const code& ec, size_t fork_height,
-        const block_ptr_list& incoming, const block_ptr_list& outgoing);
+        const block_const_ptr_list& incoming,
+        const block_const_ptr_list& outgoing);
 
     size_t locator_limit() const;
 
-    blockchain::block_chain& blockchain_;
+    blockchain::full_chain& blockchain_;
     bc::atomic<hash_digest> last_locator_top_;
     std::atomic<size_t> current_chain_height_;
     std::atomic<bool> headers_to_peer_;

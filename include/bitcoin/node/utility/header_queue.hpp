@@ -61,7 +61,7 @@ public:
     bool dequeue(hash_digest& out_hash, size_t& out_height);
 
     /// Merge the hashes in the message with those in the queue.
-    bool enqueue(message::headers::ptr message);
+    bool enqueue(headers_const_ptr message);
 
     /// Clear the queue and populate the hash at the given height.
     void initialize(const config::checkpoint& check);

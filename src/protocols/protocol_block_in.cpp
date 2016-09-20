@@ -25,6 +25,7 @@
 #include <string>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -41,7 +42,7 @@ static constexpr auto perpetual_timer = true;
 static const auto get_blocks_interval = asio::seconds(10);
 
 protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
-    block_chain& blockchain)
+    full_chain& blockchain)
   : protocol_timer(network, channel, perpetual_timer, NAME),
     blockchain_(blockchain),
     last_locator_top_(null_hash),
@@ -167,7 +168,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 // TODO: move headers to a derived class protocol_block_in_31800.
 // This originates from send_header->annoucements and get_headers requests.
 bool protocol_block_in::handle_receive_headers(const code& ec,
-    headers_ptr message)
+    headers_const_ptr message)
 {
     if (stopped())
         return false;
@@ -189,12 +190,13 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     // Remove block hashes found in the orphan pool.
     blockchain_.filter_orphans(response,
         BIND2(handle_filter_orphans, _1, response));
+
     return true;
 }
 
 // This originates from default annoucements and get_blocks requests.
 bool protocol_block_in::handle_receive_inventory(const code& ec,
-    inventory_ptr message)
+    inventory_const_ptr message)
 {
     if (stopped())
         return false;
@@ -214,6 +216,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     // Remove block hashes found in the orphan pool.
     blockchain_.filter_orphans(response,
         BIND2(handle_filter_orphans, _1, response));
+
     return true;
 }
 
@@ -261,7 +264,7 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 
 // TODO: move not_found to a derived class protocol_block_in_70001.
 bool protocol_block_in::handle_receive_not_found(const code& ec,
-    message::not_found::ptr message)
+    not_found_const_ptr message)
 {
     if (stopped())
         return false;
@@ -293,7 +296,8 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
 // Receive block sequence.
 //-----------------------------------------------------------------------------
 
-bool protocol_block_in::handle_receive_block(const code& ec, block_ptr message)
+bool protocol_block_in::handle_receive_block(const code& ec,
+    block_const_ptr message)
 {
     if (stopped())
         return false;
@@ -311,7 +315,9 @@ bool protocol_block_in::handle_receive_block(const code& ec, block_ptr message)
     // Once we are at the top this will end up polling the peer.
     reset_timer();
 
-    // We will pick this up in handle_reorganized.
+    // HACK: this is unsafe as there may be other message subscribers.
+    // However we are currently relying on message subscriber threading limits.
+    // We can pick this up in reorganization subscription.
     message->set_originator(nonce());
 
     blockchain_.store(message, BIND3(handle_store_block, _1, _2, message));
@@ -319,7 +325,7 @@ bool protocol_block_in::handle_receive_block(const code& ec, block_ptr message)
 }
 
 void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
-    block_ptr message)
+    block_const_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -366,7 +372,7 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
 
 // At least one block was accepted into the chain, originating from any peer.
 bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
-    const block_ptr_list& incoming, const block_ptr_list& outgoing)
+    const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped || incoming.empty())
         return false;

@@ -23,6 +23,7 @@
 #include <functional>
 #include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,10 +39,9 @@ using namespace std::placeholders;
 // TODO: derive from protocol_session_node abstract intermediate base class.
 // TODO: Pass p2p_node on construct, obtaining node configuration settings.
 protocol_transaction_in::protocol_transaction_in(p2p& network,
-    channel::ptr channel, block_chain& blockchain, transaction_pool& pool)
+    channel::ptr channel, full_chain& blockchain)
   : protocol_events(network, channel, NAME),
     blockchain_(blockchain),
-    pool_(pool),
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
     relay_from_peer_(network.network_settings().relay_transactions),
@@ -82,7 +82,7 @@ void protocol_transaction_in::start()
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_in::handle_receive_inventory(const code& ec,
-    inventory_ptr message)
+    inventory_const_ptr message)
 {
     if (stopped())
         return false;
@@ -111,7 +111,8 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
 
     // This is returned on a new thread.
     // Remove matching transaction hashes found in the transaction pool.
-    pool_.filter(response, BIND2(handle_filter_floaters, _1, response));
+    blockchain_.filter_floaters(response,
+        BIND2(handle_filter_floaters, _1, response));
     return true;
 }
 
@@ -160,7 +161,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_in::handle_receive_transaction(const code& ec,
-    transaction_ptr message)
+    transaction_const_ptr message)
 {
     if (stopped())
         return false;
@@ -187,17 +188,21 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     log::debug(LOG_NODE)
         << "Potential transaction from [" << authority() << "].";
 
-    pool_.store(message,
-        BIND2(handle_store_confirmed, _1, _2),
-        BIND3(handle_store_validated, _1, _2, message));
+    // HACK: this is unsafe as there may be other message subscribers.
+    // However we are currently relying on message subscriber threading limits.
+    // We can pick this up in transaction subscription.
+    message->set_originator(nonce());
+
+    blockchain_.store(message,
+        BIND3(handle_store_transaction, _1, _2, message));
     return true;
 }
 
 // The transaction has been saved to the memory pool (or not).
 // This will be picked up by subscription in transaction_out and will cause
 // the transaction to be announced to non-originating relay-accepting peers.
-void protocol_transaction_in::handle_store_validated(const code& ec,
-    const index_list& unconfirmed, transaction_ptr message)
+void protocol_transaction_in::handle_store_transaction(const code& ec,
+    const chain::point::indexes& unconfirmed, transaction_const_ptr message)
 {
     // Examples:
     // error::service_stopped
@@ -207,25 +212,13 @@ void protocol_transaction_in::handle_store_validated(const code& ec,
     // error::success (transaction is valid and indexed into the mempool)
 }
 
-// The transaction has been confirmed in a block.
-void protocol_transaction_in::handle_store_confirmed(const code& ec,
-    transaction_ptr message)
-{
-    // Examples:
-    // error::service_stopped
-    // error::pool_filled
-    // error::double_spend
-    // error::blockchain_reorganized
-    // error::success (tx was found in a block and removed from the mempool)
-}
-
 // Subscription.
 //-----------------------------------------------------------------------------
 
 // TODO: move memory_pool to a derived class protocol_transaction_in_70002.
 // Prior to this level the mempool message is not available.
 bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
-    const block_ptr_list&, const block_ptr_list& outgoing)
+    const block_const_ptr_list&, const block_const_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped)
         return false;

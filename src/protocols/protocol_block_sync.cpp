@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
@@ -57,7 +58,7 @@ void protocol_block_sync::start(event_handler handler)
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
     protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
-    SUBSCRIBE3(block_message, handle_receive, _1, _2, complete);
+    SUBSCRIBE3(block_message, handle_receive_block, _1, _2, complete);
 
     // This is the end of the start sequence.
     send_get_blocks(complete, true);
@@ -111,8 +112,8 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
 // block messages. This requires that this handler never call back into the
 // subscriber. Otherwise a deadlock will result. This in turn requires that
 // the 'complete' parameter handler never call into the message subscriber.
-bool protocol_block_sync::handle_receive(const code& ec, block_ptr message,
-    event_handler complete)
+bool protocol_block_sync::handle_receive_block(const code& ec,
+    block_const_ptr message, event_handler complete)
 {
     if (stopped())
         return false;

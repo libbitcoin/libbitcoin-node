@@ -36,34 +36,28 @@ public:
 
     /// Construct a transaction protocol instance.
     protocol_transaction_in(network::p2p& network,
-        network::channel::ptr channel, blockchain::block_chain& blockchain,
-        blockchain::transaction_pool& pool);
+        network::channel::ptr channel, blockchain::full_chain& blockchain);
 
     /// Start the protocol.
     virtual void start();
 
 private:
-    typedef chain::point::indexes index_list;
-    typedef message::get_data::ptr get_data_ptr;
-    typedef message::inventory::ptr inventory_ptr;
-    typedef message::transaction_message::ptr transaction_ptr;
-    typedef message::block_message::ptr_list block_ptr_list;
-    typedef message::block_message::ptr block_ptr;
-
     void send_get_data(const code& ec, get_data_ptr message);
+
     void handle_filter_floaters(const code& ec, get_data_ptr message);
-    bool handle_receive_inventory(const code& ec, inventory_ptr message);
-    bool handle_receive_transaction(const code& ec, transaction_ptr message);
-    void handle_store_confirmed(const code& ec, transaction_ptr message);
-    void handle_store_validated(const code& ec, const index_list& unconfirmed,
-        transaction_ptr message);
+    bool handle_receive_inventory(const code& ec, inventory_const_ptr message);
+    bool handle_receive_transaction(const code& ec,
+        transaction_const_ptr message);
+    void handle_store_transaction(const code& ec,
+        const chain::point::indexes& unconfirmed,
+        transaction_const_ptr message);
     bool handle_reorganized(const code& ec, size_t fork_height,
-        const block_ptr_list& incoming, const block_ptr_list& outgoing);
+        const block_const_ptr_list& incoming,
+        const block_const_ptr_list& outgoing);
 
     void handle_stop(const code&);
 
-    blockchain::block_chain& blockchain_;
-    blockchain::transaction_pool& pool_;
+    blockchain::full_chain& blockchain_;
     const bool refresh_pool_;
     const bool relay_from_peer_;
     const bool peer_suports_memory_pool_;

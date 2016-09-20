@@ -26,6 +26,7 @@
 #include <utility>
 #include <boost/format.hpp>
 #include <bitcoin/bitcoin.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservations.hpp>
 
@@ -318,7 +319,7 @@ void reservation::insert(const hash_digest& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::import(block::ptr block)
+void reservation::import(block_const_ptr block)
 {
     uint32_t height;
     const auto hash = block->header.hash();

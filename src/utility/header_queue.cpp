@@ -24,6 +24,7 @@
 #include <iterator>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -232,7 +233,7 @@ bool header_queue::dequeue(hash_digest& out_hash, size_t& out_height)
     return true;
 }
 
-bool header_queue::enqueue(headers::ptr message)
+bool header_queue::enqueue(headers_const_ptr message)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////

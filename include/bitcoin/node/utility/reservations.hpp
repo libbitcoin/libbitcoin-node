@@ -59,7 +59,7 @@ public:
     reservation::list table() const;
 
     /// Import the given block to the blockchain at the specified height.
-    bool import(chain::block::ptr block, size_t height);
+    bool import(block_const_ptr block, size_t height);
 
     /// Populate a starved row by taking half of the hashes from a weak row.
     bool populate(reservation::ptr minimal);

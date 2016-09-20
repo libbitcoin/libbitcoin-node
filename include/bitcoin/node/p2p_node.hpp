@@ -39,9 +39,8 @@ class BCN_API p2p_node
 {
 public:
     typedef std::shared_ptr<p2p_node> ptr;
-    typedef blockchain::organizer::reorganize_handler reorganize_handler;
-    typedef blockchain::transaction_pool::transaction_handler
-        transaction_handler;
+    typedef blockchain::block_chain::reorganize_handler reorganize_handler;
+    typedef blockchain::block_chain::transaction_handler transaction_handler;
 
     /// Construct the full node.
     p2p_node(const configuration& configuration);
@@ -78,10 +77,7 @@ public:
     virtual const settings& node_settings() const;
 
     /// Blockchain query interface.
-    virtual blockchain::block_chain& chain();
-
-    /// Transaction pool interface.
-    virtual blockchain::transaction_pool& pool();
+    virtual blockchain::full_chain& chain();
 
     // Subscriptions.
     // ------------------------------------------------------------------------
@@ -90,7 +86,7 @@ public:
     virtual void subscribe_blockchain(reorganize_handler handler);
 
     /// Subscribe to transaction pool acceptance and stop events.
-    virtual void subscribe_transaction_pool(transaction_handler handler);
+    virtual void subscribe_transaction(transaction_handler handler);
 
 protected:
     /// Override to attach specialized p2p sessions.
@@ -107,7 +103,8 @@ private:
     typedef message::block_message::ptr_list block_ptr_list;
 
     bool handle_reorganized(const code& ec, size_t fork_height,
-        const block_ptr_list& incoming, const block_ptr_list& outgoing);
+        const block_const_ptr_list& incoming,
+        const block_const_ptr_list& outgoing);
 
     void handle_headers_synchronized(const code& ec, result_handler handler);
     void handle_network_stopped(const code& ec, result_handler handler);
@@ -117,7 +114,7 @@ private:
 
     // These are thread safe.
     header_queue hashes_;
-    blockchain::block_chain_impl blockchain_;
+    blockchain::block_chain blockchain_;
     const uint32_t protocol_maximum_;
     const settings& settings_;
 };
