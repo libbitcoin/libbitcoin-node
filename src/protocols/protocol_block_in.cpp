@@ -157,6 +157,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
         std::swap(request->start_hashes, message->start_hashes);
         request->stop_hash = stop_hash;
         SEND2(*request, handle_send, _1, request->command);
+        message = request;
     }
     else
     {
@@ -355,9 +356,9 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
     // There are no other expected errors from the store call.
     if (ec)
     {
-        log::warning(LOG_NODE)
-            << "Error storing block [" << hash << "] from ["
-            << authority() << "] " << ec.message();
+        log::info(LOG_NODE)
+            << "Invalid block [" << hash << "] from [" << authority() << "] "
+            << ec.message();
         stop(ec);
         return;
     }
