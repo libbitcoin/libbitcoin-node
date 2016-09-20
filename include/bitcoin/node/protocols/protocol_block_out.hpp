@@ -65,8 +65,6 @@ private:
         const block_const_ptr_list& incoming,
         const block_const_ptr_list& outgoing);
 
-    size_t locator_limit() const;
-
     blockchain::full_chain& blockchain_;
     bc::atomic<hash_digest> last_locator_top_;
     std::atomic<size_t> current_chain_height_;

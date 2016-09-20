@@ -197,7 +197,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 
     const auto locator_size = message->start_hashes.size();
 
-    if (locator_size > locator_limit())
+    if (locator_size > chain::block::locator_size(current_chain_height_) + 1)
     {
         log::debug(LOG_NODE)
             << "Invalid get_blocks locator size (" << locator_size
@@ -206,12 +206,6 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
-    // The peer threshold prevents a peer from creating an unnecessary backlog
-    // for itself in the case where it is requesting without having processed
-    // all of its existing backlog. This also reduces its load on us.
-    // This could cause a problem during a reorg, where the peer regresses
-    // and one of its other peers populates the chain back to this level. In
-    // that case we would not respond but our peer's other peer should.
     const auto threshold = last_locator_top_.load();
 
     blockchain_.fetch_locator_block_hashes(message, threshold, inventory_cap,
@@ -267,8 +261,6 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         if (inventory.type == inventory::type_id::block)
             blockchain_.fetch_block(inventory.hash,
                 BIND4(send_block, _1, _2, _3, inventory.hash));
-
-        // TODO: use blockchain_.fetch_block_transaction_hashes for this?
         ////else if (inventory.type == inventory::type_id::filtered_block)
         ////    blockchain_.fetch_merkle_block(inventory.hash,
         ////        BIND3(send_merkle_block, _1, _2, inventory.hash));
