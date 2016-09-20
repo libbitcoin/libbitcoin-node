@@ -55,7 +55,7 @@ private:
     bool handle_receive_not_found(const code& ec, not_found_const_ptr message);
     void handle_store_block(const code& ec, uint64_t height,
         block_const_ptr message);
-    void handle_fetch_block_locator(const code& ec, const hash_list& locator,
+    void handle_fetch_block_locator(const code& ec, get_blocks_ptr message,
         const hash_digest& stop_hash);
     bool handle_reorganized(const code& ec, size_t fork_height,
         const block_const_ptr_list& incoming,

@@ -261,9 +261,9 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         if (inventory.type == inventory::type_id::block)
             blockchain_.fetch_block(inventory.hash,
                 BIND4(send_block, _1, _2, _3, inventory.hash));
-        ////else if (inventory.type == inventory::type_id::filtered_block)
-        ////    blockchain_.fetch_merkle_block(inventory.hash,
-        ////        BIND3(send_merkle_block, _1, _2, inventory.hash));
+        else if (inventory.type == inventory::type_id::filtered_block)
+            blockchain_.fetch_merkle_block(inventory.hash,
+                BIND4(send_merkle_block, _1, _2, _3, inventory.hash));
     }
 
     return true;
@@ -300,7 +300,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
 
 // TODO: move filtered_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_const_ptr message, const hash_digest& hash)
+    merkle_block_ptr message, uint64_t, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -324,6 +324,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
         return;
     }
 
+    ////TODO: populate message->flags internal to merkle_block.
     SEND2(*message, handle_send, _1, message->command);
 }
 

@@ -128,9 +128,10 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 }
 
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
-    const hash_list& locator, const hash_digest& stop_hash)
+    get_blocks_ptr message, const hash_digest& stop_hash)
 {
-    if (stopped() || ec == error::service_stopped || locator.empty())
+    if (stopped() || ec == error::service_stopped ||
+        message->start_hashes.empty())
         return;
 
     if (ec)
@@ -147,25 +148,29 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     {
         log::debug(LOG_NODE)
             << "Ask [" << authority() << "] for headers from ["
-            << encode_hash(locator.front()) << "] through [" <<
+            << encode_hash(message->start_hashes.front()) << "] through [" <<
             (stop_hash == null_hash ? "2000" : encode_hash(stop_hash)) << "]";
 
-        const get_headers request{ std::move(locator), stop_hash };
-        SEND2(request, handle_send, _1, request.command);
+        // TODO: create query override to return this natively.
+        // Move the hash data from the get_blocks to a new get_message.
+        auto request = std::make_shared<message::get_headers>();
+        std::swap(request->start_hashes, message->start_hashes);
+        request->stop_hash = stop_hash;
+        SEND2(*request, handle_send, _1, request->command);
     }
     else
     {
         log::debug(LOG_NODE)
             << "Ask [" << authority() << "] for block inventory from ["
-            << encode_hash(locator.front()) << "] through [" <<
+            << encode_hash(message->start_hashes.front()) << "] through [" <<
             (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
 
-        const get_blocks request{ std::move(locator), stop_hash };
-        SEND2(request, handle_send, _1, request.command);
+        message->stop_hash = stop_hash;
+        SEND2(*message, handle_send, _1, message->command);
     }
 
     // Save the locator top to prevent a redundant future request.
-    last_locator_top_.store(locator.front());
+    last_locator_top_.store(message->start_hashes.front());
 }
 
 // Receive headers|inventory sequence.
