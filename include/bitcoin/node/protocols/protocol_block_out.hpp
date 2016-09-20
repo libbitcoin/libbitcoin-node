@@ -46,8 +46,8 @@ public:
 private:
     void send_block(const code& ec, block_ptr message, uint64_t height,
         const hash_digest& hash);
-    void send_merkle_block(const code& ec, merkle_block_const_ptr message,
-        const hash_digest& hash);
+    void send_merkle_block(const code& ec, merkle_block_ptr message,
+        uint64_t height, const hash_digest& hash);
 
     bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
     bool handle_receive_get_blocks(const code& ec,
