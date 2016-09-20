@@ -24,6 +24,7 @@
 #include <functional>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
 #include <bitcoin/node/sessions/session_header_sync.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
@@ -176,7 +177,7 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
 
 // This maintains a height member.
 bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
-    const block_ptr_list& incoming, const block_ptr_list& outgoing)
+    const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
 {
     if (stopped() || ec == error::service_stopped)
         return false;
@@ -194,7 +195,7 @@ bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
             << "Reorganization discarded block ["
             << encode_hash(block->header.hash()) << "]";
 
-    BITCOIN_ASSERT(max_size_t - fork_height >= incoming.size());
+    BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
     const auto height = fork_height + incoming.size();
     set_height(height);
     return true;
@@ -208,17 +209,17 @@ bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
 // But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr p2p_node::attach_manual_session()
 {
-    return attach<node::session_manual>(blockchain_, blockchain_.pool());
+    return attach<node::session_manual>(blockchain_);
 }
 
 network::session_inbound::ptr p2p_node::attach_inbound_session()
 {
-    return attach<node::session_inbound>(blockchain_, blockchain_.pool());
+    return attach<node::session_inbound>(blockchain_);
 }
 
 network::session_outbound::ptr p2p_node::attach_outbound_session()
 {
-    return attach<node::session_outbound>(blockchain_, blockchain_.pool());
+    return attach<node::session_outbound>(blockchain_);
 }
 
 session_header_sync::ptr p2p_node::attach_header_sync_session()
@@ -281,14 +282,9 @@ const settings& p2p_node::node_settings() const
     return settings_;
 }
 
-block_chain& p2p_node::chain()
+full_chain& p2p_node::chain()
 {
     return blockchain_;
-}
-
-transaction_pool& p2p_node::pool()
-{
-    return blockchain_.pool();
 }
 
 // Subscriptions.
@@ -299,9 +295,9 @@ void p2p_node::subscribe_blockchain(reorganize_handler handler)
     chain().subscribe_reorganize(handler);
 }
 
-void p2p_node::subscribe_transaction_pool(transaction_handler handler)
+void p2p_node::subscribe_transaction(transaction_handler handler)
 {
-    pool().subscribe_transaction(handler);
+    chain().subscribe_transaction(handler);
 }
 
 } // namespace node

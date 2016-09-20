@@ -25,7 +25,7 @@
 
 using namespace bc;
 using namespace bc::config;
-using namespace bc::chain;
+using namespace bc::message;
 using namespace bc::node;
 using namespace bc::node::test;
 
@@ -52,14 +52,14 @@ BOOST_AUTO_TEST_CASE(reservations__set_max_request__42__42)
 
 BOOST_AUTO_TEST_CASE(reservations__import__true__true)
 {
-    const auto block_ptr = std::make_shared<block>();
+    const auto block_ptr = std::make_shared<const block_message>();
     DECLARE_RESERVATIONS(reserves, true);
     BOOST_REQUIRE(reserves.import(block_ptr, 42));
 }
 
 BOOST_AUTO_TEST_CASE(reservations__import__false__false)
 {
-    const auto block_ptr = std::make_shared<block>();
+    const auto block_ptr = std::make_shared<const block_message>();
     DECLARE_RESERVATIONS(reserves, false);
     BOOST_REQUIRE(!reserves.import(block_ptr, 42));
 }
@@ -407,9 +407,9 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_table_empty__no_popula
 
     // Declare blocks that hash to the allocated headers.
     // Blocks are evenly distrubuted (every third to each row).
-    const auto block0 = std::make_shared<block>(block{ genesis_header, {} });
-    const auto block1 = std::make_shared<block>(block{ elements[0], {} });
-    const auto block2 = std::make_shared<block>(block{ elements[1], {} });
+    const auto block0 = std::make_shared<const block_message>(block_message{ genesis_header, {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ elements[0], {} });
+    const auto block2 = std::make_shared<const block_message>(block_message{ elements[1], {} });
 
     // All rows have one hash.
     BOOST_REQUIRE_EQUAL(table[0]->size(), 1u); // 0
@@ -449,8 +449,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__uncap
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u);
     BOOST_REQUIRE_EQUAL(table[1]->size(), 2u);
 
-    const auto block1 = std::make_shared<block>(block{ message->elements[0], {} });
-    const auto block4 = std::make_shared<block>(block{ message->elements[3], {} });
+    const auto block1 = std::make_shared<block_message>(block_message{ message->elements[0], {} });
+    const auto block4 = std::make_shared<block_message>(block_message{ message->elements[3], {} });
 
     // The import of two blocks from same row will cause populate to invoke reservation.
     table[1]->import(block1);
@@ -486,8 +486,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__cappe
     // Cap reserve at 1 block.
     reserves.set_max_request(1);
 
-    const auto block1 = std::make_shared<block>(block{ message->elements[0], {} });
-    const auto block4 = std::make_shared<block>(block{ message->elements[3], {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements[0], {} });
+    const auto block4 = std::make_shared<const block_message>(block_message{ message->elements[3], {} });
 
     // The import of two blocks from same row will cause populate to invoke reservation.
     table[1]->import(block1);
@@ -527,15 +527,15 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
 
     // Declare blocks that hash to the allocated headers.
     // Blocks are evenly distrubuted (every third to each row).
-    const auto block0 = std::make_shared<block>(block{ genesis_header, {} });
-    const auto block1 = std::make_shared<block>(block{ elements[0], {} });
-    const auto block2 = std::make_shared<block>(block{ elements[1], {} });
-    const auto block3 = std::make_shared<block>(block{ elements[2], {} });
-    const auto block4 = std::make_shared<block>(block{ elements[3], {} });
-    const auto block5 = std::make_shared<block>(block{ elements[4], {} });
-    const auto block6 = std::make_shared<block>(block{ elements[5], {} });
-    const auto block7 = std::make_shared<block>(block{ elements[6], {} });
-    const auto block8 = std::make_shared<block>(block{ elements[7], {} });
+    const auto block0 = std::make_shared<const block_message>(block_message{ genesis_header, {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ elements[0], {} });
+    const auto block2 = std::make_shared<const block_message>(block_message{ elements[1], {} });
+    const auto block3 = std::make_shared<const block_message>(block_message{ elements[2], {} });
+    const auto block4 = std::make_shared<const block_message>(block_message{ elements[3], {} });
+    const auto block5 = std::make_shared<const block_message>(block_message{ elements[4], {} });
+    const auto block6 = std::make_shared<const block_message>(block_message{ elements[5], {} });
+    const auto block7 = std::make_shared<const block_message>(block_message{ elements[6], {} });
+    const auto block8 = std::make_shared<const block_message>(block_message{ elements[7], {} });
 
     // This will reset pending on all rows.
     BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 3u);

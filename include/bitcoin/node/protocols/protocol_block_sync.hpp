@@ -45,13 +45,11 @@ public:
     virtual void start(event_handler handler);
 
 private:
-    typedef message::block_message::ptr block_ptr;
-
     void send_get_blocks(event_handler complete, bool reset);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
     void blocks_complete(const code& ec, event_handler handler);
-    bool handle_receive(const code& ec, block_ptr message,
+    bool handle_receive_block(const code& ec, block_const_ptr message,
         event_handler complete);
 
     reservation::ptr reservation_;

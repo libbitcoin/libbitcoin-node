@@ -68,6 +68,9 @@ class blockchain_fixture
 public:
     blockchain_fixture(bool import_result=true, size_t gap_trigger=max_size_t,
         size_t gap_height=max_size_t);
+
+    // Getters.
+    // ------------------------------------------------------------------------
     bool get_gap_range(uint64_t& out_first, uint64_t& out_last) const;
     bool get_next_gap(uint64_t& out_height, uint64_t start_height) const;
     bool get_difficulty(hash_number& out_difficulty, uint64_t height) const;
@@ -76,14 +79,16 @@ public:
     bool get_last_height(uint64_t& out_height) const;
     bool get_outpoint_transaction(hash_digest& out_transaction,
         const chain::output_point& outpoint) const;
-    bool get_transaction(chain::transaction& out_transaction,
-        uint64_t& out_block_height, const hash_digest& transaction_hash) const;
+    transaction_ptr get_transaction(uint64_t& out_block_height,
+        const hash_digest& transaction_hash) const;
     bool get_transaction_height(uint64_t& out_block_height,
         const hash_digest& transaction_hash) const;
-    bool import(chain::block::ptr block, uint64_t height);
-    bool push(blockchain::block_detail::ptr block);
-    bool pop_from(blockchain::block_detail::list& out_blocks,
-        uint64_t height);
+
+    // Setters.
+    // ------------------------------------------------------------------------
+    bool import(block_const_ptr block, uint64_t height);
+    bool push(block_const_ptr block);
+    bool pop_from(block_const_ptr_list& out_blocks, uint64_t height);
 
 private:
     bool import_result_;

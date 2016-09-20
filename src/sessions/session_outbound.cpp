@@ -33,11 +33,9 @@ using namespace bc::blockchain;
 using namespace bc::network;
 using namespace std::placeholders;
 
-session_outbound::session_outbound(p2p& network, block_chain& blockchain,
-    transaction_pool& pool)
+session_outbound::session_outbound(p2p& network, full_chain& blockchain)
   : network::session_outbound(network, true),
-    blockchain_(blockchain),
-    pool_(pool)
+    blockchain_(blockchain)
 {
     log::info(LOG_NODE)
         << "Starting outbound session.";
@@ -53,8 +51,8 @@ void session_outbound::attach_protocols(channel::ptr channel)
     attach<protocol_address_31402>(channel)->start();
     attach<protocol_block_in>(channel, blockchain_)->start();
     ////attach<protocol_block_out>(channel, blockchain_)->start();
-    ////attach<protocol_transaction_in>(channel, blockchain_, pool_)->start();
-    ////attach<protocol_transaction_out>(channel, blockchain_, pool_)->start();
+    ////attach<protocol_transaction_in>(channel, blockchain_)->start();
+    ////attach<protocol_transaction_out>(channel, blockchain_)->start();
 }
 
 } // namespace node

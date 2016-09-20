@@ -38,33 +38,27 @@ public:
 
     /// Construct a transaction protocol instance.
     protocol_transaction_out(network::p2p& network,
-        network::channel::ptr channel, blockchain::block_chain& blockchain,
-        blockchain::transaction_pool& pool);
+        network::channel::ptr channel, blockchain::full_chain& blockchain);
 
     /// Start the protocol.
     virtual void start();
 
 private:
-    // Local type aliases.
-    typedef message::transaction_message::ptr transaction_ptr;
-    typedef message::fee_filter::ptr fee_filter_ptr;
-    typedef message::memory_pool::ptr memory_pool_ptr;
-    typedef message::get_data::ptr get_data_ptr;
-    typedef chain::point::indexes index_list;
+    void send_transaction(const code& ec, transaction_ptr transaction,
+        uint64_t height, const hash_digest& hash);
 
-    void send_transaction(const code& ec,
-        const chain::transaction& transaction, const hash_digest& hash);
-
-    bool handle_receive_get_data(const code& ec, get_data_ptr message);
-    bool handle_receive_fee_filter(const code& ec, fee_filter_ptr message);
-    void handle_receive_memory_pool(const code& ec, memory_pool_ptr message);
+    bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
+    bool handle_receive_fee_filter(const code& ec,
+        fee_filter_const_ptr message);
+    void handle_receive_memory_pool(const code& ec,
+        memory_pool_const_ptr message);
 
     void handle_stop(const code&);
-    bool handle_floated(const code& ec, const index_list& unconfirmed,
-        transaction_ptr message);
+    bool handle_floated(const code& ec,
+        const chain::point::indexes& unconfirmed,
+        transaction_const_ptr message);
 
-    blockchain::block_chain& blockchain_;
-    blockchain::transaction_pool& pool_;
+    blockchain::full_chain& blockchain_;
     std::atomic<uint64_t> minimum_fee_;
     const bool relay_to_peer_;
 };

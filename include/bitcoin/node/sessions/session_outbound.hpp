@@ -37,15 +37,13 @@ public:
 
     /// Construct an instance.
     session_outbound(network::p2p& network,
-        blockchain::block_chain& blockchain,
-        blockchain::transaction_pool& pool);
+        blockchain::full_chain& blockchain);
 
 protected:
     /// Overridden to attach blockchain protocols.
     void attach_protocols(network::channel::ptr channel) override;
 
-    blockchain::block_chain& blockchain_;
-    blockchain::transaction_pool& pool_;
+    blockchain::full_chain& blockchain_;
 };
 
 } // namespace node

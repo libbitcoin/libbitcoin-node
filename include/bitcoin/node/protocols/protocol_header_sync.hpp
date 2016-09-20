@@ -48,8 +48,6 @@ public:
     virtual void start(event_handler handler);
 
 private:
-    typedef message::headers::ptr headers_ptr;
-
     static size_t final_height(header_queue& headers,
         const config::checkpoint::list& checkpoints);
 
@@ -60,7 +58,7 @@ private:
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
     void headers_complete(const code& ec, event_handler handler);
-    bool handle_receive(const code& ec, headers_ptr message,
+    bool handle_receive_header(const code& ec, headers_const_ptr message,
         event_handler complete);
 
     // Thread safe and guarded by sequential header sync.

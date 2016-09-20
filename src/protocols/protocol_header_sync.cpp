@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <functional>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
@@ -79,7 +80,7 @@ void protocol_header_sync::start(event_handler handler)
     auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
     protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
-    SUBSCRIBE3(headers, handle_receive, _1, _2, complete);
+    SUBSCRIBE3(headers, handle_receive_header, _1, _2, complete);
 
     // This is the end of the start sequence.
     send_get_headers(complete);
@@ -116,8 +117,8 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
     }
 }
 
-bool protocol_header_sync::handle_receive(const code& ec, headers_ptr message,
-    event_handler complete)
+bool protocol_header_sync::handle_receive_header(const code& ec,
+    headers_const_ptr message, event_handler complete)
 {
     if (stopped())
         return false;

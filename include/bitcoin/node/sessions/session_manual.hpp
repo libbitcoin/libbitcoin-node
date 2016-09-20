@@ -36,15 +36,13 @@ public:
     typedef std::shared_ptr<session_manual> ptr;
 
     /// Construct an instance.
-    session_manual(network::p2p& network, blockchain::block_chain& blockchain,
-        blockchain::transaction_pool& pool);
+    session_manual(network::p2p& network, blockchain::full_chain& blockchain);
 
 protected:
     /// Overridden to attach blockchain protocols.
     void attach_protocols(network::channel::ptr channel) override;
 
-    blockchain::block_chain& blockchain_;
-    blockchain::transaction_pool& pool_;
+    blockchain::full_chain& blockchain_;
 };
 
 } // namespace node

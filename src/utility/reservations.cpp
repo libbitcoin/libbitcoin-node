@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 #include <bitcoin/bitcoin.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
@@ -50,7 +51,7 @@ reservations::reservations(header_queue& hashes, simple_chain& chain,
     initialize(settings.download_connections);
 }
 
-bool reservations::import(block::ptr block, size_t height)
+bool reservations::import(block_const_ptr block, size_t height)
 {
     // Thread safe.
     return blockchain_.import(block, height);
