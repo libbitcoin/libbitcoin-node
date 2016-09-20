@@ -58,9 +58,9 @@ private:
     void handle_stop(const code&);
 
     blockchain::full_chain& blockchain_;
-    const bool refresh_pool_;
     const bool relay_from_peer_;
     const bool peer_suports_memory_pool_;
+    const bool refresh_pool_;
 };
 
 } // namespace node
