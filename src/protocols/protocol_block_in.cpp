@@ -47,6 +47,7 @@ protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
     blockchain_(blockchain),
     last_locator_top_(null_hash),
     current_chain_top_(null_hash),
+    current_chain_height_(0),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),
@@ -116,9 +117,14 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 
     // Avoid requesting from the same start as last request to this peer.
     // This does not guarantee prevention, it's just an optimization.
-    if (chain_top == null_hash || last_locator_top != chain_top)
-        blockchain_.fetch_block_locator(
-            BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
+    if (chain_top != null_hash && chain_top == last_locator_top)
+        return;
+
+    const auto chain_height = current_chain_height_.load();
+    const auto heights = chain::block::locator_heights(chain_height);
+
+    blockchain_.fetch_block_locator(heights,
+        BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
@@ -387,7 +393,8 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
     }
 
     // TODO: use p2p_node instead.
-    // Update the top of the chain.
+    BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
+    current_chain_height_.store(fork_height + incoming.size());
     current_chain_top_.store(incoming.back()->header.hash());
 
     // Report the blocks that originated from this peer.

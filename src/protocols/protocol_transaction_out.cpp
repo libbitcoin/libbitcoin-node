@@ -161,7 +161,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
     }
 
-    SEND2(*transaction, handle_send, _1, transaction_message::command);
+    SEND2(*transaction, handle_send, _1, transaction->command);
 }
 
 // Subscription.

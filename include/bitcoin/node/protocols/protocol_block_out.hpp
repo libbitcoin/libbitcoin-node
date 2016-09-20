@@ -57,9 +57,8 @@ private:
     bool handle_receive_send_headers(const code& ec,
         send_headers_const_ptr message);
 
-    void handle_fetch_locator_hashes(const code& ec, const hash_list& hashes);
-    void handle_fetch_locator_headers(const code& ec, 
-        const chain::header::list& headers);
+    void handle_fetch_locator_hashes(const code& ec, inventory_ptr message);
+    void handle_fetch_locator_headers(const code& ec, headers_ptr message);
 
     void handle_stop(const code&);
     bool handle_reorganized(const code& ec, size_t fork_height,

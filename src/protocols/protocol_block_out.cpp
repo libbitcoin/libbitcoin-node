@@ -43,11 +43,6 @@ using namespace std::placeholders;
 static constexpr auto headers_cap = 2000u;
 static constexpr auto inventory_cap = 500u;
 
-// The largest reasonable search is 10 for the first block of 10 hashes,
-// 1 for the genesis block, 1 for disparity between peers and log2(top)
-// for the exponential back-off algorithm.
-static constexpr auto locator_allowance = 12u;
-
 protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
     full_chain& blockchain)
   : protocol_events(network, channel, NAME),
@@ -115,17 +110,6 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 // Receive get_headers sequence.
 //-----------------------------------------------------------------------------
 
-// The locator cannot be longer than allowed by our chain length.
-// This is DoS protection, otherwise a peer could tie up our database.
-// If we are not synced to near the height of peers then this effectively
-// prevents peers from syncing from us. Ideally we should use initial block
-// download to get close before enabling this protocol.
-size_t protocol_block_out::locator_limit() const
-{
-    const auto height = current_chain_height_.load();
-    return static_cast<size_t>(std::log2(height) + locator_allowance);
-}
-
 // TODO: move get_headers to a derived class protocol_block_out_31800.
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
     get_headers_const_ptr message)
@@ -143,7 +127,12 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 
     const auto locator_size = message->start_hashes.size();
 
-    if (locator_size > locator_limit())
+    // The locator cannot be longer than allowed by our chain length.
+    // This is DoS protection, otherwise a peer could tie up our database.
+    // If we are not synced to near the height of peers then this effectively
+    // prevents peers from syncing from us. Ideally we should use initial block
+    // download to get close before enabling this protocol.
+    if (locator_size > chain::block::locator_size(current_chain_height_) + 1)
     {
         log::debug(LOG_NODE)
             << "Invalid get_headers locator size (" << locator_size
@@ -167,9 +156,10 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 
 // TODO: move headers to a derived class protocol_block_out_31800.
 void protocol_block_out::handle_fetch_locator_headers(const code& ec,
-    const chain::header::list& headers)
+    headers_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped() || ec == error::service_stopped ||
+        message->elements.empty())
         return;
 
     if (ec)
@@ -182,8 +172,10 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     }
 
     // Respond to get_headers with headers.
-    const message::headers response;///// (headers);
-    SEND2(response, handle_send, _1, response.command);
+    SEND2(*message, handle_send, _1, message->command);
+
+    // Save the locator top to limit an overlapping future request.
+    last_locator_top_.store(message->elements.front().hash());
 }
 
 // Receive get_blocks sequence.
@@ -228,9 +220,10 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 }
 
 void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
-    const hash_list& hashes)
+    inventory_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped() || ec == error::service_stopped || 
+        message->inventories.empty())
         return;
 
     if (ec)
@@ -243,11 +236,10 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     }
 
     // Respond to get_blocks with inventory.
-    const inventory response(hashes, inventory::type_id::block);
-    SEND2(response, handle_send, _1, response.command);
+    SEND2(*message, handle_send, _1, message->command);
 
     // Save the locator top to limit an overlapping future request.
-    last_locator_top_.store(hashes.front());
+    last_locator_top_.store(message->inventories.front().hash);
 }
 
 // Receive get_data sequence.
@@ -311,7 +303,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
         return;
     }
 
-    SEND2(*message, handle_send, _1, block_message::command);
+    SEND2(*message, handle_send, _1, message->command);
 }
 
 // TODO: move filtered_block to derived class protocol_block_out_70001.

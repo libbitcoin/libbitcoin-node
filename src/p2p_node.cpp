@@ -195,7 +195,7 @@ bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
             << "Reorganization discarded block ["
             << encode_hash(block->header.hash()) << "]";
 
-    BITCOIN_ASSERT(max_size_t - fork_height >= incoming.size());
+    BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
     const auto height = fork_height + incoming.size();
     set_height(height);
     return true;

@@ -64,6 +64,7 @@ private:
     blockchain::full_chain& blockchain_;
     bc::atomic<hash_digest> last_locator_top_;
     bc::atomic<hash_digest> current_chain_top_;
+    std::atomic<size_t> current_chain_height_;
     const bool headers_from_peer_;
 };
 
