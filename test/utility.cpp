@@ -152,8 +152,14 @@ bool blockchain_fixture::get_last_height(uint64_t& out_height) const
     return false;
 }
 
-bool blockchain_fixture::get_outpoint_transaction(hash_digest& out_transaction,
+bool blockchain_fixture::get_transaction_hash(hash_digest& out_transaction,
     const output_point& outpoint) const
+{
+    return false;
+}
+
+bool blockchain_fixture::get_transaction_height(uint64_t& out_block_height,
+    const hash_digest& transaction_hash) const
 {
     return false;
 }
@@ -162,12 +168,6 @@ transaction_ptr blockchain_fixture::get_transaction(uint64_t& out_block_height,
     const hash_digest& transaction_hash) const
 {
     return nullptr;
-}
-
-bool blockchain_fixture::get_transaction_height(uint64_t& out_block_height,
-    const hash_digest& transaction_hash) const
-{
-    return false;
 }
 
 bool blockchain_fixture::import(block_const_ptr block, uint64_t height)
