@@ -53,8 +53,8 @@ reservations::reservations(header_queue& hashes, simple_chain& chain,
 
 bool reservations::import(block_const_ptr block, size_t height)
 {
-    // Thread safe.
-    return blockchain_.import(block, height);
+    // Thread safe, returns false if a block exists at height.
+    return blockchain_.insert(block, height);
 }
 
 // Rate methods.

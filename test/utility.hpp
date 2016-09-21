@@ -89,8 +89,8 @@ public:
 
     // Setters.
     // ------------------------------------------------------------------------
-    bool import(block_const_ptr block, uint64_t height);
-    bool push(block_const_ptr block);
+    bool insert(block_const_ptr block, uint64_t height);
+    bool push(block_const_ptr block, uint64_t height);
     bool pop_from(block_const_ptr_list& out_blocks, uint64_t height);
 
 private:
