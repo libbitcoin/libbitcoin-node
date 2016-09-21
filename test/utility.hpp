@@ -76,6 +76,9 @@ public:
     bool get_difficulty(hash_number& out_difficulty, uint64_t height) const;
     bool get_header(chain::header& out_header, uint64_t height) const;
     bool get_height(uint64_t& out_height, const hash_digest& block_hash) const;
+    bool get_bits(uint32_t& out_bits, const uint64_t& height) const;
+    bool get_timestamp(uint32_t& out_timestamp, const uint64_t& height) const;
+    bool get_version(uint32_t& out_version, const uint64_t& height) const;
     bool get_last_height(uint64_t& out_height) const;
     bool get_transaction_hash(hash_digest& out_transaction,
         const chain::output_point& outpoint) const;
