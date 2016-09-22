@@ -356,6 +356,9 @@ void reservation::import(block_const_ptr block)
     }
     else
     {
+        // This could also result from a block import failure resulting from
+        // inserting at a height that is already populated, but that should be
+        // precluded by the implementation. This is the only other failure.
         log::debug(LOG_NODE)
             << "Stopped before importing block (" << slot() << ") ["
             << encoded << "]";

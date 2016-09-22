@@ -73,6 +73,7 @@ public:
     // ------------------------------------------------------------------------
     bool get_gap_range(uint64_t& out_first, uint64_t& out_last) const;
     bool get_next_gap(uint64_t& out_height, uint64_t start_height) const;
+    bool get_exists(const hash_digest& block_hash) const;
     bool get_difficulty(hash_number& out_difficulty, uint64_t height) const;
     bool get_header(chain::header& out_header, uint64_t height) const;
     bool get_height(uint64_t& out_height, const hash_digest& block_hash) const;
@@ -89,8 +90,8 @@ public:
 
     // Setters.
     // ------------------------------------------------------------------------
-    bool import(block_const_ptr block, uint64_t height);
-    bool push(block_const_ptr block);
+    bool insert(block_const_ptr block, uint64_t height);
+    bool push(block_const_ptr block, uint64_t height);
     bool pop_from(block_const_ptr_list& out_blocks, uint64_t height);
 
 private:
