@@ -353,23 +353,24 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
         return;
     }
 
-    if (ec)
-    {
-        log::info(LOG_NODE)
-            << "Invalid block [" << hash << "] from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return;
-    }
-
-    // The block remains in the orphan pool (disconnected from the chain).
-    if (height == 0)
+    // The block in the orphan pool and disconnected from the chain.
+    // This is distinct from insufficient work because we send get_blocks.
+    if (ec == error::orphan)
     {
         log::debug(LOG_NODE)
             << "Orphan block [" << hash << "] from [" << authority() << "].";
 
         // Ask the peer for blocks from the chain top up to this orphan.
         send_get_blocks(message->header.hash());
+        return;
+    }
+
+    if (ec)
+    {
+        log::info(LOG_NODE)
+            << "Invalid block [" << hash << "] from [" << authority() << "] "
+            << ec.message();
+        stop(ec);
         return;
     }
 
