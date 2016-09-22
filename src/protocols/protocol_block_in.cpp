@@ -353,7 +353,6 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
         return;
     }
 
-    // There are no other expected errors from the store call.
     if (ec)
     {
         log::info(LOG_NODE)
