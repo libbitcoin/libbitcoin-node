@@ -199,7 +199,8 @@ bool blockchain_fixture::insert(block_const_ptr block, uint64_t height)
     std::this_thread::sleep_for(std::chrono::microseconds(1));
     return import_result_;
 }
-bool blockchain_fixture::push(block_const_ptr block, size_t height)
+
+bool blockchain_fixture::push(block_const_ptr block, uint64_t height)
 {
     return false;
 }
