@@ -130,6 +130,11 @@ bool blockchain_fixture::get_next_gap(uint64_t& out_height,
     return false;
 }
 
+bool blockchain_fixture::get_exists(const hash_digest& block_hash) const
+{
+    return false;
+}
+
 bool blockchain_fixture::get_difficulty(hash_number& out_difficulty,
     uint64_t height) const
 {
