@@ -26,20 +26,23 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
+
+class p2p_node;
+
 /// Class to manage initial header download connection, thread safe.
 class BCN_API session_header_sync
-  : public network::session_outbound, track<session_header_sync>
+  : public session<network::session_outbound>, track<session_header_sync>
 {
 public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
-    session_header_sync(network::p2p& network, header_queue& hashes,
+    session_header_sync(p2p_node& network, header_queue& hashes,
         blockchain::simple_chain& blockchain,
         const config::checkpoint::list& checkpoints);
 

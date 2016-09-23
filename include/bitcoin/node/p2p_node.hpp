@@ -89,6 +89,13 @@ public:
     virtual void subscribe_transaction(transaction_handler handler);
 
 protected:
+    /// Attach a node::session to the network, caller must start the session.
+    template <class Session, typename... Args>
+    typename Session::ptr attach(Args&&... args)
+    {
+        return std::make_shared<Session>(*this, std::forward<Args>(args)...);
+    }
+
     /// Override to attach specialized p2p sessions.
     ////network::session_seed::ptr attach_seed_session() override;
     network::session_manual::ptr attach_manual_session() override;

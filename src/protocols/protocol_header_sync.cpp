@@ -45,7 +45,7 @@ static constexpr size_t max_header_response = 2000;
 static const asio::seconds expiry_interval(5);
 
 // This class requires protocol version 31800.
-protocol_header_sync::protocol_header_sync(p2p& network,
+protocol_header_sync::protocol_header_sync(p2p_node& network,
     channel::ptr channel, header_queue& hashes, uint32_t minimum_rate,
     const checkpoint& last)
   : protocol_timer(network, channel, true, NAME),

@@ -24,6 +24,7 @@
 #include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -36,7 +37,7 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-protocol_transaction_out::protocol_transaction_out(p2p& network,
+protocol_transaction_out::protocol_transaction_out(p2p_node& network,
     channel::ptr channel, full_chain& blockchain)
   : protocol_events(network, channel, NAME),
     blockchain_(blockchain),

@@ -25,6 +25,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_block_sync.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
@@ -43,9 +44,9 @@ using namespace std::placeholders;
 // The interval in which all-channel block download performance is tested.
 static const asio::seconds regulator_interval(5);
 
-session_block_sync::session_block_sync(p2p& network, header_queue& hashes,
+session_block_sync::session_block_sync(p2p_node& network, header_queue& hashes,
     simple_chain& chain, const settings& settings)
-  : network::session_outbound(network, false),
+  : session<network::session_outbound>(network, false),
     blockchain_(chain),
     reservations_(hashes, chain, settings),
     CONSTRUCT_TRACK(session_block_sync)

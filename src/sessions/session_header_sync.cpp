@@ -28,6 +28,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
@@ -49,9 +50,10 @@ static constexpr float back_off_factor = 0.75f;
 static constexpr uint32_t headers_per_second = 10000;
 
 // Sort is required here but not in configuration settings.
-session_header_sync::session_header_sync(p2p& network, header_queue& hashes,
-    simple_chain& blockchain, const checkpoint::list& checkpoints)
-  : network::session_outbound(network, false),
+session_header_sync::session_header_sync(p2p_node& network,
+    header_queue& hashes, simple_chain& blockchain,
+    const checkpoint::list& checkpoints)
+  : session<network::session_outbound>(network, false),
     hashes_(hashes),
     minimum_rate_(headers_per_second),
     blockchain_(blockchain),

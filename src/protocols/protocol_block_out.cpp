@@ -27,6 +27,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -43,7 +44,7 @@ using namespace std::placeholders;
 static constexpr auto headers_cap = 2000u;
 static constexpr auto inventory_cap = 500u;
 
-protocol_block_out::protocol_block_out(p2p& network, channel::ptr channel,
+protocol_block_out::protocol_block_out(p2p_node& network, channel::ptr channel,
     full_chain& blockchain)
   : protocol_events(network, channel, NAME),
     last_locator_top_(null_hash),
