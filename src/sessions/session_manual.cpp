@@ -21,6 +21,7 @@
 
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
@@ -33,9 +34,10 @@ using namespace bc::blockchain;
 using namespace bc::network;
 using namespace std::placeholders;
 
-session_manual::session_manual(p2p& network, full_chain& blockchain)
-  : network::session_manual(network, true),
-    blockchain_(blockchain)
+session_manual::session_manual(p2p_node& network, full_chain& blockchain)
+  : session<network::session_manual>(network, true),
+    blockchain_(blockchain),
+    CONSTRUCT_TRACK(node::session_manual)
 {
     log::info(LOG_NODE)
         << "Starting manual session.";
