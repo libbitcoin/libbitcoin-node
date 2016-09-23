@@ -118,6 +118,7 @@ include_bitcoin_node_protocols_HEADERS = \
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
+    include/bitcoin/node/sessions/session.hpp \
     include/bitcoin/node/sessions/session_block_sync.hpp \
     include/bitcoin/node/sessions/session_header_sync.hpp \
     include/bitcoin/node/sessions/session_inbound.hpp \
