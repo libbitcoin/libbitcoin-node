@@ -30,6 +30,8 @@
 namespace libbitcoin {
 namespace node {
 
+class p2p_node;
+
 class BCN_API protocol_block_in
   : public network::protocol_timer, track<protocol_block_in>
 {
@@ -37,7 +39,7 @@ public:
     typedef std::shared_ptr<protocol_block_in> ptr;
 
     /// Construct a block protocol instance.
-    protocol_block_in(network::p2p& network, network::channel::ptr channel,
+    protocol_block_in(p2p_node& network, network::channel::ptr channel,
         blockchain::full_chain& blockchain);
 
     /// Start the protocol.

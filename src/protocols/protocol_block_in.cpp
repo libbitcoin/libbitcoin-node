@@ -26,6 +26,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -41,7 +42,7 @@ using namespace std::placeholders;
 static constexpr auto perpetual_timer = true;
 static const auto get_blocks_interval = asio::seconds(10);
 
-protocol_block_in::protocol_block_in(p2p& network, channel::ptr channel,
+protocol_block_in::protocol_block_in(p2p_node& network, channel::ptr channel,
     full_chain& blockchain)
   : protocol_timer(network, channel, perpetual_timer, NAME),
     blockchain_(blockchain),

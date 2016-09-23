@@ -24,6 +24,7 @@
 #include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/p2p_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,7 +39,7 @@ using namespace std::placeholders;
 
 // TODO: derive from protocol_session_node abstract intermediate base class.
 // TODO: Pass p2p_node on construct, obtaining node configuration settings.
-protocol_transaction_in::protocol_transaction_in(p2p& network,
+protocol_transaction_in::protocol_transaction_in(p2p_node& network,
     channel::ptr channel, full_chain& blockchain)
   : protocol_events(network, channel, NAME),
     blockchain_(blockchain),

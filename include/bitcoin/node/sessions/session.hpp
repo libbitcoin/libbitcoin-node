@@ -34,13 +34,23 @@ template <class Session>
 class BCN_API session
   : public Session
 {
-public:
+protected:
+    /// Construct an instance.
     session(p2p_node& network, bool notify_on_connect)
       : Session(network, notify_on_connect), node_network_(network)
     {
     }
 
-protected:
+    /// Attach a protocol to a channel, caller must start the channel.
+    template <class Protocol, typename... Args>
+    typename Protocol::ptr attach(network::channel::ptr channel,
+        Args&&... args)
+    {
+        return std::make_shared<Protocol>(node_network_, channel,
+            std::forward<Args>(args)...);
+    }
+
+private:
 
     // This is thread safe.
     p2p_node& node_network_;
@@ -50,4 +60,3 @@ protected:
 } // namespace libbitcoin
 
 #endif
-

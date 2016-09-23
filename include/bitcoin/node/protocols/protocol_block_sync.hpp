@@ -29,7 +29,9 @@
 
 namespace libbitcoin {
 namespace node {
-        
+
+class p2p_node;
+
 /// Blocks sync protocol, thread safe.
 class BCN_API protocol_block_sync
   : public network::protocol_timer, public track<protocol_block_sync>
@@ -38,7 +40,7 @@ public:
     typedef std::shared_ptr<protocol_block_sync> ptr;
 
     /// Construct a block sync protocol instance.
-    protocol_block_sync(network::p2p& network, network::channel::ptr channel,
+    protocol_block_sync(p2p_node& network, network::channel::ptr channel,
         reservation::ptr row);
 
     /// Start the protocol.
