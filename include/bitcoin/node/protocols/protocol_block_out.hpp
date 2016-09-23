@@ -67,9 +67,9 @@ private:
         const block_const_ptr_list& incoming,
         const block_const_ptr_list& outgoing);
 
+    p2p_node& network_;
     blockchain::full_chain& blockchain_;
     bc::atomic<hash_digest> last_locator_top_;
-    std::atomic<size_t> current_chain_height_;
     std::atomic<bool> headers_to_peer_;
 };
 

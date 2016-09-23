@@ -161,7 +161,7 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     }
 
     BITCOIN_ASSERT(height <= max_size_t);
-    set_height(static_cast<size_t>(height));
+    set_top_block({ null_hash, static_cast<size_t>(height) });
 
     log::info(LOG_NODE)
         << "Node start height is (" << height << ").";
@@ -175,7 +175,7 @@ void p2p_node::handle_running(const code& ec, result_handler handler)
     p2p::run(handler);
 }
 
-// This maintains a height member.
+// A typical reorganization consists of one incoming and zero outgoing blocks.
 bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
     const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
 {
@@ -192,12 +192,13 @@ bool p2p_node::handle_reorganized(const code& ec, size_t fork_height,
 
     for (const auto block: outgoing)
         log::debug(LOG_NODE)
-            << "Reorganization discarded block ["
+            << "Reorganization moved block to orphan pool ["
             << encode_hash(block->header.hash()) << "]";
 
+    BITCOIN_ASSERT(!incoming.empty());
     BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
-    const auto height = fork_height + incoming.size();
-    set_height(height);
+
+    set_top_block({ incoming.back()->hash(), fork_height + incoming.size() });
     return true;
 }
 
