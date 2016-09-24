@@ -26,7 +26,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/p2p_node.hpp>
+#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
@@ -43,7 +43,7 @@ using namespace std::placeholders;
 static const asio::seconds expiry_interval(5);
 
 // Depends on protocol_header_sync, which requires protocol version 31800.
-protocol_block_sync::protocol_block_sync(p2p_node& network,
+protocol_block_sync::protocol_block_sync(full_node& network,
     channel::ptr channel, reservation::ptr row)
   : protocol_timer(network, channel, true, NAME),
     reservation_(row),

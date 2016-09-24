@@ -65,7 +65,7 @@ private:
     std::ostream& output_;
     bc::ofstream debug_file_;
     bc::ofstream error_file_;
-    p2p_node::ptr node_;
+    full_node::ptr node_;
 };
     
 // Localizable messages.

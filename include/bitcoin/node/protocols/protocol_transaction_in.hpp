@@ -28,7 +28,7 @@
 namespace libbitcoin {
 namespace node {
 
-class p2p_node;
+class full_node;
 
 class BCN_API protocol_transaction_in
   : public network::protocol_events, track<protocol_transaction_in>
@@ -37,7 +37,7 @@ public:
     typedef std::shared_ptr<protocol_transaction_in> ptr;
 
     /// Construct a transaction protocol instance.
-    protocol_transaction_in(p2p_node& network, network::channel::ptr channel,
+    protocol_transaction_in(full_node& network, network::channel::ptr channel,
         blockchain::full_chain& blockchain);
 
     /// Start the protocol.

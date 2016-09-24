@@ -24,7 +24,7 @@
 #include <functional>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/p2p_node.hpp>
+#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/utility/header_queue.hpp>
 
 namespace libbitcoin {
@@ -45,7 +45,7 @@ static constexpr size_t max_header_response = 2000;
 static const asio::seconds expiry_interval(5);
 
 // This class requires protocol version 31800.
-protocol_header_sync::protocol_header_sync(p2p_node& network,
+protocol_header_sync::protocol_header_sync(full_node& network,
     channel::ptr channel, header_queue& hashes, uint32_t minimum_rate,
     const checkpoint& last)
   : protocol_timer(network, channel, true, NAME),

@@ -26,7 +26,7 @@
 #include <boost/program_options.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/p2p_node.hpp>
+#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/settings.hpp>
 
 BC_DECLARE_CONFIG_DEFAULT_PATH("libbitcoin" / "bn.cfg")

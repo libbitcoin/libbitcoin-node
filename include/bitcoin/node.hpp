@@ -18,7 +18,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/p2p_node.hpp>
+#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>

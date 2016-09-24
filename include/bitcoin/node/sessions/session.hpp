@@ -26,7 +26,7 @@
 namespace libbitcoin {
 namespace node {
 
-class p2p_node;
+class full_node;
 
 /// Intermediate session base class template.
 /// This avoids having to make network::session into a tempalte.
@@ -36,7 +36,7 @@ class BCN_API session
 {
 protected:
     /// Construct an instance.
-    session(p2p_node& network, bool notify_on_connect)
+    session(full_node& network, bool notify_on_connect)
       : Session(network, notify_on_connect), node_network_(network)
     {
     }
@@ -53,7 +53,7 @@ protected:
 private:
 
     // This is thread safe.
-    p2p_node& node_network_;
+    full_node& node_network_;
 };
 
 } // namespace node

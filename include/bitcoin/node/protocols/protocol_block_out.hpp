@@ -30,7 +30,7 @@
 namespace libbitcoin {
 namespace node {
 
-class p2p_node;
+class full_node;
 
 class BCN_API protocol_block_out
   : public network::protocol_events, track<protocol_block_out>
@@ -39,7 +39,7 @@ public:
     typedef std::shared_ptr<protocol_block_out> ptr;
 
     /// Construct a block protocol instance.
-    protocol_block_out(p2p_node& network, network::channel::ptr channel,
+    protocol_block_out(full_node& network, network::channel::ptr channel,
         blockchain::full_chain& blockchain);
 
     /// Start the protocol.
@@ -67,7 +67,7 @@ private:
         const block_const_ptr_list& incoming,
         const block_const_ptr_list& outgoing);
 
-    p2p_node& network_;
+    full_node& network_;
     blockchain::full_chain& blockchain_;
     bc::atomic<hash_digest> last_locator_top_;
     std::atomic<bool> headers_to_peer_;
