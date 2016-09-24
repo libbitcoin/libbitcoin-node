@@ -35,7 +35,7 @@
 namespace libbitcoin {
 namespace node {
 
-class p2p_node;
+class full_node;
 
 /// Class to manage initial block download connections, thread safe.
 class BCN_API session_block_sync
@@ -44,7 +44,7 @@ class BCN_API session_block_sync
 public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
-    session_block_sync(p2p_node& network, header_queue& hashes,
+    session_block_sync(full_node& network, header_queue& hashes,
         blockchain::simple_chain& chain, const settings& settings);
 
     void start(result_handler handler) override;

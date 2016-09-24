@@ -43,7 +43,6 @@ using namespace bc::network;
 static constexpr int initialize_stop = 0;
 static constexpr int directory_exists = 0;
 static constexpr int directory_not_found = 2;
-static constexpr auto append = std::ofstream::out | std::ofstream::app;
 static const auto application_name = "bn";
 
 std::promise<code> executor::stopping_;
@@ -51,8 +50,8 @@ std::promise<code> executor::stopping_;
 executor::executor(parser& metadata, std::istream& input,
     std::ostream& output, std::ostream& error)
   : metadata_(metadata), output_(output),
-    debug_file_(metadata_.configured.network.debug_file.string(), append),
-    error_file_(metadata_.configured.network.error_file.string(), append)
+    debug_file_(metadata_.configured.network.debug_file.string(), log::append),
+    error_file_(metadata_.configured.network.error_file.string(), log::append)
 {
     initialize_logging(debug_file_, error_file_, output, error);
     handle_stop(initialize_stop);
@@ -166,7 +165,7 @@ bool executor::run()
         return false;
 
     // Now that the directory is verified we can create the node for it.
-    node_ = std::make_shared<p2p_node>(metadata_.configured);
+    node_ = std::make_shared<full_node>(metadata_.configured);
 
     // The callback may be returned on the same thread.
     node_->start(

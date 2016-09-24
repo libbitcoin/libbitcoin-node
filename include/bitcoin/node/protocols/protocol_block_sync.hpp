@@ -30,7 +30,7 @@
 namespace libbitcoin {
 namespace node {
 
-class p2p_node;
+class full_node;
 
 /// Blocks sync protocol, thread safe.
 class BCN_API protocol_block_sync
@@ -40,7 +40,7 @@ public:
     typedef std::shared_ptr<protocol_block_sync> ptr;
 
     /// Construct a block sync protocol instance.
-    protocol_block_sync(p2p_node& network, network::channel::ptr channel,
+    protocol_block_sync(full_node& network, network::channel::ptr channel,
         reservation::ptr row);
 
     /// Start the protocol.

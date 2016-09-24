@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_P2P_NODE_HPP
-#define LIBBITCOIN_NODE_P2P_NODE_HPP
+#ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
+#define LIBBITCOIN_NODE_FULL_NODE_HPP
 
 #include <cstdint>
 #include <memory>
@@ -34,19 +34,19 @@ namespace libbitcoin {
 namespace node {
 
 /// A full node on the Bitcoin P2P network.
-class BCN_API p2p_node
+class BCN_API full_node
   : public network::p2p
 {
 public:
-    typedef std::shared_ptr<p2p_node> ptr;
+    typedef std::shared_ptr<full_node> ptr;
     typedef blockchain::block_chain::reorganize_handler reorganize_handler;
     typedef blockchain::block_chain::transaction_handler transaction_handler;
 
     /// Construct the full node.
-    p2p_node(const configuration& configuration);
+    full_node(const configuration& configuration);
 
     /// Ensure all threads are coalesced.
-    virtual ~p2p_node();
+    virtual ~full_node();
 
     // Start/Run sequences.
     // ------------------------------------------------------------------------

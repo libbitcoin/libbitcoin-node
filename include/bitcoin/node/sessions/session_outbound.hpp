@@ -29,7 +29,7 @@
 namespace libbitcoin {
 namespace node {
 
-class p2p_node;
+class full_node;
 
 /// Outbound connections session, thread safe.
 class BCN_API session_outbound
@@ -39,7 +39,7 @@ public:
     typedef std::shared_ptr<session_outbound> ptr;
 
     /// Construct an instance.
-    session_outbound(p2p_node& network, blockchain::full_chain& blockchain);
+    session_outbound(full_node& network, blockchain::full_chain& blockchain);
 
 protected:
     /// Overridden to attach blockchain protocols.

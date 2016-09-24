@@ -36,7 +36,7 @@ src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdi
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/configuration.cpp \
-    src/p2p_node.cpp \
+    src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
     src/protocols/protocol_block_in.cpp \
@@ -102,7 +102,7 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
-    include/bitcoin/node/p2p_node.hpp \
+    include/bitcoin/node/full_node.hpp \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
