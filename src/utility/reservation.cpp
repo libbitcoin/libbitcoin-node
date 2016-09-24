@@ -114,13 +114,13 @@ bool reservation::idle() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::set_rate(const performance& rate)
+void reservation::set_rate(performance&& rate)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(rate_mutex_);
 
-    rate_ = rate;
+    rate_ = std::forward<performance>(rate);
     ///////////////////////////////////////////////////////////////////////////
 }
 
@@ -218,15 +218,15 @@ void reservation::update_rate(size_t events, const microseconds& database)
     history_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    // Update the rate cache.
-    set_rate(rate);
-
     ////log::debug(LOG_NODE)
     ////    << "Records (" << slot() << ") "
     ////    << " size: " << rate.events
     ////    << " time: " << divide<double>(rate.window, micro_per_second)
     ////    << " cost: " << divide<double>(rate.database, micro_per_second)
     ////    << " full: " << (full ? "true" : "false");
+
+    // Update the rate cache.
+    set_rate(std::move(rate));
 }
 
 // Hash methods.
@@ -287,8 +287,7 @@ message::get_data reservation::request(bool new_channel)
         ++height)
     {
         static const auto id = message::inventory::type_id::block;
-        const message::inventory_vector inventory{ id, height->second };
-        packet.inventories.emplace_back(inventory);
+        packet.inventories.push_back({ id, height->second });
     }
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
