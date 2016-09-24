@@ -19,6 +19,7 @@
  */
 #include <chrono>
 #include <memory>
+#include <utility>
 #include <boost/test/unit_test.hpp>
 #include <bitcoin/node.hpp>
 #include "utility.hpp"
@@ -144,7 +145,7 @@ BOOST_AUTO_TEST_CASE(reservation__set_rate__values__expected)
     value.events = 1;
     value.database = 2;
     value.window = 3;
-    reserve.set_rate(value);
+    reserve.set_rate(std::move(value));
     const auto rate = reserve.rate();
     BOOST_REQUIRE(!rate.idle);
     BOOST_REQUIRE_EQUAL(rate.events, 1u);

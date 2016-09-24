@@ -130,9 +130,7 @@ void reservations::remove(reservation::ptr row)
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
-
     table_.erase(it);
-
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }

@@ -713,9 +713,9 @@ BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_devi
     performance rate2 = rate0;
 
     // Simulate the rate summary on each channel by setting it directly.
-    table[0]->set_rate(rate0);
-    table[1]->set_rate(rate1);
-    table[2]->set_rate(rate2);
+    table[0]->set_rate(std::move(rate0));
+    table[1]->set_rate(std::move(rate1));
+    table[2]->set_rate(std::move(rate2));
 
     const auto rates2 = reserves.rates();
 
@@ -780,11 +780,11 @@ BOOST_AUTO_TEST_CASE(reservations__rates__five_reservations_one_idle__idle_exclu
     rate4.window = 5;
 
     // Simulate the rate summary on each channel by setting it directly.
-    table[0]->set_rate(rate0);
-    table[1]->set_rate(rate1);
-    table[2]->set_rate(rate2);
-    table[3]->set_rate(rate3);
-    table[4]->set_rate(rate4);
+    table[0]->set_rate(std::move(rate0));
+    table[1]->set_rate(std::move(rate1));
+    table[2]->set_rate(std::move(rate2));
+    table[3]->set_rate(std::move(rate3));
+    table[4]->set_rate(std::move(rate4));
 
     const auto rates2 = reserves.rates();
 

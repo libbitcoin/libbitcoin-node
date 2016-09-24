@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <iterator>
 #include <memory>
+#include <utility>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -249,9 +250,7 @@ bool header_queue::enqueue(headers_const_ptr message)
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
-
     const auto result = merge(message->elements);
-
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
@@ -282,7 +281,7 @@ bool header_queue::merge(const header::list& headers)
             return false;
         }
 
-        list_.emplace_back(new_hash);
+        list_.push_back(std::move(new_hash));
     }
 
     return true;
