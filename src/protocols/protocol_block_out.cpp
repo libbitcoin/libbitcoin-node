@@ -47,8 +47,8 @@ static constexpr auto inventory_cap = 500u;
 protocol_block_out::protocol_block_out(p2p_node& network, channel::ptr channel,
     full_chain& blockchain)
   : protocol_events(network, channel, NAME),
+    network_(network),
     last_locator_top_(null_hash),
-    current_chain_height_(0),
     blockchain_(blockchain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
@@ -126,14 +126,16 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
         return false;
     }
 
+    const auto height = network_.top_block().height();
     const auto locator_size = message->start_hashes.size();
+    const auto locator_limit = chain::block::locator_size(height) + 1;
 
     // The locator cannot be longer than allowed by our chain length.
     // This is DoS protection, otherwise a peer could tie up our database.
     // If we are not synced to near the height of peers then this effectively
     // prevents peers from syncing from us. Ideally we should use initial block
     // download to get close before enabling this protocol.
-    if (locator_size > chain::block::locator_size(current_chain_height_) + 1)
+    if (locator_size > locator_limit)
     {
         log::debug(LOG_NODE)
             << "Invalid get_headers locator size (" << locator_size
@@ -196,9 +198,12 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
+    const auto height = network_.top_block().height();
     const auto locator_size = message->start_hashes.size();
+    const auto locator_limit = chain::block::locator_size(height) + 1;
 
-    if (locator_size > chain::block::locator_size(current_chain_height_) + 1)
+    // See comments in handle_receive_get_headers.
+    if (locator_size > locator_limit)
     {
         log::debug(LOG_NODE)
             << "Invalid get_blocks locator size (" << locator_size
@@ -347,11 +352,6 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
         stop(ec);
         return false;
     }
-
-    // TODO: use p2p_node instead.
-    // Save the latest height.
-    BITCOIN_ASSERT(max_size_t - fork_height >= incoming.size());
-    current_chain_height_.store(fork_height + incoming.size());
 
     // TODO: move announce headers to a derived class protocol_block_in_70012.
     if (headers_to_peer_)

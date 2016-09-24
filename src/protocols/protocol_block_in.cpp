@@ -45,10 +45,9 @@ static const auto get_blocks_interval = asio::seconds(10);
 protocol_block_in::protocol_block_in(p2p_node& network, channel::ptr channel,
     full_chain& blockchain)
   : protocol_timer(network, channel, perpetual_timer, NAME),
+    network_(network),
     blockchain_(blockchain),
     last_locator_top_(null_hash),
-    current_chain_top_(null_hash),
-    current_chain_height_(0),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),
@@ -113,16 +112,16 @@ void protocol_block_in::get_block_inventory(const code& ec)
 
 void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
-    const auto chain_top = current_chain_top_.load();
+    const auto chain_top = network_.top_block();
+    const auto chain_top_hash = chain_top.hash();
     const auto last_locator_top = last_locator_top_.load();
 
     // Avoid requesting from the same start as last request to this peer.
     // This does not guarantee prevention, it's just an optimization.
-    if (chain_top != null_hash && chain_top == last_locator_top)
+    if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
         return;
 
-    const auto chain_height = current_chain_height_.load();
-    const auto heights = chain::block::locator_heights(chain_height);
+    const auto heights = chain::block::locator_heights(chain_top.height());
 
     blockchain_.fetch_block_locator(heights,
         BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
@@ -398,11 +397,6 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
         stop(ec);
         return false;
     }
-
-    // TODO: use p2p_node instead.
-    BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
-    current_chain_height_.store(fork_height + incoming.size());
-    current_chain_top_.store(incoming.back()->header.hash());
 
     // Report the blocks that originated from this peer.
     // If originating peer is dropped there will be no report here.
