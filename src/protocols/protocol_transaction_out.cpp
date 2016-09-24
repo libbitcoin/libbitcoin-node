@@ -69,6 +69,9 @@ void protocol_transaction_out::start()
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Filter announcements by fee if set.
     SUBSCRIBE2(fee_filter, handle_receive_fee_filter, _1, _2);
+
+    // TODO: move memory pool to a derived class protocol_transaction_out_60002.
+    SUBSCRIBE2(memory_pool, handle_receive_memory_pool, _1, _2);
 }
 
 // Receive send_headers.
@@ -101,13 +104,26 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 // Receive mempool sequence.
 //-----------------------------------------------------------------------------
 
-void protocol_transaction_out::handle_receive_memory_pool(const code& ec,
+// TODO: move memory_pool to a derived class protocol_transaction_out_60002.
+bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
     memory_pool_const_ptr)
 {
-    ////// TODO: not implemented.
-    ////auto message = blockchain_.fetch_floaters();
+    // The handler may be invoked *multiple times* by one blockchain call.
+    blockchain_.fetch_floaters(max_inventory_count,
+        BIND2(handle_fetch_floaters, _1, _2));
 
-    ////SEND2(*message, handle_send, _1, message->command);
+    // Drop this subscription after the first request.
+    return false;
+}
+
+// Each invocation is limited to 50000 vectors and invoked from common thread.
+void protocol_transaction_out::handle_fetch_floaters(const code& ec,
+    inventory_const_ptr message)
+{
+    if (stopped() || message->inventories.empty())
+        return;
+
+    SEND2(*message, handle_send, _1, message->command);
 }
 
 // Receive get_data sequence.
