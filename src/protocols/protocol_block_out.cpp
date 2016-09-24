@@ -150,6 +150,8 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // This could cause a problem during a reorg, where the peer regresses
     // and one of its other peers populates the chain back to this level. In
     // that case we would not respond but our peer's other peer should.
+    // Other than a reorg there is no reason for the peer to regress, as
+    // locators are only useful in walking up the chain.
     const auto threshold = last_locator_top_.load();
 
     blockchain_.fetch_locator_block_headers(message, threshold, headers_cap,
@@ -212,6 +214,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
+    // See comments in handle_receive_get_headers.
     const auto threshold = last_locator_top_.load();
 
     blockchain_.fetch_locator_block_hashes(message, threshold, inventory_cap,
