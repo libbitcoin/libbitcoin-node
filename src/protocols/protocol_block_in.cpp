@@ -332,11 +332,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // We can pick this up in reorganization subscription.
     message->set_originator(nonce());
 
-    blockchain_.store(message, BIND3(handle_store_block, _1, _2, message));
+    blockchain_.store(message, BIND2(handle_store_block, _1, message));
     return true;
 }
 
-void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
+void protocol_block_in::handle_store_block(const code& ec,
     block_const_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
@@ -365,6 +365,14 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
         return;
     }
 
+    if (ec == error::insufficient_work)
+    {
+        log::info(LOG_NODE)
+            << "Insufficient block [" << hash << "] from [" << authority() << "] "
+            << ec.message();
+        return;
+    }
+
     if (ec)
     {
         log::info(LOG_NODE)
@@ -376,7 +384,9 @@ void protocol_block_in::handle_store_block(const code& ec, uint64_t height,
 
     // The block was accepted onto the chain, there is no gap.
     log::debug(LOG_NODE)
-        << "Accepted block [" << hash << "] from [" << authority() << "].";
+        << "Accepted block [" << hash << "] at height ["
+        << message->metadata.validation_height << "] from ["
+        << authority() << "].";
 }
 
 // Subscription.
