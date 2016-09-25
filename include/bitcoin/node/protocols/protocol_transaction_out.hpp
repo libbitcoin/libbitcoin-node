@@ -52,8 +52,10 @@ private:
     bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
     bool handle_receive_fee_filter(const code& ec,
         fee_filter_const_ptr message);
-    void handle_receive_memory_pool(const code& ec,
+    bool handle_receive_memory_pool(const code& ec,
         memory_pool_const_ptr message);
+
+    void handle_fetch_floaters(const code& ec, inventory_const_ptr message);
 
     void handle_stop(const code&);
     bool handle_floated(const code& ec,
