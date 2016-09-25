@@ -237,6 +237,7 @@ bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
     if (outgoing.empty())
         return true;
 
+    // Our own node would ignore this if it wasn't the first instance.
     SEND2(memory_pool(), handle_send, _1, memory_pool::command);
     return true;
 }
