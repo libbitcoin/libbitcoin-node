@@ -150,7 +150,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    uint64_t height;
+    size_t height;
 
     if (!blockchain_.get_last_height(height))
     {
@@ -160,8 +160,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    BITCOIN_ASSERT(height <= max_size_t);
-    set_top_block({ null_hash, static_cast<size_t>(height) });
+    set_top_block({ null_hash, height });
 
     log::info(LOG_NODE)
         << "Node start height is (" << height << ").";

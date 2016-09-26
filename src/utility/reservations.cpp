@@ -141,7 +141,7 @@ void reservations::remove(reservation::ptr row)
 // Mark hashes for blocks we already have.
 void reservations::mark_existing()
 {
-    uint64_t gap;
+    size_t gap;
     auto start = hashes_.first_height();
 
     // Not thread safe. Returns false when first is > count (last gap).
@@ -176,7 +176,7 @@ void reservations::initialize(size_t size)
     const auto max_allocation = rows * max_request();
     const auto allocation = std::min(blocks, max_allocation);
 
-    for (auto row = 0; row < rows; ++row)
+    for (size_t row = 0; row < rows; ++row)
         table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
 
     size_t count = 0;

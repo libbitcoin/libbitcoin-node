@@ -240,13 +240,13 @@ bool session_header_sync::initialize(result_handler handler)
 // Get the block hashes that bracket the range to download.
 code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop)
 {
-    uint64_t last_height;
+    size_t last_height;
 
     if (!blockchain_.get_last_height(last_height))
         return error::operation_failed;
 
-    uint64_t last_gap;
-    uint64_t first_gap;
+    size_t last_gap;
+    size_t first_gap;
     auto first_height = last_height;
 
     if (blockchain_.get_gap_range(first_gap, last_gap))
