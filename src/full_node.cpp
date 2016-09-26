@@ -195,9 +195,9 @@ bool full_node::handle_reorganized(const code& ec, size_t fork_height,
             << encode_hash(block->header.hash()) << "]";
 
     BITCOIN_ASSERT(!incoming.empty());
-    BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
+    const auto height = safe_add(fork_height, incoming.size());
 
-    set_top_block({ incoming.back()->hash(), fork_height + incoming.size() });
+    set_top_block({ incoming.back()->hash(), height });
     return true;
 }
 
