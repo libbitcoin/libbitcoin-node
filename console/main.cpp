@@ -36,7 +36,7 @@ int bc::main(int argc, char* argv[])
     using namespace bc::node;
 
     set_utf8_stdio();
-    node::parser metadata(bc::settings::mainnet);
+    node::parser metadata(config::settings::mainnet);
     const auto& args = const_cast<const char**>(argv);
 
     if (!metadata.parse(argc, args, cerr))

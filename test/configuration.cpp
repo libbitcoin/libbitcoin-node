@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_SUITE(configuration_tests)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 {
-    node::configuration instance(bc::settings::none);
+    node::configuration instance(config::settings::none);
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
 {
-    node::configuration instance(bc::settings::mainnet);
+    node::configuration instance(config::settings::mainnet);
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
 {
-    node::configuration instance(bc::settings::testnet);
+    node::configuration instance(config::settings::testnet);
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
 
 BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
 {
-    node::configuration instance1(bc::settings::none);
+    node::configuration instance1(config::settings::none);
     instance1.help = true;
     instance1.initchain = true;
     instance1.settings = true;

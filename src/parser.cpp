@@ -47,7 +47,7 @@ parser::parser(const configuration& defaults)
 }
 
 // Initialize configuration using defaults of the given context.
-parser::parser(const bc::settings& context)
+parser::parser(const config::settings& context)
   : configured(context)
 {
     // A node doesn't require history by default, and history is expensive.

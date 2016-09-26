@@ -47,7 +47,7 @@ namespace node {
 class BCN_API configuration
 {
 public:
-    configuration(bc::settings context);
+    configuration(config::settings context);
     configuration(const configuration& other);
 
     /// Options.
