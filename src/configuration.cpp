@@ -27,7 +27,7 @@ namespace libbitcoin {
 namespace node {
 
 // Construct with defaults derived from given context.
-configuration::configuration(bc::settings context)
+configuration::configuration(config::settings context)
   : help(false),
     initchain(false),
     settings(false),

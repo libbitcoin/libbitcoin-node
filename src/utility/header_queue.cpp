@@ -179,9 +179,7 @@ bool header_queue::dequeue(size_t count)
         //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         mutex_.unlock_upgrade_and_lock();
 
-        BITCOIN_ASSERT(size <= max_size_t - height_);
-        height_ += size;
-
+        height_ = safe_add(height_, size);
         list_.clear();
         head_ = list_.begin();
 
@@ -193,9 +191,7 @@ bool header_queue::dequeue(size_t count)
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
 
-    BITCOIN_ASSERT(count <= max_size_t - height_);
-    height_ += count;
-
+    height_ = safe_add(height_, count);
     list_.erase(list_.begin(), head_ + count);
     head_ = list_.begin();
 

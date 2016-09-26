@@ -306,8 +306,7 @@ void reservation::insert(const config::checkpoint& checkpoint)
 
 void reservation::insert(const hash_digest& hash, size_t height)
 {
-    BITCOIN_ASSERT(height <= max_uint32);
-    const auto height32 = static_cast<uint32_t>(height);
+    const auto height32 = safe_unsigned<uint32_t>(height);
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -421,9 +420,7 @@ bool reservation::partition(reservation::ptr minimal)
     hash_mutex_.lock_upgrade();
 
     // Take half of the maximal reservation, rounding up to get last entry.
-    const auto own_size = heights_.size();
-    BITCOIN_ASSERT(own_size < max_size_t && (own_size + 1) / 2 <= max_uint32);
-    const auto offset = static_cast<uint32_t>(own_size + 1) / 2;
+    const auto offset = safe_add(heights_.size(), size_t(1)) / 2u;
     auto it = heights_.right.begin();
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -150,7 +150,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    uint64_t height;
+    size_t height;
 
     if (!blockchain_.get_last_height(height))
     {
@@ -160,8 +160,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    BITCOIN_ASSERT(height <= max_size_t);
-    set_top_block({ null_hash, static_cast<size_t>(height) });
+    set_top_block({ null_hash, height });
 
     log::info(LOG_NODE)
         << "Node start height is (" << height << ").";
@@ -196,9 +195,9 @@ bool full_node::handle_reorganized(const code& ec, size_t fork_height,
             << encode_hash(block->header.hash()) << "]";
 
     BITCOIN_ASSERT(!incoming.empty());
-    BITCOIN_ASSERT(incoming.size() <= max_size_t - fork_height);
+    const auto height = safe_add(fork_height, incoming.size());
 
-    set_top_block({ incoming.back()->hash(), fork_height + incoming.size() });
+    set_top_block({ incoming.back()->hash(), height });
     return true;
 }
 
