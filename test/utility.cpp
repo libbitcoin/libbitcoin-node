@@ -130,12 +130,12 @@ bool blockchain_fixture::get_next_gap(size_t& out_height,
     return false;
 }
 
-bool blockchain_fixture::get_exists(const hash_digest& block_hash) const
+bool blockchain_fixture::get_block_exists(const hash_digest& block_hash) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_difficulty(hash_number& out_difficulty,
+bool blockchain_fixture::get_fork_difficulty(hash_number& out_difficulty,
     size_t height) const
 {
     return false;
@@ -175,8 +175,21 @@ bool blockchain_fixture::get_last_height(size_t& out_height) const
     return false;
 }
 
-bool blockchain_fixture::get_transaction_hash(hash_digest& out_transaction,
+bool blockchain_fixture::get_output(chain::output& out_output, 
+    size_t& out_height, size_t& out_position,
+    const chain::output_point& outpoint) const
+{
+    return false;
+}
+
+bool blockchain_fixture::get_spender_hash(hash_digest& out_hash,
     const output_point& outpoint) const
+{
+    return false;
+}
+
+bool blockchain_fixture::get_is_unspent_transaction(
+    const hash_digest& transaction_hash) const
 {
     return false;
 }
