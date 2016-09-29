@@ -73,16 +73,19 @@ public:
     // ------------------------------------------------------------------------
     bool get_gap_range(size_t& out_first, size_t& out_last) const;
     bool get_next_gap(size_t& out_height, size_t start_height) const;
-    bool get_exists(const hash_digest& block_hash) const;
-    bool get_difficulty(hash_number& out_difficulty, size_t height) const;
+    bool get_block_exists(const hash_digest& block_hash) const;
+    bool get_fork_difficulty(hash_number& out_difficulty, size_t height) const;
     bool get_header(chain::header& out_header, size_t height) const;
     bool get_height(size_t& out_height, const hash_digest& block_hash) const;
     bool get_bits(uint32_t& out_bits, const size_t& height) const;
     bool get_timestamp(uint32_t& out_timestamp, const size_t& height) const;
     bool get_version(uint32_t& out_version, const size_t& height) const;
     bool get_last_height(size_t& out_height) const;
-    bool get_transaction_hash(hash_digest& out_transaction,
+    bool get_output(chain::output& out_output, size_t& out_height,
+        size_t& out_position, const chain::output_point& outpoint) const;
+    bool get_spender_hash(hash_digest& out_hash,
         const chain::output_point& outpoint) const;
+    bool get_is_unspent_transaction(const hash_digest& transaction_hash) const;
     bool get_transaction_height(size_t& out_block_height,
         const hash_digest& transaction_hash) const;
     transaction_ptr get_transaction(size_t& out_block_height,
