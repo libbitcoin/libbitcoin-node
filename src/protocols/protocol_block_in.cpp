@@ -385,7 +385,7 @@ void protocol_block_in::handle_store_block(const code& ec,
     // The block was accepted onto the chain, there is no gap.
     log::debug(LOG_NODE)
         << "Accepted block [" << hash << "] at height ["
-        << message->metadata.validation_height << "] from ["
+        << message->validation.height << "] from ["
         << authority() << "].";
 }
 
