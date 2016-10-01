@@ -38,9 +38,9 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 protocol_transaction_out::protocol_transaction_out(full_node& network,
-    channel::ptr channel, full_chain& blockchain)
+    channel::ptr channel, safe_chain& chain)
   : protocol_events(network, channel, NAME),
-    blockchain_(blockchain),
+    chain_(chain),
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     minimum_fee_(0),
@@ -63,7 +63,7 @@ void protocol_transaction_out::start()
     if (relay_to_peer_)
     {
         // Subscribe to transaction pool notifications and relay txs.
-        blockchain_.subscribe_transaction(BIND3(handle_floated, _1, _2, _3));
+        chain_.subscribe_transaction(BIND3(handle_floated, _1, _2, _3));
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
@@ -109,7 +109,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
     memory_pool_const_ptr)
 {
     // The handler may be invoked *multiple times* by one blockchain call.
-    blockchain_.fetch_floaters(max_inventory_count,
+    chain_.fetch_floaters(max_inventory_count,
         BIND2(handle_fetch_floaters, _1, _2));
 
     // Drop this subscription after the first request.
@@ -145,9 +145,9 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     }
 
     // Ignore non-transaction inventory requests in this protocol.
-    for (const auto& inventory: message->inventories())
+    for (const auto& inventory: message->inventories)
         if (inventory.type() == inventory::type_id::transaction)
-            blockchain_.fetch_transaction(inventory.hash(),
+            chain_.fetch_transaction(inventory.hash(),
                 BIND4(send_transaction, _1, _2, _3, inventory.hash()));
 
     return true;

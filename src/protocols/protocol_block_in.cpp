@@ -42,11 +42,11 @@ using namespace std::placeholders;
 static constexpr auto perpetual_timer = true;
 static const auto get_blocks_interval = asio::seconds(1);
 
-protocol_block_in::protocol_block_in(full_node& network, channel::ptr channel,
-    full_chain& blockchain)
-  : protocol_timer(network, channel, perpetual_timer, NAME),
-    network_(network),
-    blockchain_(blockchain),
+protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
+    safe_chain& chain)
+  : protocol_timer(node, channel, perpetual_timer, NAME),
+    node_(node),
+    chain_(chain),
     last_locator_top_(null_hash),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
@@ -81,7 +81,7 @@ void protocol_block_in::start()
     }
 
     // Subscribe to block acceptance notifications (for gap fill redundancy).
-    blockchain_.subscribe_reorganize(
+    chain_.subscribe_reorganize(
         BIND4(handle_reorganized, _1, _2, _3, _4));
 
     // Send initial get_[blocks|headers] message by simulating first heartbeat.
@@ -112,7 +112,7 @@ void protocol_block_in::get_block_inventory(const code& ec)
 
 void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
-    const auto chain_top = network_.top_block();
+    const auto chain_top = node_.top_block();
     const auto chain_top_hash = chain_top.hash();
     const auto last_locator_top = last_locator_top_.load();
 
@@ -123,7 +123,7 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 
     const auto heights = chain::block::locator_heights(chain_top.height());
 
-    blockchain_.fetch_block_locator(heights,
+    chain_.fetch_block_locator(heights,
         BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
@@ -200,7 +200,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     message->to_inventory(response->inventories(), inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
-    blockchain_.filter_orphans(response,
+    chain_.filter_orphans(response,
         BIND2(handle_filter_orphans, _1, response));
 
     return true;
@@ -226,7 +226,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     message->reduce(response->inventories(), inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
-    blockchain_.filter_orphans(response,
+    chain_.filter_orphans(response,
         BIND2(handle_filter_orphans, _1, response));
 
     return true;
@@ -249,7 +249,7 @@ void protocol_block_in::handle_filter_orphans(const code& ec,
     }
 
     // Remove block hashes found in the blockchain (dups not allowed).
-    blockchain_.filter_blocks(message, BIND2(send_get_data, _1, message));
+    chain_.filter_blocks(message, BIND2(send_get_data, _1, message));
 }
 
 void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
@@ -332,7 +332,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // We can pick this up in reorganization subscription.
     message->set_originator(nonce());
 
-    blockchain_.store(message, BIND2(handle_store_block, _1, message));
+    chain_.store(message, BIND2(handle_store_block, _1, message));
     return true;
 }
 

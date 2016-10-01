@@ -51,12 +51,12 @@ static constexpr uint32_t headers_per_second = 10000;
 
 // Sort is required here but not in configuration settings.
 session_header_sync::session_header_sync(full_node& network,
-    header_queue& hashes, simple_chain& blockchain,
+    header_queue& hashes, fast_chain& blockchain,
     const checkpoint::list& checkpoints)
   : session<network::session_outbound>(network, false),
     hashes_(hashes),
     minimum_rate_(headers_per_second),
-    blockchain_(blockchain),
+    chain_(blockchain),
     checkpoints_(checkpoint::sort(checkpoints)),
     CONSTRUCT_TRACK(session_header_sync)
 {
@@ -242,14 +242,14 @@ code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop)
 {
     size_t last_height;
 
-    if (!blockchain_.get_last_height(last_height))
+    if (!chain_.get_last_height(last_height))
         return error::operation_failed;
 
     size_t last_gap;
     size_t first_gap;
     auto first_height = last_height;
 
-    if (blockchain_.get_gap_range(first_gap, last_gap))
+    if (chain_.get_gap_range(first_gap, last_gap))
     {
         last_height = last_gap + 1;
         first_height = first_gap - 1;
@@ -257,7 +257,7 @@ code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop)
 
     header first_header;
 
-    if (!blockchain_.get_header(first_header, first_height))
+    if (!chain_.get_header(first_header, first_height))
         return error::not_found;
     
     if (!checkpoints_.empty() && checkpoints_.back().height() > last_height)
@@ -272,7 +272,7 @@ code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop)
     {
         header last_header;
 
-        if (!blockchain_.get_header(last_header, last_height))
+        if (!chain_.get_header(last_header, last_height))
             return error::not_found;
 
         out_stop = std::move(checkpoint{ last_header.hash(), last_height });

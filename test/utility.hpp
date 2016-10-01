@@ -63,7 +63,7 @@ private:
 };
 
 class blockchain_fixture
-  : public blockchain::simple_chain
+  : public blockchain::fast_chain
 {
 public:
     blockchain_fixture(bool import_result=true, size_t gap_trigger=max_size_t,

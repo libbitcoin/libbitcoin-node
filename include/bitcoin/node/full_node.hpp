@@ -77,7 +77,7 @@ public:
     virtual const settings& node_settings() const;
 
     /// Blockchain query interface.
-    virtual blockchain::full_chain& chain();
+    virtual blockchain::safe_chain& chain();
 
     // Subscriptions.
     // ------------------------------------------------------------------------
@@ -121,7 +121,7 @@ private:
 
     // These are thread safe.
     header_queue hashes_;
-    blockchain::block_chain blockchain_;
+    blockchain::block_chain chain_;
     const uint32_t protocol_maximum_;
     const settings& settings_;
 };

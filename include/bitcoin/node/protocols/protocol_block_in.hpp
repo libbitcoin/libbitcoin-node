@@ -40,7 +40,7 @@ public:
 
     /// Construct a block protocol instance.
     protocol_block_in(full_node& network, network::channel::ptr channel,
-        blockchain::full_chain& blockchain);
+        blockchain::safe_chain& chain);
 
     /// Start the protocol.
     virtual void start();
@@ -62,8 +62,8 @@ private:
         const block_const_ptr_list& incoming,
         const block_const_ptr_list& outgoing);
 
-    full_node& network_;
-    blockchain::full_chain& blockchain_;
+    full_node& node_;
+    blockchain::safe_chain& chain_;
     bc::atomic<hash_digest> last_locator_top_;
     const bool headers_from_peer_;
 };

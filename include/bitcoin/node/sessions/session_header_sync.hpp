@@ -43,7 +43,7 @@ public:
     typedef std::shared_ptr<session_header_sync> ptr;
 
     session_header_sync(full_node& network, header_queue& hashes,
-        blockchain::simple_chain& blockchain,
+        blockchain::fast_chain& blockchain,
         const config::checkpoint::list& checkpoints);
 
     virtual void start(result_handler handler) override;
@@ -79,7 +79,7 @@ private:
     // These do not require guard because they are not used concurrently.
     uint32_t minimum_rate_;
     config::checkpoint last_;
-    blockchain::simple_chain& blockchain_;
+    blockchain::fast_chain& chain_;
     const config::checkpoint::list checkpoints_;
 };
 
