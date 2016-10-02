@@ -131,7 +131,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     get_blocks_ptr message, const hash_digest& stop_hash)
 {
     if (stopped() || ec == error::service_stopped ||
-        message->start_hashes.empty())
+        message->start_hashes().empty())
         return;
 
     if (ec)
@@ -148,14 +148,14 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     {
         log::debug(LOG_NODE)
             << "Ask [" << authority() << "] for headers from ["
-            << encode_hash(message->start_hashes.front()) << "] through [" <<
+            << encode_hash(message->start_hashes().front()) << "] through [" <<
             (stop_hash == null_hash ? "2000" : encode_hash(stop_hash)) << "]";
 
         // TODO: create query override to return this natively.
         // Move the hash data from the get_blocks to a new get_message.
         auto request = std::make_shared<message::get_headers>();
-        std::swap(request->start_hashes, message->start_hashes);
-        request->stop_hash = stop_hash;
+        std::swap(request->start_hashes(), message->start_hashes());
+        request->set_stop_hash(stop_hash);
         SEND2(*request, handle_send, _1, request->command);
         message = request;
     }
@@ -163,15 +163,15 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     {
         log::debug(LOG_NODE)
             << "Ask [" << authority() << "] for block inventory from ["
-            << encode_hash(message->start_hashes.front()) << "] through [" <<
+            << encode_hash(message->start_hashes().front()) << "] through [" <<
             (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
 
-        message->stop_hash = stop_hash;
+        message->set_stop_hash(stop_hash);
         SEND2(*message, handle_send, _1, message->command);
     }
 
     // Save the locator top to prevent a redundant future request.
-    last_locator_top_.store(message->start_hashes.front());
+    last_locator_top_.store(message->start_hashes().front());
 }
 
 // Receive headers|inventory sequence.
@@ -197,7 +197,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     // There is no benefit to this use of headers, in fact it is suboptimal.
     // In v3 headers will be used to build block tree before getting blocks.
     const auto response = std::make_shared<get_data>();
-    message->to_inventory(response->inventories, inventory::type_id::block);
+    message->to_inventory(response->inventories(), inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
     blockchain_.filter_orphans(response,
@@ -223,7 +223,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     }
 
     const auto response = std::make_shared<get_data>();
-    message->reduce(response->inventories, inventory::type_id::block);
+    message->reduce(response->inventories(), inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
     blockchain_.filter_orphans(response,
@@ -236,7 +236,7 @@ void protocol_block_in::handle_filter_orphans(const code& ec,
     get_data_ptr message)
 {
     if (stopped() || ec == error::service_stopped ||
-        message->inventories.empty())
+        message->inventories().empty())
         return;
 
     if (ec)
@@ -255,7 +255,7 @@ void protocol_block_in::handle_filter_orphans(const code& ec,
 void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 {
     if (stopped() || ec == error::service_stopped ||
-        message->inventories.empty())
+        message->inventories().empty())
         return;
 
     if (ec)
@@ -342,7 +342,7 @@ void protocol_block_in::handle_store_block(const code& ec,
     if (stopped() || ec == error::service_stopped)
         return;
 
-    const auto hash = encode_hash(message->header.hash());
+    const auto hash = encode_hash(message->header().hash());
 
     // Ignore the block that we already have, a common result.
     if (ec == error::duplicate)
@@ -361,7 +361,7 @@ void protocol_block_in::handle_store_block(const code& ec,
             << "Orphan block [" << hash << "] from [" << authority() << "].";
 
         // Ask the peer for blocks from the chain top up to this orphan.
-        send_get_blocks(message->header.hash());
+        send_get_blocks(message->header().hash());
         return;
     }
 
@@ -413,7 +413,7 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
     for (const auto block: incoming)
         if (block->originator() == nonce())
             log::debug(LOG_NODE)
-                << "Reorganized block [" << encode_hash(block->header.hash())
+                << "Reorganized block [" << encode_hash(block->header().hash())
                 << "] from [" << authority() << "].";
 
     return true;

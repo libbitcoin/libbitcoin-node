@@ -98,11 +98,11 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     }
 
     const auto response = std::make_shared<get_data>();
-    message->reduce(response->inventories, inventory::type_id::transaction);
+    message->reduce(response->inventories(), inventory::type_id::transaction);
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
     // Prior to this level transaction relay is not configurable.
-    if (!relay_from_peer_ && !response->inventories.empty())
+    if (!relay_from_peer_ && !response->inventories().empty())
     {
         log::debug(LOG_NODE)
             << "Unexpected transaction inventory from [" << authority() << "]";
@@ -121,7 +121,7 @@ void protocol_transaction_in::handle_filter_floaters(const code& ec,
     get_data_ptr message)
 {
     if (stopped() || ec == error::service_stopped ||
-        message->inventories.empty())
+        message->inventories().empty())
         return;
 
     if (ec)
@@ -142,7 +142,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
     get_data_ptr message)
 {
     if (stopped() || ec == error::service_stopped || 
-        message->inventories.empty())
+        message->inventories().empty())
         return;
 
     if (ec)

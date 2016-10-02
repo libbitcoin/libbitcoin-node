@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(reservation__stopped__import_last_block__true)
     DECLARE_RESERVATIONS(reserves, true);
     const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    const auto& header1 = message->elements[0];
+    const auto& header1 = message->elements()[0];
     reserve->insert(header1.hash(), 42);
     const auto block1 = std::make_shared<const block_message>(block_message{ header1, {} });
     reserve->import(block1);
@@ -202,10 +202,10 @@ BOOST_AUTO_TEST_CASE(reservation__reset__values__defaults)
 
     // Create a history entry.
     const auto message = message_factory(3, null_hash);
-    reserve->insert(message->elements[0].hash(), 0);
-    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements[0], {} });
-    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements[1], {} });
-    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements[2], {} });
+    reserve->insert(message->elements()[0].hash(), 0);
+    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[1], {} });
+    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements()[2], {} });
     reserve->import(block0);
     reserve->import(block1);
 
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(reservation__insert1__single__size_1_pending)
     DECLARE_RESERVATIONS(reserves, false);
     const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    const auto& header = message->elements[0];
+    const auto& header = message->elements()[0];
     BOOST_REQUIRE(reserve->empty());
     reserve->set_pending(false);
     reserve->insert(checkpoint{ header.hash(), 42 });
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(reservation__insert2__single__size_1_pending)
     DECLARE_RESERVATIONS(reserves, false);
     const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    const auto& header = message->elements[0];
+    const auto& header = message->elements()[0];
     BOOST_REQUIRE(reserve->empty());
     reserve->set_pending(false);
     reserve->insert(header.hash(), 42);
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__unsolicitied___empty_idle)
     DECLARE_RESERVATIONS(reserves, true);
     const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    const auto& header = message->elements[0];
+    const auto& header = message->elements()[0];
     const auto block1 = std::make_shared<const block_message>(block_message{ header, {} });
     BOOST_REQUIRE(reserve->idle());
     reserve->import(block1);
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(reservation__import__fail__idle)
     DECLARE_RESERVATIONS(reserves, false);
     const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
     const auto message = message_factory(1, check42.hash());
-    const auto& header = message->elements[0];
+    const auto& header = message->elements()[0];
     reserve->insert(header.hash(), 42);
     const auto block1 = std::make_shared<const block_message>(block_message{ header, {} });
     BOOST_REQUIRE(reserve->idle());
@@ -316,12 +316,12 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success_timeout__idle)
     const auto now = std::chrono::high_resolution_clock::now();
     const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
     const auto message = message_factory(3, null_hash);
-    reserve->insert(message->elements[0].hash(), 0);
-    reserve->insert(message->elements[1].hash(), 1);
-    reserve->insert(message->elements[2].hash(), 2);
-    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements[0], {} });
-    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements[1], {} });
-    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements[2], {} });
+    reserve->insert(message->elements()[0].hash(), 0);
+    reserve->insert(message->elements()[1].hash(), 1);
+    reserve->insert(message->elements()[2].hash(), 2);
+    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[1], {} });
+    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements()[2], {} });
     reserve->import(block0);
     reserve->import(block1);
     reserve->import(block2);
@@ -339,12 +339,12 @@ BOOST_AUTO_TEST_CASE(reservation__import__three_success__not_idle)
     const auto now = std::chrono::high_resolution_clock::now();
     const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
     const auto message = message_factory(3, null_hash);
-    reserve->insert(message->elements[0].hash(), 0);
-    reserve->insert(message->elements[1].hash(), 1);
-    reserve->insert(message->elements[2].hash(), 2);
-    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements[0], {} });
-    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements[1], {} });
-    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements[2], {} });
+    reserve->insert(message->elements()[0].hash(), 0);
+    reserve->insert(message->elements()[1].hash(), 1);
+    reserve->insert(message->elements()[2].hash(), 2);
+    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[1], {} });
+    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements()[2], {} });
 
     // Idle checks assume minimum_history is set to 3.
     BOOST_REQUIRE(reserve->idle());
@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE(reservation__request__pending__empty_not_reset)
 
     // Creates a request with no hashes reserved.
     const auto result = reserve.request(false);
-    BOOST_REQUIRE(result.inventories.empty());
+    BOOST_REQUIRE(result.inventories().empty());
     BOOST_REQUIRE(!reserve.pending());
 
     // The rate is not reset because the new channel parameter is false.
@@ -410,14 +410,14 @@ BOOST_AUTO_TEST_CASE(reservation__request__new_channel_pending__size_1_reset)
     DECLARE_RESERVATIONS(reserves, true);
     reservation_fixture reserve(reserves, 0, 0);
     const auto message = message_factory(1, null_hash);
-    reserve.insert(message->elements[0].hash(), 0);
+    reserve.insert(message->elements()[0].hash(), 0);
     reserve.set_rate({ false, 1, 2, 3 });
     BOOST_REQUIRE(reserve.pending());
 
     // Creates a request with one hash reserved.
     const auto result = reserve.request(true);
-    BOOST_REQUIRE_EQUAL(result.inventories.size(), 1u);
-    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE_EQUAL(result.inventories().size(), 1u);
+    BOOST_REQUIRE(result.inventories()[0].hash() == message->elements()[0].hash());
     BOOST_REQUIRE(!reserve.pending());
 
     // The rate is reset because the new channel parameter is true.
@@ -433,14 +433,14 @@ BOOST_AUTO_TEST_CASE(reservation__request__new_channel__size_1_reset)
     DECLARE_RESERVATIONS(reserves, true);
     reservation_fixture reserve(reserves, 0, 0);
     const auto message = message_factory(1, null_hash);
-    reserve.insert(message->elements[0].hash(), 0);
+    reserve.insert(message->elements()[0].hash(), 0);
     reserve.set_rate({ false, 1, 2, 3 });
     reserve.set_pending(false);
 
     // Creates a request with one hash reserved.
     const auto result = reserve.request(true);
-    BOOST_REQUIRE_EQUAL(result.inventories.size(), 1u);
-    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
+    BOOST_REQUIRE_EQUAL(result.inventories().size(), 1u);
+    BOOST_REQUIRE(result.inventories()[0].hash() == message->elements()[0].hash());
     BOOST_REQUIRE(!reserve.pending());
 
     // The rate is reset because the new channel parameter is true.
@@ -456,17 +456,17 @@ BOOST_AUTO_TEST_CASE(reservation__request__three_hashes_pending__size_3)
     DECLARE_RESERVATIONS(reserves, true);
     reservation_fixture reserve(reserves, 0, 0);
     const auto message = message_factory(3, null_hash);
-    reserve.insert(message->elements[0].hash(), 0);
-    reserve.insert(message->elements[1].hash(), 1);
-    reserve.insert(message->elements[2].hash(), 2);
+    reserve.insert(message->elements()[0].hash(), 0);
+    reserve.insert(message->elements()[1].hash(), 1);
+    reserve.insert(message->elements()[2].hash(), 2);
     BOOST_REQUIRE(reserve.pending());
 
     // Creates a request with 3 hashes reserved.
     const auto result = reserve.request(false);
-    BOOST_REQUIRE_EQUAL(result.inventories.size(), 3u);
-    BOOST_REQUIRE(result.inventories[0].hash == message->elements[0].hash());
-    BOOST_REQUIRE(result.inventories[1].hash == message->elements[1].hash());
-    BOOST_REQUIRE(result.inventories[2].hash == message->elements[2].hash());
+    BOOST_REQUIRE_EQUAL(result.inventories().size(), 3u);
+    BOOST_REQUIRE(result.inventories()[0].hash() == message->elements()[0].hash());
+    BOOST_REQUIRE(result.inventories()[1].hash() == message->elements()[1].hash());
+    BOOST_REQUIRE(result.inventories()[2].hash() == message->elements()[2].hash());
     BOOST_REQUIRE(!reserve.pending());
 }
 
@@ -475,12 +475,12 @@ BOOST_AUTO_TEST_CASE(reservation__request__one_hash__empty)
     DECLARE_RESERVATIONS(reserves, true);
     reservation_fixture reserve(reserves, 0, 0);
     const auto message = message_factory(1, null_hash);
-    reserve.insert(message->elements[0].hash(), 0);
+    reserve.insert(message->elements()[0].hash(), 0);
     reserve.set_pending(false);
 
     // Creates an empty request for not new and not pending scneario.
     const auto result = reserve.request(false);
-    BOOST_REQUIRE(result.inventories.empty());
+    BOOST_REQUIRE(result.inventories().empty());
     BOOST_REQUIRE(!reserve.pending());
 }
 

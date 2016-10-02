@@ -287,7 +287,7 @@ message::get_data reservation::request(bool new_channel)
         ++height)
     {
         static const auto id = message::inventory::type_id::block;
-        packet.inventories.push_back({ id, height->second });
+        packet.inventories().push_back({ id, height->second });
     }
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -320,7 +320,7 @@ void reservation::insert(const hash_digest& hash, size_t height)
 void reservation::import(block_const_ptr block)
 {
     uint32_t height;
-    const auto hash = block->header.hash();
+    const auto hash = block->header().hash();
     const auto encoded = encode_hash(hash);
 
     if (!find_height_and_erase(hash, height))

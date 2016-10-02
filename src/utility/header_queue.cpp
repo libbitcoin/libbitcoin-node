@@ -246,7 +246,7 @@ bool header_queue::enqueue(headers_const_ptr message)
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
-    const auto result = merge(message->elements);
+    const auto result = merge(message->elements());
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
@@ -319,7 +319,7 @@ bool header_queue::check(const hash_digest& hash, size_t height) const
 bool header_queue::linked(const chain::header& header,
     const hash_digest& hash) const
 {
-    return header.previous_block_hash == hash;
+    return header.previous_block_hash() == hash;
 }
 
 bool header_queue::is_empty() const

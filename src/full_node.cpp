@@ -192,7 +192,7 @@ bool full_node::handle_reorganized(const code& ec, size_t fork_height,
     for (const auto block: outgoing)
         log::debug(LOG_NODE)
             << "Reorganization moved block to orphan pool ["
-            << encode_hash(block->header.hash()) << "]";
+            << encode_hash(block->header().hash()) << "]";
 
     BITCOIN_ASSERT(!incoming.empty());
     const auto height = safe_add(fork_height, incoming.size());
