@@ -144,7 +144,7 @@ bool protocol_header_sync::handle_receive_header(const code& ec,
     const auto next = next_height();
 
     log::info(LOG_NODE)
-        << "Synced headers " << next - message->elements.size()
+        << "Synced headers " << next - message->elements().size()
         << "-" << (next - 1) << " from [" << authority() << "]";
 
     // If we completed the last height the sync is complete/success.
@@ -155,7 +155,7 @@ bool protocol_header_sync::handle_receive_header(const code& ec,
     }
 
     // If we received fewer than 2000 the peer is exhausted, try another.
-    if (message->elements.size() < max_header_response)
+    if (message->elements().size() < max_header_response)
     {
         complete(error::operation_failed);
         return false;

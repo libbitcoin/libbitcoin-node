@@ -46,7 +46,7 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
     minimum_fee_(0),
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
-    relay_to_peer_(peer_version()->relay),
+    relay_to_peer_(peer_version()->relay()),
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
@@ -95,7 +95,7 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Transaction annoucements will be filtered by fee amount.
-    minimum_fee_.store(message->minimum_fee);
+    minimum_fee_.store(message->minimum_fee());
 
     // The fee filter may be adjusted.
     return true;
@@ -120,7 +120,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
 void protocol_transaction_out::handle_fetch_floaters(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped() || message->inventories.empty())
+    if (stopped() || message->inventories().empty())
         return;
 
     SEND2(*message, handle_send, _1, message->command);
@@ -145,10 +145,10 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     }
 
     // Ignore non-transaction inventory requests in this protocol.
-    for (const auto& inventory: message->inventories)
-        if (inventory.type == inventory::type_id::transaction)
-            blockchain_.fetch_transaction(inventory.hash,
-                BIND4(send_transaction, _1, _2, _3, inventory.hash));
+    for (const auto& inventory: message->inventories())
+        if (inventory.type() == inventory::type_id::transaction)
+            blockchain_.fetch_transaction(inventory.hash(),
+                BIND4(send_transaction, _1, _2, _3, inventory.hash()));
 
     return true;
 }

@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(header_queue__last_hash__initialize__expected)
 BOOST_AUTO_TEST_CASE(header_queue__last_hash__initialize_enqueue_1__expected)
 {
     const auto message = message_factory(1, check42.hash());
-    const auto expected = message->elements[0].hash();
+    const auto expected = message->elements()[0].hash();
 
     header_queue hashes(no_checks);
     hashes.initialize(check42);
@@ -322,7 +322,7 @@ BOOST_AUTO_TEST_CASE(header_queue__invalidate__bounded__unchanged)
     BOOST_REQUIRE_EQUAL(height, first_height + 1);
 
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[1].hash());
+    BOOST_REQUIRE(hash == message->elements()[1].hash());
     BOOST_REQUIRE_EQUAL(height, first_height + 2);
 
     BOOST_REQUIRE(hashes.dequeue(hash, height));
@@ -334,11 +334,11 @@ BOOST_AUTO_TEST_CASE(header_queue__invalidate__bounded__unchanged)
     BOOST_REQUIRE_EQUAL(height, first_height + 4);
 
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[4].hash());
+    BOOST_REQUIRE(hash == message->elements()[4].hash());
     BOOST_REQUIRE_EQUAL(height, first_height + 5);
 
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[5].hash());
+    BOOST_REQUIRE(hash == message->elements()[5].hash());
     BOOST_REQUIRE_EQUAL(height, first_height + 6);
 
     BOOST_REQUIRE(hashes.dequeue(hash, height));
@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(header_queue__dequeue2__initialize_enqueue_1__true_expected
 BOOST_AUTO_TEST_CASE(header_queue__dequeue2__initialize_enqueue_1_dequeue__true_expected)
 {
     const auto message = message_factory(1, check42.hash());
-    const auto expected = message->elements[0].hash();
+    const auto expected = message->elements()[0].hash();
 
     header_queue hashes(no_checks);
     hashes.initialize(check42);
@@ -473,7 +473,7 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__initialize_enqueue_1__size_2)
 BOOST_AUTO_TEST_CASE(header_queue__enqueue__initialize_enqueue_1_dequeue_enqueue_2_dequeue__expected)
 {
     const auto message1 = message_factory(1, check42.hash());
-    const auto expected = message1->elements[0].hash();
+    const auto expected = message1->elements()[0].hash();
     const auto message2 = message_factory(2, expected);
 
     header_queue hashes(no_checks);
@@ -504,10 +504,10 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__linked__true_expected_order)
     BOOST_REQUIRE(hash == check42.hash());
     BOOST_REQUIRE_EQUAL(height, check42.height());
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[0].hash());
+    BOOST_REQUIRE(hash == message->elements()[0].hash());
     BOOST_REQUIRE_EQUAL(height, check42.height() + 1);
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[1].hash());
+    BOOST_REQUIRE(hash == message->elements()[1].hash());
     BOOST_REQUIRE_EQUAL(height, check42.height() + 2);
 }
 
@@ -527,7 +527,7 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__checkpoint_match__true_expected)
     const auto message = message_factory(2, check42.hash());
     const checkpoint::list checkpoints
     {
-        { message->elements[1].hash(), check42.height() + 2 }
+        { message->elements()[1].hash(), check42.height() + 2 }
     };
 
     header_queue hashes(checkpoints);
@@ -541,10 +541,10 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__checkpoint_match__true_expected)
     BOOST_REQUIRE(hash == check42.hash());
     BOOST_REQUIRE_EQUAL(height, check42.height());
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[0].hash());
+    BOOST_REQUIRE(hash == message->elements()[0].hash());
     BOOST_REQUIRE_EQUAL(height, check42.height() + 1);
     BOOST_REQUIRE(hashes.dequeue(hash, height));
-    BOOST_REQUIRE(hash == message->elements[1].hash());
+    BOOST_REQUIRE(hash == message->elements()[1].hash());
     BOOST_REQUIRE_EQUAL(height, check42.height() + 2);
 }
 
@@ -569,7 +569,7 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__multiple_checkpoint_mismatch__false_
     const auto message = message_factory(9, check42.hash());
 
     const auto expected_height = check42.height() + 3;
-    const auto expected_hash = message->elements[2].hash();
+    const auto expected_hash = message->elements()[2].hash();
     const auto expected_size = expected_height - check42.height() + 1;
 
     // The hash at the intermediate height will not match so must cause checkpont failure.
@@ -577,7 +577,7 @@ BOOST_AUTO_TEST_CASE(header_queue__enqueue__multiple_checkpoint_mismatch__false_
     {
         { expected_hash, expected_height },
         { /*message->elements[1].hash()*/ null_hash, check42.height() + 5 },
-        { message->elements[8].hash(), check42.height() + 10 }
+        { message->elements()[8].hash(), check42.height() + 10 }
     };
 
     header_queue hashes(checkpoints);

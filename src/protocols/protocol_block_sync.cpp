@@ -85,11 +85,11 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
     const auto request = reservation_->request(reset);
 
     // Or we may be the same channel and with hashes already requested.
-    if (request.inventories.empty())
+    if (request.inventories().empty())
         return;
 
     log::debug(LOG_NODE)
-        << "Sending request of " << request.inventories.size()
+        << "Sending request of " << request.inventories().size()
         << " hashes for slot (" << reservation_->slot() << ").";
 
     SEND2(request, handle_send, _1, complete);

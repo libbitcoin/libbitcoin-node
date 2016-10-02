@@ -58,7 +58,7 @@ message::headers::ptr message_factory(size_t count,
 {
     auto previous_hash = previous;
     const auto headers = std::make_shared<message::headers>();
-    auto& elements = headers->elements;
+    auto& elements = headers->elements();
 
     for (size_t height = 0; height < count; ++height)
     {

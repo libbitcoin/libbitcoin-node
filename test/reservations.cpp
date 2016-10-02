@@ -391,7 +391,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_table_empty__no_popula
 
     // Initialize with a known header so we can import its block later.
     const auto message = message_factory(3, null_hash);
-    auto& elements = message->elements;
+    auto& elements = message->elements();
     const auto genesis_header = elements[0];
     hashes.initialize(genesis_header.hash(), 0);
     elements.erase(std::find(elements.begin(), elements.end(), elements[0]));
@@ -449,8 +449,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__uncap
     BOOST_REQUIRE_EQUAL(table[0]->size(), 2u);
     BOOST_REQUIRE_EQUAL(table[1]->size(), 2u);
 
-    const auto block1 = std::make_shared<block_message>(block_message{ message->elements[0], {} });
-    const auto block4 = std::make_shared<block_message>(block_message{ message->elements[3], {} });
+    const auto block1 = std::make_shared<block_message>(block_message{ message->elements()[0], {} });
+    const auto block4 = std::make_shared<block_message>(block_message{ message->elements()[3], {} });
 
     // The import of two blocks from same row will cause populate to invoke reservation.
     table[1]->import(block1);
@@ -486,8 +486,8 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__cappe
     // Cap reserve at 1 block.
     reserves.set_max_request(1);
 
-    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements[0], {} });
-    const auto block4 = std::make_shared<const block_message>(block_message{ message->elements[3], {} });
+    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
+    const auto block4 = std::make_shared<const block_message>(block_message{ message->elements()[3], {} });
 
     // The import of two blocks from same row will cause populate to invoke reservation.
     table[1]->import(block1);
@@ -511,7 +511,7 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
 
     // Initialize with a known header so we can import its block later.
     const auto message = message_factory(9, null_hash);
-    auto& elements = message->elements;
+    auto& elements = message->elements();
     const auto genesis_header = elements[0];
     hashes.initialize(genesis_header.hash(), 0);
     elements.erase(std::find(elements.begin(), elements.end(), elements[0]));
@@ -538,9 +538,9 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     const auto block8 = std::make_shared<const block_message>(block_message{ elements[7], {} });
 
     // This will reset pending on all rows.
-    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 3u);
-    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories.size(), 3u);
-    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories.size(), 3u);
+    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories().size(), 3u);
+    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories().size(), 3u);
+    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories().size(), 3u);
 
     // A row becomes stopped once empty.
     BOOST_REQUIRE(!table[0]->stopped());
@@ -575,14 +575,14 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     BOOST_REQUIRE(!table[1]->toggle_partitioned());
 
     // The last row has not been modified.
-    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 2u);
-    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories.size(), 1u);
-    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories.size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories().size(), 2u);
+    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories().size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories().size(), 0u);
 
     // The rows are no longer pending.
-    BOOST_REQUIRE(table[0]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[1]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[2]->request(false).inventories.empty());
+    BOOST_REQUIRE(table[0]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[1]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[2]->request(false).inventories().empty());
 
     // Remove another block from the first row (originally from the second).
     table[0]->import(block1);
@@ -599,14 +599,14 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     BOOST_REQUIRE(!table[2]->toggle_partitioned());
 
     // The second row has not been modified.
-    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 2u);
-    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories.size(), 0u);
-    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories.size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories().size(), 2u);
+    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories().size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories().size(), 1u);
 
     // The rows are no longer pending.
-    BOOST_REQUIRE(table[0]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[1]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[2]->request(false).inventories.empty());
+    BOOST_REQUIRE(table[0]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[1]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[2]->request(false).inventories().empty());
 
     // Remove another block from the first row (originally from the third).
     table[0]->import(block2);
@@ -623,14 +623,14 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     BOOST_REQUIRE(!table[1]->toggle_partitioned());
 
     // The third row has not been modified and the second row is empty.
-    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 1u);
-    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories.size(), 0u);
-    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories.size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories().size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories().size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories().size(), 0u);
 
     // The rows are no longer pending.
-    BOOST_REQUIRE(table[0]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[1]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[2]->request(false).inventories.empty());
+    BOOST_REQUIRE(table[0]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[1]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[2]->request(false).inventories().empty());
 
     // Remove another block from the first row (originally from the second).
     table[0]->import(block7);
@@ -641,14 +641,14 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     BOOST_REQUIRE(!table[2]->toggle_partitioned());
 
     // The second row has not been modified and the third row is empty.
-    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 1u);
-    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories.size(), 0u);
-    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories.size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories().size(), 1u);
+    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories().size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories().size(), 0u);
 
     // The rows are no longer pending.
-    BOOST_REQUIRE(table[0]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[1]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[2]->request(false).inventories.empty());
+    BOOST_REQUIRE(table[0]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[1]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[2]->request(false).inventories().empty());
 
     // Remove another block from the first row (originally from the third).
     table[0]->import(block8);
@@ -658,14 +658,14 @@ BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partitio
     BOOST_REQUIRE(table[0]->stopped());
 
     // The second and third rows have not been modified and the first is empty.
-    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories.size(), 0u);
-    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories.size(), 0u);
-    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories.size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[0]->request(false).inventories().size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[1]->request(false).inventories().size(), 0u);
+    BOOST_REQUIRE_EQUAL(table[2]->request(false).inventories().size(), 0u);
 
     // The rows are no longer pending.
-    BOOST_REQUIRE(table[0]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[1]->request(false).inventories.empty());
-    BOOST_REQUIRE(table[2]->request(false).inventories.empty());
+    BOOST_REQUIRE(table[0]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[1]->request(false).inventories().empty());
+    BOOST_REQUIRE(table[2]->request(false).inventories().empty());
 
     // We can't test the partition aspect of population directly
     // because there is no way to reduce the row count to empty.

@@ -127,7 +127,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     }
 
     const auto height = network_.top_block().height();
-    const auto locator_size = message->start_hashes.size();
+    const auto locator_size = message->start_hashes().size();
     const auto locator_limit = chain::block::locator_size(height) + 1;
 
     // The locator cannot be longer than allowed by our chain length.
@@ -164,7 +164,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     headers_ptr message)
 {
     if (stopped() || ec == error::service_stopped ||
-        message->elements.empty())
+        message->elements().empty())
         return;
 
     if (ec)
@@ -180,7 +180,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     SEND2(*message, handle_send, _1, message->command);
 
     // Save the locator top to limit an overlapping future request.
-    last_locator_top_.store(message->elements.front().hash());
+    last_locator_top_.store(message->elements().front().hash());
 }
 
 // Receive get_blocks sequence.
@@ -201,7 +201,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     }
 
     const auto height = network_.top_block().height();
-    const auto locator_size = message->start_hashes.size();
+    const auto locator_size = message->start_hashes().size();
     const auto locator_limit = chain::block::locator_size(height) + 1;
 
     // See comments in handle_receive_get_headers.
@@ -226,7 +226,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     inventory_ptr message)
 {
     if (stopped() || ec == error::service_stopped || 
-        message->inventories.empty())
+        message->inventories().empty())
         return;
 
     if (ec)
@@ -242,7 +242,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     SEND2(*message, handle_send, _1, message->command);
 
     // Save the locator top to limit an overlapping future request.
-    last_locator_top_.store(message->inventories.front().hash);
+    last_locator_top_.store(message->inventories().front().hash());
 }
 
 // Receive get_data sequence.
@@ -265,14 +265,14 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     }
 
     // Ignore non-block inventory requests in this protocol.
-    for (const auto& inventory: message->inventories)
+    for (const auto& inventory: message->inventories())
     {
-        if (inventory.type == inventory::type_id::block)
-            blockchain_.fetch_block(inventory.hash,
-                BIND4(send_block, _1, _2, _3, inventory.hash));
-        else if (inventory.type == inventory::type_id::filtered_block)
-            blockchain_.fetch_merkle_block(inventory.hash,
-                BIND4(send_merkle_block, _1, _2, _3, inventory.hash));
+        if (inventory.type() == inventory::type_id::block)
+            blockchain_.fetch_block(inventory.hash(),
+                BIND4(send_block, _1, _2, _3, inventory.hash()));
+        else if (inventory.type() == inventory::type_id::filtered_block)
+            blockchain_.fetch_merkle_block(inventory.hash(),
+                BIND4(send_merkle_block, _1, _2, _3, inventory.hash()));
     }
 
     return true;
@@ -363,9 +363,9 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
 
         for (const auto block: incoming)
             if (block->originator() != nonce())
-                announcement.elements.push_back(block->header);
+                announcement.elements().push_back(block->header());
 
-        if (!announcement.elements.empty())
+        if (!announcement.elements().empty())
             SEND2(announcement, handle_send, _1, announcement.command);
         return true;
     }
@@ -375,9 +375,9 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
 
     for (const auto block: incoming)
         if (block->originator() != nonce())
-            announcement.inventories.push_back( { id, block->header.hash() });
+            announcement.inventories().push_back( { id, block->header().hash() });
 
-    if (!announcement.inventories.empty())
+    if (!announcement.inventories().empty())
         SEND2(announcement, handle_send, _1, announcement.command);
     return true;
 }
