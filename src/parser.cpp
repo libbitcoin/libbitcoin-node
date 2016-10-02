@@ -277,6 +277,11 @@ options_metadata parser::load_settings()
 
     /* [blockchain] */
     (
+        "blockchain.threads",
+        value<uint32_t>(&configured.chain.threads),
+        "The number of threads used for block validation, defaults to 8."
+    )
+    (
         "blockchain.block_pool_capacity",
         value<uint32_t>(&configured.chain.block_pool_capacity),
         "The maximum number of orphan blocks in the pool, defaults to 50."
