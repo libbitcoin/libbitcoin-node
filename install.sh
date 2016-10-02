@@ -693,12 +693,12 @@ build_all()
 {
     build_from_tarball_boost $BOOST_URL $BOOST_ARCHIVE bzip2 . $PARALLEL "$BUILD_BOOST" "${BOOST_OPTIONS[@]}"
     build_from_github libbitcoin secp256k1 version4 $PARALLEL ${SECP256K1_OPTIONS[@]} "$@"
-    build_from_github libbitcoin libbitcoin master $PARALLEL ${BITCOIN_OPTIONS[@]} "$@"
+    build_from_github pmienk libbitcoin properties $PARALLEL ${BITCOIN_OPTIONS[@]} "$@"
     build_from_github libbitcoin libbitcoin-consensus version2 $PARALLEL ${BITCOIN_CONSENSUS_OPTIONS[@]} "$@"
-    build_from_github libbitcoin libbitcoin-database master $PARALLEL ${BITCOIN_DATABASE_OPTIONS[@]} "$@"
-    build_from_github libbitcoin libbitcoin-blockchain master $PARALLEL ${BITCOIN_BLOCKCHAIN_OPTIONS[@]} "$@"
-    build_from_github libbitcoin libbitcoin-network master $PARALLEL ${BITCOIN_NETWORK_OPTIONS[@]} "$@"
-    build_from_travis libbitcoin libbitcoin-node master $PARALLEL ${BITCOIN_NODE_OPTIONS[@]} "$@"
+    build_from_github pmienk libbitcoin-database properties $PARALLEL ${BITCOIN_DATABASE_OPTIONS[@]} "$@"
+    build_from_github pmienk libbitcoin-blockchain properties $PARALLEL ${BITCOIN_BLOCKCHAIN_OPTIONS[@]} "$@"
+    build_from_github pmienk libbitcoin-network properties $PARALLEL ${BITCOIN_NETWORK_OPTIONS[@]} "$@"
+    build_from_travis pmienk libbitcoin-node properties $PARALLEL ${BITCOIN_NODE_OPTIONS[@]} "$@"
 }
 
 
