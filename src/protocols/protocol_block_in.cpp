@@ -344,7 +344,6 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     const auto hash = encode_hash(message->header().hash());
 
-    // Ignore the block that we already have, a common result.
     if (ec == error::duplicate)
     {
         log::debug(LOG_NODE)
@@ -353,8 +352,6 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
     }
 
-    // The block in the orphan pool and disconnected from the chain.
-    // This is distinct from insufficient work because we send get_blocks.
     if (ec == error::orphan)
     {
         log::debug(LOG_NODE)
@@ -391,7 +388,6 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
     }
 
-    // The block was accepted onto the chain, there is no gap.
     log::debug(LOG_NODE)
         << "Accepted block [" << hash << "] at height ["
         << message->validation.height << "] from ["

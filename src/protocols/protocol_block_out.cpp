@@ -137,7 +137,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // download to get close before enabling this protocol.
     if (locator_size > locator_limit)
     {
-        log::debug(LOG_NODE)
+        log::warning(LOG_NODE)
             << "Invalid get_headers locator size (" << locator_size
             << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
@@ -207,7 +207,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     // See comments in handle_receive_get_headers.
     if (locator_size > locator_limit)
     {
-        log::debug(LOG_NODE)
+        log::warning(LOG_NODE)
             << "Invalid get_blocks locator size (" << locator_size
             << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
