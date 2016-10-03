@@ -373,6 +373,15 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
     }
 
+    if (ec == error::operation_failed)
+    {
+        log::info(LOG_NODE)
+            << "Internal failure validatig block [" << hash << "] from ["
+            << authority() << "] " << ec.message();
+        stop(ec);
+        return;
+    }
+
     if (ec)
     {
         log::info(LOG_NODE)
