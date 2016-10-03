@@ -194,7 +194,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     // We can pick this up in transaction subscription.
     message->set_originator(nonce());
 
-    chain_.store(message,
+    chain_.organize(message,
         BIND3(handle_store_transaction, _1, _2, message));
     return true;
 }

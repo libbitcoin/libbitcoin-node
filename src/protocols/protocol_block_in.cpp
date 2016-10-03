@@ -332,7 +332,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // We can pick this up in reorganization subscription.
     message->set_originator(nonce());
 
-    chain_.store(message, BIND2(handle_store_block, _1, message));
+    chain_.organize(message, BIND2(handle_store_block, _1, message));
     return true;
 }
 
