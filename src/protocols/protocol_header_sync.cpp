@@ -184,7 +184,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
         return;
     }
 
-    // It was a timeout, so ten more seconds have passed.
+    // It was a timeout, so another expiry period has passed.
     current_second_ += static_cast<size_t>(expiry_interval.count());
 
     // Drop the channel if it falls below the min sync rate averaged over all.
