@@ -256,7 +256,6 @@ bool header_queue::enqueue(headers_const_ptr message)
 // private
 //-----------------------------------------------------------------------------
 
-// TODO: add PoW validation to reduce importance of intermediate checkpoints.
 bool header_queue::merge(const header::list& headers)
 {
     // If we exceed capacity the header pointer becomes invalid, so prevent.
@@ -267,17 +266,16 @@ bool header_queue::merge(const header::list& headers)
 
     for (const auto& header: headers)
     {
-        const auto& new_hash = header.hash();
-        const auto next_height = last() + 1;
-        const auto& last_hash = is_empty() ? null_hash : list_.back();
-
-        if (!linked(header, last_hash) || !check(new_hash, next_height))
+        // Check for parent link, valid POW, futuristic timestamp, checkpoints,
+        // block version, work required, timestamp not above median time past.
+        if (linked(header) && header.check() && accept(header))
         {
-            rollback();
-            return false;
+            list_.push_back(header.hash());
+            continue;
         }
 
-        list_.push_back(std::move(new_hash));
+        rollback();
+        return false;
     }
 
     return true;
@@ -311,15 +309,18 @@ void header_queue::rollback()
     head_ = list_.begin();
 }
 
-bool header_queue::check(const hash_digest& hash, size_t height) const
+// TODO: store headers vs. just hash (2.5x size increase), construct chain
+// state from headers::list and then here call header->accept(state).
+bool header_queue::accept(const header& header) const
 {
-    return checkpoint::validate(hash, height, checkpoints_);
+    const auto last_height = last() + 1;
+    return checkpoint::validate(header.hash(), last_height, checkpoints_);
 }
 
-bool header_queue::linked(const chain::header& header,
-    const hash_digest& hash) const
+bool header_queue::linked(const chain::header& header) const
 {
-    return header.previous_block_hash() == hash;
+    const auto& last_hash = is_empty() ? null_hash : list_.back();
+    return header().previous_block_hash == last_hash;
 }
 
 bool header_queue::is_empty() const
