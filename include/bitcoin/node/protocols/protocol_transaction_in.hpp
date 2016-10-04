@@ -38,7 +38,7 @@ public:
 
     /// Construct a transaction protocol instance.
     protocol_transaction_in(full_node& network, network::channel::ptr channel,
-        blockchain::full_chain& blockchain);
+        blockchain::safe_chain& chain);
 
     /// Start the protocol.
     virtual void start();
@@ -59,7 +59,7 @@ private:
 
     void handle_stop(const code&);
 
-    blockchain::full_chain& blockchain_;
+    blockchain::safe_chain& chain_;
     const bool relay_from_peer_;
     const bool peer_suports_memory_pool_;
     const bool refresh_pool_;

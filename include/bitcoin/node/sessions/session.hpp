@@ -29,15 +29,15 @@ namespace node {
 class full_node;
 
 /// Intermediate session base class template.
-/// This avoids having to make network::session into a tempalte.
+/// This avoids having to make network::session into a template.
 template <class Session>
 class BCN_API session
   : public Session
 {
 protected:
     /// Construct an instance.
-    session(full_node& network, bool notify_on_connect)
-      : Session(network, notify_on_connect), node_network_(network)
+    session(full_node& node, bool notify_on_connect)
+      : Session(node, notify_on_connect), node_(node)
     {
     }
 
@@ -46,14 +46,14 @@ protected:
     typename Protocol::ptr attach(network::channel::ptr channel,
         Args&&... args)
     {
-        return std::make_shared<Protocol>(node_network_, channel,
+        return std::make_shared<Protocol>(node_, channel,
             std::forward<Args>(args)...);
     }
 
 private:
 
     // This is thread safe.
-    full_node& node_network_;
+    full_node& node_;
 };
 
 } // namespace node

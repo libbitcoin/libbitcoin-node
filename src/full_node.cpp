@@ -43,7 +43,7 @@ using namespace std::placeholders;
 full_node::full_node(const configuration& configuration)
   : p2p(configuration.network),
     hashes_(configuration.chain.checkpoints),
-    blockchain_(thread_pool(), configuration.chain, configuration.database),
+    chain_(thread_pool(), configuration.chain, configuration.database),
     protocol_maximum_(configuration.network.protocol_maximum),
     settings_(configuration.node)
 {
@@ -65,7 +65,7 @@ void full_node::start(result_handler handler)
         return;
     }
 
-    if (!blockchain_.start())
+    if (!chain_.start())
     {
         log::error(LOG_NODE)
             << "Blockchain failed to start.";
@@ -152,7 +152,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
 
     size_t height;
 
-    if (!blockchain_.get_last_height(height))
+    if (!chain_.get_last_height(height))
     {
         log::error(LOG_NODE)
             << "The blockchain is corrupt.";
@@ -209,28 +209,28 @@ bool full_node::handle_reorganized(const code& ec, size_t fork_height,
 // But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr full_node::attach_manual_session()
 {
-    return attach<node::session_manual>(blockchain_);
+    return attach<node::session_manual>(chain_);
 }
 
 network::session_inbound::ptr full_node::attach_inbound_session()
 {
-    return attach<node::session_inbound>(blockchain_);
+    return attach<node::session_inbound>(chain_);
 }
 
 network::session_outbound::ptr full_node::attach_outbound_session()
 {
-    return attach<node::session_outbound>(blockchain_);
+    return attach<node::session_outbound>(chain_);
 }
 
 session_header_sync::ptr full_node::attach_header_sync_session()
 {
-    const auto& checkpoints = blockchain_.chain_settings().checkpoints;
-    return attach<session_header_sync>(hashes_, blockchain_, checkpoints);
+    const auto& checkpoints = chain_.chain_settings().checkpoints;
+    return attach<session_header_sync>(hashes_, chain_, checkpoints);
 }
 
 session_block_sync::ptr full_node::attach_block_sync_session()
 {
-    return attach<session_block_sync>(hashes_, blockchain_, settings_);
+    return attach<session_block_sync>(hashes_, chain_, settings_);
 }
 
 // Shutdown
@@ -240,7 +240,7 @@ bool full_node::stop()
 {
     // Suspend new work last so we can use work to clear subscribers.
     const auto p2p_stop = p2p::stop();
-    const auto chain_stop = blockchain_.stop();
+    const auto chain_stop = chain_.stop();
 
     if (!p2p_stop)
         log::error(LOG_NODE)
@@ -261,7 +261,7 @@ bool full_node::close()
         return false;
 
     const auto p2p_close = p2p::close();
-    const auto chain_close = blockchain_.close();
+    const auto chain_close = chain_.close();
 
     if (!p2p_close)
         log::error(LOG_NODE)
@@ -282,9 +282,9 @@ const settings& full_node::node_settings() const
     return settings_;
 }
 
-full_chain& full_node::chain()
+safe_chain& full_node::chain()
 {
-    return blockchain_;
+    return chain_;
 }
 
 // Subscriptions.

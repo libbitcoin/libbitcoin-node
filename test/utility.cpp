@@ -213,13 +213,14 @@ bool blockchain_fixture::insert(block_const_ptr block, size_t height)
     return import_result_;
 }
 
-bool blockchain_fixture::push(block_const_ptr block, size_t height)
+bool blockchain_fixture::push(const block_const_ptr_list& blocks,
+    size_t height)
 {
     return false;
 }
 
-bool blockchain_fixture::pop_from(block_const_ptr_list& out_blocks,
-    size_t height)
+bool blockchain_fixture::pop(block_const_ptr_list& blocks,
+    const hash_digest& fork_hash)
 {
     return false;
 }

@@ -45,9 +45,9 @@ using namespace std::placeholders;
 static const asio::seconds regulator_interval(5);
 
 session_block_sync::session_block_sync(full_node& network, header_queue& hashes,
-    simple_chain& chain, const settings& settings)
+    fast_chain& chain, const settings& settings)
   : session<network::session_outbound>(network, false),
-    blockchain_(chain),
+    chain_(chain),
     reservations_(hashes, chain, settings),
     CONSTRUCT_TRACK(session_block_sync)
 {

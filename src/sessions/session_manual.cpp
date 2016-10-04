@@ -34,9 +34,9 @@ using namespace bc::blockchain;
 using namespace bc::network;
 using namespace std::placeholders;
 
-session_manual::session_manual(full_node& network, full_chain& blockchain)
+session_manual::session_manual(full_node& network, safe_chain& chain)
   : session<network::session_manual>(network, true),
-    blockchain_(blockchain),
+    chain_(chain),
     CONSTRUCT_TRACK(node::session_manual)
 {
     log::info(LOG_NODE)
@@ -51,10 +51,10 @@ void session_manual::attach_protocols(channel::ptr channel)
         attach<protocol_ping_31402>(channel)->start();
 
     attach<protocol_address_31402>(channel)->start();
-    attach<protocol_block_in>(channel, blockchain_)->start();
-    ////attach<protocol_block_out>(channel, blockchain_)->start();
-    ////attach<protocol_transaction_in>(channel, blockchain_)->start();
-    ////attach<protocol_transaction_out>(channel, blockchain_)->start();
+    attach<protocol_block_in>(channel, chain_)->start();
+    ////attach<protocol_block_out>(channel, chain_)->start();
+    ////attach<protocol_transaction_in>(channel, chain_)->start();
+    ////attach<protocol_transaction_out>(channel, chain_)->start();
 }
 
 } // namespace node

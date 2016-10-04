@@ -63,7 +63,7 @@ private:
 };
 
 class blockchain_fixture
-  : public blockchain::simple_chain
+  : public blockchain::fast_chain
 {
 public:
     blockchain_fixture(bool import_result=true, size_t gap_trigger=max_size_t,
@@ -94,8 +94,8 @@ public:
     // Setters.
     // ------------------------------------------------------------------------
     bool insert(block_const_ptr block, size_t height);
-    bool push(block_const_ptr block, size_t height);
-    bool pop_from(block_const_ptr_list& out_blocks, size_t height);
+    bool push(const block_const_ptr_list& blocks, size_t height);
+    bool pop(block_const_ptr_list& out_blocks, const hash_digest& fork_hash);
 
 private:
     bool import_result_;

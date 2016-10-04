@@ -44,12 +44,12 @@ using namespace std::placeholders;
 static constexpr auto headers_cap = 2000u;
 static constexpr auto inventory_cap = 500u;
 
-protocol_block_out::protocol_block_out(full_node& network, channel::ptr channel,
-    full_chain& blockchain)
-  : protocol_events(network, channel, NAME),
-    network_(network),
+protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
+    safe_chain& chain)
+  : protocol_events(node, channel, NAME),
+    node_(node),
     last_locator_top_(null_hash),
-    blockchain_(blockchain),
+    chain_(chain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
     headers_to_peer_(negotiated_version() >= version::level::bip130),
@@ -78,7 +78,7 @@ void protocol_block_out::start()
     SUBSCRIBE2(get_data, handle_receive_get_data, _1, _2);
 
     // Subscribe to block acceptance notifications (our heartbeat).
-    blockchain_.subscribe_reorganize(
+    chain_.subscribe_reorganize(
         BIND4(handle_reorganized, _1, _2, _3, _4));
 }
 
@@ -126,7 +126,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
         return false;
     }
 
-    const auto height = network_.top_block().height();
+    const auto height = node_.top_block().height();
     const auto locator_size = message->start_hashes().size();
     const auto locator_limit = chain::block::locator_size(height) + 1;
 
@@ -137,7 +137,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // download to get close before enabling this protocol.
     if (locator_size > locator_limit)
     {
-        log::debug(LOG_NODE)
+        log::warning(LOG_NODE)
             << "Invalid get_headers locator size (" << locator_size
             << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
@@ -154,7 +154,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // locators are only useful in walking up the chain.
     const auto threshold = last_locator_top_.load();
 
-    blockchain_.fetch_locator_block_headers(message, threshold, headers_cap,
+    chain_.fetch_locator_block_headers(message, threshold, headers_cap,
         BIND2(handle_fetch_locator_headers, _1, _2));
     return true;
 }
@@ -200,14 +200,14 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
-    const auto height = network_.top_block().height();
+    const auto height = node_.top_block().height();
     const auto locator_size = message->start_hashes().size();
     const auto locator_limit = chain::block::locator_size(height) + 1;
 
     // See comments in handle_receive_get_headers.
     if (locator_size > locator_limit)
     {
-        log::debug(LOG_NODE)
+        log::warning(LOG_NODE)
             << "Invalid get_blocks locator size (" << locator_size
             << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
@@ -217,7 +217,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     // See comments in handle_receive_get_headers.
     const auto threshold = last_locator_top_.load();
 
-    blockchain_.fetch_locator_block_hashes(message, threshold, inventory_cap,
+    chain_.fetch_locator_block_hashes(message, threshold, inventory_cap,
         BIND2(handle_fetch_locator_hashes, _1, _2));
     return true;
 }
@@ -268,10 +268,10 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     for (const auto& inventory: message->inventories())
     {
         if (inventory.type() == inventory::type_id::block)
-            blockchain_.fetch_block(inventory.hash(),
+            chain_.fetch_block(inventory.hash(),
                 BIND4(send_block, _1, _2, _3, inventory.hash()));
         else if (inventory.type() == inventory::type_id::filtered_block)
-            blockchain_.fetch_merkle_block(inventory.hash(),
+            chain_.fetch_merkle_block(inventory.hash(),
                 BIND4(send_merkle_block, _1, _2, _3, inventory.hash()));
     }
 

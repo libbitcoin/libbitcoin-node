@@ -41,10 +41,10 @@ using namespace bc::chain;
 // The protocol maximum size of get data block requests.
 static constexpr size_t max_block_request = 50000;
 
-reservations::reservations(header_queue& hashes, simple_chain& chain,
+reservations::reservations(header_queue& hashes, fast_chain& chain,
     const settings& settings)
   : hashes_(hashes),
-    blockchain_(chain),
+    chain_(chain),
     max_request_(max_block_request),
     timeout_(settings.block_timeout_seconds)
 {
@@ -53,8 +53,10 @@ reservations::reservations(header_queue& hashes, simple_chain& chain,
 
 bool reservations::import(block_const_ptr block, size_t height)
 {
-    // Thread safe, returns false if a block exists at height.
-    return blockchain_.insert(block, height);
+    // Thread safe, returns false if a block exists at height or doesn't chain.
+    //#########################################################################
+    return chain_.insert(block, height);
+    //#########################################################################
 }
 
 // Rate methods.
@@ -145,7 +147,7 @@ void reservations::mark_existing()
     auto start = hashes_.first_height();
 
     // Not thread safe. Returns false when first is > count (last gap).
-    while (blockchain_.get_next_gap(gap, start))
+    while (chain_.get_next_gap(gap, start))
     {
         hashes_.invalidate(start, gap - start);
         start = gap + 1;

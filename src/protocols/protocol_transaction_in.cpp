@@ -39,13 +39,13 @@ using namespace std::placeholders;
 
 // TODO: derive from protocol_session_node abstract intermediate base class.
 // TODO: Pass full_node on construct, obtaining node configuration settings.
-protocol_transaction_in::protocol_transaction_in(full_node& network,
-    channel::ptr channel, full_chain& blockchain)
-  : protocol_events(network, channel, NAME),
-    blockchain_(blockchain),
+protocol_transaction_in::protocol_transaction_in(full_node& node,
+    channel::ptr channel, safe_chain& chain)
+  : protocol_events(node, channel, NAME),
+    chain_(chain),
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
-    relay_from_peer_(network.network_settings().relay_transactions),
+    relay_from_peer_(node.network_settings().relay_transactions),
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     peer_suports_memory_pool_(negotiated_version() >= version::level::bip35),
@@ -71,7 +71,7 @@ void protocol_transaction_in::start()
         SEND2(memory_pool(), handle_send, _1, memory_pool::command);
 
         // Refresh transaction pool on blockchain reorganization.
-        blockchain_.subscribe_reorganize(
+        chain_.subscribe_reorganize(
             BIND4(handle_reorganized, _1, _2, _3, _4));
     }
 
@@ -112,7 +112,7 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
 
     // This is returned on a new thread.
     // Remove matching transaction hashes found in the transaction pool.
-    blockchain_.filter_floaters(response,
+    chain_.filter_floaters(response,
         BIND2(handle_filter_floaters, _1, response));
     return true;
 }
@@ -134,7 +134,7 @@ void protocol_transaction_in::handle_filter_floaters(const code& ec,
     }
 
     // BUGBUG: this removes spent transactions which it should not (see BIP30).
-    blockchain_.filter_transactions(message,
+    chain_.filter_transactions(message,
         BIND2(send_get_data, _1, message));
 }
 
@@ -194,7 +194,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     // We can pick this up in transaction subscription.
     message->set_originator(nonce());
 
-    blockchain_.store(message,
+    chain_.organize(message,
         BIND3(handle_store_transaction, _1, _2, message));
     return true;
 }

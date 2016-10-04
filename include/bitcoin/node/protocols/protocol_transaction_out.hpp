@@ -40,7 +40,7 @@ public:
 
     /// Construct a transaction protocol instance.
     protocol_transaction_out(full_node& network, network::channel::ptr channel,
-        blockchain::full_chain& blockchain);
+        blockchain::safe_chain& chain);
 
     /// Start the protocol.
     virtual void start();
@@ -62,7 +62,7 @@ private:
         const chain::point::indexes& unconfirmed,
         transaction_const_ptr message);
 
-    blockchain::full_chain& blockchain_;
+    blockchain::safe_chain& chain_;
     std::atomic<uint64_t> minimum_fee_;
     const bool relay_to_peer_;
 };
