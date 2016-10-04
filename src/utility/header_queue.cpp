@@ -320,7 +320,7 @@ bool header_queue::accept(const header& header) const
 bool header_queue::linked(const chain::header& header) const
 {
     const auto& last_hash = is_empty() ? null_hash : list_.back();
-    return header().previous_block_hash == last_hash;
+    return header.previous_block_hash() == last_hash;
 }
 
 bool header_queue::is_empty() const

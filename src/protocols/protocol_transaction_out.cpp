@@ -145,7 +145,7 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     }
 
     // Ignore non-transaction inventory requests in this protocol.
-    for (const auto& inventory: message->inventories)
+    for (const auto& inventory: message->inventories())
         if (inventory.type() == inventory::type_id::transaction)
             chain_.fetch_transaction(inventory.hash(),
                 BIND4(send_transaction, _1, _2, _3, inventory.hash()));
