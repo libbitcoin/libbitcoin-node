@@ -390,7 +390,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     log::debug(LOG_NODE)
         << "Accepted block [" << hash << "] at height ["
-        << message->validation.height << "] from ["
+        << message->header().validation.height << "] from ["
         << authority() << "].";
 }
 
