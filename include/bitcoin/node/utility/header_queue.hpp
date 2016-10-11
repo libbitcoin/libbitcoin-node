@@ -88,11 +88,14 @@ private:
     // Merge a list of block hashes to the list, validating linkage.
     bool merge(const chain::header::list& headers);
 
-    // Determine if the header is acceptable for the current height.
-    bool accept(const chain::header& header) const;
-
     // Determine if the hash is linked to the preceding header.
     bool linked(const chain::header& header) const;
+
+    // Determine if the header is valid (context free).
+    bool check(const chain::header& header) const;
+
+    // Determine if the header is acceptable for the current height.
+    bool accept(const chain::header& header) const;
 
     // The list of checkpoints that determines the sync range.
     const config::checkpoint::list& checkpoints_;
