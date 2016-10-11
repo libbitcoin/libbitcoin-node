@@ -329,7 +329,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     // HACK: this is unsafe as there may be other message subscribers.
     // However we are currently relying on message subscriber threading limits.
-    // We can pick this up in reorganization subscription.
+    // We can test this value in the reorganization notification handler.
     message->set_originator(nonce());
 
     chain_.organize(message, BIND2(handle_store_block, _1, message));
@@ -401,7 +401,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
     const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
 {
-    if (stopped() || ec == error::service_stopped || incoming.empty())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
