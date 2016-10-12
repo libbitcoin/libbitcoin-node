@@ -53,9 +53,10 @@ reservations::reservations(header_queue& hashes, fast_chain& chain,
 
 bool reservations::import(block_const_ptr block, size_t height)
 {
-    // Thread safe, returns false if a block exists at height or doesn't chain.
+    // Thread safe (for distinct blocks).
+    // Returns false if stub block is missing, mismatched height or tx count.
     //#########################################################################
-    return chain_.insert(block, height);
+    return chain_.fill(block, height);
     //#########################################################################
 }
 
