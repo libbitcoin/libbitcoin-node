@@ -147,7 +147,7 @@ bool reservation::expired() const
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    ////log::debug(LOG_NODE)
+    ////LOG_DEBUG(LOG_NODE)
     ////    << "Statistics for slot (" << slot() << ")"
     ////    << " adj:" << (normal_rate * micro_per_second)
     ////    << " avg:" << (statistics.arithmentic_mean * micro_per_second)
@@ -218,7 +218,7 @@ void reservation::update_rate(size_t events, const microseconds& database)
     history_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    ////log::debug(LOG_NODE)
+    ////LOG_DEBUG(LOG_NODE)
     ////    << "Records (" << slot() << ") "
     ////    << " size: " << rate.events
     ////    << " time: " << divide<double>(rate.window, micro_per_second)
@@ -325,7 +325,7 @@ void reservation::import(block_const_ptr block)
 
     if (!find_height_and_erase(hash, height))
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Ignoring unsolicited block (" << slot() << ") ["
             << encoded << "]";
         return;
@@ -348,7 +348,7 @@ void reservation::import(block_const_ptr block)
         static const auto formatter =
             "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";
 
-        log::info(LOG_NODE)
+        LOG_INFO(LOG_NODE)
             << boost::format(formatter) % height % slot() % encoded %
             (record.total() * micro_per_second) % (record.ratio() * 100);
     }
@@ -357,7 +357,7 @@ void reservation::import(block_const_ptr block)
         // This could also result from a block import failure resulting from
         // inserting at a height that is already populated, but that should be
         // precluded by the implementation. This is the only other failure.
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Stopped before importing block (" << slot() << ") ["
             << encoded << "]";
     }
@@ -452,7 +452,7 @@ bool reservation::partition(reservation::ptr minimal)
     ///////////////////////////////////////////////////////////////////////////
 
     if (populated)
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
             << ") to (" << minimal->slot() << ") leaving [" << size() << "].";
 

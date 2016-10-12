@@ -110,7 +110,7 @@ void protocol_header_sync::handle_send(const code& ec, event_handler complete)
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure sending get headers to sync [" << authority() << "] "
             << ec.message();
         complete(ec);
@@ -125,7 +125,7 @@ bool protocol_header_sync::handle_receive_header(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure receiving headers from sync ["
             << authority() << "] " << ec.message();
         complete(ec);
@@ -135,7 +135,7 @@ bool protocol_header_sync::handle_receive_header(const code& ec,
     // A merge failure includes automatic rollback to last trust point.
     if (!hashes_.enqueue(message))
     {
-        log::warning(LOG_NODE)
+        LOG_WARNING(LOG_NODE)
             << "Failure merging headers from [" << authority() << "]";
         complete(error::previous_block_invalid);
         return false;
@@ -143,7 +143,7 @@ bool protocol_header_sync::handle_receive_header(const code& ec,
 
     const auto next = next_height();
 
-    log::info(LOG_NODE)
+    LOG_INFO(LOG_NODE)
         << "Synced headers " << next - message->elements().size()
         << "-" << (next - 1) << " from [" << authority() << "]";
 
@@ -177,7 +177,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
 
     if (ec && ec != error::channel_timeout)
     {
-        log::warning(LOG_NODE)
+        LOG_WARNING(LOG_NODE)
             << "Failure in header sync timer for [" << authority() << "] "
             << ec.message();
         complete(ec);
@@ -190,7 +190,7 @@ void protocol_header_sync::handle_event(const code& ec, event_handler complete)
     // Drop the channel if it falls below the min sync rate averaged over all.
     if (sync_rate() < minimum_rate_)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Header sync rate (" << sync_rate() << "/sec) from ["
             << authority() << "]";
         complete(error::channel_timeout);
