@@ -206,7 +206,12 @@ transaction_ptr blockchain_fixture::get_transaction(size_t& out_block_height,
     return nullptr;
 }
 
-bool blockchain_fixture::insert(block_const_ptr block, size_t height)
+bool blockchain_fixture::stub(header_const_ptr header, size_t height)
+{
+    return false;
+}
+
+bool blockchain_fixture::fill(block_const_ptr block, size_t height)
 {
     // This prevents a zero import cost, which is useful in testing timeout.
     std::this_thread::sleep_for(std::chrono::microseconds(1));

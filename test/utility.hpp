@@ -93,7 +93,8 @@ public:
 
     // Setters.
     // ------------------------------------------------------------------------
-    bool insert(block_const_ptr block, size_t height);
+    bool stub(header_const_ptr header, size_t height);
+    bool fill(block_const_ptr block, size_t height);
     bool push(const block_const_ptr_list& blocks, size_t height);
     bool pop(block_const_ptr_list& out_blocks, const hash_digest& fork_hash);
 
