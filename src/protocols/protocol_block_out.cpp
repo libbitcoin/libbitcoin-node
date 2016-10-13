@@ -94,7 +94,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting " << message->command << " from ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -120,7 +120,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting get_headers from [" << ec.message();
         stop(ec);
         return false;
@@ -137,7 +137,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     // download to get close before enabling this protocol.
     if (locator_size > locator_limit)
     {
-        log::warning(LOG_NODE)
+        LOG_WARNING(LOG_NODE)
             << "Invalid get_headers locator size (" << locator_size
             << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
@@ -169,7 +169,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating locator block headers for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -194,7 +194,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting get_blocks from [" << ec.message();
         stop(ec);
         return false;
@@ -207,7 +207,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     // See comments in handle_receive_get_headers.
     if (locator_size > locator_limit)
     {
-        log::warning(LOG_NODE)
+        LOG_WARNING(LOG_NODE)
             << "Invalid get_blocks locator size (" << locator_size
             << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
@@ -231,7 +231,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating locator block hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -257,7 +257,7 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting inventory from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -287,7 +287,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
 
     if (ec == error::not_found)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Block requested by [" << authority() << "] not found.";
 
         const not_found reply{ { inventory::type_id::block, hash } };
@@ -297,7 +297,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating block requested by ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -316,7 +316,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
     if (ec == error::not_found)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Merkle block requested by [" << authority() << "] not found.";
 
         const not_found reply{ { inventory::type_id::filtered_block, hash } };
@@ -326,7 +326,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating merkle block requested by ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -350,7 +350,7 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure handling reorganization: " << ec.message();
         stop(ec);
         return false;
@@ -384,7 +384,7 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
 
 void protocol_block_out::handle_stop(const code&)
 {
-    log::debug(LOG_NETWORK)
+    LOG_DEBUG(LOG_NETWORK)
         << "Stopped block_out protocol";
 }
 

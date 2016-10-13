@@ -95,7 +95,7 @@ void session_header_sync::new_connection(connector::ptr connect,
 {
     if (stopped())
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Suspending header sync session.";
         return;
     }
@@ -109,13 +109,13 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
 {
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure connecting header sync channel: " << ec.message();
         new_connection(connect, handler);
         return;
     }
 
-    log::debug(LOG_NODE)
+    LOG_DEBUG(LOG_NODE)
         << "Connected to header sync channel [" << channel->authority() << "]";
 
     register_channel(channel,
@@ -190,7 +190,7 @@ void session_header_sync::handle_complete(const code& ec,
 
 void session_header_sync::handle_channel_stop(const code& ec)
 {
-    log::debug(LOG_NODE)
+    LOG_DEBUG(LOG_NODE)
         << "Header sync channel stopped: " << ec.message();
 }
 
@@ -201,7 +201,7 @@ bool session_header_sync::initialize(result_handler handler)
 {
     if (!hashes_.empty())
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Header hash list must not be initialized.";
         handler(error::operation_failed);
         return false;
@@ -212,7 +212,7 @@ bool session_header_sync::initialize(result_handler handler)
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Error getting header sync range: " << ec.message();
         handler(ec);
         return false;
@@ -230,7 +230,7 @@ bool session_header_sync::initialize(result_handler handler)
     // The seed is a block that we already have, so it will not be downloaded.
     const auto first_height = seed.height() + 1;
 
-    log::info(LOG_NODE)
+    LOG_INFO(LOG_NODE)
         << "Getting headers " << first_height << "-" << stop_height << ".";
 
     hashes_.initialize(seed);

@@ -39,7 +39,7 @@ session_inbound::session_inbound(full_node& network, safe_chain& chain)
     chain_(chain),
     CONSTRUCT_TRACK(node::session_inbound)
 {
-    log::info(LOG_NODE)
+    LOG_INFO(LOG_NODE)
         << "Starting inbound session.";
 }
 

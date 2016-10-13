@@ -86,7 +86,7 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting " << message->command << " from ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -137,7 +137,7 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting inventory from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -161,7 +161,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
 
     if (ec == error::not_found)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Transaction requested by [" << authority() << "] not found.";
 
         const not_found reply{ { inventory::type_id::transaction, hash } };
@@ -171,7 +171,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating trnsaction requested by ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -192,7 +192,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure handling transaction float: " << ec.message();
         stop(ec);
         return false;
@@ -215,7 +215,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
 
 void protocol_transaction_out::handle_stop(const code&)
 {
-    log::debug(LOG_NETWORK)
+    LOG_DEBUG(LOG_NETWORK)
         << "Stopped transaction_out protocol";
 }
 

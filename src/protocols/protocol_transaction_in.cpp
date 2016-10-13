@@ -90,7 +90,7 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting inventory from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -104,7 +104,7 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     // Prior to this level transaction relay is not configurable.
     if (!relay_from_peer_ && !response->inventories().empty())
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Unexpected transaction inventory from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
@@ -126,7 +126,7 @@ void protocol_transaction_in::handle_filter_floaters(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating pool transaction pool hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -147,7 +147,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating confirmed transaction hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -169,7 +169,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting transaction from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -180,13 +180,13 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     // Prior to this level transaction relay is not configurable.
     if (!relay_from_peer_)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Unexpected transaction relay from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }
 
-    log::debug(LOG_NODE)
+    LOG_DEBUG(LOG_NODE)
         << "Potential transaction from [" << authority() << "].";
 
     // HACK: this is unsafe as there may be other message subscribers.
@@ -226,7 +226,7 @@ bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure handling reorganization for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -247,7 +247,7 @@ bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
 
 void protocol_transaction_in::handle_stop(const code&)
 {
-    log::debug(LOG_NETWORK)
+    LOG_DEBUG(LOG_NETWORK)
         << "Stopped transaction_in protocol";
 }
 

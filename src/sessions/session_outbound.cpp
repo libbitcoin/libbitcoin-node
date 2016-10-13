@@ -39,7 +39,7 @@ session_outbound::session_outbound(full_node& network, safe_chain& chain)
     chain_(chain),
     CONSTRUCT_TRACK(node::session_outbound)
 {
-    log::info(LOG_NODE)
+    LOG_INFO(LOG_NODE)
         << "Starting outbound session.";
 }
 

@@ -206,7 +206,7 @@ void reservations::initialize(size_t size)
     for (auto row: table_)
         row->populate();
 
-    log::debug(LOG_NODE)
+    LOG_DEBUG(LOG_NODE)
         << "Reserved " << count << " blocks to " << rows << " slots.";
 }
 
@@ -224,7 +224,7 @@ bool reservations::populate(reservation::ptr minimal)
     ///////////////////////////////////////////////////////////////////////////
 
     if (populated)
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Populated " << minimal->size() << " blocks to slot ("
             << minimal->slot() << ").";
 

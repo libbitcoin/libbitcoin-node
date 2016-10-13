@@ -67,7 +67,7 @@ void full_node::start(result_handler handler)
 
     if (!chain_.start())
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Blockchain failed to start.";
         handler(error::operation_failed);
         return;
@@ -119,7 +119,7 @@ void full_node::handle_headers_synchronized(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure synchronizing headers: " << ec.message();
         handler(ec);
         return;
@@ -144,7 +144,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure synchronizing blocks: " << ec.message();
         handler(ec);
         return;
@@ -154,7 +154,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
 
     if (!chain_.get_last_height(height))
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "The blockchain is corrupt.";
         handler(error::operation_failed);
         return;
@@ -162,7 +162,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
 
     set_top_block({ null_hash, height });
 
-    log::info(LOG_NODE)
+    LOG_INFO(LOG_NODE)
         << "Node start height is (" << height << ").";
 
     subscribe_blockchain(
@@ -183,14 +183,14 @@ bool full_node::handle_reorganized(const code& ec, size_t fork_height,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure handling reorganization: " << ec.message();
         stop();
         return false;
     }
 
     for (const auto block: outgoing)
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Reorganization moved block to orphan pool ["
             << encode_hash(block->header().hash()) << "]";
 
@@ -243,11 +243,11 @@ bool full_node::stop()
     const auto chain_stop = chain_.stop();
 
     if (!p2p_stop)
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failed to stop network.";
 
     if (!chain_stop)
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failed to stop database.";
 
     return p2p_stop && chain_stop;
@@ -264,11 +264,11 @@ bool full_node::close()
     const auto chain_close = chain_.close();
 
     if (!p2p_close)
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failed to close network.";
 
     if (!chain_close)
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failed to close database.";
 
     return p2p_close && chain_close;

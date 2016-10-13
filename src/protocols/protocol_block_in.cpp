@@ -99,7 +99,7 @@ void protocol_block_in::get_block_inventory(const code& ec)
 
     if (ec && ec != error::channel_timeout)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure in block timer for [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -136,7 +136,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure generating block locator for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -146,7 +146,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     // TODO: move get_headers to a derived class protocol_block_in_31800.
     if (negotiated_version() >= version::level::headers)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Ask [" << authority() << "] for headers from ["
             << encode_hash(message->start_hashes().front()) << "] through [" <<
             (stop_hash == null_hash ? "2000" : encode_hash(stop_hash)) << "]";
@@ -161,7 +161,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     }
     else
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Ask [" << authority() << "] for block inventory from ["
             << encode_hash(message->start_hashes().front()) << "] through [" <<
             (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
@@ -187,7 +187,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting headers from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -215,7 +215,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting inventory from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -241,7 +241,7 @@ void protocol_block_in::handle_filter_orphans(const code& ec,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating missing orphan hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -260,7 +260,7 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Internal failure locating missing block hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -283,7 +283,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting block not_found from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -297,7 +297,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
     // This only results from reorganization assuming peer is proper.
     for (const auto hash: hashes)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Block not_found [" << encode_hash(hash) << "] from ["
             << authority() << "]";
     }
@@ -316,7 +316,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     if (ec)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Failure getting block from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -346,7 +346,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     if (ec == error::duplicate)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Redundant block [" << hash << "] from ["
             << authority() << "]";
         return;
@@ -354,7 +354,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     if (ec == error::orphan)
     {
-        log::debug(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Orphan block [" << hash << "] from [" << authority() << "].";
 
         // Ask the peer for blocks from the chain top up to this orphan.
@@ -364,7 +364,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     if (ec == error::insufficient_work)
     {
-        log::info(LOG_NODE)
+        LOG_INFO(LOG_NODE)
             << "Insufficient block [" << hash << "] from [" << authority() << "] "
             << ec.message();
         return;
@@ -372,7 +372,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     if (ec == error::operation_failed)
     {
-        log::info(LOG_NODE)
+        LOG_INFO(LOG_NODE)
             << "Internal failure validatig block [" << hash << "] from ["
             << authority() << "] " << ec.message();
         stop(ec);
@@ -381,14 +381,14 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     if (ec)
     {
-        log::info(LOG_NODE)
+        LOG_INFO(LOG_NODE)
             << "Invalid block [" << hash << "] from [" << authority() << "] "
             << ec.message();
         stop(ec);
         return;
     }
 
-    log::debug(LOG_NODE)
+    LOG_DEBUG(LOG_NODE)
         << "Accepted block [" << hash << "] at height ["
         << message->header().validation.height << "] from ["
         << authority() << "].";
@@ -406,7 +406,7 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
 
     if (ec)
     {
-        log::error(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure handling reorganization for [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -417,7 +417,7 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
     // If originating peer is dropped there will be no report here.
     for (const auto block: incoming)
         if (block->originator() == nonce())
-            log::debug(LOG_NODE)
+            LOG_DEBUG(LOG_NODE)
                 << "Reorganized block [" << encode_hash(block->header().hash())
                 << "] from [" << authority() << "].";
 
