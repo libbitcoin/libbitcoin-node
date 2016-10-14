@@ -66,7 +66,9 @@ check_PROGRAMS = test/libbitcoin_node_test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 test_libbitcoin_node_test_SOURCES = \
+    test/check_list.cpp \
     test/configuration.cpp \
+    test/header_list.cpp \
     test/main.cpp \
     test/node.cpp \
     test/performance.cpp \
