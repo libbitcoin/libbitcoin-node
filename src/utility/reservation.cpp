@@ -120,10 +120,11 @@ void reservation::set_rate(performance&& rate)
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(rate_mutex_);
 
-    rate_ = std::forward<performance>(rate);
+    rate_ = std::move(rate);
     ///////////////////////////////////////////////////////////////////////////
 }
 
+// Get a copy of the current rate.
 performance reservation::rate() const
 {
     // Critical Section
@@ -287,7 +288,7 @@ message::get_data reservation::request(bool new_channel)
         ++height)
     {
         static const auto id = message::inventory::type_id::block;
-        packet.inventories().push_back({ id, height->second });
+        packet.inventories().emplace_back(id, height->second);
     }
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -299,27 +300,20 @@ message::get_data reservation::request(bool new_channel)
     return packet;
 }
 
-void reservation::insert(const config::checkpoint& checkpoint)
+void reservation::insert(hash_digest&& hash, size_t height)
 {
-    insert(checkpoint.hash(), checkpoint.height());
-}
-
-void reservation::insert(const hash_digest& hash, size_t height)
-{
-    const auto height32 = safe_unsigned<uint32_t>(height);
-
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(hash_mutex_);
 
     pending_ = true;
-    heights_.insert({ hash, height32 });
+    heights_.insert({ std::move(hash), height });
     ///////////////////////////////////////////////////////////////////////////
 }
 
 void reservation::import(block_const_ptr block)
 {
-    uint32_t height;
+    size_t height;
     const auto hash = block->header().hash();
     const auto encoded = encode_hash(hash);
 
@@ -419,8 +413,9 @@ bool reservation::partition(reservation::ptr minimal)
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
+    // This addition is safe.
     // Take half of the maximal reservation, rounding up to get last entry.
-    const auto offset = safe_add(heights_.size(), size_t(1)) / 2u;
+    const auto offset = (heights_.size() + 1u) / 2u;
     auto it = heights_.right.begin();
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -460,7 +455,7 @@ bool reservation::partition(reservation::ptr minimal)
 }
 
 bool reservation::find_height_and_erase(const hash_digest& hash,
-    uint32_t& out_height)
+    size_t& out_height)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////

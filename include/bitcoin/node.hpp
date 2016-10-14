@@ -34,7 +34,8 @@
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
-#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/check_list.hpp>
+#include <bitcoin/node/utility/header_list.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 #include <bitcoin/node/utility/reservations.hpp>

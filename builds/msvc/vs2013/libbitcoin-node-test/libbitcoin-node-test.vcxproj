@@ -65,8 +65,9 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\test\check_list.cpp" />
     <ClCompile Include="..\..\..\..\test\configuration.cpp" />
-    <ClCompile Include="..\..\..\..\test\header_queue.cpp" />
+    <ClCompile Include="..\..\..\..\test\header_list.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
     <ClCompile Include="..\..\..\..\test\performance.cpp" />

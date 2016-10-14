@@ -28,7 +28,7 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session_block_sync.hpp>
 #include <bitcoin/node/sessions/session_header_sync.hpp>
-#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/check_list.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -120,13 +120,13 @@ private:
     void handle_running(const code& ec, result_handler handler);
 
     // These are thread safe.
-    header_queue hashes_;
+    check_list hashes_;
     blockchain::block_chain chain_;
     const uint32_t protocol_maximum_;
     const settings& settings_;
 };
 
 } // namespace node
-} //namespace libbitcoin
+} // namespace libbitcoin
 
 #endif

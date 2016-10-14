@@ -31,6 +31,7 @@ namespace libbitcoin {
 namespace node {
 
 using namespace bc::blockchain;
+using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
@@ -45,7 +46,7 @@ session_inbound::session_inbound(full_node& network, safe_chain& chain)
 
 void session_inbound::attach_protocols(channel::ptr channel)
 {
-    if (channel->negotiated_version() >= message::version::level::bip31)
+    if (channel->negotiated_version() >= version::level::bip31)
         attach<protocol_ping_60001>(channel)->start();
     else
         attach<protocol_ping_31402>(channel)->start();

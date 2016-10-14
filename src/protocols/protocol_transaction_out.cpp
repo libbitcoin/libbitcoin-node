@@ -31,8 +31,9 @@ namespace node {
 
 #define NAME "transaction"
 #define CLASS protocol_transaction_out
-    
+
 using namespace bc::blockchain;
+using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
@@ -185,7 +186,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
 //-----------------------------------------------------------------------------
 
 bool protocol_transaction_out::handle_floated(const code& ec,
-    const chain::point::indexes& unconfirmed, transaction_const_ptr message)
+    const point::indexes& unconfirmed, transaction_const_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
         return false;

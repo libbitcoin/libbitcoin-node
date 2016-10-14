@@ -35,6 +35,7 @@ namespace node {
 #define CLASS protocol_block_in
 
 using namespace bc::blockchain;
+using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
@@ -121,7 +122,7 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
     if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
         return;
 
-    const auto heights = chain::block::locator_heights(chain_top.height());
+    const auto heights = block::locator_heights(chain_top.height());
 
     chain_.fetch_block_locator(heights,
         BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
@@ -153,7 +154,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 
         // TODO: create query override to return this natively.
         // Move the hash data from the get_blocks to a new get_message.
-        auto request = std::make_shared<message::get_headers>();
+        auto request = std::make_shared<get_headers>();
         std::swap(request->start_hashes(), message->start_hashes());
         request->set_stop_hash(stop_hash);
         SEND2(*request, handle_send, _1, request->command);

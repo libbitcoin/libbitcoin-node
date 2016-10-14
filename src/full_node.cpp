@@ -42,7 +42,6 @@ using namespace std::placeholders;
 
 full_node::full_node(const configuration& configuration)
   : p2p(configuration.network),
-    hashes_(configuration.chain.checkpoints),
     chain_(thread_pool(), configuration.chain, configuration.database),
     protocol_maximum_(configuration.network.protocol_maximum),
     settings_(configuration.node)
@@ -301,4 +300,4 @@ void full_node::subscribe_transaction(transaction_handler handler)
 }
 
 } // namespace node
-} //namespace libbitcoin
+} // namespace libbitcoin

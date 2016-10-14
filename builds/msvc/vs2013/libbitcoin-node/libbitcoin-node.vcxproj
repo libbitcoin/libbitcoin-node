@@ -86,7 +86,8 @@
     <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp" />
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
-    <ClCompile Include="..\..\..\..\src\utility\header_queue.cpp" />
+    <ClCompile Include="..\..\..\..\src\utility\check_list.cpp" />
+    <ClCompile Include="..\..\..\..\src\utility\header_list.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\performance.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\reservation.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\reservations.cpp" />
@@ -110,7 +111,8 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\header_queue.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\check_list.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\header_list.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\performance.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservation.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservations.hpp" />

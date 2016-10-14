@@ -27,7 +27,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/header_list.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -43,35 +43,27 @@ public:
 
     /// Construct a header sync protocol instance.
     protocol_header_sync(full_node& network, network::channel::ptr channel,
-        header_queue& hashes, uint32_t minimum_rate,
-        const config::checkpoint& last);
+        header_list::ptr headers, uint32_t minimum_rate);
 
     /// Start the protocol.
     virtual void start(event_handler handler);
 
 private:
-    static size_t final_height(header_queue& headers,
-        const config::checkpoint::list& checkpoints);
-
-    size_t sync_rate() const;
-    size_t next_height() const;
-
     void send_get_headers(event_handler complete);
     void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
     void headers_complete(const code& ec, event_handler handler);
-    bool handle_receive_header(const code& ec, headers_const_ptr message,
+    bool handle_receive_headers(const code& ec, headers_const_ptr message,
         event_handler complete);
 
     // Thread safe and guarded by sequential header sync.
-    header_queue& hashes_;
+    header_list::ptr headers_;
 
     // This is guarded by protocol_timer/deadline contract (exactly one call).
     size_t current_second_;
 
     const uint32_t minimum_rate_;
     const size_t start_size_;
-    const config::checkpoint last_;
 };
 
 } // namespace node
