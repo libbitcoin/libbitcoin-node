@@ -27,57 +27,41 @@
 #include <mutex>
 #include <string>
 #include <boost/core/null_deleter.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/common.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/support/date_time.hpp>
-#include <boost/smart_ptr/make_shared.hpp>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using namespace std::placeholders;
+using namespace boost;
 using namespace boost::system;
 using namespace bc::config;
 using namespace bc::database;
 using namespace bc::network;
+using namespace std::placeholders;
 
-namespace logging = boost::log;
-namespace expr = boost::log::expressions;
-namespace src = boost::log::sources;
-namespace sinks = boost::log::sinks;
-
-typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
-
+static const auto application_name = "bn";
 static constexpr int initialize_stop = 0;
 static constexpr int directory_exists = 0;
 static constexpr int directory_not_found = 2;
-static const auto application_name = "bn";
+static const auto mode = std::ofstream::out | std::ofstream::app;
 
 std::promise<code> executor::stopping_;
 
 executor::executor(parser& metadata, std::istream& input,
     std::ostream& output, std::ostream& error)
-  : metadata_(metadata),
-    output_(output),
-    error_(error),
-    debug_file_(metadata_.configured.network.debug_file.string(),
-        std::ofstream::out | std::ofstream::app),
-    error_file_(metadata_.configured.network.error_file.string(),
-        std::ofstream::out | std::ofstream::app)
+  : metadata_(metadata), output_(output), error_(error)
 {
-    boost::shared_ptr<std::ostream> console_out(&output_, boost::null_deleter());
-    boost::shared_ptr<std::ostream> console_err(&error_, boost::null_deleter());
-    boost::shared_ptr<bc::ofstream> debug_log(&debug_file_, boost::null_deleter());
-    boost::shared_ptr<bc::ofstream> error_log(&error_file_, boost::null_deleter());
+    const auto debug_file = metadata_.configured.network.debug_file.string();
+    const auto error_file = metadata_.configured.network.error_file.string();
 
-    initialize_logging(debug_log, error_log, console_out, console_err);
+    auto debug_log = boost::make_shared<bc::ofstream>(debug_file, mode);
+    auto error_log = boost::make_shared<bc::ofstream>(error_file, mode);
+
+    log::stream console_out(&output_, null_deleter());
+    log::stream console_err(&error_, null_deleter());
+
+    log::initialize(debug_log, error_log, console_out, console_err);
     handle_stop(initialize_stop);
 }
 
@@ -314,66 +298,6 @@ bool executor::verify_directory()
     const auto message = ec.message();
     LOG_ERROR(LOG_NODE) << format(BN_INITCHAIN_TRY) % directory % message;
     return false;
-}
-
-template<typename Stream>
-void executor::add_text_sink(boost::shared_ptr<Stream>& stream)
-{
-    // Construct the sink
-    boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
-
-    // Add a stream to write log to
-    sink->locked_backend()->add_stream(stream);
-
-    sink->set_formatter(expr::stream << "["
-        << expr::format_date_time<boost::posix_time::ptime, char>(
-            log::attributes::timestamp.get_name(), "%Y-%m-%d %H:%M:%S")
-        << "][" << log::attributes::channel
-        << "][" << log::attributes::severity
-        << "]: " << expr::smessage);
-
-    // Register the sink in the logging core
-    logging::core::get()->add_sink(sink);
-}
-
-template<typename Stream, typename FunT>
-void executor::add_text_sink(boost::shared_ptr<Stream>& stream,
-    FunT const& filter)
-{
-    // Construct the sink
-    boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
-
-    // Add a stream to write log to
-    sink->locked_backend()->add_stream(stream);
-
-    sink->set_filter(filter);
-
-    sink->set_formatter(expr::stream << "["
-        << expr::format_date_time<boost::posix_time::ptime, char>(
-            log::attributes::timestamp.get_name(), "%Y-%m-%d %H:%M:%S")
-        << "][" << log::attributes::channel
-        << "][" << log::attributes::severity
-        << "]: " << expr::smessage);
-
-    // Register the sink in the logging core
-    logging::core::get()->add_sink(sink);
-}
-
-void executor::initialize_logging(boost::shared_ptr<bc::ofstream>& debug,
-    boost::shared_ptr<bc::ofstream>& error,
-    boost::shared_ptr<std::ostream>& output_stream,
-    boost::shared_ptr<std::ostream>& error_stream)
-{
-    auto error_filter = (log::attributes::severity == log::severity::warning)
-        || (log::attributes::severity == log::severity::error)
-        || (log::attributes::severity == log::severity::fatal);
-
-    auto info_filter = (log::attributes::severity == log::severity::info);
-
-    add_text_sink(debug);
-    add_text_sink(error, error_filter);
-    add_text_sink(output_stream, info_filter);
-    add_text_sink(output_stream, error_filter);
 }
 
 } // namespace node

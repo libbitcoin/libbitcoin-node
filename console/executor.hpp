@@ -22,14 +22,12 @@
 
 #include <future>
 #include <iostream>
-#include <boost/smart_ptr.hpp>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class executor
-  : public enable_shared_from_base<executor>
 {
 public:
     executor(parser& metadata, std::istream&, std::ostream& output,
@@ -43,18 +41,6 @@ public:
     bool menu();
 
 private:
-    static void initialize_logging(boost::shared_ptr<bc::ofstream>& debug,
-        boost::shared_ptr<bc::ofstream>& error,
-        boost::shared_ptr<std::ostream>& output_stream,
-        boost::shared_ptr<std::ostream>& error_stream);
-
-    template<typename Stream>
-    static void add_text_sink(boost::shared_ptr<Stream>& stream);
-
-    template<typename Stream, typename FunT>
-    static void add_text_sink(boost::shared_ptr<Stream>& stream,
-        FunT const& filter);
-
     static void stop(const code& ec);
     static void handle_stop(int code);
 
@@ -77,8 +63,6 @@ private:
     parser& metadata_;
     std::ostream& output_;
     std::ostream& error_;
-    bc::ofstream debug_file_;
-    bc::ofstream error_file_;
     full_node::ptr node_;
 };
     
