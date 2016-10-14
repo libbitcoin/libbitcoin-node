@@ -50,10 +50,10 @@ public:
     size_t first_height() const;
 
     /// The height of the last header in the list (or the start height).
-    size_t header_list::previous_height() const;
+    size_t previous_height() const;
 
     /// The hash of the last header in the list (or the start hash).
-    hash_digest header_list::previous_hash() const;
+    hash_digest previous_hash() const;
 
     /// The hash of the stop checkpoint.
     const hash_digest& stop_hash() const;
