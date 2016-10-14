@@ -28,7 +28,7 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
-#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/check_list.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
@@ -49,7 +49,7 @@ public:
 
     /// Construct a reservation table of reservations, allocating hashes evenly
     /// among the rows up to the limit of a single get headers p2p request.
-    reservations(header_queue& hashes, blockchain::fast_chain& chain,
+    reservations(check_list& hashes, blockchain::fast_chain& chain,
         const settings& settings);
 
     /// The average and standard deviation of block import rates.
@@ -76,10 +76,7 @@ public:
 private:
 
     // Create the specified number of reservations and distribute hashes.
-    void initialize(size_t size);
-
-    // Mark hashes for blocks we already have.
-    void mark_existing();
+    void initialize(size_t connections);
 
     // Find the reservation with the most hashes.
     reservation::ptr find_maximal();
@@ -91,15 +88,16 @@ private:
     bool reserve(reservation::ptr minimal);
 
     // Thread safe.
-    header_queue& hashes_;
+    check_list& hashes_;
+    std::atomic<size_t> max_request_;
+    const uint32_t timeout_;
+
+    // Protected by block exclusivity and limited call scope.
     blockchain::fast_chain& chain_;
 
     // Protected by mutex.
     reservation::list table_;
     mutable upgrade_mutex mutex_;
-
-    const uint32_t timeout_;
-    std::atomic<size_t> max_request_;
 };
 
 } // namespace node

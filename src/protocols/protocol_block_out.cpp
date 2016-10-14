@@ -36,6 +36,7 @@ namespace node {
 #define CLASS protocol_block_out
 
 using namespace bc::blockchain;
+using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
@@ -128,7 +129,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 
     const auto height = node_.top_block().height();
     const auto locator_size = message->start_hashes().size();
-    const auto locator_limit = chain::block::locator_size(height) + 1;
+    const auto locator_limit = block::locator_size(height) + 1;
 
     // The locator cannot be longer than allowed by our chain length.
     // This is DoS protection, otherwise a peer could tie up our database.
@@ -202,7 +203,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 
     const auto height = node_.top_block().height();
     const auto locator_size = message->start_hashes().size();
-    const auto locator_limit = chain::block::locator_size(height) + 1;
+    const auto locator_limit = block::locator_size(height) + 1;
 
     // See comments in handle_receive_get_headers.
     if (locator_size > locator_limit)

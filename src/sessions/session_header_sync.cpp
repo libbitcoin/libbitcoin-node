@@ -30,16 +30,18 @@
 #include <bitcoin/node/protocols/protocol_header_sync.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/settings.hpp>
-#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/check_list.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 #define CLASS session_header_sync
+#define NAME "session_header_sync"
 
 using namespace bc::blockchain;
-using namespace bc::chain;
 using namespace bc::config;
+using namespace bc::database;
+using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
@@ -51,7 +53,7 @@ static constexpr uint32_t headers_per_second = 10000;
 
 // Sort is required here but not in configuration settings.
 session_header_sync::session_header_sync(full_node& network,
-    header_queue& hashes, fast_chain& blockchain,
+    check_list& hashes, fast_chain& blockchain,
     const checkpoint::list& checkpoints)
   : session<network::session_outbound>(network, false),
     hashes_(hashes),
@@ -80,47 +82,64 @@ void session_header_sync::handle_started(const code& ec,
         return;
     }
 
-    if (!initialize(handler))
+    // TODO: expose header count and emit here.
+    LOG_INFO(LOG_NODE)
+        << "Getting headers.";
+
+    if (!initialize())
+    {
+        handler(error::operation_failed);
         return;
+    }
+
+    const auto connector = create_connector();
+    const auto complete = synchronize(handler, headers_.size(), NAME);
 
     // This is the end of the start sequence.
-    new_connection(create_connector(), handler);
+    for (const auto row: headers_)
+        new_connection(connector, row, complete);
 }
 
 // Header sync sequence.
 // ----------------------------------------------------------------------------
 
 void session_header_sync::new_connection(connector::ptr connect,
-    result_handler handler)
+    header_list::ptr row, result_handler handler)
 {
     if (stopped())
     {
         LOG_DEBUG(LOG_NODE)
-            << "Suspending header sync session.";
-        return;
-    }
-
-    // HEADER SYNC CONNECT
-    this->connect(connect, BIND4(handle_connect, _1, _2, connect, handler));
-}
-
-void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
-    connector::ptr connect, result_handler handler)
-{
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure connecting header sync channel: " << ec.message();
-        new_connection(connect, handler);
+            << "Suspending header slot (" << row->slot() << ").";
         return;
     }
 
     LOG_DEBUG(LOG_NODE)
-        << "Connected to header sync channel [" << channel->authority() << "]";
+        << "Starting header slot (" << row->slot() << ").";
+
+    // HEADER SYNC CONNECT
+    this->connect(connect,
+        BIND5(handle_connect, _1, _2, connect, row, handler));
+}
+
+void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
+    connector::ptr connect, header_list::ptr row, result_handler handler)
+{
+    if (ec)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Failure connecting header slot (" << row->slot() << ") "
+            << ec.message();
+        new_connection(connect, row ,handler);
+        return;
+    }
+
+    LOG_DEBUG(LOG_NODE)
+        << "Connected header slot (" << row->slot() << ") ["
+        << channel->authority() << "]";
 
     register_channel(channel,
-        BIND4(handle_channel_start, _1, connect, channel, handler),
-        BIND1(handle_channel_stop, _1));
+        BIND5(handle_channel_start, _1, connect, channel, row, handler),
+        BIND2(handle_channel_stop, _1, row));
 }
 
 void session_header_sync::attach_handshake_protocols(channel::ptr channel,
@@ -129,12 +148,12 @@ void session_header_sync::attach_handshake_protocols(channel::ptr channel,
     // Don't use configured services, relay or min version for header sync.
     const auto relay = false;
     const auto own_version = settings_.protocol_maximum;
-    const auto own_services = message::version::service::none;
-    const auto minimum_version = message::version::level::headers;
-    const auto minimum_services = message::version::service::node_network;
+    const auto own_services = version::service::none;
+    const auto minimum_version = version::level::headers;
+    const auto minimum_services = version::service::node_network;
 
     // The negotiated_version is initialized to the configured maximum.
-    if (channel->negotiated_version() >= message::version::level::bip61)
+    if (channel->negotiated_version() >= version::level::bip61)
         attach<protocol_version_70002>(channel, own_version, own_services,
             minimum_version, minimum_services, relay)->start(handle_started);
     else
@@ -143,143 +162,104 @@ void session_header_sync::attach_handshake_protocols(channel::ptr channel,
 }
 
 void session_header_sync::handle_channel_start(const code& ec,
-    connector::ptr connect, channel::ptr channel, result_handler handler)
+    connector::ptr connect, channel::ptr channel, header_list::ptr row,
+    result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_complete(ec, connect, handler);
+        handle_complete(ec, connect, row, handler);
         return;
     }
 
-    attach_protocols(channel, connect, handler);
+    attach_protocols(channel, connect, row, handler);
 }
 
 void session_header_sync::attach_protocols(channel::ptr channel,
-    connector::ptr connect, result_handler handler)
+    connector::ptr connect, header_list::ptr row, result_handler handler)
 {
-    BITCOIN_ASSERT(channel->negotiated_version() >=
-        message::version::level::headers);
+    BITCOIN_ASSERT(channel->negotiated_version() >= version::level::headers);
 
-    if (channel->negotiated_version() >= message::version::level::bip31)
+    if (channel->negotiated_version() >= version::level::bip31)
         attach<protocol_ping_60001>(channel)->start();
     else
         attach<protocol_ping_31402>(channel)->start();
 
     attach<protocol_address_31402>(channel)->start();
-    attach<protocol_header_sync>(channel, hashes_, minimum_rate_, last_)
-        ->start(BIND3(handle_complete, _1, connect, handler));
+    attach<protocol_header_sync>(channel, row, minimum_rate_)->start(
+        BIND4(handle_complete, _1, connect, row, handler));
 }
 
 void session_header_sync::handle_complete(const code& ec,
-    network::connector::ptr connect, result_handler handler)
+    network::connector::ptr connect, header_list::ptr row,
+    result_handler handler)
 {
-    if (!ec)
+    if (ec)
     {
-        // This is the end of the header sync sequence.
-        handler(ec);
+        // Reduce the rate minimum so that we don't get hung up.
+        minimum_rate_ = static_cast<uint32_t>(minimum_rate_ * back_off_factor);
+
+        // There is no failure scenario, we ignore the result code here.
+        new_connection(connect, row, handler);
         return;
     }
 
-    // Reduce the rate minimum so that we don't get hung up.
-    minimum_rate_ = static_cast<uint32_t>(minimum_rate_ * back_off_factor);
+    //*************************************************************************
+    // TODO: as each header sink slot completes store headers to database and
+    // assign its checkpoints to hashes_, terminating the slot.
+    //*************************************************************************
 
-    // There is no failure scenario, we ignore the result code here.
-    new_connection(connect, handler);
+    auto height = row->first_height();
+    const auto& headers = row->headers();
+
+    // Store the hash if there is a gap reservation.
+    for (const auto& header: headers)
+        hashes_.enqueue(header.hash(), height++);
+
+    LOG_DEBUG(LOG_NODE)
+        << "Completed header slot (" << row->slot() << ")";
+
+    // This is the end of the header sync sequence.
+    handler(error::success);
 }
 
-void session_header_sync::handle_channel_stop(const code& ec)
+void session_header_sync::handle_channel_stop(const code& ec,
+    header_list::ptr row)
 {
     LOG_DEBUG(LOG_NODE)
-        << "Header sync channel stopped: " << ec.message();
+        << "Channel stopped on header slot (" << row->slot() << ") "
+        << ec.message();
 }
 
 // Utility.
 // ----------------------------------------------------------------------------
 
-bool session_header_sync::initialize(result_handler handler)
+bool session_header_sync::initialize()
 {
     if (!hashes_.empty())
     {
         LOG_ERROR(LOG_NODE)
-            << "Header hash list must not be initialized.";
-        handler(error::operation_failed);
+            << "Block hash list must not be initialized.";
         return false;
     }
 
-    checkpoint seed;
-    const auto ec = get_range(seed, last_);
+    block_database::heights gaps;
 
-    if (ec)
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Error getting header sync range: " << ec.message();
-        handler(ec);
+    // Populate hash buckets from full database empty height scan.
+    if (!chain_.get_gaps(gaps))
         return false;
-    }
 
-    if (seed == last_)
-    {
-        handler(error::success);
-        return false;
-    }
+    // TODO: consider populating this directly in the database.
+    hashes_.reserve(gaps);
 
-    // The stop is either a block or a checkpoint, so it may be downloaded.
-    const auto stop_height = last_.height();
+    //*************************************************************************
+    // TODO: get top and pair up checkpoints into slots.
+    const auto& front = checkpoints_.front();
+    const auto& back = checkpoints_.back();
+    headers_.push_back(std::make_shared<header_list>(0, front, back));
+    //*************************************************************************
 
-    // The seed is a block that we already have, so it will not be downloaded.
-    const auto first_height = seed.height() + 1;
-
-    LOG_INFO(LOG_NODE)
-        << "Getting headers " << first_height << "-" << stop_height << ".";
-
-    hashes_.initialize(seed);
     return true;
-}
-
-// Get the block hashes that bracket the range to download.
-code session_header_sync::get_range(checkpoint& out_seed, checkpoint& out_stop)
-{
-    size_t last_height;
-
-    if (!chain_.get_last_height(last_height))
-        return error::operation_failed;
-
-    size_t last_gap;
-    size_t first_gap;
-    auto first_height = last_height;
-
-    if (chain_.get_gap_range(first_gap, last_gap))
-    {
-        last_height = last_gap + 1;
-        first_height = first_gap - 1;
-    }
-
-    header first_header;
-
-    if (!chain_.get_header(first_header, first_height))
-        return error::not_found;
-    
-    if (!checkpoints_.empty() && checkpoints_.back().height() > last_height)
-    {
-        out_stop = checkpoints_.back();
-    }
-    else if (first_height == last_height)
-    {
-        out_stop = std::move(checkpoint{ first_header.hash(), first_height });
-    }
-    else
-    {
-        header last_header;
-
-        if (!chain_.get_header(last_header, last_height))
-            return error::not_found;
-
-        out_stop = std::move(checkpoint{ last_header.hash(), last_height });
-    }
-
-    out_seed = std::move(checkpoint{ first_header.hash(), first_height });
-    return error::success;
 }
 
 } // namespace node

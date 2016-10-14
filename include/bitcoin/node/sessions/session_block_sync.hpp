@@ -28,7 +28,7 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/settings.hpp>
-#include <bitcoin/node/utility/header_queue.hpp>
+#include <bitcoin/node/utility/check_list.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 #include <bitcoin/node/utility/reservations.hpp>
 
@@ -44,7 +44,7 @@ class BCN_API session_block_sync
 public:
     typedef std::shared_ptr<session_block_sync> ptr;
 
-    session_block_sync(full_node& network, header_queue& hashes,
+    session_block_sync(full_node& network, check_list& hashes,
         blockchain::fast_chain& chain, const settings& settings);
 
     void start(result_handler handler) override;
