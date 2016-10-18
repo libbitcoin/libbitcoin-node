@@ -51,7 +51,7 @@ parser::parser(const config::settings& context)
   : configured(context)
 {
     // A node doesn't require history by default, and history is expensive.
-    configured.database.history_start_height = 500000;
+    configured.database.index_start_height = max_uint32;
 
     // A node allows 8 inbound connections by default.
     configured.network.inbound_connections = 8;
@@ -259,16 +259,6 @@ options_metadata parser::load_settings()
     )
 
     /* [database] */
-    (
-        "database.history_start_height",
-        value<uint32_t>(&configured.database.history_start_height),
-        "The lower limit of spend indexing, defaults to 500000."
-    )
-    (
-        "database.stealth_start_height",
-        value<uint32_t>(&configured.database.stealth_start_height),
-        "The lower limit of stealth indexing, defaults to 500000."
-    )
     (
         "database.directory",
         value<path>(&configured.database.directory),
