@@ -85,8 +85,17 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
         return;
     }
 
+    if (!reservations_.start())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Failed to set write lock.";
+        handler(error::operation_failed);
+        return;
+    }
+
     const auto connector = create_connector();
-    const auto complete = synchronize(handler, table.size(), NAME);
+    const auto complete = synchronize(
+        BIND2(handle_complete, _1, handler), table.size(), NAME);
 
     // This is the end of the start sequence.
     for (const auto row: table)
@@ -163,7 +172,7 @@ void session_block_sync::handle_channel_start(const code& ec,
     // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_complete(ec, connect, row, handler);
+        handle_channel_complete(ec, connect, row, handler);
         return;
     }
 
@@ -180,10 +189,10 @@ void session_block_sync::attach_protocols(channel::ptr channel,
 
     attach<protocol_address_31402>(channel)->start();
     attach<protocol_block_sync>(channel, row)->start(
-        BIND4(handle_complete, _1, connect, row, handler));
+        BIND4(handle_channel_complete, _1, connect, row, handler));
 }
 
-void session_block_sync::handle_complete(const code& ec,
+void session_block_sync::handle_channel_complete(const code& ec,
     network::connector::ptr connect, reservation::ptr row,
     result_handler handler)
 {
@@ -210,6 +219,33 @@ void session_block_sync::handle_channel_stop(const code& ec,
     LOG_INFO(LOG_NODE)
         << "Channel stopped on block slot (" << row->slot() << ") "
         << ec.message();
+}
+
+void session_block_sync::handle_complete(const code& ec,
+    result_handler handler)
+{
+    // Always stop but give sync priority over stop for reporting.
+    const auto stop = reservations_.stop();
+
+    if (ec)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Failed to complete block sync: " << ec.message();
+        handler(ec);
+        return;
+    }
+
+    if (!stop)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Failed to reset write lock: " << ec.message();
+        handler(error::operation_failed);
+        return;
+    }
+
+    LOG_DEBUG(LOG_NODE)
+        << "Completed block sync.";
+    handler(ec);
 }
 
 // Timer.
