@@ -63,16 +63,21 @@ private:
     void handle_started(const code& ec, result_handler handler);
     void new_connection(network::connector::ptr connect,
         reservation::ptr row, result_handler handler);
-    void handle_complete(const code& ec, network::connector::ptr connect,
-        reservation::ptr row, result_handler handler);
+
+    // Sequence.
     void handle_connect(const code& ec, network::channel::ptr channel,
         network::connector::ptr connect, reservation::ptr row,
         result_handler handler);
     void handle_channel_start(const code& ec, network::channel::ptr channel,
         network::connector::ptr connect, reservation::ptr row,
         result_handler handler);
+    void handle_channel_complete(const code& ec,
+        network::connector::ptr connect, reservation::ptr row,
+        result_handler handler);
     void handle_channel_stop(const code& ec, reservation::ptr row);
+    void handle_complete(const code& ec, result_handler handler);
 
+    // Timers.
     void reset_timer(network::connector::ptr connect);
     void handle_timer(const code& ec, network::connector::ptr connect);
 

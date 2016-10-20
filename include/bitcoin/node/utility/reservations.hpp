@@ -52,6 +52,12 @@ public:
     reservations(check_list& hashes, blockchain::fast_chain& chain,
         const settings& settings);
 
+    /// Set the crash lock guard.
+    bool start();
+
+    /// Clear the crash lock guard.
+    bool stop();
+
     /// The average and standard deviation of block import rates.
     rate_statistics rates() const;
 

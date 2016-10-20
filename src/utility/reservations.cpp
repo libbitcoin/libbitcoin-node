@@ -51,13 +51,25 @@ reservations::reservations(check_list& hashes, fast_chain& chain,
     initialize(settings.download_connections);
 }
 
+bool reservations::start()
+{
+    ///////////////////////////////////////////////////////////////////////////
+    // Begin Crash Lock.
+    return chain_.insert_begin();
+}
+
 bool reservations::import(block_const_ptr block, size_t height)
 {
-    // Thread safe (for distinct blocks).
-    // Returns false if block exists at height.
     //#########################################################################
     return chain_.insert(block, height);
     //#########################################################################
+}
+
+bool reservations::stop()
+{
+    return chain_.insert_end();
+    // End Crash Lock.
+    ///////////////////////////////////////////////////////////////////////////
 }
 
 // Rate methods.
