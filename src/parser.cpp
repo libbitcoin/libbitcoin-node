@@ -35,7 +35,7 @@ BC_DECLARE_CONFIG_DEFAULT_PATH("libbitcoin" / "bn.cfg")
 
 namespace libbitcoin {
 namespace node {
-    
+
 using namespace boost::filesystem;
 using namespace boost::program_options;
 using namespace bc::config;
