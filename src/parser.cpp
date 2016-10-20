@@ -50,7 +50,7 @@ parser::parser(const configuration& defaults)
 parser::parser(const config::settings& context)
   : configured(context)
 {
-    // A node doesn't require history by default, and history is expensive.
+    // A node doesn't require history, and history is expensive.
     configured.database.index_start_height = max_uint32;
 
     // A node allows 8 inbound connections by default.
