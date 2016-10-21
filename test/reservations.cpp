@@ -113,7 +113,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__table__connections_5_hash_46__size_5_by_9_hashes_1)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 5;
+////    settings.initial_connections = 5;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(45, check42.hash());
@@ -217,7 +217,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_not_empty__no_population)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 3;
+////    settings.initial_connections = 3;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(9, check42.hash());
@@ -280,7 +280,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_table_empty__no_population)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 3;
+////    settings.initial_connections = 3;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////
@@ -329,7 +329,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__uncapped_reserve)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 3;
+////    settings.initial_connections = 3;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(7, check42.hash());
@@ -363,7 +363,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__capped_reserve)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 3;
+////    settings.initial_connections = 3;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(7, check42.hash());
@@ -400,7 +400,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partition)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 3;
+////    settings.initial_connections = 3;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////
@@ -582,7 +582,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_deviation)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 3;
+////    settings.initial_connections = 3;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(2, check42.hash());
@@ -629,7 +629,7 @@
 ////BOOST_AUTO_TEST_CASE(reservations__rates__five_reservations_one_idle__idle_excluded)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 5;
+////    settings.initial_connections = 5;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(4, check42.hash());

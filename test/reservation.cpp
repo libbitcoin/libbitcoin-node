@@ -497,7 +497,7 @@
 ////BOOST_AUTO_TEST_CASE(reservation__expired__various__expected)
 ////{
 ////    node::settings settings;
-////    settings.download_connections = 5;
+////    settings.initial_connections = 5;
 ////    blockchain_fixture blockchain;
 ////    config::checkpoint::list checkpoints;
 ////    header_queue hashes(checkpoints);

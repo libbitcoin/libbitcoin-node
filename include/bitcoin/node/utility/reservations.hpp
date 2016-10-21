@@ -80,6 +80,7 @@ public:
     void set_max_request(size_t value);
 
 private:
+    bool inline flush(size_t height);
 
     // Create the specified number of reservations and distribute hashes.
     void initialize(size_t connections);
@@ -97,6 +98,7 @@ private:
     check_list& hashes_;
     std::atomic<size_t> max_request_;
     const uint32_t timeout_;
+    const uint32_t flush_size_;
 
     // Protected by block exclusivity and limited call scope.
     blockchain::fast_chain& chain_;

@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_SUITE(settings_tests)
 BOOST_AUTO_TEST_CASE(settings__construct__default_context__expected)
 {
     node::settings configuration;
-    BOOST_REQUIRE_EQUAL(configuration.download_connections, 8u);
+    BOOST_REQUIRE_EQUAL(configuration.initial_connections, 8u);
     BOOST_REQUIRE_EQUAL(configuration.block_timeout_seconds, 5u);
     BOOST_REQUIRE_EQUAL(configuration.transaction_pool_refresh, true);
 }
@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(settings__construct__default_context__expected)
 BOOST_AUTO_TEST_CASE(settings__construct__none_context__expected)
 {
     node::settings configuration(config::settings::none);
-    BOOST_REQUIRE_EQUAL(configuration.download_connections, 8u);
+    BOOST_REQUIRE_EQUAL(configuration.initial_connections, 8u);
     BOOST_REQUIRE_EQUAL(configuration.block_timeout_seconds, 5u);
     BOOST_REQUIRE_EQUAL(configuration.transaction_pool_refresh, true);
 }
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(settings__construct__none_context__expected)
 BOOST_AUTO_TEST_CASE(settings__construct__mainnet_context__expected)
 {
     node::settings configuration(config::settings::mainnet);
-    BOOST_REQUIRE_EQUAL(configuration.download_connections, 8u);
+    BOOST_REQUIRE_EQUAL(configuration.initial_connections, 8u);
     BOOST_REQUIRE_EQUAL(configuration.block_timeout_seconds, 5u);
     BOOST_REQUIRE_EQUAL(configuration.transaction_pool_refresh, true);
 }
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(settings__construct__mainnet_context__expected)
 BOOST_AUTO_TEST_CASE(settings__construct__testnet_context__expected)
 {
     node::settings configuration(config::settings::testnet);
-    BOOST_REQUIRE_EQUAL(configuration.download_connections, 8u);
+    BOOST_REQUIRE_EQUAL(configuration.initial_connections, 8u);
     BOOST_REQUIRE_EQUAL(configuration.block_timeout_seconds, 5u);
     BOOST_REQUIRE_EQUAL(configuration.transaction_pool_refresh, true);
 }
