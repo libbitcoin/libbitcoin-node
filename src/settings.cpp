@@ -27,7 +27,6 @@ namespace node {
 settings::settings()
   : block_timeout_seconds(5),
     initial_connections(8),
-    initial_flush_size(0),
     transaction_pool_refresh(true)
 {
 }

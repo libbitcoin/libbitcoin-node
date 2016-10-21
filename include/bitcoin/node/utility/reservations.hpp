@@ -52,10 +52,10 @@ public:
     reservations(check_list& hashes, blockchain::fast_chain& chain,
         const settings& settings);
 
-    /// Set the crash lock guard.
+    /// Set the flush lock guard.
     bool start();
 
-    /// Clear the crash lock guard.
+    /// Clear the flush lock guard.
     bool stop();
 
     /// The average and standard deviation of block import rates.
@@ -98,7 +98,6 @@ private:
     check_list& hashes_;
     std::atomic<size_t> max_request_;
     const uint32_t timeout_;
-    const uint32_t flush_size_;
 
     // Protected by block exclusivity and limited call scope.
     blockchain::fast_chain& chain_;
