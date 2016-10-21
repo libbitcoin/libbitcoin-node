@@ -91,7 +91,7 @@ void full_node::run(result_handler handler)
     // TODO: make this safe by requiring sync if gaps found.
     ////// By setting no download connections checkpoints can be used without sync.
     ////// This also allows the maximum protocol version to be set below headers.
-    ////if (settings_.download_connections == 0)
+    ////if (settings_.initial_connections == 0)
     ////{
     ////    // This will spawn a new thread before returning.
     ////    handle_running(error::success, handler);
@@ -146,6 +146,14 @@ void full_node::handle_running(const code& ec, result_handler handler)
         LOG_ERROR(LOG_NODE)
             << "Failure synchronizing blocks: " << ec.message();
         handler(ec);
+        return;
+    }
+
+    if (!chain_.start_pools())
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Failure starting pools.";
+        handler(error::operation_failed);
         return;
     }
 
