@@ -37,7 +37,6 @@ public:
     /// Properties.
     uint32_t block_timeout_seconds;
     uint32_t initial_connections;
-    uint32_t initial_flush_size;
     bool transaction_pool_refresh;
 };
 

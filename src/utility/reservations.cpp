@@ -41,17 +41,11 @@ using namespace bc::chain;
 // The protocol maximum size of get data block requests.
 static constexpr size_t max_block_request = 50000;
 
-bool inline reservations::flush(size_t height)
-{
-    return (flush_size_ != 0) && ((height % flush_size_) == 0);
-}
-
 reservations::reservations(check_list& hashes, fast_chain& chain,
     const settings& settings)
   : hashes_(hashes),
     max_request_(max_block_request),
     timeout_(settings.block_timeout_seconds),
-    flush_size_(settings.initial_flush_size),
     chain_(chain)
 {
     initialize(settings.initial_connections);
@@ -60,27 +54,21 @@ reservations::reservations(check_list& hashes, fast_chain& chain,
 bool reservations::start()
 {
     ///////////////////////////////////////////////////////////////////////////
-    // Begin crash lock.
+    // Begin flush lock.
     return chain_.begin_writes();
 }
 
 bool reservations::import(block_const_ptr block, size_t height)
 {
     //#########################################################################
-    const auto result = chain_.insert(block, height, false);
+    return chain_.insert(block, height, false);
     //#########################################################################
-
-    if (!result)
-        return false;
-
-    // If it is time to flush, cycle the crash lock.
-    return !flush(height) || (chain_.end_writes() && chain_.begin_writes());
 }
 
 bool reservations::stop()
 {
     return chain_.end_writes();
-    // End crash lock.
+    // End flush lock.
     ///////////////////////////////////////////////////////////////////////////
 }
 
