@@ -131,6 +131,42 @@ options_metadata parser::load_settings()
 {
     options_metadata description("settings");
     description.add_options()
+    /* [log] */
+    (
+        "log.debug_file",
+        value<path>(&configured.network.debug_file),
+        "The debug log file path, defaults to 'debug.log'."
+    )
+    (
+        "log.error_file",
+        value<path>(&configured.network.error_file),
+        "The error log file path, defaults to 'error.log'."
+    )
+    (
+        "log.archive_directory",
+        value<path>(&configured.network.archive_directory),
+        "The log archive directory, defaults to 'archive'."
+    )
+    (
+        "log.rotation_size",
+        value<size_t>(&configured.network.rotation_size),
+        "The size at which a log is archived, defaults to 0 (disabled)."
+    )
+    (
+        "log.maximum_archive_size",
+        value<size_t>(&configured.network.maximum_archive_size),
+        "The maximum combined size of archived logs, defaults to 4294967296."
+    )
+    (
+        "log.minimum_free_space",
+        value<size_t>(&configured.network.minimum_free_space),
+        "The minimum free space required in the archive directory, defaults to 0."
+    )
+    ////(
+    ////    "log.log_maximum_files",
+    ////    value<size_t>(&configured.network.maximum_archive_files),
+    ////    "The maximum number of archived logs, defaults to 4294967296."
+    ////)
     /* [network] */
     (
         "network.threads",
@@ -228,41 +264,6 @@ options_metadata parser::load_settings()
         "The peer hosts cache file path, defaults to 'hosts.cache'."
     )
     (
-        "network.debug_file",
-        value<path>(&configured.network.debug_file),
-        "The debug log file path, defaults to 'debug.log'."
-    )
-    (
-        "network.error_file",
-        value<path>(&configured.network.error_file),
-        "The error log file path, defaults to 'error.log'."
-    )
-    (
-        "network.logs_path",
-        value<path>(&configured.network.logs_path),
-        "The path to log files not including name, defaults to 'logs'."
-    )
-    (
-        "network.log_rotation_size",
-        value<size_t>(&configured.network.log_rotation_size),
-        "The size at which logs are to be rotated, defaults to 'maximum'."
-    )
-//    (
-//        "network.log_max_files",
-//        value<size_t>(&configured.network.log_max_files),
-//        "The maximum number of logs to persist, defaults to 'maximum'."
-//    )
-    (
-        "network.log_max_files_size",
-        value<size_t>(&configured.network.log_max_files_size),
-        "The cumulative maximum size in bytes of logs, defaults to 'maximum'."
-    )
-    (
-        "network.log_min_free_space",
-        value<size_t>(&configured.network.log_min_free_space),
-        "The minimum free space in bytes to be maintained in the logs_path, defaults to '0'."
-    )
-    (
         "network.self",
         value<config::authority>(&configured.network.self),
         "The advertised public address of this node, defaults to none."
@@ -287,7 +288,32 @@ options_metadata parser::load_settings()
     (
         "database.directory",
         value<path>(&configured.database.directory),
-        "The blockchain database directory, defaults to 'mainnet'."
+        "The blockchain database directory, defaults to 'blockchain'."
+    )
+    (
+        "database.file_growth_rate",
+        value<uint16_t>(&configured.database.file_growth_rate),
+        "Full database files increase by this percentage, defaults to 50."
+    )
+    (
+        "database.block_table_buckets",
+        value<uint32_t>(&configured.database.block_table_buckets),
+        "Block hash table size, defaults to 650000."
+    )
+    (
+        "database.transaction_table_buckets",
+        value<uint32_t>(&configured.database.transaction_table_buckets),
+        "Transaction hash table size, defaults to 110000000."
+    )
+    (
+        "database.spend_table_buckets",
+        value<uint32_t>(&configured.database.block_table_buckets),
+        "Spend hash table size, defaults to 250000000."
+    )
+    (
+        "database.history_table_buckets",
+        value<uint32_t>(&configured.database.history_table_buckets),
+        "History hash table size, defaults to 107000000."
     )
 
     /* [blockchain] */
