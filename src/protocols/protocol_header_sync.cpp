@@ -128,7 +128,7 @@ bool protocol_header_sync::handle_receive_headers(const code& ec,
     {
         LOG_WARNING(LOG_NODE)
             << "Failure merging headers from [" << authority() << "]";
-        complete(error::previous_block_invalid);
+        complete(error::invalid_previous_block);
         return false;
     }
 
