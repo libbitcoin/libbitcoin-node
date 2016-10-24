@@ -345,7 +345,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     const auto hash = encode_hash(message->header().hash());
 
-    if (ec == error::duplicate)
+    if (ec == error::duplicate_block)
     {
         LOG_DEBUG(LOG_NODE)
             << "Redundant block [" << hash << "] from ["
@@ -353,7 +353,7 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
     }
 
-    if (ec == error::orphan)
+    if (ec == error::orphan_block)
     {
         LOG_DEBUG(LOG_NODE)
             << "Orphan block [" << hash << "] from [" << authority() << "].";
