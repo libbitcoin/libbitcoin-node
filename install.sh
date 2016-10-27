@@ -438,13 +438,13 @@ build_from_tarball()
     # Use the suffixed archive name as the extraction directory.
     local EXTRACT="build-$ARCHIVE"
     push_directory "$BUILD_DIR"
-    create_directory $EXTRACT
-    push_directory $EXTRACT
+    create_directory "$EXTRACT"
+    push_directory "$EXTRACT"
 
     # Extract the source locally.
     wget --output-document $ARCHIVE $URL
     tar --extract --file $ARCHIVE --$COMPRESSION --strip-components=1
-    push_directory $PUSH_DIR
+    push_directory "$PUSH_DIR"
 
     # Enable static only zlib build.
     if [[ $ARCHIVE == $ZLIB_ARCHIVE ]]; then
@@ -558,8 +558,8 @@ build_from_tarball_boost()
     # Use the suffixed archive name as the extraction directory.
     local EXTRACT="build-$ARCHIVE"
     push_directory "$BUILD_DIR"
-    create_directory $EXTRACT
-    push_directory $EXTRACT
+    create_directory "$EXTRACT"
+    push_directory "$EXTRACT"
 
     # Extract the source locally.
     wget --output-document $ARCHIVE $URL
@@ -648,7 +648,7 @@ build_from_github()
     local CONFIGURATION=("${OPTIONS[@]}" "$@")
 
     # Build the local repository clone.
-    push_directory $REPO
+    push_directory "$REPO"
     make_current_directory $JOBS "${CONFIGURATION[@]}"
     pop_directory
     pop_directory
@@ -687,8 +687,10 @@ build_from_travis()
         make_tests $JOBS
     else
         build_from_github $ACCOUNT $REPO $BRANCH $JOBS "${OPTIONS[@]}" "$@"
-        push_directory $REPO
+        push_directory "$BUILD_DIR"
+        push_directory "$REPO"
         make_tests $JOBS
+        pop_directory
         pop_directory
     fi
 }
