@@ -88,6 +88,10 @@ void full_node::run(result_handler handler)
         return;
     }
 
+    // Skip sync sessions.
+    handle_running(error::success, handler);
+    return;
+
     // TODO: make this safe by requiring sync if gaps found.
     ////// By setting no download connections checkpoints can be used without sync.
     ////// This also allows the maximum protocol version to be set below headers.
