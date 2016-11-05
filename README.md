@@ -6,7 +6,7 @@
 
 *Bitcoin full node based on libbitcoin-blockchain*
 
-Make sure you have installed [libbitcoin-blockchain](https://github.com/libbitcoin/libbitcoin-blockchain) beforehand according to its build instructions.
+Make sure you have installed [libbitcoin-blockchain](https://github.com/libbitcoin/libbitcoin-blockchain) and [libbitcoin-network](https://github.com/libbitcoin/libbitcoin-network) beforehand according to their build instructions.
 
 ```sh
 $ ./autogen.sh
