@@ -74,7 +74,7 @@ public:
     bool get_gap_range(size_t& out_first, size_t& out_last) const;
     bool get_next_gap(size_t& out_height, size_t start_height) const;
     bool get_block_exists(const hash_digest& block_hash) const;
-    bool get_fork_difficulty(hash_number& out_difficulty, size_t height) const;
+    bool get_fork_difficulty(uint256_t& out_difficulty, size_t height) const;
     bool get_header(chain::header& out_header, size_t height) const;
     bool get_height(size_t& out_height, const hash_digest& block_hash) const;
     bool get_bits(uint32_t& out_bits, const size_t& height) const;
