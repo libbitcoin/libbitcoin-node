@@ -80,15 +80,15 @@ typedef message::not_found::const_ptr not_found_ptr_const_ptr;
 typedef message::send_headers::ptr send_headers_ptr;
 typedef message::send_headers::const_ptr send_headers_const_ptr;
 
-typedef message::block_message::ptr block_ptr;
-typedef message::block_message::const_ptr block_const_ptr;
-typedef message::block_message::ptr_list block_ptr_list;
-typedef message::block_message::const_ptr_list block_const_ptr_list;
+typedef message::block::ptr block_ptr;
+typedef message::block::const_ptr block_const_ptr;
+typedef message::block::ptr_list block_ptr_list;
+typedef message::block::const_ptr_list block_const_ptr_list;
 
-typedef message::transaction_message::ptr transaction_ptr;
-typedef message::transaction_message::const_ptr transaction_const_ptr;
-typedef message::transaction_message::ptr_list transaction_ptr_list;
-typedef message::transaction_message::const_ptr_list
+typedef message::transaction::ptr transaction_ptr;
+typedef message::transaction::const_ptr transaction_const_ptr;
+typedef message::transaction::ptr_list transaction_ptr_list;
+typedef message::transaction::const_ptr_list
     transaction_const_ptr_list;
 
 } // namespace node

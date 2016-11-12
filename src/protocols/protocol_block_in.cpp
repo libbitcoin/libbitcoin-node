@@ -35,7 +35,6 @@ namespace node {
 #define CLASS protocol_block_in
 
 using namespace bc::blockchain;
-using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
@@ -72,7 +71,7 @@ void protocol_block_in::start()
     SUBSCRIBE2(not_found, handle_receive_not_found, _1, _2);
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
-    SUBSCRIBE2(block_message, handle_receive_block, _1, _2);
+    SUBSCRIBE2(block, handle_receive_block, _1, _2);
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     if (headers_from_peer_)

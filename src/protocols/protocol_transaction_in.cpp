@@ -33,7 +33,6 @@ namespace node {
 #define CLASS protocol_transaction_in
 
 using namespace bc::blockchain;
-using namespace bc::chain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
@@ -77,7 +76,7 @@ void protocol_transaction_in::start()
     }
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
-    SUBSCRIBE2(transaction_message, handle_receive_transaction, _1, _2);
+    SUBSCRIBE2(transaction, handle_receive_transaction, _1, _2);
 }
 
 // Receive inventory sequence.
@@ -204,7 +203,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 // This will be picked up by subscription in transaction_out and will cause
 // the transaction to be announced to non-originating relay-accepting peers.
 void protocol_transaction_in::handle_store_transaction(const code& ec,
-    const point::indexes& unconfirmed, transaction_const_ptr message)
+    const chain::point::indexes& unconfirmed, transaction_const_ptr message)
 {
     // Examples:
     // error::service_stopped

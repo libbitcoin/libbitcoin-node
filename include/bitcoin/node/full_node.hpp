@@ -107,7 +107,7 @@ protected:
     virtual session_block_sync::ptr attach_block_sync_session();
 
 private:
-    typedef message::block_message::ptr_list block_ptr_list;
+    typedef message::block::ptr_list block_ptr_list;
 
     bool handle_reorganized(const code& ec, size_t fork_height,
         const block_const_ptr_list& incoming,

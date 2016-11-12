@@ -113,7 +113,7 @@
 ////    const auto message = message_factory(1, check42.hash());
 ////    const auto& header1 = message->elements()[0];
 ////    reserve->insert(header1.hash(), 42);
-////    const auto block1 = std::make_shared<const block_message>(block_message{ header1, {} });
+////    const auto block1 = std::make_shared<const block>(block{ header1, {} });
 ////    reserve->import(block1);
 ////    BOOST_REQUIRE(reserve->empty());
 ////    BOOST_REQUIRE(reserve->stopped());
@@ -203,9 +203,9 @@
 ////    // Create a history entry.
 ////    const auto message = message_factory(3, null_hash);
 ////    reserve->insert(message->elements()[0].hash(), 0);
-////    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
-////    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[1], {} });
-////    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements()[2], {} });
+////    const auto block0 = std::make_shared<const block>(block{ message->elements()[0], {} });
+////    const auto block1 = std::make_shared<const block>(block{ message->elements()[1], {} });
+////    const auto block2 = std::make_shared<const block>(block{ message->elements()[2], {} });
 ////    reserve->import(block0);
 ////    reserve->import(block1);
 ////
@@ -287,7 +287,7 @@
 ////    const auto reserve = std::make_shared<reservation>(reserves, 0, 0);
 ////    const auto message = message_factory(1, check42.hash());
 ////    const auto& header = message->elements()[0];
-////    const auto block1 = std::make_shared<const block_message>(block_message{ header, {} });
+////    const auto block1 = std::make_shared<const block>(block{ header, {} });
 ////    BOOST_REQUIRE(reserve->idle());
 ////    reserve->import(block1);
 ////    BOOST_REQUIRE(reserve->idle());
@@ -301,7 +301,7 @@
 ////    const auto message = message_factory(1, check42.hash());
 ////    const auto& header = message->elements()[0];
 ////    reserve->insert(header.hash(), 42);
-////    const auto block1 = std::make_shared<const block_message>(block_message{ header, {} });
+////    const auto block1 = std::make_shared<const block>(block{ header, {} });
 ////    BOOST_REQUIRE(reserve->idle());
 ////    reserve->import(block1);
 ////    BOOST_REQUIRE(reserve->idle());
@@ -319,9 +319,9 @@
 ////    reserve->insert(message->elements()[0].hash(), 0);
 ////    reserve->insert(message->elements()[1].hash(), 1);
 ////    reserve->insert(message->elements()[2].hash(), 2);
-////    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
-////    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[1], {} });
-////    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements()[2], {} });
+////    const auto block0 = std::make_shared<const block>(block{ message->elements()[0], {} });
+////    const auto block1 = std::make_shared<const block>(block{ message->elements()[1], {} });
+////    const auto block2 = std::make_shared<const block>(block{ message->elements()[2], {} });
 ////    reserve->import(block0);
 ////    reserve->import(block1);
 ////    reserve->import(block2);
@@ -342,9 +342,9 @@
 ////    reserve->insert(message->elements()[0].hash(), 0);
 ////    reserve->insert(message->elements()[1].hash(), 1);
 ////    reserve->insert(message->elements()[2].hash(), 2);
-////    const auto block0 = std::make_shared<const block_message>(block_message{ message->elements()[0], {} });
-////    const auto block1 = std::make_shared<const block_message>(block_message{ message->elements()[1], {} });
-////    const auto block2 = std::make_shared<const block_message>(block_message{ message->elements()[2], {} });
+////    const auto block0 = std::make_shared<const block>(block{ message->elements()[0], {} });
+////    const auto block1 = std::make_shared<const block>(block{ message->elements()[1], {} });
+////    const auto block2 = std::make_shared<const block>(block{ message->elements()[2], {} });
 ////
 ////    // Idle checks assume minimum_history is set to 3.
 ////    BOOST_REQUIRE(reserve->idle());
