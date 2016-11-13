@@ -193,6 +193,10 @@ bool executor::run()
     // Now that the directory is verified we can create the node for it.
     node_ = std::make_shared<full_node>(metadata_.configured);
 
+    auto statsd_server = metadata_.configured.network.statsd_server;
+    if (statsd_server != message::unspecified_network_address)
+        log::initialize_statsd(node_->thread_pool().service(), statsd_server);
+
     // The callback may be returned on the same thread.
     node_->start(
         std::bind(&executor::handle_started,
