@@ -59,7 +59,7 @@ void protocol_block_sync::start(event_handler handler)
     auto complete = synchronize(BIND2(blocks_complete, _1, handler), 1, NAME);
     protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
-    SUBSCRIBE3(block_message, handle_receive_block, _1, _2, complete);
+    SUBSCRIBE3(block, handle_receive_block, _1, _2, complete);
 
     // This is the end of the start sequence.
     send_get_blocks(complete, true);
