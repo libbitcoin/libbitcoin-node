@@ -235,8 +235,8 @@ network::session_outbound::ptr full_node::attach_outbound_session()
 
 session_header_sync::ptr full_node::attach_header_sync_session()
 {
-    const auto& checkpoints = chain_.chain_settings().checkpoints;
-    return attach<session_header_sync>(hashes_, chain_, checkpoints);
+    return attach<session_header_sync>(hashes_, chain_, 
+        chain_.chain_settings().checkpoints);
 }
 
 session_block_sync::ptr full_node::attach_block_sync_session()
