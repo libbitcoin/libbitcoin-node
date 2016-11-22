@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSION_HPP
 
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
