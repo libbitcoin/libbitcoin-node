@@ -128,11 +128,13 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 }
 
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
-    get_blocks_ptr message, const hash_digest& stop_hash)
+    get_headers_ptr message, const hash_digest& stop_hash)
 {
     if (stopped() || ec == error::service_stopped ||
         message->start_hashes().empty())
         return;
+
+    const auto& last_hash = message->start_hashes().front();
 
     if (ec)
     {
@@ -144,34 +146,23 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     }
 
     // TODO: move get_headers to a derived class protocol_block_in_31800.
-    if (negotiated_version() >= version::level::headers)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Ask [" << authority() << "] for headers from ["
-            << encode_hash(message->start_hashes().front()) << "] through [" <<
-            (stop_hash == null_hash ? "2000" : encode_hash(stop_hash)) << "]";
+    const auto use_headers = negotiated_version() >= version::level::headers;
+    const auto default_size = use_headers ? "2000" : "500";
 
-        // TODO: create query override to return this natively.
-        // Move the hash data from the get_blocks to a new get_message.
-        auto request = std::make_shared<get_headers>();
-        std::swap(request->start_hashes(), message->start_hashes());
-        request->set_stop_hash(stop_hash);
-        SEND2(*request, handle_send, _1, request->command);
-        message = request;
-    }
-    else
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Ask [" << authority() << "] for block inventory from ["
-            << encode_hash(message->start_hashes().front()) << "] through [" <<
-            (stop_hash == null_hash ? "500" : encode_hash(stop_hash)) << "]";
-
-        message->set_stop_hash(stop_hash);
-        SEND2(*message, handle_send, _1, message->command);
-    }
+    LOG_DEBUG(LOG_NODE)
+        << "Ask [" << authority() << "] for headers from ["
+        << encode_hash(last_hash) << "] through [" <<
+        (stop_hash == null_hash ? default_size : encode_hash(stop_hash)) << "]";
 
     // Save the locator top to prevent a redundant future request.
-    last_locator_top_.store(message->start_hashes().front());
+    last_locator_top_.store(last_hash);
+    message->set_stop_hash(stop_hash);
+
+    if (use_headers)
+        SEND2(*message, handle_send, _1, message->command);
+    else
+        SEND2(static_cast<get_blocks>(*message), handle_send, _1,
+            message->command);
 }
 
 // Receive headers|inventory sequence.
