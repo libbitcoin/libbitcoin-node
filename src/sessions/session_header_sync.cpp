@@ -92,19 +92,18 @@ void session_header_sync::handle_started(const code& ec,
         return;
     }
 
-    const auto connector = create_connector();
     const auto complete = synchronize(handler, headers_.size(), NAME);
 
     // This is the end of the start sequence.
     for (const auto row: headers_)
-        new_connection(connector, row, complete);
+        new_connection(row, complete);
 }
 
 // Header sync sequence.
 // ----------------------------------------------------------------------------
 
-void session_header_sync::new_connection(connector::ptr connect,
-    header_list::ptr row, result_handler handler)
+void session_header_sync::new_connection(header_list::ptr row,
+    result_handler handler)
 {
     if (stopped())
     {
@@ -117,19 +116,18 @@ void session_header_sync::new_connection(connector::ptr connect,
         << "Starting header slot (" << row->slot() << ").";
 
     // HEADER SYNC CONNECT
-    this->connect(connect,
-        BIND5(handle_connect, _1, _2, connect, row, handler));
+    session_batch::connect(BIND4(handle_connect, _1, _2, row, handler));
 }
 
 void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
-    connector::ptr connect, header_list::ptr row, result_handler handler)
+    header_list::ptr row, result_handler handler)
 {
     if (ec)
     {
         LOG_DEBUG(LOG_NODE)
             << "Failure connecting header slot (" << row->slot() << ") "
             << ec.message();
-        new_connection(connect, row ,handler);
+        new_connection(row ,handler);
         return;
     }
 
@@ -138,7 +136,7 @@ void session_header_sync::handle_connect(const code& ec, channel::ptr channel,
         << channel->authority() << "]";
 
     register_channel(channel,
-        BIND5(handle_channel_start, _1, connect, channel, row, handler),
+        BIND4(handle_channel_start, _1, channel, row, handler),
         BIND2(handle_channel_stop, _1, row));
 }
 
@@ -162,21 +160,20 @@ void session_header_sync::attach_handshake_protocols(channel::ptr channel,
 }
 
 void session_header_sync::handle_channel_start(const code& ec,
-    connector::ptr connect, channel::ptr channel, header_list::ptr row,
-    result_handler handler)
+    channel::ptr channel, header_list::ptr row, result_handler handler)
 {
     // Treat a start failure just like a completion failure.
     if (ec)
     {
-        handle_complete(ec, connect, row, handler);
+        handle_complete(ec, row, handler);
         return;
     }
 
-    attach_protocols(channel, connect, row, handler);
+    attach_protocols(channel, row, handler);
 }
 
 void session_header_sync::attach_protocols(channel::ptr channel,
-    connector::ptr connect, header_list::ptr row, result_handler handler)
+    header_list::ptr row, result_handler handler)
 {
     BITCOIN_ASSERT(channel->negotiated_version() >= version::level::headers);
 
@@ -187,12 +184,11 @@ void session_header_sync::attach_protocols(channel::ptr channel,
 
     attach<protocol_address_31402>(channel)->start();
     attach<protocol_header_sync>(channel, row, minimum_rate_)->start(
-        BIND4(handle_complete, _1, connect, row, handler));
+        BIND3(handle_complete, _1, row, handler));
 }
 
 void session_header_sync::handle_complete(const code& ec,
-    network::connector::ptr connect, header_list::ptr row,
-    result_handler handler)
+    header_list::ptr row, result_handler handler)
 {
     if (ec)
     {
@@ -200,7 +196,7 @@ void session_header_sync::handle_complete(const code& ec,
         minimum_rate_ = static_cast<uint32_t>(minimum_rate_ * back_off_factor);
 
         // There is no failure scenario, we ignore the result code here.
-        new_connection(connect, row, handler);
+        new_connection(row, handler);
         return;
     }
 
