@@ -333,54 +333,32 @@ void protocol_block_in::handle_store_block(const code& ec,
     if (stopped() || ec == error::service_stopped)
         return;
 
+    // Ask the peer for blocks from the chain top up to this orphan.
+    if (ec == error::orphan_block)
+        send_get_blocks(message->header().hash());
+
     const auto hash = encode_hash(message->header().hash());
 
-    if (ec == error::duplicate_block)
+    if (ec == error::orphan_block || ec == error::duplicate_block ||
+        ec == error::insufficient_work)
     {
         LOG_DEBUG(LOG_NODE)
-            << "Redundant block [" << hash << "] from ["
-            << authority() << "]";
-        return;
-    }
-
-    if (ec == error::orphan_block)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Orphan block [" << hash << "] from [" << authority() << "].";
-
-        // Ask the peer for blocks from the chain top up to this orphan.
-        send_get_blocks(message->header().hash());
-        return;
-    }
-
-    if (ec == error::insufficient_work)
-    {
-        LOG_INFO(LOG_NODE)
-            << "Insufficient block [" << hash << "] from [" << authority() << "] "
-            << ec.message();
-        return;
-    }
-
-    if (ec == error::operation_failed)
-    {
-        LOG_INFO(LOG_NODE)
-            << "Internal failure validatig block [" << hash << "] from ["
-            << authority() << "] " << ec.message();
-        stop(ec);
+            << "Captured block [" << hash << "] from [" << authority()
+            << "] " << ec.message();
         return;
     }
 
     if (ec)
     {
-        LOG_INFO(LOG_NODE)
-            << "Invalid block [" << hash << "] from [" << authority() << "] "
-            << ec.message();
+        LOG_DEBUG(LOG_NODE)
+            << "Rejected block [" << hash << "] from [" << authority()
+            << "] " << ec.message();
         stop(ec);
         return;
     }
 
     LOG_DEBUG(LOG_NODE)
-        << "Accepted block [" << hash << "] at height ["
+        << "Connected block [" << hash << "] at height ["
         << message->header().validation.height << "] from ["
         << authority() << "].";
 }
