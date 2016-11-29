@@ -333,17 +333,19 @@ void protocol_block_in::handle_store_block(const code& ec,
     if (stopped() || ec == error::service_stopped)
         return;
 
+    const auto hash = message->header().hash();
+
     // Ask the peer for blocks from the chain top up to this orphan.
     if (ec == error::orphan_block)
-        send_get_blocks(message->header().hash());
+        send_get_blocks(hash);
 
-    const auto hash = encode_hash(message->header().hash());
+    const auto encoded = encode_hash(hash);
 
     if (ec == error::orphan_block || ec == error::duplicate_block ||
         ec == error::insufficient_work)
     {
         LOG_DEBUG(LOG_NODE)
-            << "Captured block [" << hash << "] from [" << authority()
+            << "Captured block [" << encoded << "] from [" << authority()
             << "] " << ec.message();
         return;
     }
@@ -351,14 +353,14 @@ void protocol_block_in::handle_store_block(const code& ec,
     if (ec)
     {
         LOG_DEBUG(LOG_NODE)
-            << "Rejected block [" << hash << "] from [" << authority()
+            << "Rejected block [" << encoded << "] from [" << authority()
             << "] " << ec.message();
         stop(ec);
         return;
     }
 
     LOG_DEBUG(LOG_NODE)
-        << "Connected block [" << hash << "] at height ["
+        << "Connected block [" << encoded << "] at height ["
         << message->header().validation.height << "] from ["
         << authority() << "].";
 }
