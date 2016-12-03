@@ -93,7 +93,7 @@ void session_block_sync::handle_started(const code& ec, result_handler handler)
         return;
     }
 
-    const auto complete = synchronize(
+    const auto complete = synchronize<result_handler>(
         BIND2(handle_complete, _1, handler), table.size(), NAME);
 
     // This is the end of the start sequence.
