@@ -66,7 +66,9 @@ protocol_header_sync::protocol_header_sync(full_node& network,
 
 void protocol_header_sync::start(event_handler handler)
 {
-    auto complete = synchronize(BIND2(headers_complete, _1, handler), 1, NAME);
+    const auto complete = synchronize<event_handler>(
+        BIND2(headers_complete, _1, handler), 1, NAME);
+
     protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
 
     SUBSCRIBE3(headers, handle_receive_headers, _1, _2, complete);
