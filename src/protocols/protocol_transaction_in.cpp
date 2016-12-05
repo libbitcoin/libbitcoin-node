@@ -218,8 +218,8 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
 // TODO: move memory_pool to a derived class protocol_transaction_in_70002.
 // Prior to this level the mempool message is not available.
-bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
-    const block_const_ptr_list&, const block_const_ptr_list& outgoing)
+bool protocol_transaction_in::handle_reorganized(code ec, size_t,
+    block_const_ptr_list_const_ptr, block_const_ptr_list_const_ptr outgoing)
 {
     if (stopped() || ec == error::service_stopped)
         return false;
@@ -234,7 +234,7 @@ bool protocol_transaction_in::handle_reorganized(const code& ec, size_t,
     }
 
     // If there are no outgoing blocks then the memory pool is intact.
-    if (outgoing.empty())
+    if (outgoing->empty())
         return true;
 
     // Our own node would ignore this if it wasn't the first instance.

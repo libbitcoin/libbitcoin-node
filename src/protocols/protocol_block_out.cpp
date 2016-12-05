@@ -342,8 +342,8 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
 // TODO: make sure we are announcing older blocks first here.
 // We never announce or inventory an orphan, only indexed blocks.
-bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
-    const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
+bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
+    block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)
 {
     if (stopped() || ec == error::service_stopped)
         return false;
@@ -361,7 +361,7 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
     {
         headers announcement;
 
-        for (const auto block: incoming)
+        for (const auto block: *incoming)
             if (block->originator() != nonce())
                 announcement.elements().push_back(block->header());
 
@@ -373,7 +373,7 @@ bool protocol_block_out::handle_reorganized(const code& ec, size_t fork_height,
     static const auto id = inventory::type_id::block;
     inventory announcement;
 
-    for (const auto block: incoming)
+    for (const auto block: *incoming)
         if (block->originator() != nonce())
             announcement.inventories().push_back( { id, block->header().hash() });
 
