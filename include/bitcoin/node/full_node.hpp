@@ -83,10 +83,10 @@ public:
     // ------------------------------------------------------------------------
 
     /// Subscribe to blockchain reorganization and stop events.
-    virtual void subscribe_blockchain(reorganize_handler handler);
+    virtual void subscribe_blockchain(reorganize_handler&& handler);
 
     /// Subscribe to transaction pool acceptance and stop events.
-    virtual void subscribe_transaction(transaction_handler handler);
+    virtual void subscribe_transaction(transaction_handler&& handler);
 
 protected:
     /// Attach a node::session to the network, caller must start the session.
@@ -109,9 +109,9 @@ protected:
 private:
     typedef message::block::ptr_list block_ptr_list;
 
-    bool handle_reorganized(const code& ec, size_t fork_height,
-        const block_const_ptr_list& incoming,
-        const block_const_ptr_list& outgoing);
+    bool handle_reorganized(code ec, size_t fork_height,
+        block_const_ptr_list_const_ptr incoming,
+        block_const_ptr_list_const_ptr outgoing);
 
     void handle_headers_synchronized(const code& ec, result_handler handler);
     void handle_network_stopped(const code& ec, result_handler handler);

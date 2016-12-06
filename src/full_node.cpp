@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <utility>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -186,8 +187,9 @@ void full_node::handle_running(const code& ec, result_handler handler)
 }
 
 // A typical reorganization consists of one incoming and zero outgoing blocks.
-bool full_node::handle_reorganized(const code& ec, size_t fork_height,
-    const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
+bool full_node::handle_reorganized(code ec, size_t fork_height,
+    block_const_ptr_list_const_ptr incoming,
+    block_const_ptr_list_const_ptr outgoing)
 {
     if (stopped() || ec == error::service_stopped)
         return false;
@@ -200,15 +202,15 @@ bool full_node::handle_reorganized(const code& ec, size_t fork_height,
         return false;
     }
 
-    for (const auto block: outgoing)
+    for (const auto block: *outgoing)
         LOG_DEBUG(LOG_NODE)
             << "Reorganization moved block to orphan pool ["
             << encode_hash(block->header().hash()) << "]";
 
-    BITCOIN_ASSERT(!incoming.empty());
-    const auto height = safe_add(fork_height, incoming.size());
+    BITCOIN_ASSERT(!incoming->empty());
+    const auto height = safe_add(fork_height, incoming->size());
 
-    set_top_block({ incoming.back()->hash(), height });
+    set_top_block({ incoming->back()->hash(), height });
     return true;
 }
 
@@ -301,14 +303,14 @@ safe_chain& full_node::chain()
 // Subscriptions.
 // ----------------------------------------------------------------------------
 
-void full_node::subscribe_blockchain(reorganize_handler handler)
+void full_node::subscribe_blockchain(reorganize_handler&& handler)
 {
-    chain().subscribe_reorganize(handler);
+    chain().subscribe_reorganize(std::move(handler));
 }
 
-void full_node::subscribe_transaction(transaction_handler handler)
+void full_node::subscribe_transaction(transaction_handler&& handler)
 {
-    chain().subscribe_transaction(handler);
+    chain().subscribe_transaction(std::move(handler));
 }
 
 } // namespace node

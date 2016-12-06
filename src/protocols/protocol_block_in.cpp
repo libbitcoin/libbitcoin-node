@@ -372,8 +372,8 @@ void protocol_block_in::handle_store_block(const code& ec,
 //-----------------------------------------------------------------------------
 
 // At least one block was accepted into the chain, originating from any peer.
-bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
-    const block_const_ptr_list& incoming, const block_const_ptr_list& outgoing)
+bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
+    block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)
 {
     if (stopped() || ec == error::service_stopped)
         return false;
@@ -387,13 +387,13 @@ bool protocol_block_in::handle_reorganized(const code& ec, size_t fork_height,
         return false;
     }
 
-    ////// Report the blocks that originated from this peer.
-    ////// If originating peer is dropped there will be no report here.
-    ////for (const auto block: incoming)
-    ////    if (block->originator() == nonce())
-    ////        LOG_DEBUG(LOG_NODE)
-    ////            << "Reorganized block [" << encode_hash(block->header().hash())
-    ////            << "] from [" << authority() << "].";
+    // Report the blocks that originated from this peer.
+    // If originating peer is dropped there will be no report here.
+    for (const auto block: *incoming)
+        if (block->originator() == nonce())
+            LOG_DEBUG(LOG_NODE)
+                << "Reorganized block [" << encode_hash(block->header().hash())
+                << "] from [" << authority() << "].";
 
     return true;
 }

@@ -84,12 +84,18 @@ typedef message::block::ptr block_ptr;
 typedef message::block::const_ptr block_const_ptr;
 typedef message::block::ptr_list block_ptr_list;
 typedef message::block::const_ptr_list block_const_ptr_list;
+typedef message::block::const_ptr_list_ptr block_const_ptr_list_ptr;
+typedef message::block::const_ptr_list_const_ptr
+    block_const_ptr_list_const_ptr;
 
 typedef message::transaction::ptr transaction_ptr;
 typedef message::transaction::const_ptr transaction_const_ptr;
 typedef message::transaction::ptr_list transaction_ptr_list;
-typedef message::transaction::const_ptr_list
-    transaction_const_ptr_list;
+typedef message::transaction::const_ptr_list transaction_const_ptr_list;
+////typedef message::transaction::const_ptr_list_ptr
+////    transaction_const_ptr_list_ptr;
+////typedef message::transaction::const_ptr_list_const_ptr
+////    transaction_const_ptr_list_const_ptr;
 
 } // namespace node
 } // namespace libbitcoin

@@ -63,9 +63,10 @@ private:
     void handle_fetch_locator_headers(const code& ec, headers_ptr message);
 
     void handle_stop(const code&);
-    bool handle_reorganized(const code& ec, size_t fork_height,
-        const block_const_ptr_list& incoming,
-        const block_const_ptr_list& outgoing);
+
+    bool handle_reorganized(code ec, size_t fork_height,
+        block_const_ptr_list_const_ptr incoming,
+        block_const_ptr_list_const_ptr outgoing);
 
     full_node& node_;
     blockchain::safe_chain& chain_;
