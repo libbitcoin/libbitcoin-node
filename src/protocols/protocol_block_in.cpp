@@ -20,7 +20,9 @@
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <functional>
+#include <iomanip>
 #include <memory>
 #include <string>
 #include <bitcoin/blockchain.hpp>
@@ -40,6 +42,7 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
+static constexpr size_t micro_per_milli = 1000;
 static const auto get_blocks_interval = asio::seconds(2);
 
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
@@ -327,6 +330,69 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     return true;
 }
 
+inline bool enabled(size_t height)
+{
+    // Vary the reporting performance reporting interval by height.
+    const auto modulus =
+        (height < 100000 ? 100 :
+        (height < 200000 ? 10 : 1));
+
+    return height % modulus == 0;
+}
+
+inline float micro(const asio::time_point& start, const asio::time_point& end)
+{
+    using namespace std::chrono;
+    const auto elapsed = duration_cast<asio::microseconds>(end - start);
+    return static_cast<float>(elapsed.count());
+}
+
+inline float milli(const asio::time_point& start, const asio::time_point& end)
+{
+    return micro(start, end) / micro_per_milli;
+}
+
+inline float micro_per_input(const asio::time_point& start,
+    const asio::time_point& end, size_t inputs)
+{
+    return micro(start, end) / inputs;
+}
+
+void protocol_block_in::report(const chain::block& block)
+{
+    BITCOIN_ASSERT(block.validation.state);
+    const auto height = block.validation.state->height();
+
+    if (enabled(height))
+    {
+        #define PER_INPUT(from, to) \
+        std::setw(6) << micro_per_input(times.from, times.to, inputs)
+
+        const auto& times = block.validation;
+        const auto now = asio::steady_clock::now();
+        const auto transactions = block.transactions().size();
+        const auto inputs = std::max(block.total_inputs(), size_t(1));
+        const auto total_time = milli(times.start_deserialize, now);
+        const auto total_valid = milli(times.start_check, times.start_notify);
+
+        LOG_INFO(LOG_BLOCKCHAIN)
+            << "Block [" << height << "]"
+            << std::setprecision(4)
+            << " " << std::setw(4) << transactions
+            << " " << std::setw(4) << inputs
+            << " " << std::setw(5) << total_time
+            << " " << std::setw(5) << total_valid
+            << " " << PER_INPUT(start_check, start_notify)
+            << " " << PER_INPUT(start_deserialize, end_deserialize)
+            << " " << PER_INPUT(end_deserialize, start_check)
+            << " " << PER_INPUT(start_check, start_populate)
+            << " " << PER_INPUT(start_populate, start_accept)
+            << " " << PER_INPUT(start_accept, start_connect)
+            << " " << PER_INPUT(start_connect, start_notify)
+            << " " << PER_INPUT(start_push, end_push);
+    }
+}
+
 void protocol_block_in::handle_store_block(const code& ec,
     block_const_ptr message)
 {
@@ -363,9 +429,11 @@ void protocol_block_in::handle_store_block(const code& ec,
     BITCOIN_ASSERT(state);
 
     LOG_DEBUG(LOG_NODE)
-        << "Connected block [" << encoded << "] at height ["
-        << state->height() << "] from [" << authority() << "] ("
-        << state->enabled_forks() << ", " << state->minimum_version() << ").";
+        << "Connected block [" << encoded << "] at height [" << state->height()
+        << "] from [" << authority() << "] (" << state->enabled_forks() << ", "
+        << state->minimum_version() << ").";
+
+    report(*message);
 }
 
 // Subscription.
@@ -387,13 +455,13 @@ bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
         return false;
     }
 
-    // Report the blocks that originated from this peer.
-    // If originating peer is dropped there will be no report here.
-    for (const auto block: *incoming)
-        if (block->originator() == nonce())
-            LOG_DEBUG(LOG_NODE)
-                << "Reorganized block [" << encode_hash(block->header().hash())
-                << "] from [" << authority() << "].";
+    ////// Report the blocks that originated from this peer.
+    ////// If originating peer is dropped there will be no report here.
+    ////for (const auto block: *incoming)
+    ////    if (block->originator() == nonce())
+    ////        LOG_DEBUG(LOG_NODE)
+    ////            << "Reorganized block [" << encode_hash(block->header().hash())
+    ////            << "] from [" << authority() << "].";
 
     return true;
 }
