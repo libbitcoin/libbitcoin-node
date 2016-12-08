@@ -46,6 +46,8 @@ public:
     virtual void start();
 
 private:
+    static void report(const chain::block& block);
+
     void get_block_inventory(const code& ec);
     void send_get_blocks(const hash_digest& stop_hash);
     void send_get_data(const code& ec, get_data_ptr message);
