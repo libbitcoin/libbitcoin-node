@@ -21,10 +21,12 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <iomanip>
 #include <memory>
 #include <string>
+#include <boost/format.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -347,15 +349,15 @@ inline float micro(const asio::time_point& start, const asio::time_point& end)
     return static_cast<float>(elapsed.count());
 }
 
-inline float milli(const asio::time_point& start, const asio::time_point& end)
+inline size_t micro_per(const asio::time_point& start,
+    const asio::time_point& end, size_t value)
 {
-    return micro(start, end) / micro_per_milli;
+    return static_cast<size_t>(std::round(micro(start, end) / value));
 }
 
-inline float micro_per_input(const asio::time_point& start,
-    const asio::time_point& end, size_t inputs)
+inline size_t milli(const asio::time_point& start, const asio::time_point& end)
 {
-    return micro(start, end) / inputs;
+    return micro_per(start, end, micro_per_milli);
 }
 
 void protocol_block_in::report(const chain::block& block)
@@ -365,31 +367,44 @@ void protocol_block_in::report(const chain::block& block)
 
     if (enabled(height))
     {
-        #define PER_INPUT(from, to) \
-        std::setw(6) << micro_per_input(times.from, times.to, inputs)
-
         const auto& times = block.validation;
         const auto now = asio::steady_clock::now();
         const auto transactions = block.transactions().size();
         const auto inputs = std::max(block.total_inputs(), size_t(1));
-        const auto total_time = milli(times.start_deserialize, now);
+        ////const auto total_time = milli(times.start_deserialize, now);
         const auto total_valid = milli(times.start_check, times.start_notify);
 
-        LOG_INFO(LOG_BLOCKCHAIN)
-            << "Block [" << height << "]"
-            << std::setprecision(4)
-            << " " << std::setw(4) << transactions
-            << " " << std::setw(4) << inputs
-            << " " << std::setw(5) << total_time
-            << " " << std::setw(5) << total_valid
-            << " " << PER_INPUT(start_check, start_notify)
-            << " " << PER_INPUT(start_deserialize, end_deserialize)
-            << " " << PER_INPUT(end_deserialize, start_check)
-            << " " << PER_INPUT(start_check, start_populate)
-            << " " << PER_INPUT(start_populate, start_accept)
-            << " " << PER_INPUT(start_accept, start_connect)
-            << " " << PER_INPUT(start_connect, start_notify)
-            << " " << PER_INPUT(start_push, end_push);
+        boost::format format(
+            "Block [%|i|] %|4i| txs %|4i| ins %|4i| vms"
+                        " %|4i| vµs %|4i| rµs %|5i| wµs %|4i| cµs"
+                        " %|4i| pµs %|4i| aµs %|4i| sµs %|4i| dµs");
+
+        LOG_INFO(LOG_BLOCKCHAIN) << (format %
+            height % transactions % inputs % /*total_time %*/ total_valid %
+
+            // validation time per input
+            micro_per(times.start_check, times.start_notify, inputs) %
+
+            // deserialization (read) time per input
+            micro_per(times.start_deserialize, times.end_deserialize, inputs) %
+
+            // wait time per input
+            micro_per(times.end_deserialize, times.start_check, inputs) %
+
+            // check time per input
+            micro_per(times.start_check, times.start_populate, inputs) %
+
+            // population time per input
+            micro_per(times.start_populate, times.start_accept, inputs) %
+
+            // accept time per input
+            micro_per(times.start_accept, times.start_connect, inputs) %
+
+            // connect (script) time per input
+            micro_per(times.start_connect, times.start_notify, inputs) %
+
+            // deposit time per input
+            micro_per(times.start_push, times.end_push, inputs));
     }
 }
 
