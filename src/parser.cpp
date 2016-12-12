@@ -259,11 +259,6 @@ options_metadata parser::load_settings()
         "The maximum number of peer hosts in the pool, defaults to 1000."
     )
     (
-        "network.relay_transactions",
-        value<bool>(&configured.network.relay_transactions),
-        "Request that peers relay transactions, defaults to true."
-    )
-    (
         "network.hosts_file",
         value<path>(&configured.network.hosts_file),
         "The peer hosts cache file path, defaults to 'hosts.cache'."
@@ -310,22 +305,12 @@ options_metadata parser::load_settings()
         value<uint32_t>(&configured.database.transaction_table_buckets),
         "Transaction hash table size, defaults to 110000000."
     )
-    (
-        "database.spend_table_buckets",
-        value<uint32_t>(&configured.database.block_table_buckets),
-        "Spend hash table size, defaults to 250000000."
-    )
-    (
-        "database.history_table_buckets",
-        value<uint32_t>(&configured.database.history_table_buckets),
-        "History hash table size, defaults to 107000000."
-    )
 
     /* [blockchain] */
     (
-        "blockchain.threads",
-        value<uint32_t>(&configured.chain.threads),
-        "The number of threads dedicated to block validation, defaults to 0 (physical cores)."
+        "blockchain.cores",
+        value<uint32_t>(&configured.chain.cores),
+        "The number of cores dedicated to block validation, defaults to 0 (physical cores)."
     )
     (
         "blockchain.priority",
@@ -378,6 +363,12 @@ options_metadata parser::load_settings()
         "node.initial_connections",
         value<uint32_t>(&configured.node.initial_connections),
         "The maximum number of connections for initial block download, defaults to 8."
+    )
+    (
+        /* Internally this network, but it is conceptually a node setting.*/
+        "node.relay_transactions",
+        value<bool>(&configured.network.relay_transactions),
+        "Request that peers relay transactions, defaults to true."
     )
     (
         "node.transaction_pool_refresh",

@@ -41,10 +41,10 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::message;
 using namespace bc::network;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
-static constexpr size_t micro_per_milli = 1000;
 static const auto get_blocks_interval = asio::seconds(2);
 
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
@@ -418,22 +418,24 @@ inline bool enabled(size_t height)
     return height % modulus == 0;
 }
 
-inline float micro(const asio::time_point& start, const asio::time_point& end)
+inline float difference(const asio::time_point& start,
+    const asio::time_point& end)
 {
-    using namespace std::chrono;
     const auto elapsed = duration_cast<asio::microseconds>(end - start);
     return static_cast<float>(elapsed.count());
 }
 
-inline size_t micro_per(const asio::time_point& start,
+inline size_t unit_cost(const asio::time_point& start,
     const asio::time_point& end, size_t value)
 {
-    return static_cast<size_t>(std::round(micro(start, end) / value));
+    return static_cast<size_t>(std::round(difference(start, end) / value));
 }
 
-inline size_t milli(const asio::time_point& start, const asio::time_point& end)
+inline size_t total_cost_ms(const asio::time_point& start,
+    const asio::time_point& end)
 {
-    return micro_per(start, end, micro_per_milli);
+    static constexpr size_t microseconds_per_millisecond = 1000;
+    return unit_cost(start, end, microseconds_per_millisecond);
 }
 
 void protocol_block_in::report(const chain::block& block)
@@ -455,32 +457,32 @@ void protocol_block_in::report(const chain::block& block)
         LOG_INFO(LOG_BLOCKCHAIN)
             << (format % height % transactions % inputs %
 
-            // wait total
-            milli(times.end_deserialize, times.start_check) %
+            // wait total (ms)
+            total_cost_ms(times.end_deserialize, times.start_check) %
 
-            // validation total
-            milli(times.start_check, times.start_notify) %
+            // validation total (ms)
+            total_cost_ms(times.start_check, times.start_notify) %
 
-            // validation per input
-            micro_per(times.start_check, times.start_notify, inputs) %
+            // validation per input (µs)
+            unit_cost(times.start_check, times.start_notify, inputs) %
 
-            // deserialization (read) time per input
-            micro_per(times.start_deserialize, times.end_deserialize, inputs) %
+            // deserialization (read) per input (µs)
+            unit_cost(times.start_deserialize, times.end_deserialize, inputs) %
 
-            // check per input
-            micro_per(times.start_check, times.start_populate, inputs) %
+            // check per input (µs)
+            unit_cost(times.start_check, times.start_populate, inputs) %
 
-            // population per input
-            micro_per(times.start_populate, times.start_accept, inputs) %
+            // population per input (µs)
+            unit_cost(times.start_populate, times.start_accept, inputs) %
 
-            // accept per input
-            micro_per(times.start_accept, times.start_connect, inputs) %
+            // accept per input (µs)
+            unit_cost(times.start_accept, times.start_connect, inputs) %
 
-            // connect (script) per input
-            micro_per(times.start_connect, times.start_notify, inputs) %
+            // connect (script) per input (µs)
+            unit_cost(times.start_connect, times.start_notify, inputs) %
 
-            // deposit per input
-            micro_per(times.start_push, times.end_push, inputs));
+            // deposit per input (µs)
+            unit_cost(times.start_push, times.end_push, inputs));
     }
 }
 
