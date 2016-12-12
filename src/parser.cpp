@@ -310,16 +310,6 @@ options_metadata parser::load_settings()
         value<uint32_t>(&configured.database.transaction_table_buckets),
         "Transaction hash table size, defaults to 110000000."
     )
-    (
-        "database.spend_table_buckets",
-        value<uint32_t>(&configured.database.block_table_buckets),
-        "Spend hash table size, defaults to 250000000."
-    )
-    (
-        "database.history_table_buckets",
-        value<uint32_t>(&configured.database.history_table_buckets),
-        "History hash table size, defaults to 107000000."
-    )
 
     /* [blockchain] */
     (
