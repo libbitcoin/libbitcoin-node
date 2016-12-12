@@ -342,6 +342,12 @@ options_metadata parser::load_settings()
         value<uint32_t>(&configured.chain.block_pool_capacity),
         "The maximum number of orphan blocks in the pool, defaults to 50."
     )
+    
+    (
+        "blockchain.cache_capacity",
+        value<uint32_t>(&configured.chain.cache_capacity),
+        "The maximum number of entries in the unspent outputs cache, defaults to 0."
+    )
     (
         "blockchain.enabled_forks",
         value<uint32_t>(&configured.chain.enabled_forks),
