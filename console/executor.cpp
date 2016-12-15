@@ -20,8 +20,10 @@
 #include "executor.hpp"
 
 #include <csignal>
+#include <ctime>
 #include <functional>
 #include <future>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -292,11 +294,16 @@ void executor::stop(const code& ec)
 // Set up logging.
 void executor::initialize_output()
 {
-    LOG_DEBUG(LOG_NODE) << BN_LOG_HEADER;
-    LOG_INFO(LOG_NODE) << BN_LOG_HEADER;
-    LOG_WARNING(LOG_NODE) << BN_LOG_HEADER;
-    LOG_ERROR(LOG_NODE) << BN_LOG_HEADER;
-    LOG_FATAL(LOG_NODE) << BN_LOG_HEADER;
+    // TODO: move to bc utility.
+    const auto time = std::time(nullptr);
+    const auto local = std::put_time(std::localtime(&time), "%c");
+
+    const auto header = format(BN_LOG_HEADER) % local;
+    LOG_DEBUG(LOG_NODE) << header;
+    LOG_INFO(LOG_NODE) << header;
+    LOG_WARNING(LOG_NODE) << header;
+    LOG_ERROR(LOG_NODE) << header;
+    LOG_FATAL(LOG_NODE) << header;
 
     const auto& file = metadata_.configured.file;
 
