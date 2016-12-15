@@ -45,7 +45,7 @@ using namespace std::chrono;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
-static const auto get_blocks_interval = asio::seconds(2);
+static const auto get_blocks_interval = asio::seconds(1);
 
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
