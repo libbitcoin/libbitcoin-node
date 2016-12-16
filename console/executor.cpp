@@ -20,8 +20,10 @@
 #include "executor.hpp"
 
 #include <csignal>
+#include <ctime>
 #include <functional>
 #include <future>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -292,11 +294,22 @@ void executor::stop(const code& ec)
 // Set up logging.
 void executor::initialize_output()
 {
-    LOG_DEBUG(LOG_NODE) << BN_LOG_HEADER;
-    LOG_INFO(LOG_NODE) << BN_LOG_HEADER;
-    LOG_WARNING(LOG_NODE) << BN_LOG_HEADER;
-    LOG_ERROR(LOG_NODE) << BN_LOG_HEADER;
-    LOG_FATAL(LOG_NODE) << BN_LOG_HEADER;
+    // TODO: move to bc::log.
+    // std::strftime is required because gcc doesn't implement std::put_time.
+    const auto local_time = []()
+    {
+        char buffer[24];
+        const auto time = std::time(nullptr);
+        std::strftime(buffer, sizeof(buffer), "%c", std::localtime(&time));
+        return std::string(buffer);
+    };
+
+    const auto header = format(BN_LOG_HEADER) % local_time();
+    LOG_DEBUG(LOG_NODE) << header;
+    LOG_INFO(LOG_NODE) << header;
+    LOG_WARNING(LOG_NODE) << header;
+    LOG_ERROR(LOG_NODE) << header;
+    LOG_FATAL(LOG_NODE) << header;
 
     const auto& file = metadata_.configured.file;
 
