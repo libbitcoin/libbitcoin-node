@@ -200,8 +200,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    // TODO: implement fee computation (which requires utxo lookup).
-    const uint64_t fee = 0;
+    const auto fee = message->fees();
 
     // Transactions are discovered and announced individually.
     if (message->originator() != nonce() && fee >= minimum_fee_.load())
