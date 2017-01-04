@@ -332,6 +332,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     return true;
 }
 
+// The transaction has been saved to the block chain (or not).
+// This will be picked up by subscription in block_out and will cause the block
+// to be announced to non-originating peers.
 void protocol_block_in::handle_store_block(const code& ec,
     block_const_ptr message)
 {
