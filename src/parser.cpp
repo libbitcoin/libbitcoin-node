@@ -176,7 +176,7 @@ options_metadata parser::load_settings()
     (
         "network.threads",
         value<uint32_t>(&configured.network.threads),
-        "The number of threads in the network threadpool, defaults to 50."
+        "The number of threads in the network threadpool, defaults to 0 (physical cores)."
     )
     (
         "network.protocol_maximum",
