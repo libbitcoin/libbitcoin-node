@@ -248,7 +248,6 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    // TODO: limit the size of the request to max_get_data.
     // Ignore non-block inventory requests in this protocol.
     for (const auto& inventory: message->inventories())
     {

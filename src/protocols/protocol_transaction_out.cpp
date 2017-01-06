@@ -110,7 +110,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
     memory_pool_const_ptr)
 {
     // The handler may be invoked *multiple times* by one blockchain call.
-    chain_.fetch_floaters(max_inventory_count,
+    chain_.fetch_floaters(max_inventory,
         BIND2(handle_fetch_floaters, _1, _2));
 
     // Drop this subscription after the first request.
