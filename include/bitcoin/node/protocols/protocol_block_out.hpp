@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -46,6 +47,8 @@ public:
     virtual void start();
 
 private:
+    size_t locator_limit();
+
     void send_block(const code& ec, block_ptr message, uint64_t height,
         const hash_digest& hash);
     void send_merkle_block(const code& ec, merkle_block_ptr message,
