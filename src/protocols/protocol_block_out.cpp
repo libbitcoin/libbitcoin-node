@@ -40,10 +40,6 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// Protocol limit.
-static constexpr auto headers_cap = 2000u;
-static constexpr auto inventory_cap = 500u;
-
 protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
@@ -126,35 +122,19 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
         return false;
     }
 
-    const auto height = node_.top_block().height();
-    const auto locator_size = message->start_hashes().size();
-    const auto locator_limit = chain::block::locator_size(height) + 1;
-
-    // The locator cannot be longer than allowed by our chain length.
-    // This is DoS protection, otherwise a peer could tie up our database.
-    // If we are not synced to near the height of peers then this effectively
-    // prevents peers from syncing from us. Ideally we should use initial block
-    // download to get close before enabling this protocol.
-    if (locator_size > locator_limit)
+    if (message->start_hashes().size() > locator_limit())
     {
         LOG_WARNING(LOG_NODE)
-            << "Invalid get_headers locator size (" << locator_size
-            << ") from [" << authority() << "] ";
+            << "Invalid get_headers locator size ("
+            << message->start_hashes().size() << ") from ["
+            << authority() << "] ";
         stop(error::channel_stopped);
         return false;
     }
 
-    // The peer threshold prevents a peer from creating an unnecessary backlog
-    // for itself in the case where it is requesting without having processed
-    // all of its existing backlog. This also reduces its load on us.
-    // This could cause a problem during a reorg, where the peer regresses
-    // and one of its other peers populates the chain back to this level. In
-    // that case we would not respond but our peer's other peer should.
-    // Other than a reorg there is no reason for the peer to regress, as
-    // locators are only useful in walking up the chain.
     const auto threshold = last_locator_top_.load();
 
-    chain_.fetch_locator_block_headers(message, threshold, headers_cap,
+    chain_.fetch_locator_block_headers(message, threshold, max_get_headers,
         BIND2(handle_fetch_locator_headers, _1, _2));
     return true;
 }
@@ -200,24 +180,19 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
-    const auto height = node_.top_block().height();
-    const auto locator_size = message->start_hashes().size();
-    const auto locator_limit = block::locator_size(height) + 1;
-
-    // See comments in handle_receive_get_headers.
-    if (locator_size > locator_limit)
+    if (message->start_hashes().size() > locator_limit())
     {
         LOG_WARNING(LOG_NODE)
-            << "Invalid get_blocks locator size (" << locator_size
-            << ") from [" << authority() << "] ";
+            << "Invalid get_blocks locator size (" 
+            << message->start_hashes().size() << ") from ["
+            << authority() << "] ";
         stop(error::channel_stopped);
         return false;
     }
 
-    // See comments in handle_receive_get_headers.
     const auto threshold = last_locator_top_.load();
 
-    chain_.fetch_locator_block_hashes(message, threshold, inventory_cap,
+    chain_.fetch_locator_block_hashes(message, threshold, max_get_blocks,
         BIND2(handle_fetch_locator_hashes, _1, _2));
     return true;
 }
@@ -264,6 +239,16 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
+    if (message->inventories().size() > max_get_data)
+    {
+        LOG_WARNING(LOG_NODE)
+            << "Invalid get_data size (" << message->inventories().size()
+            << ") from [" << authority() << "] ";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    // TODO: limit the size of the request to max_get_data.
     // Ignore non-block inventory requests in this protocol.
     for (const auto& inventory: message->inventories())
     {
@@ -307,7 +292,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
     SEND2(*message, handle_send, _1, message->command);
 }
 
-// TODO: move filtered_block to derived class protocol_block_out_70001.
+// TODO: move merkle_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
     merkle_block_ptr message, uint64_t, const hash_digest& hash)
 {
@@ -387,6 +372,30 @@ void protocol_block_out::handle_stop(const code&)
     LOG_DEBUG(LOG_NETWORK)
         << "Stopped block_out protocol";
 }
+
+// Utility.
+//-----------------------------------------------------------------------------
+
+// The locator cannot be longer than allowed by our chain length.
+// This is DoS protection, otherwise a peer could tie up our database.
+// If we are not synced to near the height of peers then this effectively
+// prevents peers from syncing from us. Ideally we should use initial block
+// download to get close before enabling this protocol.
+size_t protocol_block_out::locator_limit()
+{
+    const auto height = node_.top_block().height();
+    return safe_add(chain::block::locator_size(height), size_t(1));
+}
+
+// Threshold:
+// The peer threshold prevents a peer from creating an unnecessary backlog
+// for itself in the case where it is requesting without having processed
+// all of its existing backlog. This also reduces its load on us.
+// This could cause a problem during a reorg, where the peer regresses
+// and one of its other peers populates the chain back to this level. In
+// that case we would not respond but our peer's other peer should.
+// Other than a reorg there is no reason for the peer to regress, as
+// locators are only useful in walking up the chain.
 
 } // namespace node
 } // namespace libbitcoin
