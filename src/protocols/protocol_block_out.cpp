@@ -292,7 +292,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
     SEND2(*message, handle_send, _1, message->command);
 }
 
-// TODO: move filtered_block to derived class protocol_block_out_70001.
+// TODO: move merkle_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
     merkle_block_ptr message, uint64_t, const hash_digest& hash)
 {
