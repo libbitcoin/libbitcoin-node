@@ -48,7 +48,7 @@ protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     chain_(chain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
-    headers_to_peer_(negotiated_version() >= version::level::bip130),
+    headers_to_peer_(false),
 
     CONSTRUCT_TRACK(protocol_block_out)
 {
@@ -62,7 +62,7 @@ void protocol_block_out::start()
     protocol_events::start(BIND1(handle_stop, _1));
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
-    if (headers_to_peer_)
+    if (negotiated_version() >= version::level::bip130)
     {
         // Send headers vs. inventory anncements if headers_to_peer_ is set.
         SUBSCRIBE2(send_headers, handle_receive_send_headers, _1, _2);
@@ -98,7 +98,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
     }
 
     // Block annoucements will be headers messages instead of inventory.
-    headers_to_peer_.store(true);
+    headers_to_peer_ = true;
 
     // Do not resubscribe after handling this one-time message.
     return false;
