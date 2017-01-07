@@ -99,7 +99,7 @@ void protocol_block_in::start()
 // This is fired by the callback (i.e. base timer and stop handler).
 void protocol_block_in::get_block_inventory(const code& ec)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return;
 
     if (ec && ec != error::channel_timeout)
@@ -135,8 +135,7 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
     get_headers_ptr message, const hash_digest& stop_hash)
 {
-    if (stopped() || ec == error::service_stopped ||
-        message->start_hashes().empty())
+    if (stopped() || ec == error::service_stopped)
         return;
 
     const auto& last_hash = message->start_hashes().front();
@@ -149,6 +148,9 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
         stop(ec);
         return;
     }
+
+    if (message->start_hashes().empty())
+        return;
 
     // TODO: move get_headers to a derived class protocol_block_in_31800.
     const auto use_headers = negotiated_version() >= version::level::headers;
@@ -178,7 +180,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 bool protocol_block_in::handle_receive_headers(const code& ec,
     headers_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -206,7 +208,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
 bool protocol_block_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -231,8 +233,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 void protocol_block_in::handle_filter_orphans(const code& ec,
     get_data_ptr message)
 {
-    if (stopped() || ec == error::service_stopped ||
-        message->inventories().empty())
+    if (stopped() || ec == error::service_stopped)
         return;
 
     if (ec)
@@ -244,14 +245,16 @@ void protocol_block_in::handle_filter_orphans(const code& ec,
         return;
     }
 
+    if (message->inventories().empty())
+        return;
+
     // Remove block hashes found in the blockchain (dups not allowed).
     chain_.filter_blocks(message, BIND2(send_get_data, _1, message));
 }
 
 void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 {
-    if (stopped() || ec == error::service_stopped ||
-        message->inventories().empty())
+    if (stopped() || ec == error::service_stopped)
         return;
 
     if (ec)
@@ -262,6 +265,9 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
         stop(ec);
         return;
     }
+
+    if (message->inventories().empty())
+        return;
 
     // inventory|headers->get_data[blocks]
     SEND2(*message, handle_send, _1, message->command);
@@ -274,7 +280,7 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 bool protocol_block_in::handle_receive_not_found(const code& ec,
     not_found_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -307,7 +313,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
 bool protocol_block_in::handle_receive_block(const code& ec,
     block_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
