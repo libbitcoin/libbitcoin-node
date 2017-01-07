@@ -48,7 +48,7 @@ protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     chain_(chain),
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
-    headers_to_peer_(negotiated_version() >= version::level::bip130),
+    headers_to_peer_(false),
 
     CONSTRUCT_TRACK(protocol_block_out)
 {
@@ -62,7 +62,7 @@ void protocol_block_out::start()
     protocol_events::start(BIND1(handle_stop, _1));
 
     // TODO: move send_headers to a derived class protocol_block_out_70012.
-    if (headers_to_peer_)
+    if (negotiated_version() >= version::level::bip130)
     {
         // Send headers vs. inventory anncements if headers_to_peer_ is set.
         SUBSCRIBE2(send_headers, handle_receive_send_headers, _1, _2);
@@ -85,7 +85,7 @@ void protocol_block_out::start()
 bool protocol_block_out::handle_receive_send_headers(const code& ec,
     send_headers_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -98,7 +98,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
     }
 
     // Block annoucements will be headers messages instead of inventory.
-    headers_to_peer_.store(true);
+    headers_to_peer_ = true;
 
     // Do not resubscribe after handling this one-time message.
     return false;
@@ -111,7 +111,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
     get_headers_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -143,8 +143,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     headers_ptr message)
 {
-    if (stopped() || ec == error::service_stopped ||
-        message->elements().empty())
+    if (stopped() || ec == error::service_stopped)
         return;
 
     if (ec)
@@ -155,6 +154,9 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
         stop(ec);
         return;
     }
+
+    if (message->elements().empty())
+        return;
 
     // Respond to get_headers with headers.
     SEND2(*message, handle_send, _1, message->command);
@@ -169,7 +171,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
 bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     get_blocks_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -200,8 +202,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     inventory_ptr message)
 {
-    if (stopped() || ec == error::service_stopped || 
-        message->inventories().empty())
+    if (stopped() || ec == error::service_stopped)
         return;
 
     if (ec)
@@ -212,6 +213,9 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
         stop(ec);
         return;
     }
+
+    if (message->inventories().empty())
+        return;
 
     // Respond to get_blocks with inventory.
     SEND2(*message, handle_send, _1, message->command);
@@ -227,7 +231,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
 bool protocol_block_out::handle_receive_get_data(const code& ec,
     get_data_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
