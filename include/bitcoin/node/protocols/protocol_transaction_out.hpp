@@ -58,9 +58,7 @@ private:
     void handle_fetch_floaters(const code& ec, inventory_const_ptr message);
 
     void handle_stop(const code&);
-    bool handle_floated(const code& ec,
-        const chain::point::indexes& unconfirmed,
-        transaction_const_ptr message);
+    bool handle_floated(const code& ec, transaction_const_ptr message);
 
     blockchain::safe_chain& chain_;
     std::atomic<uint64_t> minimum_fee_;

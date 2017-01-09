@@ -85,7 +85,7 @@ void protocol_transaction_in::start()
 bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -164,7 +164,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     transaction_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -194,7 +194,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     // We can pick this up in transaction subscription.
     message->set_originator(nonce());
 
-    chain_.organize(message, BIND3(handle_store_transaction, _1, _2, message));
+    chain_.organize(message, BIND2(handle_store_transaction, _1, message));
     return true;
 }
 
@@ -202,14 +202,27 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 // This will be picked up by subscription in transaction_out and will cause
 // the transaction to be announced to non-originating relay-accepting peers.
 void protocol_transaction_in::handle_store_transaction(const code& ec,
-    const chain::point::indexes& unconfirmed, transaction_const_ptr message)
+    transaction_const_ptr message)
 {
-    // Examples:
-    // error::service_stopped
-    // error::input_not_found
-    // error::validate_inputs_failed
-    // error::duplicate
-    // error::success (transaction is valid and indexed into the mempool)
+    if (stopped() || ec == error::service_stopped)
+        return;
+
+    // TODO: request intervening txs if this one is an orphan.
+    ////if (ec == error::orphan_transaction)
+    ////    send_get_transactions(message);
+
+    const auto encoded = encode_hash(message->hash());
+
+    if (ec)
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Rejected transaction [" << encoded << "] from [" << authority()
+            << "] " << ec.message();
+        stop(ec);
+        return;
+    }
+
+    // TODO: validate and store unconfirmed transaction.
 }
 
 // Subscription.

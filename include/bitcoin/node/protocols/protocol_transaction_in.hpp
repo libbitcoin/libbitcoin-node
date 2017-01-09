@@ -51,7 +51,6 @@ private:
     bool handle_receive_transaction(const code& ec,
         transaction_const_ptr message);
     void handle_store_transaction(const code& ec,
-        const chain::point::indexes& unconfirmed,
         transaction_const_ptr message);
 
     bool handle_reorganized(code ec, size_t fork_height,
