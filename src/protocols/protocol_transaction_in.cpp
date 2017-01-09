@@ -49,8 +49,8 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     peer_suports_memory_pool_(negotiated_version() >= version::level::bip35),
-    refresh_pool_(relay_from_peer_ && peer_suports_memory_pool_
-        /*&& network.node_settings().transaction_pool_refresh*/),
+    refresh_pool_(relay_from_peer_ && peer_suports_memory_pool_ &&
+        node.node_settings().transaction_pool_refresh),
 
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
@@ -71,8 +71,7 @@ void protocol_transaction_in::start()
         SEND2(memory_pool(), handle_send, _1, memory_pool::command);
 
         // Refresh transaction pool on blockchain reorganization.
-        chain_.subscribe_reorganize(
-            BIND4(handle_reorganized, _1, _2, _3, _4));
+        chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
     }
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
@@ -208,6 +207,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
         return;
 
     // TODO: request intervening txs if this one is an orphan.
+    // If a peer does not order txs on a mempool response this will be chatty.
     ////if (ec == error::orphan_transaction)
     ////    send_get_transactions(message);
 
