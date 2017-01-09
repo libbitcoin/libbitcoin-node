@@ -82,7 +82,7 @@ void protocol_transaction_out::start()
 bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
     fee_filter_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -121,7 +121,10 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
 void protocol_transaction_out::handle_fetch_floaters(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped() || message->inventories().empty())
+    if (stopped() || ec == error::service_stopped)
+        return;
+
+    if (message->inventories().empty())
         return;
 
     SEND2(*message, handle_send, _1, message->command);
@@ -133,7 +136,7 @@ void protocol_transaction_out::handle_fetch_floaters(const code& ec,
 bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     get_data_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)

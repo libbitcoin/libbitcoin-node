@@ -85,7 +85,7 @@ void protocol_transaction_in::start()
 bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -164,7 +164,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     transaction_const_ptr message)
 {
-    if (stopped())
+    if (stopped() || ec == error::service_stopped)
         return false;
 
     if (ec)
@@ -204,6 +204,9 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 void protocol_transaction_in::handle_store_transaction(const code& ec,
     const chain::point::indexes& unconfirmed, transaction_const_ptr message)
 {
+    if (stopped() || ec == error::service_stopped)
+        return;
+
     // Examples:
     // error::service_stopped
     // error::input_not_found
