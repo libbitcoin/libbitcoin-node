@@ -86,8 +86,7 @@ void protocol_block_in::start()
     }
 
     // Subscribe to block acceptance notifications (for gap fill redundancy).
-    chain_.subscribe_reorganize(
-        BIND4(handle_reorganized, _1, _2, _3, _4));
+    chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
 
     // Send initial get_[blocks|headers] message by simulating first heartbeat.
     set_event(error::success);
@@ -111,7 +110,6 @@ void protocol_block_in::get_block_inventory(const code& ec)
         return;
     }
 
-    // This is also sent after each accepted block.
     send_get_blocks(null_hash);
 }
 
