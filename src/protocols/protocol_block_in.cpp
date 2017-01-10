@@ -180,7 +180,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
 
     // Remove hashes of blocks that we already have.
     // BUGBUG: this removes blocks that are not in the main chain.
-    chain_.filter_blocks(response, BIND2(handle_filter_blocks, _1, response));
+    chain_.filter_blocks(response, BIND2(send_get_data, _1, response));
     return true;
 }
 
@@ -203,31 +203,10 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     const auto response = std::make_shared<get_data>();
     message->reduce(response->inventories(), inventory::type_id::block);
 
-    // Remove block hashes found in the orphan pool.
-    chain_.filter_blocks(response, BIND2(handle_filter_blocks, _1, response));
+    // Remove hashes of blocks that we already have.
+    // BUGBUG: this removes blocks that are not in the main chain.
+    chain_.filter_blocks(response, BIND2(send_get_data, _1, response));
     return true;
-}
-
-void protocol_block_in::handle_filter_blocks(const code& ec,
-    get_data_ptr message)
-{
-    if (stopped() || ec == error::service_stopped)
-        return;
-
-    if (ec)
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Internal failure locating missing orphan hashes for ["
-            << authority() << "] " << ec.message();
-        stop(ec);
-        return;
-    }
-
-    if (message->inventories().empty())
-        return;
-
-    // Remove block hashes found in the blockchain (dups not allowed).
-    chain_.filter_blocks(message, BIND2(send_get_data, _1, message));
 }
 
 void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
@@ -238,7 +217,7 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
-            << "Internal failure locating missing block hashes for ["
+            << "Internal failure filtering block hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
         return;

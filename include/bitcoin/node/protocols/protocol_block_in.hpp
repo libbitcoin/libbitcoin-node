@@ -52,7 +52,6 @@ private:
     void send_get_blocks(const hash_digest& stop_hash);
     void send_get_data(const code& ec, get_data_ptr message);
 
-    void handle_filter_blocks(const code& ec, get_data_ptr message);
     bool handle_receive_block(const code& ec, block_const_ptr message);
     bool handle_receive_headers(const code& ec, headers_const_ptr message);
     bool handle_receive_inventory(const code& ec, inventory_const_ptr message);

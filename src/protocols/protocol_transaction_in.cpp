@@ -129,7 +129,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
-            << "Internal failure locating confirmed transaction hashes for ["
+            << "Internal failure filtering transaction hashes for ["
             << authority() << "] " << ec.message();
         stop(ec);
         return;
