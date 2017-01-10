@@ -113,23 +113,6 @@ void protocol_block_in::get_block_inventory(const code& ec)
     send_get_blocks(null_hash);
 }
 
-void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
-{
-    const auto chain_top = node_.top_block();
-    const auto chain_top_hash = chain_top.hash();
-    const auto last_locator_top = last_locator_top_.load();
-
-    // Avoid requesting from the same start as last request to this peer.
-    // This does not guarantee prevention, it's just an optimization.
-    if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
-        return;
-
-    const auto heights = block::locator_heights(chain_top.height());
-
-    chain_.fetch_block_locator(heights,
-        BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
-}
-
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
     get_headers_ptr message, const hash_digest& stop_hash)
 {
@@ -195,10 +178,9 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     const auto response = std::make_shared<get_data>();
     message->to_inventory(response->inventories(), inventory::type_id::block);
 
-    // Remove block hashes found in the orphan pool.
-    chain_.filter_orphans(response,
-        BIND2(handle_filter_orphans, _1, response));
-
+    // Remove hashes of blocks that we already have.
+    // BUGBUG: this removes blocks that are not in the main chain.
+    chain_.filter_blocks(response, BIND2(handle_filter_blocks, _1, response));
     return true;
 }
 
@@ -222,13 +204,11 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     message->reduce(response->inventories(), inventory::type_id::block);
 
     // Remove block hashes found in the orphan pool.
-    chain_.filter_orphans(response,
-        BIND2(handle_filter_orphans, _1, response));
-
+    chain_.filter_blocks(response, BIND2(handle_filter_blocks, _1, response));
     return true;
 }
 
-void protocol_block_in::handle_filter_orphans(const code& ec,
+void protocol_block_in::handle_filter_blocks(const code& ec,
     get_data_ptr message)
 {
     if (stopped() || ec == error::service_stopped)
@@ -380,6 +360,23 @@ void protocol_block_in::handle_store_block(const code& ec,
         << state->minimum_version() << ").";
 
     report(*message);
+}
+
+void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
+{
+    const auto chain_top = node_.top_block();
+    const auto chain_top_hash = chain_top.hash();
+    const auto last_locator_top = last_locator_top_.load();
+
+    // Avoid requesting from the same start as last request to this peer.
+    // This does not guarantee prevention, it's just an optimization.
+    if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
+        return;
+
+    const auto heights = block::locator_heights(chain_top.height());
+
+    chain_.fetch_block_locator(heights,
+        BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
 // Subscription.

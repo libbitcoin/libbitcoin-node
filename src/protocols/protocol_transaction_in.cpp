@@ -19,9 +19,11 @@
  */
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -97,6 +99,8 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     }
 
     const auto response = std::make_shared<get_data>();
+
+    // Copy the transaction inventories into a get_data instance.
     message->reduce(response->inventories(), inventory::type_id::transaction);
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
@@ -109,32 +113,10 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
         return false;
     }
 
-    // This is returned on a new thread.
-    // Remove matching transaction hashes found in the transaction pool.
-    chain_.filter_floaters(response,
-        BIND2(handle_filter_floaters, _1, response));
-    return true;
-}
-
-void protocol_transaction_in::handle_filter_floaters(const code& ec,
-    get_data_ptr message)
-{
-    if (stopped() || ec == error::service_stopped ||
-        message->inventories().empty())
-        return;
-
-    if (ec)
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Internal failure locating pool transaction pool hashes for ["
-            << authority() << "] " << ec.message();
-        stop(ec);
-        return;
-    }
-
+    // Remove hashes of (unspent) transactions that we already have.
     // BUGBUG: this removes spent transactions which it should not (see BIP30).
-    chain_.filter_transactions(message,
-        BIND2(send_get_data, _1, message));
+    chain_.filter_transactions(response, BIND2(send_get_data, _1, response));
+    return true;
 }
 
 void protocol_transaction_in::send_get_data(const code& ec,
@@ -206,10 +188,9 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
     if (stopped() || ec == error::service_stopped)
         return;
 
-    // TODO: request intervening txs if this one is an orphan.
-    // If a peer does not order txs on a mempool response this will be chatty.
-    ////if (ec == error::orphan_transaction)
-    ////    send_get_transactions(message);
+    // Ask the peer for ancestor txs if this one is an orphan.
+    if (ec == error::orphan_transaction)
+        send_get_transactions(message);
 
     const auto encoded = encode_hash(message->hash());
 
@@ -222,7 +203,31 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
         return;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
     // TODO: validate and store unconfirmed transaction.
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+// This will get chatty if the peer sends mempool response out of order.
+// This requests the next level of missing tx, but those may be orphans as
+// well. Those would also be discarded, until arriving at connectable txs.
+// There is no facility to re-obtain the dropped transactions. They must be
+// obtained coincidentally by peers, by a mempool message (new channel) or as a
+// result of transaction resends.
+void protocol_transaction_in::send_get_transactions(
+    transaction_const_ptr message)
+{
+    static const auto type = inventory::type_id::transaction;
+    auto missing = message->missing_previous_transactions();
+
+    if (missing.empty())
+        return;
+
+    const auto request = std::make_shared<get_data>(std::move(missing), type);
+
+    // Remove hashes of (unspent) transactions that we already have.
+    // BUGBUG: this removes spent transactions which it should not (see BIP30).
+    chain_.filter_transactions(request, BIND2(send_get_data, _1, request));
 }
 
 // Subscription.
