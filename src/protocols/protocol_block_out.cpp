@@ -122,14 +122,23 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
         return false;
     }
 
-    if (message->start_hashes().size() > locator_limit())
+    const auto size = message->start_hashes().size();
+
+    if (size > max_locator)
     {
         LOG_WARNING(LOG_NODE)
-            << "Invalid get_headers locator size ("
-            << message->start_hashes().size() << ") from ["
-            << authority() << "] ";
+            << "Excessive get_headers locator size ("
+            << size << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
         return false;
+    }
+
+    if (size > locator_limit())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Disallowed get_headers locator size ("
+            << size << ") from [" << authority() << "] ";
+        return true;
     }
 
     const auto threshold = last_locator_top_.load();
@@ -182,14 +191,23 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return false;
     }
 
-    if (message->start_hashes().size() > locator_limit())
+    const auto size = message->start_hashes().size();
+
+    if (size > max_locator)
     {
         LOG_WARNING(LOG_NODE)
-            << "Invalid get_blocks locator size (" 
-            << message->start_hashes().size() << ") from ["
-            << authority() << "] ";
+            << "Excessive get_blocks locator size ("
+            << size << ") from [" << authority() << "] ";
         stop(error::channel_stopped);
         return false;
+    }
+
+    if (size > locator_limit())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Disallowed get_blocks locator size (" 
+            << size << ") from [" << authority() << "] ";
+        return true;
     }
 
     const auto threshold = last_locator_top_.load();
@@ -383,7 +401,15 @@ void protocol_block_out::handle_stop(const code&)
 // This is DoS protection, otherwise a peer could tie up our database.
 // If we are not synced to near the height of peers then this effectively
 // prevents peers from syncing from us. Ideally we should use initial block
-// download to get close before enabling this protocol.
+// download to get close before enabling the block out protocol in any case.
+// Note that always populating a locator from the main chain results in an
+// effective limit on reorganization depth. The outer limit is 500 or 2000
+// depending on the protocol in use. However the peers starts from the first
+// point of agreement, meaning that after the first 10 locator hashes this is
+// reduced by the size of the gap. The largest cumulative gap is the sum of
+// 2^n for n where n > 1 where the sum is < 500 - 10. So Bitcoin reorganization
+// is protocol-limited to depth 256 + 10 = 266, unless nodes grow forks by
+// generating fork-relative locators.
 size_t protocol_block_out::locator_limit()
 {
     const auto height = node_.top_block().height();
