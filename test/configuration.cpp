@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 8u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 0u);
     BOOST_REQUIRE_EQUAL(instance.node.sync_timeout_seconds, 5u);
 }
 
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 8u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 0u);
     BOOST_REQUIRE_EQUAL(instance.node.sync_timeout_seconds, 5u);
 }
 
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 8u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 0u);
     BOOST_REQUIRE_EQUAL(instance.node.sync_timeout_seconds, 5u);
 }
 

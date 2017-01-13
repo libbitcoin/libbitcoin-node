@@ -333,11 +333,6 @@ options_metadata parser::load_settings()
         "Flush each reorganization to disk, defaults to false."
     )
     (
-        "blockchain.transaction_pool_capacity",
-        value<uint32_t>(&configured.chain.transaction_pool_capacity),
-        "The maximum number of transactions in the pool, defaults to 2000."
-    )
-    (
         "blockchain.reorganization_limit",
         value<uint32_t>(&configured.chain.reorganization_limit),
         "The maximum reorganization depth, defaults to 256 (0 for unlimited)."
