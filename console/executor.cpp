@@ -121,9 +121,7 @@ bool executor::do_initchain()
     {
         LOG_INFO(LOG_NODE) << format(BN_INITIALIZING_CHAIN) % directory;
 
-        const auto testnet = script::is_enabled(
-            metadata_.configured.chain.enabled_forks,
-            machine::rule_fork::easy_blocks);
+        const auto testnet = metadata_.configured.chain.easy_blocks;
 
         // Unfortunately we are limited to a choice of hardcoded chains.
         const auto genesis = testnet ? block::genesis_testnet() :
@@ -198,7 +196,7 @@ bool executor::run()
 
     // Initialize broadcast to statistics server if configured.
     log::initialize_statsd(node_->thread_pool(),
-        metadata_.configured.network.statsd_server);
+        metadata_.configured.network.statistics_server);
 
     // The callback may be returned on the same thread.
     node_->start(
