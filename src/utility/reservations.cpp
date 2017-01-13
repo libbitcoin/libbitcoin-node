@@ -44,7 +44,7 @@ static constexpr size_t max_block_request = 50000;
 reservations::reservations(check_list& hashes, fast_chain& chain,
     const settings& settings)
   : hashes_(hashes),
-    max_request_(max_block_request),
+    max_request_(max_get_data),
     timeout_(settings.sync_timeout_seconds),
     chain_(chain)
 {
