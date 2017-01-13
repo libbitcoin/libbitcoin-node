@@ -38,9 +38,6 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// The protocol maximum size for get data header requests.
-static constexpr size_t max_header_response = 2000;
-
 // The interval in which header download rate is measured and tested.
 static const asio::seconds expiry_interval(5);
 
@@ -147,7 +144,7 @@ bool protocol_header_sync::handle_receive_headers(const code& ec,
     }
 
     // If we received fewer than 2000 the peer is exhausted, try another.
-    if (message->elements().size() < max_header_response)
+    if (message->elements().size() < max_get_headers)
     {
         complete(error::operation_failed);
         return false;

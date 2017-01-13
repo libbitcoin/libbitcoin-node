@@ -35,9 +35,10 @@ public:
     settings(config::settings context);
 
     /// Properties.
-    uint32_t block_timeout_seconds;
-    uint32_t initial_connections;
-    bool transaction_pool_refresh;
+    uint32_t sync_peers;
+    uint32_t sync_timeout_seconds;
+    uint64_t minimum_fee_satoshis;
+    bool refresh_transactions;
 };
 
 } // namespace node
