@@ -52,7 +52,7 @@ class reservation_fixture
 public:
     typedef std::chrono::high_resolution_clock clock;
     reservation_fixture(reservations& reservations, size_t slot,
-        uint32_t block_timeout_seconds, clock::time_point now = clock::now());
+        uint32_t sync_timeout_seconds, clock::time_point now = clock::now());
     std::chrono::microseconds rate_window() const;
     clock::time_point now() const override;
     bool pending() const;

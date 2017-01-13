@@ -96,7 +96,7 @@ void full_node::run(result_handler handler)
     // TODO: make this safe by requiring sync if gaps found.
     ////// By setting no download connections checkpoints can be used without sync.
     ////// This also allows the maximum protocol version to be set below headers.
-    ////if (settings_.initial_connections == 0)
+    ////if (settings_.sync_peers == 0)
     ////{
     ////    // This will spawn a new thread before returning.
     ////    handle_running(error::success, handler);
