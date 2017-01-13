@@ -47,7 +47,7 @@ public:
 
     /// Construct a block reservation with the specified identifier.
     reservation(reservations& reservations, size_t slot,
-        uint32_t block_timeout_seconds);
+        uint32_t sync_timeout_seconds);
 
     /// Ensure there are no remaining reserved hashes.
     ~reservation();

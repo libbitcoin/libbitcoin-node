@@ -34,8 +34,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE_EQUAL(instance.node.initial_connections, 8u);
-    BOOST_REQUIRE_EQUAL(instance.node.block_timeout_seconds, 5u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 8u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_timeout_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
@@ -45,8 +45,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE_EQUAL(instance.node.initial_connections, 8u);
-    BOOST_REQUIRE_EQUAL(instance.node.block_timeout_seconds, 5u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 8u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_timeout_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
@@ -56,8 +56,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE_EQUAL(instance.node.initial_connections, 8u);
-    BOOST_REQUIRE_EQUAL(instance.node.block_timeout_seconds, 5u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_peers, 8u);
+    BOOST_REQUIRE_EQUAL(instance.node.sync_timeout_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
@@ -67,8 +67,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
     instance1.initchain = true;
     instance1.settings = true;
     instance1.version = true;
-    instance1.node.initial_connections = 42;
-    instance1.node.block_timeout_seconds = 24;
+    instance1.node.sync_peers = 42;
+    instance1.node.sync_timeout_seconds = 24;
 
     node::configuration instance2(instance1);
 
@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
     BOOST_REQUIRE(instance2.initchain);
     BOOST_REQUIRE(instance2.settings);
     BOOST_REQUIRE(instance2.version);
-    BOOST_REQUIRE_EQUAL(instance2.node.initial_connections, 42u);
-    BOOST_REQUIRE_EQUAL(instance2.node.block_timeout_seconds, 24u);
+    BOOST_REQUIRE_EQUAL(instance2.node.sync_peers, 42u);
+    BOOST_REQUIRE_EQUAL(instance2.node.sync_timeout_seconds, 24u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

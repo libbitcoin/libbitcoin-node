@@ -51,14 +51,14 @@ static constexpr size_t minimum_history = 3;
 static constexpr size_t micro_per_second = 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
-    uint32_t block_timeout_seconds)
+    uint32_t sync_timeout_seconds)
   : rate_({ true, 0, 0, 0 }),
     stopped_(false),
     pending_(true),
     partitioned_(false),
     reservations_(reservations),
     slot_(slot),
-    rate_window_(minimum_history * block_timeout_seconds * micro_per_second)
+    rate_window_(minimum_history * sync_timeout_seconds * micro_per_second)
 {
 }
 

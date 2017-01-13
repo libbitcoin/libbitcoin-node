@@ -71,9 +71,9 @@ message::headers::ptr message_factory(size_t count,
 }
 
 reservation_fixture::reservation_fixture(reservations& reservations,
-    size_t slot, uint32_t block_timeout_seconds,
+    size_t slot, uint32_t sync_timeout_seconds,
     clock::time_point now)
-  : reservation(reservations, slot, block_timeout_seconds),
+  : reservation(reservations, slot, sync_timeout_seconds),
     now_(now)
 {
 }
