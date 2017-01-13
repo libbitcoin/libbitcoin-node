@@ -25,9 +25,10 @@ namespace libbitcoin {
 namespace node {
 
 settings::settings()
-  : block_timeout_seconds(5),
-    initial_connections(8),
-    transaction_pool_refresh(true)
+  : sync_peers(0),
+    sync_timeout_seconds(5),
+    minimum_fee_satoshis(0),
+    refresh_transactions(true)
 {
 }
 

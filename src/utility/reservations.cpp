@@ -45,10 +45,10 @@ reservations::reservations(check_list& hashes, fast_chain& chain,
     const settings& settings)
   : hashes_(hashes),
     max_request_(max_block_request),
-    timeout_(settings.block_timeout_seconds),
+    timeout_(settings.sync_timeout_seconds),
     chain_(chain)
 {
-    initialize(settings.initial_connections);
+    initialize(settings.sync_peers);
 }
 
 bool reservations::start()

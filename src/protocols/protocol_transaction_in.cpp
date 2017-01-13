@@ -52,7 +52,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     peer_suports_memory_pool_(negotiated_version() >= version::level::bip35),
     refresh_pool_(relay_from_peer_ && peer_suports_memory_pool_ &&
-        node.node_settings().transaction_pool_refresh),
+        node.node_settings().refresh_transactions),
 
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
