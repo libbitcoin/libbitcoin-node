@@ -19,8 +19,6 @@
  */
 #include <bitcoin/node/settings.hpp>
 
-#include <thread>
-
 namespace libbitcoin {
 namespace node {
 
