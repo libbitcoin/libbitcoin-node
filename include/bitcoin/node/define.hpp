@@ -56,8 +56,8 @@ typedef message::get_data::const_ptr get_data_const_ptr;
 typedef message::get_headers::ptr get_headers_ptr;
 typedef message::get_headers::const_ptr get_headers_const_ptr;
 
-typedef message::header_message::ptr header_ptr;
-typedef message::header_message::const_ptr header_const_ptr;
+typedef message::header::ptr header_ptr;
+typedef message::header::const_ptr header_const_ptr;
 
 typedef message::headers::ptr headers_ptr;
 typedef message::headers::const_ptr headers_const_ptr;

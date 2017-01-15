@@ -170,10 +170,8 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     LOG_DEBUG(LOG_NODE)
         << "Potential transaction from [" << authority() << "].";
 
-    // HACK: this is unsafe as there may be other message subscribers.
-    // However we are currently relying on message subscriber threading limits.
-    // We can pick this up in transaction subscription.
-    message->set_originator(nonce());
+    // HACK: this is unsafe.
+    message->validation.originator = nonce();
 
     chain_.organize(message, BIND2(handle_store_transaction, _1, message));
     return true;
