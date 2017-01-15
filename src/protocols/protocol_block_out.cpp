@@ -368,7 +368,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         headers announcement;
 
         for (const auto block: *incoming)
-            if (block->originator() != nonce())
+            if (block->validation.originator != nonce())
                 announcement.elements().push_back(block->header());
 
         if (!announcement.elements().empty())
@@ -380,7 +380,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     inventory announcement;
 
     for (const auto block: *incoming)
-        if (block->originator() != nonce())
+        if (block->validation.originator != nonce())
             announcement.inventories().push_back( { id, block->header().hash() });
 
     if (!announcement.inventories().empty())

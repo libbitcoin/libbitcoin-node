@@ -286,10 +286,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Once we are at the top this will end up polling the peer.
     reset_timer();
 
-    // HACK: this is unsafe as there may be other message subscribers.
-    // However we are currently relying on message subscriber threading limits.
-    // We can test this value in the reorganization notification handler.
-    message->set_originator(nonce());
+    // HACK: this is unsafe.
+    message->validation.originator = nonce();
 
     chain_.organize(message, BIND2(handle_store_block, _1, message));
     return true;
@@ -383,7 +381,7 @@ bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
     ////// Report the blocks that originated from this peer.
     ////// If originating peer is dropped there will be no report here.
     ////for (const auto block: *incoming)
-    ////    if (block->originator() == nonce())
+    ////    if (block->validation.originator == nonce())
     ////        LOG_DEBUG(LOG_NODE)
     ////            << "Reorganized block [" << encode_hash(block->header().hash())
     ////            << "] from [" << authority() << "].";
