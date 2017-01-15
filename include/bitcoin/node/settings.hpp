@@ -37,7 +37,6 @@ public:
     /// Properties.
     uint32_t sync_peers;
     uint32_t sync_timeout_seconds;
-    uint64_t minimum_fee_satoshis;
     bool refresh_transactions;
 };
 

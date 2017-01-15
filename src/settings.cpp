@@ -25,7 +25,6 @@ namespace node {
 settings::settings()
   : sync_peers(0),
     sync_timeout_seconds(5),
-    minimum_fee_satoshis(0),
     refresh_transactions(true)
 {
 }
