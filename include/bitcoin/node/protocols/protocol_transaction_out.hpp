@@ -47,7 +47,7 @@ public:
 
 private:
     void send_transaction(const code& ec, transaction_ptr transaction,
-        uint64_t height, const hash_digest& hash);
+        size_t height, size_t position, const hash_digest& hash);
 
     bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
     bool handle_receive_fee_filter(const code& ec,

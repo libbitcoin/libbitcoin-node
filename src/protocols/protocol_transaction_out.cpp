@@ -133,6 +133,9 @@ void protocol_transaction_out::handle_fetch_floaters(const code& ec,
 // Receive get_data sequence.
 //-----------------------------------------------------------------------------
 
+// THIS SUPPORTS REQUEST OF CONFIRMED TRANSACTIONS.
+// TODO: expose a new service bit that indicates complete current tx history.
+// This would exclude transctions replaced by duplication as per BIP30.
 bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     get_data_const_ptr message)
 {
@@ -152,13 +155,13 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     for (const auto& inventory: message->inventories())
         if (inventory.type() == inventory::type_id::transaction)
             chain_.fetch_transaction(inventory.hash(),
-                BIND4(send_transaction, _1, _2, _3, inventory.hash()));
+                BIND5(send_transaction, _1, _2, _3, _4, inventory.hash()));
 
     return true;
 }
 
 void protocol_transaction_out::send_transaction(const code& ec,
-    transaction_ptr transaction, uint64_t, const hash_digest& hash)
+    transaction_ptr transaction, size_t, size_t, const hash_digest& hash)
 {
     if (stopped() || ec == error::service_stopped)
         return;
@@ -176,7 +179,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
-            << "Internal failure locating trnsaction requested by ["
+            << "Internal failure locating transaction requested by ["
             << authority() << "] " << ec.message();
         stop(ec);
         return;
