@@ -200,10 +200,6 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
         stop(ec);
         return;
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: validate and store unconfirmed transaction.
-    ///////////////////////////////////////////////////////////////////////////
 }
 
 // This will get chatty if the peer sends mempool response out of order.
