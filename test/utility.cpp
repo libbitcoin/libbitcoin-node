@@ -135,7 +135,7 @@ bool blockchain_fixture::get_block_exists(const hash_digest& block_hash) const
     return false;
 }
 
-bool blockchain_fixture::get_fork_difficulty(uint256_t& out_difficulty,
+bool blockchain_fixture::get_fork_work(uint256_t& out_difficulty,
     size_t height) const
 {
     return false;
