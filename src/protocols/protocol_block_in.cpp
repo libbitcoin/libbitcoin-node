@@ -45,7 +45,7 @@ using namespace std::chrono;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
-static const auto get_blocks_interval = asio::seconds(1);
+static const auto get_blocks_interval = asio::seconds(60);
 
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
@@ -98,7 +98,7 @@ void protocol_block_in::start()
 // This is fired by the callback (i.e. base timer and stop handler).
 void protocol_block_in::get_block_inventory(const code& ec)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec && ec != error::channel_timeout)
@@ -133,7 +133,7 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
     get_headers_ptr message, const hash_digest& stop_hash)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     const auto& last_hash = message->start_hashes().front();
@@ -178,7 +178,7 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 bool protocol_block_in::handle_receive_headers(const code& ec,
     headers_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -205,7 +205,7 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
 bool protocol_block_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -228,7 +228,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 
 void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec)
@@ -254,7 +254,7 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
 bool protocol_block_in::handle_receive_not_found(const code& ec,
     not_found_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -287,7 +287,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
 bool protocol_block_in::handle_receive_block(const code& ec,
     block_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -316,7 +316,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 void protocol_block_in::handle_store_block(const code& ec,
     block_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     const auto hash = message->header().hash();
@@ -366,7 +366,7 @@ void protocol_block_in::handle_store_block(const code& ec,
 bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
     block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
