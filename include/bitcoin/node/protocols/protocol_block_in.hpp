@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -69,6 +70,7 @@ private:
     full_node& node_;
     blockchain::safe_chain& chain_;
     bc::atomic<hash_digest> last_locator_top_;
+    const uint32_t block_poll_seconds_;
     const bool headers_from_peer_;
 };
 

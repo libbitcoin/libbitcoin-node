@@ -45,7 +45,6 @@ using namespace std::chrono;
 using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
-static const auto get_blocks_interval = asio::seconds(60);
 
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
@@ -53,6 +52,7 @@ protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     node_(node),
     chain_(chain),
     last_locator_top_(null_hash),
+    block_poll_seconds_(node.node_settings().block_poll_seconds),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),
@@ -67,7 +67,8 @@ protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
 void protocol_block_in::start()
 {
     // Use perpetual protocol timer to prevent stall (our heartbeat).
-    protocol_timer::start(get_blocks_interval, BIND1(get_block_inventory, _1));
+    protocol_timer::start(asio::seconds(block_poll_seconds_),
+        BIND1(get_block_inventory, _1));
 
     // TODO: move headers to a derived class protocol_block_in_31800.
     SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
