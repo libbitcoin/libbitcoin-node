@@ -347,6 +347,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 //-----------------------------------------------------------------------------
 
 // TODO: make sure we are announcing older blocks first here.
+// TODO: add consideration for catch-up, where we may not want to announce.
 // We never announce or inventory an orphan, only indexed blocks.
 bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)

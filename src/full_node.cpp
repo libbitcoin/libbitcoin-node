@@ -65,10 +65,10 @@ void full_node::start(result_handler handler)
         return;
     }
 
-    if (!chain_.start())
+    if (!chain_.open())
     {
         LOG_ERROR(LOG_NODE)
-            << "Blockchain failed to start.";
+            << "Failure opening blockchain store.";
         handler(error::operation_failed);
         return;
     }
@@ -103,39 +103,39 @@ void full_node::run(result_handler handler)
     ////    return;
     ////}
 
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    const auto header_sync = attach_header_sync_session();
+    ////// The instance is retained by the stop handler (i.e. until shutdown).
+    ////const auto header_sync = attach_header_sync_session();
 
-    // This is invoked on a new thread.
-    header_sync->start(
-        std::bind(&full_node::handle_headers_synchronized,
-            this, _1, handler));
+    ////// This is invoked on a new thread.
+    ////header_sync->start(
+    ////    std::bind(&full_node::handle_headers_synchronized,
+    ////        this, _1, handler));
 }
 
 void full_node::handle_headers_synchronized(const code& ec,
     result_handler handler)
 {
-    if (stopped())
-    {
-        handler(error::service_stopped);
-        return;
-    }
+    ////if (stopped())
+    ////{
+    ////    handler(error::service_stopped);
+    ////    return;
+    ////}
 
-    if (ec)
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Failure synchronizing headers: " << ec.message();
-        handler(ec);
-        return;
-    }
+    ////if (ec)
+    ////{
+    ////    LOG_ERROR(LOG_NODE)
+    ////        << "Failure synchronizing headers: " << ec.message();
+    ////    handler(ec);
+    ////    return;
+    ////}
 
-    // The instance is retained by the stop handler (i.e. until shutdown).
-    const auto block_sync = attach_block_sync_session();
+    ////// The instance is retained by the stop handler (i.e. until shutdown).
+    ////const auto block_sync = attach_block_sync_session();
 
-    // This is invoked on a new thread.
-    block_sync->start(
-        std::bind(&full_node::handle_running,
-            this, _1, handler));
+    ////// This is invoked on a new thread.
+    ////block_sync->start(
+    ////    std::bind(&full_node::handle_running,
+    ////        this, _1, handler));
 }
 
 void full_node::handle_running(const code& ec, result_handler handler)
@@ -154,7 +154,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    if (!chain_.start_pools())
+    if (!chain_.start())
     {
         LOG_ERROR(LOG_NODE)
             << "Failure starting pools.";
