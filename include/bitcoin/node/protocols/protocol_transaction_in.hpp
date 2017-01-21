@@ -53,9 +53,9 @@ private:
     void handle_store_transaction(const code& ec,
         transaction_const_ptr message);
 
-    bool handle_reorganized(code ec, size_t fork_height,
-        block_const_ptr_list_const_ptr incoming,
-        block_const_ptr_list_const_ptr outgoing);
+    ////bool handle_reorganized(code ec, size_t fork_height,
+    ////    block_const_ptr_list_const_ptr incoming,
+    ////    block_const_ptr_list_const_ptr outgoing);
 
     void handle_stop(const code&);
 

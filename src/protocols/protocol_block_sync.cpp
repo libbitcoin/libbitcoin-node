@@ -73,7 +73,10 @@ void protocol_block_sync::start(event_handler handler)
 void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
 {
     if (stopped())
+    {
+        complete(error::channel_stopped);
         return;
+    }
 
     if (reservation_->stopped())
     {
@@ -99,8 +102,11 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
 
 void protocol_block_sync::handle_send(const code& ec, event_handler complete)
 {
-    if (stopped())
+    if (stopped(ec))
+    {
+        complete(ec);
         return;
+    }
 
     if (ec)
     {
@@ -118,8 +124,11 @@ void protocol_block_sync::handle_send(const code& ec, event_handler complete)
 bool protocol_block_sync::handle_receive_block(const code& ec,
     block_const_ptr message, event_handler complete)
 {
-    if (stopped())
+    if (stopped(ec))
+    {
+        complete(ec);
         return false;
+    }
 
     if (ec)
     {
@@ -149,7 +158,7 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
 // This is fired by the base timer and stop handler.
 void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 {
-    if (ec == error::channel_stopped)
+    if (stopped(ec))
     {
         complete(ec);
         return;

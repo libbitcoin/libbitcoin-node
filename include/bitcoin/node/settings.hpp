@@ -37,6 +37,7 @@ public:
     /// Properties.
     uint32_t sync_peers;
     uint32_t sync_timeout_seconds;
+    uint32_t block_poll_seconds;
     bool refresh_transactions;
 };
 

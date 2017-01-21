@@ -85,7 +85,7 @@ void protocol_block_out::start()
 bool protocol_block_out::handle_receive_send_headers(const code& ec,
     send_headers_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -111,7 +111,7 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 bool protocol_block_out::handle_receive_get_headers(const code& ec,
     get_headers_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -152,7 +152,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     headers_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec)
@@ -180,7 +180,7 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
 bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     get_blocks_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -220,7 +220,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     inventory_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec)
@@ -249,7 +249,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
 bool protocol_block_out::handle_receive_get_data(const code& ec,
     get_data_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -288,7 +288,7 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
 void protocol_block_out::send_block(const code& ec, block_ptr message,
     uint64_t, const hash_digest& hash)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec == error::not_found)
@@ -317,7 +317,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
 void protocol_block_out::send_merkle_block(const code& ec,
     merkle_block_ptr message, uint64_t, const hash_digest& hash)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec == error::not_found)
@@ -352,7 +352,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -392,7 +392,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
 void protocol_block_out::handle_stop(const code&)
 {
     LOG_DEBUG(LOG_NETWORK)
-        << "Stopped block_out protocol";
+        << "Stopped block_out protocol for [" << authority() << "].";
 }
 
 // Utility.

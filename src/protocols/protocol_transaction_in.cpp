@@ -39,8 +39,6 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// TODO: derive from protocol_session_node abstract intermediate base class.
-// TODO: Pass full_node on construct, obtaining node configuration settings.
 protocol_transaction_in::protocol_transaction_in(full_node& node,
     channel::ptr channel, safe_chain& chain)
   : protocol_events(node, channel, NAME),
@@ -65,15 +63,11 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
-    // TODO: move memory_pool to a derived class protocol_transaction_in_70002.
-    // Prior to this level the mempool message is not available.
+    // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     if (refresh_pool_)
     {
         // Refresh transaction pool on connect.
         SEND2(memory_pool(), handle_send, _1, memory_pool::command);
-
-        // Refresh transaction pool on blockchain reorganization.
-        chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
     }
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
@@ -86,7 +80,7 @@ void protocol_transaction_in::start()
 bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -122,8 +116,7 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
 void protocol_transaction_in::send_get_data(const code& ec,
     get_data_ptr message)
 {
-    if (stopped() || ec == error::service_stopped || 
-        message->inventories().empty())
+    if (stopped(ec) || message->inventories().empty())
         return;
 
     if (ec)
@@ -145,7 +138,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     transaction_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -167,8 +160,8 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
         return false;
     }
 
-    LOG_DEBUG(LOG_NODE)
-        << "Potential transaction from [" << authority() << "].";
+    ////LOG_DEBUG(LOG_NODE)
+    ////    << "Potential transaction from [" << authority() << "].";
 
     // HACK: this is unsafe.
     message->validation.originator = nonce();
@@ -183,7 +176,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 void protocol_transaction_in::handle_store_transaction(const code& ec,
     transaction_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     // Ask the peer for ancestor txs if this one is an orphan.
@@ -194,10 +187,10 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
     if (ec)
     {
-        LOG_ERROR(LOG_NODE)
-            << "Rejected transaction [" << encoded << "] from [" << authority()
+        LOG_DEBUG(LOG_NODE)
+            << "Ignored transaction [" << encoded << "] from [" << authority()
             << "] " << ec.message();
-        stop(ec);
+        ///////stop(ec);
         return;
     }
 }
@@ -224,34 +217,34 @@ void protocol_transaction_in::send_get_transactions(
     chain_.filter_transactions(request, BIND2(send_get_data, _1, request));
 }
 
-// Subscription.
-//-----------------------------------------------------------------------------
-
-// TODO: move memory_pool to a derived class protocol_transaction_in_70002.
-// Prior to this level the mempool message is not available.
-bool protocol_transaction_in::handle_reorganized(code ec, size_t,
-    block_const_ptr_list_const_ptr, block_const_ptr_list_const_ptr outgoing)
-{
-    if (stopped() || ec == error::service_stopped)
-        return false;
-
-    if (ec)
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Internal failure handling reorganization for ["
-            << authority() << "] " << ec.message();
-        stop(ec);
-        return false;
-    }
-
-    // If there are no outgoing blocks then the memory pool is intact.
-    if (outgoing->empty())
-        return true;
-
-    // Our own node would ignore this if it wasn't the first instance.
-    SEND2(memory_pool(), handle_send, _1, memory_pool::command);
-    return true;
-}
+////// Subscription.
+//////-----------------------------------------------------------------------------
+////
+////// TODO: move memory_pool to a derived class protocol_transaction_in_70002.
+////// Prior to this level the mempool message is not available.
+////bool protocol_transaction_in::handle_reorganized(code ec, size_t,
+////    block_const_ptr_list_const_ptr, block_const_ptr_list_const_ptr outgoing)
+////{
+////    if (stopped(ec))
+////        return false;
+////
+////    if (ec)
+////    {
+////        LOG_ERROR(LOG_NODE)
+////            << "Internal failure handling reorganization for ["
+////            << authority() << "] " << ec.message();
+////        stop(ec);
+////        return false;
+////    }
+////
+////    // If there are no outgoing blocks then the memory pool is intact.
+////    if (outgoing->empty())
+////        return true;
+////
+////    // Our own node would ignore this if it wasn't the first instance.
+////    SEND2(memory_pool(), handle_send, _1, memory_pool::command);
+////    return true;
+////}
 
 // Stop.
 //-----------------------------------------------------------------------------
@@ -259,7 +252,7 @@ bool protocol_transaction_in::handle_reorganized(code ec, size_t,
 void protocol_transaction_in::handle_stop(const code&)
 {
     LOG_DEBUG(LOG_NETWORK)
-        << "Stopped transaction_in protocol";
+        << "Stopped transaction_in protocol for [" << authority() << "].";
 }
 
 } // namespace node

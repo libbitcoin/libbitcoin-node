@@ -22,6 +22,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -60,6 +61,8 @@ private:
     void handle_fetch_block_locator(const code& ec, get_headers_ptr message,
         const hash_digest& stop_hash);
 
+    void handle_stop(const code& ec);
+
     bool handle_reorganized(code ec, size_t fork_height,
         block_const_ptr_list_const_ptr incoming,
         block_const_ptr_list_const_ptr outgoing);
@@ -67,6 +70,7 @@ private:
     full_node& node_;
     blockchain::safe_chain& chain_;
     bc::atomic<hash_digest> last_locator_top_;
+    const uint32_t block_poll_seconds_;
     const bool headers_from_peer_;
 };
 

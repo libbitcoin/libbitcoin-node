@@ -82,7 +82,7 @@ void protocol_transaction_out::start()
 bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
     fee_filter_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -121,10 +121,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
 void protocol_transaction_out::handle_fetch_floaters(const code& ec,
     inventory_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
-        return;
-
-    if (message->inventories().empty())
+    if (stopped(ec) || message->inventories().empty())
         return;
 
     SEND2(*message, handle_send, _1, message->command);
@@ -139,7 +136,7 @@ void protocol_transaction_out::handle_fetch_floaters(const code& ec,
 bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     get_data_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -163,7 +160,7 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
 void protocol_transaction_out::send_transaction(const code& ec,
     transaction_ptr transaction, size_t, size_t, const hash_digest& hash)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return;
 
     if (ec == error::not_found)
@@ -194,7 +191,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
 bool protocol_transaction_out::handle_floated(const code& ec,
     transaction_const_ptr message)
 {
-    if (stopped() || ec == error::service_stopped)
+    if (stopped(ec))
         return false;
 
     if (ec)
@@ -223,7 +220,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
 void protocol_transaction_out::handle_stop(const code&)
 {
     LOG_DEBUG(LOG_NETWORK)
-        << "Stopped transaction_out protocol";
+        << "Stopped transaction_out protocol for [" << authority() << "].";
 }
 
 } // namespace node
