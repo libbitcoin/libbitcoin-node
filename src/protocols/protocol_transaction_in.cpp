@@ -160,8 +160,8 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
         return false;
     }
 
-    LOG_DEBUG(LOG_NODE)
-        << "Potential transaction from [" << authority() << "].";
+    ////LOG_DEBUG(LOG_NODE)
+    ////    << "Potential transaction from [" << authority() << "].";
 
     // HACK: this is unsafe.
     message->validation.originator = nonce();
