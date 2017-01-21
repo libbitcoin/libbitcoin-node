@@ -220,7 +220,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
 void protocol_transaction_out::handle_stop(const code&)
 {
     LOG_DEBUG(LOG_NETWORK)
-        << "Stopped transaction_out protocol";
+        << "Stopped transaction_out protocol for [" << authority() << "].";
 }
 
 } // namespace node

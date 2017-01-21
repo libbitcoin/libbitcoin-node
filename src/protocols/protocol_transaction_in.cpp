@@ -187,7 +187,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
     if (ec)
     {
-        LOG_ERROR(LOG_NODE)
+        LOG_INFO(LOG_NODE)
             << "Ignored transaction [" << encoded << "] from [" << authority()
             << "] " << ec.message();
         ///////stop(ec);
@@ -252,7 +252,7 @@ void protocol_transaction_in::send_get_transactions(
 void protocol_transaction_in::handle_stop(const code&)
 {
     LOG_DEBUG(LOG_NETWORK)
-        << "Stopped transaction_in protocol";
+        << "Stopped transaction_in protocol for [" << authority() << "].";
 }
 
 } // namespace node

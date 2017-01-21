@@ -392,7 +392,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
 void protocol_block_out::handle_stop(const code&)
 {
     LOG_DEBUG(LOG_NETWORK)
-        << "Stopped block_out protocol";
+        << "Stopped block_out protocol for [" << authority() << "].";
 }
 
 // Utility.

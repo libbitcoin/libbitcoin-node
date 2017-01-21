@@ -99,7 +99,11 @@ void protocol_block_in::start()
 void protocol_block_in::get_block_inventory(const code& ec)
 {
     if (stopped(ec))
+    {
+        // This may get called more than once per stop.
+        handle_stop(ec);
         return;
+    }
 
     if (ec && ec != error::channel_timeout)
     {
@@ -387,6 +391,12 @@ bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
     ////            << "] from [" << authority() << "].";
 
     return true;
+}
+
+void protocol_block_in::handle_stop(const code&)
+{
+    LOG_DEBUG(LOG_NETWORK)
+        << "Stopped block_in protocol for [" << authority() << "].";
 }
 
 // Block reporting.
