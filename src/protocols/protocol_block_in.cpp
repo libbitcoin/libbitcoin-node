@@ -81,11 +81,11 @@ void protocol_block_in::start()
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     if (headers_from_peer_)
     {
-        // Allow peer to send headers vs. inventory block anncements.
+        // Allow peer to send headers vs. inventory block announcements.
         SEND2(send_headers(), handle_send, _1, send_headers::command);
     }
 
-    // Subscribe to block acceptance notifications (for gap fill redundancy).
+    // Subscribe to block acceptance notifications (for gap fill).
     chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
 
     // Send initial get_[blocks|headers] message by simulating first heartbeat.
@@ -111,6 +111,23 @@ void protocol_block_in::get_block_inventory(const code& ec)
     }
 
     send_get_blocks(null_hash);
+}
+
+void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
+{
+    const auto chain_top = node_.top_block();
+    const auto chain_top_hash = chain_top.hash();
+    const auto last_locator_top = last_locator_top_.load();
+
+    // Avoid requesting from the same start as last request to this peer.
+    // This does not guarantee prevention, it's just an optimization.
+    if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
+        return;
+
+    const auto heights = block::locator_heights(chain_top.height());
+
+    chain_.fetch_block_locator(heights,
+        BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
 void protocol_block_in::handle_fetch_block_locator(const code& ec,
@@ -340,23 +357,6 @@ void protocol_block_in::handle_store_block(const code& ec,
         << checked << ", " << state->minimum_version() << ").";
 
     report(*message);
-}
-
-void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
-{
-    const auto chain_top = node_.top_block();
-    const auto chain_top_hash = chain_top.hash();
-    const auto last_locator_top = last_locator_top_.load();
-
-    // Avoid requesting from the same start as last request to this peer.
-    // This does not guarantee prevention, it's just an optimization.
-    if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
-        return;
-
-    const auto heights = block::locator_heights(chain_top.height());
-
-    chain_.fetch_block_locator(heights,
-        BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
 // Subscription.
