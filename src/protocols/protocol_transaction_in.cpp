@@ -63,15 +63,11 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
-    // TODO: move memory_pool to a derived class protocol_transaction_in_70002.
-    // Prior to this level the mempool message is not available.
+    // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     if (refresh_pool_)
     {
         // Refresh transaction pool on connect.
         SEND2(memory_pool(), handle_send, _1, memory_pool::command);
-
-        // Refresh transaction pool on blockchain reorganization.
-        chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
     }
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
