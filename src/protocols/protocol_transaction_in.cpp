@@ -188,7 +188,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
-            << "Rejected transaction [" << encoded << "] from [" << authority()
+            << "Ignored transaction [" << encoded << "] from [" << authority()
             << "] " << ec.message();
         ///////stop(ec);
         return;
