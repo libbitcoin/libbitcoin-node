@@ -39,8 +39,6 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// TODO: derive from protocol_session_node abstract intermediate base class.
-// TODO: Pass full_node on construct, obtaining node configuration settings.
 protocol_transaction_in::protocol_transaction_in(full_node& node,
     channel::ptr channel, safe_chain& chain)
   : protocol_events(node, channel, NAME),
