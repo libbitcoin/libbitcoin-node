@@ -52,7 +52,7 @@ bool reservations::start()
 {
     ///////////////////////////////////////////////////////////////////////////
     // Begin flush lock.
-    return chain_.begin_writes();
+    return chain_.flush_lock(true);
 }
 
 bool reservations::import(block_const_ptr block, size_t height)
@@ -64,7 +64,7 @@ bool reservations::import(block_const_ptr block, size_t height)
 
 bool reservations::stop()
 {
-    return chain_.end_writes();
+    return chain_.flush_unlock(false);
     // End flush lock.
     ///////////////////////////////////////////////////////////////////////////
 }
