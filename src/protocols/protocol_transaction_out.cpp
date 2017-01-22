@@ -259,8 +259,7 @@ bool protocol_transaction_out::handle_notification(const code& ec,
     const auto fee = message->fees();
 
     // Transactions are discovered and announced individually.
-    if (message->validation.originator != nonce() &&
-        fee >= minimum_fee_.load())
+    if (message->validation.originator != nonce() && fee >= minimum_fee_)
     {
         static const auto id = inventory::type_id::transaction;
         const inventory announce{ { id, message->hash() } };
