@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <string>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -245,6 +246,7 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
 // Receive get_data sequence.
 //-----------------------------------------------------------------------------
 
+// TODO: move compact_block to derived class protocol_block_out_70014.
 // TODO: move filtered_block to derived class protocol_block_out_70001.
 bool protocol_block_out::handle_receive_get_data(const code& ec,
     get_data_const_ptr message)
@@ -270,23 +272,47 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    // Ignore non-block inventory requests in this protocol.
-    for (const auto& inventory: message->inventories())
-    {
-        if (inventory.type() == inventory::type_id::block)
-            chain_.fetch_block(inventory.hash(),
-                BIND4(send_block, _1, _2, _3, inventory.hash()));
-        else if (inventory.type() == inventory::type_id::filtered_block)
-            chain_.fetch_merkle_block(inventory.hash(),
-                BIND4(send_merkle_block, _1, _2, _3, inventory.hash()));
-    }
+    // TODO: create efficient inventory helper for filtering block/tx types.
+    const auto& inventories = message->inventories();
+    const auto response = std::make_shared<inventory>();
 
+    // TODO: determine if is_block_type [compact_block] can be handled here.
+    // Reverse copy the const inventory and remove non-block inventory types.
+    for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
+        if (it->is_block_type())
+            response->inventories().push_back(*it);
+
+    // Initiate extended recursion through the response items.
+    send_next_data(error::success, response);
     return true;
+}
+
+void protocol_block_out::send_next_data(const code& ec,
+    inventory_ptr inventory)
+{
+    if (inventory->inventories().empty())
+        return;
+
+    // Copy and remove the next inventory vector.
+    const auto item = inventory->inventories().back();
+    inventory->inventories().pop_back();
+
+    // TODO: add compact block query.
+    // TODO: investigate the stack cost of recursion.
+    if (item.type() == inventory::type_id::block)
+        chain_.fetch_block(item.hash(),
+            BIND5(send_block, _1, _2, _3, item.hash(), inventory));
+    else if (item.type() == inventory::type_id::filtered_block)
+        chain_.fetch_merkle_block(item.hash(),
+            BIND5(send_merkle_block, _1, _2, _3, item.hash(), inventory));
+    ////else if (item.type() == inventory::type_id::compact_block)
+    ////    chain_.fetch_compact_block(item.hash(),
+    ////        BIND5(send_compact_block, _1, _2, _3, item.hash(), inventory));
 }
 
 // TODO: move not_found to derived class protocol_block_out_70001.
 void protocol_block_out::send_block(const code& ec, block_ptr message,
-    uint64_t, const hash_digest& hash)
+    uint64_t, const hash_digest& hash, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -315,7 +341,8 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
 
 // TODO: move merkle_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_ptr message, uint64_t, const hash_digest& hash)
+    merkle_block_ptr message, uint64_t, const hash_digest& hash,
+    inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -340,6 +367,36 @@ void protocol_block_out::send_merkle_block(const code& ec,
     }
 
     ////TODO: populate message->flags internal to merkle_block.
+    SEND2(*message, handle_send, _1, message->command);
+}
+
+// TODO: move merkle_block to derived class protocol_block_out_70001.
+void protocol_block_out::send_compact_block(const code& ec,
+    compact_block_ptr message, uint64_t, const hash_digest& hash,
+    inventory_ptr inventory)
+{
+    if (stopped(ec))
+        return;
+
+    if (ec == error::not_found)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Merkle block requested by [" << authority() << "] not found.";
+
+        const not_found reply{ { inventory::type_id::filtered_block, hash } };
+        SEND2(reply, handle_send, _1, reply.command);
+        return;
+    }
+
+    if (ec)
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Internal failure locating merkle block requested by ["
+            << authority() << "] " << ec.message();
+        stop(ec);
+        return;
+    }
+
     SEND2(*message, handle_send, _1, message->command);
 }
 
