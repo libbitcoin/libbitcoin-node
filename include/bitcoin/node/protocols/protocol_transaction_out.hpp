@@ -46,22 +46,26 @@ public:
     virtual void start();
 
 private:
+    void send_next_data(inventory_ptr inventory);
     void send_transaction(const code& ec, transaction_ptr transaction,
-        size_t height, size_t position, const hash_digest& hash);
+        size_t height, size_t position, inventory_ptr inventory);
 
-    bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
+    bool handle_receive_get_data(const code& ec,
+        get_data_const_ptr message);
     bool handle_receive_fee_filter(const code& ec,
         fee_filter_const_ptr message);
     bool handle_receive_memory_pool(const code& ec,
         memory_pool_const_ptr message);
 
-    void handle_fetch_floaters(const code& ec, inventory_const_ptr message);
+    void handle_fetch_floaters(const code& ec, inventory_ptr message);
 
-    void handle_stop(const code&);
+    void handle_stop(const code& ec);
+    void handle_send_next(const code& ec, inventory_ptr inventory);
     bool handle_notification(const code& ec, transaction_const_ptr message);
 
     blockchain::safe_chain& chain_;
     std::atomic<uint64_t> minimum_fee_;
+    ////std::atomic<bool> compact_to_peer_;
     const bool relay_to_peer_;
 };
 
