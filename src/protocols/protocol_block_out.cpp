@@ -65,6 +65,7 @@ void protocol_block_out::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
+    // TODO: Do not enable bip152 protocol level until fully-implemented.
     // TODO: move send_compact to a derived class protocol_block_out_70014.
     if (negotiated_version() >= version::level::bip152)
     {
@@ -98,15 +99,6 @@ bool protocol_block_out::handle_receive_send_compact(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting " << message->command << " from ["
-            << authority() << "] " << ec.message();
-        stop(ec);
-        return false;
-    }
-
     // Block annoucements will be headers messages instead of inventory.
     compact_to_peer_ = true;
     return false;
@@ -118,15 +110,6 @@ bool protocol_block_out::handle_receive_send_headers(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting " << message->command << " from ["
-            << authority() << "] " << ec.message();
-        stop(ec);
-        return false;
-    }
 
     // Block annoucements will be headers messages instead of inventory.
     headers_to_peer_ = true;
@@ -142,14 +125,6 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting get_headers from [" << ec.message();
-        stop(ec);
-        return false;
-    }
 
     const auto size = message->start_hashes().size();
 
@@ -211,14 +186,6 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting get_blocks from [" << ec.message();
-        stop(ec);
-        return false;
-    }
 
     const auto size = message->start_hashes().size();
 
@@ -282,15 +249,6 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting inventory from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
-
     if (message->inventories().size() > max_get_data)
     {
         LOG_WARNING(LOG_NODE)
@@ -341,9 +299,8 @@ void protocol_block_out::send_next_data(inventory_ptr inventory)
         }
         case inventory::type_id::compact_block:
         {
-            // TODO: implement compact_block query.
-            ////chain_.fetch_compact_block(entry.hash(),
-            ////    BIND4(send_compact_block, _1, _2, _3, inventory));
+            chain_.fetch_compact_block(entry.hash(),
+                BIND4(send_compact_block, _1, _2, _3, inventory));
             break;
         }
         default:
@@ -453,17 +410,6 @@ void protocol_block_out::handle_send_next(const code& ec,
         return;
 
     BITCOIN_ASSERT(!inventory->inventories().empty());
-
-    if (ec)
-    {
-        const auto type = inventory->inventories().back().type();
-        LOG_DEBUG(LOG_NETWORK)
-            << "Failure sending '" << inventory_vector::to_string(type)
-            << "' to [" << authority() << "] " << ec.message();
-        stop(ec);
-        return;
-    }
-
     inventory->inventories().pop_back();
     send_next_data(inventory);
 }

@@ -83,15 +83,6 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting inventory from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
-
     const auto response = std::make_shared<get_data>();
 
     // Copy the transaction inventories into a get_data instance.
@@ -140,15 +131,6 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting transaction from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
     // Prior to this level transaction relay is not configurable.

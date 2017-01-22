@@ -48,7 +48,6 @@ public:
 
 private:
     void send_get_blocks(event_handler complete, bool reset);
-    void handle_send(const code& ec, event_handler complete);
     void handle_event(const code& ec, event_handler complete);
     void blocks_complete(const code& ec, event_handler handler);
     bool handle_receive_block(const code& ec, block_const_ptr message,

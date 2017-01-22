@@ -88,37 +88,14 @@ void protocol_header_sync::send_get_headers(event_handler complete)
         headers_->stop_hash()
     };
 
-    SEND2(request, handle_send, _1, complete);
-}
-
-void protocol_header_sync::handle_send(const code& ec, event_handler complete)
-{
-    if (stopped())
-        return;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure sending get headers to sync [" << authority() << "] "
-            << ec.message();
-        complete(ec);
-    }
+    SEND2(request, handle_send, _1, request.command);
 }
 
 bool protocol_header_sync::handle_receive_headers(const code& ec,
     headers_const_ptr message, event_handler complete)
 {
-    if (stopped())
+    if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure receiving headers from sync ["
-            << authority() << "] " << ec.message();
-        complete(ec);
-        return false;
-    }
 
     const auto start = headers_->previous_height() + 1;
 
@@ -158,11 +135,8 @@ bool protocol_header_sync::handle_receive_headers(const code& ec,
 // This is fired by the base timer and stop handler.
 void protocol_header_sync::handle_event(const code& ec, event_handler complete)
 {
-    if (ec == error::channel_stopped)
-    {
-        complete(ec);
+    if (stopped(ec))
         return;
-    }
 
     if (ec && ec != error::channel_timeout)
     {

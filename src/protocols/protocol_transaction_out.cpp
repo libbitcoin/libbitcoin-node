@@ -85,15 +85,6 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting " << message->command << " from ["
-            << authority() << "] " << ec.message();
-        stop(ec);
-        return false;
-    }
-
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Transaction annoucements will be filtered by fee amount.
     minimum_fee_.store(message->minimum_fee());
@@ -141,15 +132,6 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting inventory from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
 
     if (message->inventories().size() > max_get_data)
     {
@@ -223,17 +205,6 @@ void protocol_transaction_out::handle_send_next(const code& ec,
         return;
 
     BITCOIN_ASSERT(!inventory->inventories().empty());
-
-    if (ec)
-    {
-        const auto type = inventory->inventories().back().type();
-        LOG_DEBUG(LOG_NETWORK)
-            << "Failure sending '" << inventory_vector::to_string(type)
-            << "' to [" << authority() << "] " << ec.message();
-        stop(ec);
-        return;
-    }
-
     inventory->inventories().pop_back();
     send_next_data(inventory);
 }
@@ -259,8 +230,7 @@ bool protocol_transaction_out::handle_notification(const code& ec,
     const auto fee = message->fees();
 
     // Transactions are discovered and announced individually.
-    if (message->validation.originator != nonce() &&
-        fee >= minimum_fee_.load())
+    if (message->validation.originator != nonce() && fee >= minimum_fee_)
     {
         static const auto id = inventory::type_id::transaction;
         const inventory announce{ { id, message->hash() } };

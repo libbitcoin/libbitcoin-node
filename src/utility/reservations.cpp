@@ -260,7 +260,7 @@ bool reservations::reserve(reservation::ptr minimal)
 // Exposed for test to be able to control the request size.
 size_t reservations::max_request() const
 {
-    return max_request_.load();
+    return max_request_;
 }
 
 // Exposed for test to be able to control the request size.
