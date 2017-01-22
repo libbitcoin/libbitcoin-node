@@ -73,10 +73,7 @@ void protocol_block_sync::start(event_handler handler)
 void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
 {
     if (stopped())
-    {
-        complete(error::channel_stopped);
         return;
-    }
 
     if (reservation_->stopped())
     {
@@ -97,24 +94,7 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
         << "Sending request of " << request.inventories().size()
         << " hashes for slot (" << reservation_->slot() << ").";
 
-    SEND2(request, handle_send, _1, complete);
-}
-
-void protocol_block_sync::handle_send(const code& ec, event_handler complete)
-{
-    if (stopped(ec))
-    {
-        complete(ec);
-        return;
-    }
-
-    if (ec)
-    {
-        LOG_WARNING(LOG_NODE)
-            << "Failure sending get blocks to slot (" << reservation_->slot()
-            << ") " << ec.message();
-        complete(ec);
-    }
+    SEND2(request, handle_send, _1, request.command);
 }
 
 // The message subscriber implements an optimization to bypass queueing of
@@ -125,19 +105,7 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
     block_const_ptr message, event_handler complete)
 {
     if (stopped(ec))
-    {
-        complete(ec);
         return false;
-    }
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Receive failure on slot (" << reservation_->slot() << ") "
-            << ec.message();
-        complete(ec);
-        return false;
-    }
 
     // Add the block to the blockchain store.
     reservation_->import(message);
@@ -159,10 +127,7 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
 void protocol_block_sync::handle_event(const code& ec, event_handler complete)
 {
     if (stopped(ec))
-    {
-        complete(ec);
         return;
-    }
 
     if (ec && ec != error::channel_timeout)
     {

@@ -186,15 +186,6 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting headers from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
-
     // There is no benefit to this use of headers, in fact it is suboptimal.
     // In v3 headers will be used to build block tree before getting blocks.
     const auto response = std::make_shared<get_data>();
@@ -212,15 +203,6 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting inventory from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
 
     const auto response = std::make_shared<get_data>();
     message->reduce(response->inventories(), inventory::type_id::block);
@@ -295,15 +277,6 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (ec)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure getting block from [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
-
     // Reset the timer because we just received a block from this peer.
     // Once we are at the top this will end up polling the peer.
     reset_timer();
@@ -332,7 +305,8 @@ void protocol_block_in::handle_store_block(const code& ec,
 
     const auto encoded = encode_hash(hash);
 
-    if (ec == error::orphan_block || ec == error::duplicate_block ||
+    if (ec == error::orphan_block ||
+        ec == error::duplicate_block ||
         ec == error::insufficient_work)
     {
         LOG_DEBUG(LOG_NODE)
