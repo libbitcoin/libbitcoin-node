@@ -64,7 +64,7 @@ void protocol_transaction_out::start()
     if (relay_to_peer_)
     {
         // Subscribe to transaction pool notifications and relay txs.
-        chain_.subscribe_transaction(BIND2(handle_floated, _1, _2));
+        chain_.subscribe_transaction(BIND2(handle_notification, _1, _2));
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
@@ -188,7 +188,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
 // Subscription.
 //-----------------------------------------------------------------------------
 
-bool protocol_transaction_out::handle_floated(const code& ec,
+bool protocol_transaction_out::handle_notification(const code& ec,
     transaction_const_ptr message)
 {
     if (stopped(ec))
@@ -197,7 +197,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
-            << "Failure handling transaction float: " << ec.message();
+            << "Failure handling transaction notification: " << ec.message();
         stop(ec);
         return false;
     }
