@@ -55,7 +55,7 @@ void session_inbound::attach_protocols(channel::ptr channel)
     attach<protocol_block_in>(channel, chain_)->start();
     attach<protocol_block_out>(channel, chain_)->start();
     attach<protocol_transaction_in>(channel, chain_)->start();
-    ////attach<protocol_transaction_out>(channel, chain_)->start();
+    attach<protocol_transaction_out>(channel, chain_)->start();
 }
 
 } // namespace node

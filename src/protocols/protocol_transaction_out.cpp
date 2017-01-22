@@ -61,11 +61,11 @@ void protocol_transaction_out::start()
 {
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     // Prior to this level transaction relay is not configurable.
-    if (relay_to_peer_)
-    {
-        // Subscribe to transaction pool notifications and relay txs.
-        chain_.subscribe_transaction(BIND2(handle_floated, _1, _2));
-    }
+    ////if (relay_to_peer_)
+    ////{
+    ////    // Subscribe to transaction pool notifications and relay txs.
+    ////    chain_.subscribe_transaction(BIND2(handle_notification, _1, _2));
+    ////}
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Filter announcements by fee if set.
@@ -109,9 +109,11 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
     memory_pool_const_ptr)
 {
+    if (stopped(ec))
+        return false;
+
     // The handler may be invoked *multiple times* by one blockchain call.
-    chain_.fetch_floaters(max_inventory,
-        BIND2(handle_fetch_floaters, _1, _2));
+    chain_.fetch_floaters(max_inventory, BIND2(handle_fetch_floaters, _1, _2));
 
     // Drop this subscription after the first request.
     return false;
@@ -119,7 +121,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
 
 // Each invocation is limited to 50000 vectors and invoked from common thread.
 void protocol_transaction_out::handle_fetch_floaters(const code& ec,
-    inventory_const_ptr message)
+    inventory_ptr message)
 {
     if (stopped(ec) || message->inventories().empty())
         return;
@@ -131,6 +133,7 @@ void protocol_transaction_out::handle_fetch_floaters(const code& ec,
 //-----------------------------------------------------------------------------
 
 // THIS SUPPORTS REQUEST OF CONFIRMED TRANSACTIONS.
+// TODO: subscribe to and handle get_block_transactions message.
 // TODO: expose a new service bit that indicates complete current tx history.
 // This would exclude transctions replaced by duplication as per BIP30.
 bool protocol_transaction_out::handle_receive_get_data(const code& ec,
@@ -148,17 +151,43 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    // Ignore non-transaction inventory requests in this protocol.
-    for (const auto& inventory: message->inventories())
-        if (inventory.type() == inventory::type_id::transaction)
-            chain_.fetch_transaction(inventory.hash(),
-                BIND5(send_transaction, _1, _2, _3, _4, inventory.hash()));
+    if (message->inventories().size() > max_get_data)
+    {
+        LOG_WARNING(LOG_NODE)
+            << "Invalid get_data size (" << message->inventories().size()
+            << ") from [" << authority() << "] ";
+        stop(error::channel_stopped);
+        return false;
+    }
 
+    // Create a copy because message is const because it is shared.
+    const auto& inventories = message->inventories();
+    const auto response = std::make_shared<inventory>();
+
+    // Reverse copy the transaction elements of the const inventory.
+    for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
+        if (it->is_transaction_type())
+            response->inventories().push_back(*it);
+
+    send_next_data(response);
     return true;
 }
 
+void protocol_transaction_out::send_next_data(inventory_ptr inventory)
+{
+    if (inventory->inventories().empty())
+        return;
+
+    // The order is reversed so that we can pop from the back.
+    const auto& entry = inventory->inventories().back();
+
+    chain_.fetch_transaction(entry.hash(),
+        BIND5(send_transaction, _1, _2, _3, _4, inventory));
+}
+
+// TODO: send block_transaction message as applicable.
 void protocol_transaction_out::send_transaction(const code& ec,
-    transaction_ptr transaction, size_t, size_t, const hash_digest& hash)
+    transaction_ptr transaction, size_t, size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -168,7 +197,9 @@ void protocol_transaction_out::send_transaction(const code& ec,
         LOG_DEBUG(LOG_NODE)
             << "Transaction requested by [" << authority() << "] not found.";
 
-        const not_found reply{ { inventory::type_id::transaction, hash } };
+        // TODO: move not_found to derived class protocol_block_out_70001.
+        BITCOIN_ASSERT(!inventory->inventories().empty());
+        const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
         return;
     }
@@ -182,13 +213,35 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
     }
 
-    SEND2(*transaction, handle_send, _1, transaction->command);
+    SEND2(*transaction, handle_send_next, _1, inventory);
+}
+
+void protocol_transaction_out::handle_send_next(const code& ec,
+    inventory_ptr inventory)
+{
+    if (stopped(ec))
+        return;
+
+    BITCOIN_ASSERT(!inventory->inventories().empty());
+
+    if (ec)
+    {
+        const auto type = inventory->inventories().back().type();
+        LOG_DEBUG(LOG_NETWORK)
+            << "Failure sending '" << inventory_vector::to_string(type)
+            << "' to [" << authority() << "] " << ec.message();
+        stop(ec);
+        return;
+    }
+
+    inventory->inventories().pop_back();
+    send_next_data(inventory);
 }
 
 // Subscription.
 //-----------------------------------------------------------------------------
 
-bool protocol_transaction_out::handle_floated(const code& ec,
+bool protocol_transaction_out::handle_notification(const code& ec,
     transaction_const_ptr message)
 {
     if (stopped(ec))
@@ -197,7 +250,7 @@ bool protocol_transaction_out::handle_floated(const code& ec,
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
-            << "Failure handling transaction float: " << ec.message();
+            << "Failure handling transaction notification: " << ec.message();
         stop(ec);
         return false;
     }
@@ -210,8 +263,8 @@ bool protocol_transaction_out::handle_floated(const code& ec,
         fee >= minimum_fee_.load())
     {
         static const auto id = inventory::type_id::transaction;
-        const inventory announcement{ { id, message->hash() } };
-        SEND2(announcement, handle_send, _1, announcement.command);
+        const inventory announce{ { id, message->hash() } };
+        SEND2(announce, handle_send, _1, announce.command);
     }
 
     return true;

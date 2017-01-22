@@ -49,24 +49,30 @@ public:
 private:
     size_t locator_limit();
 
-    void send_block(const code& ec, block_ptr message, uint64_t height,
-        const hash_digest& hash);
+    void send_next_data(inventory_ptr inventory);
+    void send_block(const code& ec, block_ptr message,
+        uint64_t height, inventory_ptr inventory);
     void send_merkle_block(const code& ec, merkle_block_ptr message,
-        uint64_t height, const hash_digest& hash);
+        uint64_t height, inventory_ptr inventory);
+    void send_compact_block(const code& ec, compact_block_ptr message,
+        uint64_t height, inventory_ptr inventory);
 
-    bool handle_receive_get_data(const code& ec, get_data_const_ptr message);
+    bool handle_receive_get_data(const code& ec,
+        get_data_const_ptr message);
     bool handle_receive_get_blocks(const code& ec,
         get_blocks_const_ptr message);
     bool handle_receive_get_headers(const code& ec,
         get_headers_const_ptr message);
     bool handle_receive_send_headers(const code& ec,
         send_headers_const_ptr message);
+    bool handle_receive_send_compact(const code& ec,
+        send_compact_const_ptr message);
 
     void handle_fetch_locator_hashes(const code& ec, inventory_ptr message);
     void handle_fetch_locator_headers(const code& ec, headers_ptr message);
 
-    void handle_stop(const code&);
-
+    void handle_stop(const code& ec);
+    void handle_send_next(const code& ec, inventory_ptr inventory);
     bool handle_reorganized(code ec, size_t fork_height,
         block_const_ptr_list_const_ptr incoming,
         block_const_ptr_list_const_ptr outgoing);
@@ -74,6 +80,7 @@ private:
     full_node& node_;
     blockchain::safe_chain& chain_;
     bc::atomic<hash_digest> last_locator_top_;
+    std::atomic<bool> compact_to_peer_;
     std::atomic<bool> headers_to_peer_;
 };
 
