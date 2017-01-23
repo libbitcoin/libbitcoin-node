@@ -328,9 +328,9 @@ options_metadata parser::load_settings()
         "Use libconsensus for script validation if integrated, defaults to false."
     )
     (
-        "blockchain.flush_reorganizations",
-        value<bool>(&configured.chain.flush_reorganizations),
-        "Flush each reorganization to disk, defaults to false."
+        "blockchain.flush_writes",
+        value<bool>(&configured.chain.flush_writes),
+        "Flush each write to disk, defaults to false."
     )
     (
         "blockchain.reorganization_limit",
