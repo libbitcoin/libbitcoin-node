@@ -73,6 +73,14 @@ void full_node::start(result_handler handler)
         return;
     }
 
+    if (!chain_.start())
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Failure starting blockchain store and pools.";
+        handler(error::operation_failed);
+        return;
+    }
+
     // This is invoked on the same thread.
     // Stopped is true and no network threads until after this call.
     p2p::start(handler);
@@ -151,14 +159,6 @@ void full_node::handle_running(const code& ec, result_handler handler)
         LOG_ERROR(LOG_NODE)
             << "Failure synchronizing blocks: " << ec.message();
         handler(ec);
-        return;
-    }
-
-    if (!chain_.start())
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Failure starting pools.";
-        handler(error::operation_failed);
         return;
     }
 

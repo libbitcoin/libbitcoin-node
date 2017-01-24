@@ -50,23 +50,21 @@ reservations::reservations(check_list& hashes, fast_chain& chain,
 
 bool reservations::start()
 {
-    ///////////////////////////////////////////////////////////////////////////
-    // Begin flush lock.
-    return chain_.flush_lock(true);
+    // Flush lock is now controlled by chain start/stop.
+    return true;
 }
 
 bool reservations::import(block_const_ptr block, size_t height)
 {
     //#########################################################################
-    return chain_.insert(block, height, false);
+    return chain_.insert(block, height);
     //#########################################################################
 }
 
 bool reservations::stop()
 {
-    return chain_.flush_unlock(false);
-    // End flush lock.
-    ///////////////////////////////////////////////////////////////////////////
+    // Flush lock is now controlled by chain start/stop.
+    return true;
 }
 
 // Rate methods.
