@@ -65,18 +65,10 @@ void full_node::start(result_handler handler)
         return;
     }
 
-    if (!chain_.open())
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Failure opening blockchain store.";
-        handler(error::operation_failed);
-        return;
-    }
-
     if (!chain_.start())
     {
         LOG_ERROR(LOG_NODE)
-            << "Failure starting blockchain store and pools.";
+            << "Failure starting blockchain.";
         handler(error::operation_failed);
         return;
     }
