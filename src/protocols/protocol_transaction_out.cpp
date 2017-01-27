@@ -61,11 +61,11 @@ void protocol_transaction_out::start()
 {
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     // Prior to this level transaction relay is not configurable.
-    ////if (relay_to_peer_)
-    ////{
-    ////    // Subscribe to transaction pool notifications and relay txs.
-    ////    chain_.subscribe_transaction(BIND2(handle_notification, _1, _2));
-    ////}
+    if (relay_to_peer_)
+    {
+        // Subscribe to transaction pool notifications and relay txs.
+        chain_.subscribe_transaction(BIND2(handle_notification, _1, _2));
+    }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Filter announcements by fee if set.
@@ -87,7 +87,7 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Transaction annoucements will be filtered by fee amount.
-    minimum_fee_.store(message->minimum_fee());
+    minimum_fee_ = message->minimum_fee();
 
     // The fee filter may be adjusted.
     return true;
@@ -104,14 +104,15 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
         return false;
 
     // The handler may be invoked *multiple times* by one blockchain call.
-    chain_.fetch_floaters(max_inventory, BIND2(handle_fetch_floaters, _1, _2));
+    chain_.fetch_unconfirmed(max_inventory, minimum_fee_,
+        BIND2(handle_fetch_unconfirmed, _1, _2));
 
     // Drop this subscription after the first request.
     return false;
 }
 
 // Each invocation is limited to 50000 vectors and invoked from common thread.
-void protocol_transaction_out::handle_fetch_floaters(const code& ec,
+void protocol_transaction_out::handle_fetch_unconfirmed(const code& ec,
     inventory_ptr message)
 {
     if (stopped(ec) || message->inventories().empty())
