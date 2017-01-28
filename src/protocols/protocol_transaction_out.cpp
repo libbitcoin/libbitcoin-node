@@ -70,11 +70,10 @@ void protocol_transaction_out::start()
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    // Filter announcements by fee if set.
-    SUBSCRIBE2(fee_filter, handle_receive_fee_filter, _1, _2);
-
     // TODO: move memory pool to a derived class protocol_transaction_out_60002.
+    SUBSCRIBE2(fee_filter, handle_receive_fee_filter, _1, _2);
     SUBSCRIBE2(memory_pool, handle_receive_memory_pool, _1, _2);
+    SUBSCRIBE2(get_data, handle_receive_get_data, _1, _2);
 }
 
 // Receive send_headers.
@@ -154,6 +153,9 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
         if (it->is_transaction_type())
             response->inventories().push_back(*it);
 
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: investigate recursion cost.
+    ///////////////////////////////////////////////////////////////////////////
     send_next_data(response);
     return true;
 }
@@ -186,6 +188,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         BITCOIN_ASSERT(!inventory->inventories().empty());
         const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
+        handle_send_next(error::success, inventory);
         return;
     }
 
