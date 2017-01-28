@@ -70,8 +70,9 @@ void protocol_transaction_out::start()
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    // TODO: move memory pool to a derived class protocol_transaction_out_60002.
     SUBSCRIBE2(fee_filter, handle_receive_fee_filter, _1, _2);
+
+    // TODO: move memory pool to a derived class protocol_transaction_out_60002.
     SUBSCRIBE2(memory_pool, handle_receive_memory_pool, _1, _2);
     SUBSCRIBE2(get_data, handle_receive_get_data, _1, _2);
 }
