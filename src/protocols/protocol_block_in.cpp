@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <iomanip>
 #include <memory>
@@ -46,13 +47,20 @@ using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
 
+static inline uint32_t get_poll_seconds(const node::settings& settings)
+{
+    // Set 136 years as equivalent to "never" if configured to disable.
+    const auto value = settings.block_poll_seconds;
+    return value == 0 ? max_uint32 : value;
+}
+
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, perpetual_timer, NAME),
     node_(node),
     chain_(chain),
     last_locator_top_(null_hash),
-    block_poll_seconds_(node.node_settings().block_poll_seconds),
+    block_poll_seconds_(get_poll_seconds(node.node_settings())),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),

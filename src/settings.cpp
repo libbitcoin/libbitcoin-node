@@ -25,7 +25,7 @@ namespace node {
 settings::settings()
   : sync_peers(0),
     sync_timeout_seconds(5),
-    block_poll_seconds(1),
+    block_poll_seconds(10),
     refresh_transactions(true)
 {
 }
