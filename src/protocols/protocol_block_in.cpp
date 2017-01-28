@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <iomanip>
 #include <memory>
@@ -46,13 +47,20 @@ using namespace std::placeholders;
 
 static constexpr auto perpetual_timer = true;
 
+static inline uint32_t get_poll_seconds(const node::settings& settings)
+{
+    // Set 136 years as equivalent to "never" if configured to disable.
+    const auto value = settings.block_poll_seconds;
+    return value == 0 ? max_uint32 : value;
+}
+
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, perpetual_timer, NAME),
     node_(node),
     chain_(chain),
     last_locator_top_(null_hash),
-    block_poll_seconds_(node.node_settings().block_poll_seconds),
+    block_poll_seconds_(get_poll_seconds(node.node_settings())),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),
@@ -419,6 +427,12 @@ void protocol_block_in::report(const chain::block& block)
         const auto transactions = block.transactions().size();
         const auto inputs = std::max(block.total_inputs(), size_t(1));
 
+        // Subtract total deserialization time from start of validation because
+        // the wait time is between end_deserialize and start_check. This lets
+        // us simulate block announcement validation time as there is no wait.
+        const auto start_validate = times.start_check - 
+            (times.end_deserialize - times.start_deserialize);
+
         boost::format format("Block [%|i|] %|4i| txs %|4i| ins "
             "%|4i| wms %|4i| vms %|4i| vµs %|4i| rµs %|4i| cµs %|4i| pµs "
             "%|4i| aµs %|4i| sµs %|4i| dµs");
@@ -430,10 +444,10 @@ void protocol_block_in::report(const chain::block& block)
             total_cost_ms(times.end_deserialize, times.start_check) %
 
             // validation total (ms)
-            total_cost_ms(times.start_check, times.start_notify) %
+            total_cost_ms(start_validate, times.start_notify) %
 
             // validation per input (µs)
-            unit_cost(times.start_check, times.start_notify, inputs) %
+            unit_cost(start_validate, times.start_notify, inputs) %
 
             // deserialization (read) per input (µs)
             unit_cost(times.start_deserialize, times.end_deserialize, inputs) %

@@ -199,35 +199,6 @@ void protocol_transaction_in::send_get_transactions(
     chain_.filter_transactions(request, BIND2(send_get_data, _1, request));
 }
 
-////// Subscription.
-//////-----------------------------------------------------------------------------
-////
-////// TODO: move memory_pool to a derived class protocol_transaction_in_70002.
-////// Prior to this level the mempool message is not available.
-////bool protocol_transaction_in::handle_reorganized(code ec, size_t,
-////    block_const_ptr_list_const_ptr, block_const_ptr_list_const_ptr outgoing)
-////{
-////    if (stopped(ec))
-////        return false;
-////
-////    if (ec)
-////    {
-////        LOG_ERROR(LOG_NODE)
-////            << "Internal failure handling reorganization for ["
-////            << authority() << "] " << ec.message();
-////        stop(ec);
-////        return false;
-////    }
-////
-////    // If there are no outgoing blocks then the memory pool is intact.
-////    if (outgoing->empty())
-////        return true;
-////
-////    // Our own node would ignore this if it wasn't the first instance.
-////    SEND2(memory_pool(), handle_send, _1, memory_pool::command);
-////    return true;
-////}
-
 // Stop.
 //-----------------------------------------------------------------------------
 
