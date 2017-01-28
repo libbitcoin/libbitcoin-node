@@ -106,7 +106,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
         return false;
 
     // The handler may be invoked *multiple times* by one blockchain call.
-    chain_.fetch_unconfirmed(max_inventory, minimum_fee_,
+    chain_.fetch_mempool(max_inventory, minimum_fee_,
         BIND2(handle_fetch_unconfirmed, _1, _2));
 
     // Drop this subscription after the first request.
