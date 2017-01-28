@@ -59,6 +59,8 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
 
 void protocol_transaction_out::start()
 {
+    protocol_events::start(BIND1(handle_stop, _1));
+
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     // Prior to this level transaction relay is not configurable.
     if (relay_to_peer_)
