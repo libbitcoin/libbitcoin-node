@@ -271,6 +271,9 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     // "recently announced and ... close to the tip of the best chain".
     // Close to the tip could be the tip itself with recent based on timestamp.
     // Peer may request compact only after receipt of a send_compact message.
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: investigate recursion cost.
+    ///////////////////////////////////////////////////////////////////////////
     send_next_data(response);
     return true;
 }
@@ -325,6 +328,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
         BITCOIN_ASSERT(!inventory->inventories().empty());
         const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
+        handle_send_next(error::success, inventory);
         return;
     }
 
@@ -356,6 +360,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
         BITCOIN_ASSERT(!inventory->inventories().empty());
         const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
+        handle_send_next(error::success, inventory);
         return;
     }
 
@@ -388,6 +393,7 @@ void protocol_block_out::send_compact_block(const code& ec,
         BITCOIN_ASSERT(!inventory->inventories().empty());
         const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
+        handle_send_next(error::success, inventory);
         return;
     }
 
