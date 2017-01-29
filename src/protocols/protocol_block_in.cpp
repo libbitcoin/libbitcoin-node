@@ -83,14 +83,13 @@ void protocol_block_in::start()
 
     // TODO: move not_found to a derived class protocol_block_in_70001.
     SUBSCRIBE2(not_found, handle_receive_not_found, _1, _2);
-
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
     SUBSCRIBE2(block, handle_receive_block, _1, _2);
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     if (headers_from_peer_)
     {
-        // Allow peer to send headers vs. inventory block announcements.
+        // Ask peer to send headers vs. inventory block announcements.
         SEND2(send_headers(), handle_send, _1, send_headers::command);
     }
 
