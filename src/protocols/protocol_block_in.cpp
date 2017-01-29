@@ -288,9 +288,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Once we are at the top this will end up polling the peer.
     reset_timer();
 
-    // HACK: this is unsafe.
     message->validation.originator = nonce();
-
     chain_.organize(message, BIND2(handle_store_block, _1, message));
     return true;
 }
