@@ -262,15 +262,16 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     const auto& inventories = message->inventories();
     const auto response = std::make_shared<inventory>();
 
+    // TODO: convert all compact_block elements to block unless block is,
+    // "recently announced and ... close to the tip of the best chain".
+    // Close to the tip could be the tip itself with recent based on timestamp.
+    // Peer may request compact only after receipt of a send_compact message.
+
     // Reverse copy the block elements of the const inventory.
     for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
         if (it->is_block_type())
             response->inventories().push_back(*it);
 
-    // TODO: convert all compact_block elements to block unless block is,
-    // "recently announced and ... close to the tip of the best chain".
-    // Close to the tip could be the tip itself with recent based on timestamp.
-    // Peer may request compact only after receipt of a send_compact message.
     ///////////////////////////////////////////////////////////////////////////
     // TODO: investigate recursion cost.
     ///////////////////////////////////////////////////////////////////////////
@@ -373,7 +374,9 @@ void protocol_block_out::send_merkle_block(const code& ec,
         return;
     }
 
-    ////TODO: populate message->flags internal to merkle_block.
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: populate message->flags internal to merkle_block.
+    ///////////////////////////////////////////////////////////////////////////
     SEND2(*message, handle_send_next, _1, inventory);
 }
 
