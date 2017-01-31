@@ -142,9 +142,6 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
         return false;
     }
 
-    ////LOG_DEBUG(LOG_NODE)
-    ////    << "Potential transaction from [" << authority() << "].";
-
     message->validation.originator = nonce();
     chain_.organize(message, BIND2(handle_store_transaction, _1, message));
     return true;
