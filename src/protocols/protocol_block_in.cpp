@@ -128,11 +128,13 @@ void protocol_block_in::get_block_inventory(const code& ec)
 void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
     const auto chain_top = node_.top_block();
-    const auto chain_top_hash = chain_top.hash();
+    const auto& chain_top_hash = chain_top.hash();
     const auto last_locator_top = last_locator_top_.load();
 
     // Avoid requesting from the same start as last request to this peer.
     // This does not guarantee prevention, it's just an optimization.
+    // If the peer does not respond to the previous request this will stall
+    // unless a block announcement is connected or another channel advances.
     if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
         return;
 
