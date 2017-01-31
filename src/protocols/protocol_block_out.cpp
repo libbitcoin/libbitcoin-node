@@ -272,9 +272,6 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         if (it->is_block_type())
             response->inventories().push_back(*it);
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: investigate recursion cost.
-    ///////////////////////////////////////////////////////////////////////////
     send_next_data(response);
     return true;
 }
