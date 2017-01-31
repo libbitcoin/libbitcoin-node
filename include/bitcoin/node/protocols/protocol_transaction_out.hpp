@@ -57,7 +57,7 @@ private:
     bool handle_receive_memory_pool(const code& ec,
         memory_pool_const_ptr message);
 
-    void handle_fetch_unconfirmed(const code& ec, inventory_ptr message);
+    void handle_fetch_mempool(const code& ec, inventory_ptr message);
 
     void handle_stop(const code& ec);
     void handle_send_next(const code& ec, inventory_ptr inventory);
