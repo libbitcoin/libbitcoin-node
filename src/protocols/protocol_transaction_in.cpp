@@ -31,7 +31,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define NAME "transaction"
+#define NAME "transaction_in"
 #define CLASS protocol_transaction_in
 
 using namespace bc::blockchain;
