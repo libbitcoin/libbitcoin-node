@@ -106,15 +106,16 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
         return false;
 
     // The handler may be invoked *multiple times* by one blockchain call.
+    // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     chain_.fetch_mempool(max_inventory, minimum_fee_,
-        BIND2(handle_fetch_unconfirmed, _1, _2));
+        BIND2(handle_fetch_mempool, _1, _2));
 
     // Drop this subscription after the first request.
     return false;
 }
 
 // Each invocation is limited to 50000 vectors and invoked from common thread.
-void protocol_transaction_out::handle_fetch_unconfirmed(const code& ec,
+void protocol_transaction_out::handle_fetch_mempool(const code& ec,
     inventory_ptr message)
 {
     if (stopped(ec) || message->inventories().empty())

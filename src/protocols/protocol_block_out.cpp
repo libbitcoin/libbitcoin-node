@@ -371,9 +371,6 @@ void protocol_block_out::send_merkle_block(const code& ec,
         return;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: populate message->flags internal to merkle_block.
-    ///////////////////////////////////////////////////////////////////////////
     SEND2(*message, handle_send_next, _1, inventory);
 }
 
@@ -423,7 +420,6 @@ void protocol_block_out::handle_send_next(const code& ec,
 // Subscription.
 //-----------------------------------------------------------------------------
 
-// TODO: make sure we are announcing older blocks first here.
 // TODO: add consideration for catch-up, where we may not want to announce.
 // We never announce or inventory an orphan, only indexed blocks.
 bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
