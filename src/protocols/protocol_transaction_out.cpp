@@ -29,7 +29,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define NAME "transaction"
+#define NAME "transaction_out"
 #define CLASS protocol_transaction_out
 
 using namespace bc::blockchain;

@@ -36,7 +36,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define NAME "block"
+#define NAME "block_in"
 #define CLASS protocol_block_in
 
 using namespace bc::blockchain;

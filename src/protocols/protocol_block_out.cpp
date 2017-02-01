@@ -33,7 +33,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define NAME "block"
+#define NAME "block_out"
 #define CLASS protocol_block_out
 
 using namespace bc::blockchain;
