@@ -167,7 +167,9 @@ void protocol_transaction_out::send_next_data(inventory_ptr inventory)
     // The order is reversed so that we can pop from the back.
     const auto& entry = inventory->inventories().back();
 
-    chain_.fetch_transaction(entry.hash(),
+    // This allows confirmed and unconfirmed transactions and will return the
+    // first match of either that it finds (by hash).
+    chain_.fetch_transaction(entry.hash(), false,
         BIND5(send_transaction, _1, _2, _3, _4, inventory));
 }
 
