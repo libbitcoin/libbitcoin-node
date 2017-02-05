@@ -45,7 +45,7 @@ reservations::reservations(check_list& hashes, fast_chain& chain,
     timeout_(settings.sync_timeout_seconds),
     chain_(chain)
 {
-    initialize(threads(settings.sync_peers, 3));
+    initialize(std::min(settings.sync_peers, 3u));
 }
 
 bool reservations::start()
