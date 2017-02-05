@@ -155,9 +155,11 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    size_t height;
+    size_t top_height;
+    hash_digest top_hash;
 
-    if (!chain_.get_last_height(height))
+    if (!chain_.get_last_height(top_height) ||
+        !chain_.get_block_hash(top_hash, top_height))
     {
         LOG_ERROR(LOG_NODE)
             << "The blockchain is corrupt.";
@@ -165,10 +167,10 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    set_top_block({ null_hash, height });
+    set_top_block({ std::move(top_hash), top_height });
 
     LOG_INFO(LOG_NODE)
-        << "Node start height is (" << height << ").";
+        << "Node start height is (" << top_height << ").";
 
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,
