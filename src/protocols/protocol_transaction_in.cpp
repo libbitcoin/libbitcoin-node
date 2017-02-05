@@ -157,6 +157,8 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
         return;
 
     // Ask the peer for ancestor txs if this one is an orphan.
+    // We may not get this transaction back, but that is a fair tradeoff for
+    // not having to store potentially invalid transactions.
     if (ec == error::orphan_transaction)
         send_get_transactions(message);
 
@@ -164,12 +166,17 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
     if (ec)
     {
+        // This should not happen with a single peer since we filter inventory.
+        // However it will happen when a block or another peer's tx intervenes.
         LOG_DEBUG(LOG_NODE)
-            << "Ignored transaction [" << encoded << "] from [" << authority()
+            << "Dropped transaction [" << encoded << "] from [" << authority()
             << "] " << ec.message();
-        ///////stop(ec);
         return;
     }
+
+    LOG_DEBUG(LOG_NODE)
+        << "Stored transaction [" << encoded << "] from [" << authority()
+        << "].";
 }
 
 // This will get chatty if the peer sends mempool response out of order.
@@ -190,7 +197,9 @@ void protocol_transaction_in::send_get_transactions(
     const auto request = std::make_shared<get_data>(std::move(missing), type);
 
     // Remove hashes of (unspent) transactions that we already have.
-    // BUGBUG: this removes spent transactions which it should not (see BIP30).
+    // This removes spent transactions which is not correnct, however given the
+    // treatment of duplicate hashes by other nodes and the fact that this is
+    // a set of pool transactions only, this is okay.
     chain_.filter_transactions(request, BIND2(send_get_data, _1, request));
 }
 
