@@ -434,7 +434,7 @@ void protocol_block_in::report(const chain::block& block)
 
         boost::format format("Block [%|i|] %|4i| txs %|4i| ins "
             "%|4i| wms %|4i| vms %|4i| vµs %|4i| rµs %|4i| cµs %|4i| pµs "
-            "%|4i| aµs %|4i| sµs %|4i| dµs");
+            "%|4i| aµs %|4i| sµs %|4i| dµs %|f|");
 
         LOG_INFO(LOG_BLOCKCHAIN)
             << (format % height % transactions % inputs %
@@ -464,7 +464,10 @@ void protocol_block_in::report(const chain::block& block)
             unit_cost(times.start_connect, times.start_notify, inputs) %
 
             // deposit per input (µs)
-            unit_cost(times.start_push, times.end_push, inputs));
+            unit_cost(times.start_push, times.end_push, inputs) %
+
+            // this block transaction cache efficiency (hits/queries)
+            block.validation.cache_efficiency);
     }
 }
 
