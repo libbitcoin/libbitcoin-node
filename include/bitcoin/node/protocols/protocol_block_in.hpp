@@ -72,6 +72,7 @@ private:
     bc::atomic<hash_digest> last_locator_top_;
     const uint32_t block_poll_seconds_;
     const bool headers_from_peer_;
+    const bool blocks_from_peer_;
 };
 
 } // namespace node
