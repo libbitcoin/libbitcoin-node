@@ -57,10 +57,9 @@ private:
     void handle_stop(const code&);
 
     blockchain::safe_chain& chain_;
-    const uint64_t minimum_fee_;
     const bool relay_from_peer_;
-    const bool peer_suports_memory_pool_;
     const bool refresh_pool_;
+    const uint64_t minimum_fee_;
 };
 
 } // namespace node
