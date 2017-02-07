@@ -101,8 +101,7 @@ void protocol_block_in::start()
     chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
 
     // Send initial get_[blocks|headers] message by simulating first heartbeat.
-    // Since we need blocks do not stay connected to peer in bad version range.
-    set_event(blocks_from_peer_ ? error::success : error::channel_stopped);
+    set_event(error::success);
 }
 
 // Send get_[headers|blocks] sequence.
@@ -115,6 +114,13 @@ void protocol_block_in::get_block_inventory(const code& ec)
     {
         // This may get called more than once per stop.
         handle_stop(ec);
+        return;
+    }
+
+    // Since we need blocks do not stay connected to peer in bad version range.
+    if (!blocks_from_peer_)
+    {
+        stop(ec);
         return;
     }
 
