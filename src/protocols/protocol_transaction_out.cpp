@@ -44,7 +44,7 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
     chain_(chain),
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    minimum_fee_(0),
+    minimum_peer_fee_(0),
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version()->relay()),
@@ -89,7 +89,7 @@ bool protocol_transaction_out::handle_receive_fee_filter(const code& ec,
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     // Transaction annoucements will be filtered by fee amount.
-    minimum_fee_ = message->minimum_fee();
+    minimum_peer_fee_ = message->minimum_fee();
 
     // The fee filter may be adjusted.
     return true;
@@ -107,7 +107,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
 
     // The handler may be invoked *multiple times* by one blockchain call.
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    chain_.fetch_mempool(max_inventory, minimum_fee_,
+    chain_.fetch_mempool(max_inventory, minimum_peer_fee_,
         BIND2(handle_fetch_mempool, _1, _2));
 
     // Drop this subscription after the first request.
@@ -233,17 +233,16 @@ bool protocol_transaction_out::handle_notification(const code& ec,
         return false;
     }
 
-    // TODO: move fee filter to a derived class protocol_transaction_out_70013.
-    const auto fee = message->fees();
+    if (message->validation.originator == nonce())
+        return true;
 
-    // Transactions are discovered and announced individually.
-    if (message->validation.originator != nonce() && fee >= minimum_fee_)
-    {
-        static const auto id = inventory::type_id::transaction;
-        const inventory announce{ { id, message->hash() } };
-        SEND2(announce, handle_send, _1, announce.command);
-    }
+    // TODO: move fee_filter to a derived class protocol_transaction_out_70013.
+    if (message->fees() < minimum_peer_fee_)
+        return true;
 
+    static const auto id = inventory::type_id::transaction;
+    const inventory announce{ { id, message->hash() } };
+    SEND2(announce, handle_send, _1, announce.command);
     return true;
 }
 

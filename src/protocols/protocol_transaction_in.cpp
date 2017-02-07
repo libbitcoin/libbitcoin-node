@@ -48,10 +48,12 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     relay_from_peer_(node.network_settings().relay_transactions),
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
-    peer_suports_memory_pool_(negotiated_version() >= version::level::bip35),
-    refresh_pool_(relay_from_peer_ && peer_suports_memory_pool_ &&
-        node.node_settings().refresh_transactions),
+    refresh_pool_(negotiated_version() >= version::level::bip35 &&
+    node.node_settings().refresh_transactions),
 
+    // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
+    minimum_fee_(negotiated_version() >= version::level::bip133 ?
+        node.chain_settings().minimum_fee_satoshis : 0),
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
@@ -63,8 +65,15 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
+    // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
+    if (minimum_fee_ != 0)
+    {
+        // Have the peer filter the transactions it announces to us.
+        SEND2(fee_filter{ minimum_fee_ }, handle_send, _1, fee_filter::command);
+    }
+
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
-    if (refresh_pool_)
+    if (refresh_pool_ && relay_from_peer_)
     {
         // Refresh transaction pool on connect.
         SEND2(memory_pool(), handle_send, _1, memory_pool::command);
@@ -164,6 +173,11 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
     const auto encoded = encode_hash(message->hash());
 
+    // It is okay for us to receive a duplicate or a missing outputs tx but it
+    // is not generally okay to receive an otherwise invalid transaction.
+    // Below-fee transactions can be sent prior to fee_filter receipt or due to
+    // a negotiated version below BIP133 (7013).
+    // TODO: differentiate these situations and send reject as applicable.
     if (ec)
     {
         // This should not happen with a single peer since we filter inventory.

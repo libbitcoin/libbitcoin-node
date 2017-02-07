@@ -64,7 +64,7 @@ private:
     bool handle_notification(const code& ec, transaction_const_ptr message);
 
     blockchain::safe_chain& chain_;
-    std::atomic<uint64_t> minimum_fee_;
+    std::atomic<uint64_t> minimum_peer_fee_;
     ////std::atomic<bool> compact_to_peer_;
     const bool relay_to_peer_;
 };

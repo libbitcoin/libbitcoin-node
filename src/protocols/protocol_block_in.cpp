@@ -65,6 +65,10 @@ protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),
 
+    // This patch is treated as integral to basic block handling.
+    blocks_from_peer_(
+        negotiated_version() > version::level::no_blocks_end ||
+        negotiated_version() < version::level::no_blocks_start),
     CONSTRUCT_TRACK(protocol_block_in)
 {
 }
@@ -110,6 +114,13 @@ void protocol_block_in::get_block_inventory(const code& ec)
     {
         // This may get called more than once per stop.
         handle_stop(ec);
+        return;
+    }
+
+    // Since we need blocks do not stay connected to peer in bad version range.
+    if (!blocks_from_peer_)
+    {
+        stop(ec);
         return;
     }
 

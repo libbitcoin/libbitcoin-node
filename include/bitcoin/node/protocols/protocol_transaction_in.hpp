@@ -20,6 +20,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_IN_HPP
 
+#include <cstdint>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -57,8 +58,8 @@ private:
 
     blockchain::safe_chain& chain_;
     const bool relay_from_peer_;
-    const bool peer_suports_memory_pool_;
     const bool refresh_pool_;
+    const uint64_t minimum_fee_;
 };
 
 } // namespace node
