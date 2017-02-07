@@ -43,6 +43,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     channel::ptr channel, safe_chain& chain)
   : protocol_events(node, channel, NAME),
     chain_(chain),
+    minimum_fee_(node.chain_settings().minimum_fee_satoshis),
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
     relay_from_peer_(node.network_settings().relay_transactions),
@@ -62,6 +63,13 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
+
+    // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
+    if (minimum_fee_ != 0)
+    {
+        // Have the peer filter the transactions it announces to us.
+        SEND2(fee_filter{ minimum_fee_ }, handle_send, _1, fee_filter::command);
+    }
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     if (refresh_pool_)
@@ -164,6 +172,9 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
     const auto encoded = encode_hash(message->hash());
 
+    // It is okay for us to receive a duplicate or a missing outputs tx but it
+    // is not generally okay to receive an otherwise invalid or under-fee tx.
+    // TODO: differentiate these situations and send reject as applicable.
     if (ec)
     {
         // This should not happen with a single peer since we filter inventory.
