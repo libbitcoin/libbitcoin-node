@@ -46,7 +46,8 @@ full_node::full_node(const configuration& configuration)
     chain_(thread_pool(), configuration.chain, configuration.database,
         configuration.network.relay_transactions),
     protocol_maximum_(configuration.network.protocol_maximum),
-    settings_(configuration.node)
+    chain_settings_(configuration.chain),
+    node_settings_(configuration.node)
 {
 }
 
@@ -238,7 +239,7 @@ session_header_sync::ptr full_node::attach_header_sync_session()
 
 session_block_sync::ptr full_node::attach_block_sync_session()
 {
-    return attach<session_block_sync>(hashes_, chain_, settings_);
+    return attach<session_block_sync>(hashes_, chain_, node_settings_);
 }
 
 // Shutdown
@@ -285,9 +286,14 @@ bool full_node::close()
 // Properties.
 // ----------------------------------------------------------------------------
 
-const settings& full_node::node_settings() const
+const node::settings& full_node::node_settings() const
 {
-    return settings_;
+    return node_settings_;
+}
+
+const blockchain::settings& full_node::chain_settings() const
+{
+    return chain_settings_;
 }
 
 safe_chain& full_node::chain()
