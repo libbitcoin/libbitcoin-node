@@ -49,7 +49,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     refresh_pool_(negotiated_version() >= version::level::bip35 &&
-    node.node_settings().refresh_transactions),
+        node.node_settings().refresh_transactions),
 
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     minimum_fee_(negotiated_version() >= version::level::bip133 ?
