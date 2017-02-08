@@ -106,6 +106,7 @@ bool protocol_transaction_out::handle_receive_memory_pool(const code& ec,
         return false;
 
     // The handler may be invoked *multiple times* by one blockchain call.
+    // TODO: move multiple mempool inv to protocol_transaction_out_70002.
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
     chain_.fetch_mempool(max_inventory, minimum_peer_fee_,
         BIND2(handle_fetch_mempool, _1, _2));
