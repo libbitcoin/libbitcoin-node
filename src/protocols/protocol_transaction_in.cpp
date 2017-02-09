@@ -100,7 +100,7 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     // Prior to this level transaction relay is not configurable.
     if (!relay_from_peer_ && !response->inventories().empty())
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_WARNING(LOG_NODE)
             << "Unexpected transaction inventory from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
