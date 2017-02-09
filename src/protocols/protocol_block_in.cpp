@@ -1,13 +1,12 @@
 /**
- * Copyright (c) 2011-2015 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
- * libbitcoin is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License with
- * additional permissions to the one published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version. For more information see LICENSE.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,7 +14,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
@@ -440,7 +439,7 @@ void protocol_block_in::report(const chain::block& block)
         // Subtract total deserialization time from start of validation because
         // the wait time is between end_deserialize and start_check. This lets
         // us simulate block announcement validation time as there is no wait.
-        const auto start_validate = times.start_check - 
+        const auto start_validate = times.start_check -
             (times.end_deserialize - times.start_deserialize);
 
         boost::format format("Block [%|i|] %|4i| txs %|4i| ins "
