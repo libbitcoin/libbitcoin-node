@@ -38,6 +38,13 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
+uint64_t to_relay_fee(float minimum_byte_fee)
+{
+    // Spending one standard prevout with one output is nominally 189 bytes.
+    static const size_t small_transaction_size = 189;
+    return static_cast<uint64_t>(minimum_byte_fee * small_transaction_size);
+}
+
 protocol_transaction_in::protocol_transaction_in(full_node& node,
     channel::ptr channel, safe_chain& chain)
   : protocol_events(node, channel, NAME),
@@ -52,7 +59,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
-        node.chain_settings().minimum_relay_fee_satoshis : 0),
+        to_relay_fee(node.chain_settings().minimum_byte_fee_satoshis) : 0),
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
