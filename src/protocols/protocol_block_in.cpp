@@ -365,6 +365,8 @@ bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
     if (stopped(ec))
         return false;
 
+    // TODO: differentiate failure conditions and send reject as applicable.
+
     if (ec)
     {
         LOG_ERROR(LOG_NODE)

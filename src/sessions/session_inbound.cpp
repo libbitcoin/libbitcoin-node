@@ -45,10 +45,15 @@ session_inbound::session_inbound(full_node& network, safe_chain& chain)
 
 void session_inbound::attach_protocols(channel::ptr channel)
 {
-    if (channel->negotiated_version() >= version::level::bip31)
+    const auto version = channel->negotiated_version();
+
+    if (version >= version::level::bip31)
         attach<protocol_ping_60001>(channel)->start();
     else
         attach<protocol_ping_31402>(channel)->start();
+
+    if (version >= message::version::level::bip61)
+        attach<protocol_reject_70002>(channel)->start();
 
     attach<protocol_address_31402>(channel)->start();
     attach<protocol_block_in>(channel, chain_)->start();

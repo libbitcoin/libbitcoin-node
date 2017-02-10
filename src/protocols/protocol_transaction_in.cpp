@@ -176,7 +176,9 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
     // is not generally okay to receive an otherwise invalid transaction.
     // Below-fee transactions can be sent prior to fee_filter receipt or due to
     // a negotiated version below BIP133 (7013).
-    // TODO: differentiate these situations and send reject as applicable.
+
+    // TODO: differentiate failure conditions and send reject as applicable.
+
     if (ec)
     {
         // This should not happen with a single peer since we filter inventory.
