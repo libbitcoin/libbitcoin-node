@@ -51,8 +51,8 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
         node.node_settings().refresh_transactions),
 
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
-    minimum_fee_(negotiated_version() >= version::level::bip133 ?
-        node.chain_settings().minimum_fee_satoshis : 0),
+    minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
+        node.chain_settings().minimum_relay_fee_satoshis : 0),
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
@@ -65,10 +65,11 @@ void protocol_transaction_in::start()
     protocol_events::start(BIND1(handle_stop, _1));
 
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
-    if (minimum_fee_ != 0)
+    if (minimum_relay_fee_ != 0)
     {
         // Have the peer filter the transactions it announces to us.
-        SEND2(fee_filter{ minimum_fee_ }, handle_send, _1, fee_filter::command);
+        SEND2(fee_filter{ minimum_relay_fee_ }, handle_send, _1,
+            fee_filter::command);
     }
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.

@@ -58,7 +58,7 @@ private:
     blockchain::safe_chain& chain_;
     const bool relay_from_peer_;
     const bool refresh_pool_;
-    const uint64_t minimum_fee_;
+    const uint64_t minimum_relay_fee_;
 };
 
 } // namespace node
