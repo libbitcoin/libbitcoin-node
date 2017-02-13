@@ -211,7 +211,6 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     message->to_inventory(response->inventories(), inventory::type_id::block);
 
     // Remove hashes of blocks that we already have.
-    // BUGBUG: this removes blocks that are not in the main chain.
     chain_.filter_blocks(response, BIND2(send_get_data, _1, response));
     return true;
 }
@@ -227,7 +226,6 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     message->reduce(response->inventories(), inventory::type_id::block);
 
     // Remove hashes of blocks that we already have.
-    // BUGBUG: this removes blocks that are not in the main chain.
     chain_.filter_blocks(response, BIND2(send_get_data, _1, response));
     return true;
 }
