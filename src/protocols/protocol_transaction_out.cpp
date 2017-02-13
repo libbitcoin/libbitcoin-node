@@ -33,6 +33,7 @@ namespace node {
 
 using namespace bc::blockchain;
 using namespace bc::chain;
+using namespace bc::database;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
@@ -175,12 +176,16 @@ void protocol_transaction_out::send_next_data(inventory_ptr inventory)
 
 // TODO: send block_transaction message as applicable.
 void protocol_transaction_out::send_transaction(const code& ec,
-    transaction_ptr transaction, size_t, size_t, inventory_ptr inventory)
+    transaction_ptr transaction, size_t, size_t position,
+    inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
 
-    if (ec == error::not_found)
+    // Treat already confirmed transactions as not found.
+    auto confirmed = !ec && position != transaction_database::unconfirmed;
+
+    if (ec == error::not_found || confirmed)
     {
         LOG_DEBUG(LOG_NODE)
             << "Transaction requested by [" << authority() << "] not found.";
@@ -189,6 +194,8 @@ void protocol_transaction_out::send_transaction(const code& ec,
         BITCOIN_ASSERT(!inventory->inventories().empty());
         const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
+
+        // TODO: recursion hazard.
         handle_send_next(error::success, inventory);
         return;
     }
@@ -243,6 +250,10 @@ bool protocol_transaction_out::handle_notification(const code& ec,
     static const auto id = inventory::type_id::transaction;
     const inventory announce{ { id, message->hash() } };
     SEND2(announce, handle_send, _1, announce.command);
+
+    ////LOG_DEBUG(LOG_NODE)
+    ////    << "Announced tx [" << encode_hash(message->hash()) << "] to ["
+    ////    << authority() << "].";
     return true;
 }
 
