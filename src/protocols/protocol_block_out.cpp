@@ -461,7 +461,15 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
                 announce.elements().push_back(block->header());
 
         if (!announce.elements().empty())
+        {
             SEND2(announce, handle_send, _1, announce.command);
+
+            ////const auto hash = announce.elements().front().hash();
+            ////LOG_DEBUG(LOG_NODE)
+            ////    << "Announced block header [" << encode_hash(hash)
+            ////    << "] to [" << authority() << "].";
+        }
+
         return true;
     }
     else
@@ -474,7 +482,15 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
                     { inventory::type_id::block, block->header().hash() });
 
         if (!announce.inventories().empty())
+        {
             SEND2(announce, handle_send, _1, announce.command);
+
+            ////const auto hash = announce.inventories().front().hash();
+            ////LOG_DEBUG(LOG_NODE)
+            ////    << "Announced block inventory [" << encode_hash(hash)
+            ////    << "] to [" << authority() << "].";
+        }
+
         return true;
     }
 }
