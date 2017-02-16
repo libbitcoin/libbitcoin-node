@@ -194,8 +194,6 @@ void protocol_transaction_out::send_transaction(const code& ec,
         BITCOIN_ASSERT(!inventory->inventories().empty());
         const not_found reply{ inventory->inventories().back() };
         SEND2(reply, handle_send, _1, reply.command);
-
-        // TODO: recursion hazard.
         handle_send_next(error::success, inventory);
         return;
     }
@@ -220,7 +218,9 @@ void protocol_transaction_out::handle_send_next(const code& ec,
 
     BITCOIN_ASSERT(!inventory->inventories().empty());
     inventory->inventories().pop_back();
-    send_next_data(inventory);
+
+    // Break off recursion.
+    DISPATCH_CONCURRENT1(send_next_data, inventory);
 }
 
 // Subscription.
