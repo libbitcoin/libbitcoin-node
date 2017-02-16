@@ -60,7 +60,7 @@ void session_block_sync::start(result_handler handler)
 {
     // TODO: create session_timer base class and pass interval via start.
     timer_ = std::make_shared<deadline>(pool_, regulator_interval);
-    session::start(CONCURRENT2(handle_started, _1, handler));
+    session::start(CONCURRENT_DELEGATE2(handle_started, _1, handler));
 }
 
 void session_block_sync::handle_started(const code& ec, result_handler handler)

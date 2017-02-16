@@ -69,7 +69,7 @@ session_header_sync::session_header_sync(full_node& network,
 
 void session_header_sync::start(result_handler handler)
 {
-    session::start(CONCURRENT2(handle_started, _1, handler));
+    session::start(CONCURRENT_DELEGATE2(handle_started, _1, handler));
 }
 
 void session_header_sync::handle_started(const code& ec,
