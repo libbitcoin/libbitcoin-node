@@ -413,7 +413,9 @@ void protocol_block_out::handle_send_next(const code& ec,
 
     BITCOIN_ASSERT(!inventory->inventories().empty());
     inventory->inventories().pop_back();
-    send_next_data(inventory);
+
+    // Break off recursion.
+    DISPATCH_CONCURRENT1(send_next_data, inventory);
 }
 
 // Subscription.
