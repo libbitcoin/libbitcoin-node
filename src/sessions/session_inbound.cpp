@@ -40,7 +40,8 @@ session_inbound::session_inbound(full_node& network, safe_chain& chain)
     CONSTRUCT_TRACK(node::session_inbound)
 {
     LOG_INFO(LOG_NODE)
-        << "Starting inbound session.";
+        << "Starting inbound session on port ("
+        << network .network_settings().inbound_port << ").";
 }
 
 void session_inbound::attach_protocols(channel::ptr channel)
