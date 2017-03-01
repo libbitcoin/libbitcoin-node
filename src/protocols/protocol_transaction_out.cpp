@@ -142,7 +142,7 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     {
         LOG_WARNING(LOG_NODE)
             << "Invalid get_data size (" << message->inventories().size()
-            << ") from [" << authority() << "] ";
+            << ") from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }

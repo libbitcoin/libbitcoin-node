@@ -131,7 +131,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     {
         LOG_WARNING(LOG_NODE)
             << "Excessive get_headers locator size ("
-            << size << ") from [" << authority() << "] ";
+            << size << ") from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }
@@ -140,7 +140,7 @@ bool protocol_block_out::handle_receive_get_headers(const code& ec,
     {
         LOG_DEBUG(LOG_NODE)
             << "Disallowed get_headers locator size ("
-            << size << ") from [" << authority() << "] ";
+            << size << ") from [" << authority() << "]";
         return true;
     }
 
@@ -192,7 +192,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     {
         LOG_WARNING(LOG_NODE)
             << "Excessive get_blocks locator size ("
-            << size << ") from [" << authority() << "] ";
+            << size << ") from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }
@@ -201,7 +201,7 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
     {
         LOG_DEBUG(LOG_NODE)
             << "Disallowed get_blocks locator size ("
-            << size << ") from [" << authority() << "] ";
+            << size << ") from [" << authority() << "]";
         return true;
     }
 
@@ -252,7 +252,7 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     {
         LOG_WARNING(LOG_NODE)
             << "Invalid get_data size (" << message->inventories().size()
-            << ") from [" << authority() << "] ";
+            << ") from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }
