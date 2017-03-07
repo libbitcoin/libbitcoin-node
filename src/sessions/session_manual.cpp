@@ -39,8 +39,6 @@ session_manual::session_manual(full_node& network, safe_chain& chain)
     chain_(chain),
     CONSTRUCT_TRACK(node::session_manual)
 {
-    LOG_INFO(LOG_NODE)
-        << "Starting manual session.";
 }
 
 void session_manual::attach_protocols(channel::ptr channel)
