@@ -23,5 +23,9 @@
     <ClInclude Include="..\..\..\..\console\executor.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource.rc" />
   </ItemGroup>
 </Project>
