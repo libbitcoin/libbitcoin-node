@@ -85,7 +85,7 @@ void protocol_block_out::start()
     SUBSCRIBE2(get_data, handle_receive_get_data, _1, _2);
 
     // Subscribe to block acceptance notifications (the block-out heartbeat).
-    chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
+    chain_.subscribe_blockchain(BIND4(handle_reorganized, _1, _2, _3, _4));
 }
 
 // Receive send_headers and send_compact.
@@ -437,6 +437,10 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         return false;
     }
 
+    // Nothing to do here.
+    if (!incoming)
+        return true;
+
     // TODO: consider always sending the last block as compact if enabled.
     if (false && compact_to_peer_ && incoming->size() == 1)
     {
@@ -499,6 +503,8 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
 
 void protocol_block_out::handle_stop(const code&)
 {
+    chain_.unsubscribe();
+
     LOG_DEBUG(LOG_NETWORK)
         << "Stopped block_out protocol for [" << authority() << "].";
 }
