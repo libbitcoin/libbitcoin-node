@@ -1,3 +1,0 @@
-The tools and examples directories were copied from libbitcoin when libbitcoin-node was split out.
-
-Note that initchain (referenced by examples/README) has been moved to libbitcoin-blockchain.
