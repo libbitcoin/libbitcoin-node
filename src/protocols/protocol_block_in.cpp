@@ -96,9 +96,6 @@ void protocol_block_in::start()
         SEND2(send_headers(), handle_send, _1, send_headers::command);
     }
 
-    // Subscribe to block acceptance notifications (for gap fill).
-    chain_.subscribe_reorganize(BIND4(handle_reorganized, _1, _2, _3, _4));
-
     // Send initial get_[blocks|headers] message by simulating first heartbeat.
     set_event(error::success);
 }
@@ -330,6 +327,7 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
     }
 
+    // TODO: send reject as applicable.
     if (ec)
     {
         LOG_DEBUG(LOG_NODE)
@@ -355,35 +353,6 @@ void protocol_block_in::handle_store_block(const code& ec,
 
 // Subscription.
 //-----------------------------------------------------------------------------
-
-// At least one block was accepted into the chain, originating from any peer.
-bool protocol_block_in::handle_reorganized(code ec, size_t fork_height,
-    block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)
-{
-    if (stopped(ec))
-        return false;
-
-    // TODO: differentiate failure conditions and send reject as applicable.
-
-    if (ec)
-    {
-        LOG_ERROR(LOG_NODE)
-            << "Failure handling reorganization for [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return false;
-    }
-
-    ////// Report the blocks that originated from this peer.
-    ////// If originating peer is dropped there will be no report here.
-    ////for (const auto block: *incoming)
-    ////    if (block->validation.originator == nonce())
-    ////        LOG_DEBUG(LOG_NODE)
-    ////            << "Reorganized block [" << encode_hash(block->header().hash())
-    ////            << "] from [" << authority() << "].";
-
-    return true;
-}
 
 void protocol_block_in::handle_stop(const code&)
 {
