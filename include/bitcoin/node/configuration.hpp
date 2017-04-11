@@ -19,10 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
 #define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
-#include <cstddef>
-#include <string>
 #include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -47,7 +44,6 @@ class BCN_API configuration
 {
 public:
     configuration(config::settings context);
-    configuration(const configuration& other);
 
     /// Options.
     bool help;

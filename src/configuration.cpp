@@ -38,19 +38,5 @@ configuration::configuration(config::settings context)
 {
 }
 
-// Copy constructor.
-configuration::configuration(const configuration& other)
-  : help(other.help),
-    initchain(other.initchain),
-    settings(other.settings),
-    version(other.version),
-    file(other.file),
-    node(other.node),
-    chain(other.chain),
-    database(other.database),
-    network(other.network)
-{
-}
-
 } // namespace node
 } // namespace libbitcoin
