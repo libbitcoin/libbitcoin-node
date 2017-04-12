@@ -46,20 +46,20 @@ parser::parser(const configuration& defaults)
 }
 
 // Initialize configuration using defaults of the given context.
-parser::parser(const config::settings& context)
+parser::parser(config::settings context)
   : configured(context)
 {
-    // A node doesn't require history, and history is expensive.
+    // A node doesn't use history, and history is expensive.
     configured.database.index_start_height = max_uint32;
 
-    // A node allows 8 inbound connections by default.
-    configured.network.inbound_connections = 8;
+    // Logs will slow things if not rotated.
+    configured.network.rotation_size = 10000000;
+
+    // With block-first sync the count should be low until complete.
+    configured.network.outbound_connections = 2;
 
     // A node allows 1000 host names by default.
     configured.network.host_pool_capacity = 1000;
-
-    // A node requests transaction relay by default.
-    configured.network.relay_transactions = true;
 
     // A node exposes full node (1) network services by default.
     configured.network.services = message::version::service::node_network;
@@ -149,7 +149,7 @@ options_metadata parser::load_settings()
     (
         "log.rotation_size",
         value<size_t>(&configured.network.rotation_size),
-        "The size at which a log is archived, defaults to 0 (disabled)."
+        "The size at which a log is archived, defaults to 10000000 (0 disables)."
     )
     (
         "log.minimum_free_space",
@@ -215,12 +215,12 @@ options_metadata parser::load_settings()
     (
         "network.inbound_connections",
         value<uint32_t>(&configured.network.inbound_connections),
-        "The target number of incoming network connections, defaults to 8."
+        "The target number of incoming network connections, defaults to 0."
     )
     (
         "network.outbound_connections",
         value<uint32_t>(&configured.network.outbound_connections),
-        "The target number of outgoing network connections, defaults to 8."
+        "The target number of outgoing network connections, defaults to 2."
     )
     (
         "network.manual_attempt_limit",
@@ -255,7 +255,7 @@ options_metadata parser::load_settings()
     (
         "network.channel_expiration_minutes",
         value<uint32_t>(&configured.network.channel_expiration_minutes),
-        "The age limit for any connection, defaults to 1440."
+        "The age limit for any connection, defaults to 60."
     )
     (
         "network.channel_germination_seconds",
@@ -322,7 +322,7 @@ options_metadata parser::load_settings()
     (
         "database.cache_capacity",
         value<uint32_t>(&configured.database.cache_capacity),
-        "The maximum number of entries in the unspent outputs cache, defaults to 0."
+        "The maximum number of entries in the unspent outputs cache, defaults to 10000."
     )
 
     /* [blockchain] */
@@ -395,38 +395,38 @@ options_metadata parser::load_settings()
     )
 
     /* [node] */
-    (
-        "node.sync_peers",
-        value<uint32_t>(&configured.node.sync_peers),
-        "The maximum number of initial block download peers, defaults to 0 (physical cores)."
-    )
-    (
-        "node.sync_timeout_seconds",
-        value<uint32_t>(&configured.node.sync_timeout_seconds),
-        "The time limit for block response during initial block download, defaults to 5."
-    )
+    ////(
+    ////    "node.sync_peers",
+    ////    value<uint32_t>(&configured.node.sync_peers),
+    ////    "The maximum number of initial block download peers, defaults to 0 (physical cores)."
+    ////)
+    ////(
+    ////    "node.sync_timeout_seconds",
+    ////    value<uint32_t>(&configured.node.sync_timeout_seconds),
+    ////    "The time limit for block response during initial block download, defaults to 5."
+    ////)
     (
         "node.block_poll_seconds",
         value<uint32_t>(&configured.node.block_poll_seconds),
         "The time period for block polling after initial block download, defaults to 1 (0 disables)."
     )
     (
-        /* Internally this is blockchain, but it is conceptually a node setting.*/
+        /* Internally this is blockchain, but it is conceptually a node setting. */
         "node.minimum_byte_fee_satoshis",
         value<float>(&configured.chain.minimum_byte_fee_satoshis),
         "The minimum fee per byte required for transaction acceptance, defaults to 1."
     )
     ////(
-    ////    /* Internally this blockchain, but it is conceptually a node setting.*/
+    ////    /* Internally this blockchain, but it is conceptually a node setting. */
     ////    "node.reject_conflicts",
     ////    value<bool>(&configured.chain.reject_conflicts),
     ////    "Retain only the first seen of conflicting transactions, defaults to true."
     ////)
     (
-        /* Internally this network, but it is conceptually a node setting.*/
+        /* Internally this network, but it is conceptually a node setting. */
         "node.relay_transactions",
         value<bool>(&configured.network.relay_transactions),
-        "Request that peers relay transactions, defaults to true."
+        "Request that peers relay transactions, defaults to false."
     )
     (
         "node.refresh_transactions",
