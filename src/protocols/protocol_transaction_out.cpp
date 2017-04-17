@@ -240,6 +240,11 @@ bool protocol_transaction_out::handle_notification(const code& ec,
         return false;
     }
 
+    // TODO: make this a collection and send empty in this case.
+    // Nothing to do, a channel is stopping but it's not this one.
+    if (!message)
+        return true;
+
     if (message->validation.originator == nonce())
         return true;
 
@@ -259,6 +264,8 @@ bool protocol_transaction_out::handle_notification(const code& ec,
 
 void protocol_transaction_out::handle_stop(const code&)
 {
+    chain_.unsubscribe();
+
     LOG_DEBUG(LOG_NETWORK)
         << "Stopped transaction_out protocol for [" << authority() << "].";
 }

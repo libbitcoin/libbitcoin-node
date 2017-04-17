@@ -197,12 +197,15 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
         return false;
     }
 
+    // Nothing to do here.
+    if (!incoming || incoming->empty())
+        return true;
+
     for (const auto block: *outgoing)
         LOG_DEBUG(LOG_NODE)
             << "Reorganization moved block to orphan pool ["
             << encode_hash(block->header().hash()) << "]";
 
-    BITCOIN_ASSERT(!incoming->empty());
     const auto height = safe_add(fork_height, incoming->size());
 
     set_top_block({ incoming->back()->hash(), height });
@@ -305,7 +308,7 @@ safe_chain& full_node::chain()
 
 void full_node::subscribe_blockchain(reorganize_handler&& handler)
 {
-    chain().subscribe_reorganize(std::move(handler));
+    chain().subscribe_blockchain(std::move(handler));
 }
 
 void full_node::subscribe_transaction(transaction_handler&& handler)

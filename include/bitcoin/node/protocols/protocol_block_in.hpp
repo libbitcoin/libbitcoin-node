@@ -62,10 +62,6 @@ private:
 
     void handle_stop(const code& ec);
 
-    bool handle_reorganized(code ec, size_t fork_height,
-        block_const_ptr_list_const_ptr incoming,
-        block_const_ptr_list_const_ptr outgoing);
-
     full_node& node_;
     blockchain::safe_chain& chain_;
     bc::atomic<hash_digest> last_locator_top_;
