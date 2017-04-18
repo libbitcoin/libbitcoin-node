@@ -202,6 +202,15 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
+    // We don't want to request a batch of headers out of order.
+    if (!message->is_sequential())
+    {
+        LOG_WARNING(LOG_NODE)
+            << "Block headers out of order from [" << authority() << "].";
+        stop(error::channel_stopped);
+        return false;
+    }
+
     // There is no benefit to this use of headers, in fact it is suboptimal.
     // In v3 headers will be used to build block tree before getting blocks.
     const auto response = std::make_shared<get_data>();
