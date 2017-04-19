@@ -51,7 +51,11 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     chain_(chain),
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
-    relay_from_peer_(node.network_settings().relay_transactions),
+    // In the mean time, restrict by negotiated protocol level.
+    // Because of inconsistent implementation by version we must allow relay
+    // at bip37 version or below. Enforcement starts above bip37 version.
+    relay_from_peer_(negotiated_version() <= version::level::bip37 ||
+        node.network_settings().relay_transactions),
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
     refresh_pool_(negotiated_version() >= version::level::bip35 &&
