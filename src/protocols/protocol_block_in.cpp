@@ -157,8 +157,6 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     if (stopped(ec))
         return;
 
-    const auto& last_hash = message->start_hashes().front();
-
     if (ec)
     {
         LOG_ERROR(LOG_NODE)
@@ -171,14 +169,25 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
     if (message->start_hashes().empty())
         return;
 
+    const auto& last_hash = message->start_hashes().front();
+
     // TODO: move get_headers to a derived class protocol_block_in_31800.
     const auto use_headers = negotiated_version() >= version::level::headers;
-    const auto default_size = use_headers ? "2000" : "500";
+    const auto request_type = (use_headers ? "headers" : "inventory");
 
-    LOG_DEBUG(LOG_NODE)
-        << "Ask [" << authority() << "] for headers from ["
-        << encode_hash(last_hash) << "] through [" <<
-        (stop_hash == null_hash ? default_size : encode_hash(stop_hash)) << "]";
+    if (stop_hash == null_hash)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Ask [" << authority() << "] for " << request_type << " after ["
+            << encode_hash(last_hash) << "]";
+    }
+    else
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Ask [" << authority() << "] for " << request_type << " from ["
+            << encode_hash(last_hash) << "] through ["
+            << encode_hash(stop_hash) << "]";
+    }
 
     // Save the locator top to prevent a redundant future request.
     last_locator_top_.store(last_hash);
