@@ -259,7 +259,7 @@ bool full_node::stop()
 
     if (!chain_stop)
         LOG_ERROR(LOG_NODE)
-            << "Failed to stop database.";
+            << "Failed to stop blockchain.";
 
     return p2p_stop && chain_stop;
 }
@@ -280,7 +280,7 @@ bool full_node::close()
 
     if (!chain_close)
         LOG_ERROR(LOG_NODE)
-            << "Failed to close database.";
+            << "Failed to close blockchain.";
 
     return p2p_close && chain_close;
 }
