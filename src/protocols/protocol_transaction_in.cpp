@@ -75,6 +75,9 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
+    SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
+    SUBSCRIBE2(transaction, handle_receive_transaction, _1, _2);
+
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     if (minimum_relay_fee_ != 0)
     {
@@ -87,11 +90,8 @@ void protocol_transaction_in::start()
     if (refresh_pool_ && relay_from_peer_)
     {
         // Refresh transaction pool on connect.
-        SEND2(memory_pool(), handle_send, _1, memory_pool::command);
+        SEND2(memory_pool{}, handle_send, _1, memory_pool::command);
     }
-
-    SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
-    SUBSCRIBE2(transaction, handle_receive_transaction, _1, _2);
 }
 
 // Receive inventory sequence.
