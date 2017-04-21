@@ -44,22 +44,12 @@ using namespace bc::network;
 using namespace std::chrono;
 using namespace std::placeholders;
 
-static constexpr auto perpetual_timer = true;
-
-static inline uint32_t get_poll_seconds(const node::settings& settings)
-{
-    // Set 136 years as equivalent to "never" if configured to disable.
-    const auto value = settings.block_poll_seconds;
-    return value == 0 ? max_uint32 : value;
-}
-
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
-  : protocol_timer(node, channel, perpetual_timer, NAME),
+  : protocol_timer(node, channel, false, NAME),
     node_(node),
     chain_(chain),
-    last_locator_top_(null_hash),
-    block_poll_seconds_(get_poll_seconds(node.node_settings())),
+    block_latency_(node.node_settings().block_latency()),
 
     // TODO: move send_headers to a derived class protocol_block_in_70012.
     headers_from_peer_(negotiated_version() >= version::level::bip130),
@@ -77,9 +67,8 @@ protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
 
 void protocol_block_in::start()
 {
-    // Use perpetual protocol timer to prevent stall (our heartbeat).
-    protocol_timer::start(asio::seconds(block_poll_seconds_),
-        BIND1(get_block_inventory, _1));
+    // Use timer to drop slow peers.
+    protocol_timer::start(block_latency_, BIND1(handle_timeout, _1));
 
     // TODO: move headers to a derived class protocol_block_in_31800.
     SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
@@ -93,59 +82,18 @@ void protocol_block_in::start()
     if (headers_from_peer_)
     {
         // Ask peer to send headers vs. inventory block announcements.
-        SEND2(send_headers(), handle_send, _1, send_headers::command);
-    }
-
-    // Send initial get_[blocks|headers] message by simulating first heartbeat.
-    set_event(error::success);
-}
-
-// Send get_[headers|blocks] sequence.
-//-----------------------------------------------------------------------------
-
-// This is fired by the callback (i.e. base timer and stop handler).
-void protocol_block_in::get_block_inventory(const code& ec)
-{
-    if (stopped(ec))
-    {
-        // This may get called more than once per stop.
-        handle_stop(ec);
-        return;
-    }
-
-    // Since we need blocks do not stay connected to peer in bad version range.
-    if (!blocks_from_peer_)
-    {
-        stop(ec);
-        return;
-    }
-
-    if (ec && ec != error::channel_timeout)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure in block timer for [" << authority() << "] "
-            << ec.message();
-        stop(ec);
-        return;
+        SEND2(send_headers{}, handle_send, _1, send_headers::command);
     }
 
     send_get_blocks(null_hash);
 }
 
+// Send get_[headers|blocks] sequence.
+//-----------------------------------------------------------------------------
+
 void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
-    const auto chain_top = node_.top_block();
-    const auto& chain_top_hash = chain_top.hash();
-    const auto last_locator_top = last_locator_top_.load();
-
-    // Avoid requesting from the same start as last request to this peer.
-    // This does not guarantee prevention, it's just an optimization.
-    // If the peer does not respond to the previous request this will stall
-    // unless a block announcement is connected or another channel advances.
-    if (chain_top_hash != null_hash && chain_top_hash == last_locator_top)
-        return;
-
-    const auto heights = block::locator_heights(chain_top.height());
+    const auto heights = block::locator_heights(node_.top_block().height());
 
     chain_.fetch_block_locator(heights,
         BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
@@ -189,8 +137,6 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
             << encode_hash(stop_hash) << "]";
     }
 
-    // Save the locator top to prevent a redundant future request.
-    last_locator_top_.store(last_hash);
     message->set_stop_hash(stop_hash);
 
     if (use_headers)
@@ -262,6 +208,25 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
     if (message->inventories().empty())
         return;
 
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex.lock_upgrade();
+    const auto fresh = backlog_.empty();
+    mutex.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    // Enqueue the block inventory behind the preceding block inventory.
+    for (const auto& inventory: message->inventories())
+        if (inventory.type() == inventory::type_id::block)
+            backlog_.push(inventory.hash());
+
+    mutex.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+
+    // There was no backlog so the timer must be started now.
+    if (fresh)
+        reset_timer();
+
     // inventory|headers->get_data[blocks]
     SEND2(*message, handle_send, _1, message->command);
 }
@@ -288,14 +253,18 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
     hash_list hashes;
     message->to_hashes(hashes, inventory::type_id::block);
 
-    // The peer cannot locate a block that it told us it had.
-    // This only results from reorganization assuming peer is proper.
-    for (const auto hash: hashes)
+    for (const auto& hash: hashes)
     {
         LOG_DEBUG(LOG_NODE)
             << "Block not_found [" << encode_hash(hash) << "] from ["
             << authority() << "]";
     }
+
+    // The peer cannot locate one or more blocks that it told us it had.
+    // This only results from reorganization assuming peer is proper.
+    // Drop the peer so next channgel generates a new locator and backlog.
+    if (!hashes.empty())
+        stop(error::channel_stopped);
 
     return true;
 }
@@ -309,16 +278,50 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Reset the timer because we just received a block from this peer.
-    // Once we are at the top this will end up polling the peer.
-    reset_timer();
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex.lock();
+
+    auto matched = !backlog_.empty() && backlog_.front() == message->hash();
+
+    if (matched)
+        backlog_.pop();
+
+    // Empty after pop means we need to make a new request.
+    const auto cleared = backlog_.empty();
+
+    mutex.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+
+    // It is common for block announcements to cause block requests to be sent
+    // out of backlog order due to interleaving of threads. This results in
+    // channel drops during initial block download but not after sync. The
+    // resolution to this issue is use of headers-first sync, but short of that
+    // the current implementation performs well and drops peers no more
+    // frequently than block announcements occur during initial block download,
+    // and not typically after it is complete.
+    if (!matched)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Block [" << encode_hash(message->hash())
+            << "] unexpected or out of order from [" << authority() << "]";
+        stop(error::channel_stopped);
+        return false;
+    }
 
     message->validation.originator = nonce();
     chain_.organize(message, BIND2(handle_store_block, _1, message));
+
+    // Sending a new request will reset the timer as necessary.
+    if (cleared)
+        send_get_blocks(null_hash);
+    else
+        reset_timer();
+
     return true;
 }
 
-// The transaction has been saved to the block chain (or not).
+// The block has been saved to the block chain (or not).
 // This will be picked up by subscription in block_out and will cause the block
 // to be announced to non-originating peers.
 void protocol_block_in::handle_store_block(const code& ec,
@@ -371,6 +374,49 @@ void protocol_block_in::handle_store_block(const code& ec,
 
 // Subscription.
 //-----------------------------------------------------------------------------
+
+// This is fired by the callback (i.e. base timer and stop handler).
+void protocol_block_in::handle_timeout(const code& ec)
+{
+    if (stopped(ec))
+    {
+        // This may get called more than once per stop.
+        handle_stop(ec);
+        return;
+    }
+
+    // Since we need blocks do not stay connected to peer in bad version range.
+    if (!blocks_from_peer_)
+    {
+        stop(error::channel_stopped);
+        return;
+    }
+
+    if (ec && ec != error::channel_timeout)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Failure in block timer for [" << authority() << "] "
+            << ec.message();
+        stop(ec);
+        return;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex.lock_shared();
+    const auto backlog_empty = backlog_.empty();
+    mutex.unlock_shared();
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Can only end up here if time was not extended.
+    if (!backlog_empty)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Peer [" << authority()
+            << "] exceeded configured block latency.";
+        stop(ec);
+    }
+}
 
 void protocol_block_in::handle_stop(const code&)
 {
