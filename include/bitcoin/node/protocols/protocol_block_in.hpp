@@ -19,10 +19,10 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_BLOCK_IN_HPP
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <queue>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -46,9 +46,10 @@ public:
     virtual void start();
 
 private:
+    typedef std::queue<hash_digest> hash_queue;
+
     static void report(const chain::block& block);
 
-    void get_block_inventory(const code& ec);
     void send_get_blocks(const hash_digest& stop_hash);
     void send_get_data(const code& ec, get_data_ptr message);
 
@@ -60,14 +61,19 @@ private:
     void handle_fetch_block_locator(const code& ec, get_headers_ptr message,
         const hash_digest& stop_hash);
 
+    void handle_timeout(const code& ec);
     void handle_stop(const code& ec);
 
+    // These are thread safe.
     full_node& node_;
     blockchain::safe_chain& chain_;
-    bc::atomic<hash_digest> last_locator_top_;
-    const uint32_t block_poll_seconds_;
+    const asio::duration block_latency_;
     const bool headers_from_peer_;
     const bool blocks_from_peer_;
+
+    // This is protected by mutex.
+    hash_queue backlog_;
+    mutable upgrade_mutex mutex;
 };
 
 } // namespace node
