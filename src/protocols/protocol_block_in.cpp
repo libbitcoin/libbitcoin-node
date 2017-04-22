@@ -321,6 +321,39 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     return true;
 }
 
+void protocol_block_in::handle_orphan_block(const code& ec,
+    size_t position, block_const_ptr message)
+{
+    if (stopped(ec))
+        return;
+
+    const auto& txs = message->transactions();
+
+    if (!ec && position > 0)
+    {
+        BITCOIN_ASSERT(position < txs.size());
+        const auto encoded = encode_hash(txs[position].hash());
+
+        LOG_DEBUG(LOG_NODE)
+            << "Scavenged transaction [" << encoded << "] from ["
+            << authority() << "].";
+    }
+
+    // Start by incrementing past the presumed coinbase, and so-on.
+    if (++position >= txs.size())
+    {
+        // Ask the peer for blocks from the chain top up to this orphan.
+        send_get_blocks(message->hash());
+        return;
+    }
+
+    // TODO: store txs in shared pointer list within block.
+    auto tx = std::make_shared<const message::transaction>(txs[position]);
+
+    // Recursion is broken up by the organizer's priority pool transition.
+    chain_.organize(tx, BIND3(handle_orphan_block, _1, position, message));
+}
+
 // The block has been saved to the block chain (or not).
 // This will be picked up by subscription in block_out and will cause the block
 // to be announced to non-originating peers.
@@ -331,16 +364,18 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
 
     const auto hash = message->header().hash();
-
-    // Ask the peer for blocks from the chain top up to this orphan.
-    if (ec == error::orphan_block)
-        send_get_blocks(hash);
-
     const auto encoded = encode_hash(hash);
 
-    if (ec == error::orphan_block ||
-        ec == error::duplicate_block ||
-        ec == error::insufficient_work)
+    if (ec == error::orphan_block)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Scavenging orphan block [" << encoded << "] from ["
+            << authority() << "]";
+        handle_orphan_block(error::success, 0, message);
+        return;
+    }
+
+    if (ec == error::duplicate_block || ec == error::insufficient_work)
     {
         LOG_DEBUG(LOG_NODE)
             << "Captured block [" << encoded << "] from [" << authority()
