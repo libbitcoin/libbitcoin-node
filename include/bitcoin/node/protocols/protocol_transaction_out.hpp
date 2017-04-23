@@ -46,7 +46,7 @@ public:
 
 private:
     void send_next_data(inventory_ptr inventory);
-    void send_transaction(const code& ec, transaction_ptr transaction,
+    void send_transaction(const code& ec, transaction_const_ptr transaction,
         size_t height, size_t position, inventory_ptr inventory);
 
     bool handle_receive_get_data(const code& ec,

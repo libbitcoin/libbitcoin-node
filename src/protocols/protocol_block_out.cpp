@@ -310,7 +310,7 @@ void protocol_block_out::send_next_data(inventory_ptr inventory)
     }
 }
 
-void protocol_block_out::send_block(const code& ec, block_ptr message,
+void protocol_block_out::send_block(const code& ec, block_const_ptr message,
     uint64_t, inventory_ptr inventory)
 {
     if (stopped(ec))
@@ -343,7 +343,7 @@ void protocol_block_out::send_block(const code& ec, block_ptr message,
 
 // TODO: move merkle_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_ptr message, uint64_t, inventory_ptr inventory)
+    merkle_block_const_ptr message, uint64_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -375,7 +375,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
 // TODO: move merkle_block to derived class protocol_block_out_70014.
 void protocol_block_out::send_compact_block(const code& ec,
-    compact_block_ptr message, uint64_t, inventory_ptr inventory)
+    compact_block_const_ptr message, uint64_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
