@@ -176,7 +176,7 @@ void protocol_transaction_out::send_next_data(inventory_ptr inventory)
 
 // TODO: send block_transaction message as applicable.
 void protocol_transaction_out::send_transaction(const code& ec,
-    transaction_ptr transaction, size_t, size_t position,
+    transaction_const_ptr transaction, size_t position, size_t /*height*/,
     inventory_ptr inventory)
 {
     if (stopped(ec))
