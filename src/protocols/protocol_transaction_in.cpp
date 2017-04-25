@@ -63,7 +63,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
-        to_relay_fee(node.chain_settings().minimum_byte_fee_satoshis) : 0),
+        to_relay_fee(node.chain_settings().byte_fee_satoshis) : 0),
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
