@@ -414,13 +414,13 @@ options_metadata parser::load_settings()
         /* Internally this is blockchain, but it is conceptually a node setting. */
         "node.notify_limit_hours",
         value<uint32_t>(&configured.chain.notify_limit_hours),
-        "Disable notifications when top block older than this, defaults to 24 (0 disables)."
+        "Disable relay when top block age exceeds, defaults to 24 (0 disables)."
     )
     (
         /* Internally this is blockchain, but it is conceptually a node setting. */
         "node.byte_fee_satoshis",
         value<float>(&configured.chain.byte_fee_satoshis),
-        "The minimum fee per byte required for transaction acceptance, defaults to 1."
+        "The minimum fee per byte, cumulative for conflicts, defaults to 1."
     )
     (
         /* Internally this is blockchain, but it is conceptually a node setting. */
@@ -435,7 +435,7 @@ options_metadata parser::load_settings()
         "The minimum output value, defaults to 500."
     )
     (
-        /* Internally this network, but it is conceptually a node setting. */
+        /* Internally this is network, but it is conceptually a node setting. */
         "node.relay_transactions",
         value<bool>(&configured.network.relay_transactions),
         "Request that peers relay transactions, defaults to false."
