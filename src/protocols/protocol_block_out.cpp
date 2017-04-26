@@ -437,8 +437,12 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         return false;
     }
 
-    // Nothing to do here.
+    // Nothing to do, a channel is stopping but it's not this one.
     if (!incoming)
+        return true;
+
+    // Do not announce blocks to peer if too far behind.
+    if (chain_.is_stale())
         return true;
 
     // TODO: consider always sending the last block as compact if enabled.
