@@ -58,8 +58,6 @@ private:
     bool handle_receive_inventory(const code& ec, inventory_const_ptr message);
     bool handle_receive_not_found(const code& ec, not_found_const_ptr message);
     void handle_store_block(const code& ec, block_const_ptr message);
-    void handle_orphan_block(const code& ec, size_t position,
-        block_const_ptr message);
     void handle_fetch_block_locator(const code& ec, get_headers_ptr message,
         const hash_digest& stop_hash);
 
