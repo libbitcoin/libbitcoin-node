@@ -150,7 +150,8 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 //-----------------------------------------------------------------------------
 
 // TODO: move headers to a derived class protocol_block_in_31800.
-// This originates from send_header->annoucements and get_headers requests.
+// This originates from send_header->annoucements and get_headers requests, or
+// from an unsolicited announcement. There is no way to distinguish.
 bool protocol_block_in::handle_receive_headers(const code& ec,
     headers_const_ptr message)
 {
@@ -176,7 +177,8 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     return true;
 }
 
-// This originates from default annoucements and get_blocks requests.
+// This originates from default annoucements and get_blocks requests, or from
+// an unsolicited announcement. There is no way to distinguish.
 bool protocol_block_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
@@ -293,7 +295,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     mutex.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    // It is common for block announcements to cause block requests to be sent
+    // If a peer sends a block unannounced we drop the peer - always. However
+    // it is common for block announcements to cause block requests to be sent
     // out of backlog order due to interleaving of threads. This results in
     // channel drops during initial block download but not after sync. The
     // resolution to this issue is use of headers-first sync, but short of that
