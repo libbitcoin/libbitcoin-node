@@ -52,6 +52,7 @@ executor::executor(parser& metadata, std::istream& input,
   : metadata_(metadata), output_(output), error_(error)
 {
     const auto& network = metadata_.configured.network;
+    const auto verbose = network.verbose;
 
     const log::rotable_file debug_file
     {
@@ -76,7 +77,7 @@ executor::executor(parser& metadata, std::istream& input,
     log::stream console_out(&output_, null_deleter());
     log::stream console_err(&error_, null_deleter());
 
-    log::initialize(debug_file, error_file, console_out, console_err);
+    log::initialize(debug_file, error_file, console_out, console_err, verbose);
     handle_stop(initialize_stop);
 }
 
