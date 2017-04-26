@@ -438,7 +438,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     }
 
     // Nothing to do, a channel is stopping but it's not this one.
-    if (!incoming)
+    if (!incoming || incoming->empty())
         return true;
 
     // Do not announce blocks to peer if too far behind.
