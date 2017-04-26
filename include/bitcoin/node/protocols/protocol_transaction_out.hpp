@@ -60,7 +60,8 @@ private:
 
     void handle_stop(const code& ec);
     void handle_send_next(const code& ec, inventory_ptr inventory);
-    bool handle_notification(const code& ec, transaction_const_ptr message);
+    bool handle_transaction_pool(const code& ec,
+        transaction_const_ptr message);
 
     blockchain::safe_chain& chain_;
     std::atomic<uint64_t> minimum_peer_fee_;
