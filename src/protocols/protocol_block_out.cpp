@@ -170,6 +170,11 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     if (message->elements().empty())
         return;
 
+
+    // Allow a peer to sync despite our being stale.
+    ////if (chain_.is_stale())
+    ////    return;
+
     // Respond to get_headers with headers.
     SEND2(*message, handle_send, _1, message->command);
 
@@ -205,6 +210,10 @@ bool protocol_block_out::handle_receive_get_blocks(const code& ec,
         return true;
     }
 
+    // Allow a peer to sync despite our being stale.
+    ////if (chain_.is_stale())
+    ////    return true;
+
     const auto threshold = last_locator_top_.load();
 
     chain_.fetch_locator_block_hashes(message, threshold, max_get_blocks,
@@ -230,6 +239,10 @@ void protocol_block_out::handle_fetch_locator_hashes(const code& ec,
     if (message->inventories().empty())
         return;
 
+    // Allow a peer to sync despite our being stale.
+    ////if (chain_.is_stale())
+    ////    return;
+
     // Respond to get_blocks with inventory.
     SEND2(*message, handle_send, _1, message->command);
 
@@ -248,6 +261,7 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
+    // TODO: consider rejecting the message for duplicated entries.
     if (message->inventories().size() > max_get_data)
     {
         LOG_WARNING(LOG_NODE)
@@ -256,6 +270,10 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
         stop(error::channel_stopped);
         return false;
     }
+
+    // Allow a peer to sync despite our being stale.
+    ////if (chain_.is_stale())
+    ////    return true;
 
     // Create a copy because message is const because it is shared.
     const auto& inventories = message->inventories();
@@ -437,8 +455,12 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         return false;
     }
 
-    // Nothing to do here.
-    if (!incoming)
+    // Nothing to do, a channel is stopping but it's not this one.
+    if (!incoming || incoming->empty())
+        return true;
+
+    // Do not announce blocks to peer if too far behind.
+    if (chain_.is_stale())
         return true;
 
     // TODO: consider always sending the last block as compact if enabled.

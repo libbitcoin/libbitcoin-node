@@ -66,7 +66,7 @@ void protocol_transaction_out::start()
     if (relay_to_peer_)
     {
         // Subscribe to transaction pool notifications and relay txs.
-        chain_.subscribe_transaction(BIND2(handle_notification, _1, _2));
+        chain_.subscribe_transaction(BIND2(handle_transaction_pool, _1, _2));
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.
@@ -226,7 +226,7 @@ void protocol_transaction_out::handle_send_next(const code& ec,
 // Subscription.
 //-----------------------------------------------------------------------------
 
-bool protocol_transaction_out::handle_notification(const code& ec,
+bool protocol_transaction_out::handle_transaction_pool(const code& ec,
     transaction_const_ptr message)
 {
     if (stopped(ec))
@@ -243,6 +243,11 @@ bool protocol_transaction_out::handle_notification(const code& ec,
     // TODO: make this a collection and send empty in this case.
     // Nothing to do, a channel is stopping but it's not this one.
     if (!message)
+        return true;
+
+    // Do not announce transactions to peer if too far behind.
+    // Typically the tx would not validate anyway, but this is more consistent.
+    if (chain_.is_stale())
         return true;
 
     if (message->validation.originator == nonce())

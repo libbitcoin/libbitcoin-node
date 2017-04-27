@@ -150,7 +150,8 @@ void protocol_block_in::handle_fetch_block_locator(const code& ec,
 //-----------------------------------------------------------------------------
 
 // TODO: move headers to a derived class protocol_block_in_31800.
-// This originates from send_header->annoucements and get_headers requests.
+// This originates from send_header->annoucements and get_headers requests, or
+// from an unsolicited announcement. There is no way to distinguish.
 bool protocol_block_in::handle_receive_headers(const code& ec,
     headers_const_ptr message)
 {
@@ -176,7 +177,8 @@ bool protocol_block_in::handle_receive_headers(const code& ec,
     return true;
 }
 
-// This originates from default annoucements and get_blocks requests.
+// This originates from default annoucements and get_blocks requests, or from
+// an unsolicited announcement. There is no way to distinguish.
 bool protocol_block_in::handle_receive_inventory(const code& ec,
     inventory_const_ptr message)
 {
@@ -293,7 +295,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     mutex.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    // It is common for block announcements to cause block requests to be sent
+    // If a peer sends a block unannounced we drop the peer - always. However
+    // it is common for block announcements to cause block requests to be sent
     // out of backlog order due to interleaving of threads. This results in
     // channel drops during initial block download but not after sync. The
     // resolution to this issue is use of headers-first sync, but short of that
@@ -312,46 +315,15 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     message->validation.originator = nonce();
     chain_.organize(message, BIND2(handle_store_block, _1, message));
 
-    // Sending a new request will reset the timer as necessary.
+    // Sending a new request will reset the timer upon inventory->get_data, but
+    // we need to time out the lack of response to those requests when stale.
+    // So we rest the timer in case of cleared and for not cleared.
+    reset_timer();
+
     if (cleared)
         send_get_blocks(null_hash);
-    else
-        reset_timer();
 
     return true;
-}
-
-void protocol_block_in::handle_orphan_block(const code& ec,
-    size_t position, block_const_ptr message)
-{
-    if (stopped(ec))
-        return;
-
-    const auto& txs = message->transactions();
-
-    if (!ec && position > 0)
-    {
-        BITCOIN_ASSERT(position < txs.size());
-        const auto encoded = encode_hash(txs[position].hash());
-
-        LOG_DEBUG(LOG_NODE)
-            << "Scavenged transaction [" << encoded << "] from ["
-            << authority() << "].";
-    }
-
-    // Start by incrementing past the presumed coinbase, and so-on.
-    if (++position >= txs.size())
-    {
-        // Ask the peer for blocks from the chain top up to this orphan.
-        send_get_blocks(message->hash());
-        return;
-    }
-
-    // TODO: store txs in shared pointer list within block.
-    auto tx = std::make_shared<const message::transaction>(txs[position]);
-
-    // Recursion is broken up by the organizer's priority pool transition.
-    chain_.organize(tx, BIND3(handle_orphan_block, _1, position, message));
 }
 
 // The block has been saved to the block chain (or not).
@@ -364,18 +336,16 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
 
     const auto hash = message->header().hash();
+
+    // Ask the peer for blocks from the chain top up to this orphan.
+    if (ec == error::orphan_block)
+        send_get_blocks(hash);
+
     const auto encoded = encode_hash(hash);
 
-    if (ec == error::orphan_block)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Scavenging orphan block [" << encoded << "] from ["
-            << authority() << "]";
-        handle_orphan_block(error::success, 0, message);
-        return;
-    }
-
-    if (ec == error::duplicate_block || ec == error::insufficient_work)
+    if (ec == error::orphan_block ||
+        ec == error::duplicate_block ||
+        ec == error::insufficient_work)
     {
         LOG_DEBUG(LOG_NODE)
             << "Captured block [" << encoded << "] from [" << authority()
@@ -451,6 +421,17 @@ void protocol_block_in::handle_timeout(const code& ec)
             << "] exceeded configured block latency.";
         stop(ec);
     }
+
+    // Can only end up here if peer did not respond to inventory or get_data.
+    // At this point we are caught up with an honest peer. But if we are stale
+    // we should try another peer and not just keep pounding this one.
+    if (chain_.is_stale())
+        stop(error::channel_stopped);
+
+    // If we are not stale then we are either good or stalled until peer sends
+    // an announcement. There is no sense pinging a broken peer, so we either
+    // drop the peer after a certain mount of time (above 10 minutes) or rely
+    // on other peers to keep us moving and periodically age out connections.
 }
 
 void protocol_block_in::handle_stop(const code&)
