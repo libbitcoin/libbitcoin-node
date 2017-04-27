@@ -210,6 +210,7 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
     if (message->inventories().empty())
         return;
 
+    // TODO: move backlog_ into dedicated thread safe class.
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
     mutex.lock_upgrade();
@@ -280,6 +281,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
+    // TODO: move backlog_ into dedicated thread safe class.
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
     mutex.lock();
@@ -406,6 +408,7 @@ void protocol_block_in::handle_timeout(const code& ec)
         return;
     }
 
+    // TODO: move backlog_ into dedicated thread safe class.
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
     mutex.lock_shared();
