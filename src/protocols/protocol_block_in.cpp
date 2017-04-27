@@ -315,11 +315,13 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     message->validation.originator = nonce();
     chain_.organize(message, BIND2(handle_store_block, _1, message));
 
-    // Sending a new request will reset the timer as necessary.
+    // Sending a new request will reset the timer upon inventory->get_data, but
+    // we need to time out the lack of response to those requests when stale.
+    // So we rest the timer in case of cleared and for not cleared.
+    reset_timer();
+
     if (cleared)
         send_get_blocks(null_hash);
-    else
-        reset_timer();
 
     return true;
 }
@@ -419,6 +421,17 @@ void protocol_block_in::handle_timeout(const code& ec)
             << "] exceeded configured block latency.";
         stop(ec);
     }
+
+    // Can only end up here if peer did not respond to inventory or get_data.
+    // At this point we are caught up with an honest peer. But if we are stale
+    // we should try another peer and not just keep pounding this one.
+    if (chain_.is_stale())
+        stop(error::channel_stopped);
+
+    // If we are not stale then we are either good or stalled until peer sends
+    // an announcement. There is no sense pinging a broken peer, so we either
+    // drop the peer after a certain mount of time (above 10 minutes) or rely
+    // on other peers to keep us moving and periodically age out connections.
 }
 
 void protocol_block_in::handle_stop(const code&)
