@@ -63,7 +63,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
-        to_relay_fee(node.chain_settings().minimum_byte_fee_satoshis) : 0),
+        to_relay_fee(node.chain_settings().byte_fee_satoshis) : 0),
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
@@ -75,6 +75,9 @@ void protocol_transaction_in::start()
 {
     protocol_events::start(BIND1(handle_stop, _1));
 
+    SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
+    SUBSCRIBE2(transaction, handle_receive_transaction, _1, _2);
+
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     if (minimum_relay_fee_ != 0)
     {
@@ -84,14 +87,11 @@ void protocol_transaction_in::start()
     }
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
-    if (refresh_pool_ && relay_from_peer_)
+    if (refresh_pool_ && relay_from_peer_ && !chain_.is_stale())
     {
         // Refresh transaction pool on connect.
-        SEND2(memory_pool(), handle_send, _1, memory_pool::command);
+        SEND2(memory_pool{}, handle_send, _1, memory_pool::command);
     }
-
-    SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
-    SUBSCRIBE2(transaction, handle_receive_transaction, _1, _2);
 }
 
 // Receive inventory sequence.
@@ -117,6 +117,11 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
         stop(error::channel_stopped);
         return false;
     }
+
+    // TODO: manage channel relay at the service layer.
+    // Do not process tx inventory while chain is stale.
+    if (chain_.is_stale())
+        return true;
 
     // Remove hashes of (unspent) transactions that we already have.
     // BUGBUG: this removes spent transactions which it should not (see BIP30).
@@ -146,6 +151,7 @@ void protocol_transaction_in::send_get_data(const code& ec,
 // Receive transaction sequence.
 //-----------------------------------------------------------------------------
 
+// A transaction is acceptable whether solicited or broadcast.
 bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     transaction_const_ptr message)
 {
@@ -161,6 +167,11 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
         stop(error::channel_stopped);
         return false;
     }
+
+    // TODO: manage channel relay at the service layer.
+    // Do not process transactions while chain is stale.
+    if (chain_.is_stale())
+        return true;
 
     message->validation.originator = nonce();
     chain_.organize(message, BIND2(handle_store_transaction, _1, message));

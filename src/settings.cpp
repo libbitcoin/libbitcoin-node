@@ -18,13 +18,17 @@
  */
 #include <bitcoin/node/settings.hpp>
 
+#include <bitcoin/bitcoin.hpp>
+
 namespace libbitcoin {
 namespace node {
+
+using namespace bc::asio;
 
 settings::settings()
   : sync_peers(0),
     sync_timeout_seconds(5),
-    block_poll_seconds(1),
+    block_latency_seconds(60),
     refresh_transactions(true)
 {
 }
@@ -33,6 +37,11 @@ settings::settings()
 settings::settings(config::settings context)
   : settings()
 {
+}
+
+duration settings::block_latency() const
+{
+    return seconds(block_latency_seconds);
 }
 
 } // namespace node
