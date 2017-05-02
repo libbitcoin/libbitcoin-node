@@ -138,15 +138,6 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (message->inventories().size() > max_get_data)
-    {
-        LOG_WARNING(LOG_NODE)
-            << "Invalid get_data size (" << message->inventories().size()
-            << ") from [" << authority() << "]";
-        stop(error::channel_stopped);
-        return false;
-    }
-
     // Create a copy because message is const because it is shared.
     const auto& inventories = message->inventories();
     const auto response = std::make_shared<inventory>();
