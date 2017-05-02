@@ -374,7 +374,7 @@ void protocol_block_in::handle_store_block(const code& ec,
     LOG_DEBUG(LOG_NODE)
         << "Connected block [" << encoded << "] at height [" << state->height()
         << "] from [" << authority() << "] (" << state->enabled_forks()
-        << checked << ", " << state->minimum_version() << ").";
+        << checked << ", " << state->minimum_block_version() << ").";
 
     report(*message);
 }
