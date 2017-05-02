@@ -170,7 +170,6 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
     if (message->elements().empty())
         return;
 
-
     // Allow a peer to sync despite our being stale.
     ////if (chain_.is_stale())
     ////    return;
