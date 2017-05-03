@@ -465,7 +465,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     // TODO: consider always sending the last block as compact if enabled.
     if (false && compact_to_peer_ && incoming->size() == 1)
     {
-        // TODO: move compact_block to a derived class protocol_block_in_70014.
+        // TODO: move compact_block to a derived class protocol_block_out_70014.
         const auto block = incoming->front();
 
         if (block->validation.originator != nonce())
@@ -480,7 +480,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     }
     else if (headers_to_peer_)
     {
-        // TODO: move headers to a derived class protocol_block_in_70012.
+        // TODO: move headers to a derived class protocol_block_out_70012.
         headers announce;
 
         for (const auto block: *incoming)
