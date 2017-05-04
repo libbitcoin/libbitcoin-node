@@ -44,8 +44,8 @@ protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
     node_(node),
-    last_locator_top_(null_hash),
     chain_(chain),
+    last_locator_top_(null_hash),
 
     // TODO: move send_compact to a derived class protocol_block_out_70014.
     compact_to_peer_(false),
