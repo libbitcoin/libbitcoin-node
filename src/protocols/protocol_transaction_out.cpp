@@ -48,6 +48,7 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version()->relay()),
+
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
