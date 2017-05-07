@@ -188,6 +188,15 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     const auto response = std::make_shared<get_data>();
     message->reduce(response->inventories(), inventory::type_id::block);
 
+    if (response->inventories().size() > max_get_blocks)
+    {
+        LOG_WARNING(LOG_NODE)
+            << "Block inventory from [" << authority() << "] exceeds "
+            << max_get_blocks << " entires.";
+        stop(ec);
+        return false;
+    }
+
     // Remove hashes of blocks that we already have.
     chain_.filter_blocks(response, BIND2(send_get_data, _1, response));
     return true;
