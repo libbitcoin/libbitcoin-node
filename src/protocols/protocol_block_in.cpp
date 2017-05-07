@@ -95,7 +95,7 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
     const auto heights = block::locator_heights(node_.top_block().height());
 
-    chain_.fetch_block_locator(heights,
+    chain_.fetch_header_locator(heights,
         BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
