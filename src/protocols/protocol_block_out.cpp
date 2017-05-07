@@ -44,8 +44,8 @@ protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
     node_(node),
-    last_locator_top_(null_hash),
     chain_(chain),
+    last_locator_top_(null_hash),
 
     // TODO: move send_compact to a derived class protocol_block_out_70014.
     compact_to_peer_(false),
@@ -169,7 +169,6 @@ void protocol_block_out::handle_fetch_locator_headers(const code& ec,
 
     if (message->elements().empty())
         return;
-
 
     // Allow a peer to sync despite our being stale.
     ////if (chain_.is_stale())
@@ -466,7 +465,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     // TODO: consider always sending the last block as compact if enabled.
     if (false && compact_to_peer_ && incoming->size() == 1)
     {
-        // TODO: move compact_block to a derived class protocol_block_in_70014.
+        // TODO: move compact_block to a derived class protocol_block_out_70014.
         const auto block = incoming->front();
 
         if (block->validation.originator != nonce())
@@ -481,7 +480,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
     }
     else if (headers_to_peer_)
     {
-        // TODO: move headers to a derived class protocol_block_in_70012.
+        // TODO: move headers to a derived class protocol_block_out_70012.
         headers announce;
 
         for (const auto block: *incoming)

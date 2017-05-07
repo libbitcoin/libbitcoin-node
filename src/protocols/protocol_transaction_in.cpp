@@ -64,6 +64,7 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
     minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
         to_relay_fee(node.chain_settings().byte_fee_satoshis) : 0),
+
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
@@ -228,17 +229,8 @@ void protocol_transaction_in::send_get_transactions(
 {
     static const auto type = inventory::type_id::transaction;
     auto missing = message->missing_previous_transactions();
-
-    if (missing.empty())
-        return;
-
     const auto request = std::make_shared<get_data>(std::move(missing), type);
-
-    // Remove hashes of (unspent) transactions that we already have.
-    // This removes spent transactions which is not correnct, however given the
-    // treatment of duplicate hashes by other nodes and the fact that this is
-    // a set of pool transactions only, this is okay.
-    chain_.filter_transactions(request, BIND2(send_get_data, _1, request));
+    send_get_data(error::success, request);
 }
 
 // Stop.

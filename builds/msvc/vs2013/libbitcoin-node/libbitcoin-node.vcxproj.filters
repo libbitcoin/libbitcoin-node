@@ -96,6 +96,12 @@
     <ClCompile Include="..\..\..\..\src\utility\check_list.cpp">
       <Filter>src\utility</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\utility\hash_queue.cpp">
+      <Filter>src\utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
@@ -168,6 +174,12 @@
       <Filter>include\bitcoin\node\utility</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\check_list.hpp">
+      <Filter>include\bitcoin\node\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\hash_queue.hpp">
       <Filter>include\bitcoin\node\utility</Filter>
     </ClInclude>
   </ItemGroup>

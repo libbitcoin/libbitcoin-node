@@ -95,7 +95,7 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
     const auto heights = block::locator_heights(node_.top_block().height());
 
-    chain_.fetch_block_locator(heights,
+    chain_.fetch_header_locator(heights,
         BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
 }
 
@@ -187,6 +187,15 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 
     const auto response = std::make_shared<get_data>();
     message->reduce(response->inventories(), inventory::type_id::block);
+
+    if (response->inventories().size() > max_get_blocks)
+    {
+        LOG_WARNING(LOG_NODE)
+            << "Block inventory from [" << authority() << "] exceeds "
+            << max_get_blocks << " entires.";
+        stop(ec);
+        return false;
+    }
 
     // Remove hashes of blocks that we already have.
     chain_.filter_blocks(response, BIND2(send_get_data, _1, response));
@@ -374,7 +383,7 @@ void protocol_block_in::handle_store_block(const code& ec,
     LOG_DEBUG(LOG_NODE)
         << "Connected block [" << encoded << "] at height [" << state->height()
         << "] from [" << authority() << "] (" << state->enabled_forks()
-        << checked << ", " << state->minimum_version() << ").";
+        << checked << ", " << state->minimum_block_version() << ").";
 
     report(*message);
 }

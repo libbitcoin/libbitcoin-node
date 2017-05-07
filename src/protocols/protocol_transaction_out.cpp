@@ -48,6 +48,7 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version()->relay()),
+
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
@@ -137,15 +138,6 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
 {
     if (stopped(ec))
         return false;
-
-    if (message->inventories().size() > max_get_data)
-    {
-        LOG_WARNING(LOG_NODE)
-            << "Invalid get_data size (" << message->inventories().size()
-            << ") from [" << authority() << "]";
-        stop(error::channel_stopped);
-        return false;
-    }
 
     // Create a copy because message is const because it is shared.
     const auto& inventories = message->inventories();
