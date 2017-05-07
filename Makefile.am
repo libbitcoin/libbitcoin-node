@@ -42,6 +42,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_in.cpp \
     src/protocols/protocol_block_out.cpp \
     src/protocols/protocol_block_sync.cpp \
+    src/protocols/protocol_header_in.cpp \
     src/protocols/protocol_header_sync.cpp \
     src/protocols/protocol_transaction_in.cpp \
     src/protocols/protocol_transaction_out.cpp \
@@ -51,6 +52,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/sessions/session_manual.cpp \
     src/sessions/session_outbound.cpp \
     src/utility/check_list.cpp \
+    src/utility/hash_queue.cpp \
     src/utility/header_list.cpp \
     src/utility/performance.cpp \
     src/utility/reservation.cpp \
@@ -114,6 +116,7 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_block_in.hpp \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
     include/bitcoin/node/protocols/protocol_block_sync.hpp \
+    include/bitcoin/node/protocols/protocol_header_in.hpp \
     include/bitcoin/node/protocols/protocol_header_sync.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out.hpp
@@ -130,6 +133,7 @@ include_bitcoin_node_sessions_HEADERS = \
 include_bitcoin_node_utilitydir = ${includedir}/bitcoin/node/utility
 include_bitcoin_node_utility_HEADERS = \
     include/bitcoin/node/utility/check_list.hpp \
+    include/bitcoin/node/utility/hash_queue.hpp \
     include/bitcoin/node/utility/header_list.hpp \
     include/bitcoin/node/utility/performance.hpp \
     include/bitcoin/node/utility/reservation.hpp \

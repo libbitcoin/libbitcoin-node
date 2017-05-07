@@ -77,6 +77,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_sync.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_sync.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out.cpp" />
@@ -87,6 +88,7 @@
     <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp" />
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\check_list.cpp" />
+    <ClCompile Include="..\..\..\..\src\utility\hash_queue.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\header_list.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\performance.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\reservation.cpp" />
@@ -101,6 +103,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_sync.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_sync.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out.hpp" />
@@ -112,6 +115,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\check_list.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\hash_queue.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\header_list.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\performance.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservation.hpp" />
