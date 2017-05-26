@@ -49,19 +49,19 @@ reservations::reservations(check_list& hashes, fast_chain& chain,
 
 bool reservations::start()
 {
-    return chain_.begin_insert();
+    return false;//// chain_.begin_insert();
 }
 
 bool reservations::import(block_const_ptr block, size_t height)
 {
     //#########################################################################
-    return chain_.insert(block, height);
+    return false;//// chain_.insert(block, height);
     //#########################################################################
 }
 
 bool reservations::stop()
 {
-    return chain_.end_insert();
+    return false;//// chain_.end_insert();
 }
 
 // Rate methods.
