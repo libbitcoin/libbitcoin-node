@@ -54,7 +54,7 @@ private:
     bool handle_receive_headers(const code& ec, headers_const_ptr message);
     void store_header(size_t index, headers_const_ptr message);
     void handle_store_header(const code& ec, size_t index,
-        headers_const_ptr message);
+        headers_const_ptr message, header_const_ptr header);
 
     void send_send_headers();
     void handle_timeout(const code& ec);

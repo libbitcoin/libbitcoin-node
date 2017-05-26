@@ -127,8 +127,12 @@ bool protocol_header_in::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
+    // An empty headers message implies peer is not ahead.
     if (message->elements().empty())
+    {
+        handle_timeout(error::channel_timeout);
         return true;
+    }
 
     reset_timer();
     store_header(0, message);
@@ -146,7 +150,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
 
         LOG_DEBUG(LOG_NODE)
             << "Stored (" << size << ") headers up to ["
-            << encode_hash(last_hash) << "].";
+            << encode_hash(last_hash) << "] from [" << authority() << "].";
 
         // The timer handles the case where the last header is the 2000th.
         if (size < max_get_headers)
@@ -166,58 +170,63 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
 
     const auto& element = message->elements()[index];
     const auto header = std::make_shared<const message::header>(element);
-    chain_.organize(header, BIND3(handle_store_header, _1, index, message));
+    chain_.organize(header, BIND4(handle_store_header, _1, index, message, header));
 }
 
 void protocol_header_in::handle_store_header(const code& ec, size_t index,
-    headers_const_ptr message)
+    headers_const_ptr message, header_const_ptr header)
 {
     if (stopped(ec))
         return;
 
-    const auto& header = message->elements()[index];
-    const auto hash = header.hash();
+    const auto hash = header->hash();
+    const auto encoded = encode_hash(hash);
 
     if (ec == error::orphan_block)
     {
         // Defer this test based on the assumption most messages are correct.
         if (!message->is_sequential())
-            stop(error::channel_stopped);
+        {
+            LOG_DEBUG(LOG_NODE)
+                << "Disordered headers message from [" << authority() << "]";
+            stop(ec);
+            return;
+        }
 
-        // Try and fill the gap between this header and current header tree.
-        send_get_headers(hash);
-    }
-
-    const auto encoded = encode_hash(hash);
-
-    if (ec == error::orphan_block ||
-        ec == error::duplicate_block ||
-        ec == error::insufficient_work)
-    {
         LOG_DEBUG(LOG_NODE)
-            << "Captured header [" << encoded << "] from [" << authority()
-            << "] " << ec.message();
+            << "Orphan header [" << encoded << "] from [" << authority() << "]";
+
+        // Try to fill the gap between the current header tree and this header.
+        send_get_headers(hash);
         return;
     }
-
-    if (ec)
+    else if (ec)
     {
         LOG_DEBUG(LOG_NODE)
             << "Rejected header [" << encoded << "] from [" << authority()
             << "] " << ec.message();
-        stop(ec);
-        return;
+
+        // Allow duplicate header to continue as this is a race with peers.
+        if (ec != error::duplicate_block)
+        {
+            stop(ec);
+            return;
+        }
     }
+    else
+    {
+        // This is why we must pass the header through the closure.
+        const auto state = header->validation.state;
 
-    const auto state = header.validation.state;
-    BITCOIN_ASSERT(state);
-    const auto checked = state->is_under_checkpoint() ? "*" : "";
+        BITCOIN_ASSERT(state);
+        const auto checked = state->is_under_checkpoint() ? "*" : "";
 
-    LOG_DEBUG(LOG_NODE)
-        << "Connected header [" << encoded << "] at height ["
-        << state->height() << "] from [" << authority() << "] ("
-        << state->enabled_forks() << checked << ", "
-        << state->minimum_block_version() << ").";
+        LOG_DEBUG(LOG_NODE)
+            << "Connected header [" << encoded << "] at height ["
+            << state->height() << "] from [" << authority() << "] ("
+            << state->enabled_forks() << checked << ", "
+            << state->minimum_block_version() << ").";
+    }
 
     // Break off recursion.
     DISPATCH_CONCURRENT2(store_header, ++index, message);
@@ -226,7 +235,7 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
 // Subscription.
 //-----------------------------------------------------------------------------
 
-// This is fired by the callback (i.e. base timer and stop handler).
+// This is called directly or by the callback (base timer and stop handler).
 void protocol_header_in::handle_timeout(const code& ec)
 {
     if (stopped(ec))
@@ -245,17 +254,13 @@ void protocol_header_in::handle_timeout(const code& ec)
         return;
     }
 
-    // Can only end up here if peer did not respond to inventory or get_data.
-    // At this point we are caught up with an honest peer. But if we are stale
-    // we should try another peer and not just keep pounding this one.
-
-    // TODO: use header pool staleness vs. chain.
+    // Can only end up here if we are ahead, tied or peer did not respond.
+    // If we are stale should try another peer and not keep pounding this one.
     if (chain_.is_stale())
     {
-        // Can only end up here if time was not extended.
         LOG_DEBUG(LOG_NODE)
             << "Peer [" << authority()
-            << "] exceeded configured header latency.";
+            << "] is more behind or exceeded configured header latency.";
         stop(error::channel_stopped);
     }
 

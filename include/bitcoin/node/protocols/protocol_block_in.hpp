@@ -19,13 +19,11 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_BLOCK_IN_HPP
 
-#include <cstddef>
-#include <cstdint>
 #include <memory>
-#include <queue>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/utility/hash_queue.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -46,19 +44,16 @@ public:
     virtual void start();
 
 private:
-    typedef std::queue<hash_digest> hash_queue;
-
     static void report(const chain::block& block);
 
     void send_get_blocks(const hash_digest& stop_hash);
     void send_get_data(const code& ec, get_data_ptr message);
 
     bool handle_receive_block(const code& ec, block_const_ptr message);
-    bool handle_receive_headers(const code& ec, headers_const_ptr message);
     bool handle_receive_inventory(const code& ec, inventory_const_ptr message);
     bool handle_receive_not_found(const code& ec, not_found_const_ptr message);
     void handle_store_block(const code& ec, block_const_ptr message);
-    void handle_fetch_block_locator(const code& ec, get_headers_ptr message,
+    void handle_fetch_block_locator(const code& ec, get_blocks_ptr message,
         const hash_digest& stop_hash);
 
     void handle_timeout(const code& ec);
@@ -67,8 +62,11 @@ private:
     // These are thread safe.
     full_node& node_;
     blockchain::safe_chain& chain_;
+    hash_queue backlog_;
     const asio::duration block_latency_;
-    const bool headers_from_peer_;
+    const bool not_found_;
+    const bool blocks_first_;
+    const bool blocks_inventory_;
     const bool blocks_from_peer_;
     const bool require_witness_;
     const bool peer_witness_;

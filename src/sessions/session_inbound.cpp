@@ -23,6 +23,7 @@
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_header_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
@@ -50,8 +51,11 @@ void session_inbound::attach_protocols(channel::ptr channel)
     else
         attach<protocol_ping_31402>(channel)->start();
 
-    if (version >= message::version::level::bip61)
+    if (version >= version::level::bip61)
         attach<protocol_reject_70002>(channel)->start();
+
+    if (version >= version::level::headers)
+        attach<protocol_header_in>(channel, chain_)->start();
 
     attach<protocol_address_31402>(channel)->start();
     attach<protocol_block_in>(channel, chain_)->start();
