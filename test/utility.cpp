@@ -68,37 +68,37 @@ message::headers::ptr message_factory(size_t count,
     return headers;
 }
 
-reservation_fixture::reservation_fixture(reservations& reservations,
-    size_t slot, uint32_t sync_timeout_seconds,
-    clock::time_point now)
-  : reservation(reservations, slot, sync_timeout_seconds),
-    now_(now)
-{
-}
-
-// Accessor
-std::chrono::microseconds reservation_fixture::rate_window() const
-{
-    return reservation::rate_window();
-}
-
-// Accessor
-bool reservation_fixture::pending() const
-{
-    return reservation::pending();
-}
-
-// Accessor
-void reservation_fixture::set_pending(bool value)
-{
-    reservation::set_pending(value);
-}
-
-// Stub
-std::chrono::high_resolution_clock::time_point reservation_fixture::now() const
-{
-    return now_;
-}
+////reservation_fixture::reservation_fixture(reservations& reservations,
+////    size_t slot, uint32_t sync_timeout_seconds,
+////    clock::time_point now)
+////  : reservation(reservations, slot, sync_timeout_seconds),
+////    now_(now)
+////{
+////}
+////
+////// Accessor
+////std::chrono::microseconds reservation_fixture::rate_window() const
+////{
+////    return reservation::rate_window();
+////}
+////
+////// Accessor
+////bool reservation_fixture::pending() const
+////{
+////    return reservation::pending();
+////}
+////
+////// Accessor
+////void reservation_fixture::set_pending(bool value)
+////{
+////    reservation::set_pending(value);
+////}
+////
+////// Stub
+////std::chrono::high_resolution_clock::time_point reservation_fixture::now() const
+////{
+////    return now_;
+////}
 
 // ----------------------------------------------------------------------------
 

@@ -45,21 +45,21 @@ extern message::headers::ptr message_factory(size_t count);
 extern message::headers::ptr message_factory(size_t count,
     const hash_digest& previous);
 
-class reservation_fixture
-  : public reservation
-{
-public:
-    typedef std::chrono::high_resolution_clock clock;
-    reservation_fixture(reservations& reservations, size_t slot,
-        uint32_t sync_timeout_seconds, clock::time_point now = clock::now());
-    std::chrono::microseconds rate_window() const;
-    clock::time_point now() const override;
-    bool pending() const;
-    void set_pending(bool value);
-
-private:
-    clock::time_point now_;
-};
+////class reservation_fixture
+////  : public reservation
+////{
+////public:
+////    typedef std::chrono::high_resolution_clock clock;
+////    reservation_fixture(reservations& reservations, size_t slot,
+////        uint32_t sync_timeout_seconds, clock::time_point now = clock::now());
+////    std::chrono::microseconds rate_window() const;
+////    clock::time_point now() const override;
+////    bool pending() const;
+////    void set_pending(bool value);
+////
+////private:
+////    clock::time_point now_;
+////};
 
 class blockchain_fixture
   : public blockchain::fast_chain

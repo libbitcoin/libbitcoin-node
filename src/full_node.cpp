@@ -157,8 +157,9 @@ void full_node::handle_running(const code& ec, result_handler handler)
     size_t top_height;
     hash_digest top_hash;
 
-    if (!chain_.get_last_height(top_height) ||
-        !chain_.get_block_hash(top_hash, top_height))
+    // TODO: create comparable methods in safe_chain and hide fast_chain.
+    if (!chain_.get_block_height(top_height) ||
+        !chain_.get_block_hash(top_hash, top_height, true))
     {
         LOG_ERROR(LOG_NODE)
             << "The blockchain is corrupt.";
@@ -232,16 +233,16 @@ network::session_outbound::ptr full_node::attach_outbound_session()
     return attach<node::session_outbound>(chain_);
 }
 
-session_header_sync::ptr full_node::attach_header_sync_session()
-{
-    return attach<session_header_sync>(hashes_, chain_,
-        chain_.chain_settings().checkpoints);
-}
-
-session_block_sync::ptr full_node::attach_block_sync_session()
-{
-    return attach<session_block_sync>(hashes_, chain_, node_settings_);
-}
+////session_header_sync::ptr full_node::attach_header_sync_session()
+////{
+////    return attach<session_header_sync>(hashes_, chain_,
+////        chain_.chain_settings().checkpoints);
+////}
+////
+////session_block_sync::ptr full_node::attach_block_sync_session()
+////{
+////    return attach<session_block_sync>(hashes_, chain_, node_settings_);
+////}
 
 // Shutdown
 // ----------------------------------------------------------------------------
