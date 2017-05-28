@@ -226,7 +226,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
     // It is okay for us to receive a duplicate or a missing outputs tx but it
     // is not generally okay to receive an otherwise invalid transaction.
     // Below-fee transactions can be sent prior to fee_filter receipt or due to
-    // a negotiated version below BIP133 (7013).
+    // a negotiated version below BIP133 (70013).
 
     // TODO: differentiate failure conditions and send reject as applicable.
 
