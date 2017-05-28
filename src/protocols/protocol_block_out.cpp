@@ -488,7 +488,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         // TODO: move compact_block to a derived class protocol_block_out_70014.
         const auto block = incoming->front();
 
-        if (block->validation.originator != nonce())
+        if (block->header().validation.originator != nonce())
         {
             // TODO: construct a compact block from a block and a nonce.
             ////compact_block announce(block, pseudo_random(1, max_uint64));
@@ -504,7 +504,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         headers announce;
 
         for (const auto block: *incoming)
-            if (block->validation.originator != nonce())
+            if (block->header().validation.originator != nonce())
                 announce.elements().push_back(block->header());
 
         if (!announce.elements().empty())
@@ -524,7 +524,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         inventory announce;
 
         for (const auto block: *incoming)
-            if (block->validation.originator != nonce())
+            if (block->header().validation.originator != nonce())
                 announce.inventories().push_back(
                     { inventory::type_id::block, block->header().hash() });
 

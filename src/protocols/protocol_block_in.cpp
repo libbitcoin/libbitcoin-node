@@ -288,7 +288,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    message->validation.originator = nonce();
+    message->header().validation.originator = nonce();
     chain_.organize(message, BIND2(handle_store_block, _1, message));
 
     // Sending a new request will reset the timer upon inventory->get_data, but
@@ -342,16 +342,26 @@ void protocol_block_in::handle_store_block(const code& ec,
         return;
     }
 
-    const auto state = message->validation.state;
-    BITCOIN_ASSERT(state);
+    // State may not be populated by validation.
+    const auto state = message->header().validation.state;
 
-    // Show that diplayed forks may be missing activations due to checkpoints.
-    const auto checked = state->is_under_checkpoint() ? "*" : "";
+    if (state)
+    {
+        // Show diplayed forks may be missing activations due to checkpoints.
+        const auto checked = state->is_under_checkpoint() ? "*" : "";
 
-    LOG_DEBUG(LOG_NODE)
-        << "Connected block [" << encoded << "] at height [" << state->height()
-        << "] from [" << authority() << "] (" << state->enabled_forks()
-        << checked << ", " << state->minimum_block_version() << ").";
+        LOG_DEBUG(LOG_NODE)
+            << "Connected block [" << encoded << "] at height ["
+            << state->height() << "] from [" << authority() << "] ("
+            << state->enabled_forks() << checked << ", "
+            << state->minimum_block_version() << ").";
+    }
+    else
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Connected block [" << encoded << "] at height ["
+            << message->header().validation.height << "] with no state.";
+    }
 
     report(*message);
 }
@@ -456,8 +466,7 @@ inline size_t total_cost_ms(const asio::time_point& start,
 
 void protocol_block_in::report(const chain::block& block)
 {
-    BITCOIN_ASSERT(block.validation.state);
-    const auto height = block.validation.state->height();
+    const auto height = block.header().validation.height;
 
     if (enabled(height))
     {
