@@ -160,7 +160,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
         }
 
         // TODO: collapse into send_get_headers using header pool vs. chain.
-        // TODO: this requires building a locator from the cached branch.
+        // TODO: this requires a locator from last_hash, which may be weak.
         get_headers message;
         message.set_start_hashes({ last_hash });
         message.set_stop_hash(null_hash);
