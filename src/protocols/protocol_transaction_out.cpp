@@ -204,7 +204,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
 
     // Treat already confirmed transactions as not found.
-    auto confirmed = !ec && position != transaction_database::unconfirmed;
+    auto confirmed = !ec && position != transaction_result::unconfirmed;
 
     if (ec == error::not_found || confirmed)
     {

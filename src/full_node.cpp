@@ -158,7 +158,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
     hash_digest top_hash;
 
     // TODO: create comparable methods in safe_chain and hide fast_chain.
-    if (!chain_.get_block_height(top_height) ||
+    if (!chain_.get_block_height(top_height, true) ||
         !chain_.get_block_hash(top_hash, top_height, true))
     {
         LOG_ERROR(LOG_NODE)
