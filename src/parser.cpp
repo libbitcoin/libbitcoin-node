@@ -52,7 +52,7 @@ parser::parser(config::settings context)
     using serve = message::version::service;
 
     // A node doesn't use history, and history is expensive.
-    configured.database.index_start_height = max_uint32;
+    configured.database.index_addresses = false;
 
     // Logs will slow things if not rotated.
     configured.network.rotation_size = 10000000;
