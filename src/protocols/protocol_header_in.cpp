@@ -173,6 +173,11 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
     chain_.organize(header, BIND4(handle_store_header, _1, index, message, header));
 }
 
+inline bool enabled(size_t height)
+{
+    return height % 1000 == 0;
+}
+
 void protocol_header_in::handle_store_header(const code& ec, size_t index,
     headers_const_ptr message, header_const_ptr header)
 {
@@ -217,15 +222,18 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
     {
         // This is why we must pass the header through the closure.
         const auto state = header->validation.state;
-
         BITCOIN_ASSERT(state);
-        const auto checked = state->is_under_checkpoint() ? "*" : "";
 
-        LOG_DEBUG(LOG_NODE)
-            << "Connected header [" << encoded << "] at height ["
-            << state->height() << "] from [" << authority() << "] ("
-            << state->enabled_forks() << checked << ", "
-            << state->minimum_block_version() << ").";
+        if (enabled(state->height()))
+        {
+            const auto checked = state->is_under_checkpoint() ? "*" : "";
+
+            LOG_INFO(LOG_NODE)
+                << "Connected header [" << encoded << "] at height ["
+                << state->height() << "] from [" << authority() << "] ("
+                << state->enabled_forks() << checked << ", "
+                << state->minimum_block_version() << ").";
+        }
     }
 
     // Break off recursion.
@@ -262,6 +270,7 @@ void protocol_header_in::handle_timeout(const code& ec)
             << "Peer [" << authority()
             << "] is more behind or exceeded configured header latency.";
         stop(error::channel_stopped);
+        return;
     }
 
     // In case the last request ended at exactly 2000 headers.
