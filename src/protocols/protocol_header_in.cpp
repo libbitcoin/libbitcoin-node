@@ -204,6 +204,12 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
         send_get_headers(hash);
         return;
     }
+    else if (ec == error::insufficient_work)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Pooled header [" << encoded << "] from [" << authority()
+            << "] " << ec.message();
+    }
     else if (ec)
     {
         LOG_DEBUG(LOG_NODE)
