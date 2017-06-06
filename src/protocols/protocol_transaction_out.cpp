@@ -268,7 +268,7 @@ bool protocol_transaction_out::handle_transaction_pool(const code& ec,
 
     // Do not announce transactions to peer if too far behind.
     // Typically the tx would not validate anyway, but this is more consistent.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     if (message->validation.originator == nonce())

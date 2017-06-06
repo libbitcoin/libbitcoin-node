@@ -479,7 +479,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         return true;
 
     // Do not announce blocks to peer if too far behind.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     // TODO: consider always sending the last block as compact if enabled.
@@ -569,7 +569,7 @@ void protocol_block_out::handle_stop(const code&)
 size_t protocol_block_out::locator_limit()
 {
     const auto height = node_.top_block().height();
-    return safe_add(chain::block::locator_size(height), size_t(1));
+    return chain::block::locator_size(height) + 1;
 }
 
 // Threshold:

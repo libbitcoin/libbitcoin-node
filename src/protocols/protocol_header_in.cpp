@@ -71,10 +71,9 @@ void protocol_header_in::start()
 void protocol_header_in::send_get_headers(const hash_digest& stop_hash)
 {
     // TODO: move this into blockchain, revise to use lookup table.
-    // TODO: this should be the top header in the cache unless empty.
-    const auto heights = block::locator_heights(node_.top_block().height());
+    const auto heights = block::locator_heights(node_.top_header().height());
 
-    // Build from either current cache top or last header from this peer.
+    // TODO: Build from either current header top or last from this peer.
     // Use the former if there is no last accepted header from this peer.
     chain_.fetch_header_locator(heights,
         BIND3(handle_fetch_header_locator, _1, _2, stop_hash));
@@ -264,7 +263,7 @@ void protocol_header_in::handle_timeout(const code& ec)
 
     // Can only end up here if we are ahead, tied or peer did not respond.
     // If we are stale should try another peer and not keep pounding this one.
-    if (chain_.is_stale())
+    if (chain_.is_headers_stale())
     {
         LOG_DEBUG(LOG_NODE)
             << "Peer [" << authority()

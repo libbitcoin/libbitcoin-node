@@ -120,11 +120,12 @@ void protocol_block_in::send_get_blocks(const hash_digest& stop_hash)
 {
     const auto heights = block::locator_heights(node_.top_block().height());
 
+    // Even though we are asking for blocks, we are going to use the headers.
     chain_.fetch_header_locator(heights,
-        BIND3(handle_fetch_block_locator, _1, _2, stop_hash));
+        BIND3(handle_fetch_header_locator, _1, _2, stop_hash));
 }
 
-void protocol_block_in::handle_fetch_block_locator(const code& ec,
+void protocol_block_in::handle_fetch_header_locator(const code& ec,
     get_blocks_ptr message, const hash_digest& stop_hash)
 {
     if (stopped(ec))
@@ -408,7 +409,7 @@ void protocol_block_in::handle_timeout(const code& ec)
     // Can only end up here if peer did not respond to inventory or get_data.
     // At this point we are caught up with an honest peer. But if we are stale
     // we should try another peer and not just keep pounding this one.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
     {
         LOG_DEBUG(LOG_NODE)
             << "Peer [" << authority() << "] is stale.";

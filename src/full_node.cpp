@@ -154,15 +154,16 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
+    // TODO: hide this in blockchain.
+    //.........................................................................
     size_t top_height;
     hash_digest top_hash;
 
-    // TODO: create comparable methods in safe_chain and hide fast_chain.
     if (!chain_.get_block_height(top_height, true) ||
         !chain_.get_block_hash(top_hash, top_height, true))
     {
         LOG_ERROR(LOG_NODE)
-            << "The blockchain is corrupt.";
+            << "The block chain is corrupt.";
         handler(error::operation_failed);
         return;
     }
@@ -170,7 +171,22 @@ void full_node::handle_running(const code& ec, result_handler handler)
     set_top_block({ std::move(top_hash), top_height });
 
     LOG_INFO(LOG_NODE)
-        << "Node start height is (" << top_height << ").";
+        << "Node block height is (" << top_height << ").";
+
+    if (!chain_.get_block_height(top_height, false) ||
+        !chain_.get_block_hash(top_hash, top_height, false))
+    {
+        LOG_ERROR(LOG_NODE)
+            << "The header chain is corrupt.";
+        handler(error::operation_failed);
+        return;
+    }
+
+    LOG_INFO(LOG_NODE)
+        << "Node header height is (" << top_height << ").";
+
+    set_top_header({ std::move(top_hash), top_height });
+    //.........................................................................
 
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,

@@ -102,7 +102,7 @@ void protocol_transaction_in::start()
     }
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
-    if (refresh_pool_ && relay_from_peer_ && !chain_.is_stale())
+    if (refresh_pool_ && relay_from_peer_ && !chain_.is_blocks_stale())
     {
         // Refresh transaction pool on connect.
         SEND2(memory_pool{}, handle_send, _1, memory_pool::command);
@@ -135,7 +135,7 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
 
     // TODO: manage channel relay at the service layer.
     // Do not process tx inventory while chain is stale.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     // Remove hashes of (unspent) transactions that we already have.
@@ -198,7 +198,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 
     // TODO: manage channel relay at the service layer.
     // Do not process transactions while chain is stale.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     message->validation.originator = nonce();
