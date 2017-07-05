@@ -290,16 +290,14 @@ void protocol_header_in::handle_timeout(const code& ec)
 // TODO: move send_headers to a derived class protocol_header_in_70012.
 void protocol_header_in::send_send_headers()
 {
-    // Request header announcements only after becoming current.
-    LOG_INFO(LOG_NETWORK)
-        << "Headers are current for peer [" << authority() << "].";
-
-    // Atomically test and set value to preclude race.
-    const auto sending_headers = sending_headers_.exchange(true);
-
-    if (sending_headers || !send_headers_)
+    // Atomically test previous value and set new value to preclude race.
+    if (sending_headers_.exchange(true) || !send_headers_)
         return;
 
+    LOG_DEBUG(LOG_NETWORK)
+        << "Headers are current for peer [" << authority() << "].";
+
+    // Request header announcements only after becoming current.
     SEND2(send_headers{}, handle_send, _1, send_headers::command);
 }
 
