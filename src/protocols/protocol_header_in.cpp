@@ -61,22 +61,26 @@ void protocol_header_in::start()
 
     SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
 
-    send_get_headers(null_hash);
+    send_top_get_headers(null_hash);
 }
 
 // Send get_headers sequence.
 //-----------------------------------------------------------------------------
 
-// TODO: if stop_hash is not null then the hash is an orphan, start at top.
-void protocol_header_in::send_get_headers(const hash_digest& stop_hash)
+void protocol_header_in::send_top_get_headers(const hash_digest& stop_hash)
 {
-    // TODO: move this into blockchain, revise to use lookup table.
     const auto heights = block::locator_heights(node_.top_header().height());
 
-    // TODO: Build from either current header top or last from this peer.
-    // Use the former if there is no last accepted header from this peer.
     chain_.fetch_header_locator(heights,
         BIND3(handle_fetch_header_locator, _1, _2, stop_hash));
+}
+
+void protocol_header_in::send_next_get_headers(const hash_digest& start_hash)
+{
+    // TODO: this should generate a full locator, possibly on weak branch.
+    const get_headers message{ { start_hash }, null_hash };
+
+    SEND2(message, handle_send, _1, message.command);
 }
 
 void protocol_header_in::handle_fetch_header_locator(const code& ec,
@@ -158,12 +162,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
             return;
         }
 
-        // TODO: collapse into send_get_headers using header pool vs. chain.
-        // TODO: this requires a locator from last_hash, which may be weak.
-        get_headers message;
-        message.set_start_hashes({ last_hash });
-        message.set_stop_hash(null_hash);
-        SEND2(message, handle_send, _1, message.command);
+        send_next_get_headers(last_hash);
         return;
     }
 
@@ -201,7 +200,7 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
             << "Orphan header [" << encoded << "] from [" << authority() << "]";
 
         // Try to fill the gap between the current header tree and this header.
-        send_get_headers(hash);
+        send_top_get_headers(hash);
         return;
     }
     else if (ec == error::insufficient_work)

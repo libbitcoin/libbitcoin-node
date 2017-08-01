@@ -47,7 +47,8 @@ public:
     virtual void start();
 
 private:
-    void send_get_headers(const hash_digest& stop_hash);
+    void send_top_get_headers(const hash_digest& stop_hash);
+    void send_next_get_headers(const hash_digest& start_hash);
     void handle_fetch_header_locator(const code& ec, get_headers_ptr message,
         const hash_digest& stop_hash);
 
