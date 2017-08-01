@@ -56,6 +56,10 @@ void session_outbound::attach_protocols(channel::ptr channel)
 
     if (version >= version::level::headers)
         attach<protocol_header_in>(channel, chain_)->start();
+    //// TODO: support for block level protocol using blocks as headers (slow).
+    //// TODO: manage conflict with concurrent use of protocol_block_in.
+    ////else
+    ////    attach<protocol_block_header_in>(channel, chain_)->start();
 
     ////attach<protocol_address_31402>(channel)->start();
     ////attach<protocol_block_in>(channel, chain_)->start();
