@@ -159,7 +159,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
     size_t top_height;
     hash_digest top_hash;
 
-    if (!chain_.get_block_height(top_height, true) ||
+    if (!chain_.get_top_height(top_height, true) ||
         !chain_.get_block_hash(top_hash, top_height, true))
     {
         LOG_ERROR(LOG_NODE)
@@ -173,7 +173,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
     LOG_INFO(LOG_NODE)
         << "Node block height is (" << top_height << ").";
 
-    if (!chain_.get_block_height(top_height, false) ||
+    if (!chain_.get_top_height(top_height, false) ||
         !chain_.get_block_hash(top_hash, top_height, false))
     {
         LOG_ERROR(LOG_NODE)
