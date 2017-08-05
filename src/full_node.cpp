@@ -91,51 +91,6 @@ void full_node::run(result_handler handler)
 
     // Skip sync sessions.
     handle_running(error::success, handler);
-    return;
-
-    // TODO: make this safe by requiring sync if gaps found.
-    ////// By setting no download connections checkpoints can be used without sync.
-    ////// This also allows the maximum protocol version to be set below headers.
-    ////if (settings_.sync_peers == 0)
-    ////{
-    ////    // This will spawn a new thread before returning.
-    ////    handle_running(error::success, handler);
-    ////    return;
-    ////}
-
-    ////// The instance is retained by the stop handler (i.e. until shutdown).
-    ////const auto header_sync = attach_header_sync_session();
-
-    ////// This is invoked on a new thread.
-    ////header_sync->start(
-    ////    std::bind(&full_node::handle_headers_synchronized,
-    ////        this, _1, handler));
-}
-
-void full_node::handle_headers_synchronized(const code& ec,
-    result_handler handler)
-{
-    ////if (stopped())
-    ////{
-    ////    handler(error::service_stopped);
-    ////    return;
-    ////}
-
-    ////if (ec)
-    ////{
-    ////    LOG_ERROR(LOG_NODE)
-    ////        << "Failure synchronizing headers: " << ec.message();
-    ////    handler(ec);
-    ////    return;
-    ////}
-
-    ////// The instance is retained by the stop handler (i.e. until shutdown).
-    ////const auto block_sync = attach_block_sync_session();
-
-    ////// This is invoked on a new thread.
-    ////block_sync->start(
-    ////    std::bind(&full_node::handle_running,
-    ////        this, _1, handler));
 }
 
 void full_node::handle_running(const code& ec, result_handler handler)
@@ -154,13 +109,8 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    // TODO: hide this in blockchain.
-    //.........................................................................
-    size_t top_height;
-    hash_digest top_hash;
-
-    if (!chain_.get_top_height(top_height, true) ||
-        !chain_.get_block_hash(top_hash, top_height, true))
+    checkpoint block;
+    if (!chain_.get_top(block, true))
     {
         LOG_ERROR(LOG_NODE)
             << "The block chain is corrupt.";
@@ -168,13 +118,12 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    set_top_block({ std::move(top_hash), top_height });
-
+    set_top_block(block);
     LOG_INFO(LOG_NODE)
-        << "Node block height is (" << top_height << ").";
+        << "Node block height is (" << block.height() << ").";
 
-    if (!chain_.get_top_height(top_height, false) ||
-        !chain_.get_block_hash(top_hash, top_height, false))
+    checkpoint header;
+    if (!chain_.get_top(header, false))
     {
         LOG_ERROR(LOG_NODE)
             << "The header chain is corrupt.";
@@ -182,11 +131,9 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
+    set_top_header(header);
     LOG_INFO(LOG_NODE)
-        << "Node header height is (" << top_height << ").";
-
-    set_top_header({ std::move(top_hash), top_height });
-    //.........................................................................
+        << "Node header height is (" << header.height() << ").";
 
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,
