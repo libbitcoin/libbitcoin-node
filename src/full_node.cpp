@@ -109,19 +109,6 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    checkpoint block;
-    if (!chain_.get_top(block, true))
-    {
-        LOG_ERROR(LOG_NODE)
-            << "The block chain is corrupt.";
-        handler(error::operation_failed);
-        return;
-    }
-
-    set_top_block(block);
-    LOG_INFO(LOG_NODE)
-        << "Node block height is (" << block.height() << ").";
-
     checkpoint header;
     if (!chain_.get_top(header, false))
     {
@@ -135,6 +122,23 @@ void full_node::handle_running(const code& ec, result_handler handler)
     LOG_INFO(LOG_NODE)
         << "Node header height is (" << header.height() << ").";
 
+    subscribe_headers(
+        std::bind(&full_node::handle_reindexed,
+            this, _1, _2, _3, _4));
+
+    checkpoint block;
+    if (!chain_.get_top(block, true))
+    {
+        LOG_ERROR(LOG_NODE)
+            << "The block chain is corrupt.";
+        handler(error::operation_failed);
+        return;
+    }
+
+    set_top_block(block);
+    LOG_INFO(LOG_NODE)
+        << "Node block height is (" << block.height() << ").";
+
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,
             this, _1, _2, _3, _4));
@@ -142,6 +146,41 @@ void full_node::handle_running(const code& ec, result_handler handler)
     // This is invoked on a new thread.
     // This is the end of the derived run startup sequence.
     p2p::run(handler);
+}
+
+// A typical reorganization consists of one incoming and zero outgoing blocks.
+bool full_node::handle_reindexed(code ec, size_t fork_height,
+    header_const_ptr_list_const_ptr incoming,
+    header_const_ptr_list_const_ptr outgoing)
+{
+    if (stopped() || ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Failure handling reindex: " << ec.message();
+        stop();
+        return false;
+    }
+
+    // Nothing to do here.
+    if (!incoming || incoming->empty())
+        return true;
+
+    for (const auto header: *outgoing)
+        LOG_DEBUG(LOG_NODE)
+            << "Reindex moved header to pool ["
+            << encode_hash(header->hash()) << "]";
+
+    // Build the block download queue and set top height.
+    size_t height = fork_height;
+    for (const auto header: *incoming)
+        if (!header->validation.populated)
+            download_.enqueue(header->hash(), ++fork_height);
+
+    set_top_header({ incoming->back()->hash(), height });
+    return true;
 }
 
 // A typical reorganization consists of one incoming and zero outgoing blocks.
@@ -166,11 +205,10 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
 
     for (const auto block: *outgoing)
         LOG_DEBUG(LOG_NODE)
-            << "Reorganization moved block to orphan pool ["
+            << "Reorganization moved block to pool ["
             << encode_hash(block->header().hash()) << "]";
 
-    const auto height = safe_add(fork_height, incoming->size());
-
+    const auto height = fork_height + incoming->size();
     set_top_block({ incoming->back()->hash(), height });
     return true;
 }
@@ -257,6 +295,11 @@ safe_chain& full_node::chain()
 
 // Subscriptions.
 // ----------------------------------------------------------------------------
+
+void full_node::subscribe_headers(reindex_handler&& handler)
+{
+    chain().subscribe_headers(std::move(handler));
+}
 
 void full_node::subscribe_blockchain(reorganize_handler&& handler)
 {

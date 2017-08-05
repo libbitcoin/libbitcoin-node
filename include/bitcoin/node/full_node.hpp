@@ -38,6 +38,7 @@ class BCN_API full_node
 {
 public:
     typedef std::shared_ptr<full_node> ptr;
+    typedef blockchain::block_chain::reindex_handler reindex_handler;
     typedef blockchain::block_chain::reorganize_handler reorganize_handler;
     typedef blockchain::block_chain::transaction_handler transaction_handler;
 
@@ -84,7 +85,10 @@ public:
     // Subscriptions.
     // ------------------------------------------------------------------------
 
-    /// Subscribe to blockchain reorganization and stop events.
+    /// Subscribe to header reorganization and stop events.
+    virtual void subscribe_headers(reindex_handler&& handler);
+
+    /// Subscribe to block reorganization and stop events.
     virtual void subscribe_blockchain(reorganize_handler&& handler);
 
     /// Subscribe to transaction pool acceptance and stop events.
@@ -105,20 +109,19 @@ protected:
     network::session_outbound::ptr attach_outbound_session() override;
 
 private:
-    typedef message::block::ptr_list block_ptr_list;
+    bool handle_reindexed(code ec, size_t fork_height,
+        header_const_ptr_list_const_ptr incoming,
+        header_const_ptr_list_const_ptr outgoing);
 
     bool handle_reorganized(code ec, size_t fork_height,
         block_const_ptr_list_const_ptr incoming,
         block_const_ptr_list_const_ptr outgoing);
 
-    void handle_headers_synchronized(const code& ec, result_handler handler);
-    void handle_network_stopped(const code& ec, result_handler handler);
-
     void handle_started(const code& ec, result_handler handler);
     void handle_running(const code& ec, result_handler handler);
 
     // These are thread safe.
-    check_list pending_download_;
+    check_list download_;
     blockchain::block_chain chain_;
     const uint32_t protocol_maximum_;
     const node::settings& node_settings_;
