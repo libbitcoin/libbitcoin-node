@@ -85,6 +85,7 @@
     <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp" />
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
+    <ClCompile Include="..\..\..\..\src\utility\check_list.cpp" />
     <ClCompile Include="..\..\..\..\src\utility\hash_queue.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -103,6 +104,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\check_list.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\hash_queue.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />
     <ClInclude Include="..\..\resource.h" />

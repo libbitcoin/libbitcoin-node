@@ -70,6 +70,7 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\test\check_list.cpp" />
     <ClCompile Include="..\..\..\..\test\configuration.cpp" />
     <ClCompile Include="..\..\..\..\test\header_list.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />

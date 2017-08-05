@@ -104,10 +104,6 @@ protected:
     network::session_inbound::ptr attach_inbound_session() override;
     network::session_outbound::ptr attach_outbound_session() override;
 
-    /////// Override to attach specialized node sessions.
-    ////virtual session_header_sync::ptr attach_header_sync_session();
-    ////virtual session_block_sync::ptr attach_block_sync_session();
-
 private:
     typedef message::block::ptr_list block_ptr_list;
 
@@ -122,7 +118,7 @@ private:
     void handle_running(const code& ec, result_handler handler);
 
     // These are thread safe.
-    ////check_list hashes_;
+    check_list pending_download_;
     blockchain::block_chain chain_;
     const uint32_t protocol_maximum_;
     const node::settings& node_settings_;

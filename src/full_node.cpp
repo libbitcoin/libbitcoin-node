@@ -249,17 +249,6 @@ network::session_outbound::ptr full_node::attach_outbound_session()
     return attach<node::session_outbound>(chain_);
 }
 
-////session_header_sync::ptr full_node::attach_header_sync_session()
-////{
-////    return attach<session_header_sync>(hashes_, chain_,
-////        chain_.chain_settings().checkpoints);
-////}
-////
-////session_block_sync::ptr full_node::attach_block_sync_session()
-////{
-////    return attach<session_block_sync>(hashes_, chain_, node_settings_);
-////}
-
 // Shutdown
 // ----------------------------------------------------------------------------
 
