@@ -47,6 +47,7 @@ inline bool is_witness(uint64_t services)
     return (services & version::service::node_witness) != 0;
 }
 
+// TODO: break out protocol_header_out.
 protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
