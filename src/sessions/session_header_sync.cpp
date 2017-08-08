@@ -146,16 +146,19 @@ void session_header_sync::attach_handshake_protocols(channel::ptr channel,
     const auto relay = false;
     const auto own_version = settings_.protocol_maximum;
     const auto own_services = version::service::none;
+    const auto invalid_services = settings_.invalid_services;
     const auto minimum_version = version::level::headers;
     const auto minimum_services = version::service::node_network;
 
     // The negotiated_version is initialized to the configured maximum.
     if (channel->negotiated_version() >= version::level::bip61)
         attach<protocol_version_70002>(channel, own_version, own_services,
-            minimum_version, minimum_services, relay)->start(handle_started);
+            invalid_services, minimum_version, minimum_services, relay)
+            ->start(handle_started);
     else
         attach<protocol_version_31402>(channel, own_version, own_services,
-            minimum_version, minimum_services)->start(handle_started);
+            invalid_services, minimum_version, minimum_services)
+            ->start(handle_started);
 }
 
 void session_header_sync::handle_channel_start(const code& ec,
