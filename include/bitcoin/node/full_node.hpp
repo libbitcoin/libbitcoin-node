@@ -25,9 +25,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session_block_sync.hpp>
-#include <bitcoin/node/sessions/session_header_sync.hpp>
-#include <bitcoin/node/utility/check_list.hpp>
+#include <bitcoin/node/utility/reservations.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -121,7 +119,7 @@ private:
     void handle_running(const code& ec, result_handler handler);
 
     // These are thread safe.
-    check_list download_;
+    reservations reservations_;
     blockchain::block_chain chain_;
     const uint32_t protocol_maximum_;
     const node::settings& node_settings_;

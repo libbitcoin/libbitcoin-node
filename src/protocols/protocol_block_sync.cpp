@@ -33,19 +33,20 @@ namespace node {
 
 #define NAME "block_sync"
 #define CLASS protocol_block_sync
-
+    
+using namespace bc::blockchain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// The interval in which block download rate is tested.
+// The moving window in which block average download rate is measured.
 static const asio::seconds expiry_interval(5);
 
 // Depends on protocol_header_sync, which requires protocol version 31800.
 protocol_block_sync::protocol_block_sync(full_node& network,
-    channel::ptr channel, reservation::ptr row)
+    channel::ptr channel, safe_chain& chain)
   : protocol_timer(network, channel, true, NAME),
-    reservation_(row),
+    chain_(chain),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
 }
@@ -53,34 +54,24 @@ protocol_block_sync::protocol_block_sync(full_node& network,
 // Start sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::start(event_handler handler)
+void protocol_block_sync::start()
 {
-    const auto complete = synchronize<event_handler>(
-        BIND2(blocks_complete, _1, handler), 1, NAME);
+    protocol_timer::start(expiry_interval, BIND1(handle_event, _1));
 
-    protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
-
-    SUBSCRIBE3(block, handle_receive_block, _1, _2, complete);
+    chain_.subscribe_headers(BIND4(handle_reindexed, _1, _2, _3, _4));
+    SUBSCRIBE2(block, handle_receive_block, _1, _2);
 
     // This is the end of the start sequence.
-    send_get_blocks(complete, true);
+    send_get_blocks(true);
 }
 
-// Peer sync sequence.
+// Download sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
+void protocol_block_sync::send_get_blocks(bool reset)
 {
     if (stopped())
         return;
-
-    if (reservation_->stopped())
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Stopping complete slot (" << reservation_->slot() << ").";
-        complete(error::success);
-        return;
-    }
 
     // We may be a new channel (reset) or may have a new packet.
     const auto request = reservation_->request(reset);
@@ -96,79 +87,70 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
     SEND2(request, handle_send, _1, request.command);
 }
 
-// The message subscriber implements an optimization to bypass queueing of
-// block messages. This requires that this handler never call back into the
-// subscriber. Otherwise a deadlock will result. This in turn requires that
-// the 'complete' parameter handler never call into the message subscriber.
 bool protocol_block_sync::handle_receive_block(const code& ec,
-    block_const_ptr message, event_handler complete)
+    block_const_ptr message)
 {
     if (stopped(ec))
         return false;
 
     // Add the block to the blockchain store.
-    reservation_->import(message);
+    // This triggers repopulation of the reservation if empty.
+    reservation_->import(chain_, message);
 
+    // This channel is slow and half of its reservation has been taken.
     if (reservation_->toggle_partitioned())
     {
         LOG_DEBUG(LOG_NODE)
             << "Restarting partitioned slot (" << reservation_->slot() << ").";
-        complete(error::channel_stopped);
+        stop(error::channel_stopped);
         return false;
     }
 
-    // Request more blocks if our reservation has been expanded.
-    send_get_blocks(complete, false);
+    // Request more blocks if our reservation has been repopulated.
+    send_get_blocks(false);
+    return true;
+}
+
+// A typical reorganization consists of one incoming and zero outgoing blocks.
+bool protocol_block_sync::handle_reindexed(code ec, size_t,
+    header_const_ptr_list_const_ptr, header_const_ptr_list_const_ptr)
+{
+    if (stopped(ec))
+        return false;
+
+    // Repopulate if empty and there is new work has arrived and request new
+    // blocks if our reservation has been repopulated from empty.
+    reservation_->populate();
+    send_get_blocks(false);
     return true;
 }
 
 // This is fired by the base timer and stop handler.
-void protocol_block_sync::handle_event(const code& ec, event_handler complete)
+void protocol_block_sync::handle_event(const code& ec)
 {
     if (stopped(ec))
+    {
+        // We are no longer receiving blocks, so exclude from average.
+        reservation_->reset();
         return;
+    }
+
+    if (ec == error::channel_timeout && reservation_->expired())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Restarting slow slot (" << reservation_->slot() << ")";
+        stop(error::channel_timeout);
+        return;
+    }
 
     if (ec && ec != error::channel_timeout)
     {
         LOG_DEBUG(LOG_NODE)
             << "Failure in block sync timer for slot (" << reservation_->slot()
             << ") " << ec.message();
-        complete(ec);
+        stop(ec);
         return;
     }
-
-    // This results from other channels taking this channel's hashes in
-    // combination with this channel's peer not responding to the last request.
-    // Causing a successful stop here prevents channel startup just to stop.
-    if (reservation_->stopped())
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Stopping complete slot (" << reservation_->slot() << ").";
-        complete(error::success);
-        return;
-    }
-
-    if (reservation_->expired())
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Restarting slow slot (" << reservation_->slot() << ")";
-        complete(error::channel_timeout);
-        return;
-    }
-}
-
-void protocol_block_sync::blocks_complete(const code& ec,
-    event_handler handler)
-{
-    // We are no longer receiving blocks, so exclude from average.
-    reservation_->reset();
-
-    // This is the end of the peer sync sequence.
-    // If there is no error the hash list must be empty and remain so.
-    handler(ec);
-
-    // The session does not need to handle the stop.
-    stop(error::channel_stopped);
 }
 
 } // namespace node

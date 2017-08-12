@@ -37,31 +37,9 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-reservations::reservations(check_list& hashes, fast_chain& chain,
-    const settings& settings)
-  : hashes_(hashes),
-    max_request_(max_get_data),
-    timeout_(settings.sync_timeout_seconds),
-    chain_(chain)
+reservations::reservations()
+  : max_request_(max_get_data)
 {
-    initialize(std::min(settings.sync_peers, 3u));
-}
-
-bool reservations::start()
-{
-    return false;//// chain_.begin_insert();
-}
-
-bool reservations::import(block_const_ptr block, size_t height)
-{
-    //#########################################################################
-    return false;//// chain_.insert(block, height);
-    //#########################################################################
-}
-
-bool reservations::stop()
-{
-    return false;//// chain_.end_insert();
 }
 
 // Rate methods.
@@ -145,48 +123,58 @@ void reservations::remove(reservation::ptr row)
 // Hash methods.
 //-----------------------------------------------------------------------------
 
-// No critical section because this is private to the constructor.
-void reservations::initialize(size_t connections)
+void reservations::pop(const hash_digest& hash, size_t height)
 {
-    // Guard against overflow by capping size.
-    const size_t max_rows = max_size_t / max_request();
-    auto rows = std::min(max_rows, connections);
-
-    // Ensure that there is at least one block per row.
-    const auto blocks = hashes_.size();
-    rows = std::min(rows, blocks);
-
-    // Guard against division by zero.
-    if (rows == 0)
-        return;
-
-    table_.reserve(rows);
-
-    // Allocate up to 50k headers per row.
-    const auto max_allocation = rows * max_request();
-    const auto allocation = std::min(blocks, max_allocation);
-
-    for (size_t row = 0; row < rows; ++row)
-        table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
-
-    size_t height;
-    hash_digest hash;
-
-    // The (allocation / rows) * rows cannot exceed allocation.
-    // The remainder is retained by the hash list for later reservation.
-    for (size_t base = 0; base < (allocation / rows); ++base)
-    {
-        for (size_t row = 0; row < rows; ++row)
-        {
-            DEBUG_ONLY(const auto result =) hashes_.dequeue(hash, height);
-            BITCOIN_ASSERT_MSG(result, "The checklist is empty.");
-            table_[row]->insert(std::move(hash), height);
-        }
-    }
-
-    LOG_DEBUG(LOG_NODE)
-        << "Reserved " << allocation << " blocks to " << rows << " slots.";
+    hashes_.pop(hash, height);
 }
+
+void reservations::push(hash_digest&& hash, size_t height)
+{
+    hashes_.enqueue(std::move(hash), height);
+}
+
+////// TODO: instead set max_request to absolute max / peer count.
+////void reservations::initialize(size_t connections)
+////{
+////    // Guard against overflow by capping size.
+////    const size_t max_rows = max_size_t / max_request();
+////    auto rows = std::min(max_rows, connections);
+////
+////    // Ensure that there is at least one block per row.
+////    const auto blocks = hashes_.size();
+////    rows = std::min(rows, blocks);
+////
+////    // Guard against division by zero.
+////    if (rows == 0)
+////        return;
+////
+////    table_.reserve(rows);
+////
+////    // Allocate up to 50k headers per row.
+////    const auto max_allocation = rows * max_request();
+////    const auto allocation = std::min(blocks, max_allocation);
+////
+////    for (size_t row = 0; row < rows; ++row)
+////        table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
+////
+////    size_t height;
+////    hash_digest hash;
+////
+////    // The (allocation / rows) * rows cannot exceed allocation.
+////    // The remainder is retained by the hash list for later reservation.
+////    for (size_t base = 0; base < (allocation / rows); ++base)
+////    {
+////        for (size_t row = 0; row < rows; ++row)
+////        {
+////            DEBUG_ONLY(const auto result =) hashes_.dequeue(hash, height);
+////            BITCOIN_ASSERT_MSG(result, "The checklist is empty.");
+////            table_[row]->insert(std::move(hash), height);
+////        }
+////    }
+////
+////    LOG_DEBUG(LOG_NODE)
+////        << "Reserved " << allocation << " blocks to " << rows << " slots.";
+////}
 
 // Call when minimal is empty.
 bool reservations::populate(reservation::ptr minimal)
@@ -236,6 +224,7 @@ bool reservations::reserve(reservation::ptr minimal)
     if (!minimal->empty())
         return true;
 
+    // TODO: allocate max_request based on current peer count/allocations.
     const auto allocation = std::min(hashes_.size(), max_request());
 
     size_t height;
@@ -252,13 +241,11 @@ bool reservations::reserve(reservation::ptr minimal)
     return !minimal->empty();
 }
 
-// Exposed for test to be able to control the request size.
 size_t reservations::max_request() const
 {
     return max_request_;
 }
 
-// Exposed for test to be able to control the request size.
 void reservations::set_max_request(size_t value)
 {
     max_request_.store(value);

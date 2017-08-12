@@ -33,6 +33,7 @@ namespace libbitcoin {
 namespace node {
 
 using namespace std::chrono;
+using namespace bc::blockchain;
 using namespace bc::chain;
 
 // The allowed number of standard deviations below the norm.
@@ -50,14 +51,14 @@ static constexpr size_t minimum_history = 3;
 static constexpr size_t micro_per_second = 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
-    uint32_t sync_timeout_seconds)
+    uint32_t block_latency_seconds)
   : rate_({ true, 0, 0, 0 }),
     stopped_(false),
     pending_(true),
     partitioned_(false),
     reservations_(reservations),
     slot_(slot),
-    rate_window_(minimum_history * sync_timeout_seconds * micro_per_second)
+    rate_window_(minimum_history * block_latency_seconds * micro_per_second)
 {
 }
 
@@ -282,9 +283,10 @@ message::get_data reservation::request(bool new_channel)
         return packet;
     }
 
+    const auto& right = heights_.right;
+
     // Build get_blocks request message.
-    for (auto height = heights_.right.begin(); height != heights_.right.end();
-        ++height)
+    for (auto height = right.begin(); height != right.end(); ++height)
     {
         static const auto id = message::inventory::type_id::block;
         packet.inventories().emplace_back(id, height->second);
@@ -310,7 +312,7 @@ void reservation::insert(hash_digest&& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::import(block_const_ptr block)
+void reservation::import(safe_chain& chain, block_const_ptr block)
 {
     size_t height;
     const auto hash = block->header().hash();
@@ -325,9 +327,9 @@ void reservation::import(block_const_ptr block)
     }
 
     bool success;
-    const auto importer = [this, &block, &height, &success]()
+    const auto importer = [&]()
     {
-        success = reservations_.import(block, height);
+        success = chain.update(block, height);
     };
 
     // Do the block import with timer.
@@ -348,8 +350,8 @@ void reservation::import(block_const_ptr block)
     else
     {
         // This could also result from a block import failure resulting from
-        // inserting at a height that is already populated, but that should be
-        // precluded by the implementation. This is the only other failure.
+        // inserting at a height that is not pent, but that should be precluded
+        // by the implementation. This is the only other failure.
         LOG_DEBUG(LOG_NODE)
             << "Stopped before importing block (" << slot() << ") ["
             << encoded << "]";

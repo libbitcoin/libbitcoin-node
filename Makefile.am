@@ -43,17 +43,13 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_out.cpp \
     src/protocols/protocol_block_sync.cpp \
     src/protocols/protocol_header_in.cpp \
-    src/protocols/protocol_header_sync.cpp \
     src/protocols/protocol_transaction_in.cpp \
     src/protocols/protocol_transaction_out.cpp \
-    src/sessions/session_block_sync.cpp \
-    src/sessions/session_header_sync.cpp \
     src/sessions/session_inbound.cpp \
     src/sessions/session_manual.cpp \
     src/sessions/session_outbound.cpp \
     src/utility/check_list.cpp \
     src/utility/hash_queue.cpp \
-    src/utility/header_list.cpp \
     src/utility/performance.cpp \
     src/utility/reservation.cpp \
     src/utility/reservations.cpp
@@ -70,7 +66,6 @@ test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_frame
 test_libbitcoin_node_test_SOURCES = \
     test/check_list.cpp \
     test/configuration.cpp \
-    test/header_list.cpp \
     test/main.cpp \
     test/node.cpp \
     test/performance.cpp \
@@ -117,15 +112,12 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
     include/bitcoin/node/protocols/protocol_block_sync.hpp \
     include/bitcoin/node/protocols/protocol_header_in.hpp \
-    include/bitcoin/node/protocols/protocol_header_sync.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
     include/bitcoin/node/sessions/session.hpp \
-    include/bitcoin/node/sessions/session_block_sync.hpp \
-    include/bitcoin/node/sessions/session_header_sync.hpp \
     include/bitcoin/node/sessions/session_inbound.hpp \
     include/bitcoin/node/sessions/session_manual.hpp \
     include/bitcoin/node/sessions/session_outbound.hpp
@@ -134,7 +126,6 @@ include_bitcoin_node_utilitydir = ${includedir}/bitcoin/node/utility
 include_bitcoin_node_utility_HEADERS = \
     include/bitcoin/node/utility/check_list.hpp \
     include/bitcoin/node/utility/hash_queue.hpp \
-    include/bitcoin/node/utility/header_list.hpp \
     include/bitcoin/node/utility/performance.hpp \
     include/bitcoin/node/utility/reservation.hpp \
     include/bitcoin/node/utility/reservations.hpp

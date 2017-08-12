@@ -46,7 +46,7 @@ public:
 
     /// Construct a block reservation with the specified identifier.
     reservation(reservations& reservations, size_t slot,
-        uint32_t sync_timeout_seconds);
+        uint32_t block_latency_seconds);
 
     /// Ensure there are no remaining reserved hashes.
     ~reservation();
@@ -86,7 +86,7 @@ public:
     void insert(hash_digest&& hash, size_t height);
 
     /// Add to the blockchain, with height determined by the reservation.
-    void import(block_const_ptr block);
+    void import(blockchain::safe_chain& chain, block_const_ptr block);
 
     /// Determine if the reservation was partitioned and reset partition flag.
     bool toggle_partitioned();

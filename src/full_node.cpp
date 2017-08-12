@@ -25,8 +25,6 @@
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session_block_sync.hpp>
-#include <bitcoin/node/sessions/session_header_sync.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
@@ -81,6 +79,7 @@ void full_node::start(result_handler handler)
 // Run sequence.
 // ----------------------------------------------------------------------------
 
+// This follows seeding as an explicit step, sync hooks may go here.
 void full_node::run(result_handler handler)
 {
     if (stopped())
@@ -89,7 +88,6 @@ void full_node::run(result_handler handler)
         return;
     }
 
-    // Skip sync sessions.
     handle_running(error::success, handler);
 }
 
@@ -173,13 +171,17 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
             << "Reindex moved header to pool ["
             << encode_hash(header->hash()) << "]";
 
-    // Build the block download queue and set top height.
-    size_t height = fork_height;
+    // Pop all outgoing reservations from download queue (if hash at top).
+    for (const auto header: *outgoing)
+        if (!header->validation.populated)
+            reservations_.pop(header->hash(), header->validation.height);
+
+    // Push all incoming reservations.
     for (const auto header: *incoming)
         if (!header->validation.populated)
-            download_.enqueue(header->hash(), ++fork_height);
+            reservations_.push(header->hash(), header->validation.height);
 
-    set_top_header({ incoming->back()->hash(), height });
+    set_top_header({ incoming->back()->hash(), fork_height });
     return true;
 }
 
@@ -217,7 +219,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
 // ----------------------------------------------------------------------------
 // Create derived sessions and override these to inject from derived node.
 
-// Must not connect until running, otherwise imports may conflict with sync.
+// Must not connect until running, otherwise messages may conflict with sync.
 // But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr full_node::attach_manual_session()
 {

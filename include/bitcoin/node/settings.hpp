@@ -34,8 +34,6 @@ public:
     settings(config::settings context);
 
     /// Properties.
-    uint32_t sync_peers;
-    uint32_t sync_timeout_seconds;
     uint32_t block_latency_seconds;
     bool refresh_transactions;
 

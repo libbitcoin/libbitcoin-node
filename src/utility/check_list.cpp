@@ -20,13 +20,10 @@
 
 #include <cstddef>
 #include <utility>
-#include <boost/bimap/support/lambda.hpp>
-#include <bitcoin/blockchain.hpp>
+#include <bitcoin/bitcoin.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-using namespace bc::database;
 
 bool check_list::empty() const
 {
@@ -48,35 +45,55 @@ size_t check_list::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void check_list::reserve(const block_database::heights& heights)
+void check_list::pop(const hash_digest& hash, size_t height)
 {
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
-    unique_lock lock(mutex_);
+    mutex_.lock_upgrade();
 
-    checks_.clear();
+    if (checks_.empty() || checks_.front().hash() != hash)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        return;
+    }
 
-    for (const auto height: heights)
-        const auto it = checks_.insert({ null_hash, height });
+    if (checks_.front().height() != height)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "popped invalid height for hash");
+        return;
+    }
 
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    checks_.pop_back();
+    mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
 
 void check_list::enqueue(hash_digest&& hash, size_t height)
 {
+    BITCOIN_ASSERT_MSG(height != 0, "pushed genesis height for download");
+
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
-    unique_lock lock(mutex_);
+    mutex_.lock_upgrade();
 
-    using namespace boost::bimaps;
-    const auto it = checks_.right.find(height);
-
-    // Ignore the entry if it is not reserved.
-    if (it == checks_.right.end())
+    if (checks_.front().height() > height)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "pushed height out of order");
         return;
+    }
 
-    BITCOIN_ASSERT(it->second == null_hash);
-    checks_.right.modify_data(it, _data = std::move(hash));
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.emplace_back(std::move(hash), height);
+    mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
 
@@ -84,18 +101,25 @@ bool check_list::dequeue(hash_digest& out_hash, size_t& out_height)
 {
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
-    unique_lock lock(mutex_);
+    mutex_.lock_upgrade();
 
-    // Overlocking to reduce code in the dominant path.
     if (checks_.empty())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
         return false;
+    }
 
-    auto it = checks_.right.begin();
-    out_height = it->first;
-    out_hash = it->second;
-    checks_.right.erase(it);
-    return true;
+    const auto front = checks_.front();
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.pop_front();
+    mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
+
+    out_hash = std::move(front.hash());
+    out_height = front.height();
+    return true;
 }
 
 } // namespace node

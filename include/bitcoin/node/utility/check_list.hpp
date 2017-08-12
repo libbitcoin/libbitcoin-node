@@ -20,10 +20,8 @@
 #define LIBBITCOIN_NODE_CHECK_LIST_HPP
 
 #include <cstddef>
-#include <boost/bimap.hpp>
-#include <boost/bimap/set_of.hpp>
-#include <boost/bimap/unordered_set_of.hpp>
-#include <bitcoin/database.hpp>
+#include <list>
+#include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -39,23 +37,20 @@ public:
     /// The number of checkpoints in the queue.
     size_t size() const;
 
-    /// Reserve the entries indicated by the given heights.
-    /// Any entry not reserved here will be ignored upon enqueue.
-    void reserve(const database::block_database::heights& heights);
+    /// Pop an entry if exists at top, verify the height.
+    void pop(const hash_digest& hash, size_t height);
 
-    /// Place a hash on the queue at the height if it has a reservation.
+    // TODO: rename to push.
+    /// Push an entry, verify the height is increasing.
     void enqueue(hash_digest&& hash, size_t height);
 
-    /// Remove the next entry by increasing height.
+    // TODO: return checkpoint.
+    /// Dequeue an entry.
     bool dequeue(hash_digest& out_hash, size_t& out_height);
 
 private:
-    // A bidirection map is used for efficient hash and height retrieval.
-    typedef boost::bimaps::bimap<
-        boost::bimaps::unordered_set_of<hash_digest>,
-        boost::bimaps::set_of<size_t>> checks;
 
-    checks checks_;
+    std::list<config::checkpoint> checks_;
     mutable shared_mutex mutex_;
 };
 
