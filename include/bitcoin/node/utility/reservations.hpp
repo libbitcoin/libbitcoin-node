@@ -21,6 +21,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <bitcoin/blockchain.hpp>
@@ -51,8 +52,8 @@ public:
     /// The average and standard deviation of block import rates.
     rate_statistics rates() const;
 
-    /// Return a copy of the reservation table.
-    reservation::list table() const;
+    /// Get a download reservation manager.
+    reservation::ptr get_reservation(uint32_t timeout_seconds);
 
     /// Pop reorganized header hash (if hash at top), verify the height.
     void pop(const hash_digest& hash, size_t height);
@@ -64,7 +65,7 @@ public:
     bool import(block_const_ptr block, size_t height);
 
     /// Populate a starved row by taking half of the hashes from a weak row.
-    bool populate(reservation::ptr minimal);
+    void populate(reservation::ptr minimal);
 
     /// Remove the row from the reservation table if found.
     void remove(reservation::ptr row);

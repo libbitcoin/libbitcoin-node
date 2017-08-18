@@ -53,9 +53,9 @@ static constexpr size_t micro_per_second = 1000 * 1000;
 reservation::reservation(reservations& reservations, size_t slot,
     uint32_t block_latency_seconds)
   : rate_({ true, 0, 0, 0 }),
-    stopped_(false),
     pending_(true),
     partitioned_(false),
+    stopped_(false),
     reservations_(reservations),
     slot_(slot),
     rate_window_(minimum_history * block_latency_seconds * micro_per_second)
@@ -96,7 +96,7 @@ high_resolution_clock::time_point reservation::now() const
 // Rate methods.
 //-----------------------------------------------------------------------------
 
-// Clears rate/history but leaves hashes unchanged.
+// Sets idle state true and clears rate/history, but leaves hashes unchanged.
 void reservation::reset()
 {
     set_rate({ true, 0, 0, 0 });
@@ -253,14 +253,20 @@ size_t reservation::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
+void reservation::start()
+{
+    stopped_ = false;
+}
+
+void reservation::stop()
+{
+    stopped_ = true;
+    reset();
+}
+
 bool reservation::stopped() const
 {
-    // Critical Section (stop)
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(stop_mutex_);
-
     return stopped_;
-    ///////////////////////////////////////////////////////////////////////////
 }
 
 // Obtain and clear the outstanding blocks request.
@@ -362,22 +368,11 @@ void reservation::import(safe_chain& chain, block_const_ptr block)
 
 void reservation::populate()
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    stop_mutex_.lock_upgrade();
-
     if (!stopped_ && empty())
     {
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        stop_mutex_.unlock_upgrade_and_lock();
-        stopped_ = !reservations_.populate(shared_from_this());
-        stop_mutex_.unlock();
-        //---------------------------------------------------------------------
+        reservations_.populate(shared_from_this());
         return;
     }
-
-    stop_mutex_.unlock_upgrade();
-    ///////////////////////////////////////////////////////////////////////////
 }
 
 bool reservation::toggle_partitioned()
@@ -386,12 +381,13 @@ bool reservation::toggle_partitioned()
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
+    // This will cause a channel stop so the pending reservation can start.
     if (partitioned_)
     {
         //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         hash_mutex_.unlock_upgrade_and_lock();
-        partitioned_ = false;
         pending_ = true;
+        partitioned_ = false;
         hash_mutex_.unlock();
         //---------------------------------------------------------------------
         return true;
@@ -414,8 +410,7 @@ bool reservation::partition(reservation::ptr minimal)
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
-    // This addition is safe.
-    // Take half of the maximal reservation, rounding up to get last entry.
+    // Take half of maximal reservation, rounding up to get last entry (safe).
     const auto offset = (heights_.size() + 1u) / 2u;
     auto it = heights_.right.begin();
 
@@ -429,23 +424,17 @@ bool reservation::partition(reservation::ptr minimal)
         it = heights_.right.erase(it);
     }
 
-    partitioned_ = !heights_.empty();
+    //-------------------------------------------------------------------------
+    hash_mutex_.unlock_and_lock_shared();
+    const auto emptied = !heights_.empty();
     const auto populated = !minimal->empty();
+    partitioned_ = emptied;
     minimal->pending_ = populated;
-
-    if (!partitioned_)
-    {
-        // Critical Section (stop)
-        ///////////////////////////////////////////////////////////////////////
-        unique_lock lock(stop_mutex_);
-
-        // If the channel has been emptied it will not repopulate.
-        stopped_ = true;
-        ///////////////////////////////////////////////////////////////////////
-    }
-
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
+
+    if (emptied)
+        reset();
 
     if (populated)
         LOG_DEBUG(LOG_NODE)

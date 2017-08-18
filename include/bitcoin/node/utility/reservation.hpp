@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_RESERVATION_HPP
 #define LIBBITCOIN_NODE_RESERVATION_HPP
 
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -60,17 +61,23 @@ public:
     /// The number of outstanding blocks.
     size_t size() const;
 
-    /// The reservation is empty and will remain so.
+    /// Assign the reservation to a channel.
+    void start();
+
+    /// Unassign the reservation from a channel and reset.
+    void stop();
+
+    /// True if not associated with a channel.
     bool stopped() const;
 
-    /// True if block import rate was more than one standard deviation low.
-    bool expired() const;
-
-    /// Sets the idle state to true. Call when channel is stopped.
+    /// Clear rate data. Call when stopped or hashes emptied.
     void reset();
 
     /// True if the reservation is not applied to a channel.
     bool idle() const;
+
+    /// True if block import rate was more than one standard deviation low.
+    bool expired() const;
 
     /// The current cached average block import rate excluding import time.
     performance rate() const;
@@ -142,10 +149,6 @@ private:
     rate_history history_;
     mutable upgrade_mutex history_mutex_;
 
-    // Protected by stop mutex.
-    bool stopped_;
-    mutable upgrade_mutex stop_mutex_;
-
     // Protected by hash mutex.
     bool pending_;
     bool partitioned_;
@@ -153,6 +156,7 @@ private:
     mutable upgrade_mutex hash_mutex_;
 
     // Thread safe.
+    std::atomic<bool> stopped_;
     reservations& reservations_;
     const size_t slot_;
     const std::chrono::microseconds rate_window_;

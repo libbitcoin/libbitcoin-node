@@ -173,7 +173,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
 
 inline bool enabled(size_t height)
 {
-    return height % 1000 == 0;
+    return true;// height % 1000 == 0;
 }
 
 void protocol_header_in::handle_store_header(const code& ec, size_t index,

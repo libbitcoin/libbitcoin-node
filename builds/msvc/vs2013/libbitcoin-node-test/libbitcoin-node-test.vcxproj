@@ -72,7 +72,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\test\check_list.cpp" />
     <ClCompile Include="..\..\..\..\test\configuration.cpp" />
-    <ClCompile Include="..\..\..\..\test\header_list.cpp" />
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
     <ClCompile Include="..\..\..\..\test\reservation.cpp" />

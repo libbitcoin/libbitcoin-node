@@ -47,6 +47,7 @@ protocol_block_sync::protocol_block_sync(full_node& network,
     channel::ptr channel, safe_chain& chain)
   : protocol_timer(network, channel, true, NAME),
     chain_(chain),
+    reservation_(network.get_reservation()),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
 }
@@ -118,9 +119,14 @@ bool protocol_block_sync::handle_reindexed(code ec, size_t,
     if (stopped(ec))
         return false;
 
-    // Repopulate if empty and there is new work has arrived and request new
-    // blocks if our reservation has been repopulated from empty.
+    // Don't start downloading blocks until the header chain is current.
+    if (chain_.is_headers_stale())
+        return true;
+
+    // Repopulate if empty and there is new work has arrived.
     reservation_->populate();
+
+    // Request new blocks if our reservation has been repopulated from empty.
     send_get_blocks(false);
     return true;
 }
@@ -130,8 +136,8 @@ void protocol_block_sync::handle_event(const code& ec)
 {
     if (stopped(ec))
     {
-        // We are no longer receiving blocks, so exclude from average.
-        reservation_->reset();
+        // We are no longer receiving blocks, so free up the reservation.
+        reservation_->stop();
         return;
     }
 

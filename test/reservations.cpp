@@ -35,32 +35,15 @@ BOOST_AUTO_TEST_SUITE(reservations_tests)
 
 BOOST_AUTO_TEST_CASE(reservations__max_request__default__50000)
 {
-    DECLARE_RESERVATIONS(reserves, true);
-    BOOST_REQUIRE_EQUAL(reserves.max_request(), 50000u);
+    reservations instance;
+    BOOST_REQUIRE_EQUAL(instance.max_request(), 50000u);
 }
 
 BOOST_AUTO_TEST_CASE(reservations__set_max_request__42__42)
 {
-    DECLARE_RESERVATIONS(reserves, true);
-    reserves.set_max_request(42);
-    BOOST_REQUIRE_EQUAL(reserves.max_request(), 42u);
-}
-
-// import
-//-----------------------------------------------------------------------------
-
-BOOST_AUTO_TEST_CASE(reservations__import__true__true)
-{
-    const auto block_ptr = std::make_shared<const block>();
-    DECLARE_RESERVATIONS(reserves, true);
-    BOOST_REQUIRE(reserves.import(block_ptr, 42));
-}
-
-BOOST_AUTO_TEST_CASE(reservations__import__false__false)
-{
-    const auto block_ptr = std::make_shared<const block>();
-    DECLARE_RESERVATIONS(reserves, false);
-    BOOST_REQUIRE(!reserves.import(block_ptr, 42));
+    reservations instance;
+    instance.set_max_request(42);
+    BOOST_REQUIRE_EQUAL(instance.max_request(), 42u);
 }
 
 // table
@@ -68,8 +51,8 @@ BOOST_AUTO_TEST_CASE(reservations__import__false__false)
 
 BOOST_AUTO_TEST_CASE(reservations__table__default__empty)
 {
-    DECLARE_RESERVATIONS(reserves, true);
-    BOOST_REQUIRE(reserves.table().empty());
+    reservations instance;
+    BOOST_REQUIRE(instance.table().empty());
 }
 
 BOOST_AUTO_TEST_CASE(reservations__table__hash_1__size_1_by_1_hashes_empty)
@@ -630,13 +613,10 @@ BOOST_AUTO_TEST_CASE(reservations__rates__five_reservations_one_idle__idle_exclu
 {
     static const auto minimum_peers = 5u;
     static const auto block_latency_seconds = 1u;
-    blockchain_fixture blockchain;
-    header_queue hashes(no_checks);
     const auto message = message_factory(4, check42.hash());
-    hashes.initialize(check42);
     BOOST_REQUIRE(hashes.enqueue(message));
 
-    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
+    reservations reserves;
     const auto table = reserves.table();
 
     // normalized rate: 5 / (2 - 1) = 5

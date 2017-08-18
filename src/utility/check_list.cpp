@@ -82,7 +82,7 @@ void check_list::enqueue(hash_digest&& hash, size_t height)
     // Critical Section
     mutex_.lock_upgrade();
 
-    if (checks_.front().height() > height)
+    if (!checks_.empty() && checks_.front().height() > height)
     {
         mutex_.unlock_upgrade();
         //---------------------------------------------------------------------

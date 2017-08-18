@@ -295,6 +295,12 @@ safe_chain& full_node::chain()
     return chain_;
 }
 
+reservation::ptr full_node::get_reservation()
+{
+    // TODO: pass block_latency_seconds on reservations construct.
+    return reservations_.get_reservation(node_settings_.block_latency_seconds);
+}
+
 // Subscriptions.
 // ----------------------------------------------------------------------------
 

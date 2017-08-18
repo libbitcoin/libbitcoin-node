@@ -28,10 +28,6 @@ namespace libbitcoin {
 namespace node {
 namespace test {
 
-#define DECLARE_RESERVATIONS(name, import) \
-blockchain_fixture blockchain(import); \
-reservations name(hashes, blockchain, 1, 3)
-
 extern const config::checkpoint check0;
 extern const config::checkpoint check42;
 extern const config::checkpoint::list no_checks;
