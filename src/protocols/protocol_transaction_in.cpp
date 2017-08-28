@@ -265,7 +265,7 @@ void protocol_transaction_in::send_get_transactions(
 
 void protocol_transaction_in::handle_stop(const code&)
 {
-    LOG_DEBUG(LOG_NETWORK)
+    LOG_VERBOSE(LOG_NETWORK)
         << "Stopped transaction_in protocol for [" << authority() << "].";
 }
 

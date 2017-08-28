@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
 
 #include <cstddef>
+#include <future>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -46,8 +47,11 @@ public:
     virtual void start();
 
 private:
+    void renew_reservation();
     void send_get_blocks(bool reset);
     void handle_event(const code& ec);
+    void handle_import_block(const code& ec, block_const_ptr block,
+        std::promise<code>& complete);
     bool handle_receive_block(const code& ec, block_const_ptr message);
     bool handle_reindexed(code ec, size_t fork_height,
         header_const_ptr_list_const_ptr incoming,

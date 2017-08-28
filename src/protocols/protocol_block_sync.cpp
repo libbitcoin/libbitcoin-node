@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <stdexcept>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -94,22 +95,51 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Add the block to the blockchain store.
-    // This triggers repopulation of the reservation if empty.
-    reservation_->import(chain_, message);
+    if (ec)
+    {
+        stop(ec);
+        return false;
+    }
+
+    std::promise<code> complete;
+
+    // Add the block's transactions to the store.
+    reservation_->import(chain_, message,
+        BIND3(handle_import_block, _1, message, std::ref(complete)));
+
+    // This prevents multiple blocks from queuing up behind the store.
+    return !complete.get_future().get();
+}
+
+void protocol_block_sync::handle_import_block(const code& ec,
+    block_const_ptr message, std::promise<code>& complete)
+{
+    if (stopped(ec))
+    {
+        complete.set_value(ec);
+        return;
+    }
+
+    if (ec)
+    {
+        stop(ec);
+        complete.set_value(ec);
+        return;
+    }
 
     // This channel is slow and half of its reservation has been taken.
     if (reservation_->toggle_partitioned())
     {
         LOG_DEBUG(LOG_NODE)
             << "Restarting partitioned slot (" << reservation_->slot() << ").";
+
         stop(error::channel_stopped);
-        return false;
+        complete.set_value(error::channel_stopped);
+        return;
     }
 
-    // Request more blocks if our reservation has been repopulated.
-    send_get_blocks(false);
-    return true;
+    renew_reservation();
+    complete.set_value(error::success);
 }
 
 // A typical reorganization consists of one incoming and zero outgoing blocks.
@@ -119,16 +149,27 @@ bool protocol_block_sync::handle_reindexed(code ec, size_t,
     if (stopped(ec))
         return false;
 
-    // Don't start downloading blocks until the header chain is current.
-    if (chain_.is_headers_stale())
-        return true;
+    if (ec)
+    {
+        stop(ec);
+        return false;
+    }
 
-    // Repopulate if empty and there is new work has arrived.
-    reservation_->populate();
-
-    // Request new blocks if our reservation has been repopulated from empty.
-    send_get_blocks(false);
+    renew_reservation();
     return true;
+}
+
+void protocol_block_sync::renew_reservation()
+{
+    // Don't start downloading blocks until the header chain is current.
+    if (!chain_.is_headers_stale())
+    {
+        // Repopulate if empty and new work has arrived.
+        reservation_->populate();
+
+        // Request blocks if our reservation has been repopulated from empty.
+        send_get_blocks(false);
+    }
 }
 
 // This is fired by the base timer and stop handler.

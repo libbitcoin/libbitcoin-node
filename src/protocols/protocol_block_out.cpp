@@ -547,7 +547,7 @@ void protocol_block_out::handle_stop(const code&)
 {
     chain_.unsubscribe();
 
-    LOG_DEBUG(LOG_NETWORK)
+    LOG_VERBOSE(LOG_NETWORK)
         << "Stopped block_out protocol for [" << authority() << "].";
 }
 

@@ -152,7 +152,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
         const auto last_hash = message->elements().back().hash();
 
         LOG_DEBUG(LOG_NODE)
-            << "Stored (" << size << ") headers up to ["
+            << "Processed (" << size << ") headers up to ["
             << encode_hash(last_hash) << "] from [" << authority() << "].";
 
         // The timer handles the case where the last header is the 2000th.
@@ -173,7 +173,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
 
 inline bool enabled(size_t height)
 {
-    return true;// height % 1000 == 0;
+    return height % 1000 == 0;
 }
 
 void protocol_header_in::handle_store_header(const code& ec, size_t index,
@@ -302,7 +302,7 @@ void protocol_header_in::send_send_headers()
 
 void protocol_header_in::handle_stop(const code&)
 {
-    LOG_DEBUG(LOG_NETWORK)
+    LOG_VERBOSE(LOG_NETWORK)
         << "Stopped header_in protocol for [" << authority() << "].";
 }
 

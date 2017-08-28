@@ -126,7 +126,6 @@ void reservations::remove(reservation::ptr row)
 // Create new reservation unless there is already one stopped.
 reservation::ptr reservations::get_reservation(uint32_t timeout_seconds)
 {
-    // TODO: prioritize the stopped reservation with largest size.
     const auto stopped = [](reservation::ptr row)
     {
         // The stopped reservation must already be idle.
@@ -177,7 +176,7 @@ void reservations::populate(reservation::ptr minimal)
     mutex_.lock();
 
     // Take from unallocated or allocated hashes, true if minimal not empty.
-    const auto populated = reserve(minimal) || partition(minimal);
+    auto populated = reserve(minimal) || partition(minimal);
 
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
@@ -186,30 +185,6 @@ void reservations::populate(reservation::ptr minimal)
         LOG_DEBUG(LOG_NODE)
             << "Populated " << minimal->size() << " blocks to slot ("
             << minimal->slot() << ").";
-}
-
-// private
-// This can cause reduction of an active reservation.
-bool reservations::partition(reservation::ptr minimal)
-{
-    const auto maximal = find_maximal();
-    return maximal && maximal != minimal && maximal->partition(minimal);
-}
-
-// private
-reservation::ptr reservations::find_maximal()
-{
-    if (table_.empty())
-        return nullptr;
-
-    // The maximal row is that with the most block hashes reserved.
-    const auto comparer = [](reservation::ptr left, reservation::ptr right)
-    {
-        return left->size() < right->size();
-    };
-
-    // TODO: prioritize the stopped reservation with largest size.
-    return *std::max_element(table_.begin(), table_.end(), comparer);
 }
 
 // private
@@ -238,6 +213,40 @@ bool reservations::reserve(reservation::ptr minimal)
 
     // This may become empty between insert and this test, which is okay.
     return !minimal->empty();
+}
+
+// private
+// This can cause reduction of an active reservation.
+bool reservations::partition(reservation::ptr minimal)
+{
+    const auto maximal = find_maximal();
+    return maximal && maximal != minimal && maximal->partition(minimal);
+}
+
+// private
+// The maximal row has the most block hashes reserved (prefer stopped).
+reservation::ptr reservations::find_maximal()
+{
+    if (table_.empty())
+        return nullptr;
+
+    const auto comparer = [](reservation::ptr left, reservation::ptr right)
+    {
+        if (left->stopped() && !right->stopped())
+            return true;
+
+        if (right->stopped() && !left->stopped())
+            return false;
+
+        return left->size() < right->size();
+    };
+
+    return *std::max_element(table_.begin(), table_.end(), comparer);
+}
+
+size_t reservations::size() const
+{
+    return hashes_.size();
 }
 
 size_t reservations::max_request() const

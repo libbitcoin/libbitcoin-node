@@ -44,6 +44,7 @@ class BCN_API reservation
 public:
     typedef std::shared_ptr<reservation> ptr;
     typedef std::vector<reservation::ptr> list;
+    typedef handle0 result_handler;
 
     /// Construct a block reservation with the specified identifier.
     reservation(reservations& reservations, size_t slot,
@@ -93,7 +94,8 @@ public:
     void insert(hash_digest&& hash, size_t height);
 
     /// Add to the blockchain, with height determined by the reservation.
-    void import(blockchain::safe_chain& chain, block_const_ptr block);
+    void import(blockchain::safe_chain& chain, block_const_ptr block,
+        result_handler handler);
 
     /// Determine if the reservation was partitioned and reset partition flag.
     bool toggle_partitioned();
@@ -105,6 +107,8 @@ public:
     void populate();
 
 protected:
+    typedef std::chrono::high_resolution_clock::time_point clock_point;
+
     // Accessor for testability.
     bool pending() const;
 
@@ -115,14 +119,14 @@ protected:
     std::chrono::microseconds rate_window() const;
 
     // Isolation of side effect to enable unit testing.
-    virtual std::chrono::high_resolution_clock::time_point now() const;
+    virtual clock_point now() const;
 
 private:
     typedef struct
     {
         size_t events;
         uint64_t database;
-        std::chrono::high_resolution_clock::time_point time;
+        clock_point time;
     } import_record;
 
     typedef std::vector<import_record> rate_history;
@@ -130,7 +134,11 @@ private:
     // A bidirection map is used for efficient hash and height retrieval.
     typedef boost::bimaps::bimap<
         boost::bimaps::unordered_set_of<hash_digest>,
-        boost::bimaps::set_of<size_t>> hash_heights;
+        boost::bimaps::set_of<size_t >> hash_heights;
+
+    // Handle the completion of a block update.
+    void handle_import(const code& ec, block_const_ptr block, size_t height,
+        clock_point start, result_handler handler);
 
     // Return rate history to startup state.
     void clear_history();

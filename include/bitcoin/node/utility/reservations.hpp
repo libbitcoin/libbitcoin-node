@@ -70,6 +70,9 @@ public:
     /// Remove the row from the reservation table if found.
     void remove(reservation::ptr row);
 
+    /// The numer of reservations.
+    size_t size() const;
+
     /// The max size of a block request.
     size_t max_request() const;
 
@@ -77,14 +80,14 @@ public:
     void set_max_request(size_t value);
 
 private:
-    // Find the reservation with the most hashes.
-    reservation::ptr find_maximal();
+    // Move the maximum unreserved hashes to the specified reservation.
+    bool reserve(reservation::ptr minimal);
 
     // Move half of the maximal reservation to the specified reservation.
     bool partition(reservation::ptr minimal);
 
-    // Move the maximum unreserved hashes to the specified reservation.
-    bool reserve(reservation::ptr minimal);
+    // Find the reservation with the most hashes.
+    reservation::ptr find_maximal();
 
     // Thread safe.
     check_list hashes_;

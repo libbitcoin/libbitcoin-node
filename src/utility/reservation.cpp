@@ -22,6 +22,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <utility>
 #include <boost/format.hpp>
 #include <bitcoin/bitcoin.hpp>
@@ -31,7 +32,7 @@
 
 namespace libbitcoin {
 namespace node {
-
+    
 using namespace std::chrono;
 using namespace bc::blockchain;
 using namespace bc::chain;
@@ -47,7 +48,7 @@ static constexpr float multiple = 1.01f;
 // The minimum amount of block history to move the state from idle.
 static constexpr size_t minimum_history = 3;
 
-// Simple conversion factor, since we trace in micro and report in seconds.
+// Simple conversion factor, since we trace in microseconds.
 static constexpr size_t micro_per_second = 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
@@ -83,12 +84,12 @@ void reservation::set_pending(bool value)
     pending_ = value;
 }
 
-std::chrono::microseconds reservation::rate_window() const
+microseconds reservation::rate_window() const
 {
     return rate_window_;
 }
 
-high_resolution_clock::time_point reservation::now() const
+reservation::clock_point reservation::now() const
 {
     return high_resolution_clock::now();
 }
@@ -318,7 +319,8 @@ void reservation::insert(hash_digest&& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::import(safe_chain& chain, block_const_ptr block)
+void reservation::import(safe_chain& chain, block_const_ptr block,
+    result_handler handler)
 {
     size_t height;
     const auto hash = block->header().hash();
@@ -329,41 +331,55 @@ void reservation::import(safe_chain& chain, block_const_ptr block)
         LOG_DEBUG(LOG_NODE)
             << "Ignoring unsolicited block (" << slot() << ") ["
             << encoded << "]";
+        handler(error::success);
         return;
     }
 
-    bool success;
-    const auto importer = [&]()
-    {
-        success = chain.update(block, height);
-    };
+    const auto import_handler =
+        std::bind(&reservation::handle_import,
+            shared_from_base<reservation>(),
+                std::placeholders::_1, block, height, now(), handler);
 
-    // Do the block import with timer.
-    const auto cost = timer<microseconds>::duration(importer);
+    //#########################################################################
+    chain.update(block, height, import_handler);
+    //#########################################################################
+}
 
-    if (success)
+inline bool enabled(size_t height)
+{
+    return height % 10 == 0;
+}
+
+void reservation::handle_import(const code& ec, block_const_ptr block,
+    size_t height, clock_point start, result_handler handler)
+{
+    static const auto unit_size = 1u;
+    static const auto form = "Imported #%06i (%02i) [%s] %09.9f %05.2f%% %i";
+
+    if (ec)
     {
-        static const auto unit_size = 1u;
-        update_rate(unit_size, cost);
+        LOG_DEBUG(LOG_NODE)
+            << "Failure importing block to store, is now corrupted: "
+            << ec.message();
+        handler(ec);
+        return;
+    }
+
+    const auto database = duration_cast<microseconds>(now() - start);
+    update_rate(unit_size, database);
+
+    if (enabled(height))
+    {
         const auto record = rate();
-        static const auto formatter =
-            "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";
+        const auto hash = block->header().hash();
+        const auto encoded = encode_hash(hash);
 
         LOG_INFO(LOG_NODE)
-            << boost::format(formatter) % height % slot() % encoded %
-            (record.total() * micro_per_second) % (record.ratio() * 100);
-    }
-    else
-    {
-        // This could also result from a block import failure resulting from
-        // inserting at a height that is not pent, but that should be precluded
-        // by the implementation. This is the only other failure.
-        LOG_DEBUG(LOG_NODE)
-            << "Stopped before importing block (" << slot() << ") ["
-            << encoded << "]";
+            << boost::format(form) % height % slot() % encoded %
+            record.total() % (record.ratio() * 100) %  reservations_.size();
     }
 
-    populate();
+    handler(error::success);
 }
 
 void reservation::populate()
@@ -411,7 +427,9 @@ bool reservation::partition(reservation::ptr minimal)
     hash_mutex_.lock_upgrade();
 
     // Take half of maximal reservation, rounding up to get last entry (safe).
-    const auto offset = (heights_.size() + 1u) / 2u;
+    // If the reservation is stopped take the full amount.
+    const auto count = heights_.size();
+    const auto offset = stopped_ ? count : (heights_.size() + 1u) / 2u;
     auto it = heights_.right.begin();
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
