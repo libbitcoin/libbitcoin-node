@@ -149,16 +149,16 @@ bool reservation::expired() const
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    ////LOG_DEBUG(LOG_NODE)
-    ////    << "Statistics for slot (" << slot() << ")"
-    ////    << " adj:" << (normal_rate * micro_per_second)
-    ////    << " avg:" << (statistics.arithmentic_mean * micro_per_second)
-    ////    << " dev:" << (deviation * micro_per_second)
-    ////    << " sdv:" << (statistics.standard_deviation * micro_per_second)
-    ////    << " cnt:" << (statistics.active_count)
-    ////    << " neg:" << (below_average ? "T" : "F")
-    ////    << " out:" << (outlier ? "T" : "F")
-    ////    << " exp:" << (expired ? "T" : "F");
+    LOG_DEBUG(LOG_NODE)
+        << "Statistics for slot (" << slot() << ")"
+        << " adj:" << (normal_rate * micro_per_second)
+        << " avg:" << (statistics.arithmentic_mean * micro_per_second)
+        << " dev:" << (deviation * micro_per_second)
+        << " sdv:" << (statistics.standard_deviation * micro_per_second)
+        << " cnt:" << (statistics.active_count)
+        << " neg:" << (below_average ? "T" : "F")
+        << " out:" << (outlier ? "T" : "F")
+        << " exp:" << (expired ? "T" : "F");
 
     return expired;
 }
@@ -183,17 +183,18 @@ void reservation::update_rate(size_t events, const microseconds& database)
 
     performance rate{ false, 0, 0, 0 };
     const auto end = now();
-    const auto event_start = end - microseconds(database);
-    const auto start = end - rate_window();
+    const auto event_start = end - database;
+    const auto window_start = end - rate_window();
     const auto history_count = history_.size();
 
     // Remove expired entries from the head of the queue.
-    for (auto it = history_.begin(); it != history_.end() && it->time < start;
+    for (auto it = history_.begin();
+        it != history_.end() && it->time < window_start;
         it = history_.erase(it));
 
     const auto window_full = history_count > history_.size();
     const auto event_cost = static_cast<uint64_t>(database.count());
-    history_.push_back({ events, event_cost, event_start });
+    history_.push_back(history_record{ events, event_cost, event_start });
 
     // We can't set the rate until we have a period (two or more data points).
     if (history_.size() < minimum_history)
@@ -214,8 +215,8 @@ void reservation::update_rate(size_t events, const microseconds& database)
 
     // Calculate the duration of the rate window.
     auto window = window_full ? rate_window() : (end - history_.front().time);
-    auto count = duration_cast<microseconds>(window).count();
-    rate.window = static_cast<uint64_t>(count);
+    auto duration = duration_cast<microseconds>(window).count();
+    rate.window = static_cast<uint64_t>(duration);
 
     history_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
@@ -354,7 +355,7 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
     size_t height, clock_point start, result_handler handler)
 {
     static const auto unit_size = 1u;
-    static const auto form = "Imported #%06i (%02i) [%s] %09.9f %05.2f%% %i";
+    static const auto form = "Imported #%06i (%02i) [%s] %07.3f %05.2f%% %i";
 
     if (ec)
     {
@@ -373,10 +374,12 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
         const auto record = rate();
         const auto hash = block->header().hash();
         const auto encoded = encode_hash(hash);
+        const auto events_per_second = record.total() * micro_per_second;
+        const auto database_to_total = record.ratio() * 100;
 
         LOG_INFO(LOG_NODE)
             << boost::format(form) % height % slot() % encoded %
-            record.total() % (record.ratio() * 100) %  reservations_.size();
+            events_per_second % database_to_total %  reservations_.size();
     }
 
     handler(error::success);

@@ -127,14 +127,14 @@ private:
         size_t events;
         uint64_t database;
         clock_point time;
-    } import_record;
+    } history_record;
 
-    typedef std::vector<import_record> rate_history;
+    typedef std::vector<history_record> rate_history;
 
     // A bidirection map is used for efficient hash and height retrieval.
     typedef boost::bimaps::bimap<
         boost::bimaps::unordered_set_of<hash_digest>,
-        boost::bimaps::set_of<size_t >> hash_heights;
+        boost::bimaps::set_of<size_t>> hash_heights;
 
     // Handle the completion of a block update.
     void handle_import(const code& ec, block_const_ptr block, size_t height,
