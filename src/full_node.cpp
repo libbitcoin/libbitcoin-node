@@ -171,12 +171,12 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
             << "Reindex moved header to pool ["
             << encode_hash(header->hash()) << "]";
 
-    // Pop all outgoing reservations from download queue (if hash at top).
+    // Pop all outgoing reservations from download queue (if at top).
     for (const auto header: *outgoing)
         if (!header->validation.populated)
             reservations_.pop(header->hash(), header->validation.height);
 
-    // Push all incoming reservations.
+    // Push all incoming reservations (can't require parent at top).
     for (const auto header: *incoming)
         if (!header->validation.populated)
             reservations_.push(header->hash(), header->validation.height);
