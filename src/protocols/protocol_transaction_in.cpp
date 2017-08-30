@@ -127,9 +127,14 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     // Prior to this level transaction relay is not configurable.
     if (!relay_from_peer_ && !response->inventories().empty())
     {
-        LOG_WARNING(LOG_NODE)
-            << "Unexpected transaction inventory from [" << authority() << "]";
-        stop(error::channel_stopped);
+        LOG_DEBUG(LOG_NODE)
+            << "Unexpected transaction inventory from [" << authority()
+            << "] transaction handling disabled for this peer.";
+
+        // Satoshi:0.14.0 and later are ignoring non-relay for inventory.
+        // This may relate to creating support for compact blocks.
+        // Unfortunately this requires that we allow the unwanted traffic.
+        ////stop(error::channel_stopped);
         return false;
     }
 

@@ -209,18 +209,21 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
             << "Pooled header [" << encoded << "] from [" << authority()
             << "] " << ec.message();
     }
+    if (ec == error::duplicate_block)
+    {
+        // Allow duplicate header to continue as desirable race with peers.
+        LOG_VERBOSE(LOG_NODE)
+            << "Rejected duplicate header [" << encoded << "] from ["
+            << authority() << "]";
+    }
     else if (ec)
     {
         LOG_DEBUG(LOG_NODE)
             << "Rejected header [" << encoded << "] from [" << authority()
             << "] " << ec.message();
 
-        // Allow duplicate header to continue as this is a race with peers.
-        if (ec != error::duplicate_block)
-        {
-            stop(ec);
-            return;
-        }
+        stop(ec);
+        return;
     }
     else
     {
