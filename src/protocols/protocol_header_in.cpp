@@ -290,14 +290,17 @@ void protocol_header_in::handle_timeout(const code& ec)
 void protocol_header_in::send_send_headers()
 {
     // Atomically test previous value and set new value to preclude race.
-    if (sending_headers_.exchange(true) || !send_headers_)
+    if (sending_headers_.exchange(true))
         return;
 
     LOG_DEBUG(LOG_NETWORK)
         << "Headers are current for peer [" << authority() << "].";
 
-    // Request header announcements only after becoming current.
-    SEND2(send_headers{}, handle_send, _1, send_headers::command);
+    if (send_headers_)
+    {
+        // Request header announcements only after becoming current.
+        SEND2(send_headers{}, handle_send, _1, send_headers::command);
+    }
 }
 
 void protocol_header_in::handle_stop(const code&)

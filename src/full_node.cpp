@@ -181,7 +181,8 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
         if (!header->validation.populated)
             reservations_.push(header->hash(), header->validation.height);
 
-    set_top_header({ incoming->back()->hash(), fork_height });
+    const auto height = fork_height + incoming->size();
+    set_top_header({ incoming->back()->hash(), height });
     return true;
 }
 
