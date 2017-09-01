@@ -45,6 +45,9 @@ public:
     /// Push an entry, verify the height is increasing.
     void push(hash_digest&& hash, size_t height);
 
+    /// Enqueue an entry, verify the height is decreasing.
+    void enqueue(hash_digest&& hash, size_t height);
+
     /// Remove and return a fraction of the list, up to a limit.
     checks extract(size_t divisor, size_t limit);
 

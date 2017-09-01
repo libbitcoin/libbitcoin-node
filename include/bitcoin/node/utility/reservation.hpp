@@ -87,8 +87,7 @@ public:
     void set_rate(performance&& rate);
 
     /// The block data request message for the outstanding block hashes.
-    /// Set new if the preceding request was unsuccessful or discarded.
-    message::get_data request(bool new_channel);
+    message::get_data request();
 
     /// Add the block hash to the reservation.
     void insert(config::checkpoint&& check);

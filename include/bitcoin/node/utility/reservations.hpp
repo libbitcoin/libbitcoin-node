@@ -51,11 +51,14 @@ public:
     /// Get a download reservation manager.
     reservation::ptr get_reservation(uint32_t timeout_seconds);
 
-    /// Pop reorganized header hash (if hash at top), verify the height.
+    /// Pop header hash (if hash at top), verify the height.
     void pop(const hash_digest& hash, size_t height);
 
-    /// Push organized header hash, verify the height is increasing.
+    /// Push header hash, verify the height is increasing.
     void push(hash_digest&& hash, size_t height);
+
+    /// Enqueue header hash, verify the height is decreasing.
+    void enqueue(hash_digest&& hash, size_t height);
 
     /// Import the given block to the store at the specified height.
     bool import(block_const_ptr block, size_t height);

@@ -139,6 +139,24 @@ void full_node::handle_running(const code& ec, result_handler handler)
     LOG_INFO(LOG_NODE)
         << "Node block height is (" << block.height() << ").";
 
+    bool is_empty;
+    hash_digest hash;
+
+    // Scan header index from top down until first valid block is found.
+    // Genesis will always terminate the loop, and is guaranteed above.
+    for (auto height = header.height();
+        chain_.get_pending_block_hash(hash, is_empty, height); --height)
+    {
+        if (is_empty)
+            reservations_.enqueue(std::move(hash), height);
+    }
+
+    // TODO: all blocks are returning empty and pending, even genesis.
+    // TODO: the loop is terminating on height overflow block not found.
+
+    LOG_INFO(LOG_NODE)
+        << "Pending block downloads (" << reservations_.size() << ").";
+
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,
             this, _1, _2, _3, _4));

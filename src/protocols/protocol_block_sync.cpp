@@ -64,19 +64,24 @@ void protocol_block_sync::start()
     SUBSCRIBE2(block, handle_receive_block, _1, _2);
 
     // This is the end of the start sequence.
-    send_get_blocks(true);
+    send_get_blocks();
 }
 
 // Download sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::send_get_blocks(bool reset)
+void protocol_block_sync::send_get_blocks()
 {
     if (stopped())
         return;
 
-    // We may be a new channel (reset) or may have a new packet.
-    const auto request = reservation_->request(reset);
+    // Don't start downloading blocks until the header chain is current.
+    if (chain_.is_headers_stale())
+        return;
+
+    // Repopulate if empty and new work has arrived.
+    reservation_->populate();
+    const auto request = reservation_->request();
 
     // Or we may be the same channel and with hashes already requested.
     if (request.inventories().empty())
@@ -138,7 +143,7 @@ void protocol_block_sync::handle_import_block(const code& ec,
         return;
     }
 
-    renew_reservation();
+    send_get_blocks();
     complete.set_value(error::success);
 }
 
@@ -155,21 +160,8 @@ bool protocol_block_sync::handle_reindexed(code ec, size_t,
         return false;
     }
 
-    renew_reservation();
+    send_get_blocks();
     return true;
-}
-
-void protocol_block_sync::renew_reservation()
-{
-    // Don't start downloading blocks until the header chain is current.
-    if (!chain_.is_headers_stale())
-    {
-        // Repopulate if empty and new work has arrived.
-        reservation_->populate();
-
-        // Request blocks if our reservation has been repopulated from empty.
-        send_get_blocks(false);
-    }
 }
 
 // This is fired by the base timer and stop handler.

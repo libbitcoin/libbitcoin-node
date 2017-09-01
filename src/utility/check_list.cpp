@@ -83,7 +83,7 @@ void check_list::push(hash_digest&& hash, size_t height)
     // Critical Section
     mutex_.lock_upgrade();
 
-    if (!checks_.empty() && checks_.front().height() > height)
+    if (!checks_.empty() && checks_.front().height() >= height)
     {
         mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
@@ -94,6 +94,29 @@ void check_list::push(hash_digest&& hash, size_t height)
     mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     checks_.emplace_back(std::move(hash), height);
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+void check_list::enqueue(hash_digest&& hash, size_t height)
+{
+    BITCOIN_ASSERT_MSG(height != 0, "enqueued genesis height for download");
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex_.lock_upgrade();
+
+    if (!checks_.empty() && height >= checks_.front().height())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "enqueued height out of order");
+        return;
+    }
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.emplace_front(std::move(hash), height);
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }

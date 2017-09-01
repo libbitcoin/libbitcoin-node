@@ -54,10 +54,7 @@ statistics reservations::rates(size_t slot, const performance& current) const
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock_shared();
-
-    // Create a safe copy for iteration.
     auto rows = table_;
-
     mutex_.unlock_shared();
     ///////////////////////////////////////////////////////////////////////////
 
@@ -122,9 +119,6 @@ void reservations::remove(reservation::ptr row)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Hash methods.
-//-----------------------------------------------------------------------------
-
 // Create new reservation unless there is already one stopped.
 reservation::ptr reservations::get_reservation(uint32_t timeout_seconds)
 {
@@ -136,29 +130,28 @@ reservation::ptr reservations::get_reservation(uint32_t timeout_seconds)
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_upgrade();
+    unique_lock lock(mutex_);
 
+    // Require exclusivity so shared call will not find the row starting below.
     auto it = std::find_if(table_.begin(), table_.end(), stopped);
 
     if (it != table_.end())
     {
-        mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
         (*it)->start();
         return *it;
     }
 
     const auto slot = table_.size();
     auto row = std::make_shared<reservation>(*this, slot, timeout_seconds);
-    mutex_.unlock_upgrade_and_lock();
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     table_.push_back(row);
-
     mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
 
     return row;
+    ///////////////////////////////////////////////////////////////////////////
 }
+
+// Hash methods.
+//-----------------------------------------------------------------------------
 
 void reservations::pop(const hash_digest& hash, size_t height)
 {
@@ -170,23 +163,28 @@ void reservations::push(hash_digest&& hash, size_t height)
     hashes_.push(std::move(hash), height);
 }
 
+void reservations::enqueue(hash_digest&& hash, size_t height)
+{
+    hashes_.enqueue(std::move(hash), height);
+}
+
 // Call when minimal is empty.
+// Take from unallocated or allocated hashes, true if minimal not empty.
 void reservations::populate(reservation::ptr minimal)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock();
-
-    // Take from unallocated or allocated hashes, true if minimal not empty.
-    auto populated = reserve(minimal) || partition(minimal);
-
+    const auto populated = reserve(minimal) || partition(minimal);
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
     if (populated)
+    {
         LOG_DEBUG(LOG_NODE)
             << "Populated " << minimal->size() << " blocks to slot ("
             << minimal->slot() << ").";
+    }
 }
 
 // private
@@ -240,6 +238,9 @@ reservation::ptr reservations::find_maximal()
     return *std::max_element(table_.begin(), table_.end(), comparer);
 }
 
+// Properties.
+//-----------------------------------------------------------------------------
+
 size_t reservations::size() const
 {
     return unreserved() + reserved();
@@ -250,10 +251,7 @@ size_t reservations::reserved() const
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock_shared();
-
-    // Create a safe copy for iteration.
     auto rows = table_;
-
     mutex_.unlock_shared();
     ///////////////////////////////////////////////////////////////////////////
 

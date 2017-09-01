@@ -47,8 +47,7 @@ public:
     virtual void start();
 
 private:
-    void renew_reservation();
-    void send_get_blocks(bool reset);
+    void send_get_blocks();
     void handle_event(const code& ec);
     void handle_import_block(const code& ec, block_const_ptr block,
         std::promise<code>& complete);

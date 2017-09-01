@@ -232,6 +232,7 @@ size_t reservation::size() const
 void reservation::start()
 {
     stopped_ = false;
+    pending_ = true;
 }
 
 void reservation::stop()
@@ -246,19 +247,15 @@ bool reservation::stopped() const
 }
 
 // Obtain and clear the outstanding blocks request.
-message::get_data reservation::request(bool new_channel)
+message::get_data reservation::request()
 {
     message::get_data packet;
-
-    // We are a new channel, clear history and rate data, next block starts.
-    if (new_channel)
-        reset();
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
-    if (!new_channel && !pending_)
+    if (!pending_)
     {
         hash_mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
@@ -322,7 +319,7 @@ void reservation::import(safe_chain& chain, block_const_ptr block,
 
 inline bool enabled(size_t height)
 {
-    return height % 10 == 0;
+    return height % 100 == 0;
 }
 
 void reservation::handle_import(const code& ec, block_const_ptr block,
