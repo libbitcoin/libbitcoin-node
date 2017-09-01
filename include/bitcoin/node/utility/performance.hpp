@@ -33,9 +33,6 @@ class BCN_API performance
 {
 public:
     /// The event rate, exclusive of discount time.
-    double normal() const;
-
-    /// The event rate, inclusive of discount time.
     double rate() const;
 
     /// The ratio of discount time to total time.

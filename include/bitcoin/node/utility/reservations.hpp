@@ -57,7 +57,7 @@ public:
     /// Push organized header hash, verify the height is increasing.
     void push(hash_digest&& hash, size_t height);
 
-    /// Import the given block to the blockchain at the specified height.
+    /// Import the given block to the store at the specified height.
     bool import(block_const_ptr block, size_t height);
 
     /// Populate a starved row by taking half of the hashes from a weak row.
@@ -66,8 +66,14 @@ public:
     /// Remove the row from the reservation table if found.
     void remove(reservation::ptr row);
 
-    /// The numer of reservations.
+    /// The total number of pending block hashes.
     size_t size() const;
+
+    /// The number of hashes currently reserved.
+    size_t reserved() const;
+
+    /// The number of hashes available for reservation.
+    size_t unreserved() const;
 
     /// The max size of a block request.
     size_t max_request() const;

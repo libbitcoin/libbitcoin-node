@@ -328,7 +328,9 @@ inline bool enabled(size_t height)
 void reservation::handle_import(const code& ec, block_const_ptr block,
     size_t height, clock_point start, result_handler handler)
 {
-    static const auto unit_size = 1u;
+    // Use standard telecom definition of a megabit (125,000 bytes).
+    static const auto bytes_per_megabyte = 1000.0 * 1000.0;
+    static const auto bytes_per_megabit = bytes_per_megabyte / byte_bits;
     static const auto form = "Imported #%06i (%02i) [%s] %07.3f %05.2f%% %i";
 
     if (ec)
@@ -341,8 +343,9 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
     }
 
     // Recompute rate performance.
-    const auto database = duration_cast<microseconds>(now() - start);
-    update_rate(unit_size, database);
+    auto database = duration_cast<microseconds>(now() - start);
+    auto bytes = block->serialized_size(message::version::level::canonical);
+    update_rate(bytes, database);
 
     // Log rate performance.
     if (enabled(height))
@@ -350,12 +353,12 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
         const auto record = rate();
         const auto hash = block->header().hash();
         const auto encoded = encode_hash(hash);
-        const auto events_per_second = record.rate() * micro_per_second;
+        const auto kbps = micro_per_second * record.rate() / bytes_per_megabit;
         const auto database_cost = record.ratio() * 100;
 
         LOG_INFO(LOG_NODE)
-            << boost::format(form) % height % slot() % encoded %
-            events_per_second % database_cost %  reservations_.size();
+            << boost::format(form) % height % slot() % encoded % kbps %
+            database_cost % reservations_.size();
     }
 
     handler(error::success);

@@ -55,7 +55,7 @@ statistics reservations::rates(size_t slot, const performance& current) const
     ///////////////////////////////////////////////////////////////////////////
     mutex_.lock_shared();
 
-    // Craete a safe copy for computations.
+    // Create a safe copy for iteration.
     auto rows = table_;
 
     mutex_.unlock_shared();
@@ -75,7 +75,7 @@ statistics reservations::rates(size_t slot, const performance& current) const
     std::vector<double> rates(active_rows);
     const auto normal_rate = [&](reservation::ptr row)
     {
-        return row->slot() == slot ? current.normal() : row->rate().normal();
+        return row->slot() == slot ? current.rate() : row->rate().rate();
     };
 
     // Convert to a rates table and sum.
@@ -241,6 +241,31 @@ reservation::ptr reservations::find_maximal()
 }
 
 size_t reservations::size() const
+{
+    return unreserved() + reserved();
+}
+
+size_t reservations::reserved() const
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    mutex_.lock_shared();
+
+    // Create a safe copy for iteration.
+    auto rows = table_;
+
+    mutex_.unlock_shared();
+    ///////////////////////////////////////////////////////////////////////////
+
+    const auto sum = [](size_t total, reservation::ptr row)
+    {
+        return total + row->size();
+    };
+
+    return std::accumulate(rows.begin(), rows.end(), size_t{0}, sum);
+}
+
+size_t reservations::unreserved() const
 {
     return hashes_.size();
 }

@@ -40,15 +40,10 @@ inline double to_seconds(double rate_microseconds)
     return rate_microseconds * micro_per_second;
 }
 
-double performance::normal() const
+double performance::rate() const
 {
     // This is commonly nan when the window and discount are both zero.
     return divide<double>(events, static_cast<double>(window) - discount);
-}
-
-double performance::rate() const
-{
-    return divide<double>(events, window);
 }
 
 double performance::ratio() const
@@ -58,7 +53,7 @@ double performance::ratio() const
 
 bool performance::expired(size_t slot, const statistics& summary) const
 {
-    const auto normal_rate = normal();
+    const auto normal_rate = rate();
     const auto deviation = normal_rate - summary.arithmentic_mean;
     const auto absolute_deviation = std::fabs(deviation);
     const auto allowed_deviation = multiple * summary.standard_deviation;
@@ -66,7 +61,7 @@ bool performance::expired(size_t slot, const statistics& summary) const
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    LOG_DEBUG(LOG_NODE)
+    LOG_VERBOSE(LOG_NODE)
         << "Statistics for slot (" << slot << ")"
         << " adj:" << (to_seconds(normal_rate))
         << " avg:" << (to_seconds(summary.arithmentic_mean))
