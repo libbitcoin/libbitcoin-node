@@ -80,10 +80,6 @@ public:
     /// Blockchain query interface.
     virtual blockchain::safe_chain& chain();
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: could pass through each session to each download protocol.
-    // TODO: but is necessarily shared across sessions and thefore node state.
-    ///////////////////////////////////////////////////////////////////////////
     /// Get a download reservation manager.
     virtual reservation::ptr get_reservation();
 

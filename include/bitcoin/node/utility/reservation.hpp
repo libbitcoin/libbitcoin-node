@@ -53,15 +53,6 @@ public:
     /// Ensure there are no remaining reserved hashes.
     ~reservation();
 
-    /// The sequential identifier of this reservation.
-    size_t slot() const;
-
-    /// True if there are currently no hashes.
-    bool empty() const;
-
-    /// The number of outstanding blocks.
-    size_t size() const;
-
     /// Assign the reservation to a channel.
     void start();
 
@@ -70,6 +61,12 @@ public:
 
     /// True if not associated with a channel.
     bool stopped() const;
+
+    /// The sequential identifier of this reservation.
+    size_t slot() const;
+
+    // Rate methods.
+    //-------------------------------------------------------------------------
 
     /// Clear rate data. Call when stopped or hashes emptied.
     void reset();
@@ -86,6 +83,15 @@ public:
     /// The current cached average block import rate excluding import time.
     void set_rate(performance&& rate);
 
+    // Hash methods.
+    //-------------------------------------------------------------------------
+
+    /// True if there are currently no hashes.
+    bool empty() const;
+
+    /// The number of outstanding blocks.
+    size_t size() const;
+
     /// The block data request message for the outstanding block hashes.
     message::get_data request();
 
@@ -101,9 +107,6 @@ public:
 
     /// Move half of the reservation to the specified reservation.
     bool partition(reservation::ptr minimal);
-
-    /// If not stopped and if empty try to get more hashes.
-    void populate();
 
 protected:
     typedef std::chrono::high_resolution_clock::time_point clock_point;
@@ -142,11 +145,11 @@ private:
     // Return rate history to startup state.
     void clear_history();
 
-    // Get the height of the block hash, remove and return true if it is found.
-    bool find_height_and_erase(const hash_digest& hash, size_t& out_height);
-
     // Update rate history to reflect an additional block of the given size.
     void update_rate(size_t events, const std::chrono::microseconds& database);
+
+    // Get the height of the block hash, remove and return true if it is found.
+    bool find_height_and_erase(const hash_digest& hash, size_t& out_height);
 
     // Protected by rate mutex.
     performance rate_;

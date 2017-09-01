@@ -41,7 +41,8 @@ using namespace std::placeholders;
 full_node::full_node(const configuration& configuration)
   : p2p(configuration.network),
     reservations_(configuration.network.outbound_connections +
-        configuration.network.peers.size()),
+        configuration.network.peers.size(),
+        configuration.node.block_latency_seconds),
     chain_(thread_pool(), configuration.chain, configuration.database),
     protocol_maximum_(configuration.network.protocol_maximum),
     chain_settings_(configuration.chain),
@@ -319,7 +320,7 @@ safe_chain& full_node::chain()
 reservation::ptr full_node::get_reservation()
 {
     // TODO: pass block_latency_seconds on reservations construct.
-    return reservations_.get_reservation(node_settings_.block_latency_seconds);
+    return reservations_.get();
 }
 
 // Subscriptions.

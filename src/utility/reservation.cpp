@@ -60,29 +60,26 @@ reservation::~reservation()
     ////BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
 }
 
+void reservation::start()
+{
+    stopped_ = false;
+    pending_ = true;
+}
+
+void reservation::stop()
+{
+    stopped_ = true;
+    reset();
+}
+
+bool reservation::stopped() const
+{
+    return stopped_;
+}
+
 size_t reservation::slot() const
 {
     return slot_;
-}
-
-bool reservation::pending() const
-{
-    return pending_;
-}
-
-void reservation::set_pending(bool value)
-{
-    pending_ = value;
-}
-
-microseconds reservation::rate_window() const
-{
-    return rate_window_;
-}
-
-reservation::clock_point reservation::now() const
-{
-    return high_resolution_clock::now();
 }
 
 // Rate methods.
@@ -106,14 +103,13 @@ bool reservation::idle() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::set_rate(performance&& rate)
+// Ignore idleness here, called only from an active channel, avoiding a race.
+bool reservation::expired() const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    unique_lock lock(rate_mutex_);
+    const auto current = rate();
 
-    rate_ = std::move(rate);
-    ///////////////////////////////////////////////////////////////////////////
+    // HACK: summary must be computed using the same rate for the slot.
+    return current.expired(slot(), reservations_.rates(slot(), current));
 }
 
 // Get a copy of the current rate.
@@ -127,15 +123,29 @@ performance reservation::rate() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Ignore idleness here, called only from an active channel, avoiding a race.
-bool reservation::expired() const
+void reservation::set_rate(performance&& rate)
 {
-    const auto current = rate();
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock lock(rate_mutex_);
 
-    // HACK: summary must be computed using the same rate for the slot.
-    return current.expired(slot(), reservations_.rates(slot(), current));
+    rate_ = std::move(rate);
+    ///////////////////////////////////////////////////////////////////////////
 }
 
+// protected
+microseconds reservation::rate_window() const
+{
+    return rate_window_;
+}
+
+// protected
+reservation::clock_point reservation::now() const
+{
+    return high_resolution_clock::now();
+}
+
+// private
 void reservation::clear_history()
 {
     // Critical Section
@@ -146,6 +156,7 @@ void reservation::clear_history()
     ///////////////////////////////////////////////////////////////////////////
 }
 
+// private
 // It is possible to get a rate update after idling and before starting anew.
 // This can reduce the average during startup of the new channel until start.
 void reservation::update_rate(size_t events, const microseconds& database)
@@ -209,6 +220,18 @@ void reservation::update_rate(size_t events, const microseconds& database)
 // Hash methods.
 //-----------------------------------------------------------------------------
 
+// protected
+bool reservation::pending() const
+{
+    return pending_;
+}
+
+// protected
+void reservation::set_pending(bool value)
+{
+    pending_ = value;
+}
+
 bool reservation::empty() const
 {
     // Critical Section
@@ -229,27 +252,14 @@ size_t reservation::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::start()
-{
-    stopped_ = false;
-    pending_ = true;
-}
-
-void reservation::stop()
-{
-    stopped_ = true;
-    reset();
-}
-
-bool reservation::stopped() const
-{
-    return stopped_;
-}
-
 // Obtain and clear the outstanding blocks request.
 message::get_data reservation::request()
 {
-    message::get_data packet;
+    if (stopped())
+        return{};
+
+    if (empty())
+        reservations_.populate(shared_from_this());
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -259,9 +269,10 @@ message::get_data reservation::request()
     {
         hash_mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
-        return packet;
+        return{};
     }
 
+    message::get_data packet;
     const auto& right = heights_.right;
 
     // Build get_blocks request message.
@@ -361,15 +372,6 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
     handler(error::success);
 }
 
-void reservation::populate()
-{
-    if (!stopped_ && empty())
-    {
-        reservations_.populate(shared_from_this());
-        return;
-    }
-}
-
 bool reservation::toggle_partitioned()
 {
     // Critical Section
@@ -441,6 +443,7 @@ bool reservation::partition(reservation::ptr minimal)
     return populated;
 }
 
+// private
 bool reservation::find_height_and_erase(const hash_digest& hash,
     size_t& out_height)
 {

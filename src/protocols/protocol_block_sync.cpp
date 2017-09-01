@@ -80,7 +80,6 @@ void protocol_block_sync::send_get_blocks()
         return;
 
     // Repopulate if empty and new work has arrived.
-    reservation_->populate();
     const auto request = reservation_->request();
 
     // Or we may be the same channel and with hashes already requested.
@@ -106,6 +105,7 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         return false;
     }
 
+    // TODO: make import a sequential call and fan out within the blockchain.
     std::promise<code> complete;
 
     // Add the block's transactions to the store.
@@ -147,7 +147,10 @@ void protocol_block_sync::handle_import_block(const code& ec,
     complete.set_value(error::success);
 }
 
-// A typical reorganization consists of one incoming and zero outgoing blocks.
+// Events.
+// ----------------------------------------------------------------------------
+
+// Use header indexation as a block request trigger.
 bool protocol_block_sync::handle_reindexed(code ec, size_t,
     header_const_ptr_list_const_ptr, header_const_ptr_list_const_ptr)
 {
@@ -164,7 +167,7 @@ bool protocol_block_sync::handle_reindexed(code ec, size_t,
     return true;
 }
 
-// This is fired by the base timer and stop handler.
+// This is fired by base timer and stop handler, used for speed evaluation.
 void protocol_block_sync::handle_event(const code& ec)
 {
     if (stopped(ec))

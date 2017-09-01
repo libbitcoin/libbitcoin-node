@@ -38,9 +38,11 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-reservations::reservations(size_t minimum_peer_count)
+reservations::reservations(size_t minimum_peer_count,
+    uint32_t block_latency_seconds)
   : max_request_(max_get_data),
-    minimum_peer_count_(minimum_peer_count)
+    minimum_peer_count_(minimum_peer_count),
+    block_latency_seconds_(block_latency_seconds)
 {
 }
 
@@ -120,7 +122,7 @@ void reservations::remove(reservation::ptr row)
 }
 
 // Create new reservation unless there is already one stopped.
-reservation::ptr reservations::get_reservation(uint32_t timeout_seconds)
+reservation::ptr reservations::get()
 {
     const auto stopped = [](reservation::ptr row)
     {
@@ -142,7 +144,8 @@ reservation::ptr reservations::get_reservation(uint32_t timeout_seconds)
     }
 
     const auto slot = table_.size();
-    auto row = std::make_shared<reservation>(*this, slot, timeout_seconds);
+    auto row = std::make_shared<reservation>(*this, slot,
+        block_latency_seconds_);
     table_.push_back(row);
     mutex_.unlock();
 

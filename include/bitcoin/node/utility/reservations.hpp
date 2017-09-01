@@ -43,13 +43,25 @@ public:
     typedef std::shared_ptr<reservations> ptr;
 
     /// Construct an empty table of reservations.
-    reservations(size_t minimum_peer_count);
+    reservations(size_t minimum_peer_count, uint32_t block_latency_seconds);
+
+    // Rate methods.
+    //-------------------------------------------------------------------------
 
     /// The average and standard deviation of block import rates.
     statistics rates(size_t slot, const performance& current) const;
 
+    // Table methods.
+    //-------------------------------------------------------------------------
+
+    /// Remove the row from the reservation table if found.
+    void remove(reservation::ptr row);
+
     /// Get a download reservation manager.
-    reservation::ptr get_reservation(uint32_t timeout_seconds);
+    reservation::ptr get();
+
+    // Hash methods.
+    //-------------------------------------------------------------------------
 
     /// Pop header hash (if hash at top), verify the height.
     void pop(const hash_digest& hash, size_t height);
@@ -60,14 +72,11 @@ public:
     /// Enqueue header hash, verify the height is decreasing.
     void enqueue(hash_digest&& hash, size_t height);
 
-    /// Import the given block to the store at the specified height.
-    bool import(block_const_ptr block, size_t height);
-
     /// Populate a starved row by taking half of the hashes from a weak row.
     void populate(reservation::ptr minimal);
 
-    /// Remove the row from the reservation table if found.
-    void remove(reservation::ptr row);
+    // Properties.
+    //-------------------------------------------------------------------------
 
     /// The total number of pending block hashes.
     size_t size() const;
@@ -98,6 +107,7 @@ private:
     check_list hashes_;
     std::atomic<size_t> max_request_;
     const size_t minimum_peer_count_;
+    const uint32_t block_latency_seconds_;
 
     // Protected by mutex.
     reservation::list table_;
