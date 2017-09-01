@@ -22,13 +22,16 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <vector>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/check_list.hpp>
+#include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -37,20 +40,13 @@ namespace node {
 class BCN_API reservations
 {
 public:
-    typedef struct
-    {
-        size_t active_count;
-        double arithmentic_mean;
-        double standard_deviation;
-    } rate_statistics;
-
     typedef std::shared_ptr<reservations> ptr;
 
     /// Construct an empty table of reservations.
-    reservations();
+    reservations(size_t minimum_peer_count);
 
     /// The average and standard deviation of block import rates.
-    rate_statistics rates() const;
+    statistics rates(size_t slot, const performance& current) const;
 
     /// Get a download reservation manager.
     reservation::ptr get_reservation(uint32_t timeout_seconds);
@@ -92,9 +88,11 @@ private:
     // Thread safe.
     check_list hashes_;
     std::atomic<size_t> max_request_;
+    const size_t minimum_peer_count_;
 
     // Protected by mutex.
     reservation::list table_;
+    std::list<config::checkpoint> checks_;
     mutable upgrade_mutex mutex_;
 };
 
@@ -102,4 +100,3 @@ private:
 } // namespace libbitcoin
 
 #endif
-

@@ -30,6 +30,7 @@
 #include <bitcoin/node/utility/check_list.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -37,8 +38,9 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-reservations::reservations()
-  : max_request_(max_get_data)
+reservations::reservations(size_t minimum_peer_count)
+  : max_request_(max_get_data),
+    minimum_peer_count_(minimum_peer_count)
 {
 }
 
@@ -47,7 +49,7 @@ reservations::reservations()
 
 // A statistical summary of block import rates.
 // This computation is not synchronized across rows because rates are cached.
-reservations::rate_statistics reservations::rates() const
+statistics reservations::rates(size_t slot, const performance& current) const
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -60,9 +62,9 @@ reservations::rate_statistics reservations::rates() const
     ///////////////////////////////////////////////////////////////////////////
 
     // An idle row does not have sufficient history for measurement.
-    const auto idle = [](reservation::ptr row)
+    const auto idle = [&](reservation::ptr row)
     {
-        return row->idle();
+        return row->slot() == slot ? current.idle : row->idle();
     };
 
     // Purge idle and empty rows from the temporary table.
@@ -71,9 +73,9 @@ reservations::rate_statistics reservations::rates() const
     const auto active_rows = rows.size();
 
     std::vector<double> rates(active_rows);
-    const auto normal_rate = [](reservation::ptr row)
+    const auto normal_rate = [&](reservation::ptr row)
     {
-        return row->rate().normal();
+        return row->slot() == slot ? current.normal() : row->rate().normal();
     };
 
     // Convert to a rates table and sum.
@@ -165,7 +167,7 @@ void reservations::pop(const hash_digest& hash, size_t height)
 
 void reservations::push(hash_digest&& hash, size_t height)
 {
-    hashes_.enqueue(std::move(hash), height);
+    hashes_.push(std::move(hash), height);
 }
 
 // Call when minimal is empty.
@@ -197,19 +199,13 @@ bool reservations::reserve(reservation::ptr minimal)
     if (hashes_.empty())
         return false;
 
-    size_t height;
-    hash_digest hash;
+    // Consider table for incoming connections, but no less than configured.
+    const auto peers = std::max(minimum_peer_count_, table_.size());
+    const auto checks = hashes_.extract(peers, max_request());
 
-    // Allocate hash reservation based on currently-constructed peer count.
-    const auto fraction = hashes_.size() / table_.size();
-    const auto allocate = range_constrain(fraction, size_t(1), max_request());
-
-    for (size_t block = 0; block < allocate; ++block)
-    {
-        DEBUG_ONLY(const auto result =) hashes_.dequeue(hash, height);
-        BITCOIN_ASSERT_MSG(result, "The checklist is empty.");
-        minimal->insert(std::move(hash), height);
-    }
+    // Order matters here.
+    for (auto check: checks)
+        minimal->insert(std::move(check));
 
     // This may become empty between insert and this test, which is okay.
     return !minimal->empty();

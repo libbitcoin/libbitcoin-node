@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -31,22 +32,26 @@ namespace node {
 class BCN_API performance
 {
 public:
-
-    /// The normalized rate derived from the performance values.
+    /// The event rate, exclusive of discount time.
     double normal() const;
 
-    /// The rate derived from the performance values (inclusive of store cost).
-    double total() const;
+    /// The event rate, inclusive of discount time.
+    double rate() const;
 
-    /// The ratio of database time to total time.
+    /// The ratio of discount time to total time.
     double ratio() const;
+
+    /// The standard deviation exceeds allowed multiple.
+    bool expired(size_t slot, const statistics& summary) const;
 
     bool idle;
     size_t events;
-    uint64_t database;
+    uint64_t discount;
     uint64_t window;
 };
 
+// TODO: move to bc::math.
+// TODO: convert isnan to 0.0 and isinf to std::numeric_limits<Divisor>::max().
 // Coerce division into double and error into zero.
 template<typename Quotient, typename Dividend, typename Divisor>
 static Quotient divide(Dividend dividend, Divisor divisor)
@@ -59,4 +64,3 @@ static Quotient divide(Dividend dividend, Divisor divisor)
 } // namespace libbitcoin
 
 #endif
-

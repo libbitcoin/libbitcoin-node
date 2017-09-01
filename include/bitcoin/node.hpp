@@ -37,5 +37,6 @@
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 #include <bitcoin/node/utility/reservations.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 #endif

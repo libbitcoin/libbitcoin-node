@@ -19,7 +19,6 @@
 #include <bitcoin/node/utility/reservation.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -32,18 +31,10 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
 using namespace std::chrono;
 using namespace bc::blockchain;
 using namespace bc::chain;
-
-// The allowed number of standard deviations below the norm.
-// With 1 channel this multiple is irrelevant, no channels are dropped.
-// With 2 channels a < 1.0 multiple will drop a channel on every test.
-// With 2 channels a 1.0 multiple will fluctuate based on rounding deviations.
-// With 2 channels a > 1.0 multiple will prevent all channel drops.
-// With 3+ channels the multiple determines allowed deviation from the norm.
-static constexpr float multiple = 1.01f;
 
 // The minimum amount of block history to move the state from idle.
 static constexpr size_t minimum_history = 3;
@@ -139,28 +130,10 @@ performance reservation::rate() const
 // Ignore idleness here, called only from an active channel, avoiding a race.
 bool reservation::expired() const
 {
-    const auto record = rate();
-    const auto normal_rate = record.normal();
-    const auto statistics = reservations_.rates();
-    const auto deviation = normal_rate - statistics.arithmentic_mean;
-    const auto absolute_deviation = std::fabs(deviation);
-    const auto allowed_deviation = multiple * statistics.standard_deviation;
-    const auto outlier = absolute_deviation > allowed_deviation;
-    const auto below_average = deviation < 0;
-    const auto expired = below_average && outlier;
+    const auto current = rate();
 
-    LOG_DEBUG(LOG_NODE)
-        << "Statistics for slot (" << slot() << ")"
-        << " adj:" << (normal_rate * micro_per_second)
-        << " avg:" << (statistics.arithmentic_mean * micro_per_second)
-        << " dev:" << (deviation * micro_per_second)
-        << " sdv:" << (statistics.standard_deviation * micro_per_second)
-        << " cnt:" << (statistics.active_count)
-        << " neg:" << (below_average ? "T" : "F")
-        << " out:" << (outlier ? "T" : "F")
-        << " exp:" << (expired ? "T" : "F");
-
-    return expired;
+    // HACK: summary must be computed using the same rate for the slot.
+    return current.expired(slot(), reservations_.rates(slot(), current));
 }
 
 void reservation::clear_history()
@@ -209,8 +182,9 @@ void reservation::update_rate(size_t events, const microseconds& database)
     {
         BITCOIN_ASSERT(rate.events <= max_size_t - record.events);
         rate.events += record.events;
-        BITCOIN_ASSERT(rate.database <= max_uint64 - record.database);
-        rate.database += record.database;
+
+        BITCOIN_ASSERT(rate.discount <= max_uint64 - record.database);
+        rate.discount += record.database;
     }
 
     // Calculate the duration of the rate window.
@@ -225,7 +199,7 @@ void reservation::update_rate(size_t events, const microseconds& database)
     ////    << "Records (" << slot() << ") "
     ////    << " size: " << rate.events
     ////    << " time: " << divide<double>(rate.window, micro_per_second)
-    ////    << " cost: " << divide<double>(rate.database, micro_per_second)
+    ////    << " cost: " << divide<double>(rate.discount, micro_per_second)
     ////    << " full: " << (full ? "true" : "false");
 
     // Update the rate cache.
@@ -309,14 +283,14 @@ message::get_data reservation::request(bool new_channel)
     return packet;
 }
 
-void reservation::insert(hash_digest&& hash, size_t height)
+void reservation::insert(config::checkpoint&& check)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(hash_mutex_);
 
     pending_ = true;
-    heights_.insert({ std::move(hash), height });
+    heights_.insert({ std::move(check.hash()), check.height() });
     ///////////////////////////////////////////////////////////////////////////
 }
 
@@ -359,27 +333,29 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
 
     if (ec)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_FATAL(LOG_NODE)
             << "Failure importing block to store, is now corrupted: "
             << ec.message();
         handler(ec);
         return;
     }
 
+    // Recompute rate performance.
     const auto database = duration_cast<microseconds>(now() - start);
     update_rate(unit_size, database);
 
+    // Log rate performance.
     if (enabled(height))
     {
         const auto record = rate();
         const auto hash = block->header().hash();
         const auto encoded = encode_hash(hash);
-        const auto events_per_second = record.total() * micro_per_second;
-        const auto database_to_total = record.ratio() * 100;
+        const auto events_per_second = record.rate() * micro_per_second;
+        const auto database_cost = record.ratio() * 100;
 
         LOG_INFO(LOG_NODE)
             << boost::format(form) % height % slot() % encoded %
-            events_per_second % database_to_total %  reservations_.size();
+            events_per_second % database_cost %  reservations_.size();
     }
 
     handler(error::success);

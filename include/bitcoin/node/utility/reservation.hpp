@@ -91,7 +91,7 @@ public:
     message::get_data request(bool new_channel);
 
     /// Add the block hash to the reservation.
-    void insert(hash_digest&& hash, size_t height);
+    void insert(config::checkpoint&& check);
 
     /// Add to the blockchain, with height determined by the reservation.
     void import(blockchain::safe_chain& chain, block_const_ptr block,

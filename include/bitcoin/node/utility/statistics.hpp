@@ -16,41 +16,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHECK_LIST_HPP
-#define LIBBITCOIN_NODE_CHECK_LIST_HPP
+#ifndef LIBBITCOIN_NODE_STATISTICS_HPP
+#define LIBBITCOIN_NODE_STATISTICS_HPP
 
 #include <cstddef>
-#include <list>
-#include <bitcoin/bitcoin.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// A thread safe checkpoint queue.
-class BCN_API check_list
+struct BCN_API statistics
 {
-public:
-    typedef std::list<config::checkpoint> checks;
-
-    /// The queue contains no checkpoints.
-    bool empty() const;
-
-    /// The number of checkpoints in the queue.
-    size_t size() const;
-
-    /// Pop an entry if exists at top, verify the height.
-    void pop(const hash_digest& hash, size_t height);
-
-    /// Push an entry, verify the height is increasing.
-    void push(hash_digest&& hash, size_t height);
-
-    /// Remove and return a fraction of the list, up to a limit.
-    checks extract(size_t divisor, size_t limit);
-
-private:
-    checks checks_;
-    mutable shared_mutex mutex_;
+    size_t active_count;
+    double arithmentic_mean;
+    double standard_deviation;
 };
 
 } // namespace node

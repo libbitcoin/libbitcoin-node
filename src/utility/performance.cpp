@@ -18,25 +18,66 @@
  */
 #include <bitcoin/node/utility/performance.hpp>
 
+#include <cmath>
+#include <cstddef>
+#include <limits>
 #include <bitcoin/bitcoin.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-double performance::normal() const
+// The allowed number of standard deviations below the norm.
+// With 1 channel this multiple is irrelevant, no channels are dropped.
+// With 2 channels a < 1.0 multiple will drop a channel on every test.
+// With 2 channels a 1.0 multiple will fluctuate based on rounding.
+// With 2 channels a > 1.0 multiple will prevent all channel drops.
+// With 3+ channels the multiple determines allowed deviation from norm.
+static constexpr float multiple = 1.01f;
+
+inline double to_seconds(double rate_microseconds)
 {
-    // If numerator is small we can overflow (infinity).
-    return divide<double>(events, static_cast<double>(window) - database);
+    static constexpr double micro_per_second = 1000 * 1000;
+    return rate_microseconds * micro_per_second;
 }
 
-double performance::total() const
+double performance::normal() const
+{
+    // This is commonly nan when the window and discount are both zero.
+    return divide<double>(events, static_cast<double>(window) - discount);
+}
+
+double performance::rate() const
 {
     return divide<double>(events, window);
 }
 
 double performance::ratio() const
 {
-    return divide<double>(database, window);
+    return divide<double>(discount, window);
+}
+
+bool performance::expired(size_t slot, const statistics& summary) const
+{
+    const auto normal_rate = normal();
+    const auto deviation = normal_rate - summary.arithmentic_mean;
+    const auto absolute_deviation = std::fabs(deviation);
+    const auto allowed_deviation = multiple * summary.standard_deviation;
+    const auto outlier = absolute_deviation > allowed_deviation;
+    const auto below_average = deviation < 0;
+    const auto expired = below_average && outlier;
+
+    LOG_DEBUG(LOG_NODE)
+        << "Statistics for slot (" << slot << ")"
+        << " adj:" << (to_seconds(normal_rate))
+        << " avg:" << (to_seconds(summary.arithmentic_mean))
+        << " dev:" << (to_seconds(deviation))
+        << " sdv:" << (to_seconds(summary.standard_deviation))
+        << " cnt:" << (summary.active_count)
+        << " neg:" << (below_average ? "T" : "F")
+        << " out:" << (outlier ? "T" : "F")
+        << " exp:" << (expired ? "T" : "F");
+
+    return expired;
 }
 
 } // namespace node

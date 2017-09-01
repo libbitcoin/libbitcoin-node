@@ -19,6 +19,7 @@
 #include <bitcoin/node/utility/check_list.hpp>
 
 #include <cstddef>
+#include <list>
 #include <utility>
 #include <bitcoin/bitcoin.hpp>
 
@@ -74,7 +75,7 @@ void check_list::pop(const hash_digest& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void check_list::enqueue(hash_digest&& hash, size_t height)
+void check_list::push(hash_digest&& hash, size_t height)
 {
     BITCOIN_ASSERT_MSG(height != 0, "pushed genesis height for download");
 
@@ -97,8 +98,11 @@ void check_list::enqueue(hash_digest&& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-bool check_list::dequeue(hash_digest& out_hash, size_t& out_height)
+check_list::checks check_list::extract(size_t divisor, size_t limit)
 {
+    if (divisor == 0 || limit == 0)
+        return{};
+
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
     mutex_.lock_upgrade();
@@ -107,19 +111,27 @@ bool check_list::dequeue(hash_digest& out_hash, size_t& out_height)
     {
         mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
-        return false;
+        return{};
     }
 
-    const auto front = checks_.front();
     mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    checks_.pop_front();
+
+    checks result;
+    const auto step = divisor - 1u;
+
+    for (auto it = checks_.begin();
+        it != checks_.end() && result.size() < limit;
+        std::advance(it, step))
+    {
+        result.push_front(*it);
+        it = checks_.erase(it);
+    }
+
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    out_hash = std::move(front.hash());
-    out_height = front.height();
-    return true;
+    return result;
 }
 
 } // namespace node

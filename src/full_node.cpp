@@ -40,6 +40,8 @@ using namespace std::placeholders;
 
 full_node::full_node(const configuration& configuration)
   : p2p(configuration.network),
+    reservations_(configuration.network.outbound_connections +
+        configuration.network.peers.size()),
     chain_(thread_pool(), configuration.chain, configuration.database),
     protocol_maximum_(configuration.network.protocol_maximum),
     chain_settings_(configuration.chain),

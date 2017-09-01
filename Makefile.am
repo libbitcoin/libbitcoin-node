@@ -128,7 +128,8 @@ include_bitcoin_node_utility_HEADERS = \
     include/bitcoin/node/utility/hash_queue.hpp \
     include/bitcoin/node/utility/performance.hpp \
     include/bitcoin/node/utility/reservation.hpp \
-    include/bitcoin/node/utility/reservations.hpp
+    include/bitcoin/node/utility/reservations.hpp \
+    include/bitcoin/node/utility/statistics.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

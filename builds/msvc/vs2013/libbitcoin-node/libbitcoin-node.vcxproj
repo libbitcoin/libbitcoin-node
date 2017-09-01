@@ -114,6 +114,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\performance.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservation.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\reservations.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\statistics.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>
