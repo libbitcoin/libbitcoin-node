@@ -147,8 +147,6 @@ reservation::ptr reservations::get()
     auto row = std::make_shared<reservation>(*this, slot,
         block_latency_seconds_);
     table_.push_back(row);
-    mutex_.unlock();
-
     return row;
     ///////////////////////////////////////////////////////////////////////////
 }
