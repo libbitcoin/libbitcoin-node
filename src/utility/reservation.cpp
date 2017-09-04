@@ -103,7 +103,7 @@ bool reservation::idle() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Ignore idleness here, called only from an active channel, avoiding a race.
+// Ignore idleness here, caller should test.
 bool reservation::expired() const
 {
     const auto current = rate();
@@ -258,6 +258,7 @@ message::get_data reservation::request()
     if (stopped())
         return{};
 
+    // Keep outside of lock, okay if becomes empty before lock.
     if (empty())
         reservations_.populate(shared_from_this());
 
@@ -282,9 +283,10 @@ message::get_data reservation::request()
         packet.inventories().emplace_back(id, height->second);
     }
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     pending_ = false;
+
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
@@ -302,8 +304,21 @@ void reservation::insert(config::checkpoint&& check)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::import(safe_chain& chain, block_const_ptr block,
-    result_handler handler)
+inline bool enabled(size_t height)
+{
+    return height % 100 == 0;
+}
+
+inline double to_kilobytes_per_second(double bytes_per_microsecond)
+{
+    // Use standard telecom definition of a megabit (125,000 bytes).
+    static constexpr auto bytes_per_megabyte = 1000.0 * 1000.0;
+    static constexpr auto micro_per_second = 1000.0 * 1000.0;
+    static const auto bytes_per_megabit = bytes_per_megabyte / byte_bits;
+    return micro_per_second * bytes_per_microsecond / bytes_per_megabit;
+}
+
+code reservation::import(safe_chain& chain, block_const_ptr block)
 {
     size_t height;
     const auto hash = block->header().hash();
@@ -314,43 +329,25 @@ void reservation::import(safe_chain& chain, block_const_ptr block,
         LOG_DEBUG(LOG_NODE)
             << "Ignoring unsolicited block (" << slot() << ") ["
             << encoded << "]";
-        handler(error::success);
-        return;
+        return error::success;
     }
 
-    const auto import_handler =
-        std::bind(&reservation::handle_import,
-            shared_from_base<reservation>(),
-                std::placeholders::_1, block, height, now(), handler);
+    const auto start = now();
 
     //#########################################################################
-    chain.update(block, height, import_handler);
+    const auto ec = chain.update(block, height);
     //#########################################################################
-}
-
-inline bool enabled(size_t height)
-{
-    return height % 100 == 0;
-}
-
-void reservation::handle_import(const code& ec, block_const_ptr block,
-    size_t height, clock_point start, result_handler handler)
-{
-    // Use standard telecom definition of a megabit (125,000 bytes).
-    static const auto bytes_per_megabyte = 1000.0 * 1000.0;
-    static const auto bytes_per_megabit = bytes_per_megabyte / byte_bits;
-    static const auto form = "Imported #%06i (%02i) [%s] %07.3f %05.2f%% %i";
 
     if (ec)
     {
         LOG_FATAL(LOG_NODE)
             << "Failure importing block to store, is now corrupted: "
             << ec.message();
-        handler(ec);
-        return;
+        return ec;
     }
 
     // Recompute rate performance.
+    static const auto form = "Imported #%06i (%02i) [%s] %07.3f %05.2f%% %i";
     auto database = duration_cast<microseconds>(now() - start);
     auto bytes = block->serialized_size(message::version::level::canonical);
     update_rate(bytes, database);
@@ -359,17 +356,16 @@ void reservation::handle_import(const code& ec, block_const_ptr block,
     if (enabled(height))
     {
         const auto record = rate();
-        const auto hash = block->header().hash();
-        const auto encoded = encode_hash(hash);
-        const auto kbps = micro_per_second * record.rate() / bytes_per_megabit;
         const auto database_cost = record.ratio() * 100;
+        const auto encoded = encode_hash(block->header().hash());
 
         LOG_INFO(LOG_NODE)
-            << boost::format(form) % height % slot() % encoded % kbps %
-            database_cost % reservations_.size();
+            << boost::format(form) % height % slot() % encoded %
+            to_kilobytes_per_second(record.rate()) % database_cost %
+            reservations_.size();
     }
 
-    handler(error::success);
+    return error::success;
 }
 
 bool reservation::toggle_partitioned()
@@ -381,12 +377,12 @@ bool reservation::toggle_partitioned()
     // This will cause a channel stop so the pending reservation can start.
     if (partitioned_)
     {
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         hash_mutex_.unlock_upgrade_and_lock();
+        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         pending_ = true;
         partitioned_ = false;
-        hash_mutex_.unlock();
         //---------------------------------------------------------------------
+        hash_mutex_.unlock();
         return true;
     }
 
@@ -413,8 +409,8 @@ bool reservation::partition(reservation::ptr minimal)
     const auto offset = stopped_ ? count : (heights_.size() + 1u) / 2u;
     auto it = heights_.right.begin();
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     // TODO: move the range in a single command.
     for (size_t index = 0; index < offset; ++index)
@@ -423,13 +419,14 @@ bool reservation::partition(reservation::ptr minimal)
         it = heights_.right.erase(it);
     }
 
-    //-------------------------------------------------------------------------
     hash_mutex_.unlock_and_lock_shared();
+    //-------------------------------------------------------------------------
     const auto emptied = !heights_.empty();
     const auto populated = !minimal->empty();
     partitioned_ = emptied;
     minimal->pending_ = populated;
-    hash_mutex_.unlock();
+
+    hash_mutex_.unlock_shared();
     ///////////////////////////////////////////////////////////////////////////
 
     if (emptied)

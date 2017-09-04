@@ -262,7 +262,7 @@ void protocol_header_in::handle_timeout(const code& ec)
 
     if (ec && ec != error::channel_timeout)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure in header timer for [" << authority() << "] "
             << ec.message();
         stop(ec);

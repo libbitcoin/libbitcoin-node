@@ -32,12 +32,15 @@ namespace node {
 // With 2 channels a 1.0 multiple will fluctuate based on rounding.
 // With 2 channels a > 1.0 multiple will prevent all channel drops.
 // With 3+ channels the multiple determines allowed deviation from norm.
-static constexpr float multiple = 1.01f;
+static constexpr float allowed_deviation = 1.0f;
 
-inline double to_seconds(double rate_microseconds)
+inline double to_kilobytes_per_second(double bytes_per_microsecond)
 {
-    static constexpr double micro_per_second = 1000 * 1000;
-    return rate_microseconds * micro_per_second;
+    // Use standard telecom definition of a megabit (125,000 bytes).
+    static constexpr auto bytes_per_megabyte = 1000.0 * 1000.0;
+    static constexpr auto micro_per_second = 1000.0 * 1000.0;
+    static const auto bytes_per_megabit = bytes_per_megabyte / byte_bits;
+    return micro_per_second * bytes_per_microsecond / bytes_per_megabit;
 }
 
 double performance::rate() const
@@ -56,17 +59,17 @@ bool performance::expired(size_t slot, const statistics& summary) const
     const auto normal_rate = rate();
     const auto deviation = normal_rate - summary.arithmentic_mean;
     const auto absolute_deviation = std::fabs(deviation);
-    const auto allowed_deviation = multiple * summary.standard_deviation;
-    const auto outlier = absolute_deviation > allowed_deviation;
+    const auto allowed = allowed_deviation * summary.standard_deviation;
+    const auto outlier = absolute_deviation > allowed;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
     LOG_VERBOSE(LOG_NODE)
         << "Statistics for slot (" << slot << ")"
-        << " adj:" << (to_seconds(normal_rate))
-        << " avg:" << (to_seconds(summary.arithmentic_mean))
-        << " dev:" << (to_seconds(deviation))
-        << " sdv:" << (to_seconds(summary.standard_deviation))
+        << " adj:" << (to_kilobytes_per_second(normal_rate))
+        << " avg:" << (to_kilobytes_per_second(summary.arithmentic_mean))
+        << " dev:" << (to_kilobytes_per_second(deviation))
+        << " sdv:" << (to_kilobytes_per_second(summary.standard_deviation))
         << " cnt:" << (summary.active_count)
         << " neg:" << (below_average ? "T" : "F")
         << " out:" << (outlier ? "T" : "F")

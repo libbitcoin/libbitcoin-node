@@ -66,6 +66,7 @@ statistics reservations::rates(size_t slot, const performance& current) const
         return row->slot() == slot ? current.idle : row->idle();
     };
 
+    // BUGBUG: the rows may become idle after this purge.
     // Purge idle and empty rows from the temporary table.
     rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
 

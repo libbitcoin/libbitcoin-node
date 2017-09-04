@@ -99,8 +99,7 @@ public:
     void insert(config::checkpoint&& check);
 
     /// Add to the blockchain, with height determined by the reservation.
-    void import(blockchain::safe_chain& chain, block_const_ptr block,
-        result_handler handler);
+    code import(blockchain::safe_chain& chain, block_const_ptr block);
 
     /// Determine if the reservation was partitioned and reset partition flag.
     bool toggle_partitioned();

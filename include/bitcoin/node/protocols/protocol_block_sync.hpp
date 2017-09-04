@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
 
 #include <cstddef>
-#include <future>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -46,18 +45,23 @@ public:
     /// Start the protocol.
     virtual void start();
 
+protected:
+    reservation::ptr get_reservation();
+
 private:
     void send_get_blocks();
     void handle_event(const code& ec);
-    void handle_import_block(const code& ec, block_const_ptr block,
-        std::promise<code>& complete);
     bool handle_receive_block(const code& ec, block_const_ptr message);
     bool handle_reindexed(code ec, size_t fork_height,
         header_const_ptr_list_const_ptr incoming,
         header_const_ptr_list_const_ptr outgoing);
 
-    reservation::ptr reservation_;
+    full_node& node_;
     blockchain::safe_chain& chain_;
+    const asio::time_point idle_limit_;
+
+    reservation::ptr reservation_;
+    mutable upgrade_mutex mutex_;
 };
 
 } // namespace node

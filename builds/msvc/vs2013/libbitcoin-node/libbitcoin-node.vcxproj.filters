@@ -152,9 +152,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_sync.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in.hpp">
-      <Filter>include\bitcoin\node\protocols</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
@@ -205,6 +202,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\utility\statistics.hpp">
       <Filter>include\bitcoin\node\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

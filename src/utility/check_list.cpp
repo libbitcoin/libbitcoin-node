@@ -19,6 +19,7 @@
 #include <bitcoin/node/utility/check_list.hpp>
 
 #include <cstddef>
+#include <iterator>
 #include <list>
 #include <utility>
 #include <bitcoin/bitcoin.hpp>
@@ -121,6 +122,12 @@ void check_list::enqueue(hash_digest&& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
+// protected
+void check_list::advance(checks::iterator& it, size_t step)
+{
+    for (size_t i = 0; it != checks_.end() && i < step; std::next(it), ++i);
+}
+
 check_list::checks check_list::extract(size_t divisor, size_t limit)
 {
     if (divisor == 0 || limit == 0)
@@ -130,6 +137,7 @@ check_list::checks check_list::extract(size_t divisor, size_t limit)
     // Critical Section
     mutex_.lock_upgrade();
 
+    // Guard against empty initial list (loop safety).
     if (checks_.empty())
     {
         mutex_.unlock_upgrade();
@@ -144,8 +152,7 @@ check_list::checks check_list::extract(size_t divisor, size_t limit)
     const auto step = divisor - 1u;
 
     for (auto it = checks_.begin();
-        it != checks_.end() && result.size() < limit;
-        std::advance(it, step))
+        it != checks_.end() && result.size() < limit; advance(it, step))
     {
         result.push_front(*it);
         it = checks_.erase(it);

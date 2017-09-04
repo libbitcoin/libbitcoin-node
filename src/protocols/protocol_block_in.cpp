@@ -232,7 +232,7 @@ bool protocol_block_in::handle_receive_not_found(const code& ec,
 
     if (ec)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure getting block not_found from [" << authority() << "] "
             << ec.message();
         stop(ec);
@@ -389,7 +389,7 @@ void protocol_block_in::handle_timeout(const code& ec)
 
     if (ec && ec != error::channel_timeout)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_ERROR(LOG_NODE)
             << "Failure in block timer for [" << authority() << "] "
             << ec.message();
         stop(ec);

@@ -51,6 +51,10 @@ public:
     /// Remove and return a fraction of the list, up to a limit.
     checks extract(size_t divisor, size_t limit);
 
+protected:
+    // Overflow safe iteration step.
+    void advance(checks::iterator& it, size_t step);
+
 private:
     checks checks_;
     mutable shared_mutex mutex_;
