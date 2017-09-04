@@ -34,6 +34,7 @@ public:
     settings(config::settings context);
 
     /// Properties.
+    float maximum_deviation;
     uint32_t block_latency_seconds;
     bool refresh_transactions;
 

@@ -47,7 +47,7 @@ public:
 
     /// Construct a block reservation with the specified identifier.
     reservation(reservations& reservations, size_t slot,
-        uint32_t block_latency_seconds);
+        float maximum_deviation, uint32_t block_latency_seconds);
 
     /// Ensure there are no remaining reserved hashes.
     ~reservation();
@@ -167,6 +167,7 @@ private:
     std::atomic<bool> pending_;
     reservations& reservations_;
     const size_t slot_;
+    const float maximum_deviation_;
     const asio::microseconds rate_window_;
     bc::atomic<asio::time_point> idle_limit_;
 };

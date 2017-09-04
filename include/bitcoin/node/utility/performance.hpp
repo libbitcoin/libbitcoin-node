@@ -32,6 +32,8 @@ namespace node {
 class BCN_API performance
 {
 public:
+    static double to_megabits_per_second(double bytes_per_microsecond);
+
     /// The event rate, exclusive of discount time.
     double rate() const;
 
@@ -39,7 +41,8 @@ public:
     double ratio() const;
 
     /// The standard deviation exceeds allowed multiple.
-    bool expired(size_t slot, const statistics& summary) const;
+    bool expired(size_t slot, float maximum_deviation,
+        const statistics& summary) const;
 
     bool idle;
     size_t events;
@@ -47,8 +50,6 @@ public:
     uint64_t window;
 };
 
-// TODO: move to bc::math.
-// TODO: convert isnan to 0.0 and isinf to std::numeric_limits<Divisor>::max().
 // Coerce division into double and error into zero.
 template<typename Quotient, typename Dividend, typename Divisor>
 static Quotient divide(Dividend dividend, Divisor divisor)

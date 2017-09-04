@@ -43,7 +43,8 @@ public:
     typedef std::shared_ptr<reservations> ptr;
 
     /// Construct an empty table of reservations.
-    reservations(size_t minimum_peer_count, uint32_t block_latency_seconds);
+    reservations(size_t minimum_peer_count, float maximum_deviation,
+        uint32_t block_latency_seconds);
 
     // Rate methods.
     //-------------------------------------------------------------------------
@@ -107,6 +108,7 @@ private:
     check_list hashes_;
     std::atomic<size_t> max_request_;
     const size_t minimum_peer_count_;
+    const float maximum_deviation_;
     const uint32_t block_latency_seconds_;
 
     // Protected by mutex.

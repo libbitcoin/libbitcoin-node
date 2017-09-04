@@ -36,9 +36,6 @@ using namespace std::chrono;
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-// The minimum number of rate windows to wait for the first block.
-static constexpr size_t grace_multiple = 1;
-
 // The minimum amount of block history to measure to determine window.
 static constexpr size_t minimum_history = 3;
 
@@ -46,13 +43,14 @@ static constexpr size_t minimum_history = 3;
 static constexpr size_t micro_per_second = 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
-    uint32_t block_latency_seconds)
+    float maximum_deviation, uint32_t block_latency_seconds)
   : rate_({ true, 0, 0, 0 }),
     partitioned_(false),
     stopped_(true),
     pending_(false),
     reservations_(reservations),
     slot_(slot),
+    maximum_deviation_(maximum_deviation),
     rate_window_(minimum_history * block_latency_seconds * micro_per_second)
 {
 }
@@ -67,8 +65,7 @@ void reservation::start()
 {
     stopped_ = false;
     pending_ = true;
-    idle_limit_.store(asio::steady_clock::now() + grace_multiple *
-        rate_window_);
+    idle_limit_.store(asio::steady_clock::now() + rate_window_);
 }
 
 void reservation::stop()
@@ -115,13 +112,14 @@ bool reservation::expired() const
 
     const auto current = rate();
 
-    // Expires if does not come out of idle within time limit.
-    if (current.idle && asio::steady_clock::now() > idle_limit_.load())
-        return true;
+    // Cannot expire if idle unless startup limit is exceeded.
+    if (current.idle)
+        return asio::steady_clock::now() > idle_limit_.load();
 
     // Expires if deviation exceeds norm by more than allowed.
-    // HACK: summary must be computed using the same rate for the slot.
-    return current.expired(slot(), reservations_.rates(slot(), current));
+    // The summary must be computed using same rate for slot, so pass here.
+    return current.expired(slot(), maximum_deviation_,
+        reservations_.rates(slot(), current));
 }
 
 // Get a copy of the current rate.
@@ -318,16 +316,7 @@ void reservation::insert(config::checkpoint&& check)
 
 inline bool enabled(size_t height)
 {
-    return height % 1 == 0;
-}
-
-inline double to_kilobytes_per_second(double bytes_per_microsecond)
-{
-    // Use standard telecom definition of a megabit (125,000 bytes).
-    static constexpr auto bytes_per_megabyte = 1000.0 * 1000.0;
-    static constexpr auto micro_per_second = 1000.0 * 1000.0;
-    static const auto bytes_per_megabit = bytes_per_megabyte / byte_bits;
-    return micro_per_second * bytes_per_microsecond / bytes_per_megabit;
+    return height % 100 == 0;
 }
 
 code reservation::import(safe_chain& chain, block_const_ptr block)
@@ -342,7 +331,7 @@ code reservation::import(safe_chain& chain, block_const_ptr block)
         if (!partitioned_)
         {
             LOG_DEBUG(LOG_NODE)
-                << "Ignoring unsolicited block (" << slot() << ") ["
+                << "Ignoring unsolicited block on (" << slot() << ") ["
                 << encoded << "]";
         }
 
@@ -378,8 +367,8 @@ code reservation::import(safe_chain& chain, block_const_ptr block)
 
         LOG_INFO(LOG_NODE)
             << boost::format(form) % height % slot() % encoded %
-            to_kilobytes_per_second(record.rate()) % database_cost %
-            reservations_.size();
+            performance::to_megabits_per_second(record.rate()) %
+            database_cost % reservations_.size();
     }
 
     return error::success;

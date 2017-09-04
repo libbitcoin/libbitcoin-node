@@ -26,10 +26,8 @@
 namespace libbitcoin {
 namespace node {
 
-// The allowed number of standard deviations below the norm (for 2+ channels).
-static constexpr float allowed_deviation = 2.0f;
-
-inline double to_kilobytes_per_second(double bytes_per_microsecond)
+// static
+double performance::to_megabits_per_second(double bytes_per_microsecond)
 {
     // Use standard telecom definition of a megabit (125,000 bytes).
     static constexpr auto bytes_per_megabyte = 1000.0 * 1000.0;
@@ -41,6 +39,7 @@ inline double to_kilobytes_per_second(double bytes_per_microsecond)
 double performance::rate() const
 {
     // This is commonly nan when the window and discount are both zero.
+    // This produces a zero rate, but this is ignored as it implies idle.
     return divide<double>(events, static_cast<double>(window) - discount);
 }
 
@@ -49,26 +48,27 @@ double performance::ratio() const
     return divide<double>(discount, window);
 }
 
-bool performance::expired(size_t slot, const statistics& summary) const
+bool performance::expired(size_t slot, float maximum_deviation,
+    const statistics& summary) const
 {
     const auto normal_rate = rate();
     const auto deviation = normal_rate - summary.arithmentic_mean;
     const auto absolute_deviation = std::fabs(deviation);
-    const auto allowed = allowed_deviation * summary.standard_deviation;
+    const auto allowed = maximum_deviation * summary.standard_deviation;
     const auto outlier = absolute_deviation > allowed;
     const auto below_average = deviation < 0;
     const auto expired = below_average && outlier;
 
-    LOG_VERBOSE(LOG_NODE)
-        << "Statistics for slot (" << slot << ")"
-        << " adj:" << (to_kilobytes_per_second(normal_rate))
-        << " avg:" << (to_kilobytes_per_second(summary.arithmentic_mean))
-        << " dev:" << (to_kilobytes_per_second(deviation))
-        << " sdv:" << (to_kilobytes_per_second(summary.standard_deviation))
-        << " cnt:" << (summary.active_count)
-        << " neg:" << (below_average ? "T" : "F")
-        << " out:" << (outlier ? "T" : "F")
-        << " exp:" << (expired ? "T" : "F");
+    ////LOG_VERBOSE(LOG_NODE)
+    ////    << "Statistics for slot (" << slot << ")"
+    ////    << " adj:" << (to_megabits_per_second(normal_rate))
+    ////    << " avg:" << (to_megabits_per_second(summary.arithmentic_mean))
+    ////    << " dev:" << (to_megabits_per_second(deviation))
+    ////    << " sdv:" << (to_megabits_per_second(summary.standard_deviation))
+    ////    << " cnt:" << (summary.active_count)
+    ////    << " neg:" << (below_average ? "T" : "F")
+    ////    << " out:" << (outlier ? "T" : "F")
+    ////    << " exp:" << (expired ? "T" : "F");
 
     return expired;
 }

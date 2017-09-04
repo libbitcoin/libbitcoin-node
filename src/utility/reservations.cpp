@@ -38,10 +38,11 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-reservations::reservations(size_t minimum_peer_count,
+reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
     uint32_t block_latency_seconds)
   : max_request_(max_get_data),
     minimum_peer_count_(minimum_peer_count),
+    maximum_deviation_(maximum_deviation),
     block_latency_seconds_(block_latency_seconds)
 {
 }
@@ -144,9 +145,10 @@ reservation::ptr reservations::get()
         return *it;
     }
 
-    const auto slot = table_.size();
-    auto row = std::make_shared<reservation>(*this, slot,
-        block_latency_seconds_);
+    // Use slot table position for new slot identifiers.
+    const auto row = std::make_shared<reservation>(*this, table_.size(),
+        maximum_deviation_, block_latency_seconds_);
+
     table_.push_back(row);
     row->start();
     return row;
