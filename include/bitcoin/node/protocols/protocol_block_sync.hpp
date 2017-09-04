@@ -39,14 +39,11 @@ public:
     typedef std::shared_ptr<protocol_block_sync> ptr;
 
     /// Construct a block sync protocol instance.
-    protocol_block_sync(full_node& network, network::channel::ptr channel,
+    protocol_block_sync(full_node& node, network::channel::ptr channel,
         blockchain::safe_chain& chain);
 
     /// Start the protocol.
     virtual void start();
-
-protected:
-    reservation::ptr get_reservation();
 
 private:
     void send_get_blocks();
@@ -56,9 +53,7 @@ private:
         header_const_ptr_list_const_ptr incoming,
         header_const_ptr_list_const_ptr outgoing);
 
-    full_node& node_;
     blockchain::safe_chain& chain_;
-    const asio::time_point idle_limit_;
 
     reservation::ptr reservation_;
     mutable upgrade_mutex mutex_;

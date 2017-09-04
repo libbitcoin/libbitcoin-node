@@ -36,7 +36,10 @@ using namespace std::chrono;
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-// The minimum amount of block history to move the state from idle.
+// The minimum number of rate windows to wait for the first block.
+static constexpr size_t grace_multiple = 1;
+
+// The minimum amount of block history to measure to determine window.
 static constexpr size_t minimum_history = 3;
 
 // Simple conversion factor, since we trace in microseconds.
@@ -45,9 +48,9 @@ static constexpr size_t micro_per_second = 1000 * 1000;
 reservation::reservation(reservations& reservations, size_t slot,
     uint32_t block_latency_seconds)
   : rate_({ true, 0, 0, 0 }),
-    pending_(true),
     partitioned_(false),
-    stopped_(false),
+    stopped_(true),
+    pending_(false),
     reservations_(reservations),
     slot_(slot),
     rate_window_(minimum_history * block_latency_seconds * micro_per_second)
@@ -64,6 +67,8 @@ void reservation::start()
 {
     stopped_ = false;
     pending_ = true;
+    idle_limit_.store(asio::steady_clock::now() + grace_multiple *
+        rate_window_);
 }
 
 void reservation::stop()
@@ -92,7 +97,6 @@ void reservation::reset()
     clear_history();
 }
 
-// Shortcut for rate().idle call.
 bool reservation::idle() const
 {
     // Critical Section
@@ -103,11 +107,19 @@ bool reservation::idle() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Ignore idleness here, caller should test.
 bool reservation::expired() const
 {
+    // Cannot expire if empty.
+    if (empty())
+        return false;
+
     const auto current = rate();
 
+    // Expires if does not come out of idle within time limit.
+    if (current.idle && asio::steady_clock::now() > idle_limit_.load())
+        return true;
+
+    // Expires if deviation exceeds norm by more than allowed.
     // HACK: summary must be computed using the same rate for the slot.
     return current.expired(slot(), reservations_.rates(slot(), current));
 }
@@ -306,7 +318,7 @@ void reservation::insert(config::checkpoint&& check)
 
 inline bool enabled(size_t height)
 {
-    return height % 100 == 0;
+    return height % 1 == 0;
 }
 
 inline double to_kilobytes_per_second(double bytes_per_microsecond)
@@ -326,9 +338,14 @@ code reservation::import(safe_chain& chain, block_const_ptr block)
 
     if (!find_height_and_erase(hash, height))
     {
-        LOG_DEBUG(LOG_NODE)
-            << "Ignoring unsolicited block (" << slot() << ") ["
-            << encoded << "]";
+        // Partitioning removes half, and the race produces these warnings.
+        if (!partitioned_)
+        {
+            LOG_DEBUG(LOG_NODE)
+                << "Ignoring unsolicited block (" << slot() << ") ["
+                << encoded << "]";
+        }
+
         return error::success;
     }
 

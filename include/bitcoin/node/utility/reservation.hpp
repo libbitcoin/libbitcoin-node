@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_RESERVATION_HPP
 
 #include <atomic>
-#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -159,16 +158,17 @@ private:
     mutable upgrade_mutex history_mutex_;
 
     // Protected by hash mutex.
-    bool pending_;
     bool partitioned_;
     hash_heights heights_;
     mutable upgrade_mutex hash_mutex_;
 
     // Thread safe.
     std::atomic<bool> stopped_;
+    std::atomic<bool> pending_;
     reservations& reservations_;
     const size_t slot_;
-    const std::chrono::microseconds rate_window_;
+    const asio::microseconds rate_window_;
+    bc::atomic<asio::time_point> idle_limit_;
 };
 
 } // namespace node

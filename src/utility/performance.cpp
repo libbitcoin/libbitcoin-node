@@ -26,13 +26,8 @@
 namespace libbitcoin {
 namespace node {
 
-// The allowed number of standard deviations below the norm.
-// With 1 channel this multiple is irrelevant, no channels are dropped.
-// With 2 channels a < 1.0 multiple will drop a channel on every test.
-// With 2 channels a 1.0 multiple will fluctuate based on rounding.
-// With 2 channels a > 1.0 multiple will prevent all channel drops.
-// With 3+ channels the multiple determines allowed deviation from norm.
-static constexpr float allowed_deviation = 1.0f;
+// The allowed number of standard deviations below the norm (for 2+ channels).
+static constexpr float allowed_deviation = 2.0f;
 
 inline double to_kilobytes_per_second(double bytes_per_microsecond)
 {
