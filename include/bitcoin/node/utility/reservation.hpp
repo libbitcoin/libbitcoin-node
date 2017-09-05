@@ -85,17 +85,18 @@ public:
     /// The number of outstanding blocks.
     size_t size() const;
 
-    /// The block data request message for the outstanding block hashes.
-    message::get_data request();
-
     /// Add the block hash to the reservation.
     void insert(config::checkpoint&& check);
 
-    /// Add to the blockchain, with height determined by the reservation.
-    code import(blockchain::safe_chain& chain, block_const_ptr block);
+    /// The block data request message for the outstanding block hashes.
+    message::get_data request();
 
-    /// Determine if the reservation was partitioned and reset partition flag.
-    bool toggle_partitioned();
+    // Get the height of the block hash, remove and return true if it is found.
+    bool find_height_and_erase(const hash_digest& hash, size_t& out_height);
+
+    /// Add to the blockchain, with height determined by the reservation.
+    code import(blockchain::safe_chain& chain, block_const_ptr block,
+        size_t height);
 
     /// Move half of the reservation to the specified reservation.
     bool partition(reservation::ptr minimal);
@@ -124,12 +125,6 @@ protected:
     // Update rate history to reflect an additional block of the given size.
     void update_history(size_t events, const asio::microseconds& database);
 
-    // Hash methods.
-    //-------------------------------------------------------------------------
-
-    // Get the height of the block hash, remove and return true if it is found.
-    bool find_height_and_erase(const hash_digest& hash, size_t& out_height);
-
 private:
     typedef struct
     {
@@ -145,18 +140,13 @@ private:
         boost::bimaps::unordered_set_of<hash_digest>,
         boost::bimaps::set_of<size_t>> hash_heights;
 
-    // Protected by rate mutex.
-    performance rate_;
-    mutable upgrade_mutex rate_mutex_;
+    // Protected by hash mutex.
+    hash_heights heights_;
+    mutable upgrade_mutex hash_mutex_;
 
     // Protected by history mutex.
     rate_history history_;
     mutable upgrade_mutex history_mutex_;
-
-    // Protected by hash mutex.
-    bool partitioned_;
-    hash_heights heights_;
-    mutable upgrade_mutex hash_mutex_;
 
     // Thread safe.
     std::atomic<bool> stopped_;
@@ -166,6 +156,7 @@ private:
     const float maximum_deviation_;
     const asio::microseconds rate_window_;
     bc::atomic<asio::time_point> idle_limit_;
+    bc::atomic<performance> rate_;
 };
 
 } // namespace node

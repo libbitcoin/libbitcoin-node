@@ -107,8 +107,32 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         return false;
     }
 
+    // This channel was slowest, so half of its reservation has been taken.
+    if (reservation_->stopped())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Restarting partitioned slot (" << reservation_->slot()
+            << ") : [" << reservation_->size() << "]";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    size_t height;
+
+    // The reservation may have become stopped between the stop test and this
+    // call, so the block may either be unrequested or moved to another slot.
+    // There is currently no way to know the difference, so log both options.
+    if (!reservation_->find_height_and_erase(message->hash(), height))
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Unrequested or partitioned block on slot ("
+            << reservation_->slot() << ").";
+        stop(error::channel_stopped);
+        return false;
+    }
+
     // Add the block's transactions to the store.
-    const auto code = reservation_->import(chain_, message);
+    const auto code = reservation_->import(chain_, message, height);
 
     if (code)
     {
@@ -116,16 +140,6 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
             << "Failure importing block for slot (" << reservation_->slot()
             << "), store is now corrupted: " << ec.message();
         stop(code);
-        return false;
-    }
-
-    // This channel is slow and half of its reservation has been taken.
-    if (reservation_->toggle_partitioned())
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Restarting partitioned slot (" << reservation_->slot()
-            << ") : [" << reservation_->size() << "]";
-        stop(error::channel_stopped);
         return false;
     }
 

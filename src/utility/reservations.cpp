@@ -42,8 +42,8 @@ reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
     uint32_t block_latency_seconds)
   : max_request_(max_get_data),
     minimum_peer_count_(minimum_peer_count),
-    maximum_deviation_(maximum_deviation),
-    block_latency_seconds_(block_latency_seconds)
+    block_latency_seconds_(block_latency_seconds),
+    maximum_deviation_(maximum_deviation)
 {
 }
 
@@ -181,51 +181,59 @@ void reservations::enqueue(hash_digest&& hash, size_t height)
 
 // Call when minimal is empty.
 // Take from unallocated or allocated hashes, true if minimal not empty.
-void reservations::populate(reservation::ptr minimal)
-{
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock();
-    const auto populated = reserve(minimal) || partition(minimal);
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-
-    if (populated)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Populated " << minimal->size() << " blocks to slot ("
-            << minimal->slot() << ").";
-    }
-}
-
-// protected
-// Return false if minimal is empty.
-bool reservations::reserve(reservation::ptr minimal)
+bool reservations::populate(reservation::ptr minimal)
 {
     if (!minimal->empty())
         return true;
 
-    if (hashes_.empty())
-        return false;
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock lock(mutex_);
 
-    // Consider table for incoming connections, but no less than configured.
+    return reserve(minimal) || partition(minimal);
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+// protected
+bool reservations::reserve(reservation::ptr minimal)
+{
     const auto peers = std::max(minimum_peer_count_, table_.size());
     const auto checks = hashes_.extract(peers, max_request_);
+    const auto reserved = !checks.empty();
 
     // Order matters here.
     for (auto check: checks)
         minimal->insert(std::move(check));
 
-    // This may become empty between insert and this test, which is okay.
-    return !minimal->empty();
+    if (reserved)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Reserved " << minimal->size() << " blocks to slot ("
+            << minimal->slot() << ").";
+    }
+
+    return reserved;
 }
 
 // protected
-// This can cause reduction of an active reservation.
 bool reservations::partition(reservation::ptr minimal)
 {
     const auto maximal = find_maximal();
-    return maximal && maximal != minimal && maximal->partition(minimal);
+
+    if (!maximal || maximal == minimal)
+        return false;
+
+    // This causes reduction of an active reservation, requiring a stop.
+    const auto partitioned = maximal->partition(minimal);
+
+    if (partitioned)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Partitioned " << minimal->size() << " blocks from slot ("
+            << maximal->slot() << ") to slot (" << minimal->slot() << ").";
+    }
+
+    return partitioned;
 }
 
 // protected

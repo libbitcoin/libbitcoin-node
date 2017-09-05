@@ -74,7 +74,7 @@ public:
     void enqueue(hash_digest&& hash, size_t height);
 
     /// Populate a starved row by taking half of the hashes from a weak row.
-    void populate(reservation::ptr minimal);
+    bool populate(reservation::ptr minimal);
 
     // Properties.
     //-------------------------------------------------------------------------
@@ -106,8 +106,8 @@ private:
     check_list hashes_;
     const size_t max_request_;
     const size_t minimum_peer_count_;
-    const float maximum_deviation_;
     const uint32_t block_latency_seconds_;
+    const float maximum_deviation_;
 
     // Protected by mutex.
     reservation::list table_;
