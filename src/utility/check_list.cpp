@@ -70,8 +70,8 @@ void check_list::pop(const hash_digest& hash, size_t height)
 
     mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
     checks_.pop_back();
+
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
@@ -95,6 +95,7 @@ void check_list::push(hash_digest&& hash, size_t height)
     mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     checks_.emplace_back(std::move(hash), height);
+
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
@@ -118,6 +119,7 @@ void check_list::enqueue(hash_digest&& hash, size_t height)
     mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     checks_.emplace_front(std::move(hash), height);
+
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
