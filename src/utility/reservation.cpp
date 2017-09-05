@@ -318,14 +318,8 @@ bool reservation::find_height_and_erase(const hash_digest& hash,
     return true;
 }
 
-// Log only every 100th block for feedback.
-inline bool enabled(size_t height)
-{
-    return height % 100 == 0;
-}
-
 code reservation::import(safe_chain& chain, block_const_ptr block,
-    size_t height)
+    size_t height, size_t log_period)
 {
     const auto start = now();
 
@@ -343,8 +337,8 @@ code reservation::import(safe_chain& chain, block_const_ptr block,
     // Update history data for computing peer performance standard deviation.
     update_history(size, time);
 
-    // Log rate performance.
-    if (enabled(height))
+    // Log rate performance every nth block for feedback.
+    if (height % log_period == 0)
     {
         // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
         static const auto form = "Block #%06i (%02i) [%s] %07.3f %05.2f%% %i";

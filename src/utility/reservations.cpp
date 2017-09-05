@@ -254,7 +254,10 @@ reservation::ptr reservations::find_maximal()
         return left->size() < right->size();
     };
 
-    return *std::max_element(table_.begin(), table_.end(), comparer);
+    const auto max = *std::max_element(table_.begin(), table_.end(), comparer);
+
+    // If down to one hash and the owner is not expired, do not partition.
+    return max->size() == 1 && !max->expired() ? nullptr : max;
 }
 
 // Properties.

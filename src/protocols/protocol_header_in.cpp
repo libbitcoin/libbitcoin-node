@@ -173,12 +173,6 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
         BIND4(handle_store_header, _1, index, message, header));
 }
 
-// Log only every 1000th header for feedback.
-inline bool enabled(size_t height)
-{
-    return height % 1000 == 0;
-}
-
 void protocol_header_in::handle_store_header(const code& ec, size_t index,
     headers_const_ptr message, header_const_ptr header)
 {
@@ -234,7 +228,10 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
         const auto state = header->validation.state;
         BITCOIN_ASSERT(state);
 
-        if (enabled(state->height()))
+        // Log period reduced during initial header download for performance.
+        size_t period = chain_.is_headers_stale() ? 1000 : 1;
+
+        if (state->height() % period == 0)
         {
             const auto checked = state->is_under_checkpoint() ? "*" : "";
 
