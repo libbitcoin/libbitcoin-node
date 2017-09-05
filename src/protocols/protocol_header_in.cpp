@@ -228,7 +228,7 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
         const auto state = header->validation.state;
         BITCOIN_ASSERT(state);
 
-        // Log period reduced during initial header download for performance.
+        // Only log every 1000th header, until current.
         size_t period = chain_.is_headers_stale() ? 1000 : 1;
 
         if (state->height() % period == 0)

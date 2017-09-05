@@ -319,7 +319,7 @@ bool reservation::find_height_and_erase(const hash_digest& hash,
 }
 
 code reservation::import(safe_chain& chain, block_const_ptr block,
-    size_t height, size_t log_period)
+    size_t height)
 {
     const auto start = now();
 
@@ -336,9 +336,10 @@ code reservation::import(safe_chain& chain, block_const_ptr block,
 
     // Update history data for computing peer performance standard deviation.
     update_history(size, time);
+    const auto remaining = reservations_.size();
 
-    // Log rate performance every nth block for feedback.
-    if (height % log_period == 0)
+    // Only log performance every ~10th block, until ~one day left.
+    if (remaining < 144 || height % 10 == 0)
     {
         // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
         static const auto form = "Block #%06i (%02i) [%s] %07.3f %05.2f%% %i";
@@ -349,7 +350,7 @@ code reservation::import(safe_chain& chain, block_const_ptr block,
         LOG_INFO(LOG_NODE)
             << boost::format(form) % height % slot() % encoded %
             performance::to_megabits_per_second(record.rate()) %
-            database_percentage % reservations_.size();
+            database_percentage % remaining;
     }
 
     return error::success;

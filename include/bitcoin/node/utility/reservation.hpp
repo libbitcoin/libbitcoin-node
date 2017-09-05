@@ -96,7 +96,7 @@ public:
 
     /// Add to the blockchain, with height determined by the reservation.
     code import(blockchain::safe_chain& chain, block_const_ptr block,
-        size_t height, size_t log_period);
+        size_t height);
 
     /// Move half of the reservation to the specified reservation.
     bool partition(reservation::ptr minimal);

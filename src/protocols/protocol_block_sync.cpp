@@ -131,11 +131,8 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         return false;
     }
 
-    // Log period reduced during initial block download for performance.
-    size_t period = chain_.is_blocks_stale() ? 10 : 1;
-
     // Add the block's transactions to the store.
-    const auto code = reservation_->import(chain_, message, height, period);
+    const auto code = reservation_->import(chain_, message, height);
 
     if (code)
     {
