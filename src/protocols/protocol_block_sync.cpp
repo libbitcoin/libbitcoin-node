@@ -112,9 +112,9 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
 
     if (code)
     {
-        LOG_ERROR(LOG_NODE)
-            << "Failure in block import for slot (" << reservation_->slot()
-            << ") " << ec.message();
+        LOG_FATAL(LOG_NODE)
+            << "Failure importing block for slot (" << reservation_->slot()
+            << "), store is now corrupted: " << ec.message();
         stop(code);
         return false;
     }
@@ -179,7 +179,7 @@ void protocol_block_sync::handle_event(const code& ec)
 
     if (ec == error::channel_timeout && reservation_->expired())
     {
-        LOG_VERBOSE(LOG_NODE)
+        LOG_DEBUG(LOG_NODE)
             << "Restarting slow slot (" << reservation_->slot() << ") : ["
             << reservation_->size() << "]";
         stop(ec);

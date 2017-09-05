@@ -88,13 +88,10 @@ public:
     /// The number of hashes available for reservation.
     size_t unreserved() const;
 
-    /// The max size of a block request.
-    size_t max_request() const;
+protected:
+    // Obtain a copy of the reservations table.
+    reservation::list table() const;
 
-    /// Set the max size of a block request (defaults to 50000).
-    void set_max_request(size_t value);
-
-private:
     // Move the maximum unreserved hashes to the specified reservation.
     bool reserve(reservation::ptr minimal);
 
@@ -104,16 +101,16 @@ private:
     // Find the reservation with the most hashes.
     reservation::ptr find_maximal();
 
+private:
     // Thread safe.
     check_list hashes_;
-    std::atomic<size_t> max_request_;
+    const size_t max_request_;
     const size_t minimum_peer_count_;
     const float maximum_deviation_;
     const uint32_t block_latency_seconds_;
 
     // Protected by mutex.
     reservation::list table_;
-    std::list<config::checkpoint> checks_;
     mutable upgrade_mutex mutex_;
 };
 

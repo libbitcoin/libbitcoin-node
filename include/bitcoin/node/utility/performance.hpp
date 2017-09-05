@@ -32,6 +32,7 @@ namespace node {
 class BCN_API performance
 {
 public:
+    // Use microseconds and bytes internally for precision.
     static double to_megabits_per_second(double bytes_per_microsecond);
 
     /// The event rate, exclusive of discount time.
@@ -44,9 +45,16 @@ public:
     bool expired(size_t slot, float maximum_deviation,
         const statistics& summary) const;
 
+    // An idling slot has less than minimum history for calculation.
     bool idle;
+
+    // The number of events measured (e.g. bytes or blocks).
     size_t events;
+
+    // Database cost in microseconds, so we do not count against peer.
     uint64_t discount;
+
+    // Measurement moving window duration in microseconds.
     uint64_t window;
 };
 

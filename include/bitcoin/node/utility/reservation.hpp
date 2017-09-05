@@ -49,9 +49,6 @@ public:
     reservation(reservations& reservations, size_t slot,
         float maximum_deviation, uint32_t block_latency_seconds);
 
-    /// Ensure there are no remaining reserved hashes.
-    ~reservation();
-
     /// Assign the reservation to a channel.
     void start();
 
@@ -64,14 +61,11 @@ public:
     /// The sequential identifier of this reservation.
     size_t slot() const;
 
-    // Rate methods.
-    //-------------------------------------------------------------------------
-
-    /// Clear rate data. Call when stopped or hashes emptied.
+    /// Clear all history. Call when stopped or hashes emptied.
     void reset();
 
-    /// True if the reservation is not applied to a channel.
-    bool idle() const;
+    // Rate methods.
+    //-------------------------------------------------------------------------
 
     /// True if block import rate was more than one standard deviation low.
     bool expired() const;
@@ -116,10 +110,25 @@ protected:
     void set_pending(bool value);
 
     // Accessor for validating construction.
-    std::chrono::microseconds rate_window() const;
+    asio::microseconds rate_window() const;
 
     // Isolation of side effect to enable unit testing.
     virtual clock_point now() const;
+
+    // History methods.
+    //-------------------------------------------------------------------------
+
+    // Return rate history to startup state.
+    void clear_history();
+
+    // Update rate history to reflect an additional block of the given size.
+    void update_history(size_t events, const asio::microseconds& database);
+
+    // Hash methods.
+    //-------------------------------------------------------------------------
+
+    // Get the height of the block hash, remove and return true if it is found.
+    bool find_height_and_erase(const hash_digest& hash, size_t& out_height);
 
 private:
     typedef struct
@@ -135,19 +144,6 @@ private:
     typedef boost::bimaps::bimap<
         boost::bimaps::unordered_set_of<hash_digest>,
         boost::bimaps::set_of<size_t>> hash_heights;
-
-    // Handle the completion of a block update.
-    void handle_import(const code& ec, block_const_ptr block, size_t height,
-        clock_point start, result_handler handler);
-
-    // Return rate history to startup state.
-    void clear_history();
-
-    // Update rate history to reflect an additional block of the given size.
-    void update_rate(size_t events, const std::chrono::microseconds& database);
-
-    // Get the height of the block hash, remove and return true if it is found.
-    bool find_height_and_erase(const hash_digest& hash, size_t& out_height);
 
     // Protected by rate mutex.
     performance rate_;

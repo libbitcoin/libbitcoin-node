@@ -32,7 +32,6 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace std::chrono;
 using namespace bc::blockchain;
 using namespace bc::chain;
 
@@ -53,12 +52,6 @@ reservation::reservation(reservations& reservations, size_t slot,
     maximum_deviation_(maximum_deviation),
     rate_window_(minimum_history * block_latency_seconds * micro_per_second)
 {
-}
-
-reservation::~reservation()
-{
-    // This complicates unit testing and isn't strictly necessary.
-    ////BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
 }
 
 void reservation::start()
@@ -84,25 +77,39 @@ size_t reservation::slot() const
     return slot_;
 }
 
-// Rate methods.
-//-----------------------------------------------------------------------------
-
-// Sets idle state true and clears rate/history, but leaves hashes unchanged.
 void reservation::reset()
 {
+    // No change to reserved hashes.
     set_rate({ true, 0, 0, 0 });
     clear_history();
 }
 
-bool reservation::idle() const
+// protected
+bool reservation::pending() const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(rate_mutex_);
-
-    return rate_.idle;
-    ///////////////////////////////////////////////////////////////////////////
+    return pending_;
 }
+
+// protected
+void reservation::set_pending(bool value)
+{
+    pending_ = value;
+}
+
+// protected
+asio::microseconds reservation::rate_window() const
+{
+    return rate_window_;
+}
+
+// protected
+reservation::clock_point reservation::now() const
+{
+    return std::chrono::high_resolution_clock::now();
+}
+
+// Rate methods.
+//-----------------------------------------------------------------------------
 
 bool reservation::expired() const
 {
@@ -116,13 +123,13 @@ bool reservation::expired() const
     if (current.idle)
         return asio::steady_clock::now() > idle_limit_.load();
 
+    // Summary must be computed using same rate for slot, so pass here.
+    const auto summary = reservations_.rates(slot(), current);
+
     // Expires if deviation exceeds norm by more than allowed.
-    // The summary must be computed using same rate for slot, so pass here.
-    return current.expired(slot(), maximum_deviation_,
-        reservations_.rates(slot(), current));
+    return current.expired(slot(), maximum_deviation_, summary);
 }
 
-// Get a copy of the current rate.
 performance reservation::rate() const
 {
     // Critical Section
@@ -143,19 +150,10 @@ void reservation::set_rate(performance&& rate)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// protected
-microseconds reservation::rate_window() const
-{
-    return rate_window_;
-}
+// History methods.
+//-----------------------------------------------------------------------------
 
 // protected
-reservation::clock_point reservation::now() const
-{
-    return high_resolution_clock::now();
-}
-
-// private
 void reservation::clear_history()
 {
     // Critical Section
@@ -166,10 +164,11 @@ void reservation::clear_history()
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// private
+// protected
 // It is possible to get a rate update after idling and before starting anew.
 // This can reduce the average during startup of the new channel until start.
-void reservation::update_rate(size_t events, const microseconds& database)
+void reservation::update_history(size_t events,
+    const asio::microseconds& database)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
@@ -188,9 +187,11 @@ void reservation::update_rate(size_t events, const microseconds& database)
 
     const auto window_full = history_count > history_.size();
     const auto event_cost = static_cast<uint64_t>(database.count());
+
+    // Update the event history.
     history_.push_back(history_record{ events, event_cost, event_start });
 
-    // We can't set the rate until we have a period (two or more data points).
+    // Do not establish a rate until there are at least three data points.
     if (history_.size() < minimum_history)
     {
         history_mutex_.unlock();
@@ -210,18 +211,11 @@ void reservation::update_rate(size_t events, const microseconds& database)
 
     // Calculate the duration of the rate window.
     auto window = window_full ? rate_window() : (end - history_.front().time);
-    auto duration = duration_cast<microseconds>(window).count();
-    rate.window = static_cast<uint64_t>(duration);
+    auto duration = std::chrono::duration_cast<asio::microseconds>(window);
+    rate.window = static_cast<uint64_t>(duration.count());
 
     history_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
-
-    ////LOG_DEBUG(LOG_NODE)
-    ////    << "Records (" << slot() << ") "
-    ////    << " size: " << rate.events
-    ////    << " time: " << divide<double>(rate.window, micro_per_second)
-    ////    << " cost: " << divide<double>(rate.discount, micro_per_second)
-    ////    << " full: " << (full ? "true" : "false");
 
     // Update the rate cache.
     set_rate(std::move(rate));
@@ -229,18 +223,6 @@ void reservation::update_rate(size_t events, const microseconds& database)
 
 // Hash methods.
 //-----------------------------------------------------------------------------
-
-// protected
-bool reservation::pending() const
-{
-    return pending_;
-}
-
-// protected
-void reservation::set_pending(bool value)
-{
-    pending_ = value;
-}
 
 bool reservation::empty() const
 {
@@ -314,6 +296,7 @@ void reservation::insert(config::checkpoint&& check)
     ///////////////////////////////////////////////////////////////////////////
 }
 
+// Log only every 100th block for feedback.
 inline bool enabled(size_t height)
 {
     return height % 100 == 0;
@@ -345,30 +328,28 @@ code reservation::import(safe_chain& chain, block_const_ptr block)
     //#########################################################################
 
     if (ec)
-    {
-        LOG_FATAL(LOG_NODE)
-            << "Failure importing block to store, is now corrupted: "
-            << ec.message();
         return ec;
-    }
 
     // Recompute rate performance.
-    static const auto form = "Imported #%06i (%02i) [%s] %07.3f %05.2f%% %i";
-    auto database = duration_cast<microseconds>(now() - start);
-    auto bytes = block->serialized_size(message::version::level::canonical);
-    update_rate(bytes, database);
+    auto size = block->serialized_size(message::version::level::canonical);
+    auto time = std::chrono::duration_cast<asio::microseconds>(now() - start);
+
+    // Update history data for computing peer performance standard deviation.
+    update_history(size, time);
 
     // Log rate performance.
     if (enabled(height))
     {
+        // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
+        static const auto form = "Block #%06i (%02i) [%s] %07.3f %05.2f%% %i";
         const auto record = rate();
-        const auto database_cost = record.ratio() * 100;
+        const auto database_percentage = record.ratio() * 100;
         const auto encoded = encode_hash(block->header().hash());
 
         LOG_INFO(LOG_NODE)
             << boost::format(form) % height % slot() % encoded %
             performance::to_megabits_per_second(record.rate()) %
-            database_cost % reservations_.size();
+            database_percentage % reservations_.size();
     }
 
     return error::success;
@@ -439,9 +420,11 @@ bool reservation::partition(reservation::ptr minimal)
         reset();
 
     if (populated)
+    {
         LOG_DEBUG(LOG_NODE)
             << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
             << ") to (" << minimal->slot() << ") leaving [" << size() << "].";
+    }
 
     return populated;
 }
@@ -465,9 +448,10 @@ bool reservation::find_height_and_erase(const hash_digest& hash,
 
     out_height = it->second;
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     heights_.left.erase(it);
+
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 

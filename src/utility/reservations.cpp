@@ -54,25 +54,19 @@ reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
 // This computation is not synchronized across rows because rates are cached.
 statistics reservations::rates(size_t slot, const performance& current) const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_shared();
-    auto rows = table_;
-    mutex_.unlock_shared();
-    ///////////////////////////////////////////////////////////////////////////
+    // Get a copy of the list of reservation pointers.
+    auto rows = table();
 
     // An idle row does not have sufficient history for measurement.
     const auto idle = [&](reservation::ptr row)
     {
-        return row->slot() == slot ? current.idle : row->idle();
+        return row->slot() == slot ? current.idle : row->rate().idle;
     };
 
-    // BUGBUG: the rows may become idle after this purge.
     // Purge idle and empty rows from the temporary table.
     rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
 
     const auto active_rows = rows.size();
-
     std::vector<double> rates(active_rows);
     const auto normal_rate = [&](reservation::ptr row)
     {
@@ -80,6 +74,7 @@ statistics reservations::rates(size_t slot, const performance& current) const
     };
 
     // Convert to a rates table and sum.
+    // BUGBUG: the rows may become idle after the above purge, skewing results.
     std::transform(rows.begin(), rows.end(), rates.begin(), normal_rate);
     const auto total = std::accumulate(rates.begin(), rates.end(), 0.0);
 
@@ -101,6 +96,17 @@ statistics reservations::rates(size_t slot, const performance& current) const
 // Table methods.
 //-----------------------------------------------------------------------------
 
+// protected
+reservation::list reservations::table() const
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    shared_lock lock(mutex_);
+
+    return table_;
+    ///////////////////////////////////////////////////////////////////////////
+}
+
 void reservations::remove(reservation::ptr row)
 {
     // Critical Section
@@ -116,19 +122,18 @@ void reservations::remove(reservation::ptr row)
         return;
     }
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     table_.erase(it);
+
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Create new reservation unless there is already one stopped.
 reservation::ptr reservations::get()
 {
     const auto stopped = [](reservation::ptr row)
     {
-        // The stopped reservation must already be idle.
         return row->stopped();
     };
 
@@ -136,7 +141,6 @@ reservation::ptr reservations::get()
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(mutex_);
 
-    // Require exclusivity so shared call will not find the row starting below.
     auto it = std::find_if(table_.begin(), table_.end(), stopped);
 
     if (it != table_.end())
@@ -145,12 +149,14 @@ reservation::ptr reservations::get()
         return *it;
     }
 
-    // Use slot table position for new slot identifiers.
+    // Use slot table position as new slot identifier.
+    // Creates new reservation unless there was already one stopped above.
     const auto row = std::make_shared<reservation>(*this, table_.size(),
         maximum_deviation_, block_latency_seconds_);
 
     table_.push_back(row);
     row->start();
+
     return row;
     ///////////////////////////////////////////////////////////////////////////
 }
@@ -192,7 +198,7 @@ void reservations::populate(reservation::ptr minimal)
     }
 }
 
-// private
+// protected
 // Return false if minimal is empty.
 bool reservations::reserve(reservation::ptr minimal)
 {
@@ -204,7 +210,7 @@ bool reservations::reserve(reservation::ptr minimal)
 
     // Consider table for incoming connections, but no less than configured.
     const auto peers = std::max(minimum_peer_count_, table_.size());
-    const auto checks = hashes_.extract(peers, max_request());
+    const auto checks = hashes_.extract(peers, max_request_);
 
     // Order matters here.
     for (auto check: checks)
@@ -214,7 +220,7 @@ bool reservations::reserve(reservation::ptr minimal)
     return !minimal->empty();
 }
 
-// private
+// protected
 // This can cause reduction of an active reservation.
 bool reservations::partition(reservation::ptr minimal)
 {
@@ -222,7 +228,7 @@ bool reservations::partition(reservation::ptr minimal)
     return maximal && maximal != minimal && maximal->partition(minimal);
 }
 
-// private
+// protected
 // The maximal row has the most block hashes reserved (prefer stopped).
 reservation::ptr reservations::find_maximal()
 {
@@ -271,16 +277,6 @@ size_t reservations::reserved() const
 size_t reservations::unreserved() const
 {
     return hashes_.size();
-}
-
-size_t reservations::max_request() const
-{
-    return max_request_;
-}
-
-void reservations::set_max_request(size_t value)
-{
-    max_request_.store(value);
 }
 
 } // namespace node

@@ -168,9 +168,12 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
 
     const auto& element = message->elements()[index];
     const auto header = std::make_shared<const message::header>(element);
-    chain_.organize(header, BIND4(handle_store_header, _1, index, message, header));
+
+    chain_.organize(header,
+        BIND4(handle_store_header, _1, index, message, header));
 }
 
+// Log only every 1000th header for feedback.
 inline bool enabled(size_t height)
 {
     return height % 1000 == 0;
@@ -196,15 +199,15 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
             return;
         }
 
+        // Try to fill the gap between the current header tree and this header.
         LOG_DEBUG(LOG_NODE)
             << "Orphan header [" << encoded << "] from [" << authority() << "]";
-
-        // Try to fill the gap between the current header tree and this header.
         send_top_get_headers(hash);
         return;
     }
     else if (ec == error::insufficient_work)
     {
+        // Store in header pool to allow longer chain to build.
         LOG_DEBUG(LOG_NODE)
             << "Pooled header [" << encoded << "] from [" << authority()
             << "] " << ec.message();
@@ -218,10 +221,10 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
     }
     else if (ec)
     {
+        // Invalid header from peer, disconnect.
         LOG_DEBUG(LOG_NODE)
             << "Rejected header [" << encoded << "] from [" << authority()
             << "] " << ec.message();
-
         stop(ec);
         return;
     }
@@ -236,8 +239,8 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
             const auto checked = state->is_under_checkpoint() ? "*" : "";
 
             LOG_INFO(LOG_NODE)
-                << "Connected header [" << encoded << "] at height ["
-                << state->height() << "] from [" << authority() << "] ("
+                << "Header #" << state->height() << " ["
+                << encoded << "] from [" << authority() << "] ("
                 << state->enabled_forks() << checked << ", "
                 << state->minimum_block_version() << ").";
         }
