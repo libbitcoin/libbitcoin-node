@@ -125,7 +125,8 @@ void check_list::enqueue(hash_digest&& hash, size_t height)
 // protected
 void check_list::advance(checks::iterator& it, size_t step)
 {
-    for (size_t i = 0; it != checks_.end() && i < step; std::next(it), ++i);
+    for (size_t i = 0; it != checks_.end() && i < step;
+        it = std::next(it), ++i);
 }
 
 check_list::checks check_list::extract(size_t divisor, size_t limit)
