@@ -27,7 +27,7 @@
 namespace libbitcoin {
 namespace node {
 
-/// A thread safe checkpoint queue.
+/// A thread safe checkpoint deque.
 class BCN_API check_list
 {
 public:
@@ -39,14 +39,17 @@ public:
     /// The number of checkpoints in the queue.
     size_t size() const;
 
-    /// Pop an entry if exists at top, verify the height.
-    void pop(const hash_digest& hash, size_t height);
+    /// Push an entry at back, verify the height is increasing.
+    void push_back(hash_digest&& hash, size_t height);
 
-    /// Push an entry, verify the height is increasing.
-    void push(hash_digest&& hash, size_t height);
+    /// Pop an entry if exists at back, verify the height.
+    void pop_back(const hash_digest& hash, size_t height);
 
-    /// Enqueue an entry, verify the height is decreasing.
-    void enqueue(hash_digest&& hash, size_t height);
+    /// Push an entry at front, verify the height is decreasing.
+    void push_front(hash_digest&& hash, size_t height);
+
+    /// Pop an entry from front, null/zero if empty.
+    config::checkpoint pop_front();
 
     /// Remove and return a fraction of the list, up to a limit.
     checks extract(size_t divisor, size_t limit);

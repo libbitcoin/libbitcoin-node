@@ -43,7 +43,8 @@ reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
   : max_request_(max_get_data),
     minimum_peer_count_(minimum_peer_count),
     block_latency_seconds_(block_latency_seconds),
-    maximum_deviation_(maximum_deviation)
+    maximum_deviation_(maximum_deviation),
+    initialized_(false)
 {
 }
 
@@ -141,6 +142,12 @@ reservation::ptr reservations::get()
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(mutex_);
 
+    // Guarantee the minimal row set (first run only).
+    for (size_t index = table_.size(); index < minimum_peer_count_; ++index)
+        table_.push_back(std::make_shared<reservation>(*this, index,
+            maximum_deviation_, block_latency_seconds_));
+
+    // Find the first row that is not stopped.
     auto it = std::find_if(table_.begin(), table_.end(), stopped);
 
     if (it != table_.end())
@@ -149,11 +156,9 @@ reservation::ptr reservations::get()
         return *it;
     }
 
-    // Use slot table position as new slot identifier.
-    // Creates new reservation unless there was already one stopped above.
+    // This allows for the addition of incoming connections.
     const auto row = std::make_shared<reservation>(*this, table_.size(),
         maximum_deviation_, block_latency_seconds_);
-
     table_.push_back(row);
     row->start();
 
@@ -164,28 +169,25 @@ reservation::ptr reservations::get()
 // Hash methods.
 //-----------------------------------------------------------------------------
 
-void reservations::pop(const hash_digest& hash, size_t height)
+void reservations::pop_back(const hash_digest& hash, size_t height)
 {
-    hashes_.pop(hash, height);
+    hashes_.pop_back(hash, height);
 }
 
-void reservations::push(hash_digest&& hash, size_t height)
+void reservations::push_back(hash_digest&& hash, size_t height)
 {
-    hashes_.push(std::move(hash), height);
+    hashes_.push_back(std::move(hash), height);
 }
 
-void reservations::enqueue(hash_digest&& hash, size_t height)
+void reservations::push_front(hash_digest&& hash, size_t height)
 {
-    hashes_.enqueue(std::move(hash), height);
+    hashes_.push_front(std::move(hash), height);
 }
 
 // Call when minimal is empty.
 // Take from unallocated or allocated hashes, true if minimal not empty.
 bool reservations::populate(reservation::ptr minimal)
 {
-    if (!minimal->empty())
-        return true;
-
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(mutex_);
@@ -197,8 +199,23 @@ bool reservations::populate(reservation::ptr minimal)
 // protected
 bool reservations::reserve(reservation::ptr minimal)
 {
-    const auto peers = std::max(minimum_peer_count_, table_.size());
-    const auto checks = hashes_.extract(peers, max_request_);
+    // Intitialize the row set as late as possible.
+    if (!initialized_)
+    {
+        initialized_ = true;
+        const auto count = max_request_ * minimum_peer_count_;
+        const auto checks = std::min(count, hashes_.size());
+
+        // Balance set size and block heights across the minimal row set.
+        for (size_t check = 0; check < checks; ++check)
+            table_[check % minimum_peer_count_]->insert(hashes_.pop_front());
+    }
+
+    if (!minimal->empty())
+        return true;
+
+    // Obtain own fraction of whatever hashes remain unreserved.
+    const auto checks = hashes_.extract(table_.size(), max_request_);
     const auto reserved = !checks.empty();
 
     // Order matters here.
@@ -218,6 +235,9 @@ bool reservations::reserve(reservation::ptr minimal)
 // protected
 bool reservations::partition(reservation::ptr minimal)
 {
+    if (!minimal->empty())
+        return true;
+
     const auto maximal = find_maximal();
 
     if (!maximal || maximal == minimal)

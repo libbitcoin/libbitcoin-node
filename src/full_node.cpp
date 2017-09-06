@@ -149,7 +149,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         chain_.get_pending_block_hash(hash, is_empty, height); --height)
     {
         if (is_empty)
-            reservations_.enqueue(std::move(hash), height);
+            reservations_.push_front(std::move(hash), height);
     }
 
     LOG_INFO(LOG_NODE)
@@ -192,12 +192,12 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
     // Pop all outgoing reservations from download queue (if at top).
     for (const auto header: *outgoing)
         if (!header->validation.populated)
-            reservations_.pop(header->hash(), header->validation.height);
+            reservations_.pop_back(header->hash(), header->validation.height);
 
     // Push all incoming reservations (can't require parent at top).
     for (const auto header: *incoming)
         if (!header->validation.populated)
-            reservations_.push(header->hash(), header->validation.height);
+            reservations_.push_back(header->hash(), header->validation.height);
 
     const auto height = fork_height + incoming->size();
     set_top_header({ incoming->back()->hash(), height });

@@ -75,6 +75,7 @@ void protocol_block_sync::send_get_blocks()
         return;
 
     // Don't start downloading blocks until the header chain is current.
+    // This protects against disk fill and allows hashes to be distributed.
     if (chain_.is_headers_stale())
         return;
 

@@ -47,36 +47,7 @@ size_t check_list::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void check_list::pop(const hash_digest& hash, size_t height)
-{
-    ///////////////////////////////////////////////////////////////////////////
-    // Critical Section
-    mutex_.lock_upgrade();
-
-    if (checks_.empty() || checks_.front().hash() != hash)
-    {
-        mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
-        return;
-    }
-
-    if (checks_.front().height() != height)
-    {
-        mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
-        BITCOIN_ASSERT_MSG(false, "popped invalid height for hash");
-        return;
-    }
-
-    mutex_.unlock_upgrade_and_lock();
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    checks_.pop_back();
-
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-void check_list::push(hash_digest&& hash, size_t height)
+void check_list::push_back(hash_digest&& hash, size_t height)
 {
     BITCOIN_ASSERT_MSG(height != 0, "pushed genesis height for download");
 
@@ -84,7 +55,7 @@ void check_list::push(hash_digest&& hash, size_t height)
     // Critical Section
     mutex_.lock_upgrade();
 
-    if (!checks_.empty() && checks_.front().height() >= height)
+    if (!checks_.empty() && checks_.back().height() >= height)
     {
         mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
@@ -100,7 +71,37 @@ void check_list::push(hash_digest&& hash, size_t height)
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void check_list::enqueue(hash_digest&& hash, size_t height)
+void check_list::pop_back(const hash_digest& hash, size_t height)
+{
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex_.lock_upgrade();
+
+    if (checks_.empty() || checks_.back().hash() != hash)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        ////BITCOIN_ASSERT_MSG(false, "popped from empty list");
+        return;
+    }
+
+    if (checks_.back().height() != height)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "popped invalid height for hash");
+        return;
+    }
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.pop_back();
+
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+void check_list::push_front(hash_digest&& hash, size_t height)
 {
     BITCOIN_ASSERT_MSG(height != 0, "enqueued genesis height for download");
 
@@ -122,6 +123,32 @@ void check_list::enqueue(hash_digest&& hash, size_t height)
 
     mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
+}
+
+config::checkpoint check_list::pop_front()
+{
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex_.lock_upgrade();
+
+    if (checks_.empty())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "dequeued from empty list");
+        return{};
+    }
+
+    const auto check = checks_.front();
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.pop_front();
+
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+
+    return check;
 }
 
 // protected

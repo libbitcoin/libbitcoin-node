@@ -64,14 +64,14 @@ public:
     // Hash methods.
     //-------------------------------------------------------------------------
 
-    /// Pop header hash (if hash at top), verify the height.
-    void pop(const hash_digest& hash, size_t height);
+    /// Pop header hash to back (if hash at back), verify the height.
+    void pop_back(const hash_digest& hash, size_t height);
 
-    /// Push header hash, verify the height is increasing.
-    void push(hash_digest&& hash, size_t height);
+    /// Push header hash to back, verify the height is increasing.
+    void push_back(hash_digest&& hash, size_t height);
 
-    /// Enqueue header hash, verify the height is decreasing.
-    void enqueue(hash_digest&& hash, size_t height);
+    /// Push header hash to front, verify the height is decreasing.
+    void push_front(hash_digest&& hash, size_t height);
 
     /// Populate a starved row by taking half of the hashes from a weak row.
     bool populate(reservation::ptr minimal);
@@ -110,6 +110,7 @@ private:
     const float maximum_deviation_;
 
     // Protected by mutex.
+    bool initialized_;
     reservation::list table_;
     mutable upgrade_mutex mutex_;
 };
