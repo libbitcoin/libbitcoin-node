@@ -32,3 +32,7 @@ Instead of building, libbitcoin-node can be installed from a formula:
 ```sh
 $ brew install libbitcoin-node
 ```
+or
+```sh
+$ brew install bn
+```
