@@ -162,8 +162,11 @@ bool header_list::link(const chain::header& header) const
 
 bool header_list::check(const header& header) const
 {
+    // This is a hack for successful compile - this is dead code.
+    static const auto retarget = true;
+
     // This validates is_valid_proof_of_work and is_valid_time_stamp.
-    return !header.check();
+    return !header.check(retarget);
 }
 
 bool header_list::accept(const header& header) const
