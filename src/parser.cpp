@@ -49,6 +49,8 @@ parser::parser(const configuration& defaults)
 parser::parser(config::settings context)
   : configured(context)
 {
+    using serve = message::version::service;
+
     // A node doesn't use history, and history is expensive.
     configured.database.index_start_height = max_uint32;
 
@@ -61,8 +63,8 @@ parser::parser(config::settings context)
     // A node allows 1000 host names by default.
     configured.network.host_pool_capacity = 1000;
 
-    // A node exposes full node (1) network services by default.
-    configured.network.services = message::version::service::node_network;
+    // Expose full node (1) and witness (8) network services by default.
+    configured.network.services = serve::node_network | serve::node_witness;
 }
 
 options_metadata parser::load_options()
@@ -195,7 +197,7 @@ options_metadata parser::load_settings()
     (
         "network.services",
         value<uint64_t>(&configured.network.services),
-        "The services exposed by network connections, defaults to 1 (full node)."
+        "The services exposed by network connections, defaults to 9 (full node, witness)."
     )
     (
         "network.invalid_services",
@@ -412,6 +414,21 @@ options_metadata parser::load_settings()
         "fork.bip113",
         value<bool>(&configured.chain.bip113),
         "Use median time past for locktime, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip141",
+        value<bool>(&configured.chain.bip141),
+        "Segregated witness consensus layer, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip143",
+        value<bool>(&configured.chain.bip143),
+        "Version 0 transaction digest, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip147",
+        value<bool>(&configured.chain.bip147),
+        "Prevent dummy value malleability, defaults to true (soft fork)."
     )
 
     /* [node] */
