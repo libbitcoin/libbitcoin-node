@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -38,6 +39,7 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::message;
 using namespace bc::network;
+using namespace boost::adaptors;
 using namespace std::placeholders;
 
 inline bool is_witness(uint64_t services)
@@ -282,7 +284,6 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     ////    return true;
 
     // Create a copy because message is const because it is shared.
-    const auto& inventories = message->inventories();
     const auto response = std::make_shared<inventory>();
 
     // TODO: convert all compact_block elements to block unless block is,
@@ -291,9 +292,9 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     // Peer may request compact only after receipt of a send_compact message.
 
     // Reverse copy the block elements of the const inventory.
-    for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
-        if (it->is_block_type())
-            response->inventories().push_back(*it);
+    for (const auto inventory: reverse(message->inventories()))
+        if (inventory.is_block_type())
+            response->inventories().push_back(inventory);
 
     send_next_data(response);
     return true;
@@ -347,7 +348,7 @@ void protocol_block_out::send_next_data(inventory_ptr inventory)
 }
 
 void protocol_block_out::send_block(const code& ec, block_const_ptr message,
-    uint64_t, inventory_ptr inventory)
+    size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -379,7 +380,7 @@ void protocol_block_out::send_block(const code& ec, block_const_ptr message,
 
 // TODO: move merkle_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_const_ptr message, uint64_t, inventory_ptr inventory)
+    merkle_block_const_ptr message, size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -411,7 +412,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
 // TODO: move merkle_block to derived class protocol_block_out_70014.
 void protocol_block_out::send_compact_block(const code& ec,
-    compact_block_const_ptr message, uint64_t, inventory_ptr inventory)
+    compact_block_const_ptr message, size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
