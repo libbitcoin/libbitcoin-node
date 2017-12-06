@@ -471,6 +471,9 @@ void protocol_block_in::handle_timeout(const code& ec)
     // an announcement. There is no sense pinging a broken peer, so we either
     // drop the peer after a certain mount of time (above 10 minutes) or rely
     // on other peers to keep us moving and periodically age out connections.
+    // Note that this allows a non-witness peer to hang on indefinately to our
+    // witness-requiring node until the node becomes stale. Allowing this then
+    // depends on requiring witness peers for explicitly outbound connections.
 }
 
 void protocol_block_in::handle_stop(const code&)
