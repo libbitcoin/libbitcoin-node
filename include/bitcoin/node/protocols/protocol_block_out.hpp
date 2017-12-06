@@ -76,11 +76,13 @@ private:
         block_const_ptr_list_const_ptr incoming,
         block_const_ptr_list_const_ptr outgoing);
 
+    // These are thread safe.
     full_node& node_;
     blockchain::safe_chain& chain_;
     bc::atomic<hash_digest> last_locator_top_;
     std::atomic<bool> compact_to_peer_;
     std::atomic<bool> headers_to_peer_;
+    const bool enable_witness_;
 };
 
 } // namespace node

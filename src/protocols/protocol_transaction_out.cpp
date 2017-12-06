@@ -38,6 +38,11 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
+
 protocol_transaction_out::protocol_transaction_out(full_node& network,
     channel::ptr channel, safe_chain& chain)
   : protocol_events(network, channel, NAME),
@@ -48,6 +53,9 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version()->relay()),
+
+    // Witness requests must be allowed if advertising the service.
+    enable_witness_(is_witness(network.network_settings().services)),
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
@@ -168,10 +176,31 @@ void protocol_transaction_out::send_next_data(inventory_ptr inventory)
     // The order is reversed so that we can pop from the back.
     const auto& entry = inventory->inventories().back();
 
-    // This allows confirmed and unconfirmed transactions and will return the
-    // first match of either that it finds (by hash).
-    chain_.fetch_transaction(entry.hash(), false,
-        BIND5(send_transaction, _1, _2, _3, _4, inventory));
+    switch (entry.type())
+    {
+        case inventory::type_id::witness_transaction:
+        {
+            if (!enable_witness_)
+            {
+                stop(error::channel_stopped);
+                return;
+            }
+
+            chain_.fetch_transaction(entry.hash(), false, true,
+                BIND5(send_transaction, _1, _2, _3, _4, inventory));
+            break;
+        }
+        case inventory::type_id::transaction:
+        {
+            chain_.fetch_transaction(entry.hash(), false, false,
+                BIND5(send_transaction, _1, _2, _3, _4, inventory));
+            break;
+        }
+        default:
+        {
+            BITCOIN_ASSERT_MSG(false, "improperly-filtered inventory");
+        }
+    }
 }
 
 // TODO: send block_transaction message as applicable.
