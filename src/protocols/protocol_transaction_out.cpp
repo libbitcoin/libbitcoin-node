@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -36,6 +37,7 @@ using namespace bc::chain;
 using namespace bc::database;
 using namespace bc::message;
 using namespace bc::network;
+using namespace boost::adaptors;
 using namespace std::placeholders;
 
 inline bool is_witness(uint64_t services)
@@ -156,13 +158,12 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     }
 
     // Create a copy because message is const because it is shared.
-    const auto& inventories = message->inventories();
     const auto response = std::make_shared<inventory>();
 
     // Reverse copy the transaction elements of the const inventory.
-    for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
-        if (it->is_transaction_type())
-            response->inventories().push_back(*it);
+    for (const auto inventory: reverse(message->inventories()))
+        if (inventory.is_transaction_type())
+            response->inventories().push_back(inventory);
 
     send_next_data(response);
     return true;
@@ -205,7 +206,7 @@ void protocol_transaction_out::send_next_data(inventory_ptr inventory)
 
 // TODO: send block_transaction message as applicable.
 void protocol_transaction_out::send_transaction(const code& ec,
-    transaction_const_ptr transaction, size_t position, size_t /*height*/,
+    transaction_const_ptr message, size_t position, size_t /*height*/,
     inventory_ptr inventory)
 {
     if (stopped(ec))
@@ -236,7 +237,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
     }
 
-    SEND2(*transaction, handle_send_next, _1, inventory);
+    SEND2(*message, handle_send_next, _1, inventory);
 }
 
 void protocol_transaction_out::handle_send_next(const code& ec,

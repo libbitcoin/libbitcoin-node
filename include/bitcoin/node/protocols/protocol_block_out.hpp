@@ -50,11 +50,11 @@ private:
 
     void send_next_data(inventory_ptr inventory);
     void send_block(const code& ec, block_const_ptr message,
-        uint64_t height, inventory_ptr inventory);
+        size_t height, inventory_ptr inventory);
     void send_merkle_block(const code& ec, merkle_block_const_ptr message,
-        uint64_t height, inventory_ptr inventory);
+        size_t height, inventory_ptr inventory);
     void send_compact_block(const code& ec, compact_block_const_ptr message,
-        uint64_t height, inventory_ptr inventory);
+        size_t height, inventory_ptr inventory);
 
     bool handle_receive_get_data(const code& ec,
         get_data_const_ptr message);
