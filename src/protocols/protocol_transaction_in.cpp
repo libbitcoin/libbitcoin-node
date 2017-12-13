@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -38,7 +39,12 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-uint64_t to_relay_fee(float minimum_byte_fee)
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
+
+inline uint64_t to_relay_fee(float minimum_byte_fee)
 {
     // Spending one standard prevout with one output is nominally 189 bytes.
     static const size_t small_transaction_size = 189;
@@ -49,6 +55,10 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     channel::ptr channel, safe_chain& chain)
   : protocol_events(node, channel, NAME),
     chain_(chain),
+
+    // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
+    minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
+        to_relay_fee(node.chain_settings().byte_fee_satoshis) : 0),
 
     // TODO: move relay to a derived class protocol_transaction_in_70001.
     // In the mean time, restrict by negotiated protocol level.
@@ -61,10 +71,9 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
     refresh_pool_(negotiated_version() >= version::level::bip35 &&
         node.node_settings().refresh_transactions),
 
-    // TODO: move fee_filter to a derived class protocol_transaction_in_70013.
-    minimum_relay_fee_(negotiated_version() >= version::level::bip133 ?
-        to_relay_fee(node.chain_settings().byte_fee_satoshis) : 0),
-
+    // Witness must be requested if possibly enforced.
+    require_witness_(is_witness(node.network_settings().services)),
+    peer_witness_(is_witness(channel->peer_version()->services())),
     CONSTRUCT_TRACK(protocol_transaction_in)
 {
 }
@@ -74,6 +83,11 @@ protocol_transaction_in::protocol_transaction_in(full_node& node,
 
 void protocol_transaction_in::start()
 {
+    // Do not process incoming transactions if required witness is unavailable.
+    // The channel will remain active outbound unless node becomes stale.
+    if (require_witness_ && !peer_witness_)
+        return;
+
     protocol_events::start(BIND1(handle_stop, _1));
 
     SUBSCRIBE2(inventory, handle_receive_inventory, _1, _2);
@@ -145,6 +159,10 @@ void protocol_transaction_in::send_get_data(const code& ec,
         return;
     }
 
+    // Convert requested message types to corresponding witness types.
+    if (require_witness_)
+        message->to_witness();
+
     // inventory->get_data[transaction]
     SEND2(*message, handle_send, _1, message->command);
 }
@@ -165,6 +183,15 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     {
         LOG_DEBUG(LOG_NODE)
             << "Unexpected transaction relay from [" << authority() << "]";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    if (!require_witness_ && message->is_segregated())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Transaction [" << encode_hash(message->hash())
+            << "] contains unrequested witness from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }

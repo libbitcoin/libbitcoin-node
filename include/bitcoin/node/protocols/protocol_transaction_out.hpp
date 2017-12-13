@@ -63,10 +63,12 @@ private:
     bool handle_transaction_pool(const code& ec,
         transaction_const_ptr message);
 
+    // These are thread safe.
     blockchain::safe_chain& chain_;
     std::atomic<uint64_t> minimum_peer_fee_;
     ////std::atomic<bool> compact_to_peer_;
     const bool relay_to_peer_;
+    const bool enable_witness_;
 };
 
 } // namespace node

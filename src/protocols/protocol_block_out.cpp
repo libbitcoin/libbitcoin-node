@@ -40,6 +40,11 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
+
 protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
@@ -53,6 +58,8 @@ protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     // TODO: move send_headers to a derived class protocol_block_out_70012.
     headers_to_peer_(false),
 
+    // Witness requests must be allowed if advertising the service.
+    enable_witness_(is_witness(node.network_settings().services)),
     CONSTRUCT_TRACK(protocol_block_out)
 {
 }
@@ -302,9 +309,21 @@ void protocol_block_out::send_next_data(inventory_ptr inventory)
 
     switch (entry.type())
     {
+        case inventory::type_id::witness_block:
+        {
+            if (!enable_witness_)
+            {
+                stop(error::channel_stopped);
+                return;
+            }
+
+            chain_.fetch_block(entry.hash(), true,
+                BIND4(send_block, _1, _2, _3, inventory));
+            break;
+        }
         case inventory::type_id::block:
         {
-            chain_.fetch_block(entry.hash(),
+            chain_.fetch_block(entry.hash(), false,
                 BIND4(send_block, _1, _2, _3, inventory));
             break;
         }
