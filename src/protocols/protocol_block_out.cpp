@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -38,7 +39,13 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::message;
 using namespace bc::network;
+using namespace boost::adaptors;
 using namespace std::placeholders;
+
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
 
 protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
@@ -53,6 +60,8 @@ protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     // TODO: move send_headers to a derived class protocol_block_out_70012.
     headers_to_peer_(false),
 
+    // Witness requests must be allowed if advertising the service.
+    enable_witness_(is_witness(node.network_settings().services)),
     CONSTRUCT_TRACK(protocol_block_out)
 {
 }
@@ -276,7 +285,6 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     ////    return true;
 
     // Create a copy because message is const because it is shared.
-    const auto& inventories = message->inventories();
     const auto response = std::make_shared<inventory>();
 
     // TODO: convert all compact_block elements to block unless block is,
@@ -285,9 +293,9 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     // Peer may request compact only after receipt of a send_compact message.
 
     // Reverse copy the block elements of the const inventory.
-    for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
-        if (it->is_block_type())
-            response->inventories().push_back(*it);
+    for (const auto inventory: reverse(message->inventories()))
+        if (inventory.is_block_type())
+            response->inventories().push_back(inventory);
 
     send_next_data(response);
     return true;
@@ -303,9 +311,21 @@ void protocol_block_out::send_next_data(inventory_ptr inventory)
 
     switch (entry.type())
     {
+        case inventory::type_id::witness_block:
+        {
+            if (!enable_witness_)
+            {
+                stop(error::channel_stopped);
+                return;
+            }
+
+            chain_.fetch_block(entry.hash(), true,
+                BIND4(send_block, _1, _2, _3, inventory));
+            break;
+        }
         case inventory::type_id::block:
         {
-            chain_.fetch_block(entry.hash(),
+            chain_.fetch_block(entry.hash(), false,
                 BIND4(send_block, _1, _2, _3, inventory));
             break;
         }
@@ -329,7 +349,7 @@ void protocol_block_out::send_next_data(inventory_ptr inventory)
 }
 
 void protocol_block_out::send_block(const code& ec, block_const_ptr message,
-    uint64_t, inventory_ptr inventory)
+    size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -361,7 +381,7 @@ void protocol_block_out::send_block(const code& ec, block_const_ptr message,
 
 // TODO: move merkle_block to derived class protocol_block_out_70001.
 void protocol_block_out::send_merkle_block(const code& ec,
-    merkle_block_const_ptr message, uint64_t, inventory_ptr inventory)
+    merkle_block_const_ptr message, size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;
@@ -393,7 +413,7 @@ void protocol_block_out::send_merkle_block(const code& ec,
 
 // TODO: move merkle_block to derived class protocol_block_out_70014.
 void protocol_block_out::send_compact_block(const code& ec,
-    compact_block_const_ptr message, uint64_t, inventory_ptr inventory)
+    compact_block_const_ptr message, size_t, inventory_ptr inventory)
 {
     if (stopped(ec))
         return;

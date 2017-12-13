@@ -46,8 +46,8 @@ public:
 
 private:
     void send_next_data(inventory_ptr inventory);
-    void send_transaction(const code& ec, transaction_const_ptr transaction,
-        size_t height, size_t position, inventory_ptr inventory);
+    void send_transaction(const code& ec, transaction_const_ptr message,
+        size_t position, size_t height, inventory_ptr inventory);
 
     bool handle_receive_get_data(const code& ec,
         get_data_const_ptr message);
@@ -63,10 +63,12 @@ private:
     bool handle_transaction_pool(const code& ec,
         transaction_const_ptr message);
 
+    // These are thread safe.
     blockchain::safe_chain& chain_;
     std::atomic<uint64_t> minimum_peer_fee_;
     ////std::atomic<bool> compact_to_peer_;
     const bool relay_to_peer_;
+    const bool enable_witness_;
 };
 
 } // namespace node

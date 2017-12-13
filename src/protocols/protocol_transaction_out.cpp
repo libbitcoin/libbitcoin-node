@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -36,7 +37,13 @@ using namespace bc::chain;
 using namespace bc::database;
 using namespace bc::message;
 using namespace bc::network;
+using namespace boost::adaptors;
 using namespace std::placeholders;
+
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
 
 protocol_transaction_out::protocol_transaction_out(full_node& network,
     channel::ptr channel, safe_chain& chain)
@@ -48,6 +55,9 @@ protocol_transaction_out::protocol_transaction_out(full_node& network,
 
     // TODO: move relay to a derived class protocol_transaction_out_70001.
     relay_to_peer_(peer_version()->relay()),
+
+    // Witness requests must be allowed if advertising the service.
+    enable_witness_(is_witness(network.network_settings().services)),
     CONSTRUCT_TRACK(protocol_transaction_out)
 {
 }
@@ -148,13 +158,12 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     }
 
     // Create a copy because message is const because it is shared.
-    const auto& inventories = message->inventories();
     const auto response = std::make_shared<inventory>();
 
     // Reverse copy the transaction elements of the const inventory.
-    for (auto it = inventories.rbegin(); it != inventories.rend(); ++it)
-        if (it->is_transaction_type())
-            response->inventories().push_back(*it);
+    for (const auto inventory: reverse(message->inventories()))
+        if (inventory.is_transaction_type())
+            response->inventories().push_back(inventory);
 
     send_next_data(response);
     return true;
@@ -168,15 +177,36 @@ void protocol_transaction_out::send_next_data(inventory_ptr inventory)
     // The order is reversed so that we can pop from the back.
     const auto& entry = inventory->inventories().back();
 
-    // This allows confirmed and unconfirmed transactions and will return the
-    // first match of either that it finds (by hash).
-    chain_.fetch_transaction(entry.hash(), false,
-        BIND5(send_transaction, _1, _2, _3, _4, inventory));
+    switch (entry.type())
+    {
+        case inventory::type_id::witness_transaction:
+        {
+            if (!enable_witness_)
+            {
+                stop(error::channel_stopped);
+                return;
+            }
+
+            chain_.fetch_transaction(entry.hash(), false, true,
+                BIND5(send_transaction, _1, _2, _3, _4, inventory));
+            break;
+        }
+        case inventory::type_id::transaction:
+        {
+            chain_.fetch_transaction(entry.hash(), false, false,
+                BIND5(send_transaction, _1, _2, _3, _4, inventory));
+            break;
+        }
+        default:
+        {
+            BITCOIN_ASSERT_MSG(false, "improperly-filtered inventory");
+        }
+    }
 }
 
 // TODO: send block_transaction message as applicable.
 void protocol_transaction_out::send_transaction(const code& ec,
-    transaction_const_ptr transaction, size_t position, size_t /*height*/,
+    transaction_const_ptr message, size_t position, size_t /*height*/,
     inventory_ptr inventory)
 {
     if (stopped(ec))
@@ -207,7 +237,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
     }
 
-    SEND2(*transaction, handle_send_next, _1, inventory);
+    SEND2(*message, handle_send_next, _1, inventory);
 }
 
 void protocol_transaction_out::handle_send_next(const code& ec,

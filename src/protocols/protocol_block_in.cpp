@@ -44,6 +44,11 @@ using namespace bc::network;
 using namespace std::chrono;
 using namespace std::placeholders;
 
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
+
 protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, false, NAME),
@@ -58,6 +63,10 @@ protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     blocks_from_peer_(
         negotiated_version() > version::level::no_blocks_end ||
         negotiated_version() < version::level::no_blocks_start),
+
+    // Witness must be requested if possibly enforced.
+    require_witness_(is_witness(node.network_settings().services)),
+    peer_witness_(is_witness(channel->peer_version()->services())),
     CONSTRUCT_TRACK(protocol_block_in)
 {
 }
@@ -69,6 +78,11 @@ void protocol_block_in::start()
 {
     // Use timer to drop slow peers.
     protocol_timer::start(block_latency_, BIND1(handle_timeout, _1));
+
+    // Do not process incoming blocks if required witness is unavailable.
+    // The channel will remain active outbound unless node becomes stale.
+    if (require_witness_ && !peer_witness_)
+        return;
 
     // TODO: move headers to a derived class protocol_block_in_31800.
     SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
@@ -225,6 +239,10 @@ void protocol_block_in::send_get_data(const code& ec, get_data_ptr message)
     mutex.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
+    // Convert requested message types to corresponding witness types.
+    if (require_witness_)
+        message->to_witness();
+
     // There was no backlog so the timer must be started now.
     if (fresh)
         reset_timer();
@@ -308,6 +326,15 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         LOG_DEBUG(LOG_NODE)
             << "Block [" << encode_hash(message->hash())
             << "] unexpected or out of order from [" << authority() << "]";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    if (!require_witness_ && message->is_segregated())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Block [" << encode_hash(message->hash())
+            << "] contains unrequested witness from [" << authority() << "]";
         stop(error::channel_stopped);
         return false;
     }
@@ -432,6 +459,9 @@ void protocol_block_in::handle_timeout(const code& ec)
     // an announcement. There is no sense pinging a broken peer, so we either
     // drop the peer after a certain mount of time (above 10 minutes) or rely
     // on other peers to keep us moving and periodically age out connections.
+    // Note that this allows a non-witness peer to hang on indefinately to our
+    // witness-requiring node until the node becomes stale. Allowing this then
+    // depends on requiring witness peers for explicitly outbound connections.
 }
 
 void protocol_block_in::handle_stop(const code&)
