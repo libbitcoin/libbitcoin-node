@@ -55,10 +55,13 @@ private:
 
     void handle_stop(const code&);
 
+    // These are thread safe.
     blockchain::safe_chain& chain_;
+    const uint64_t minimum_relay_fee_;
     const bool relay_from_peer_;
     const bool refresh_pool_;
-    const uint64_t minimum_relay_fee_;
+    const bool require_witness_;
+    const bool peer_witness_;
 };
 
 } // namespace node

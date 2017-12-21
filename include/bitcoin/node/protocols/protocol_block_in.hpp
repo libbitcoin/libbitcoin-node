@@ -70,6 +70,8 @@ private:
     const asio::duration block_latency_;
     const bool headers_from_peer_;
     const bool blocks_from_peer_;
+    const bool require_witness_;
+    const bool peer_witness_;
 
     // This is protected by mutex.
     hash_queue backlog_;
