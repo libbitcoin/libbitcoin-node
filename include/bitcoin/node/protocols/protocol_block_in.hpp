@@ -70,10 +70,6 @@ private:
     const bool blocks_from_peer_;
     const bool require_witness_;
     const bool peer_witness_;
-
-    // This is protected by mutex.
-    hash_queue backlog_;
-    mutable upgrade_mutex mutex;
 };
 
 } // namespace node

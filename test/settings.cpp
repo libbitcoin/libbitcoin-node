@@ -29,29 +29,29 @@ BOOST_AUTO_TEST_SUITE(settings_tests)
 BOOST_AUTO_TEST_CASE(settings__construct__default_context__expected)
 {
     node::settings configuration;
-    BOOST_REQUIRE(configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!configuration.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(settings__construct__none_context__expected)
 {
     node::settings configuration(config::settings::none);
-    BOOST_REQUIRE(configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!configuration.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(settings__construct__mainnet_context__expected)
 {
     node::settings configuration(config::settings::mainnet);
-    BOOST_REQUIRE(configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!configuration.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(settings__construct__testnet_context__expected)
 {
     node::settings configuration(config::settings::testnet);
-    BOOST_REQUIRE(configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!configuration.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

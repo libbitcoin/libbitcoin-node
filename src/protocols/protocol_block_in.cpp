@@ -91,9 +91,6 @@ void protocol_block_in::start()
     if (require_witness_ && !peer_witness_)
         return;
 
-    // TODO: move headers to a derived class protocol_block_in_31800.
-    SUBSCRIBE2(headers, handle_receive_headers, _1, _2);
-
     // TODO: move not_found to a derived class protocol_block_in_70001.
     if (not_found_)
     {

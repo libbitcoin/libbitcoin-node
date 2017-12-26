@@ -33,8 +33,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(instance.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!instance.node.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
@@ -44,8 +44,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(instance.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!instance.node.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
@@ -55,8 +55,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(instance.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 60u);
+    BOOST_REQUIRE(!instance.node.refresh_transactions);
+    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
