@@ -1,5 +1,8 @@
 *.suo
-*.user
-*.sdf
 *.opensdf
+*.sdf
 *.log
+*.aps
+*.user
+*.ipch
+*.VC.*
