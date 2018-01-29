@@ -286,8 +286,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
+    // TODO: REPORTING HEIGHT UNKNOWN HERE, GET FROM ORGANIZE.
+    const size_t height = 42;
+
     message->header().validation.originator = nonce();
-    chain_.organize(message, BIND2(handle_store_block, _1, message));
+    chain_.organize(message, BIND3(handle_store_block, _1, height, message));
 
     // Sending a new request will reset the timer upon inventory->get_data, but
     // we need to time out the lack of response to those requests when stale.
@@ -305,7 +308,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 // The block has been saved to the block chain (or not).
 // This will be picked up by subscription in block_out and will cause the block
 // to be announced to non-originating peers.
-void protocol_block_in::handle_store_block(const code& ec,
+void protocol_block_in::handle_store_block(const code& ec, size_t height,
     block_const_ptr message)
 {
     if (stopped(ec))
@@ -357,11 +360,11 @@ void protocol_block_in::handle_store_block(const code& ec,
     else
     {
         LOG_DEBUG(LOG_NODE)
-            << "Connected block [" << encoded << "] at height ["
-            << message->header().validation.height << "] with no state.";
+            << "Connected block [" << encoded << "] at height [" << height
+            << "] with no state.";
     }
 
-    report(*message);
+    report(*message, height);
 }
 
 // Subscription.
@@ -462,10 +465,8 @@ inline size_t total_cost_ms(const asio::time_point& start,
     return unit_cost(start, end, microseconds_per_millisecond);
 }
 
-void protocol_block_in::report(const chain::block& block)
+void protocol_block_in::report(const chain::block& block, size_t height)
 {
-    const auto height = block.header().validation.height;
-
     if (enabled(height))
     {
         const auto& times = block.validation;
