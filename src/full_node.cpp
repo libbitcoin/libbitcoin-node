@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <functional>
 #include <utility>
+#include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,6 +37,7 @@ using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::network;
+using namespace boost::adaptors;
 using namespace std::placeholders;
 
 full_node::full_node(const configuration& configuration)
@@ -184,22 +186,22 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
     if (!incoming || incoming->empty())
         return true;
 
-    for (const auto header: *outgoing)
-        LOG_DEBUG(LOG_NODE)
-            << "Reindex moved header to pool ["
-            << encode_hash(header->hash()) << "]";
+    // First pop height is highest outgoing.
+    auto height = fork_height + outgoing->size();
 
-    // Pop all outgoing reservations from download queue (if at top).
-    for (const auto header: *outgoing)
-        if (!header->validation.populated)
-            reservations_.pop_back(header->hash(), header->validation.height);
+    // Pop outgoing reservations from download queue (if at top), high first.
+    for (const auto header: reverse(*outgoing))
+        reservations_.pop_back(header->hash(), height--);
 
-    // Push all incoming reservations (can't require parent at top).
+    // Push unpopulated incoming reservations (can't expect parent), low first.
     for (const auto header: *incoming)
+    {
+        ++height;
         if (!header->validation.populated)
-            reservations_.push_back(header->hash(), header->validation.height);
+            reservations_.push_back(header->hash(), height);
+    }
 
-    const auto height = fork_height + incoming->size();
+    // Top height will be: fork_height + incoming->size();
     set_top_header({ incoming->back()->hash(), height });
     return true;
 }
