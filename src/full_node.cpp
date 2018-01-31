@@ -147,6 +147,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
 
     // Scan header index from top down until first valid block is found.
     // Genesis ensures loop termination, and existence is guaranteed above.
+    // An invalid block will be treated as valid here, terminating the loop.
     for (auto height = header.height();
         chain_.get_pending_block_hash(hash, is_empty, height); --height)
     {
