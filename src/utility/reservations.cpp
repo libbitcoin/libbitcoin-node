@@ -169,14 +169,15 @@ reservation::ptr reservations::get()
 // Hash methods.
 //-----------------------------------------------------------------------------
 
-void reservations::pop_back(const hash_digest& hash, size_t height)
+void reservations::pop_back(const chain::header& header, size_t height)
 {
-    hashes_.pop_back(hash, height);
+    hashes_.pop_back(header.hash(), height);
 }
 
-void reservations::push_back(hash_digest&& hash, size_t height)
+void reservations::push_back(const chain::header& header, size_t height)
 {
-    hashes_.push_back(std::move(hash), height);
+    if (!header.validation.populated)
+        hashes_.push_back(header.hash(), height);
 }
 
 void reservations::push_front(hash_digest&& hash, size_t height)

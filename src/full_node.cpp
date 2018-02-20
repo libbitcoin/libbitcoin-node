@@ -192,15 +192,11 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
 
     // Pop outgoing reservations from download queue (if at top), high first.
     for (const auto header: reverse(*outgoing))
-        reservations_.pop_back(header->hash(), height--);
+        reservations_.pop_back(*header, height--);
 
     // Push unpopulated incoming reservations (can't expect parent), low first.
     for (const auto header: *incoming)
-    {
-        ++height;
-        if (!header->validation.populated)
-            reservations_.push_back(header->hash(), height);
-    }
+        reservations_.push_back(*header, ++height);
 
     // Top height will be: fork_height + incoming->size();
     set_top_header({ incoming->back()->hash(), height });
