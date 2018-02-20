@@ -166,20 +166,25 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
         return;
     }
 
+    // HACK: this creates an unmanaged shared_ptr to a message element.
+    // This is safe because the message is captured with the pointer.
+    // This allows metadata update on the header within the existing vector
+    // while maintaining interface consistency with blockchain.
+    const auto noop = [](const message::header*) {};
     const auto& element = message->elements()[index];
-    const auto header = std::make_shared<const message::header>(element);
+    std::shared_ptr<const message::header> header(&element, noop);
 
-    chain_.organize(header,
-        BIND4(handle_store_header, _1, index, message, header));
+    chain_.organize(header, BIND3(handle_store_header, _1, index, message));
 }
 
 void protocol_header_in::handle_store_header(const code& ec, size_t index,
-    headers_const_ptr message, header_const_ptr header)
+    headers_const_ptr message)
 {
     if (stopped(ec))
         return;
 
-    const auto hash = header->hash();
+    const auto& header = message->elements()[index];
+    const auto hash = header.hash();
     const auto encoded = encode_hash(hash);
 
     if (ec == error::orphan_block)
@@ -224,8 +229,7 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
     }
     else
     {
-        // This is why we must pass the header through the closure.
-        const auto state = header->validation.state;
+        const auto state = header.validation.state;
         BITCOIN_ASSERT(state);
 
         // Only log every 1000th header, until current.
