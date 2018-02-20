@@ -224,9 +224,11 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
         return true;
 
     for (const auto block: *outgoing)
+    {
         LOG_DEBUG(LOG_NODE)
             << "Reorganization moved block to pool ["
             << encode_hash(block->header().hash()) << "]";
+    }
 
     const auto height = fork_height + incoming->size();
     set_top_block({ incoming->back()->hash(), height });
