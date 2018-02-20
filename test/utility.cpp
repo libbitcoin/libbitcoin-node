@@ -30,7 +30,6 @@ namespace test {
 
 using namespace bc::blockchain;
 using namespace bc::chain;
-using namespace bc::config;
 
 const config::checkpoint check0
 {

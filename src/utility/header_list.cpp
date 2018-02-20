@@ -28,11 +28,10 @@ namespace libbitcoin {
 namespace node {
 
 using namespace bc::chain;
-using namespace bc::config;
 
 // Locking is optimized for a single intended caller.
-header_list::header_list(size_t slot, const checkpoint& start,
-    const checkpoint& stop)
+header_list::header_list(size_t slot, const config::checkpoint& start,
+    const config::checkpoint& stop)
   : height_(safe_add(start.height(), size_t(1))),
     start_(start),
     stop_(stop),
