@@ -48,87 +48,20 @@ reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
 {
 }
 
-// Rate methods.
-//-----------------------------------------------------------------------------
-
-// A statistical summary of block import rates.
-// This computation is not synchronized across rows because rates are cached.
-statistics reservations::rates(size_t slot, const performance& current) const
+void reservations::pop_back(const chain::header& header, size_t height)
 {
-    // Get a copy of the list of reservation pointers.
-    auto rows = table();
-
-    // An idle row does not have sufficient history for measurement.
-    const auto idle = [&](reservation::ptr row)
-    {
-        return row->slot() == slot ? current.idle : row->rate().idle;
-    };
-
-    // Purge idle and empty rows from the temporary table.
-    rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
-
-    const auto active_rows = rows.size();
-    std::vector<double> rates(active_rows);
-    const auto normal_rate = [&](reservation::ptr row)
-    {
-        return row->slot() == slot ? current.rate() : row->rate().rate();
-    };
-
-    // Convert to a rates table and sum.
-    // BUGBUG: the rows may become idle after the above purge, skewing results.
-    std::transform(rows.begin(), rows.end(), rates.begin(), normal_rate);
-    const auto total = std::accumulate(rates.begin(), rates.end(), 0.0);
-
-    // Calculate mean and sum of deviations.
-    const auto mean = divide<double>(total, active_rows);
-    const auto summary = [mean](double initial, double rate)
-    {
-        const auto difference = mean - rate;
-        return initial + (difference * difference);
-    };
-
-    // Calculate the standard deviation in the rate deviations.
-    auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
-    auto quotient = divide<double>(squares, active_rows);
-    auto standard_deviation = std::sqrt(quotient);
-    return{ active_rows, mean, standard_deviation };
+    hashes_.pop_back(header.hash(), height);
 }
 
-// Table methods.
-//-----------------------------------------------------------------------------
-
-// protected
-reservation::list reservations::table() const
+void reservations::push_back(const chain::header& header, size_t height)
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(mutex_);
-
-    return table_;
-    ///////////////////////////////////////////////////////////////////////////
+    if (!header.validation.populated)
+        hashes_.push_back(header.hash(), height);
 }
 
-void reservations::remove(reservation::ptr row)
+void reservations::push_front(hash_digest&& hash, size_t height)
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_upgrade();
-
-    const auto it = std::find(table_.begin(), table_.end(), row);
-
-    if (it == table_.end())
-    {
-        mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
-        return;
-    }
-
-    mutex_.unlock_upgrade_and_lock();
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    table_.erase(it);
-
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
+    hashes_.push_front(std::move(hash), height);
 }
 
 reservation::ptr reservations::get()
@@ -166,25 +99,6 @@ reservation::ptr reservations::get()
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// Hash methods.
-//-----------------------------------------------------------------------------
-
-void reservations::pop_back(const chain::header& header, size_t height)
-{
-    hashes_.pop_back(header.hash(), height);
-}
-
-void reservations::push_back(const chain::header& header, size_t height)
-{
-    if (!header.validation.populated)
-        hashes_.push_back(header.hash(), height);
-}
-
-void reservations::push_front(hash_digest&& hash, size_t height)
-{
-    hashes_.push_front(std::move(hash), height);
-}
-
 // Call when minimal is empty.
 // Take from unallocated or allocated hashes, true if minimal not empty.
 bool reservations::populate(reservation::ptr minimal)
@@ -194,6 +108,17 @@ bool reservations::populate(reservation::ptr minimal)
     unique_lock lock(mutex_);
 
     return reserve(minimal) || partition(minimal);
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+// protected
+reservation::list reservations::table() const
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    shared_lock lock(mutex_);
+
+    return table_;
     ///////////////////////////////////////////////////////////////////////////
 }
 
@@ -257,6 +182,31 @@ bool reservations::partition(reservation::ptr minimal)
     return partitioned;
 }
 
+bool reservations::expired(reservation::const_ptr partition) const
+{
+    return expired(partition, true);
+}
+
+// External callers will invoke the lock, but the internal call cannot.
+bool reservations::expired(reservation::const_ptr partition, bool lock) const
+{
+    // Cannot expire if empty.
+    if (partition->empty())
+        return false;
+
+    const auto current = partition->rate();
+
+    // Cannot expire if idle unless startup limit is exceeded.
+    if (current.idle)
+        return asio::steady_clock::now() > partition->idle_limit();
+
+    // Summary must be computed using same rate for slot, so pass here.
+    const auto summary = rates(partition->slot(), current, lock);
+
+    // Expires if deviation exceeds norm by more than allowed.
+    return current.expired(partition->slot(), maximum_deviation_, summary);
+}
+
 // protected
 // The maximal row has the most block hashes reserved (prefer stopped).
 reservation::ptr reservations::find_maximal()
@@ -275,28 +225,70 @@ reservation::ptr reservations::find_maximal()
         return left->size() < right->size();
     };
 
-    const auto max = *std::max_element(table_.begin(), table_.end(), comparer);
+    auto maximal = *std::max_element(table_.begin(), table_.end(), comparer);
 
     // If down to one hash and the owner is not expired, do not partition.
-    return max->size() == 1 && !max->expired() ? nullptr : max;
+    return maximal->size() == 1 && !expired(maximal, false) ? nullptr : maximal;
+}
+
+// protected
+// A statistical summary of block import rates.
+// This computation is not synchronized across rows because rates are cached.
+statistics reservations::rates(size_t slot, const performance& current,
+    bool lock) const
+{
+    // Get a copy of the list of reservation pointers.
+    auto rows = lock ? table() : table_;
+
+    // An idle row does not have sufficient history for measurement.
+    const auto idle = [&](reservation::ptr row)
+    {
+        return row->slot() == slot ? current.idle : row->rate().idle;
+    };
+
+    // Purge idle and empty rows from the temporary table.
+    rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
+
+    const auto active_rows = rows.size();
+    std::vector<double> rates(active_rows);
+    const auto normal_rate = [&](reservation::ptr row)
+    {
+        return row->slot() == slot ? current.rate() : row->rate().rate();
+    };
+
+    // Convert to a rates table and sum.
+    // BUGBUG: the rows may become idle after the above purge, skewing results.
+    std::transform(rows.begin(), rows.end(), rates.begin(), normal_rate);
+    const auto total = std::accumulate(rates.begin(), rates.end(), 0.0);
+
+    // Calculate mean and sum of deviations.
+    const auto mean = divide<double>(total, active_rows);
+    const auto summary = [mean](double initial, double rate)
+    {
+        const auto difference = mean - rate;
+        return initial + (difference * difference);
+    };
+
+    // Calculate the standard deviation in the rate deviations.
+    auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
+    auto quotient = divide<double>(squares, active_rows);
+    auto standard_deviation = std::sqrt(quotient);
+    return{ active_rows, mean, standard_deviation };
 }
 
 // Properties.
 //-----------------------------------------------------------------------------
 
+// This is only used for logging, enters critical section.
 size_t reservations::size() const
 {
     return unreserved() + reserved();
 }
 
+// protected
 size_t reservations::reserved() const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_shared();
-    auto rows = table_;
-    mutex_.unlock_shared();
-    ///////////////////////////////////////////////////////////////////////////
+    auto rows = table();
 
     const auto sum = [](size_t total, reservation::ptr row)
     {
@@ -306,6 +298,7 @@ size_t reservations::reserved() const
     return std::accumulate(rows.begin(), rows.end(), size_t{0}, sum);
 }
 
+// protected
 size_t reservations::unreserved() const
 {
     return hashes_.size();

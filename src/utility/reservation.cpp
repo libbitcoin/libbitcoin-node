@@ -113,21 +113,12 @@ reservation::clock_point reservation::now() const
 
 bool reservation::expired() const
 {
-    // Cannot expire if empty.
-    if (empty())
-        return false;
+    return reservations_.expired(shared_from_this());
+}
 
-    const auto current = rate();
-
-    // Cannot expire if idle unless startup limit is exceeded.
-    if (current.idle)
-        return asio::steady_clock::now() > idle_limit_.load();
-
-    // Summary must be computed using same rate for slot, so pass here.
-    const auto summary = reservations_.rates(slot(), current);
-
-    // Expires if deviation exceeds norm by more than allowed.
-    return current.expired(slot(), maximum_deviation_, summary);
+asio::time_point reservation::idle_limit() const
+{
+    return idle_limit_.load();
 }
 
 performance reservation::rate() const

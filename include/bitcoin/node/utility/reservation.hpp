@@ -42,6 +42,7 @@ class BCN_API reservation
 {
 public:
     typedef std::shared_ptr<reservation> ptr;
+    typedef std::shared_ptr<const reservation> const_ptr;
     typedef std::vector<reservation::ptr> list;
     typedef handle0 result_handler;
 
@@ -69,6 +70,9 @@ public:
 
     /// True if block import rate was more than one standard deviation low.
     bool expired() const;
+
+    /// The point in time when the idel allowance expires.
+    asio::time_point idle_limit() const;
 
     /// The current cached average block import rate excluding import time.
     performance rate() const;

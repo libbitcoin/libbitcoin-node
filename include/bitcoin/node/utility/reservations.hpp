@@ -46,24 +46,6 @@ public:
     reservations(size_t minimum_peer_count, float maximum_deviation,
         uint32_t block_latency_seconds);
 
-    // Rate methods.
-    //-------------------------------------------------------------------------
-
-    /// The average and standard deviation of block import rates.
-    statistics rates(size_t slot, const performance& current) const;
-
-    // Table methods.
-    //-------------------------------------------------------------------------
-
-    /// Remove the row from the reservation table if found.
-    void remove(reservation::ptr row);
-
-    /// Get a download reservation manager.
-    reservation::ptr get();
-
-    // Hash methods.
-    //-------------------------------------------------------------------------
-
     /// Pop header hash to back (if hash at back), verify the height.
     void pop_back(const chain::header& header, size_t height);
 
@@ -73,20 +55,17 @@ public:
     /// Push header hash to front, verify the height is decreasing.
     void push_front(hash_digest&& hash, size_t height);
 
+    /// Get a download reservation manager.
+    reservation::ptr get();
+
     /// Populate a starved row by taking half of the hashes from a weak row.
     bool populate(reservation::ptr minimal);
 
-    // Properties.
-    //-------------------------------------------------------------------------
+    /// Check a partition for expiration.
+    bool expired(reservation::const_ptr partition) const;
 
     /// The total number of pending block hashes.
     size_t size() const;
-
-    /// The number of hashes currently reserved.
-    size_t reserved() const;
-
-    /// The number of hashes available for reservation.
-    size_t unreserved() const;
 
 protected:
     // Obtain a copy of the reservations table.
@@ -98,8 +77,20 @@ protected:
     // Move half of the maximal reservation to the specified reservation.
     bool partition(reservation::ptr minimal);
 
+    // Check a partition for expiration, with conditional locking.
+    bool expired(reservation::const_ptr partition, bool lock) const;
+
     // Find the reservation with the most hashes.
     reservation::ptr find_maximal();
+
+    // The average and standard deviation of block import rates.
+    statistics rates(size_t slot, const performance& current, bool lock) const;
+
+    // The number of hashes currently reserved.
+    size_t reserved() const;
+
+    // The number of hashes available for reservation.
+    size_t unreserved() const;
 
 private:
     // Thread safe.
