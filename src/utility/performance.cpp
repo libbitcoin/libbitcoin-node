@@ -18,25 +18,59 @@
  */
 #include <bitcoin/node/utility/performance.hpp>
 
+#include <cmath>
+#include <cstddef>
+#include <limits>
 #include <bitcoin/bitcoin.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-double performance::normal() const
+// static
+double performance::to_megabits_per_second(double bytes_per_microsecond)
 {
-    // If numerator is small we can overflow (infinity).
-    return divide<double>(events, static_cast<double>(window) - database);
+    // Use standard telecom definition of a megabit (125,000 bytes).
+    static constexpr auto bytes_per_megabyte = 1000.0 * 1000.0;
+    static constexpr auto micro_per_second = 1000.0 * 1000.0;
+    static const auto bytes_per_megabit = bytes_per_megabyte / byte_bits;
+    return micro_per_second * bytes_per_microsecond / bytes_per_megabit;
 }
 
-double performance::total() const
+double performance::rate() const
 {
-    return divide<double>(events, window);
+    // This is commonly nan when the window and discount are both zero.
+    // This produces a zero rate, but this is ignored as it implies idle.
+    return divide<double>(events, static_cast<double>(window) - discount);
 }
 
 double performance::ratio() const
 {
-    return divide<double>(database, window);
+    return divide<double>(discount, window);
+}
+
+bool performance::expired(size_t slot, float maximum_deviation,
+    const statistics& summary) const
+{
+    const auto normal_rate = rate();
+    const auto deviation = normal_rate - summary.arithmentic_mean;
+    const auto absolute_deviation = std::fabs(deviation);
+    const auto allowed = maximum_deviation * summary.standard_deviation;
+    const auto outlier = absolute_deviation > allowed;
+    const auto below_average = deviation < 0;
+    const auto expired = below_average && outlier;
+
+    ////LOG_VERBOSE(LOG_NODE)
+    ////    << "Statistics for slot (" << slot << ")"
+    ////    << " adj:" << (to_megabits_per_second(normal_rate))
+    ////    << " avg:" << (to_megabits_per_second(summary.arithmentic_mean))
+    ////    << " dev:" << (to_megabits_per_second(deviation))
+    ////    << " sdv:" << (to_megabits_per_second(summary.standard_deviation))
+    ////    << " cnt:" << (summary.active_count)
+    ////    << " neg:" << (below_average ? "T" : "F")
+    ////    << " out:" << (outlier ? "T" : "F")
+    ////    << " exp:" << (expired ? "T" : "F");
+
+    return expired;
 }
 
 } // namespace node

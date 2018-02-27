@@ -204,7 +204,7 @@ void protocol_transaction_out::send_transaction(const code& ec,
         return;
 
     // Treat already confirmed transactions as not found.
-    auto confirmed = !ec && position != transaction_database::unconfirmed;
+    auto confirmed = !ec && position != transaction_result::unconfirmed;
 
     if (ec == error::not_found || confirmed)
     {
@@ -268,7 +268,7 @@ bool protocol_transaction_out::handle_transaction_pool(const code& ec,
 
     // Do not announce transactions to peer if too far behind.
     // Typically the tx would not validate anyway, but this is more consistent.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     if (message->validation.originator == nonce())
@@ -292,7 +292,7 @@ void protocol_transaction_out::handle_stop(const code&)
 {
     chain_.unsubscribe();
 
-    LOG_DEBUG(LOG_NETWORK)
+    LOG_VERBOSE(LOG_NETWORK)
         << "Stopped transaction_out protocol for [" << authority() << "].";
 }
 

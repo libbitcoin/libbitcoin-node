@@ -25,9 +25,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session_block_sync.hpp>
-#include <bitcoin/node/sessions/session_header_sync.hpp>
-#include <bitcoin/node/utility/check_list.hpp>
+#include <bitcoin/node/utility/reservations.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,6 +36,7 @@ class BCN_API full_node
 {
 public:
     typedef std::shared_ptr<full_node> ptr;
+    typedef blockchain::block_chain::reindex_handler reindex_handler;
     typedef blockchain::block_chain::reorganize_handler reorganize_handler;
     typedef blockchain::block_chain::transaction_handler transaction_handler;
 
@@ -81,10 +80,16 @@ public:
     /// Blockchain query interface.
     virtual blockchain::safe_chain& chain();
 
+    /// Get a download reservation manager.
+    virtual reservation::ptr get_reservation();
+
     // Subscriptions.
     // ------------------------------------------------------------------------
 
-    /// Subscribe to blockchain reorganization and stop events.
+    /// Subscribe to header reorganization and stop events.
+    virtual void subscribe_headers(reindex_handler&& handler);
+
+    /// Subscribe to block reorganization and stop events.
     virtual void subscribe_blockchain(reorganize_handler&& handler);
 
     /// Subscribe to transaction pool acceptance and stop events.
@@ -104,25 +109,20 @@ protected:
     network::session_inbound::ptr attach_inbound_session() override;
     network::session_outbound::ptr attach_outbound_session() override;
 
-    /// Override to attach specialized node sessions.
-    virtual session_header_sync::ptr attach_header_sync_session();
-    virtual session_block_sync::ptr attach_block_sync_session();
-
 private:
-    typedef message::block::ptr_list block_ptr_list;
+    bool handle_reindexed(code ec, size_t fork_height,
+        header_const_ptr_list_const_ptr incoming,
+        header_const_ptr_list_const_ptr outgoing);
 
     bool handle_reorganized(code ec, size_t fork_height,
         block_const_ptr_list_const_ptr incoming,
         block_const_ptr_list_const_ptr outgoing);
 
-    void handle_headers_synchronized(const code& ec, result_handler handler);
-    void handle_network_stopped(const code& ec, result_handler handler);
-
     void handle_started(const code& ec, result_handler handler);
     void handle_running(const code& ec, result_handler handler);
 
     // These are thread safe.
-    check_list hashes_;
+    reservations reservations_;
     blockchain::block_chain chain_;
     const uint32_t protocol_maximum_;
     const node::settings& node_settings_;

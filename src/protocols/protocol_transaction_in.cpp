@@ -102,7 +102,7 @@ void protocol_transaction_in::start()
     }
 
     // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
-    if (refresh_pool_ && relay_from_peer_ && !chain_.is_stale())
+    if (refresh_pool_ && relay_from_peer_ && !chain_.is_blocks_stale())
     {
         // Refresh transaction pool on connect.
         SEND2(memory_pool{}, handle_send, _1, memory_pool::command);
@@ -127,15 +127,20 @@ bool protocol_transaction_in::handle_receive_inventory(const code& ec,
     // Prior to this level transaction relay is not configurable.
     if (!relay_from_peer_ && !response->inventories().empty())
     {
-        LOG_WARNING(LOG_NODE)
-            << "Unexpected transaction inventory from [" << authority() << "]";
-        stop(error::channel_stopped);
+        LOG_DEBUG(LOG_NODE)
+            << "Unexpected transaction inventory from [" << authority()
+            << "] transaction handling disabled for this peer.";
+
+        // Satoshi:0.14.0 and later are ignoring non-relay for inventory.
+        // This may relate to creating support for compact blocks.
+        // Unfortunately this requires that we allow the unwanted traffic.
+        ////stop(error::channel_stopped);
         return false;
     }
 
     // TODO: manage channel relay at the service layer.
     // Do not process tx inventory while chain is stale.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     // Remove hashes of (unspent) transactions that we already have.
@@ -198,7 +203,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
 
     // TODO: manage channel relay at the service layer.
     // Do not process transactions while chain is stale.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     message->validation.originator = nonce();
@@ -226,7 +231,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
     // It is okay for us to receive a duplicate or a missing outputs tx but it
     // is not generally okay to receive an otherwise invalid transaction.
     // Below-fee transactions can be sent prior to fee_filter receipt or due to
-    // a negotiated version below BIP133 (7013).
+    // a negotiated version below BIP133 (70013).
 
     // TODO: differentiate failure conditions and send reject as applicable.
 
@@ -265,7 +270,7 @@ void protocol_transaction_in::send_get_transactions(
 
 void protocol_transaction_in::handle_stop(const code&)
 {
-    LOG_DEBUG(LOG_NETWORK)
+    LOG_VERBOSE(LOG_NETWORK)
         << "Stopped transaction_in protocol for [" << authority() << "].";
 }
 

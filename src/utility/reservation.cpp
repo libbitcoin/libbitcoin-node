@@ -19,9 +19,9 @@
 #include <bitcoin/node/utility/reservation.hpp>
 
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <utility>
 #include <boost/format.hpp>
 #include <bitcoin/bitcoin.hpp>
@@ -32,39 +32,44 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace std::chrono;
+using namespace bc::blockchain;
 using namespace bc::chain;
 
-// The allowed number of standard deviations below the norm.
-// With 1 channel this multiple is irrelevant, no channels are dropped.
-// With 2 channels a < 1.0 multiple will drop a channel on every test.
-// With 2 channels a 1.0 multiple will fluctuate based on rounding deviations.
-// With 2 channels a > 1.0 multiple will prevent all channel drops.
-// With 3+ channels the multiple determines allowed deviation from the norm.
-static constexpr float multiple = 1.01f;
-
-// The minimum amount of block history to move the state from idle.
+// The minimum amount of block history to measure to determine window.
 static constexpr size_t minimum_history = 3;
 
-// Simple conversion factor, since we trace in micro and report in seconds.
+// Simple conversion factor, since we trace in microseconds.
 static constexpr size_t micro_per_second = 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
-    uint32_t sync_timeout_seconds)
-  : rate_({ true, 0, 0, 0 }),
-    stopped_(false),
-    pending_(true),
-    partitioned_(false),
+    float maximum_deviation, uint32_t block_latency_seconds)
+  : stopped_(true),
+    pending_(false),
     reservations_(reservations),
     slot_(slot),
-    rate_window_(minimum_history * sync_timeout_seconds * micro_per_second)
+    maximum_deviation_(maximum_deviation),
+    rate_window_(minimum_history * block_latency_seconds * micro_per_second),
+    idle_limit_(asio::steady_clock::now()),
+    rate_({ true, 0, 0, 0 })
 {
 }
 
-reservation::~reservation()
+void reservation::start()
 {
-    // This complicates unit testing and isn't strictly necessary.
-    ////BITCOIN_ASSERT_MSG(heights_.empty(), "The reservation is not empty.");
+    stopped_ = false;
+    pending_ = true;
+    idle_limit_.store(asio::steady_clock::now() + rate_window_);
+}
+
+void reservation::stop()
+{
+    stopped_ = true;
+    reset();
+}
+
+bool reservation::stopped() const
+{
+    return stopped_;
 }
 
 size_t reservation::slot() const
@@ -72,95 +77,64 @@ size_t reservation::slot() const
     return slot_;
 }
 
+void reservation::reset()
+{
+    // No change to reserved hashes.
+    set_rate({ true, 0, 0, 0 });
+    clear_history();
+}
+
+// protected
 bool reservation::pending() const
 {
     return pending_;
 }
 
+// protected
 void reservation::set_pending(bool value)
 {
     pending_ = value;
 }
 
-std::chrono::microseconds reservation::rate_window() const
+// protected
+asio::microseconds reservation::rate_window() const
 {
     return rate_window_;
 }
 
-high_resolution_clock::time_point reservation::now() const
+// protected
+reservation::clock_point reservation::now() const
 {
-    return high_resolution_clock::now();
+    return std::chrono::high_resolution_clock::now();
 }
 
 // Rate methods.
 //-----------------------------------------------------------------------------
 
-// Clears rate/history but leaves hashes unchanged.
-void reservation::reset()
+bool reservation::expired() const
 {
-    set_rate({ true, 0, 0, 0 });
-    clear_history();
+    return reservations_.expired(shared_from_this());
 }
 
-// Shortcut for rate().idle call.
-bool reservation::idle() const
+asio::time_point reservation::idle_limit() const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(rate_mutex_);
+    return idle_limit_.load();
+}
 
-    return rate_.idle;
-    ///////////////////////////////////////////////////////////////////////////
+performance reservation::rate() const
+{
+    return rate_.load();
 }
 
 void reservation::set_rate(performance&& rate)
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    unique_lock lock(rate_mutex_);
-
-    rate_ = std::move(rate);
-    ///////////////////////////////////////////////////////////////////////////
+    rate_.store(std::move(rate));
 }
 
-// Get a copy of the current rate.
-performance reservation::rate() const
-{
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(rate_mutex_);
+// History methods.
+//-----------------------------------------------------------------------------
 
-    return rate_;
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-// Ignore idleness here, called only from an active channel, avoiding a race.
-bool reservation::expired() const
-{
-    const auto record = rate();
-    const auto normal_rate = record.normal();
-    const auto statistics = reservations_.rates();
-    const auto deviation = normal_rate - statistics.arithmentic_mean;
-    const auto absolute_deviation = std::fabs(deviation);
-    const auto allowed_deviation = multiple * statistics.standard_deviation;
-    const auto outlier = absolute_deviation > allowed_deviation;
-    const auto below_average = deviation < 0;
-    const auto expired = below_average && outlier;
-
-    ////LOG_DEBUG(LOG_NODE)
-    ////    << "Statistics for slot (" << slot() << ")"
-    ////    << " adj:" << (normal_rate * micro_per_second)
-    ////    << " avg:" << (statistics.arithmentic_mean * micro_per_second)
-    ////    << " dev:" << (deviation * micro_per_second)
-    ////    << " sdv:" << (statistics.standard_deviation * micro_per_second)
-    ////    << " cnt:" << (statistics.active_count)
-    ////    << " neg:" << (below_average ? "T" : "F")
-    ////    << " out:" << (outlier ? "T" : "F")
-    ////    << " exp:" << (expired ? "T" : "F");
-
-    return expired;
-}
-
+// protected
 void reservation::clear_history()
 {
     // Critical Section
@@ -171,29 +145,33 @@ void reservation::clear_history()
     ///////////////////////////////////////////////////////////////////////////
 }
 
-// It is possible to get a rate update after idling and before starting anew.
-// This can reduce the average during startup of the new channel until start.
-void reservation::update_rate(size_t events, const microseconds& database)
+// protected
+// TODO: create an aggregate event counter on reservations object and report
+// on current aggregate rate for every new block.
+void reservation::update_history(size_t events,
+    const asio::microseconds& database)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
-    history_mutex_.lock();
+    history_mutex_.lock_upgrade();
 
-    performance rate{ false, 0, 0, 0 };
     const auto end = now();
-    const auto event_start = end - microseconds(database);
-    const auto start = end - rate_window();
+    const auto event_start = end - database;
+    const auto window_start = end - rate_window();
     const auto history_count = history_.size();
 
-    // Remove expired entries from the head of the queue.
-    for (auto it = history_.begin(); it != history_.end() && it->time < start;
+    // Remove expired entries from the head of queue ( window history only).
+    for (auto it = history_.begin();
+        it != history_.end() && it->time < window_start;
         it = history_.erase(it));
 
-    const auto window_full = history_count > history_.size();
+    const auto mature = history_count > history_.size();
     const auto event_cost = static_cast<uint64_t>(database.count());
+
+    history_mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     history_.push_back({ events, event_cost, event_start });
 
-    // We can't set the rate until we have a period (two or more data points).
     if (history_.size() < minimum_history)
     {
         history_mutex_.unlock();
@@ -201,29 +179,28 @@ void reservation::update_rate(size_t events, const microseconds& database)
         return;
     }
 
+    history_mutex_.unlock_and_lock_shared();
+    //---------------------------------------------------------------------
+    performance rate{ false, 0, 0, 0 };
+    const auto front = history_.front().time;
+
     // Summarize event count and database cost.
     for (const auto& record: history_)
     {
         BITCOIN_ASSERT(rate.events <= max_size_t - record.events);
         rate.events += record.events;
-        BITCOIN_ASSERT(rate.database <= max_uint64 - record.database);
-        rate.database += record.database;
+
+        BITCOIN_ASSERT(rate.discount <= max_uint64 - record.database);
+        rate.discount += record.database;
     }
 
-    // Calculate the duration of the rate window.
-    auto window = window_full ? rate_window() : (end - history_.front().time);
-    auto count = duration_cast<microseconds>(window).count();
-    rate.window = static_cast<uint64_t>(count);
-
-    history_mutex_.unlock();
+    history_mutex_.unlock_shared();
     ///////////////////////////////////////////////////////////////////////////
 
-    ////LOG_DEBUG(LOG_NODE)
-    ////    << "Records (" << slot() << ") "
-    ////    << " size: " << rate.events
-    ////    << " time: " << divide<double>(rate.window, micro_per_second)
-    ////    << " cost: " << divide<double>(rate.database, micro_per_second)
-    ////    << " full: " << (full ? "true" : "false");
+    // Calculate the duration of the rate window.
+    auto window = mature ? rate_window() : end - front;
+    auto duration = std::chrono::duration_cast<asio::microseconds>(window);
+    rate.window = static_cast<uint64_t>(duration.count());
 
     // Update the rate cache.
     set_rate(std::move(rate));
@@ -252,205 +229,56 @@ size_t reservation::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-bool reservation::stopped() const
-{
-    // Critical Section (stop)
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(stop_mutex_);
-
-    return stopped_;
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-// Obtain and clear the outstanding blocks request.
-message::get_data reservation::request(bool new_channel)
-{
-    message::get_data packet;
-
-    // We are a new channel, clear history and rate data, next block starts.
-    if (new_channel)
-        reset();
-
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    hash_mutex_.lock_upgrade();
-
-    if (!new_channel && !pending_)
-    {
-        hash_mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
-        return packet;
-    }
-
-    // Build get_blocks request message.
-    for (auto height = heights_.right.begin(); height != heights_.right.end();
-        ++height)
-    {
-        static const auto id = message::inventory::type_id::block;
-        packet.inventories().emplace_back(id, height->second);
-    }
-
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    hash_mutex_.unlock_upgrade_and_lock();
-    pending_ = false;
-    hash_mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-
-    return packet;
-}
-
-void reservation::insert(hash_digest&& hash, size_t height)
+void reservation::insert(config::checkpoint&& check)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(hash_mutex_);
 
     pending_ = true;
-    heights_.insert({ std::move(hash), height });
+    heights_.insert({ std::move(check.hash()), check.height() });
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void reservation::import(block_const_ptr block)
+// Obtain and clear the outstanding blocks request.
+message::get_data reservation::request()
 {
-    size_t height;
-    const auto hash = block->header().hash();
-    const auto encoded = encode_hash(hash);
+    if (stopped())
+        return{};
 
-    if (!find_height_and_erase(hash, height))
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Ignoring unsolicited block (" << slot() << ") ["
-            << encoded << "]";
-        return;
-    }
+    // Keep outside of lock, okay if becomes empty before lock.
+    if (empty())
+        reservations_.populate(shared_from_this());
 
-    bool success;
-    const auto importer = [this, &block, &height, &success]()
-    {
-        success = reservations_.import(block, height);
-    };
-
-    // Do the block import with timer.
-    const auto cost = timer<microseconds>::duration(importer);
-
-    if (success)
-    {
-        static const auto unit_size = 1u;
-        update_rate(unit_size, cost);
-        const auto record = rate();
-        static const auto formatter =
-            "Imported block #%06i (%02i) [%s] %06.2f %05.2f%%";
-
-        LOG_INFO(LOG_NODE)
-            << boost::format(formatter) % height % slot() % encoded %
-            (record.total() * micro_per_second) % (record.ratio() * 100);
-    }
-    else
-    {
-        // This could also result from a block import failure resulting from
-        // inserting at a height that is already populated, but that should be
-        // precluded by the implementation. This is the only other failure.
-        LOG_DEBUG(LOG_NODE)
-            << "Stopped before importing block (" << slot() << ") ["
-            << encoded << "]";
-    }
-
-    populate();
-}
-
-void reservation::populate()
-{
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    stop_mutex_.lock_upgrade();
-
-    if (!stopped_ && empty())
-    {
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        stop_mutex_.unlock_upgrade_and_lock();
-        stopped_ = !reservations_.populate(shared_from_this());
-        stop_mutex_.unlock();
-        //---------------------------------------------------------------------
-        return;
-    }
-
-    stop_mutex_.unlock_upgrade();
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-bool reservation::toggle_partitioned()
-{
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     hash_mutex_.lock_upgrade();
 
-    if (partitioned_)
+    if (!pending_)
     {
-        //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        hash_mutex_.unlock_upgrade_and_lock();
-        partitioned_ = false;
-        pending_ = true;
-        hash_mutex_.unlock();
+        hash_mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
-        return true;
+        return{};
     }
 
-    hash_mutex_.unlock_upgrade();
-    ///////////////////////////////////////////////////////////////////////////
+    message::get_data packet;
+    const auto& right = heights_.right;
 
-    return false;
-}
+    // Build get_blocks request message.
+    for (auto height = right.begin(); height != right.end(); ++height)
+    {
+        static const auto id = message::inventory::type_id::block;
+        packet.inventories().emplace_back(id, height->second);
+    }
 
-// Give the minimal row ~ half of our hashes, return false if minimal is empty.
-bool reservation::partition(reservation::ptr minimal)
-{
-    // This assumes that partition has been called under a table mutex.
-    if (!minimal->empty())
-        return true;
-
-    // Critical Section (hash)
-    ///////////////////////////////////////////////////////////////////////////
-    hash_mutex_.lock_upgrade();
-
-    // This addition is safe.
-    // Take half of the maximal reservation, rounding up to get last entry.
-    const auto offset = (heights_.size() + 1u) / 2u;
-    auto it = heights_.right.begin();
-
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
-
-    // TODO: move the range in a single command.
-    for (size_t index = 0; index < offset; ++index)
-    {
-        minimal->heights_.right.insert(std::move(*it));
-        it = heights_.right.erase(it);
-    }
-
-    partitioned_ = !heights_.empty();
-    const auto populated = !minimal->empty();
-    minimal->pending_ = populated;
-
-    if (!partitioned_)
-    {
-        // Critical Section (stop)
-        ///////////////////////////////////////////////////////////////////////
-        unique_lock lock(stop_mutex_);
-
-        // If the channel has been emptied it will not repopulate.
-        stopped_ = true;
-        ///////////////////////////////////////////////////////////////////////
-    }
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    pending_ = false;
 
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
-    if (populated)
-        LOG_DEBUG(LOG_NODE)
-            << "Moved [" << minimal->size() << "] blocks from slot (" << slot()
-            << ") to (" << minimal->slot() << ") leaving [" << size() << "].";
-
-    return populated;
+    return packet;
 }
 
 bool reservation::find_height_and_erase(const hash_digest& hash,
@@ -471,13 +299,96 @@ bool reservation::find_height_and_erase(const hash_digest& hash,
 
     out_height = it->second;
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     hash_mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     heights_.left.erase(it);
+
     hash_mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 
     return true;
+}
+
+code reservation::import(safe_chain& chain, block_const_ptr block,
+    size_t height)
+{
+    const auto start = now();
+
+    //#########################################################################
+    const auto ec = chain.update(block, height);
+    //#########################################################################
+
+    if (ec)
+        return ec;
+
+    // Recompute rate performance.
+    auto size = block->serialized_size(message::version::level::canonical);
+    auto time = std::chrono::duration_cast<asio::microseconds>(now() - start);
+
+    // Update history data for computing peer performance standard deviation.
+    update_history(size, time);
+    const auto remaining = reservations_.size();
+
+    // Only log performance every ~10th block, until ~one day left.
+    if (remaining < 144 || height % 10 == 0)
+    {
+        // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
+        static const auto form = "Block #%06i (%02i) [%s] %07.3f %05.2f%% %i";
+        const auto record = rate();
+        const auto encoded = encode_hash(block->hash());
+        const auto database_percentage = record.ratio() * 100;
+
+        LOG_INFO(LOG_NODE)
+            << boost::format(form) % height % slot() % encoded %
+            performance::to_megabits_per_second(record.rate()) %
+            database_percentage % remaining;
+    }
+
+    return error::success;
+}
+
+// Give the minimal row ~ half of our hashes, return false if minimal is empty.
+bool reservation::partition(reservation::ptr minimal)
+{
+    BITCOIN_ASSERT_MSG(minimal->empty(), "partition to non-empty reservation");
+
+    // Critical Section (hash)
+    ///////////////////////////////////////////////////////////////////////////
+    hash_mutex_.lock_upgrade();
+
+    // Take half of maximal reservation, rounding up to get last entry (safe).
+    // If the reservation is stopped take the full amount.
+    const auto count = heights_.size();
+    const auto offset = stopped_ ? count : (heights_.size() + 1u) / 2u;
+    auto it = heights_.right.begin();
+
+    hash_mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    // TODO: move the range in a single command.
+    for (size_t index = 0; index < offset; ++index)
+    {
+        minimal->heights_.right.insert(std::move(*it));
+        it = heights_.right.erase(it);
+    }
+
+    hash_mutex_.unlock_and_lock_shared();
+    //-------------------------------------------------------------------------
+    const auto populated = offset != 0;
+
+    // The minimal reservation is pending if it has been increased.
+    // The maximal reservation is partitioned if it has been reduced.
+    // Stop the channel so we stop accepting previously-requested blocks.
+    if (populated)
+    {
+        minimal->pending_ = true;
+        stop();
+    }
+
+    hash_mutex_.unlock_shared();
+    ///////////////////////////////////////////////////////////////////////////
+
+    return populated;
 }
 
 } // namespace node

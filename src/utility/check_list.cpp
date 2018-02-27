@@ -19,14 +19,13 @@
 #include <bitcoin/node/utility/check_list.hpp>
 
 #include <cstddef>
+#include <iterator>
+#include <list>
 #include <utility>
-#include <boost/bimap/support/lambda.hpp>
-#include <bitcoin/blockchain.hpp>
+#include <bitcoin/bitcoin.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-using namespace bc::database;
 
 bool check_list::empty() const
 {
@@ -48,54 +47,151 @@ size_t check_list::size() const
     ///////////////////////////////////////////////////////////////////////////
 }
 
-void check_list::reserve(const block_database::heights& heights)
+void check_list::push_back(hash_digest&& hash, size_t height)
 {
+    BITCOIN_ASSERT_MSG(height != 0, "pushed genesis height for download");
+
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
-    unique_lock lock(mutex_);
+    mutex_.lock_upgrade();
 
-    checks_.clear();
-
-    for (const auto height: heights)
-        const auto it = checks_.insert({ null_hash, height });
-
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-void check_list::enqueue(hash_digest&& hash, size_t height)
-{
-    ///////////////////////////////////////////////////////////////////////////
-    // Critical Section
-    unique_lock lock(mutex_);
-
-    using namespace boost::bimaps;
-    const auto it = checks_.right.find(height);
-
-    // Ignore the entry if it is not reserved.
-    if (it == checks_.right.end())
+    if (!checks_.empty() && checks_.back().height() >= height)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "pushed height out of order");
         return;
+    }
 
-    BITCOIN_ASSERT(it->second == null_hash);
-    checks_.right.modify_data(it, _data = std::move(hash));
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.emplace_back(std::move(hash), height);
+
+    mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
 }
 
-bool check_list::dequeue(hash_digest& out_hash, size_t& out_height)
+void check_list::pop_back(const hash_digest& hash, size_t height)
 {
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
-    unique_lock lock(mutex_);
+    mutex_.lock_upgrade();
 
-    // Overlocking to reduce code in the dominant path.
-    if (checks_.empty())
-        return false;
+    if (checks_.empty() || checks_.back().hash() != hash)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        ////BITCOIN_ASSERT_MSG(false, "popped from empty list");
+        return;
+    }
 
-    auto it = checks_.right.begin();
-    out_height = it->first;
-    out_hash = it->second;
-    checks_.right.erase(it);
-    return true;
+    if (checks_.back().height() != height)
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "popped invalid height for hash");
+        return;
+    }
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.pop_back();
+
+    mutex_.unlock();
     ///////////////////////////////////////////////////////////////////////////
+}
+
+void check_list::push_front(hash_digest&& hash, size_t height)
+{
+    BITCOIN_ASSERT_MSG(height != 0, "enqueued genesis height for download");
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex_.lock_upgrade();
+
+    if (!checks_.empty() && height >= checks_.front().height())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "enqueued height out of order");
+        return;
+    }
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.emplace_front(std::move(hash), height);
+
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+config::checkpoint check_list::pop_front()
+{
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex_.lock_upgrade();
+
+    if (checks_.empty())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        BITCOIN_ASSERT_MSG(false, "dequeued from empty list");
+        return{};
+    }
+
+    const auto check = checks_.front();
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    checks_.pop_front();
+
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+
+    return check;
+}
+
+// protected
+void check_list::advance(checks::iterator& it, size_t step)
+{
+    for (size_t i = 0; it != checks_.end() && i < step;
+        it = std::next(it), ++i);
+}
+
+check_list::checks check_list::extract(size_t divisor, size_t limit)
+{
+    if (divisor == 0 || limit == 0)
+        return{};
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Critical Section
+    mutex_.lock_upgrade();
+
+    // Guard against empty initial list (loop safety).
+    if (checks_.empty())
+    {
+        mutex_.unlock_upgrade();
+        //---------------------------------------------------------------------
+        return{};
+    }
+
+    mutex_.unlock_upgrade_and_lock();
+    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    checks result;
+    const auto step = divisor - 1u;
+
+    for (auto it = checks_.begin();
+        it != checks_.end() && result.size() < limit; advance(it, step))
+    {
+        result.push_front(*it);
+        it = checks_.erase(it);
+    }
+
+    mutex_.unlock();
+    ///////////////////////////////////////////////////////////////////////////
+
+    return result;
 }
 
 } // namespace node

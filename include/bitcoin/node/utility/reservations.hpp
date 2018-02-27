@@ -22,13 +22,16 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <list>
 #include <memory>
 #include <vector>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/utility/check_list.hpp>
+#include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -37,71 +40,68 @@ namespace node {
 class BCN_API reservations
 {
 public:
-    typedef struct
-    {
-        size_t active_count;
-        double arithmentic_mean;
-        double standard_deviation;
-    } rate_statistics;
-
     typedef std::shared_ptr<reservations> ptr;
 
-    /// Construct a reservation table of reservations, allocating hashes evenly
-    /// among the rows up to the limit of a single get headers p2p request.
-    reservations(check_list& hashes, blockchain::fast_chain& chain,
-        const settings& settings);
+    /// Construct an empty table of reservations.
+    reservations(size_t minimum_peer_count, float maximum_deviation,
+        uint32_t block_latency_seconds);
 
-    /// Set the flush lock guard.
-    bool start();
+    /// Pop header hash to back (if hash at back), verify the height.
+    void pop_back(const chain::header& header, size_t height);
 
-    /// Clear the flush lock guard.
-    bool stop();
+    /// Push header hash to back, verify the height is increasing.
+    void push_back(const chain::header& header, size_t height);
 
-    /// The average and standard deviation of block import rates.
-    rate_statistics rates() const;
+    /// Push header hash to front, verify the height is decreasing.
+    void push_front(hash_digest&& hash, size_t height);
 
-    /// Return a copy of the reservation table.
-    reservation::list table() const;
-
-    /// Import the given block to the blockchain at the specified height.
-    bool import(block_const_ptr block, size_t height);
+    /// Get a download reservation manager.
+    reservation::ptr get();
 
     /// Populate a starved row by taking half of the hashes from a weak row.
     bool populate(reservation::ptr minimal);
 
-    /// Remove the row from the reservation table if found.
-    void remove(reservation::ptr row);
+    /// Check a partition for expiration.
+    bool expired(reservation::const_ptr partition) const;
 
-    /// The max size of a block request.
-    size_t max_request() const;
+    /// The total number of pending block hashes.
+    size_t size() const;
 
-    /// Set the max size of a block request (defaults to 50000).
-    void set_max_request(size_t value);
-
-private:
-    bool inline flush(size_t height);
-
-    // Create the specified number of reservations and distribute hashes.
-    void initialize(size_t connections);
-
-    // Find the reservation with the most hashes.
-    reservation::ptr find_maximal();
-
-    // Move half of the maximal reservation to the specified reservation.
-    bool partition(reservation::ptr minimal);
+protected:
+    // Obtain a copy of the reservations table.
+    reservation::list table() const;
 
     // Move the maximum unreserved hashes to the specified reservation.
     bool reserve(reservation::ptr minimal);
 
-    // Thread safe.
-    check_list& hashes_;
-    std::atomic<size_t> max_request_;
-    const uint32_t timeout_;
+    // Move half of the maximal reservation to the specified reservation.
+    bool partition(reservation::ptr minimal);
 
-    // Protected by block exclusivity and limited call scope.
-    blockchain::fast_chain& chain_;
+    // Check a partition for expiration, with conditional locking.
+    bool expired(reservation::const_ptr partition, bool lock) const;
+
+    // Find the reservation with the most hashes.
+    reservation::ptr find_maximal();
+
+    // The average and standard deviation of block import rates.
+    statistics rates(size_t slot, const performance& current, bool lock) const;
+
+    // The number of hashes currently reserved.
+    size_t reserved() const;
+
+    // The number of hashes available for reservation.
+    size_t unreserved() const;
+
+private:
+    // Thread safe.
+    check_list hashes_;
+    const size_t max_request_;
+    const size_t minimum_peer_count_;
+    const uint32_t block_latency_seconds_;
+    const float maximum_deviation_;
 
     // Protected by mutex.
+    bool initialized_;
     reservation::list table_;
     mutable upgrade_mutex mutex_;
 };
@@ -110,4 +110,3 @@ private:
 } // namespace libbitcoin
 
 #endif
-

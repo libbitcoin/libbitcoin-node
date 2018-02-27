@@ -39,20 +39,24 @@ public:
     typedef std::shared_ptr<protocol_block_sync> ptr;
 
     /// Construct a block sync protocol instance.
-    protocol_block_sync(full_node& network, network::channel::ptr channel,
-        reservation::ptr row);
+    protocol_block_sync(full_node& node, network::channel::ptr channel,
+        blockchain::safe_chain& chain);
 
     /// Start the protocol.
-    virtual void start(event_handler handler);
+    virtual void start();
 
 private:
-    void send_get_blocks(event_handler complete, bool reset);
-    void handle_event(const code& ec, event_handler complete);
-    void blocks_complete(const code& ec, event_handler handler);
-    bool handle_receive_block(const code& ec, block_const_ptr message,
-        event_handler complete);
+    void send_get_blocks();
+    void handle_event(const code& ec);
+    bool handle_receive_block(const code& ec, block_const_ptr message);
+    bool handle_reindexed(code ec, size_t fork_height,
+        header_const_ptr_list_const_ptr incoming,
+        header_const_ptr_list_const_ptr outgoing);
+
+    blockchain::safe_chain& chain_;
 
     reservation::ptr reservation_;
+    mutable upgrade_mutex mutex_;
 };
 
 } // namespace node

@@ -16,16 +16,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <boost/test/unit_test.hpp>
-#include <bitcoin/node.hpp>
+#ifndef LIBBITCOIN_NODE_STATISTICS_HPP
+#define LIBBITCOIN_NODE_STATISTICS_HPP
 
-using namespace bc;
+#include <cstddef>
+#include <bitcoin/node/define.hpp>
 
-BOOST_AUTO_TEST_SUITE(header_list_tests)
+namespace libbitcoin {
+namespace node {
 
-BOOST_AUTO_TEST_CASE(todo)
+struct BCN_API statistics
 {
-    BOOST_REQUIRE(true);
-}
+    size_t active_count;
+    double arithmentic_mean;
+    double standard_deviation;
+};
 
-BOOST_AUTO_TEST_SUITE_END()
+} // namespace node
+} // namespace libbitcoin
+
+#endif

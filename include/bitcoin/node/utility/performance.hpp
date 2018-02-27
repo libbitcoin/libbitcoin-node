@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -31,19 +32,29 @@ namespace node {
 class BCN_API performance
 {
 public:
+    // Use microseconds and bytes internally for precision.
+    static double to_megabits_per_second(double bytes_per_microsecond);
 
-    /// The normalized rate derived from the performance values.
-    double normal() const;
+    /// The event rate, exclusive of discount time.
+    double rate() const;
 
-    /// The rate derived from the performance values (inclusive of store cost).
-    double total() const;
-
-    /// The ratio of database time to total time.
+    /// The ratio of discount time to total time.
     double ratio() const;
 
+    /// The standard deviation exceeds allowed multiple.
+    bool expired(size_t slot, float maximum_deviation,
+        const statistics& summary) const;
+
+    // An idling slot has less than minimum history for calculation.
     bool idle;
+
+    // The number of events measured (e.g. bytes or blocks).
     size_t events;
-    uint64_t database;
+
+    // Database cost in microseconds, so we do not count against peer.
+    uint64_t discount;
+
+    // Measurement moving window duration in microseconds.
     uint64_t window;
 };
 
@@ -59,4 +70,3 @@ static Quotient divide(Dividend dividend, Divisor divisor)
 } // namespace libbitcoin
 
 #endif
-

@@ -22,11 +22,10 @@
 #include <cstdint>
 #include <functional>
 #include <utility>
+#include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session_block_sync.hpp>
-#include <bitcoin/node/sessions/session_header_sync.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
@@ -38,10 +37,14 @@ using namespace bc::blockchain;
 using namespace bc::chain;
 using namespace bc::config;
 using namespace bc::network;
+using namespace boost::adaptors;
 using namespace std::placeholders;
 
 full_node::full_node(const configuration& configuration)
   : p2p(configuration.network),
+    reservations_(configuration.network.minimum_connections(),
+        configuration.node.maximum_deviation,
+        configuration.node.block_latency_seconds),
     chain_(thread_pool(), configuration.chain, configuration.database),
     protocol_maximum_(configuration.network.protocol_maximum),
     chain_settings_(configuration.chain),
@@ -81,6 +84,7 @@ void full_node::start(result_handler handler)
 // Run sequence.
 // ----------------------------------------------------------------------------
 
+// This follows seeding as an explicit step, sync hooks may go here.
 void full_node::run(result_handler handler)
 {
     if (stopped())
@@ -89,53 +93,7 @@ void full_node::run(result_handler handler)
         return;
     }
 
-    // Skip sync sessions.
     handle_running(error::success, handler);
-    return;
-
-    // TODO: make this safe by requiring sync if gaps found.
-    ////// By setting no download connections checkpoints can be used without sync.
-    ////// This also allows the maximum protocol version to be set below headers.
-    ////if (settings_.sync_peers == 0)
-    ////{
-    ////    // This will spawn a new thread before returning.
-    ////    handle_running(error::success, handler);
-    ////    return;
-    ////}
-
-    ////// The instance is retained by the stop handler (i.e. until shutdown).
-    ////const auto header_sync = attach_header_sync_session();
-
-    ////// This is invoked on a new thread.
-    ////header_sync->start(
-    ////    std::bind(&full_node::handle_headers_synchronized,
-    ////        this, _1, handler));
-}
-
-void full_node::handle_headers_synchronized(const code& ec,
-    result_handler handler)
-{
-    ////if (stopped())
-    ////{
-    ////    handler(error::service_stopped);
-    ////    return;
-    ////}
-
-    ////if (ec)
-    ////{
-    ////    LOG_ERROR(LOG_NODE)
-    ////        << "Failure synchronizing headers: " << ec.message();
-    ////    handler(ec);
-    ////    return;
-    ////}
-
-    ////// The instance is retained by the stop handler (i.e. until shutdown).
-    ////const auto block_sync = attach_block_sync_session();
-
-    ////// This is invoked on a new thread.
-    ////block_sync->start(
-    ////    std::bind(&full_node::handle_running,
-    ////        this, _1, handler));
 }
 
 void full_node::handle_running(const code& ec, result_handler handler)
@@ -154,22 +112,51 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    size_t top_height;
-    hash_digest top_hash;
-
-    if (!chain_.get_last_height(top_height) ||
-        !chain_.get_block_hash(top_hash, top_height))
+    checkpoint header;
+    if (!chain_.get_top(header, false))
     {
         LOG_ERROR(LOG_NODE)
-            << "The blockchain is corrupt.";
+            << "The header chain is corrupt.";
         handler(error::operation_failed);
         return;
     }
 
-    set_top_block({ std::move(top_hash), top_height });
+    set_top_header(header);
+    LOG_INFO(LOG_NODE)
+        << "Node header height is (" << header.height() << ").";
+
+    subscribe_headers(
+        std::bind(&full_node::handle_reindexed,
+            this, _1, _2, _3, _4));
+
+    checkpoint block;
+    if (!chain_.get_top(block, true))
+    {
+        LOG_ERROR(LOG_NODE)
+            << "The block chain is corrupt.";
+        handler(error::operation_failed);
+        return;
+    }
+
+    set_top_block(block);
+    LOG_INFO(LOG_NODE)
+        << "Node block height is (" << block.height() << ").";
+
+    bool is_empty;
+    hash_digest hash;
+
+    // Scan header index from top down until first valid block is found.
+    // Genesis ensures loop termination, and existence is guaranteed above.
+    // An invalid block will be treated as valid here, terminating the loop.
+    for (auto height = header.height();
+        chain_.get_pending_block_hash(hash, is_empty, height); --height)
+    {
+        if (is_empty)
+            reservations_.push_front(std::move(hash), height);
+    }
 
     LOG_INFO(LOG_NODE)
-        << "Node start height is (" << top_height << ").";
+        << "Pending block downloads (" << reservations_.size() << ").";
 
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,
@@ -178,6 +165,42 @@ void full_node::handle_running(const code& ec, result_handler handler)
     // This is invoked on a new thread.
     // This is the end of the derived run startup sequence.
     p2p::run(handler);
+}
+
+// A typical reorganization consists of one incoming and zero outgoing blocks.
+bool full_node::handle_reindexed(code ec, size_t fork_height,
+    header_const_ptr_list_const_ptr incoming,
+    header_const_ptr_list_const_ptr outgoing)
+{
+    if (stopped() || ec == error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Failure handling reindex: " << ec.message();
+        stop();
+        return false;
+    }
+
+    // Nothing to do here.
+    if (!incoming || incoming->empty())
+        return true;
+
+    // First pop height is highest outgoing.
+    auto height = fork_height + outgoing->size();
+
+    // Pop outgoing reservations from download queue (if at top), high first.
+    for (const auto header: reverse(*outgoing))
+        reservations_.pop_back(*header, height--);
+
+    // Push unpopulated incoming reservations (can't expect parent), low first.
+    for (const auto header: *incoming)
+        reservations_.push_back(*header, ++height);
+
+    // Top height will be: fork_height + incoming->size();
+    set_top_header({ incoming->back()->hash(), height });
+    return true;
 }
 
 // A typical reorganization consists of one incoming and zero outgoing blocks.
@@ -201,12 +224,13 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
         return true;
 
     for (const auto block: *outgoing)
+    {
         LOG_DEBUG(LOG_NODE)
-            << "Reorganization moved block to orphan pool ["
+            << "Reorganization moved block to pool ["
             << encode_hash(block->header().hash()) << "]";
+    }
 
-    const auto height = safe_add(fork_height, incoming->size());
-
+    const auto height = fork_height + incoming->size();
     set_top_block({ incoming->back()->hash(), height });
     return true;
 }
@@ -215,7 +239,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
 // ----------------------------------------------------------------------------
 // Create derived sessions and override these to inject from derived node.
 
-// Must not connect until running, otherwise imports may conflict with sync.
+// Must not connect until running, otherwise messages may conflict with sync.
 // But we establish the session in network so caller doesn't need to run.
 network::session_manual::ptr full_node::attach_manual_session()
 {
@@ -230,17 +254,6 @@ network::session_inbound::ptr full_node::attach_inbound_session()
 network::session_outbound::ptr full_node::attach_outbound_session()
 {
     return attach<node::session_outbound>(chain_);
-}
-
-session_header_sync::ptr full_node::attach_header_sync_session()
-{
-    return attach<session_header_sync>(hashes_, chain_,
-        chain_.chain_settings().checkpoints);
-}
-
-session_block_sync::ptr full_node::attach_block_sync_session()
-{
-    return attach<session_block_sync>(hashes_, chain_, node_settings_);
 }
 
 // Shutdown
@@ -302,8 +315,18 @@ safe_chain& full_node::chain()
     return chain_;
 }
 
+reservation::ptr full_node::get_reservation()
+{
+    return reservations_.get();
+}
+
 // Subscriptions.
 // ----------------------------------------------------------------------------
+
+void full_node::subscribe_headers(reindex_handler&& handler)
+{
+    chain().subscribe_headers(std::move(handler));
+}
 
 void full_node::subscribe_blockchain(reorganize_handler&& handler)
 {

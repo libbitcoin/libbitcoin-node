@@ -47,6 +47,7 @@ inline bool is_witness(uint64_t services)
     return (services & version::service::node_witness) != 0;
 }
 
+// TODO: break out protocol_header_out.
 protocol_block_out::protocol_block_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
@@ -479,7 +480,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         return true;
 
     // Do not announce blocks to peer if too far behind.
-    if (chain_.is_stale())
+    if (chain_.is_blocks_stale())
         return true;
 
     // TODO: consider always sending the last block as compact if enabled.
@@ -488,7 +489,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         // TODO: move compact_block to a derived class protocol_block_out_70014.
         const auto block = incoming->front();
 
-        if (block->validation.originator != nonce())
+        if (block->header().validation.originator != nonce())
         {
             // TODO: construct a compact block from a block and a nonce.
             ////compact_block announce(block, pseudo_random(1, max_uint64));
@@ -504,7 +505,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         headers announce;
 
         for (const auto block: *incoming)
-            if (block->validation.originator != nonce())
+            if (block->header().validation.originator != nonce())
                 announce.elements().push_back(block->header());
 
         if (!announce.elements().empty())
@@ -524,7 +525,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t fork_height,
         inventory announce;
 
         for (const auto block: *incoming)
-            if (block->validation.originator != nonce())
+            if (block->header().validation.originator != nonce())
                 announce.inventories().push_back(
                     { inventory::type_id::block, block->header().hash() });
 
@@ -546,7 +547,7 @@ void protocol_block_out::handle_stop(const code&)
 {
     chain_.unsubscribe();
 
-    LOG_DEBUG(LOG_NETWORK)
+    LOG_VERBOSE(LOG_NETWORK)
         << "Stopped block_out protocol for [" << authority() << "].";
 }
 
@@ -569,7 +570,7 @@ void protocol_block_out::handle_stop(const code&)
 size_t protocol_block_out::locator_limit()
 {
     const auto height = node_.top_block().height();
-    return safe_add(chain::block::locator_size(height), size_t(1));
+    return chain::block::locator_size(height) + 1;
 }
 
 // Threshold:

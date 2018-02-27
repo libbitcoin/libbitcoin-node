@@ -30,6 +30,7 @@
 #include <bitcoin/node/utility/check_list.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
+#include <bitcoin/node/utility/statistics.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -37,58 +38,226 @@ namespace node {
 using namespace bc::blockchain;
 using namespace bc::chain;
 
-reservations::reservations(check_list& hashes, fast_chain& chain,
-    const settings& settings)
-  : hashes_(hashes),
-    max_request_(max_get_data),
-    timeout_(settings.sync_timeout_seconds),
-    chain_(chain)
+reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
+    uint32_t block_latency_seconds)
+  : max_request_(max_get_data),
+    minimum_peer_count_(minimum_peer_count),
+    block_latency_seconds_(block_latency_seconds),
+    maximum_deviation_(maximum_deviation),
+    initialized_(false)
 {
-    initialize(std::min(settings.sync_peers, 3u));
 }
 
-bool reservations::start()
+void reservations::pop_back(const chain::header& header, size_t height)
 {
-    return chain_.begin_insert();
+    hashes_.pop_back(header.hash(), height);
 }
 
-bool reservations::import(block_const_ptr block, size_t height)
+void reservations::push_back(const chain::header& header, size_t height)
 {
-    //#########################################################################
-    return chain_.insert(block, height);
-    //#########################################################################
+    if (!header.validation.populated)
+        hashes_.push_back(header.hash(), height);
 }
 
-bool reservations::stop()
+void reservations::push_front(hash_digest&& hash, size_t height)
 {
-    return chain_.end_insert();
+    hashes_.push_front(std::move(hash), height);
 }
 
-// Rate methods.
-//-----------------------------------------------------------------------------
-
-// A statistical summary of block import rates.
-// This computation is not synchronized across rows because rates are cached.
-reservations::rate_statistics reservations::rates() const
+reservation::ptr reservations::get()
 {
-    // Copy row pointer table to prevent need for lock during iteration.
-    auto rows = table();
-    const auto idle = [](reservation::ptr row)
+    const auto stopped = [](reservation::ptr row)
     {
-        return row->idle();
+        return row->stopped();
     };
 
-    // Remove idle rows from the table.
-    rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
-    const auto active_rows = rows.size();
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock lock(mutex_);
 
-    std::vector<double> rates(active_rows);
-    const auto normal_rate = [](reservation::ptr row)
+    // Guarantee the minimal row set (first run only).
+    for (size_t index = table_.size(); index < minimum_peer_count_; ++index)
+        table_.push_back(std::make_shared<reservation>(*this, index,
+            maximum_deviation_, block_latency_seconds_));
+
+    // Find the first row that is not stopped.
+    auto it = std::find_if(table_.begin(), table_.end(), stopped);
+
+    if (it != table_.end())
     {
-        return row->rate().normal();
+        (*it)->start();
+        return *it;
+    }
+
+    // This allows for the addition of incoming connections.
+    const auto row = std::make_shared<reservation>(*this, table_.size(),
+        maximum_deviation_, block_latency_seconds_);
+    table_.push_back(row);
+    row->start();
+
+    return row;
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+// Call when minimal is empty.
+// Take from unallocated or allocated hashes, true if minimal not empty.
+bool reservations::populate(reservation::ptr minimal)
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    unique_lock lock(mutex_);
+
+    return reserve(minimal) || partition(minimal);
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+// protected
+reservation::list reservations::table() const
+{
+    // Critical Section
+    ///////////////////////////////////////////////////////////////////////////
+    shared_lock lock(mutex_);
+
+    return table_;
+    ///////////////////////////////////////////////////////////////////////////
+}
+
+// protected
+bool reservations::reserve(reservation::ptr minimal)
+{
+    // Intitialize the row set as late as possible.
+    if (!initialized_)
+    {
+        initialized_ = true;
+        const auto count = max_request_ * minimum_peer_count_;
+        const auto checks = std::min(count, hashes_.size());
+
+        // Balance set size and block heights across the minimal row set.
+        for (size_t check = 0; check < checks; ++check)
+            table_[check % minimum_peer_count_]->insert(hashes_.pop_front());
+    }
+
+    if (!minimal->empty())
+        return true;
+
+    // Obtain own fraction of whatever hashes remain unreserved.
+    const auto checks = hashes_.extract(table_.size(), max_request_);
+    const auto reserved = !checks.empty();
+
+    // Order matters here.
+    for (auto check: checks)
+        minimal->insert(std::move(check));
+
+    if (reserved)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Reserved " << minimal->size() << " blocks to slot ("
+            << minimal->slot() << ").";
+    }
+
+    return reserved;
+}
+
+// protected
+bool reservations::partition(reservation::ptr minimal)
+{
+    if (!minimal->empty())
+        return true;
+
+    const auto maximal = find_maximal();
+
+    if (!maximal || maximal == minimal)
+        return false;
+
+    // This causes reduction of an active reservation, requiring a stop.
+    const auto partitioned = maximal->partition(minimal);
+
+    if (partitioned)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Partitioned " << minimal->size() << " blocks from slot ("
+            << maximal->slot() << ") to slot (" << minimal->slot() << ").";
+    }
+
+    return partitioned;
+}
+
+bool reservations::expired(reservation::const_ptr partition) const
+{
+    return expired(partition, true);
+}
+
+// External callers will invoke the lock, but the internal call cannot.
+bool reservations::expired(reservation::const_ptr partition, bool lock) const
+{
+    // Cannot expire if empty.
+    if (partition->empty())
+        return false;
+
+    const auto current = partition->rate();
+
+    // Cannot expire if idle unless startup limit is exceeded.
+    if (current.idle)
+        return asio::steady_clock::now() > partition->idle_limit();
+
+    // Summary must be computed using same rate for slot, so pass here.
+    const auto summary = rates(partition->slot(), current, lock);
+
+    // Expires if deviation exceeds norm by more than allowed.
+    return current.expired(partition->slot(), maximum_deviation_, summary);
+}
+
+// protected
+// The maximal row has the most block hashes reserved (prefer stopped).
+reservation::ptr reservations::find_maximal()
+{
+    if (table_.empty())
+        return nullptr;
+
+    const auto comparer = [](reservation::ptr left, reservation::ptr right)
+    {
+        if (left->stopped() && !right->stopped())
+            return true;
+
+        if (right->stopped() && !left->stopped())
+            return false;
+
+        return left->size() < right->size();
+    };
+
+    auto maximal = *std::max_element(table_.begin(), table_.end(), comparer);
+
+    // If down to one hash and the owner is not expired, do not partition.
+    return maximal->size() == 1 && !expired(maximal, false) ? nullptr : maximal;
+}
+
+// protected
+// A statistical summary of block import rates.
+// This computation is not synchronized across rows because rates are cached.
+statistics reservations::rates(size_t slot, const performance& current,
+    bool lock) const
+{
+    // Get a copy of the list of reservation pointers.
+    auto rows = lock ? table() : table_;
+
+    // An idle row does not have sufficient history for measurement.
+    const auto idle = [&](reservation::ptr row)
+    {
+        return row->slot() == slot ? current.idle : row->rate().idle;
+    };
+
+    // Purge idle and empty rows from the temporary table.
+    rows.erase(std::remove_if(rows.begin(), rows.end(), idle), rows.end());
+
+    const auto active_rows = rows.size();
+    std::vector<double> rates(active_rows);
+    const auto normal_rate = [&](reservation::ptr row)
+    {
+        return row->slot() == slot ? current.rate() : row->rate().rate();
     };
 
     // Convert to a rates table and sum.
+    // BUGBUG: the rows may become idle after the above purge, skewing results.
     std::transform(rows.begin(), rows.end(), rates.begin(), normal_rate);
     const auto total = std::accumulate(rates.begin(), rates.end(), 0.0);
 
@@ -107,161 +276,32 @@ reservations::rate_statistics reservations::rates() const
     return{ active_rows, mean, standard_deviation };
 }
 
-// Table methods.
+// Properties.
 //-----------------------------------------------------------------------------
 
-reservation::list reservations::table() const
+// This is only used for logging, enters critical section.
+size_t reservations::size() const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    shared_lock lock(mutex_);
-
-    return table_;
-    ///////////////////////////////////////////////////////////////////////////
+    return unreserved() + reserved();
 }
 
-void reservations::remove(reservation::ptr row)
+// protected
+size_t reservations::reserved() const
 {
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock_upgrade();
+    auto rows = table();
 
-    const auto it = std::find(table_.begin(), table_.end(), row);
-
-    if (it == table_.end())
+    const auto sum = [](size_t total, reservation::ptr row)
     {
-        mutex_.unlock_upgrade();
-        //---------------------------------------------------------------------
-        return;
-    }
-
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    mutex_.unlock_upgrade_and_lock();
-    table_.erase(it);
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-}
-
-// Hash methods.
-//-----------------------------------------------------------------------------
-
-// No critical section because this is private to the constructor.
-void reservations::initialize(size_t connections)
-{
-    // Guard against overflow by capping size.
-    const size_t max_rows = max_size_t / max_request();
-    auto rows = std::min(max_rows, connections);
-
-    // Ensure that there is at least one block per row.
-    const auto blocks = hashes_.size();
-    rows = std::min(rows, blocks);
-
-    // Guard against division by zero.
-    if (rows == 0)
-        return;
-
-    table_.reserve(rows);
-
-    // Allocate up to 50k headers per row.
-    const auto max_allocation = rows * max_request();
-    const auto allocation = std::min(blocks, max_allocation);
-
-    for (size_t row = 0; row < rows; ++row)
-        table_.push_back(std::make_shared<reservation>(*this, row, timeout_));
-
-    size_t height;
-    hash_digest hash;
-
-    // The (allocation / rows) * rows cannot exceed allocation.
-    // The remainder is retained by the hash list for later reservation.
-    for (size_t base = 0; base < (allocation / rows); ++base)
-    {
-        for (size_t row = 0; row < rows; ++row)
-        {
-            DEBUG_ONLY(const auto result =) hashes_.dequeue(hash, height);
-            BITCOIN_ASSERT_MSG(result, "The checklist is empty.");
-            table_[row]->insert(std::move(hash), height);
-        }
-    }
-
-    LOG_DEBUG(LOG_NODE)
-        << "Reserved " << allocation << " blocks to " << rows << " slots.";
-}
-
-// Call when minimal is empty.
-bool reservations::populate(reservation::ptr minimal)
-{
-    // Critical Section
-    ///////////////////////////////////////////////////////////////////////////
-    mutex_.lock();
-
-    // Take from unallocated or allocated hashes, true if minimal not empty.
-    const auto populated = reserve(minimal) || partition(minimal);
-
-    mutex_.unlock();
-    ///////////////////////////////////////////////////////////////////////////
-
-    if (populated)
-        LOG_DEBUG(LOG_NODE)
-            << "Populated " << minimal->size() << " blocks to slot ("
-            << minimal->slot() << ").";
-
-    return populated;
-}
-
-// This can cause reduction of an active reservation.
-bool reservations::partition(reservation::ptr minimal)
-{
-    const auto maximal = find_maximal();
-    return maximal && maximal != minimal && maximal->partition(minimal);
-}
-
-reservation::ptr reservations::find_maximal()
-{
-    if (table_.empty())
-        return nullptr;
-
-    // The maximal row is that with the most block hashes reserved.
-    const auto comparer = [](reservation::ptr left, reservation::ptr right)
-    {
-        return left->size() < right->size();
+        return total + row->size();
     };
 
-    return *std::max_element(table_.begin(), table_.end(), comparer);
+    return std::accumulate(rows.begin(), rows.end(), size_t{0}, sum);
 }
 
-// Return false if minimal is empty.
-bool reservations::reserve(reservation::ptr minimal)
+// protected
+size_t reservations::unreserved() const
 {
-    if (!minimal->empty())
-        return true;
-
-    const auto allocation = std::min(hashes_.size(), max_request());
-
-    size_t height;
-    hash_digest hash;
-
-    for (size_t block = 0; block < allocation; ++block)
-    {
-        DEBUG_ONLY(const auto result =) hashes_.dequeue(hash, height);
-        BITCOIN_ASSERT_MSG(result, "The checklist is empty.");
-        minimal->insert(std::move(hash), height);
-    }
-
-    // This may become empty between insert and this test, which is okay.
-    return !minimal->empty();
-}
-
-// Exposed for test to be able to control the request size.
-size_t reservations::max_request() const
-{
-    return max_request_;
-}
-
-// Exposed for test to be able to control the request size.
-void reservations::set_max_request(size_t value)
-{
-    max_request_.store(value);
+    return hashes_.size();
 }
 
 } // namespace node

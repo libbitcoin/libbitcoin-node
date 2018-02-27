@@ -34,18 +34,20 @@ namespace node {
 #define NAME "block_sync"
 #define CLASS protocol_block_sync
 
+using namespace bc::blockchain;
 using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
-// The interval in which block download rate is tested.
-static const asio::seconds expiry_interval(5);
+// The moving window in which block average download rate is measured.
+static const asio::seconds monitor_interval(5);
 
 // Depends on protocol_header_sync, which requires protocol version 31800.
-protocol_block_sync::protocol_block_sync(full_node& network,
-    channel::ptr channel, reservation::ptr row)
-  : protocol_timer(network, channel, true, NAME),
-    reservation_(row),
+protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
+    safe_chain& chain)
+  : protocol_timer(node, channel, true, NAME),
+    chain_(chain),
+    reservation_(node.get_reservation()),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
 }
@@ -53,37 +55,32 @@ protocol_block_sync::protocol_block_sync(full_node& network,
 // Start sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::start(event_handler handler)
+void protocol_block_sync::start()
 {
-    const auto complete = synchronize<event_handler>(
-        BIND2(blocks_complete, _1, handler), 1, NAME);
+    protocol_timer::start(monitor_interval, BIND1(handle_event, _1));
 
-    protocol_timer::start(expiry_interval, BIND2(handle_event, _1, complete));
-
-    SUBSCRIBE3(block, handle_receive_block, _1, _2, complete);
+    chain_.subscribe_headers(BIND4(handle_reindexed, _1, _2, _3, _4));
+    SUBSCRIBE2(block, handle_receive_block, _1, _2);
 
     // This is the end of the start sequence.
-    send_get_blocks(complete, true);
+    send_get_blocks();
 }
 
-// Peer sync sequence.
+// Download sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
+void protocol_block_sync::send_get_blocks()
 {
     if (stopped())
         return;
 
-    if (reservation_->stopped())
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Stopping complete slot (" << reservation_->slot() << ").";
-        complete(error::success);
+    // Don't start downloading blocks until the header chain is current.
+    // This protects against disk fill and allows hashes to be distributed.
+    if (chain_.is_headers_stale())
         return;
-    }
 
-    // We may be a new channel (reset) or may have a new packet.
-    const auto request = reservation_->request(reset);
+    // Repopulate if empty and new work has arrived.
+    const auto request = reservation_->request();
 
     // Or we may be the same channel and with hashes already requested.
     if (request.inventories().empty())
@@ -96,79 +93,114 @@ void protocol_block_sync::send_get_blocks(event_handler complete, bool reset)
     SEND2(request, handle_send, _1, request.command);
 }
 
-// The message subscriber implements an optimization to bypass queueing of
-// block messages. This requires that this handler never call back into the
-// subscriber. Otherwise a deadlock will result. This in turn requires that
-// the 'complete' parameter handler never call into the message subscriber.
 bool protocol_block_sync::handle_receive_block(const code& ec,
-    block_const_ptr message, event_handler complete)
+    block_const_ptr message)
 {
     if (stopped(ec))
         return false;
 
-    // Add the block to the blockchain store.
-    reservation_->import(message);
-
-    if (reservation_->toggle_partitioned())
+    if (ec)
     {
-        LOG_DEBUG(LOG_NODE)
-            << "Restarting partitioned slot (" << reservation_->slot() << ").";
-        complete(error::channel_stopped);
-        return false;
-    }
-
-    // Request more blocks if our reservation has been expanded.
-    send_get_blocks(complete, false);
-    return true;
-}
-
-// This is fired by the base timer and stop handler.
-void protocol_block_sync::handle_event(const code& ec, event_handler complete)
-{
-    if (stopped(ec))
-        return;
-
-    if (ec && ec != error::channel_timeout)
-    {
-        LOG_DEBUG(LOG_NODE)
-            << "Failure in block sync timer for slot (" << reservation_->slot()
+        LOG_ERROR(LOG_NODE)
+            << "Failure in block receive for slot (" << reservation_->slot()
             << ") " << ec.message();
-        complete(ec);
-        return;
+        stop(ec);
+        return false;
     }
 
-    // This results from other channels taking this channel's hashes in
-    // combination with this channel's peer not responding to the last request.
-    // Causing a successful stop here prevents channel startup just to stop.
+    // This channel was slowest, so half of its reservation has been taken.
     if (reservation_->stopped())
     {
         LOG_DEBUG(LOG_NODE)
-            << "Stopping complete slot (" << reservation_->slot() << ").";
-        complete(error::success);
-        return;
+            << "Restarting partitioned slot (" << reservation_->slot()
+            << ") : [" << reservation_->size() << "]";
+        stop(error::channel_stopped);
+        return false;
     }
 
-    if (reservation_->expired())
+    size_t height;
+
+    // The reservation may have become stopped between the stop test and this
+    // call, so the block may either be unrequested or moved to another slot.
+    // There is currently no way to know the difference, so log both options.
+    if (!reservation_->find_height_and_erase(message->hash(), height))
     {
         LOG_DEBUG(LOG_NODE)
-            << "Restarting slow slot (" << reservation_->slot() << ")";
-        complete(error::channel_timeout);
-        return;
+            << "Unrequested or partitioned block on slot ("
+            << reservation_->slot() << ").";
+        stop(error::channel_stopped);
+        return false;
     }
+
+    // Add the block's transactions to the store.
+    const auto code = reservation_->import(chain_, message, height);
+
+    if (code)
+    {
+        LOG_FATAL(LOG_NODE)
+            << "Failure importing block for slot (" << reservation_->slot()
+            << "), store is now corrupted: " << ec.message();
+        stop(code);
+        return false;
+    }
+
+    send_get_blocks();
+    return true;
 }
 
-void protocol_block_sync::blocks_complete(const code& ec,
-    event_handler handler)
+// Events.
+// ----------------------------------------------------------------------------
+
+// Use header indexation as a block request trigger.
+bool protocol_block_sync::handle_reindexed(code ec, size_t,
+    header_const_ptr_list_const_ptr, header_const_ptr_list_const_ptr)
 {
-    // We are no longer receiving blocks, so exclude from average.
-    reservation_->reset();
+    if (stopped(ec))
+        return false;
 
-    // This is the end of the peer sync sequence.
-    // If there is no error the hash list must be empty and remain so.
-    handler(ec);
+    if (ec)
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Failure in header index for slot (" << reservation_->slot()
+            << ") " << ec.message();
+        stop(ec);
+        return false;
+    }
 
-    // The session does not need to handle the stop.
-    stop(error::channel_stopped);
+    send_get_blocks();
+    return true;
+}
+
+// Fired by base timer and stop handler.
+void protocol_block_sync::handle_event(const code& ec)
+{
+    if (stopped(ec))
+    {
+        // No longer receiving blocks, so free up the reservation.
+        reservation_->stop();
+
+        // Trigger unsubscribe or protocol will hang until next header indexed.
+        chain_.unsubscribe();
+        return;
+    }
+
+    if (ec && ec != error::channel_timeout)
+    {
+        LOG_ERROR(LOG_NODE)
+            << "Failure in block sync timer for slot (" << reservation_->slot()
+            << ") " << ec.message();
+        stop(ec);
+    }
+
+    // This ensures that a stall does not persist.
+    if (ec == error::channel_timeout && reservation_->expired())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Restarting slow slot (" << reservation_->slot() << ") : ["
+            << reservation_->size() << "]";
+        stop(ec);
+        return;
+    }
 }
 
 } // namespace node

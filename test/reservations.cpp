@@ -1,21 +1,21 @@
-/**
- * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
- *
- * This file is part of libbitcoin.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+/////**
+//// * Copyright (c) 2011-2017 libbitcoin developers (see AUTHORS)
+//// *
+//// * This file is part of libbitcoin.
+//// *
+//// * This program is free software: you can redistribute it and/or modify
+//// * it under the terms of the GNU Affero General Public License as published by
+//// * the Free Software Foundation, either version 3 of the License, or
+//// * (at your option) any later version.
+//// *
+//// * This program is distributed in the hope that it will be useful,
+//// * but WITHOUT ANY WARRANTY; without even the implied warranty of
+//// * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//// * GNU Affero General Public License for more details.
+//// *
+//// * You should have received a copy of the GNU Affero General Public License
+//// * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//// */
 ////#include <algorithm>
 ////#include <memory>
 ////#include <boost/test/unit_test.hpp>
@@ -35,32 +35,15 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__max_request__default__50000)
 ////{
-////    DECLARE_RESERVATIONS(reserves, true);
-////    BOOST_REQUIRE_EQUAL(reserves.max_request(), 50000u);
+////    reservations instance;
+////    BOOST_REQUIRE_EQUAL(instance.max_request(), 50000u);
 ////}
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__set_max_request__42__42)
 ////{
-////    DECLARE_RESERVATIONS(reserves, true);
-////    reserves.set_max_request(42);
-////    BOOST_REQUIRE_EQUAL(reserves.max_request(), 42u);
-////}
-////
-////// import
-//////-----------------------------------------------------------------------------
-////
-////BOOST_AUTO_TEST_CASE(reservations__import__true__true)
-////{
-////    const auto block_ptr = std::make_shared<const block>();
-////    DECLARE_RESERVATIONS(reserves, true);
-////    BOOST_REQUIRE(reserves.import(block_ptr, 42));
-////}
-////
-////BOOST_AUTO_TEST_CASE(reservations__import__false__false)
-////{
-////    const auto block_ptr = std::make_shared<const block>();
-////    DECLARE_RESERVATIONS(reserves, false);
-////    BOOST_REQUIRE(!reserves.import(block_ptr, 42));
+////    reservations instance;
+////    instance.set_max_request(42);
+////    BOOST_REQUIRE_EQUAL(instance.max_request(), 42u);
 ////}
 ////
 ////// table
@@ -68,8 +51,8 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__table__default__empty)
 ////{
-////    DECLARE_RESERVATIONS(reserves, true);
-////    BOOST_REQUIRE(reserves.table().empty());
+////    reservations instance;
+////    BOOST_REQUIRE(instance.table().empty());
 ////}
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__table__hash_1__size_1_by_1_hashes_empty)
@@ -111,15 +94,15 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__table__connections_5_hash_46__size_5_by_9_hashes_1)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 5;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(45, check42.hash());
 ////    hashes.initialize(check42);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 5u);
 ////    BOOST_REQUIRE_EQUAL(table[0]->size(), 9u);
@@ -215,15 +198,15 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_not_empty__no_population)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 3;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(9, check42.hash());
 ////    hashes.initialize(check42);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
 ////
@@ -279,7 +262,8 @@
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_table_empty__no_population)
 ////{
 ////    node::settings settings;
-////    settings.sync_peers = 3;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////
@@ -292,7 +276,7 @@
 ////    BOOST_REQUIRE_EQUAL(elements.size(), 2u);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
 ////
@@ -327,15 +311,15 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__uncapped_reserve)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 3;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(7, check42.hash());
 ////    hashes.initialize(check42);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
 ////
@@ -361,15 +345,15 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_not_empty_row_emptied__capped_reserve)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 3;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(7, check42.hash());
 ////    hashes.initialize(check42);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
 ////
@@ -398,8 +382,8 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__populate__hashes_empty_rows_emptied__partition)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 3;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////
@@ -412,7 +396,7 @@
 ////    BOOST_REQUIRE_EQUAL(elements.size(), 8u);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
 ////
@@ -580,15 +564,15 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__rates__three_reservations_same_rates__no_deviation)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 3;
+////    static const auto minimum_peers = 3u;
+////    static const auto block_latency_seconds = 1u;
 ////    blockchain_fixture blockchain;
 ////    header_queue hashes(no_checks);
 ////    const auto message = message_factory(2, check42.hash());
 ////    hashes.initialize(check42);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves(hashes, blockchain, block_latency_seconds, minimum_peers);
 ////    const auto table = reserves.table();
 ////    BOOST_REQUIRE_EQUAL(table.size(), 3u);
 ////
@@ -627,15 +611,12 @@
 ////
 ////BOOST_AUTO_TEST_CASE(reservations__rates__five_reservations_one_idle__idle_excluded)
 ////{
-////    node::settings settings;
-////    settings.sync_peers = 5;
-////    blockchain_fixture blockchain;
-////    header_queue hashes(no_checks);
+////    static const auto minimum_peers = 5u;
+////    static const auto block_latency_seconds = 1u;
 ////    const auto message = message_factory(4, check42.hash());
-////    hashes.initialize(check42);
 ////    BOOST_REQUIRE(hashes.enqueue(message));
 ////
-////    reservations reserves(hashes, blockchain, settings);
+////    reservations reserves;
 ////    const auto table = reserves.table();
 ////
 ////    // normalized rate: 5 / (2 - 1) = 5
