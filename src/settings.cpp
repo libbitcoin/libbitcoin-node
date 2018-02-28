@@ -26,7 +26,7 @@ namespace node {
 using namespace bc::asio;
 
 settings::settings()
-  : maximum_deviation(2.0),
+  : maximum_deviation(1.5),
     block_latency_seconds(5),
     refresh_transactions(false)
 {

@@ -317,7 +317,7 @@ options_metadata parser::load_settings()
     (
         "database.file_growth_rate",
         value<uint16_t>(&configured.database.file_growth_rate),
-        "Full database files increase by this percentage, defaults to 50."
+        "Full database files increase by this percentage, defaults to 5."
     )
     (
         "database.block_table_buckets",
@@ -438,7 +438,7 @@ options_metadata parser::load_settings()
     (
         "node.maximum_deviation",
         value<float>(&configured.node.maximum_deviation),
-        "The response rate standard deviation below which a peer is dropped, defaults to 2.0."
+        "The response rate standard deviation below which a peer is dropped, defaults to 1.5."
     )
     (
         "node.block_latency_seconds",
