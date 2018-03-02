@@ -54,13 +54,13 @@ src_libbitcoin_node_la_SOURCES = \
     src/utility/reservation.cpp \
     src/utility/reservations.cpp
 
-# local: test/libbitcoin_node_test
+# local: test/libbitcoin-node-test
 #------------------------------------------------------------------------------
 if WITH_TESTS
 
-TESTS = libbitcoin_node_test_runner.sh
+TESTS = libbitcoin-node-test_runner.sh
 
-check_PROGRAMS = test/libbitcoin_node_test
+check_PROGRAMS = test/libbitcoin-node-test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 test_libbitcoin_node_test_SOURCES = \
