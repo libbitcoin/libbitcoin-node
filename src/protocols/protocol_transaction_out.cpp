@@ -271,7 +271,7 @@ bool protocol_transaction_out::handle_transaction_pool(const code& ec,
     if (chain_.is_blocks_stale())
         return true;
 
-    if (message->validation.originator == nonce())
+    if (message->metadata.originator == nonce())
         return true;
 
     // TODO: move fee_filter to a derived class protocol_transaction_out_70013.
