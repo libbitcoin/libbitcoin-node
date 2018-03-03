@@ -229,7 +229,7 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
     }
     else
     {
-        const auto state = header.validation.state;
+        const auto state = header.metadata.state;
         BITCOIN_ASSERT(state);
 
         // Only log every 1000th header, until current.

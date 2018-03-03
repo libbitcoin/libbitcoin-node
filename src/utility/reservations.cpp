@@ -55,7 +55,7 @@ void reservations::pop_back(const chain::header& header, size_t height)
 
 void reservations::push_back(const chain::header& header, size_t height)
 {
-    if (!header.validation.populated)
+    if (!header.metadata.populated)
         hashes_.push_back(header.hash(), height);
 }
 

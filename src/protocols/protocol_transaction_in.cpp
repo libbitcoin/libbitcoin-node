@@ -206,7 +206,7 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
     if (chain_.is_blocks_stale())
         return true;
 
-    message->validation.originator = nonce();
+    message->metadata.originator = nonce();
     chain_.organize(message, BIND2(handle_store_transaction, _1, message));
     return true;
 }

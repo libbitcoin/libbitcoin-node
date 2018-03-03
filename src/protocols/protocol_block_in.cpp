@@ -289,7 +289,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // TODO: REPORTING HEIGHT UNKNOWN HERE, GET FROM ORGANIZE.
     const size_t height = 42;
 
-    message->header().validation.originator = nonce();
+    message->header().metadata.originator = nonce();
     chain_.organize(message, BIND3(handle_store_block, _1, height, message));
 
     // Sending a new request will reset the timer upon inventory->get_data, but
@@ -343,8 +343,8 @@ void protocol_block_in::handle_store_block(const code& ec, size_t height,
         return;
     }
 
-    // State may not be populated by validation.
-    const auto state = message->header().validation.state;
+    // State may not be populated by metadata.
+    const auto state = message->header().metadata.state;
 
     if (state)
     {
@@ -469,7 +469,7 @@ void protocol_block_in::report(const chain::block& block, size_t height)
 {
     if (enabled(height))
     {
-        const auto& times = block.validation;
+        const auto& times = block.metadata;
         const auto now = asio::steady_clock::now();
         const auto transactions = block.transactions().size();
         const auto inputs = std::max(block.total_inputs(), size_t(1));
@@ -515,7 +515,7 @@ void protocol_block_in::report(const chain::block& block, size_t height)
             unit_cost(times.start_push, times.end_push, inputs) %
 
             // this block transaction cache efficiency (hits/queries)
-            block.validation.cache_efficiency);
+            block.metadata.cache_efficiency);
     }
 }
 
