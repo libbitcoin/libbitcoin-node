@@ -273,7 +273,7 @@ statistics reservations::rates(size_t slot, const performance& current,
     auto squares = std::accumulate(rates.begin(), rates.end(), 0.0, summary);
     auto quotient = divide<double>(squares, active_rows);
     auto standard_deviation = std::sqrt(quotient);
-    return{ active_rows, mean, standard_deviation };
+    return { active_rows, mean, standard_deviation };
 }
 
 // Properties.

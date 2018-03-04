@@ -136,7 +136,7 @@ config::checkpoint check_list::pop_front()
         mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
         BITCOIN_ASSERT_MSG(false, "dequeued from empty list");
-        return{};
+        return {};
     }
 
     const auto check = checks_.front();
@@ -161,7 +161,7 @@ void check_list::advance(checks::iterator& it, size_t step)
 check_list::checks check_list::extract(size_t divisor, size_t limit)
 {
     if (divisor == 0 || limit == 0)
-        return{};
+        return {};
 
     ///////////////////////////////////////////////////////////////////////////
     // Critical Section
@@ -172,7 +172,7 @@ check_list::checks check_list::extract(size_t divisor, size_t limit)
     {
         mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
-        return{};
+        return {};
     }
 
     mutex_.unlock_upgrade_and_lock();

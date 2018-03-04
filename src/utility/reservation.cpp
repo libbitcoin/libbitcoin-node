@@ -244,7 +244,7 @@ void reservation::insert(config::checkpoint&& check)
 message::get_data reservation::request()
 {
     if (stopped())
-        return{};
+        return {};
 
     // Keep outside of lock, okay if becomes empty before lock.
     if (empty())
@@ -258,7 +258,7 @@ message::get_data reservation::request()
     {
         hash_mutex_.unlock_upgrade();
         //---------------------------------------------------------------------
-        return{};
+        return {};
     }
 
     message::get_data packet;
