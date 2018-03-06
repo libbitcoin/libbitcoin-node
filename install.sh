@@ -68,23 +68,19 @@ create_directory()
 
 display_heading_message()
 {
-    local MESSAGE="$1"
-
     echo
-    echo "********************** $MESSAGE **********************"
+    echo "********************** $@ **********************"
     echo
 }
 
 display_message()
 {
-    local MESSAGE="$1"
-    echo "$MESSAGE"
+    echo "$@"
 }
 
 display_error()
 {
-    local MESSAGE="$1"
-    >&2 echo "$MESSAGE"
+    >&2 echo "$@"
 }
 
 initialize_git()
@@ -308,6 +304,7 @@ display_message "---------------------------------------------------------------
 # Define boost options.
 #------------------------------------------------------------------------------
 BOOST_OPTIONS=(
+"--with-atomic" \
 "--with-chrono" \
 "--with-date_time" \
 "--with-filesystem" \
