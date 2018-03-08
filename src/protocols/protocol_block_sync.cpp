@@ -208,6 +208,9 @@ void protocol_block_sync::handle_event(const code& ec)
         stop(ec);
         return;
     }
+
+    // TODO: investigate stall potential when all channels are complete.
+    // There is no deviation and therefore an unresponsive peer can linger.
 }
 
 } // namespace node
