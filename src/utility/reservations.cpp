@@ -266,26 +266,25 @@ reservation::ptr reservations::find_maximal()
         return left->size() < right->size();
     };
 
-    // It is okay to reorder the table under the unique lock, but keep for log.
-    auto table = table_;
+    // It is okay to reorder the table under the unique lock.
 
     // Partition the table with empty rows in front.
-    const auto filled = std::partition(table.begin(), table.end(), empty);
+    const auto filled = std::partition(table_.begin(), table_.end(), empty);
 
     // Partition the non-empty partition with stopped rows in front.
-    const auto started = std::partition(filled, table.end(), stopped);
+    const auto started = std::partition(filled, table_.end(), stopped);
 
     // Get the maximum row of the stopped non-empty partition.
     auto maximal = std::max_element(filled, started, lesser);
 
     // There are no stopped non-empty rows.
-    if (maximal == table.end())
+    if (maximal == table_.end())
     {
         // Get the maximum row of the started non-empty partition.
-        maximal = std::max_element(started, table.end(), lesser);
+        maximal = std::max_element(started, table_.end(), lesser);
 
         // There are no started or stopped non-empty rows.
-        if (maximal == table.end())
+        if (maximal == table_.end())
             return nullptr;
     }
 
