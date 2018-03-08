@@ -64,6 +64,21 @@ void reservations::push_front(hash_digest&& hash, size_t height)
     hashes_.push_front(std::move(hash), height);
 }
 
+////// private
+////// Dump the current table and reservation sizes to the log.
+////void reservations::dump_table(size_t slot) const
+////{
+////    for (auto row: table_)
+////    {
+////        LOG_DEBUG(LOG_NODE)
+////            << slot
+////            << " slot: " << row->slot()
+////            << " size: " << row->size()
+////            << " stop: " << row->stopped()
+////            << " rate: " << row->rate().rate();
+////    }
+////}
+
 reservation::ptr reservations::get()
 {
     const auto stopped = [](reservation::ptr row)
@@ -80,12 +95,14 @@ reservation::ptr reservations::get()
         table_.push_back(std::make_shared<reservation>(*this, index,
             maximum_deviation_, block_latency_seconds_));
 
-    // Find the first row that is not stopped.
+    // Find the first stopped row.
     auto it = std::find_if(table_.begin(), table_.end(), stopped);
 
     if (it != table_.end())
     {
         (*it)->start();
+
+        ////dump_table((*it)->slot());
         return *it;
     }
 
@@ -95,19 +112,21 @@ reservation::ptr reservations::get()
     table_.push_back(row);
     row->start();
 
+    ////dump_table(row->slot());
     return row;
     ///////////////////////////////////////////////////////////////////////////
 }
 
 // Call when minimal is empty.
 // Take from unallocated or allocated hashes, true if minimal not empty.
-bool reservations::populate(reservation::ptr minimal)
+void reservations::populate(reservation::ptr minimal)
 {
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     unique_lock lock(mutex_);
 
-    return reserve(minimal) || partition(minimal);
+    if (!reserve(minimal))
+        partition(minimal);
     ///////////////////////////////////////////////////////////////////////////
 }
 
@@ -138,7 +157,11 @@ bool reservations::reserve(reservation::ptr minimal)
     }
 
     if (!minimal->empty())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Minimal (" << minimal ->slot() << ") is not empty.";
         return true;
+    }
 
     // Obtain own fraction of whatever hashes remain unreserved.
     const auto checks = hashes_.extract(table_.size(), max_request_);
@@ -162,12 +185,26 @@ bool reservations::reserve(reservation::ptr minimal)
 bool reservations::partition(reservation::ptr minimal)
 {
     if (!minimal->empty())
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Minimal (" << minimal->slot() << ") is not empty.";
         return true;
+    }
 
     const auto maximal = find_maximal();
 
-    if (!maximal || maximal == minimal)
+    if (!maximal)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Maximal (" << minimal->slot() << ") not found.";
         return false;
+    }
+    else if (maximal == minimal)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Minimal (" << minimal->slot() << ") is maximal.";
+        return false;
+    }
 
     // This causes reduction of an active reservation, requiring a stop.
     const auto partitioned = maximal->partition(minimal);
@@ -214,21 +251,46 @@ reservation::ptr reservations::find_maximal()
     if (table_.empty())
         return nullptr;
 
-    const auto comparer = [](reservation::ptr left, reservation::ptr right)
+    const auto empty = [](const reservation::ptr ptr)
     {
-        if (left->stopped() && !right->stopped())
-            return true;
+        return ptr->empty();
+    };
 
-        if (right->stopped() && !left->stopped())
-            return false;
+    const auto stopped = [](const reservation::ptr ptr)
+    {
+        return ptr->stopped();
+    };
 
+    const auto lesser = [](reservation::ptr left, reservation::ptr right)
+    {
         return left->size() < right->size();
     };
 
-    auto maximal = *std::max_element(table_.begin(), table_.end(), comparer);
+    // It is okay to reorder the table under the unique lock.
 
-    // If down to one hash and the owner is not expired, do not partition.
-    return maximal->size() == 1 && !expired(maximal, false) ? nullptr : maximal;
+    // Partition the table with empty rows in front.
+    const auto filled = std::partition(table_.begin(), table_.end(), empty);
+
+    // Partition the non-empty partition with stopped rows in front.
+    const auto started = std::partition(filled, table_.end(), stopped);
+
+    // Get the maximum row of the stopped non-empty partition.
+    auto maximal = std::max_element(filled, started, lesser);
+
+    // There are no stopped non-empty rows.
+    if (maximal == table_.end())
+    {
+        // Get the maximum row of the started non-empty partition.
+        maximal = std::max_element(started, table_.end(), lesser);
+
+        // There are no started or stopped non-empty rows.
+        if (maximal == table_.end())
+            return nullptr;
+    }
+
+    // If more than one hash or the owner is expired then partition.
+    return (*maximal)->size() > 1 || expired(*maximal, false) ? *maximal :
+        nullptr;
 }
 
 // protected

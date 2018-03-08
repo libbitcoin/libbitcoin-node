@@ -151,7 +151,8 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
     {
         const auto last_hash = message->elements().back().hash();
 
-        LOG_DEBUG(LOG_NODE)
+        // This logs for each channel for each header.
+        LOG_VERBOSE(LOG_NODE)
             << "Processed (" << size << ") headers up to ["
             << encode_hash(last_hash) << "] from [" << authority() << "].";
 

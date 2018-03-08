@@ -167,6 +167,12 @@ bool protocol_block_sync::handle_reindexed(code ec, size_t,
         return false;
     }
 
+    // When the queue is empty and a new header is announced the download is
+    // not directed to the peer that made the announcement. This can lead to
+    // delay in obtaining the block, which can be costly for mining. On the
+    // other hand optimal mining relies on the compact block protocol, not full
+    // block requests, so this is considered acceptable behavior here.
+
     send_get_blocks();
     return true;
 }
@@ -190,10 +196,11 @@ void protocol_block_sync::handle_event(const code& ec)
             << "Failure in block sync timer for slot (" << reservation_->slot()
             << ") " << ec.message();
         stop(ec);
+        return;
     }
 
     // This ensures that a stall does not persist.
-    if (ec == error::channel_timeout && reservation_->expired())
+    if (reservation_->expired())
     {
         LOG_DEBUG(LOG_NODE)
             << "Restarting slow slot (" << reservation_->slot() << ") : ["

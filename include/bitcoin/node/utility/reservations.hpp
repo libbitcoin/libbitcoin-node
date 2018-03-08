@@ -59,7 +59,7 @@ public:
     reservation::ptr get();
 
     /// Populate a starved row by taking half of the hashes from a weak row.
-    bool populate(reservation::ptr minimal);
+    void populate(reservation::ptr minimal);
 
     /// Check a partition for expiration.
     bool expired(reservation::const_ptr partition) const;
@@ -93,6 +93,8 @@ protected:
     size_t unreserved() const;
 
 private:
+    ////void dump_table(size_t slot) const;
+
     // Thread safe.
     check_list hashes_;
     const size_t max_request_;
