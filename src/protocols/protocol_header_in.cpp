@@ -37,6 +37,12 @@ using namespace bc::message;
 using namespace bc::network;
 using namespace std::placeholders;
 
+// This creates pointer without copying the element and without destruct.
+static std::shared_ptr<const header> unsafe_pointer(const header& element)
+{
+    return std::shared_ptr<const header>(&element, [](const header*) {});
+}
+
 protocol_header_in::protocol_header_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, false, NAME),
@@ -167,15 +173,11 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
         return;
     }
 
-    // HACK: this creates an unmanaged shared_ptr to a message element.
-    // This is safe because the message is captured with the pointer.
+    // The unshared_pointer is safe because the message is captured with it.
     // This allows metadata update on the header within the existing vector
     // while maintaining interface consistency with blockchain.
-    const auto noop = [](const message::header*) {};
-    const auto& element = message->elements()[index];
-    std::shared_ptr<const message::header> header(&element, noop);
-
-    chain_.organize(header, BIND3(handle_store_header, _1, index, message));
+    chain_.organize(unsafe_pointer(message->elements()[index]),
+        BIND3(handle_store_header, _1, index, message));
 }
 
 void protocol_header_in::handle_store_header(const code& ec, size_t index,
