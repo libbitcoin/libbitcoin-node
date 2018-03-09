@@ -278,19 +278,12 @@ reservation::ptr reservations::find_maximal()
     auto maximal = std::max_element(filled, started, lesser);
 
     // There are no stopped non-empty rows.
+    // Get the maximum row of the started non-empty partition.
     if (maximal == table_.end())
-    {
-        // Get the maximum row of the started non-empty partition.
         maximal = std::max_element(started, table_.end(), lesser);
 
-        // There are no started or stopped non-empty rows.
-        if (maximal == table_.end())
-            return nullptr;
-    }
-
-    // If more than one hash or the owner is expired then partition.
-    return (*maximal)->size() > 1 || expired(*maximal, false) ? *maximal :
-        nullptr;
+    // Taking the very last block away does not churn and prevents stall.
+    return maximal == table_.end() ? nullptr : *maximal;
 }
 
 // protected
