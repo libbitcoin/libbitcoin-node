@@ -17,22 +17,3 @@ $ sudo ldconfig
 ```
 
 libbitcoin-node is now installed in `/usr/local/`.
-
-In version2 the `bitcoin-node` console app is for demonstration purposes only. See [libbitcoin-server](https://github.com/libbitcoin/libbitcoin-server) for release quality full node functionality.
-
-## Installation
-
-### Macintosh
-
-#### Using Homebrew
-
-##### Installing from Formula
-
-Instead of building, libbitcoin-node can be installed from a formula:
-```sh
-$ brew install libbitcoin-node
-```
-or
-```sh
-$ brew install bn
-```
