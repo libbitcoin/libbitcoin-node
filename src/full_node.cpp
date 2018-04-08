@@ -112,23 +112,6 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    checkpoint header;
-    if (!chain_.get_top(header, false))
-    {
-        LOG_ERROR(LOG_NODE)
-            << "The header chain is corrupt.";
-        handler(error::operation_failed);
-        return;
-    }
-
-    set_top_header(header);
-    LOG_INFO(LOG_NODE)
-        << "Node header height is (" << header.height() << ").";
-
-    subscribe_headers(
-        std::bind(&full_node::handle_reindexed,
-            this, _1, _2, _3, _4));
-
     checkpoint block;
     if (!chain_.get_top(block, true))
     {
@@ -142,21 +125,37 @@ void full_node::handle_running(const code& ec, result_handler handler)
     LOG_INFO(LOG_NODE)
         << "Node block height is (" << block.height() << ").";
 
-    bool is_empty;
-    hash_digest hash;
-
-    // Scan header index from top down until first valid block is found.
-    // Genesis ensures loop termination, and existence is guaranteed above.
-    // An invalid block will be treated as valid here, terminating the loop.
-    for (auto height = header.height();
-        chain_.get_pending_block_hash(hash, is_empty, height); --height)
+    checkpoint header;
+    if (!chain_.get_top(header, false))
     {
-        if (is_empty)
-            reservations_.push_front(std::move(hash), height);
+        LOG_ERROR(LOG_NODE)
+            << "The header chain is corrupt.";
+        handler(error::operation_failed);
+        return;
     }
+
+    set_top_header(header);
+    LOG_INFO(LOG_NODE)
+        << "Node header height is (" << header.height() << ").";
+
+    hash_digest hash;
+    const auto last_validated = chain_.get_last_validated();
+
+    LOG_INFO(LOG_NODE)
+        << "Last validated block height (" << last_validated << ").";
+
+    // Scan header index from top down until just after last valid block.
+    // Genesis ensures loop termination, and its existence is guaranteed above.
+    for (auto height = header.height(); height > last_validated; --height)
+        if (chain_.get_if_empty(hash, height))
+            reservations_.push_front(std::move(hash), height);
 
     LOG_INFO(LOG_NODE)
         << "Pending block downloads (" << reservations_.size() << ").";
+
+    subscribe_headers(
+        std::bind(&full_node::handle_reindexed,
+            this, _1, _2, _3, _4));
 
     subscribe_blockchain(
         std::bind(&full_node::handle_reorganized,
