@@ -112,8 +112,8 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    checkpoint block;
-    if (!chain_.get_top(block, true))
+    checkpoint confirmed;
+    if (!chain_.get_top(confirmed, true))
     {
         LOG_ERROR(LOG_NODE)
             << "The block chain is corrupt.";
@@ -121,33 +121,36 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    set_top_block(block);
+    set_top_block(confirmed);
     LOG_INFO(LOG_NODE)
-        << "Node block height is (" << block.height() << ").";
+        << "Top confirmed block height is (" << confirmed.height() << ").";
 
-    checkpoint header;
-    if (!chain_.get_top(header, false))
+    checkpoint candidate;
+    if (!chain_.get_top(candidate, false))
     {
         LOG_ERROR(LOG_NODE)
-            << "The header chain is corrupt.";
+            << "The candidate chain is corrupt.";
         handler(error::operation_failed);
         return;
     }
 
-    set_top_header(header);
+    set_top_header(candidate);
     LOG_INFO(LOG_NODE)
-        << "Node header height is (" << header.height() << ").";
+        << "Top candidate block height is (" << candidate.height() << ").";
 
     hash_digest hash;
-    const auto last_validated = chain_.get_last_validated();
+    auto top_valid = chain_.top_valid_candidate_state()->height();
+    const auto start_height = top_valid + 1u;
 
     LOG_INFO(LOG_NODE)
-        << "Last validated block height (" << last_validated << ").";
+        << "Top valid candidate block height (" << top_valid << ").";
 
     // Scan header index from top down until just after last valid block.
+    // This may re-download non-empty blocks, which prevents stall in the
+    // case where next candidate after last valid (start_height) is non-empty.
     // Genesis ensures loop termination, and its existence is guaranteed above.
-    for (auto height = header.height(); height > last_validated; --height)
-        if (chain_.get_if_empty(hash, height))
+    for (auto height = candidate.height(); height > top_valid; --height)
+        if (chain_.get_if_empty(hash, height) || height == start_height)
             reservations_.push_front(std::move(hash), height);
 
     LOG_INFO(LOG_NODE)
