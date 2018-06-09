@@ -8,37 +8,52 @@
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="include">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000004}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000005}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin\node">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000006}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin\node\protocols">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000007}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin\node\sessions">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000008}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin\node\utility">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000009}</UniqueIdentifier>
     </Filter>
-    <Filter Include="resource">
+    <Filter Include="include\bitcoin">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\protocols">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\sessions">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\utility">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resource">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000F}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000000}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\protocols">
+    <Filter Include="src\.deps">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000001}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\sessions">
+    <Filter Include="src\.libs">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000002}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\utility">
+    <Filter Include="src\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\protocols\.deps">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000006}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions\.deps">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000007}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\utility">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000005}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\utility\.deps">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000008}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
