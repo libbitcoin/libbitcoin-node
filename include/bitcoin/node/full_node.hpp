@@ -36,8 +36,8 @@ class BCN_API full_node
 {
 public:
     typedef std::shared_ptr<full_node> ptr;
-    typedef blockchain::block_chain::reindex_handler reindex_handler;
-    typedef blockchain::block_chain::reorganize_handler reorganize_handler;
+    typedef blockchain::block_chain::header_handler header_handler;
+    typedef blockchain::block_chain::block_handler block_handler;
     typedef blockchain::block_chain::transaction_handler transaction_handler;
 
     /// Construct the full node.
@@ -86,14 +86,14 @@ public:
     // Subscriptions.
     // ------------------------------------------------------------------------
 
-    /// Subscribe to header reorganization and stop events.
-    virtual void subscribe_headers(reindex_handler&& handler);
-
     /// Subscribe to block reorganization and stop events.
-    virtual void subscribe_blockchain(reorganize_handler&& handler);
+    virtual void subscribe_blocks(block_handler&& handler);
+
+    /// Subscribe to header reorganization and stop events.
+    virtual void subscribe_headers(header_handler&& handler);
 
     /// Subscribe to transaction pool acceptance and stop events.
-    virtual void subscribe_transaction(transaction_handler&& handler);
+    virtual void subscribe_transactions(transaction_handler&& handler);
 
 protected:
     /// Attach a node::session to the network, caller must start the session.
@@ -118,7 +118,6 @@ private:
         block_const_ptr_list_const_ptr incoming,
         block_const_ptr_list_const_ptr outgoing);
 
-    void handle_started(const code& ec, result_handler handler);
     void handle_running(const code& ec, result_handler handler);
 
     // These are thread safe.

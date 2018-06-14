@@ -150,7 +150,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
     // case where next candidate after last valid (start_height) is non-empty.
     // Genesis ensures loop termination, and its existence is guaranteed above.
     for (auto height = candidate.height(); height > top_valid; --height)
-        if (chain_.get_if_empty(hash, height) || height == start_height)
+        if (chain_.get_downloadable(hash, height) || height == start_height)
             reservations_.push_front(std::move(hash), height);
 
     LOG_INFO(LOG_NODE)
@@ -160,7 +160,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         std::bind(&full_node::handle_reindexed,
             this, _1, _2, _3, _4));
 
-    subscribe_blockchain(
+    subscribe_blocks(
         std::bind(&full_node::handle_reorganized,
             this, _1, _2, _3, _4));
 
@@ -325,19 +325,19 @@ reservation::ptr full_node::get_reservation()
 // Subscriptions.
 // ----------------------------------------------------------------------------
 
-void full_node::subscribe_headers(reindex_handler&& handler)
+void full_node::subscribe_blocks(block_handler&& handler)
+{
+    chain().subscribe_blocks(std::move(handler));
+}
+
+void full_node::subscribe_headers(header_handler&& handler)
 {
     chain().subscribe_headers(std::move(handler));
 }
 
-void full_node::subscribe_blockchain(reorganize_handler&& handler)
+void full_node::subscribe_transactions(transaction_handler&& handler)
 {
-    chain().subscribe_blockchain(std::move(handler));
-}
-
-void full_node::subscribe_transaction(transaction_handler&& handler)
-{
-    chain().subscribe_transaction(std::move(handler));
+    chain().subscribe_transactions(std::move(handler));
 }
 
 } // namespace node

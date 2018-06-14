@@ -95,7 +95,7 @@ void protocol_block_out::start()
     SUBSCRIBE2(get_data, handle_receive_get_data, _1, _2);
 
     // Subscribe to block acceptance notifications (the block-out heartbeat).
-    chain_.subscribe_blockchain(BIND4(handle_reorganized, _1, _2, _3, _4));
+    chain_.subscribe_blocks(BIND4(handle_reorganized, _1, _2, _3, _4));
 }
 
 // Receive send_headers and send_compact.
