@@ -59,6 +59,7 @@ public:
     blockchain::settings chain;
     database::settings database;
     network::settings network;
+    libbitcoin::settings bitcoin;
 };
 
 } // namespace node

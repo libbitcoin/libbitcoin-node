@@ -71,6 +71,7 @@ private:
     const bool blocks_from_peer_;
     const bool require_witness_;
     const bool peer_witness_;
+    const bc::settings& bitcoin_settings_;
 };
 
 } // namespace node
