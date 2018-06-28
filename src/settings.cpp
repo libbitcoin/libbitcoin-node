@@ -33,7 +33,7 @@ settings::settings()
 }
 
 // There are no current distinctions spanning chain contexts.
-settings::settings(config::settings context)
+settings::settings(config::settings )
   : settings()
 {
 }
