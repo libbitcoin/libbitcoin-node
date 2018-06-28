@@ -32,7 +32,7 @@ doc_DATA = \
 # src/libbitcoin-node.la => ${libdir}
 #------------------------------------------------------------------------------
 lib_LTLIBRARIES = src/libbitcoin-node.la
-src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdir}\" ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
+src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdir}\" ${bitcoin_blockchain_BUILD_CPPFLAGS} ${bitcoin_network_BUILD_CPPFLAGS}
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/configuration.cpp \
@@ -61,7 +61,7 @@ if WITH_TESTS
 TESTS = libbitcoin-node-test_runner.sh
 
 check_PROGRAMS = test/libbitcoin-node-test
-test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
+test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_BUILD_CPPFLAGS} ${bitcoin_network_BUILD_CPPFLAGS}
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 test_libbitcoin_node_test_SOURCES = \
     test/check_list.cpp \
@@ -82,7 +82,7 @@ endif WITH_TESTS
 if WITH_CONSOLE
 
 bin_PROGRAMS = console/bn
-console_bn_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_CPPFLAGS} ${bitcoin_network_CPPFLAGS}
+console_bn_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_BUILD_CPPFLAGS} ${bitcoin_network_BUILD_CPPFLAGS}
 console_bn_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 console_bn_SOURCES = \
     console/executor.cpp \
