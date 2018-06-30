@@ -290,7 +290,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     const size_t height = 42;
 
     message->header().metadata.originator = nonce();
-    chain_.organize(message, BIND3(handle_store_block, _1, height, message));
+
+    // TODO: patch compile.
+    ////chain_.organize(message, BIND3(handle_store_block, _1, height, message));
 
     // Sending a new request will reset the timer upon inventory->get_data, but
     // we need to time out the lack of response to those requests when stale.

@@ -112,25 +112,8 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    checkpoint header;
-    if (!chain_.get_top(header, false))
-    {
-        LOG_ERROR(LOG_NODE)
-            << "The header chain is corrupt.";
-        handler(error::operation_failed);
-        return;
-    }
-
-    set_top_header(header);
-    LOG_INFO(LOG_NODE)
-        << "Node header height is (" << header.height() << ").";
-
-    subscribe_headers(
-        std::bind(&full_node::handle_reindexed,
-            this, _1, _2, _3, _4));
-
-    checkpoint block;
-    if (!chain_.get_top(block, true))
+    checkpoint confirmed;
+    if (!chain_.get_top(confirmed, true))
     {
         LOG_ERROR(LOG_NODE)
             << "The block chain is corrupt.";
@@ -138,27 +121,46 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    set_top_block(block);
+    set_top_block(confirmed);
     LOG_INFO(LOG_NODE)
-        << "Node block height is (" << block.height() << ").";
+        << "Top confirmed block height is (" << confirmed.height() << ").";
 
-    bool is_empty;
-    hash_digest hash;
-
-    // Scan header index from top down until first valid block is found.
-    // Genesis ensures loop termination, and existence is guaranteed above.
-    // An invalid block will be treated as valid here, terminating the loop.
-    for (auto height = header.height();
-        chain_.get_pending_block_hash(hash, is_empty, height); --height)
+    checkpoint candidate;
+    if (!chain_.get_top(candidate, false))
     {
-        if (is_empty)
-            reservations_.push_front(std::move(hash), height);
+        LOG_ERROR(LOG_NODE)
+            << "The candidate chain is corrupt.";
+        handler(error::operation_failed);
+        return;
     }
+
+    set_top_header(candidate);
+    LOG_INFO(LOG_NODE)
+        << "Top candidate block height is (" << candidate.height() << ").";
+
+    hash_digest hash;
+    auto top_valid = chain_.top_valid_candidate_state()->height();
+    const auto start_height = top_valid + 1u;
+
+    LOG_INFO(LOG_NODE)
+        << "Top valid candidate block height (" << top_valid << ").";
+
+    // Scan header index from top down until just after last valid block.
+    // This may re-download non-empty blocks, which prevents stall in the
+    // case where next candidate after last valid (start_height) is non-empty.
+    // Genesis ensures loop termination, and its existence is guaranteed above.
+    for (auto height = candidate.height(); height > top_valid; --height)
+        if (chain_.get_downloadable(hash, height) || height == start_height)
+            reservations_.push_front(std::move(hash), height);
 
     LOG_INFO(LOG_NODE)
         << "Pending block downloads (" << reservations_.size() << ").";
 
-    subscribe_blockchain(
+    subscribe_headers(
+        std::bind(&full_node::handle_reindexed,
+            this, _1, _2, _3, _4));
+
+    subscribe_blocks(
         std::bind(&full_node::handle_reorganized,
             this, _1, _2, _3, _4));
 
@@ -323,19 +325,19 @@ reservation::ptr full_node::get_reservation()
 // Subscriptions.
 // ----------------------------------------------------------------------------
 
-void full_node::subscribe_headers(reindex_handler&& handler)
+void full_node::subscribe_blocks(block_handler&& handler)
+{
+    chain().subscribe_blocks(std::move(handler));
+}
+
+void full_node::subscribe_headers(header_handler&& handler)
 {
     chain().subscribe_headers(std::move(handler));
 }
 
-void full_node::subscribe_blockchain(reorganize_handler&& handler)
+void full_node::subscribe_transactions(transaction_handler&& handler)
 {
-    chain().subscribe_blockchain(std::move(handler));
-}
-
-void full_node::subscribe_transaction(transaction_handler&& handler)
-{
-    chain().subscribe_transaction(std::move(handler));
+    chain().subscribe_transactions(std::move(handler));
 }
 
 } // namespace node

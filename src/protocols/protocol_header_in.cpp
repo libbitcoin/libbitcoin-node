@@ -236,7 +236,7 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
         BITCOIN_ASSERT(state);
 
         // Only log every 1000th header, until current.
-        size_t period = chain_.is_headers_stale() ? 1000 : 1;
+        size_t period = chain_.is_candidates_stale() ? 1000 : 1;
 
         if (state->height() % period == 0)
         {
@@ -278,7 +278,7 @@ void protocol_header_in::handle_timeout(const code& ec)
 
     // Can only end up here if we are ahead, tied or peer did not respond.
     // If we are stale should try another peer and not keep pounding this one.
-    if (chain_.is_headers_stale())
+    if (chain_.is_candidates_stale())
     {
         LOG_DEBUG(LOG_NODE)
             << "Peer [" << authority()

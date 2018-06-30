@@ -76,7 +76,7 @@ void protocol_block_sync::send_get_blocks()
 
     // Don't start downloading blocks until the header chain is current.
     // This protects against disk fill and allows hashes to be distributed.
-    if (chain_.is_headers_stale())
+    if (chain_.is_candidates_stale())
         return;
 
     // Repopulate if empty and new work has arrived.
@@ -133,6 +133,11 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
     }
 
     // Add the block's transactions to the store.
+    // If this is the validation target then validator advances here.
+    // Block validation failure will not cause an error here.
+    // If any block fails validation then reindexation will be triggered.
+    // Successful block validation with sufficient height triggers block reorg.
+    // However the reorgnization notification cannot be sent from here.
     const auto code = reservation_->import(chain_, message, height);
 
     if (code)

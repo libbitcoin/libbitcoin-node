@@ -76,7 +76,7 @@ void protocol_transaction_out::start()
     if (relay_to_peer_)
     {
         // Subscribe to transaction pool notifications and relay txs.
-        chain_.subscribe_transaction(BIND2(handle_transaction_pool, _1, _2));
+        chain_.subscribe_transactions(BIND2(handle_transaction_pool, _1, _2));
     }
 
     // TODO: move fee filter to a derived class protocol_transaction_out_70013.

@@ -315,7 +315,7 @@ code reservation::import(safe_chain& chain, block_const_ptr block,
     const auto start = now();
 
     //#########################################################################
-    const auto ec = chain.update(block, height);
+    const auto ec = chain.organize(block, height);
     //#########################################################################
 
     if (ec)
