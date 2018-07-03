@@ -472,7 +472,7 @@ void protocol_block_in::report(const chain::block& block, size_t height)
     if (enabled(height))
     {
         const auto& times = block.metadata;
-        const auto now = asio::steady_clock::now();
+        // const auto now = asio::steady_clock::now();
         const auto transactions = block.transactions().size();
         const auto inputs = std::max(block.total_inputs(), size_t(1));
 
