@@ -60,7 +60,8 @@ message::headers::ptr message_factory(size_t count,
 
     for (size_t height = 0; height < count; ++height)
     {
-        const header current_header{ 0, previous_hash, {}, 0, 0, 0 };
+        const header current_header{ 0, previous_hash, {}, 0, 0, 0,
+            bc::settings() };
         elements.push_back(current_header);
         previous_hash = current_header.hash();
     }
