@@ -34,7 +34,8 @@ configuration::configuration(config::settings context)
     node(context),
     chain(context),
     database(context),
-    network(context)
+    network(context),
+    bitcoin(context)
 {
 }
 
