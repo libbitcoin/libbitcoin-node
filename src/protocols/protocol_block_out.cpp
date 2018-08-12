@@ -103,7 +103,7 @@ void protocol_block_out::start()
 
 // TODO: move send_compact to a derived class protocol_block_out_70014.
 bool protocol_block_out::handle_receive_send_compact(const code& ec,
-    send_compact_const_ptr )
+    send_compact_const_ptr)
 {
     if (stopped(ec))
         return false;
@@ -115,7 +115,7 @@ bool protocol_block_out::handle_receive_send_compact(const code& ec,
 
 // TODO: move send_headers to a derived class protocol_block_out_70012.
 bool protocol_block_out::handle_receive_send_headers(const code& ec,
-    send_headers_const_ptr )
+    send_headers_const_ptr)
 {
     if (stopped(ec))
         return false;
@@ -461,7 +461,7 @@ void protocol_block_out::handle_send_next(const code& ec,
 
 // TODO: add consideration for catch-up, where we may not want to announce.
 // We never announce or inventory an orphan, only indexed blocks.
-bool protocol_block_out::handle_reorganized(code ec, size_t ,
+bool protocol_block_out::handle_reorganized(code ec, size_t,
     block_const_ptr_list_const_ptr incoming, block_const_ptr_list_const_ptr)
 {
     if (stopped(ec))

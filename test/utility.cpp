@@ -111,7 +111,7 @@ blockchain_fixture::blockchain_fixture(bool import_result, size_t gap_trigger,
 {
 }
 
-bool blockchain_fixture::get_gap_range(size_t& , size_t& ) const
+bool blockchain_fixture::get_gap_range(size_t&, size_t&) const
 {
     return false;
 }
@@ -128,96 +128,93 @@ bool blockchain_fixture::get_next_gap(size_t& out_height,
     return false;
 }
 
-bool blockchain_fixture::get_block_exists(const hash_digest& ) const
+bool blockchain_fixture::get_block_exists(const hash_digest&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_fork_work(uint256_t& , size_t ) const
+bool blockchain_fixture::get_fork_work(uint256_t&, size_t) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_header(header& , size_t ) const
+bool blockchain_fixture::get_header(header&, size_t) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_height(size_t& , const hash_digest& ) const
+bool blockchain_fixture::get_height(size_t&, const hash_digest&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_bits(uint32_t& , const size_t& ) const
+bool blockchain_fixture::get_bits(uint32_t&, const size_t&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_timestamp(uint32_t& , const size_t& ) const
+bool blockchain_fixture::get_timestamp(uint32_t&, const size_t&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_version(uint32_t& , const size_t& ) const
+bool blockchain_fixture::get_version(uint32_t&, const size_t&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_last_height(size_t& ) const
+bool blockchain_fixture::get_last_height(size_t&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_output(chain::output& , size_t& , size_t& ,
-    const chain::output_point& ) const
+bool blockchain_fixture::get_output(chain::output&, size_t&, size_t&,
+    const chain::output_point&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_spender_hash(hash_digest& ,
-    const output_point& ) const
+bool blockchain_fixture::get_spender_hash(hash_digest&,
+    const output_point&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_is_unspent_transaction(
-    const hash_digest& ) const
+bool blockchain_fixture::get_is_unspent_transaction(const hash_digest&) const
 {
     return false;
 }
 
-bool blockchain_fixture::get_transaction_height(size_t& ,
-    const hash_digest& ) const
+bool blockchain_fixture::get_transaction_height(size_t&,
+    const hash_digest&) const
 {
     return false;
 }
 
-transaction_ptr blockchain_fixture::get_transaction(size_t& ,
-    const hash_digest& ) const
+transaction_ptr blockchain_fixture::get_transaction(size_t&,
+    const hash_digest&) const
 {
     return nullptr;
 }
 
-bool blockchain_fixture::stub(header_const_ptr , size_t )
+bool blockchain_fixture::stub(header_const_ptr, size_t)
 {
     return false;
 }
 
-bool blockchain_fixture::fill(block_const_ptr , size_t )
+bool blockchain_fixture::fill(block_const_ptr, size_t)
 {
     // This prevents a zero import cost, which is useful in testing timeout.
     std::this_thread::sleep_for(std::chrono::microseconds(1));
     return import_result_;
 }
 
-bool blockchain_fixture::push(const block_const_ptr_list& ,
-    size_t )
+bool blockchain_fixture::push(const block_const_ptr_list&, size_t)
 {
     return false;
 }
 
-bool blockchain_fixture::pop(block_const_ptr_list& ,
-    const hash_digest& )
+bool blockchain_fixture::pop(block_const_ptr_list&, const hash_digest&)
 {
     return false;
 }

@@ -49,7 +49,7 @@ static const auto mode = std::ofstream::out | std::ofstream::app;
 
 std::promise<code> executor::stopping_;
 
-executor::executor(parser& metadata, std::istream& ,
+executor::executor(parser& metadata, std::istream&,
     std::ostream& output, std::ostream& error)
   : metadata_(metadata), output_(output), error_(error)
 {
