@@ -48,7 +48,7 @@ double performance::ratio() const
     return divide<double>(discount, window);
 }
 
-bool performance::expired(size_t , float maximum_deviation,
+bool performance::expired(size_t, float maximum_deviation,
     const statistics& summary) const
 {
     const auto normal_rate = rate();
