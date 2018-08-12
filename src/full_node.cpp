@@ -115,7 +115,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
     }
 
     checkpoint confirmed;
-    if (!chain_.get_top(confirmed, true))
+    if (!chain_.get_top(confirmed, false))
     {
         LOG_ERROR(LOG_NODE)
             << "The block chain is corrupt.";
