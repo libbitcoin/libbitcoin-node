@@ -232,22 +232,26 @@ void protocol_header_in::handle_store_header(const code& ec, size_t index,
     }
     else
     {
-        const auto state = header.metadata.state;
-        BITCOIN_ASSERT(state);
+        ////const auto state = header.metadata.state;
+        ////BITCOIN_ASSERT(state);
 
-        // Only log every 1000th header, until current.
-        size_t period = chain_.is_candidates_stale() ? 1000 : 1;
+        ////// Only log every 1000th header, until current.
+        ////size_t period = chain_.is_candidates_stale() ? 1000 : 1;
 
-        if (state->height() % period == 0)
-        {
-            const auto checked = state->is_under_checkpoint() ? "*" : "";
+        ////if (state->height() % period == 0)
+        ////{
+        ////    const auto checked = state->is_under_checkpoint() ? "*" : "";
 
-            LOG_INFO(LOG_NODE)
-                << "Header #" << state->height() << " ["
-                << encoded << "] from [" << authority() << "] ("
-                << state->enabled_forks() << checked << ", "
-                << state->minimum_block_version() << ").";
-        }
+        ////    LOG_INFO(LOG_NODE)
+        ////        << "Header #" << state->height() << " ["
+        ////        << encoded << "] from [" << authority() << "] ("
+        ////        << state->enabled_forks() << checked << ", "
+        ////        << state->minimum_block_version() << ").";
+        ////}
+
+        LOG_INFO(LOG_NODE)
+            << "Header #" << " [" << encoded
+            << "] from [" << authority() << "]";
     }
 
     // Break off recursion.
