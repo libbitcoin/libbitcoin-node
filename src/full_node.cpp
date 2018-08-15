@@ -128,7 +128,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         << "Top confirmed block height is (" << confirmed.height() << ").";
 
     checkpoint candidate;
-    if (!chain_.get_top(candidate, false))
+    if (!chain_.get_top(candidate, true))
     {
         LOG_ERROR(LOG_NODE)
             << "The candidate chain is corrupt.";
