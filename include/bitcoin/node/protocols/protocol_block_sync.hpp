@@ -43,7 +43,11 @@ public:
         blockchain::safe_chain& chain);
 
     /// Start the protocol.
-    virtual void start();
+    void start() override;
+
+protected:
+    // Expose polymorphic start method from base.
+    using network::protocol_timer::start;
 
 private:
     void send_get_blocks();
