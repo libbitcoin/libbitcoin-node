@@ -48,7 +48,6 @@ protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
   : protocol_timer(node, channel, true, NAME),
     chain_(chain),
     reservation_(node.get_reservation()),
-    bitcoin_settings_(node.bitcoin_settings()),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
 }

@@ -36,9 +36,8 @@ class BCN_API session
 {
 protected:
     /// Construct an instance.
-    session(full_node& node, bool notify_on_connect,
-        const bc::settings& bitcoin_settings)
-      : Session(node, notify_on_connect, bitcoin_settings), node_(node)
+    session(full_node& node, bool notify_on_connect)
+      : Session(node, notify_on_connect), node_(node)
     {
     }
 

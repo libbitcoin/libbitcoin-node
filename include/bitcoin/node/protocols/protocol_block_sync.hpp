@@ -60,7 +60,6 @@ private:
     blockchain::safe_chain& chain_;
 
     reservation::ptr reservation_;
-    const bc::settings& bitcoin_settings_;
     mutable upgrade_mutex mutex_;
 };
 
