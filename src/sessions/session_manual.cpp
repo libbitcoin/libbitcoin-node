@@ -36,8 +36,7 @@ using namespace bc::network;
 using namespace std::placeholders;
 
 session_manual::session_manual(full_node& network, safe_chain& chain)
-    : session<network::session_manual>(network, true,
-        network.bitcoin_settings()),
+  : session<network::session_manual>(network, true),
     chain_(chain),
     CONSTRUCT_TRACK(node::session_manual)
 {

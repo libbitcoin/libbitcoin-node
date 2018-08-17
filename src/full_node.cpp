@@ -41,7 +41,7 @@ using namespace boost::adaptors;
 using namespace std::placeholders;
 
 full_node::full_node(const configuration& configuration)
-  : p2p(configuration.network, configuration.bitcoin),
+  : p2p(configuration.network),
     reservations_(configuration.network.minimum_connections(),
         configuration.node.maximum_deviation,
         configuration.node.block_latency_seconds),
@@ -49,8 +49,7 @@ full_node::full_node(const configuration& configuration)
         configuration.bitcoin),
     protocol_maximum_(configuration.network.protocol_maximum),
     chain_settings_(configuration.chain),
-    node_settings_(configuration.node),
-    bitcoin_settings_(configuration.bitcoin)
+    node_settings_(configuration.node)
 {
 }
 
@@ -312,11 +311,6 @@ const node::settings& full_node::node_settings() const
 const blockchain::settings& full_node::chain_settings() const
 {
     return chain_settings_;
-}
-
-const bc::settings& full_node::bitcoin_settings() const
-{
-    return bitcoin_settings_;
 }
 
 safe_chain& full_node::chain()

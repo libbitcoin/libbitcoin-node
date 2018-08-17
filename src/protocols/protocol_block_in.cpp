@@ -71,7 +71,6 @@ protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     // Witness must be requested if possibly enforced.
     require_witness_(is_witness(node.network_settings().services)),
     peer_witness_(is_witness(channel->peer_version()->services())),
-    bitcoin_settings_(node.bitcoin_settings()),
     CONSTRUCT_TRACK(protocol_block_in)
 {
 }
