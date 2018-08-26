@@ -160,7 +160,7 @@ void reservation::update_history(size_t events,
     const auto window_start = end - rate_window();
     const auto history_count = history_.size();
 
-    // Remove expired entries from the head of queue ( window history only).
+    // Remove expired entries from the head of queue (window history only).
     for (auto it = history_.begin();
         it != history_.end() && it->time < window_start;
         it = history_.erase(it));
