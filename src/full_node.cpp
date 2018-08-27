@@ -113,49 +113,27 @@ void full_node::handle_running(const code& ec, result_handler handler)
         return;
     }
 
-    checkpoint confirmed;
-    if (!chain_.get_top(confirmed, false))
+    checkpoint top_confirmed;
+    if (!chain_.get_top(top_confirmed, false))
     {
         LOG_ERROR(LOG_NODE)
-            << "The block chain is corrupt.";
+            << "The confirmed chain is corrupt.";
         handler(error::operation_failed);
         return;
     }
 
-    set_top_block(confirmed);
+    set_top_block(top_confirmed);
     LOG_INFO(LOG_NODE)
-        << "Top confirmed block height is (" << confirmed.height() << ").";
+        << "Top confirmed block height is (" << top_confirmed.height() << ").";
 
-    checkpoint candidate;
-    if (!chain_.get_top(candidate, true))
+    checkpoint top_candidate;
+    if (!chain_.get_top(top_candidate, true))
     {
         LOG_ERROR(LOG_NODE)
             << "The candidate chain is corrupt.";
         handler(error::operation_failed);
         return;
     }
-
-    set_top_header(candidate);
-    LOG_INFO(LOG_NODE)
-        << "Top candidate block height is (" << candidate.height() << ").";
-
-    hash_digest hash;
-    auto top_valid = chain_.top_valid_candidate_state()->height();
-    const auto start_height = top_valid + 1u;
-
-    LOG_INFO(LOG_NODE)
-        << "Top valid candidate block height (" << top_valid << ").";
-
-    // Scan header index from top down until just after last valid block.
-    // This may re-download non-empty blocks, which prevents stall in the
-    // case where next candidate after last valid (start_height) is non-empty.
-    // Genesis ensures loop termination, and its existence is guaranteed above.
-    for (auto height = candidate.height(); height > top_valid; --height)
-        if (chain_.get_downloadable(hash, height) || height == start_height)
-            reservations_.push_front(std::move(hash), height);
-
-    LOG_INFO(LOG_NODE)
-        << "Pending block downloads (" << reservations_.size() << ").";
 
     subscribe_headers(
         std::bind(&full_node::handle_reindexed,
@@ -164,6 +142,46 @@ void full_node::handle_running(const code& ec, result_handler handler)
     subscribe_blocks(
         std::bind(&full_node::handle_reorganized,
             this, _1, _2, _3, _4));
+
+    set_top_header(top_candidate);
+    const auto top_candidate_height = top_candidate.height();
+
+    LOG_INFO(LOG_NODE)
+        << "Top candidate block height is (" << top_candidate_height << ").";
+
+    hash_digest hash;
+    const auto top_valid_candidate_height =
+        chain_.top_valid_candidate_state()->height();
+
+    LOG_INFO(LOG_NODE)
+        << "Top valid candidate block height (" << top_valid_candidate_height
+        << ").";
+
+    // Prime download queue.
+    for (auto height = top_candidate_height;
+        height > top_valid_candidate_height; --height)
+        if (chain_.get_downloadable(hash, height))
+            reservations_.push_front(std::move(hash), height);
+
+    LOG_INFO(LOG_NODE)
+        << "Pending candidate downloads (" << reservations_.size() << ").";
+
+    // Guard against addition overflow.
+    BITCOIN_ASSERT(top_valid_candidate_height <= top_candidate_height);
+    if (top_valid_candidate_height == top_candidate_height)
+        return;
+
+    // Prime validation subscriber.
+    for (auto height = top_valid_candidate_height + 1u;
+        height <= top_candidate_height; ++height)
+        if (chain_.get_validatable(hash, height))
+        {
+            LOG_INFO(LOG_NODE)
+                << "Next candidate pending validation (" << height << ").";
+
+            chain_.prime_validation(hash, height);
+            break;
+        }
 
     // This is invoked on a new thread.
     // This is the end of the derived run startup sequence.
