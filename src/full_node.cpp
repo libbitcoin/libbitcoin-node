@@ -168,20 +168,22 @@ void full_node::handle_running(const code& ec, result_handler handler)
 
     // Guard against addition overflow.
     BITCOIN_ASSERT(top_valid_candidate_height <= top_candidate_height);
-    if (top_valid_candidate_height == top_candidate_height)
-        return;
-
-    // Prime validation subscriber.
-    for (auto height = top_valid_candidate_height + 1u;
-        height <= top_candidate_height; ++height)
-        if (chain_.get_validatable(hash, height))
+    if (top_valid_candidate_height != top_candidate_height)
+    {
+        // Prime validation subscriber.
+        for (auto height = top_valid_candidate_height + 1u;
+            height <= top_candidate_height; ++height)
         {
-            LOG_INFO(LOG_NODE)
-                << "Next candidate pending validation (" << height << ").";
+            if (chain_.get_validatable(hash, height))
+            {
+                LOG_INFO(LOG_NODE)
+                    << "Next candidate pending validation (" << height << ").";
 
-            chain_.prime_validation(hash, height);
-            break;
+                chain_.prime_validation(hash, height);
+                break;
+            }
         }
+    }
 
     // This is invoked on a new thread.
     // This is the end of the derived run startup sequence.
