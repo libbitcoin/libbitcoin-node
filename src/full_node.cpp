@@ -166,23 +166,14 @@ void full_node::handle_running(const code& ec, result_handler handler)
     LOG_INFO(LOG_NODE)
         << "Pending candidate downloads (" << reservations_.size() << ").";
 
-    // Guard against addition overflow.
-    BITCOIN_ASSERT(top_valid_candidate_height <= top_candidate_height);
-    if (top_valid_candidate_height != top_candidate_height)
+    const auto next_validatable_height = top_valid_candidate_height + 1u;
+    if (chain_.get_validatable(hash, next_validatable_height))
     {
-        // Prime validation subscriber.
-        for (auto height = top_valid_candidate_height + 1u;
-            height <= top_candidate_height; ++height)
-        {
-            if (chain_.get_validatable(hash, height))
-            {
-                LOG_INFO(LOG_NODE)
-                    << "Next candidate pending validation (" << height << ").";
+        LOG_INFO(LOG_NODE)
+            << "Next candidate pending validation (" << next_validatable_height
+            << ").";
 
-                chain_.prime_validation(hash, height);
-                break;
-            }
-        }
+        chain_.prime_validation(hash, next_validatable_height);
     }
 
     // This is invoked on a new thread.
