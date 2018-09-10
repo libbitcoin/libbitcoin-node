@@ -433,6 +433,21 @@ options_metadata parser::load_settings()
         value<bool>(&configured.chain.bip147),
         "Prevent dummy value malleability, defaults to true (soft fork)."
     )
+    (
+        "fork.time_warp_patch",
+        value<bool>(&configured.chain.time_warp_patch),
+        "Fix time warp bug, defaults to false (hard fork)."
+    )
+    (
+        "fork.retarget_overflow_patch",
+        value<bool>(&configured.chain.retarget_overflow_patch),
+        "Fix target overflow for very low difficulty, defaults to false (hard fork)."
+    )
+    (
+        "fork.scrypt_proof_of_work",
+        value<bool>(&configured.chain.scrypt_proof_of_work),
+        "Use scrypt hashing for proof of work, defaults to false (hard fork)."
+    )
 
     /* [node] */
     (
