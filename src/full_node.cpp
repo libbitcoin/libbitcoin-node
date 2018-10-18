@@ -237,15 +237,23 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
     if (!incoming || incoming->empty())
         return true;
 
-    for (const auto block: *outgoing)
+    auto height = fork_height + outgoing->size();
+    for (const auto block: reverse(*outgoing))
     {
         LOG_DEBUG(LOG_NODE)
-            << "Reorganization moved block to pool ["
+            << "Outgoing #" << height-- << " ["
             << encode_hash(block->header().hash()) << "]";
     }
 
-    const auto height = fork_height + incoming->size();
-    set_top_block({ incoming->back()->hash(), height });
+    for (const auto block: *incoming)
+    {
+        LOG_DEBUG(LOG_NODE)
+            << "Incoming #" << ++height << " ["
+            << encode_hash(block->header().hash()) << "]";
+    }
+
+    const auto top_height = fork_height + incoming->size();
+    set_top_block({ incoming->back()->hash(), top_height });
     return true;
 }
 
