@@ -42,12 +42,20 @@ using namespace std::placeholders;
 // The moving window in which block average download rate is measured.
 static const asio::seconds monitor_interval(5);
 
+inline bool is_witness(uint64_t services)
+{
+    return (services & version::service::node_witness) != 0;
+}
+
 // Depends on protocol_header_sync, which requires protocol version 31800.
 protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, true, NAME),
     chain_(chain),
     reservation_(node.get_reservation()),
+    // Witness must be requested if possibly enforced.
+    require_witness_(is_witness(node.network_settings().services)),
+    peer_witness_(is_witness(channel->peer_version()->services())),
     CONSTRUCT_TRACK(protocol_block_sync)
 {
 }
@@ -80,11 +88,15 @@ void protocol_block_sync::send_get_blocks()
         return;
 
     // Repopulate if empty and new work has arrived.
-    const auto request = reservation_->request();
+    auto request = reservation_->request();
 
     // Or we may be the same channel and with hashes already requested.
     if (request.inventories().empty())
         return;
+
+    // Convert requested message types to corresponding witness types.
+    if (require_witness_)
+        request.to_witness();
 
     LOG_DEBUG(LOG_NODE)
         << "Sending request of " << request.inventories().size()
@@ -114,6 +126,14 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         LOG_DEBUG(LOG_NODE)
             << "Restarting partitioned slot (" << reservation_->slot()
             << ") : [" << reservation_->size() << "]";
+        stop(error::channel_stopped);
+        return false;
+    }
+
+    // Do not process incoming blocks if required witness is unavailable.
+    // The channel will remain active outbound unless node becomes stale.
+    if (require_witness_ && !peer_witness_)
+    {
         stop(error::channel_stopped);
         return false;
     }
