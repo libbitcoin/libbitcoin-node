@@ -61,6 +61,8 @@ private:
 
     reservation::ptr reservation_;
     mutable upgrade_mutex mutex_;
+    const bool require_witness_;
+    const bool peer_witness_;
 };
 
 } // namespace node
