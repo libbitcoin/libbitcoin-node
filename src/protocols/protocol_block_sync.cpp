@@ -120,20 +120,21 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         return false;
     }
 
+    // TODO: this should fail from start() but need to verify that is allowed.
+    // TODO: v3 suspends incoming blocks from start, but does not stop channel.
+    // Stop if required witness is unavailable.
+    if (require_witness_ && !peer_witness_)
+    {
+        stop(error::channel_stopped);
+        return false;
+    }
+
     // This channel was slowest, so half of its reservation has been taken.
     if (reservation_->stopped())
     {
         LOG_DEBUG(LOG_NODE)
             << "Restarting partitioned slot (" << reservation_->slot()
             << ") : [" << reservation_->size() << "]";
-        stop(error::channel_stopped);
-        return false;
-    }
-
-    // Do not process incoming blocks if required witness is unavailable.
-    // The channel will remain active outbound unless node becomes stale.
-    if (require_witness_ && !peer_witness_)
-    {
         stop(error::channel_stopped);
         return false;
     }
