@@ -166,6 +166,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
     LOG_INFO(LOG_NODE)
         << "Pending candidate downloads (" << reservations_.size() << ").";
 
+    // Prime validator.
     const auto next_validatable_height = top_valid_candidate_height + 1u;
     if (chain_.get_validatable(hash, next_validatable_height))
     {
