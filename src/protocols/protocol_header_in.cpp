@@ -207,7 +207,7 @@ void protocol_header_in::handle_store_header(const code& ec, header_const_ptr he
             << "Pooled header [" << encoded << "] from [" << authority()
             << "] " << ec.message();
     }
-    if (ec == error::duplicate_block)
+    else if (ec == error::duplicate_block)
     {
         // Allow duplicate header to continue as desirable race with peers.
         LOG_VERBOSE(LOG_NODE)
