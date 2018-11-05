@@ -158,7 +158,7 @@ bool reservations::reserve(reservation::ptr minimal)
 
     if (!minimal->empty())
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_VERBOSE(LOG_NODE)
             << "Minimal (" << minimal ->slot() << ") is not empty.";
         return true;
     }
@@ -186,7 +186,7 @@ bool reservations::partition(reservation::ptr minimal)
 {
     if (!minimal->empty())
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_VERBOSE(LOG_NODE)
             << "Minimal (" << minimal->slot() << ") is not empty.";
         return true;
     }
@@ -195,13 +195,13 @@ bool reservations::partition(reservation::ptr minimal)
 
     if (!maximal)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_VERBOSE(LOG_NODE)
             << "Maximal (" << minimal->slot() << ") not found.";
         return false;
     }
     else if (maximal == minimal)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_VERBOSE(LOG_NODE)
             << "Minimal (" << minimal->slot() << ") is maximal.";
         return false;
     }
