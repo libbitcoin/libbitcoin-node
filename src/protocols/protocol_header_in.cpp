@@ -228,21 +228,21 @@ void protocol_header_in::handle_store_header(const code& ec, header_const_ptr he
         const auto state = header->metadata.state;
         BITCOIN_ASSERT(state);
 
-        // Only log every 1000th header, until current.
-        size_t period = chain_.is_candidates_stale() ? 1000 : 1;
+        // Only log every 100th header, until current.
+        size_t period = chain_.is_candidates_stale() ? 100 : 1;
 
         if (state->height() % period == 0)
         {
-            const auto checked = state->is_under_checkpoint() ? "*" : "";
-
             LOG_INFO(LOG_NODE)
                 << "Header #" << state->height() << " ["
                 << encoded << "] from [" << authority() << "] ("
-                << state->enabled_forks() << checked << ", "
+                << state->enabled_forks()
+                << (state->is_under_checkpoint() ? "*" : "") << ", "
                 << state->minimum_block_version() << ").";
         }
     }
 
+    // TODO: optimize with loop?
     // Break off recursion.
     DISPATCH_CONCURRENT2(store_header, ++index, message);
 }
