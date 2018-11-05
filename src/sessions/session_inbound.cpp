@@ -57,7 +57,6 @@ void session_inbound::attach_protocols(channel::ptr channel)
     if (version >= version::level::headers)
         attach<protocol_header_in>(channel, chain_)->start();
 
-
     attach<protocol_block_sync>(channel, chain_)->start();
     ////attach<protocol_block_out>(channel, chain_)->start();
     ////attach<protocol_transaction_in>(channel, chain_)->start();
