@@ -238,20 +238,23 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
     if (!incoming || incoming->empty())
         return true;
 
-    ////auto height = fork_height + outgoing->size();
-    ////for (const auto block: reverse(*outgoing))
-    ////{
-    ////    LOG_DEBUG(LOG_NODE)
-    ////        << "Outgoing #" << height-- << " ["
-    ////        << encode_hash(block->header().hash()) << "]";
-    ////}
+    auto height = fork_height + outgoing->size();
 
-    ////for (const auto block: *incoming)
-    ////{
-    ////    LOG_DEBUG(LOG_NODE)
-    ////        << "Incoming #" << ++height << " ["
-    ////        << encode_hash(block->header().hash()) << "]";
-    ////}
+    // TODO: add statistical reporting.
+    for (const auto block: reverse(*outgoing))
+    {
+        LOG_INFO(LOG_NODE)
+            << "Popped #" << height-- << " ["
+            << encode_hash(block->hash()) << "]";
+    }
+
+    // TODO: add statistical reporting.
+    for (const auto block: *incoming)
+    {
+        LOG_INFO(LOG_NODE)
+            << "Validated #" << ++height << " ["
+            << encode_hash(block->hash()) << "]";
+    }
 
     const auto top_height = fork_height + incoming->size();
     set_top_block({ incoming->back()->hash(), top_height });
