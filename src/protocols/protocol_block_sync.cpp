@@ -53,7 +53,6 @@ protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
   : protocol_timer(node, channel, true, NAME),
     chain_(chain),
     reservation_(node.get_reservation()),
-    // Witness must be requested if possibly enforced.
     require_witness_(is_witness(node.network_settings().services)),
     peer_witness_(is_witness(channel->peer_version()->services())),
     CONSTRUCT_TRACK(protocol_block_sync)
