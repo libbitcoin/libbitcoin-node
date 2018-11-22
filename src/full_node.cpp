@@ -244,7 +244,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
     for (const auto block: reverse(*outgoing))
     {
         LOG_INFO(LOG_NODE)
-            << "Popped #" << height-- << " ["
+            << "Unconfirmed #" << height-- << " ["
             << encode_hash(block->hash()) << "]";
     }
 
@@ -254,7 +254,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
         if ((height + 1u) % 10u == 0 || !outgoing->empty())
         {
             LOG_INFO(LOG_NODE)
-                << "Validated #" << ++height << " ["
+                << "Confirmed #" << ++height << " ["
                 << encode_hash(block->hash()) << "]";
         }
     }
