@@ -51,16 +51,17 @@ protected:
 
 private:
     void send_get_blocks();
-    void handle_event(const code& ec);
-    bool handle_receive_block(const code& ec, block_const_ptr message);
-    bool handle_reindexed(code ec, size_t fork_height,
-        header_const_ptr_list_const_ptr incoming,
-        header_const_ptr_list_const_ptr outgoing);
+    void handle_event(const system::code& ec);
+    bool handle_receive_block(const system::code& ec,
+        system::block_const_ptr message);
+    bool handle_reindexed(system::code ec, size_t fork_height,
+        system::header_const_ptr_list_const_ptr incoming,
+        system::header_const_ptr_list_const_ptr outgoing);
 
     blockchain::safe_chain& chain_;
 
     reservation::ptr reservation_;
-    mutable upgrade_mutex mutex_;
+    mutable system::upgrade_mutex mutex_;
     const bool require_witness_;
     const bool peer_witness_;
 };

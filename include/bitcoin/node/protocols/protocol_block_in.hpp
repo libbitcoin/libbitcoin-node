@@ -48,27 +48,31 @@ protected:
     using network::protocol_timer::start;
 
 private:
-    static void report(const chain::block& block, size_t height);
+    static void report(const system::chain::block& block, size_t height);
 
-    void send_get_blocks(const hash_digest& stop_hash);
-    void send_get_data(const code& ec, get_data_ptr message);
+    void send_get_blocks(const system::hash_digest& stop_hash);
+    void send_get_data(const system::code& ec, system::get_data_ptr message);
 
-    bool handle_receive_block(const code& ec, block_const_ptr message);
-    bool handle_receive_inventory(const code& ec, inventory_const_ptr message);
-    bool handle_receive_not_found(const code& ec, not_found_const_ptr message);
-    void handle_store_block(const code& ec, size_t height,
-        block_const_ptr message);
-    void handle_fetch_header_locator(const code& ec, get_blocks_ptr message,
-        const hash_digest& stop_hash);
+    bool handle_receive_block(const system::code& ec,
+        system::block_const_ptr message);
+    bool handle_receive_inventory(const system::code& ec,
+        system::inventory_const_ptr message);
+    bool handle_receive_not_found(const system::code& ec,
+        system::not_found_const_ptr message);
+    void handle_store_block(const system::code& ec, size_t height,
+        system::block_const_ptr message);
+    void handle_fetch_header_locator(const system::code& ec,
+        system::get_blocks_ptr message,
+        const system::hash_digest& stop_hash);
 
-    void handle_timeout(const code& ec);
-    void handle_stop(const code& ec);
+    void handle_timeout(const system::code& ec);
+    void handle_stop(const system::code& ec);
 
     // These are thread safe.
     full_node& node_;
     blockchain::safe_chain& chain_;
     hash_queue backlog_;
-    const asio::duration block_latency_;
+    const system::asio::duration block_latency_;
     const bool not_found_;
     const bool blocks_first_;
     const bool blocks_inventory_;

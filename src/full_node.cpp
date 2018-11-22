@@ -34,9 +34,10 @@ namespace libbitcoin {
 namespace node {
 
 using namespace bc::blockchain;
-using namespace bc::chain;
-using namespace bc::config;
 using namespace bc::network;
+using namespace bc::system;
+using namespace bc::system::chain;
+using namespace bc::system::config;
 using namespace boost::adaptors;
 using namespace std::placeholders;
 

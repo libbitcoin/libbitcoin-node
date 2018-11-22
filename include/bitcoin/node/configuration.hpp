@@ -43,7 +43,7 @@ namespace node {
 class BCN_API configuration
 {
 public:
-    configuration(config::settings context);
+    configuration(system::config::settings context);
 
     /// Options.
     bool help;
@@ -59,7 +59,7 @@ public:
     blockchain::settings chain;
     database::settings database;
     network::settings network;
-    libbitcoin::settings bitcoin;
+    system::settings bitcoin;
 };
 
 } // namespace node

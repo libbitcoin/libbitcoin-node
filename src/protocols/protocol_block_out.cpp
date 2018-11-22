@@ -37,8 +37,9 @@ namespace node {
 #define CLASS protocol_block_out
 
 using namespace bc::blockchain;
-using namespace bc::message;
 using namespace bc::network;
+using namespace bc::system;
+using namespace bc::system::message;
 using namespace boost::adaptors;
 using namespace std::placeholders;
 

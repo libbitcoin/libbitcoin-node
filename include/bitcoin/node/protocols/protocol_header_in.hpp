@@ -51,24 +51,26 @@ protected:
     using network::protocol_timer::start;
 
 private:
-    void send_top_get_headers(const hash_digest& stop_hash);
-    void send_next_get_headers(const hash_digest& start_hash);
-    void handle_fetch_header_locator(const code& ec, get_headers_ptr message,
-        const hash_digest& stop_hash);
+    void send_top_get_headers(const system::hash_digest& stop_hash);
+    void send_next_get_headers(const system::hash_digest& start_hash);
+    void handle_fetch_header_locator(const system::code& ec,
+        system::get_headers_ptr message, const system::hash_digest& stop_hash);
 
-    bool handle_receive_headers(const code& ec, headers_const_ptr message);
-    void store_header(size_t index, headers_const_ptr message);
-    void handle_store_header(const code& ec, header_const_ptr header,
-        size_t index, headers_const_ptr message);
+    bool handle_receive_headers(const system::code& ec,
+        system::headers_const_ptr message);
+    void store_header(size_t index, system::headers_const_ptr message);
+    void handle_store_header(const system::code& ec,
+        system::header_const_ptr header, size_t index,
+        system::headers_const_ptr message);
 
     void send_send_headers();
-    void handle_timeout(const code& ec);
-    void handle_stop(const code& ec);
+    void handle_timeout(const system::code& ec);
+    void handle_stop(const system::code& ec);
 
     // These are thread safe.
     full_node& node_;
     blockchain::safe_chain& chain_;
-    const asio::duration header_latency_;
+    const system::asio::duration header_latency_;
     const bool send_headers_;
     std::atomic<bool> sending_headers_;
 };

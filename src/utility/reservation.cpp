@@ -24,7 +24,7 @@
 #include <functional>
 #include <utility>
 #include <boost/format.hpp>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservations.hpp>
@@ -33,7 +33,8 @@ namespace libbitcoin {
 namespace node {
 
 using namespace bc::blockchain;
-using namespace bc::chain;
+using namespace bc::system;
+using namespace bc::system::chain;
 
 // The minimum amount of block history to measure to determine window.
 static constexpr size_t minimum_history = 3;

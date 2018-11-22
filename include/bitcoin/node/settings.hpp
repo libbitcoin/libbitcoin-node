@@ -20,7 +20,7 @@
 #define LIBBITCOIN_NODE_SETTINGS_HPP
 
 #include <cstdint>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -31,7 +31,7 @@ class BCN_API settings
 {
 public:
     settings();
-    settings(config::settings context);
+    settings(system::config::settings context);
 
     /// Properties.
     float maximum_deviation;
@@ -39,7 +39,7 @@ public:
     bool refresh_transactions;
 
     /// Helpers.
-    asio::duration block_latency() const;
+    system::asio::duration block_latency() const;
 };
 
 } // namespace node

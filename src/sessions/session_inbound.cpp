@@ -31,8 +31,8 @@ namespace libbitcoin {
 namespace node {
 
 using namespace bc::blockchain;
-using namespace bc::message;
 using namespace bc::network;
+using namespace bc::system::message;
 using namespace std::placeholders;
 
 session_inbound::session_inbound(full_node& network, safe_chain& chain)

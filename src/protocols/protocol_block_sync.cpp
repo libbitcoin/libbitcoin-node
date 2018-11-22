@@ -35,8 +35,9 @@ namespace node {
 #define CLASS protocol_block_sync
 
 using namespace bc::blockchain;
-using namespace bc::message;
 using namespace bc::network;
+using namespace bc::system;
+using namespace bc::system::message;
 using namespace std::placeholders;
 
 // The moving window in which block average download rate is measured.

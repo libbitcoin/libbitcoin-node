@@ -25,7 +25,7 @@
 #include <numeric>
 #include <utility>
 #include <vector>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/check_list.hpp>
 #include <bitcoin/node/utility/performance.hpp>
@@ -36,7 +36,8 @@ namespace libbitcoin {
 namespace node {
 
 using namespace bc::blockchain;
-using namespace bc::chain;
+using namespace bc::system;
+using namespace bc::system::chain;
 
 reservations::reservations(size_t minimum_peer_count, float maximum_deviation,
     uint32_t block_latency_seconds)

@@ -33,8 +33,9 @@ namespace node {
 #define CLASS protocol_header_in
 
 using namespace bc::blockchain;
-using namespace bc::message;
 using namespace bc::network;
+using namespace bc::system;
+using namespace bc::system::message;
 using namespace std::placeholders;
 
 protocol_header_in::protocol_header_in(full_node& node, channel::ptr channel,
@@ -174,7 +175,7 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
         BIND4(handle_store_header, _1, copy, index, message));
 }
 
-void protocol_header_in::handle_store_header(const code& ec, header_const_ptr header, 
+void protocol_header_in::handle_store_header(const code& ec, header_const_ptr header,
     size_t index, headers_const_ptr message)
 {
     if (stopped(ec))

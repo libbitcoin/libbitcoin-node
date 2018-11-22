@@ -25,6 +25,8 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace bc::system;
+
 bool hash_queue::empty() const
 {
     ///////////////////////////////////////////////////////////////////////////

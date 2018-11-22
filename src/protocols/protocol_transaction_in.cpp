@@ -35,8 +35,9 @@ namespace node {
 #define CLASS protocol_transaction_in
 
 using namespace bc::blockchain;
-using namespace bc::message;
 using namespace bc::network;
+using namespace bc::system;
+using namespace bc::system::message;
 using namespace std::placeholders;
 
 inline bool is_witness(uint64_t services)

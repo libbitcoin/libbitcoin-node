@@ -47,13 +47,13 @@ public:
         uint32_t block_latency_seconds);
 
     /// Pop header hash to back (if hash at back), verify the height.
-    void pop_back(const chain::header& header, size_t height);
+    void pop_back(const system::chain::header& header, size_t height);
 
     /// Push header hash to back, verify the height is increasing.
-    void push_back(const chain::header& header, size_t height);
+    void push_back(const system::chain::header& header, size_t height);
 
     /// Push header hash to front, verify the height is decreasing.
-    void push_front(hash_digest&& hash, size_t height);
+    void push_front(system::hash_digest&& hash, size_t height);
 
     /// Get a download reservation manager.
     reservation::ptr get();
@@ -105,7 +105,7 @@ private:
     // Protected by mutex.
     bool initialized_;
     reservation::list table_;
-    mutable upgrade_mutex mutex_;
+    mutable system::upgrade_mutex mutex_;
 };
 
 } // namespace node
