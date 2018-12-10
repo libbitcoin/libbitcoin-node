@@ -244,16 +244,19 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
     for (const auto block: reverse(*outgoing))
     {
         LOG_INFO(LOG_NODE)
-            << "Popped #" << height-- << " ["
+            << "Unconfirmed #" << height-- << " ["
             << encode_hash(block->hash()) << "]";
     }
 
     // TODO: add statistical reporting.
     for (const auto block: *incoming)
     {
-        LOG_INFO(LOG_NODE)
-            << "Validated #" << ++height << " ["
-            << encode_hash(block->hash()) << "]";
+        if ((height + 1u) % 10u == 0 || !outgoing->empty())
+        {
+            LOG_INFO(LOG_NODE)
+                << "Confirmed #" << ++height << " ["
+                << encode_hash(block->hash()) << "]";
+        }
     }
 
     const auto top_height = fork_height + incoming->size();

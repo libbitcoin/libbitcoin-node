@@ -333,7 +333,7 @@ code reservation::import(safe_chain& chain, block_const_ptr block,
     if (remaining < 144 || height % 10 == 0)
     {
         // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
-        static const auto form = "Block #%06i (%02i) [%s] %07.3f %05.2f%% %i";
+        static const auto form = "Stored #%06i (%02i) [%s] %07.3f %05.2f%% %i";
         const auto record = rate();
         const auto encoded = encode_hash(block->hash());
         const auto database_percentage = record.ratio() * 100;
