@@ -110,15 +110,15 @@ protected:
     network::session_outbound::ptr attach_outbound_session() override;
 
 private:
-    bool handle_reindexed(code ec, size_t fork_height,
-        header_const_ptr_list_const_ptr incoming,
-        header_const_ptr_list_const_ptr outgoing);
+    bool handle_reindexed(system::code ec, size_t fork_height,
+        system::header_const_ptr_list_const_ptr incoming,
+        system::header_const_ptr_list_const_ptr outgoing);
 
-    bool handle_reorganized(code ec, size_t fork_height,
-        block_const_ptr_list_const_ptr incoming,
-        block_const_ptr_list_const_ptr outgoing);
+    bool handle_reorganized(system::code ec, size_t fork_height,
+        system::block_const_ptr_list_const_ptr incoming,
+        system::block_const_ptr_list_const_ptr outgoing);
 
-    void handle_running(const code& ec, result_handler handler);
+    void handle_running(const system::code& ec, result_handler handler);
 
     // These are thread safe.
     reservations reservations_;

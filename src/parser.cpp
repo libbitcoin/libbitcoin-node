@@ -23,7 +23,7 @@
 #include <string>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -38,7 +38,8 @@ namespace node {
 
 using namespace boost::filesystem;
 using namespace boost::program_options;
-using namespace bc::config;
+using namespace bc::system;
+using namespace bc::system::config;
 
 // Initialize configuration by copying the given instance.
 parser::parser(const configuration& defaults)

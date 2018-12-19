@@ -21,7 +21,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {

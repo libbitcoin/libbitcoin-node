@@ -45,23 +45,26 @@ public:
     virtual void start();
 
 private:
-    void send_next_data(inventory_ptr inventory);
-    void send_transaction(const code& ec, transaction_const_ptr message,
-        size_t position, size_t height, inventory_ptr inventory);
+    void send_next_data(system::inventory_ptr inventory);
+    void send_transaction(const system::code& ec,
+        system::transaction_const_ptr message, size_t position, size_t height,
+        system::inventory_ptr inventory);
 
-    bool handle_receive_get_data(const code& ec,
-        get_data_const_ptr message);
-    bool handle_receive_fee_filter(const code& ec,
-        fee_filter_const_ptr message);
-    bool handle_receive_memory_pool(const code& ec,
-        memory_pool_const_ptr message);
+    bool handle_receive_get_data(const system::code& ec,
+        system::get_data_const_ptr message);
+    bool handle_receive_fee_filter(const system::code& ec,
+        system::fee_filter_const_ptr message);
+    bool handle_receive_memory_pool(const system::code& ec,
+        system::memory_pool_const_ptr message);
 
-    void handle_fetch_mempool(const code& ec, inventory_ptr message);
+    void handle_fetch_mempool(const system::code& ec,
+        system::inventory_ptr message);
 
-    void handle_stop(const code& ec);
-    void handle_send_next(const code& ec, inventory_ptr inventory);
-    bool handle_transaction_pool(const code& ec,
-        transaction_const_ptr message);
+    void handle_stop(const system::code& ec);
+    void handle_send_next(const system::code& ec,
+        system::inventory_ptr inventory);
+    bool handle_transaction_pool(const system::code& ec,
+        system::transaction_const_ptr message);
 
     // These are thread safe.
     blockchain::safe_chain& chain_;
