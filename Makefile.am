@@ -39,7 +39,6 @@ src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
-    src/protocols/protocol_block_in.cpp \
     src/protocols/protocol_block_out.cpp \
     src/protocols/protocol_block_sync.cpp \
     src/protocols/protocol_header_in.cpp \
@@ -108,7 +107,6 @@ include_bitcoin_node_HEADERS = \
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
-    include/bitcoin/node/protocols/protocol_block_in.hpp \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
     include/bitcoin/node/protocols/protocol_block_sync.hpp \
     include/bitcoin/node/protocols/protocol_header_in.hpp \

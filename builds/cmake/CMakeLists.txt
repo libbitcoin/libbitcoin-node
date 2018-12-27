@@ -175,7 +175,6 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/full_node.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
-    "../../src/protocols/protocol_block_in.cpp"
     "../../src/protocols/protocol_block_out.cpp"
     "../../src/protocols/protocol_block_sync.cpp"
     "../../src/protocols/protocol_header_in.cpp"
