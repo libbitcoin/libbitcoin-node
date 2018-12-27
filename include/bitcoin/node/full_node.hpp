@@ -25,6 +25,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservations.hpp>
 
 namespace libbitcoin {
@@ -80,8 +81,14 @@ public:
     /// Blockchain query interface.
     virtual blockchain::safe_chain& chain();
 
+    // Downloader.
+    // ------------------------------------------------------------------------
+
     /// Get a download reservation manager.
     virtual reservation::ptr get_reservation();
+
+    /// Get the current block download queue size.
+    virtual size_t download_queue_size() const;
 
     // Subscriptions.
     // ------------------------------------------------------------------------

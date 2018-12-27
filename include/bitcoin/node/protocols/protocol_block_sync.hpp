@@ -58,10 +58,10 @@ private:
         system::header_const_ptr_list_const_ptr incoming,
         system::header_const_ptr_list_const_ptr outgoing);
 
+    // These are thread safe.
+    full_node& node_;
     blockchain::safe_chain& chain_;
-
     reservation::ptr reservation_;
-    mutable system::upgrade_mutex mutex_;
     const bool require_witness_;
     const bool peer_witness_;
 };
