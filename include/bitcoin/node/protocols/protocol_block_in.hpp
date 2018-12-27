@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
-#define LIBBITCOIN_NODE_PROTOCOL_BLOCK_SYNC_HPP
+#ifndef LIBBITCOIN_NODE_protocol_block_in_HPP
+#define LIBBITCOIN_NODE_protocol_block_in_HPP
 
 #include <cstddef>
 #include <memory>
@@ -32,14 +32,14 @@ namespace node {
 class full_node;
 
 /// Blocks sync protocol, thread safe.
-class BCN_API protocol_block_sync
-  : public network::protocol_timer, public track<protocol_block_sync>
+class BCN_API protocol_block_in
+  : public network::protocol_timer, public track<protocol_block_in>
 {
 public:
-    typedef std::shared_ptr<protocol_block_sync> ptr;
+    typedef std::shared_ptr<protocol_block_in> ptr;
 
     /// Construct a block sync protocol instance.
-    protocol_block_sync(full_node& node, network::channel::ptr channel,
+    protocol_block_in(full_node& node, network::channel::ptr channel,
         blockchain::safe_chain& chain);
 
     /// Start the protocol.

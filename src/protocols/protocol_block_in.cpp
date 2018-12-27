@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_block_sync.hpp>
+#include <bitcoin/node/protocols/protocol_block_in.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -33,7 +33,7 @@ namespace libbitcoin {
 namespace node {
 
 #define NAME "block_sync"
-#define CLASS protocol_block_sync
+#define CLASS protocol_block_in
 
 using namespace bc::blockchain;
 using namespace bc::network;
@@ -50,7 +50,7 @@ inline bool is_witness(uint64_t services)
 }
 
 // Depends on protocol_header_sync, which requires protocol version 31800.
-protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
+protocol_block_in::protocol_block_in(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, true, NAME),
     node_(node),
@@ -58,14 +58,14 @@ protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
     reservation_(node.get_reservation()),
     require_witness_(is_witness(node.network_settings().services)),
     peer_witness_(is_witness(channel->peer_version()->services())),
-    CONSTRUCT_TRACK(protocol_block_sync)
+    CONSTRUCT_TRACK(protocol_block_in)
 {
 }
 
 // Start sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::start()
+void protocol_block_in::start()
 {
     protocol_timer::start(monitor_interval, BIND1(handle_event, _1));
 
@@ -79,7 +79,7 @@ void protocol_block_sync::start()
 // Download sequence.
 // ----------------------------------------------------------------------------
 
-void protocol_block_sync::send_get_blocks()
+void protocol_block_in::send_get_blocks()
 {
     if (stopped())
         return;
@@ -107,7 +107,7 @@ void protocol_block_sync::send_get_blocks()
     SEND2(request, handle_send, _1, request.command);
 }
 
-bool protocol_block_sync::handle_receive_block(const code& ec,
+bool protocol_block_in::handle_receive_block(const code& ec,
     block_const_ptr message)
 {
     if (stopped(ec))
@@ -204,7 +204,7 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
 // ----------------------------------------------------------------------------
 
 // Use header indexation as a block request trigger.
-bool protocol_block_sync::handle_reindexed(code ec, size_t,
+bool protocol_block_in::handle_reindexed(code ec, size_t,
     header_const_ptr_list_const_ptr, header_const_ptr_list_const_ptr)
 {
     if (stopped(ec))
@@ -230,7 +230,7 @@ bool protocol_block_sync::handle_reindexed(code ec, size_t,
 }
 
 // Fired by base timer and stop handler.
-void protocol_block_sync::handle_event(const code& ec)
+void protocol_block_in::handle_event(const code& ec)
 {
     if (stopped(ec))
     {

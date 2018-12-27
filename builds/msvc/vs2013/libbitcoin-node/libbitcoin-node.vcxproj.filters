@@ -51,10 +51,10 @@
     <ClCompile Include="..\..\..\..\src\parser.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out.cpp">
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_sync.cpp">
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in.cpp">
@@ -110,10 +110,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_sync.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in.hpp">
