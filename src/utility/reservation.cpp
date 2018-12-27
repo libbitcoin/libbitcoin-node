@@ -143,9 +143,13 @@ void reservation::clear_history()
 // protected
 // TODO: create an aggregate event counter on reservations object and report
 // on current aggregate rate for every new block.
-void reservation::update_history(size_t events,
-    const asio::microseconds& database)
+void reservation::update_history(block_const_ptr block)
 {
+    static constexpr auto protocol_level = message::version::level::canonical;
+    const auto push = (block->metadata.end_push - block->metadata.start_push);
+    const auto database = std::chrono::duration_cast<asio::microseconds>(push);
+    const auto events = block->serialized_size(protocol_level);
+
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     history_mutex_.lock_upgrade();
