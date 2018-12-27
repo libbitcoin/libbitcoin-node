@@ -19,7 +19,6 @@
 #include <bitcoin/node/protocols/protocol_block_sync.hpp>
 
 #include <algorithm>
-#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
@@ -156,7 +155,6 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         return false;
     }
 
-    // TODO: move timers into organize call.
     // TODO: change organizer to async for consistency.
     // Add the block's transactions to the store.
     // If this is the validation target then validator advances here.
@@ -164,11 +162,9 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
     // If any block fails validation then reindexation will be triggered.
     // Successful block validation with sufficient height triggers block reorg.
     // However the reorgnization notification cannot be sent from here.
-    const auto start = std::chrono::high_resolution_clock::now();
     //#########################################################################
     const auto error_code = chain_.organize(message, height);
     //#########################################################################
-    const auto end = std::chrono::high_resolution_clock::now();
 
     if (error_code)
     {
@@ -180,9 +176,7 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
     }
 
     // Recompute rate performance, excluding store cost.
-    auto size = message->serialized_size(message::version::level::canonical);
-    auto cost = std::chrono::duration_cast<asio::microseconds>(end - start);
-    reservation_->update_history(size, cost);
+    reservation_->update_history(message);
 
     // Only log every 100th block, within "current" number of blocks.
     const auto period = chain_.is_candidates_stale() ? 100u : 1u;

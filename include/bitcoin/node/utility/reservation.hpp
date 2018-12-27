@@ -103,8 +103,7 @@ public:
     bool partition(reservation::ptr minimal);
 
     /// Update history data for computing peer performance standard deviation.
-    void update_history(size_t events,
-        const system::asio::microseconds& database);
+    void update_history(system::block_const_ptr block);
 
 protected:
     // Accessor for testability.
