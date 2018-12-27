@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_block_sync.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
@@ -26,6 +27,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/utility/performance.hpp>
 #include <bitcoin/node/utility/reservation.hpp>
 
 namespace libbitcoin {
@@ -52,6 +54,7 @@ inline bool is_witness(uint64_t services)
 protocol_block_sync::protocol_block_sync(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_timer(node, channel, true, NAME),
+    node_(node),
     chain_(chain),
     reservation_(node.get_reservation()),
     require_witness_(is_witness(node.network_settings().services)),
@@ -153,21 +156,50 @@ bool protocol_block_sync::handle_receive_block(const code& ec,
         return false;
     }
 
+    // TODO: move timers into organize call.
+    // TODO: change organizer to async for consistency.
     // Add the block's transactions to the store.
     // If this is the validation target then validator advances here.
     // Block validation failure will not cause an error here.
     // If any block fails validation then reindexation will be triggered.
     // Successful block validation with sufficient height triggers block reorg.
     // However the reorgnization notification cannot be sent from here.
-    const auto error_code = reservation_->import(chain_, message, height);
+    const auto start = std::chrono::high_resolution_clock::now();
+    //#########################################################################
+    const auto error_code = chain_.organize(message, height);
+    //#########################################################################
+    const auto end = std::chrono::high_resolution_clock::now();
 
     if (error_code)
     {
         LOG_FATAL(LOG_NODE)
-            << "Failure importing block for slot (" << reservation_->slot()
+            << "Failure organize block for slot (" << reservation_->slot()
             << "), store is now corrupted: " << error_code.message();
         stop(error_code);
         return false;
+    }
+
+    // Recompute rate performance, excluding store cost.
+    auto size = message->serialized_size(message::version::level::canonical);
+    auto cost = std::chrono::duration_cast<asio::microseconds>(end - start);
+    reservation_->update_history(size, cost);
+
+    // Only log every 100th block, within "current" number of blocks.
+    const auto period = chain_.is_candidates_stale() ? 100u : 1u;
+
+    if ((height % period) == 0)
+    {
+        // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
+        static const auto form = "Stored #%06i (%02i) [%s] %07.3f %05.2f%% %i";
+        const auto record = reservation_->rate();
+        const auto encoded = encode_hash(message->hash());
+        const auto database_percentage = record.ratio() * 100;
+        const auto remaining = node_.download_queue_size();
+
+        LOG_INFO(LOG_NODE)
+            << boost::format(form) % height % reservation_->slot() % encoded %
+            performance::to_megabits_per_second(record.rate()) %
+            database_percentage % remaining;
     }
 
     send_get_blocks();

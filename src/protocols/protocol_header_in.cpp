@@ -169,10 +169,12 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
     }
 
     // TODO: avoid this copy.
-    const auto copy = std::make_shared<const header>(message->elements()[index]);
+    auto copy = std::make_shared<const header>(message->elements()[index]);
 
+    //#########################################################################
     chain_.organize(copy,
         BIND4(handle_store_header, _1, copy, index, message));
+    //#########################################################################
 }
 
 void protocol_header_in::handle_store_header(const code& ec, header_const_ptr header,
@@ -195,10 +197,13 @@ void protocol_header_in::handle_store_header(const code& ec, header_const_ptr he
             return;
         }
 
-        // Try to fill the gap between the current header tree and this header.
         LOG_DEBUG(LOG_NODE)
             << "Orphan header [" << encoded << "] from [" << authority() << "]";
-        send_top_get_headers(hash);
+
+        // TODO: disabled due to excessive cost during initial block download.
+        // TODO: reenable at the point where the chain is no longer stale.
+        ////// Try to fill the gap between the current header tree and this header.
+        ////send_top_get_headers(hash);
         return;
     }
     else if (ec == error::insufficient_work)
@@ -224,23 +229,21 @@ void protocol_header_in::handle_store_header(const code& ec, header_const_ptr he
         stop(ec);
         return;
     }
-    else
+
+    const auto state = header->metadata.state;
+    BITCOIN_ASSERT(state);
+
+    // Only log every 100th header, until current.
+    const auto period = chain_.is_candidates_stale() ? 100u : 1u;
+
+    if (state->height() % period == 0)
     {
-        const auto state = header->metadata.state;
-        BITCOIN_ASSERT(state);
-
-        // Only log every 100th header, until current.
-        size_t period = chain_.is_candidates_stale() ? 100 : 1;
-
-        if (state->height() % period == 0)
-        {
-            LOG_INFO(LOG_NODE)
-                << "Header #" << state->height() << " ["
-                << encoded << "] from [" << authority() << "] ("
-                << state->enabled_forks()
-                << (state->is_under_checkpoint() ? "*" : "") << ", "
-                << state->minimum_block_version() << ").";
-        }
+        LOG_INFO(LOG_NODE)
+            << "Header #" << state->height() << " ["
+            << encoded << "] from [" << authority() << "] ("
+            << state->enabled_forks()
+            << (state->is_under_checkpoint() ? "*" : "") << ", "
+            << state->minimum_block_version() << ").";
     }
 
     // TODO: optimize with loop?

@@ -103,12 +103,6 @@ asio::microseconds reservation::rate_window() const
     return rate_window_;
 }
 
-// protected
-reservation::clock_point reservation::now() const
-{
-    return std::chrono::high_resolution_clock::now();
-}
-
 // Rate methods.
 //-----------------------------------------------------------------------------
 
@@ -156,7 +150,7 @@ void reservation::update_history(size_t events,
     ///////////////////////////////////////////////////////////////////////////
     history_mutex_.lock_upgrade();
 
-    const auto end = now();
+    const auto end = std::chrono::high_resolution_clock::now();
     const auto event_start = end - database;
     const auto window_start = end - rate_window();
     const auto history_count = history_.size();
@@ -308,44 +302,6 @@ bool reservation::find_height_and_erase(const hash_digest& hash,
     ///////////////////////////////////////////////////////////////////////////
 
     return true;
-}
-
-code reservation::import(safe_chain& chain, block_const_ptr block,
-    size_t height)
-{
-    const auto start = now();
-
-    //#########################################################################
-    const auto ec = chain.organize(block, height);
-    //#########################################################################
-
-    if (ec)
-        return ec;
-
-    // Recompute rate performance.
-    auto size = block->serialized_size(message::version::level::canonical);
-    auto time = std::chrono::duration_cast<asio::microseconds>(now() - start);
-
-    // Update history data for computing peer performance standard deviation.
-    update_history(size, time);
-    const auto remaining = reservations_.size();
-
-    // Only log performance every ~10th block, until ~one day left.
-    if (remaining < 144 || height % 10 == 0)
-    {
-        // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
-        static const auto form = "Stored #%06i (%02i) [%s] %07.3f %05.2f%% %i";
-        const auto record = rate();
-        const auto encoded = encode_hash(block->hash());
-        const auto database_percentage = record.ratio() * 100;
-
-        LOG_INFO(LOG_NODE)
-            << boost::format(form) % height % slot() % encoded %
-            performance::to_megabits_per_second(record.rate()) %
-            database_percentage % remaining;
-    }
-
-    return error::success;
 }
 
 // Give the minimal row ~ half of our hashes, return false if minimal is empty.

@@ -249,13 +249,16 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
             << encode_hash(block->hash()) << "]";
     }
 
+    // Only log every 10th header, until current.
+    const auto period = chain_.is_candidates_stale() ? 10u : 1u;
+
     // TODO: add statistical reporting.
     for (const auto block: *incoming)
     {
-        if ((height + 1u) % 10u == 0 || !outgoing->empty())
+        if ((++height % period) == 0 || !outgoing->empty())
         {
             LOG_INFO(LOG_NODE)
-                << "Confirmed #" << ++height << " ["
+                << "Confirmed #" << height << " ["
                 << encode_hash(block->hash()) << "]";
         }
     }
@@ -345,9 +348,17 @@ safe_chain& full_node::chain()
     return chain_;
 }
 
+// Downloader.
+// ----------------------------------------------------------------------------
+
 reservation::ptr full_node::get_reservation()
 {
     return reservations_.get();
+}
+
+size_t full_node::download_queue_size() const
+{
+    return reservations_.size();
 }
 
 // Subscriptions.

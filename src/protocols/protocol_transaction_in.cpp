@@ -208,7 +208,12 @@ bool protocol_transaction_in::handle_receive_transaction(const code& ec,
         return true;
 
     message->metadata.originator = nonce();
-    chain_.organize(message, BIND2(handle_store_transaction, _1, message));
+
+    //#########################################################################
+    chain_.organize(message,
+        BIND2(handle_store_transaction, _1, message));
+    //#########################################################################
+
     return true;
 }
 
@@ -246,6 +251,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
         return;
     }
 
+    // TODO: add statistical reporting.
     LOG_DEBUG(LOG_NODE)
         << "Stored transaction [" << encoded << "] from [" << authority()
         << "].";

@@ -99,16 +99,14 @@ public:
     bool find_height_and_erase(const system::hash_digest& hash,
         size_t& out_height);
 
-    /// Add to the blockchain, with height determined by the reservation.
-    system::code import(blockchain::safe_chain& chain,
-        system::block_const_ptr block, size_t height);
-
     /// Move half of the reservation to the specified reservation.
     bool partition(reservation::ptr minimal);
 
-protected:
-    typedef std::chrono::high_resolution_clock::time_point clock_point;
+    /// Update history data for computing peer performance standard deviation.
+    void update_history(size_t events,
+        const system::asio::microseconds& database);
 
+protected:
     // Accessor for testability.
     bool pending() const;
 
@@ -118,20 +116,15 @@ protected:
     // Accessor for validating construction.
     system::asio::microseconds rate_window() const;
 
-    // Isolation of side effect to enable unit testing.
-    virtual clock_point now() const;
-
     // History methods.
     //-------------------------------------------------------------------------
 
     // Return rate history to startup state.
     void clear_history();
 
-    // Update rate history to reflect an additional block of the given size.
-    void update_history(size_t events,
-        const system::asio::microseconds& database);
-
 private:
+    typedef std::chrono::high_resolution_clock::time_point clock_point;
+
     typedef struct
     {
         size_t events;
