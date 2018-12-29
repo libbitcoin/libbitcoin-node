@@ -484,6 +484,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t,
     if (chain_.is_blocks_stale())
         return true;
 
+    // No originator for parallel reorganization unless cached block (okay).
     // TODO: consider always sending the last block as compact if enabled.
     if (false && compact_to_peer_ && incoming->size() == 1)
     {
