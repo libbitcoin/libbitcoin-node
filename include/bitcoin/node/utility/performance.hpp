@@ -32,8 +32,8 @@ namespace node {
 class BCN_API performance
 {
 public:
-    // Use microseconds and bytes internally for precision.
-    static double to_megabits_per_second(double bytes_per_microsecond);
+    // Use nanoseconds and bytes internally for precision.
+    static double to_megabits_per_second(double bytes_per_nanoseconds);
 
     /// The event rate, exclusive of discount time.
     double rate() const;
@@ -51,10 +51,10 @@ public:
     // The number of events measured (e.g. bytes or blocks).
     size_t events;
 
-    // Database cost in microseconds, so we do not count against peer.
+    // Database cost in nanoseconds, so we do not count against peer.
     uint64_t discount;
 
-    // Measurement moving window duration in microseconds.
+    // Measurement moving window duration in nanoseconds.
     uint64_t window;
 };
 
