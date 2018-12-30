@@ -39,8 +39,8 @@ using namespace bc::system::chain;
 // The minimum amount of block history to measure to determine window.
 static constexpr size_t minimum_history = 3;
 
-// Simple conversion factor, since we trace in microseconds.
-static constexpr size_t micro_per_second = 1000 * 1000;
+// Simple conversion factor, since we trace in nanoseconds.
+static constexpr size_t nano_per_second = 1000 * 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
     float maximum_deviation, uint32_t block_latency_seconds)
@@ -49,7 +49,7 @@ reservation::reservation(reservations& reservations, size_t slot,
     reservations_(reservations),
     slot_(slot),
     maximum_deviation_(maximum_deviation),
-    rate_window_(minimum_history * block_latency_seconds * micro_per_second),
+    rate_window_(minimum_history * block_latency_seconds * nano_per_second),
     idle_limit_(asio::steady_clock::now()),
     rate_({ true, 0, 0, 0 })
 {
@@ -98,7 +98,7 @@ void reservation::set_pending(bool value)
 }
 
 // protected
-asio::microseconds reservation::rate_window() const
+asio::nanoseconds reservation::rate_window() const
 {
     return rate_window_;
 }
@@ -146,16 +146,20 @@ void reservation::clear_history()
 void reservation::update_history(block_const_ptr block)
 {
     static constexpr auto protocol_level = message::version::level::canonical;
-    const auto push = (block->metadata.end_push - block->metadata.start_push);
-    const auto database = std::chrono::duration_cast<asio::microseconds>(push);
     const auto events = block->serialized_size(protocol_level);
+
+    // Summarize the major local cost of processing the block.
+    const auto local_cost = 
+        block->metadata.deserialize +
+        block->metadata.check +
+        block->metadata.associate;
 
     // Critical Section
     ///////////////////////////////////////////////////////////////////////////
     history_mutex_.lock_upgrade();
 
-    const auto end = std::chrono::high_resolution_clock::now();
-    const auto event_start = end - database;
+    const auto end = asio::steady_clock::now();
+    const auto event_start = end - local_cost;
     const auto window_start = end - rate_window();
     const auto history_count = history_.size();
 
@@ -165,7 +169,7 @@ void reservation::update_history(block_const_ptr block)
         it = history_.erase(it));
 
     const auto mature = history_count > history_.size();
-    const auto event_cost = static_cast<uint64_t>(database.count());
+    const auto event_cost = static_cast<uint64_t>(local_cost.count());
 
     history_mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -183,22 +187,21 @@ void reservation::update_history(block_const_ptr block)
     performance rate{ false, 0, 0, 0 };
     const auto front = history_.front().time;
 
-    // Summarize event count and database cost.
+    // Summarize event count and local cost.
     for (const auto& record: history_)
     {
         BITCOIN_ASSERT(rate.events <= max_size_t - record.events);
         rate.events += record.events;
 
-        BITCOIN_ASSERT(rate.discount <= max_uint64 - record.database);
-        rate.discount += record.database;
+        BITCOIN_ASSERT(rate.discount <= max_uint64 - record.discount);
+        rate.discount += record.discount;
     }
 
     history_mutex_.unlock_shared();
     ///////////////////////////////////////////////////////////////////////////
 
     // Calculate the duration of the rate window.
-    auto window = mature ? rate_window() : end - front;
-    auto duration = std::chrono::duration_cast<asio::microseconds>(window);
+    auto duration = mature ? rate_window() : end - front;
     rate.window = static_cast<uint64_t>(duration.count());
 
     // Update the rate cache.

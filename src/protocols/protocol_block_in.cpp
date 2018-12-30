@@ -178,6 +178,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Recompute rate performance, excluding store cost.
     reservation_->update_history(message);
 
+    // The deserialize, check and associate durations are set here.
     // Only log every 100th block, within "current" number of blocks.
     const auto period = chain_.is_candidates_stale() ? 100u : 1u;
 

@@ -197,7 +197,7 @@
 ////
 ////    // The timeout cannot be exceeded because the current time is fixed.
 ////    static const uint32_t timeout = 1;
-////    const auto now = std::chrono::high_resolution_clock::now();
+////    const auto now = asio::steady_clock::now();
 ////    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
 ////
 ////    // Create a history entry.
@@ -313,7 +313,7 @@
 ////
 ////    // If import time is non-zero the zero timeout will exceed and history will not accumulate.
 ////    static const uint32_t timeout = 0;
-////    const auto now = std::chrono::high_resolution_clock::now();
+////    const auto now = asio::steady_clock::now();
 ////    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
 ////    const auto message = message_factory(3, null_hash);
 ////    reserve->insert(message->elements()[0].hash(), 0);
@@ -336,7 +336,7 @@
 ////
 ////    // The timeout cannot be exceeded because the current time is fixed.
 ////    static const uint32_t timeout = 1;
-////    const auto now = std::chrono::high_resolution_clock::now();
+////    const auto now = asio::steady_clock::now();
 ////    const auto reserve = std::make_shared<reservation_fixture>(reserves, 0, timeout, now);
 ////    const auto message = message_factory(3, null_hash);
 ////    reserve->insert(message->elements()[0].hash(), 0);

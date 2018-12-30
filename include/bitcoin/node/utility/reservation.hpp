@@ -113,7 +113,7 @@ protected:
     void set_pending(bool value);
 
     // Accessor for validating construction.
-    system::asio::microseconds rate_window() const;
+    system::asio::nanoseconds rate_window() const;
 
     // History methods.
     //-------------------------------------------------------------------------
@@ -122,13 +122,11 @@ protected:
     void clear_history();
 
 private:
-    typedef std::chrono::high_resolution_clock::time_point clock_point;
-
     typedef struct
     {
         size_t events;
-        uint64_t database;
-        clock_point time;
+        uint64_t discount;
+        system::asio::time_point time;
     } history_record;
 
     typedef std::vector<history_record> rate_history;
@@ -152,7 +150,7 @@ private:
     reservations& reservations_;
     const size_t slot_;
     const float maximum_deviation_;
-    const system::asio::microseconds rate_window_;
+    const system::asio::nanoseconds rate_window_;
     system::atomic<system::asio::time_point> idle_limit_;
     system::atomic<performance> rate_;
 };
