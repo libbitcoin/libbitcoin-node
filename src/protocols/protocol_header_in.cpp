@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <boost/format.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -177,8 +178,8 @@ void protocol_header_in::store_header(size_t index, headers_const_ptr message)
     //#########################################################################
 }
 
-void protocol_header_in::handle_store_header(const code& ec, header_const_ptr header,
-    size_t index, headers_const_ptr message)
+void protocol_header_in::handle_store_header(const code& ec,
+    header_const_ptr header, size_t index, headers_const_ptr message)
 {
     if (stopped(ec))
         return;
@@ -229,26 +230,39 @@ void protocol_header_in::handle_store_header(const code& ec, header_const_ptr he
         stop(ec);
         return;
     }
-
-    const auto state = header->metadata.state;
-    BITCOIN_ASSERT(state);
-
-    // Only log every 100th header, until current.
-    const auto period = chain_.is_candidates_stale() ? 100u : 1u;
-
-    if (state->height() % period == 0)
+    else
     {
-        LOG_INFO(LOG_NODE)
-            << "Header #" << state->height() << " ["
-            << encoded << "] from [" << authority() << "] ("
-            << state->enabled_forks()
-            << (state->is_under_checkpoint() ? "*" : "") << ", "
-            << state->minimum_block_version() << ").";
+        const auto state = header->metadata.state;
+        BITCOIN_ASSERT(state);
+
+        // Only log every 100th header, until current number of candidates.
+        const auto period = chain_.is_candidates_stale() ? 100u : 1u;
+
+        if ((state->height() % period) == 0)
+            report(*header);
     }
 
     // TODO: optimize with loop?
     // Break off recursion.
     DISPATCH_CONCURRENT2(store_header, ++index, message);
+}
+
+// TODO: add header performance timers.
+void protocol_header_in::report(const chain::header& header) const
+{
+    const auto state = header.metadata.state;
+
+    // Header #height [hash] authority 42*
+    static const auto form =
+        "Header #%06i [%s] %s %i%s";
+
+    LOG_INFO(LOG_NODE)
+        << boost::format(form) %
+            state->height() %
+            encode_hash(header.hash()) %
+            authority() %
+            state->enabled_forks() %
+            (state->is_under_checkpoint() ? "*" : "");
 }
 
 // Subscription.

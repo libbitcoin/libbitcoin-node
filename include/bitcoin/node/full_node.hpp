@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
 #include <cstdint>
+#include <cstddef>
 #include <memory>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
@@ -117,6 +118,8 @@ protected:
     network::session_outbound::ptr attach_outbound_session() override;
 
 private:
+    static void report(const system::chain::block& block, size_t height);
+
     bool handle_reindexed(system::code ec, size_t fork_height,
         system::header_const_ptr_list_const_ptr incoming,
         system::header_const_ptr_list_const_ptr outgoing);

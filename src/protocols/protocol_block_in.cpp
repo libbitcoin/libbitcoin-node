@@ -19,9 +19,12 @@
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
+#include <boost/format.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -178,27 +181,61 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Recompute rate performance, excluding store cost.
     reservation_->update_history(message);
 
-    // The deserialize, check and associate durations are set here.
-    // Only log every 100th block, within "current" number of blocks.
-    const auto period = chain_.is_candidates_stale() ? 100u : 1u;
+    // Only log every 100th block, until current number of blocks.
+    const auto period = chain_.is_blocks_stale() ? 1u : 1u;
 
     if ((height % period) == 0)
-    {
-        // Block #height (slot) [hash] Mbps local-cost% remaining-blocks.
-        static const auto form = "Stored #%06i (%02i) [%s] %07.3f %05.2f%% %i";
-        const auto record = reservation_->rate();
-        const auto encoded = encode_hash(message->hash());
-        const auto database_percentage = record.ratio() * 100;
-        const auto remaining = node_.download_queue_size();
-
-        LOG_INFO(LOG_NODE)
-            << boost::format(form) % height % reservation_->slot() % encoded %
-            performance::to_megabits_per_second(record.rate()) %
-            database_percentage % remaining;
-    }
+        report(*message, height);
 
     send_get_blocks();
     return true;
+}
+
+template<typename Type>
+float to_float(const asio::duration& time)
+{
+    const auto count = std::chrono::duration_cast<Type>(time).count();
+    return static_cast<float>(count);
+}
+
+template<typename Type>
+size_t to_ratio(const asio::duration& time, size_t value)
+{
+    return static_cast<size_t>(std::round(to_float<Type>(time) / value));
+}
+
+void protocol_block_in::report(const chain::block& block, size_t height) const
+{
+    // TODO: convert deserialize, check, associate to per input in microsecs.
+    // Block #height [hash] (slot) deserial accept associate rate local% remain.
+    static const auto form = "Block #%06i [%s] "
+        "%|4i| txs %|4i| ins %|3i| des %|3i| chk %|3i| dep (%02i) %i";
+
+    const auto transactions = block.transactions().size();
+    const auto inputs = std::max(block.total_inputs(), size_t(1));
+    ////const auto record = reservation_->rate();
+    ////const auto database_percentage = record.ratio() * 100;
+
+    LOG_INFO(LOG_NODE)
+        << boost::format(form) %
+            height %
+            encode_hash(block.hash()) %
+            transactions %
+            inputs %
+
+            // network total (net)
+            to_ratio<asio::microseconds>(block.metadata.deserialize, inputs) %
+
+            // check total (chk)
+            to_ratio<asio::microseconds>(block.metadata.check, inputs) %
+
+            // deposit total (dep)
+            to_ratio<asio::microseconds>(block.metadata.associate, inputs) %
+
+            ////performance::to_megabits_per_second(record.rate()) %
+            ////database_percentage %
+            reservation_->slot() %
+            node_.download_queue_size();
 }
 
 // Events.
