@@ -232,6 +232,7 @@ void protocol_header_in::handle_store_header(const code& ec,
     }
     else
     {
+        // HACK: chain state only for logging here, otherwise could clear.
         const auto state = header->metadata.state;
         BITCOIN_ASSERT(state);
 
