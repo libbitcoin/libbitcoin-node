@@ -50,6 +50,7 @@ protected:
     using network::protocol_timer::start;
 
 private:
+    void report(const system::chain::block& block, size_t height) const;
     void send_get_blocks();
     void handle_event(const system::code& ec);
     bool handle_receive_block(const system::code& ec,

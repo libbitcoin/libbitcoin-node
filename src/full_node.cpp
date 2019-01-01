@@ -18,10 +18,13 @@
  */
 #include <bitcoin/node/full_node.hpp>
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <utility>
+#include <boost/format.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -241,7 +244,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
 
     auto height = fork_height + outgoing->size();
 
-    // TODO: add statistical reporting.
+    // No stats for unconfirmation.
     for (const auto block: reverse(*outgoing))
     {
         LOG_INFO(LOG_NODE)
@@ -249,23 +252,72 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
             << encode_hash(block->hash()) << "]";
     }
 
-    // Only log every 10th header, until current.
-    const auto period = chain_.is_candidates_stale() ? 10u : 1u;
+    // Only log every 10th validated block, until current or unless outgoing.
+    const auto period = chain_.is_validated_stale() &&
+       outgoing->empty() ? 1u : 1u;
 
-    // TODO: add statistical reporting.
     for (const auto block: *incoming)
-    {
-        if ((++height % period) == 0 || !outgoing->empty())
-        {
-            LOG_INFO(LOG_NODE)
-                << "Confirmed #" << height << " ["
-                << encode_hash(block->hash()) << "]";
-        }
-    }
+        if ((++height % period) == 0)
+            report(*block, height);
 
     const auto top_height = fork_height + incoming->size();
     set_top_block({ incoming->back()->hash(), top_height });
     return true;
+}
+
+template<typename Type>
+float to_float(const asio::duration& time)
+{
+    const auto count =  std::chrono::duration_cast<Type>(time).count();
+    return static_cast<float>(count);
+}
+
+template<typename Type>
+size_t to_ratio(const asio::duration& time, size_t value)
+{
+    return static_cast<size_t>(std::round(to_float<Type>(time) / value));
+}
+
+// static
+void full_node::report(const chain::block& block, size_t height)
+{
+    // TODO: expose get_block, populate, accept, connect, candidate, confirm.
+    // Confirmed #height [hash] xxxx txs xxxx ins x.xxxxxx.
+    static const auto form = "Valid #%06i [%s] "
+        "%|4i| txs %|4i| ins %|3i| des %|3i| pop "
+        "%|3i| acc %|3i| scr %|3i| can %|3i| con %|f|";
+
+    const auto& times = block.metadata;
+    const auto transactions = block.transactions().size();
+    const auto inputs = std::max(block.total_inputs(), size_t(1));
+
+    LOG_INFO(LOG_NODE)
+        << boost::format(form) %
+            height %
+            encode_hash(block.hash()) %
+            transactions %
+            inputs %
+
+            // query total (qry)
+            to_ratio<asio::microseconds>(block.metadata.deserialize, inputs) %
+
+            // populate total (pop)
+            to_ratio<asio::microseconds>(block.metadata.populate, inputs) %
+
+            // accept total (acc)
+            to_ratio<asio::microseconds>(block.metadata.accept, inputs) %
+
+            // script total (scr)
+            to_ratio<asio::microseconds>(block.metadata.connect, inputs) %
+
+            // candidate total (can)
+            to_ratio<asio::microseconds>(block.metadata.candidate, inputs) %
+
+            // confirm total (con)
+            to_ratio<asio::microseconds>(block.metadata.confirm, inputs) %
+
+            // this block transaction cache efficiency in hits/queries
+            block.metadata.cache_efficiency;
 }
 
 // Specializations.

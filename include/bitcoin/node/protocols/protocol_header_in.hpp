@@ -51,6 +51,7 @@ protected:
     using network::protocol_timer::start;
 
 private:
+    void report(const system::chain::header& header) const;
     void send_top_get_headers(const system::hash_digest& stop_hash);
     void send_next_get_headers(const system::hash_digest& start_hash);
     void handle_fetch_header_locator(const system::code& ec,
