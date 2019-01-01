@@ -252,9 +252,9 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
             << encode_hash(block->hash()) << "]";
     }
 
-    // Only log every 10th validated block, until current or unless outgoing.
+    // Only log every 100th validated block, until current or unless outgoing.
     const auto period = chain_.is_validated_stale() &&
-       outgoing->empty() ? 1u : 1u;
+       outgoing->empty() ? 100u : 1u;
 
     for (const auto block: *incoming)
         if ((++height % period) == 0)

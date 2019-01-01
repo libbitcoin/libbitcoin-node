@@ -182,7 +182,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     reservation_->update_history(message);
 
     // Only log every 100th block, until current number of blocks.
-    const auto period = chain_.is_blocks_stale() ? 1u : 1u;
+    const auto period = chain_.is_blocks_stale() ? 100u : 1u;
 
     if ((height % period) == 0)
         report(*message, height);
