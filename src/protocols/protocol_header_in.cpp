@@ -79,7 +79,7 @@ void protocol_header_in::send_top_get_headers(const hash_digest& stop_hash)
 
 void protocol_header_in::send_next_get_headers(const hash_digest& start_hash)
 {
-    // TODO: this should generate a full locator, possibly on weak branch.
+    // This is specific to the peer so just use only last hash as start.
     const get_headers message{ { start_hash }, null_hash };
 
     SEND2(message, handle_send, _1, message.command);
@@ -201,10 +201,10 @@ void protocol_header_in::handle_store_header(const code& ec,
         LOG_DEBUG(LOG_NODE)
             << "Orphan header [" << encoded << "] from [" << authority() << "]";
 
-        // TODO: disabled due to excessive cost during initial block download.
-        // TODO: reenable at the point where the chain is no longer stale.
-        ////// Try to fill the gap between the current header tree and this header.
-        ////send_top_get_headers(hash);
+        // Use notification to fill gap unless initial already catching up.
+        if (!chain_.is_candidates_stale())
+            send_top_get_headers(hash);
+
         return;
     }
     else if (ec == error::insufficient_work)
