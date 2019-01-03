@@ -411,6 +411,11 @@ options_metadata parser::load_settings()
         "Flush each write to disk, defaults to false."
     )
     (
+        "database.cache_capacity",
+        value<uint32_t>(&configured.database.cache_capacity),
+        "The maximum number of entries in the unspent outputs cache, defaults to 10000."
+    )
+    (
         "database.file_growth_rate",
         value<uint16_t>(&configured.database.file_growth_rate),
         "Full database files increase by this percentage, defaults to 5."
@@ -426,9 +431,29 @@ options_metadata parser::load_settings()
         "Transaction hash table size, defaults to 110000000."
     )
     (
-        "database.cache_capacity",
-        value<uint32_t>(&configured.database.cache_capacity),
-        "The maximum number of entries in the unspent outputs cache, defaults to 10000."
+        "database.block_table_size",
+        value<uint64_t>(&configured.database.block_table_size),
+        "Block table minimum file size in bytes, defaults to 80000000."
+    )
+    (
+        "database.candidate_index_size",
+        value<uint64_t>(&configured.database.candidate_index_size),
+        "Candidate index minimum file size in bytes, defaults to 3000000."
+    )
+    (
+        "database.confirmed_index_size",
+        value<uint64_t>(&configured.database.confirmed_index_size),
+        "Confirmed index minimum file size in bytes, defaults to 3000000."
+    )
+    (
+        "database.transaction_index_size",
+        value<uint64_t>(&configured.database.transaction_index_size),
+        "Transaction index minimum file size in bytes, defaults to 3000000000."
+    )
+    (
+        "database.transaction_table_size",
+        value<uint64_t>(&configured.database.transaction_table_size),
+        "Transaction table minimum file size in bytes, defaults to 220000000000."
     )
 
     /* [blockchain] */
