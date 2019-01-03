@@ -54,7 +54,7 @@ parser::parser(config::settings context)
     using serve = message::version::service;
 
     // A node doesn't use history, and history is expensive.
-    configured.database.index_addresses = false;
+    configured.chain.index_payments = false;
 
     // Logs will slow things if not rotated.
     configured.network.rotation_size = 10000000;
@@ -433,27 +433,27 @@ options_metadata parser::load_settings()
     (
         "database.block_table_size",
         value<uint64_t>(&configured.database.block_table_size),
-        "Block table minimum file size in bytes, defaults to 80000000."
+        "Block table minimum file size, defaults to 80000000."
     )
     (
         "database.candidate_index_size",
         value<uint64_t>(&configured.database.candidate_index_size),
-        "Candidate index minimum file size in bytes, defaults to 3000000."
+        "Candidate index minimum file size, defaults to 3000000."
     )
     (
         "database.confirmed_index_size",
         value<uint64_t>(&configured.database.confirmed_index_size),
-        "Confirmed index minimum file size in bytes, defaults to 3000000."
+        "Confirmed index minimum file size, defaults to 3000000."
     )
     (
         "database.transaction_index_size",
         value<uint64_t>(&configured.database.transaction_index_size),
-        "Transaction index minimum file size in bytes, defaults to 3000000000."
+        "Transaction index minimum file size, defaults to 3000000000."
     )
     (
         "database.transaction_table_size",
         value<uint64_t>(&configured.database.transaction_table_size),
-        "Transaction table minimum file size in bytes, defaults to 220000000000."
+        "Transaction table minimum file size, defaults to 220000000000."
     )
 
     /* [blockchain] */
