@@ -208,7 +208,7 @@ void protocol_block_in::report(const chain::block& block, size_t height) const
 {
     // TODO: convert deserialize, check, associate to per input in microsecs.
     // Block #height [hash] (slot) deserial accept associate rate local% remain.
-    static const auto form = "Block #%06i [%s] "
+    static const auto form = "Block  #%06i [%s] "
         "%|4i| txs %|4i| ins %|3i| des %|3i| chk %|3i| dep (%02i) %i";
 
     const auto transactions = block.transactions().size();
