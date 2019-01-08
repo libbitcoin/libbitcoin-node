@@ -253,7 +253,7 @@ void protocol_transaction_in::handle_store_transaction(const code& ec,
 
     // TODO: add statistical reporting.
     LOG_DEBUG(LOG_NODE)
-        << "Stored transaction [" << encoded << "] from [" << authority()
+        << "Stored  transaction [" << encoded << "] from [" << authority()
         << "].";
 }
 
