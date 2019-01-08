@@ -282,8 +282,6 @@ size_t to_ratio(const asio::duration& time, size_t value)
 // static
 void full_node::report(const chain::block& block, size_t height)
 {
-    // TODO: expose get_block, populate, accept, connect, candidate, confirm.
-    // Confirmed #height [hash] xxxx txs xxxx ins x.xxxxxx.
     static const auto form = "Valid  #%06i [%s] "
         "%|4i| txs %|4i| ins %|3i| des %|3i| pop "
         "%|3i| acc %|3i| scr %|3i| can %|3i| con %|f|";
@@ -299,7 +297,7 @@ void full_node::report(const chain::block& block, size_t height)
             transactions %
             inputs %
 
-            // query total (qry)
+            // query total (des)
             to_ratio<asio::microseconds>(block.metadata.deserialize, inputs) %
 
             // populate total (pop)
