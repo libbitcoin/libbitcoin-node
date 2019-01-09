@@ -71,7 +71,7 @@ void reservations::push_front(hash_digest&& hash, size_t height)
 ////{
 ////    for (auto row: table_)
 ////    {
-////        LOG_DEBUG(LOG_NODE)
+////        LOG_VERBOSE(LOG_NODE)
 ////            << slot
 ////            << " slot: " << row->slot()
 ////            << " size: " << row->size()
@@ -174,7 +174,7 @@ bool reservations::reserve(reservation::ptr minimal)
 
     if (reserved)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_VERBOSE(LOG_NODE)
             << "Reserved " << minimal->size() << " blocks to slot ("
             << minimal->slot() << ").";
     }
@@ -212,7 +212,7 @@ bool reservations::partition(reservation::ptr minimal)
 
     if (partitioned)
     {
-        LOG_DEBUG(LOG_NODE)
+        LOG_VERBOSE(LOG_NODE)
             << "Partitioned " << minimal->size() << " blocks from slot ("
             << maximal->slot() << ") to slot (" << minimal->slot() << ").";
     }
