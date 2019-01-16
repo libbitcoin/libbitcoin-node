@@ -162,6 +162,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         << ").";
 
     // Prime download queue.
+    // TODO: push the implementation into blockchain as necessary startup.
     for (auto height = top_candidate_height;
         height > top_valid_candidate_height; --height)
         if (chain_.get_downloadable(hash, height))
@@ -171,16 +172,7 @@ void full_node::handle_running(const code& ec, result_handler handler)
         << "Pending candidate block downloads (" << reservations_.size()
         << ").";
 
-    // Prime validator.
-    const auto next_validatable_height = top_valid_candidate_height + 1u;
-    if (chain_.get_validatable(hash, next_validatable_height))
-    {
-        LOG_INFO(LOG_NODE)
-            << "Next candidate pending validation (" << next_validatable_height
-            << ").";
-
-        chain_.prime_validation(hash, next_validatable_height);
-    }
+    chain_.prime_validation(top_valid_candidate_height + 1u);
 
     // This is invoked on a new thread.
     // This is the end of the derived run startup sequence.
