@@ -23,6 +23,7 @@
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_compact_filter_out.hpp>
 #include <bitcoin/node/protocols/protocol_header_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
@@ -61,6 +62,13 @@ void session_outbound::attach_protocols(channel::ptr channel)
     attach<protocol_transaction_in>(channel, chain_)->start();
     attach<protocol_transaction_out>(channel, chain_)->start();
     attach<protocol_address_31402>(channel)->start();
+
+    using serve = system::message::version::service;
+    const auto own_services = settings_.services;
+
+    if ((version >= version::level::bip157) &&
+        (own_services & serve::node_compact_filters))
+        attach<protocol_compact_filter_out>(channel, chain_)->start();
 }
 
 } // namespace node
