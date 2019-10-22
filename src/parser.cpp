@@ -455,6 +455,17 @@ options_metadata parser::load_settings()
         value<uint64_t>(&configured.database.transaction_table_size),
         "Transaction table minimum file size, defaults to 220000000000."
     )
+    (
+        "database.neutrino_filter_table_buckets",
+        value<uint32_t>(&configured.database.neutrino_filter_table_buckets),
+        "Neutrino filter hash table size, defaults to 650000."
+    )
+    (
+        "database.neutrino_filter_table_size",
+        value<uint64_t>(&configured.database.neutrino_filter_table_size),
+        "Neutrino filter table minimum file size, defaults to 80000000."
+    )
+
 
     /* [blockchain] */
     (
@@ -486,6 +497,11 @@ options_metadata parser::load_settings()
         "blockchain.checkpoint",
         value<config::checkpoint::list>(&configured.chain.checkpoints),
         "A hash:height checkpoint, multiple entries allowed."
+    )
+    (
+        "blockchain.bip158",
+        value<bool>(&configured.chain.bip158),
+        "Neutrino filter (bip158 basic filter) support, defaults to false."
     )
 
     /* [fork] */
