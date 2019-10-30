@@ -64,10 +64,9 @@ void session_inbound::attach_protocols(channel::ptr channel)
     attach<protocol_address_31402>(channel)->start();
 
     using serve = system::message::version::service;
-    const auto own_services = settings_.services;
+    const auto services = settings_.services;
 
-    if ((version >= version::level::bip157) &&
-        (own_services & serve::node_compact_filters))
+    if ((services & serve::node_compact_filters) == serve::node_compact_filters)
         attach<protocol_compact_filter_out>(channel, chain_)->start();
 }
 
