@@ -133,12 +133,14 @@ bool executor::do_initchain()
                 settings_system.genesis_block);
 
         if (code)
+        {
             LOG_ERROR(LOG_NODE) <<
                 format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % code.message();
-        else
-            LOG_INFO(LOG_NODE) << BN_INITCHAIN_COMPLETE;
+            return false;
+        }
 
-        return (code == error::success);
+        LOG_INFO(LOG_NODE) << BN_INITCHAIN_COMPLETE;
+        return true;
     }
 
     if (ec.value() == directory_exists)
