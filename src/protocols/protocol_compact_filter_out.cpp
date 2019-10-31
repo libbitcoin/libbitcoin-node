@@ -165,15 +165,14 @@ bool protocol_compact_filter_out::handle_receive_get_compact_filters(
 
     chain_.fetch_compact_filter(message->filter_type(),
         message->stop_hash(),
-        BIND5(handle_compact_filters_start, message, _1, _2, _3, _4));
+        BIND4(handle_compact_filters_start, message, _1, _2, _3));
 
     return true;
 }
 
 void protocol_compact_filter_out::handle_compact_filters_start(
     system::get_compact_filters_const_ptr request, const system::code& ec,
-    const system::hash_digest&, const system::data_chunk&,
-    size_t height)
+    system::compact_filter_ptr, size_t height)
 {
     if (stopped(ec))
         return;
@@ -189,25 +188,23 @@ void protocol_compact_filter_out::handle_compact_filters_start(
 
     chain_.fetch_compact_filter(request->filter_type(),
         request->start_height(),
-        BIND6(handle_next_compact_filter, request, height, _1, _2, _3, _4));
+        BIND5(handle_next_compact_filter, request, height, _1, _2, _3));
 }
 
 void protocol_compact_filter_out::handle_next_compact_filter(
     system::get_compact_filters_const_ptr request, size_t stop_height,
-    const system::code& ec, const system::hash_digest& block_hash,
-    const system::data_chunk& filter, size_t height)
+    const system::code& ec, system::compact_filter_ptr response, size_t height)
 {
     if (stopped(ec))
         return;
 
-    message::compact_filter message(request->filter_type(), block_hash, filter);
-    SEND2(message, handle_send, _1, message.command);
+    SEND2(*response, handle_send, _1, response->command);
 
     if (height < stop_height)
         chain_.fetch_compact_filter(request->filter_type(),
             height + 1,
-            BIND6(handle_next_compact_filter,
-                request, stop_height, _1, _2, _3, _4));
+            BIND5(handle_next_compact_filter,
+                request, stop_height, _1, _2, _3));
 }
 
 } // namespace node
