@@ -62,13 +62,12 @@ private:
 
     void handle_compact_filters_start(
         system::get_compact_filters_const_ptr request, const system::code& ec,
-        const system::hash_digest& block_hash,
-        const system::data_chunk& filter, size_t height);
+        system::compact_filter_ptr response, size_t height);
 
     void handle_next_compact_filter(
         system::get_compact_filters_const_ptr request, size_t stop_height,
-        const system::code& ec, const system::hash_digest& block_hash,
-        const system::data_chunk& filter, size_t height);
+        const system::code& ec, system::compact_filter_ptr response,
+        size_t height);
 
     // These are thread safe.
     full_node& node_;
