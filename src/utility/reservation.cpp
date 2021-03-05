@@ -59,6 +59,8 @@ void reservation::start()
 {
     stopped_ = false;
     pending_ = true;
+
+    // TODO: vc120 hard error.
     idle_limit_.store(asio::steady_clock::now() + rate_window_);
 }
 
@@ -173,6 +175,8 @@ void reservation::update_history(block_const_ptr block)
 
     history_mutex_.unlock_upgrade_and_lock();
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    // TODO: vc120 hard error.
     history_.push_back({ events, event_cost, event_start });
 
     if (history_.size() < minimum_history)
