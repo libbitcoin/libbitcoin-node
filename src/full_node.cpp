@@ -289,6 +289,8 @@ void full_node::report(const chain::block& block, size_t height)
             transactions %
             inputs %
 
+            // TODO: vc120 hard errors.
+
             // query total (des)
             to_ratio<asio::microseconds>(block.metadata.deserialize, inputs) %
 

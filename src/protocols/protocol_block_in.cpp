@@ -223,6 +223,8 @@ void protocol_block_in::report(const chain::block& block, size_t height) const
             transactions %
             inputs %
 
+            // TODO: vc120 hard errors.
+
             // network total (net)
             to_ratio<asio::microseconds>(block.metadata.deserialize, inputs) %
 
