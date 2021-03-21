@@ -21,7 +21,7 @@
 
 #include <cstddef>
 #include <memory>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/check_list.hpp>
 

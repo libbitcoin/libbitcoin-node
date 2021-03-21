@@ -20,7 +20,7 @@
 #define LIBBITCOIN_NODE_SETTINGS_HPP
 
 #include <cstdint>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

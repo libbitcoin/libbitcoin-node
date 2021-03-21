@@ -18,7 +18,7 @@
  */
 #include <bitcoin/node/utility/performance.hpp>
 
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {

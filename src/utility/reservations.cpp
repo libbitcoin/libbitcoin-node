@@ -25,7 +25,7 @@
 #include <numeric>
 #include <utility>
 #include <vector>
-#include <bitcoin/bitcoin.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/utility/check_list.hpp>
 #include <bitcoin/node/utility/performance.hpp>
