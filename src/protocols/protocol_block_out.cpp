@@ -294,7 +294,7 @@ bool protocol_block_out::handle_receive_get_data(const code& ec,
     // Peer may request compact only after receipt of a send_compact message.
 
     // Reverse copy the block elements of the const inventory.
-    for (const auto inventory: reverse(message->inventories()))
+    for (const auto& inventory: reverse(message->inventories()))
         if (inventory.is_block_type())
             response->inventories().push_back(inventory);
 
@@ -506,7 +506,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t,
         // TODO: move headers to a derived class protocol_block_out_70012.
         headers announce;
 
-        for (const auto block: *incoming)
+        for (const auto& block: *incoming)
             if (block->header().metadata.originator != nonce())
                 announce.elements().push_back(block->header());
 
@@ -526,7 +526,7 @@ bool protocol_block_out::handle_reorganized(code ec, size_t,
     {
         inventory announce;
 
-        for (const auto block: *incoming)
+        for (const auto& block: *incoming)
             if (block->header().metadata.originator != nonce())
                 announce.inventories().push_back(
                     { inventory::type_id::block, block->header().hash() });

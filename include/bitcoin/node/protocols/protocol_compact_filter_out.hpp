@@ -70,7 +70,7 @@ private:
         size_t height);
 
     // These are thread safe.
-    full_node& node_;
+    ////full_node& node_;
     blockchain::safe_chain& chain_;
     system::atomic<system::hash_digest> last_locator_top_;
 };
