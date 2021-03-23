@@ -153,7 +153,7 @@ bool protocol_transaction_out::handle_receive_get_data(const code& ec,
     const auto response = std::make_shared<inventory>();
 
     // Reverse copy the transaction elements of the const inventory.
-    for (const auto inventory: reverse(message->inventories()))
+    for (const auto& inventory: reverse(message->inventories()))
         if (inventory.is_transaction_type())
             response->inventories().push_back(inventory);
 

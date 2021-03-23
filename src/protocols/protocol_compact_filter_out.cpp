@@ -46,7 +46,7 @@ using namespace std::placeholders;
 protocol_compact_filter_out::protocol_compact_filter_out(full_node& node, channel::ptr channel,
     safe_chain& chain)
   : protocol_events(node, channel, NAME),
-    node_(node),
+    ////node_(node),
     chain_(chain),
     last_locator_top_(null_hash),
     CONSTRUCT_TRACK(protocol_compact_filter_out)

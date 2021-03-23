@@ -51,7 +51,7 @@ full_node::full_node(const configuration& configuration)
         configuration.node.block_latency_seconds),
     chain_(thread_pool(), configuration.chain, configuration.database,
         configuration.bitcoin),
-    protocol_maximum_(configuration.network.protocol_maximum),
+    ////protocol_maximum_(configuration.network.protocol_maximum),
     chain_settings_(configuration.chain),
     node_settings_(configuration.node)
 {
@@ -203,11 +203,11 @@ bool full_node::handle_reindexed(code ec, size_t fork_height,
     auto height = fork_height + outgoing->size();
 
     // Pop outgoing reservations from download queue (if at top), high first.
-    for (const auto header: reverse(*outgoing))
+    for (const auto& header: reverse(*outgoing))
         reservations_.pop_back(*header, height--);
 
     // Push unpopulated incoming reservations (can't expect parent), low first.
-    for (const auto header: *incoming)
+    for (const auto& header: *incoming)
         reservations_.push_back(*header, ++height);
 
     // Top height will be: fork_height + incoming->size();
@@ -238,7 +238,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
     auto height = fork_height + outgoing->size();
 
     // No stats for unconfirmation.
-    for (const auto block: reverse(*outgoing))
+    for (const auto& block: reverse(*outgoing))
     {
         LOG_INFO(LOG_NODE)
             << "Unconfirmed #" << height-- << " ["
@@ -249,7 +249,7 @@ bool full_node::handle_reorganized(code ec, size_t fork_height,
     const auto period = chain_.is_validated_stale() &&
        outgoing->empty() ? 100u : 1u;
 
-    for (const auto block: *incoming)
+    for (const auto& block: *incoming)
         if ((++height % period) == 0)
             report(*block, height);
 
@@ -278,7 +278,7 @@ void full_node::report(const chain::block& block, size_t height)
         "%|4i| txs %|4i| ins %|3i| des %|3i| pop "
         "%|3i| acc %|3i| scr %|3i| can %|3i| con %|f|";
 
-    const auto& times = block.metadata;
+    ////const auto& times = block.metadata;
     const auto transactions = block.transactions().size();
     const auto inputs = std::max(block.total_inputs(), size_t(1));
 

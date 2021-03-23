@@ -149,7 +149,7 @@ private:
     std::atomic<bool> pending_;
     reservations& reservations_;
     const size_t slot_;
-    const float maximum_deviation_;
+    ////const float maximum_deviation_;
     const system::asio::nanoseconds rate_window_;
     system::atomic<system::asio::time_point> idle_limit_;
     system::atomic<performance> rate_;

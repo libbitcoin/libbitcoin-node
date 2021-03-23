@@ -43,12 +43,12 @@ static constexpr size_t minimum_history = 3;
 static constexpr size_t nano_per_second = 1000 * 1000 * 1000;
 
 reservation::reservation(reservations& reservations, size_t slot,
-    float maximum_deviation, uint32_t block_latency_seconds)
+    float /* maximum_deviation */, uint32_t block_latency_seconds)
   : stopped_(true),
     pending_(false),
     reservations_(reservations),
     slot_(slot),
-    maximum_deviation_(maximum_deviation),
+    ////maximum_deviation_(maximum_deviation),
     rate_window_(minimum_history * block_latency_seconds * nano_per_second),
     idle_limit_(asio::steady_clock::now()),
     rate_({ true, 0, 0, 0 })
