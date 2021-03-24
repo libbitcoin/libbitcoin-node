@@ -106,7 +106,7 @@ void executor::do_version()
     output_ << format(BN_VERSION_MESSAGE) %
         LIBBITCOIN_NODE_VERSION %
         LIBBITCOIN_BLOCKCHAIN_VERSION %
-        LIBBITCOIN_VERSION << std::endl;
+        LIBBITCOIN_SYSTEM_VERSION << std::endl;
 }
 
 // Emit to the log.
