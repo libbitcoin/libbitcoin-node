@@ -47,16 +47,12 @@ SEQUENTIAL=1
 if [[ $GIT_CLONE_PARAMS ]]; then
     display_message "Using shell-defined GIT_CLONE_PARAMS value."
 else
-    GIT_CLONE_PARAMS=""
+    GIT_CLONE_PARAMS="--depth 1 --single-branch"
 fi
 
 # The default build directory.
 #------------------------------------------------------------------------------
 BUILD_DIR="build-libbitcoin-node"
-
-# Git clone parameters.
-#------------------------------------------------------------------------------
-GIT_CLONE_PARAMS="--depth 1 --single-branch"
 
 PRESUMED_CI_PROJECT_PATH=$(pwd)
 
@@ -324,7 +320,7 @@ set_os_specific_compiler_settings()
 
 link_to_standard_library()
 {
-    if [[ ($OS == Linux && $CC == "clang") || ($OS == OpenBSD) ]]; then
+    if [[ ($OS == Linux && $CC == clang*) || ($OS == OpenBSD) ]]; then
         export LDLIBS="-l$STDLIB $LDLIBS"
         export CXXFLAGS="-stdlib=lib$STDLIB $CXXFLAGS"
     fi
@@ -767,7 +763,7 @@ initialize_boost_configuration()
         BOOST_TOOLSET="toolset=$CC"
     fi
 
-    if [[ ($OS == Linux && $CC == "clang") || ($OS == OpenBSD) ]]; then
+    if [[ ($OS == Linux && $CC == clang*) || ($OS == OpenBSD) ]]; then
         STDLIB_FLAG="-stdlib=lib$STDLIB"
         BOOST_CXXFLAGS="cxxflags=$STDLIB_FLAG"
         BOOST_LINKFLAGS="linkflags=$STDLIB_FLAG"
@@ -952,13 +948,10 @@ ICU_OPTIONS=(
 #------------------------------------------------------------------------------
 BOOST_OPTIONS=(
 "--with-chrono" \
-"--with-date_time" \
-"--with-filesystem" \
 "--with-iostreams" \
 "--with-json" \
 "--with-locale" \
 "--with-program_options" \
-"--with-regex" \
 "--with-system" \
 "--with-thread" \
 "--with-test")
