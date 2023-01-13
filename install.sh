@@ -764,14 +764,14 @@ build_all()
     build_from_github secp256k1 "$PARALLEL" false "${SECP256K1_OPTIONS[@]}" "$@"
     create_from_github libbitcoin libbitcoin-system master
     build_from_github libbitcoin-system "$PARALLEL" false "${BITCOIN_SYSTEM_OPTIONS[@]}" "$@"
+    create_from_github libbitcoin libbitcoin-network master
+    build_from_github libbitcoin-network "$PARALLEL" false "${BITCOIN_NETWORK_OPTIONS[@]}" "$@"
     create_from_github libbitcoin libbitcoin-database master
     build_from_github libbitcoin-database "$PARALLEL" false "${BITCOIN_DATABASE_OPTIONS[@]}" "$@"
     create_from_github libbitcoin libbitcoin-consensus master
     build_from_github libbitcoin-consensus "$PARALLEL" false "${BITCOIN_CONSENSUS_OPTIONS[@]}" "$@"
     create_from_github libbitcoin libbitcoin-blockchain master
     build_from_github libbitcoin-blockchain "$PARALLEL" false "${BITCOIN_BLOCKCHAIN_OPTIONS[@]}" "$@"
-    create_from_github libbitcoin libbitcoin-network master
-    build_from_github libbitcoin-network "$PARALLEL" false "${BITCOIN_NETWORK_OPTIONS[@]}" "$@"
     if [[ ! ($CI == true) ]]; then
         create_from_github libbitcoin libbitcoin-node master
         build_from_github libbitcoin-node "$PARALLEL" true "${BITCOIN_NODE_OPTIONS[@]}" "$@"
@@ -825,6 +825,7 @@ BOOST_OPTIONS=(
 "--with-json" \
 "--with-locale" \
 "--with-program_options" \
+"--with-regex" \
 "--with-system" \
 "--with-thread" \
 "--with-test")
@@ -842,6 +843,13 @@ SECP256K1_OPTIONS=(
 BITCOIN_SYSTEM_OPTIONS=(
 "--without-tests" \
 "--without-examples" \
+"${with_boost}" \
+"${with_pkgconfigdir}")
+
+# Define bitcoin-network options.
+#------------------------------------------------------------------------------
+BITCOIN_NETWORK_OPTIONS=(
+"--without-tests" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 
@@ -865,13 +873,6 @@ BITCOIN_CONSENSUS_OPTIONS=(
 BITCOIN_BLOCKCHAIN_OPTIONS=(
 "--without-tests" \
 "--without-tools" \
-"${with_boost}" \
-"${with_pkgconfigdir}")
-
-# Define bitcoin-network options.
-#------------------------------------------------------------------------------
-BITCOIN_NETWORK_OPTIONS=(
-"--without-tests" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 
