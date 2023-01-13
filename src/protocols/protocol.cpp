@@ -16,16 +16,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <boost/test/unit_test.hpp>
-#include <bitcoin/node.hpp>
+#include <bitcoin/node/protocols/protocol.hpp>
 
-using namespace bc;
+#include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 
-BOOST_AUTO_TEST_SUITE(check_list_tests)
+namespace libbitcoin {
+namespace node {
 
-BOOST_AUTO_TEST_CASE(todo)
+const node::configuration& protocol::configuration() const NOEXCEPT
 {
-    BOOST_REQUIRE(true);
+    return full_node_.configuration();
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+} // namespace node
+} // namespace libbitcoin

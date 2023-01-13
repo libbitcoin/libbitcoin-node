@@ -16,20 +16,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <boost/test/unit_test.hpp>
-#include <bitcoin/node.hpp>
+#include "test.hpp"
 
-using namespace bc;
 using namespace bc::system;
 
 BOOST_AUTO_TEST_SUITE(configuration_tests)
 
-// constructors
-//-----------------------------------------------------------------------------
-
 BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 {
-    node::configuration instance(config::settings::none);
+    node::configuration instance(chain::selection::none);
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
@@ -40,7 +35,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
 {
-    node::configuration instance(config::settings::mainnet);
+    node::configuration instance(chain::selection::mainnet);
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
@@ -51,7 +46,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
 {
-    node::configuration instance(config::settings::testnet);
+    node::configuration instance(chain::selection::testnet);
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
@@ -62,7 +57,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
 
 BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
 {
-    node::configuration instance1(config::settings::none);
+    node::configuration instance1(chain::selection::none);
     instance1.help = true;
     instance1.initchain = true;
     instance1.settings = true;

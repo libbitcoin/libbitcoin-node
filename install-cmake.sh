@@ -702,7 +702,7 @@ cmake_project_directory()
     local PROJ_CONFIG_DIR
     PROJ_CONFIG_DIR=$(pwd)
 
-    cmake $CMAKE_LINK_ARGS $CMAKE_PREFIX_ARGS $@ builds/cmake
+    cmake $@ builds/cmake
     make_jobs "$JOBS"
 
     if [[ $TEST == true ]]; then
@@ -890,14 +890,14 @@ build_all()
     build_from_github secp256k1 "$PARALLEL" false "${SECP256K1_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS
     create_from_github libbitcoin libbitcoin-system master
     build_from_github_cmake libbitcoin-system "$PARALLEL" false "${BITCOIN_SYSTEM_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
+    create_from_github libbitcoin libbitcoin-network master
+    build_from_github_cmake libbitcoin-network "$PARALLEL" false "${BITCOIN_NETWORK_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
     create_from_github libbitcoin libbitcoin-database master
     build_from_github_cmake libbitcoin-database "$PARALLEL" false "${BITCOIN_DATABASE_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
     create_from_github libbitcoin libbitcoin-consensus master
     build_from_github_cmake libbitcoin-consensus "$PARALLEL" false "${BITCOIN_CONSENSUS_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
     create_from_github libbitcoin libbitcoin-blockchain master
     build_from_github_cmake libbitcoin-blockchain "$PARALLEL" false "${BITCOIN_BLOCKCHAIN_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
-    create_from_github libbitcoin libbitcoin-network master
-    build_from_github_cmake libbitcoin-network "$PARALLEL" false "${BITCOIN_NETWORK_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
     if [[ ! ($CI == true) ]]; then
         create_from_github libbitcoin libbitcoin-node master
         build_from_github_cmake libbitcoin-node "$PARALLEL" true "${BITCOIN_NODE_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
@@ -952,6 +952,7 @@ BOOST_OPTIONS=(
 "--with-json" \
 "--with-locale" \
 "--with-program_options" \
+"--with-regex" \
 "--with-system" \
 "--with-thread" \
 "--with-test")
@@ -969,6 +970,13 @@ SECP256K1_OPTIONS=(
 BITCOIN_SYSTEM_OPTIONS=(
 "-Dwith-tests=no" \
 "-Dwith-examples=no" \
+"${with_boost}" \
+"${with_pkgconfigdir}")
+
+# Define bitcoin-network options.
+#------------------------------------------------------------------------------
+BITCOIN_NETWORK_OPTIONS=(
+"-Dwith-tests=no" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 
@@ -992,13 +1000,6 @@ BITCOIN_CONSENSUS_OPTIONS=(
 BITCOIN_BLOCKCHAIN_OPTIONS=(
 "-Dwith-tests=no" \
 "-Dwith-tools=no" \
-"${with_boost}" \
-"${with_pkgconfigdir}")
-
-# Define bitcoin-network options.
-#------------------------------------------------------------------------------
-BITCOIN_NETWORK_OPTIONS=(
-"-Dwith-tests=no" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 

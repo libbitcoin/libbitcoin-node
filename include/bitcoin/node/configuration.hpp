@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
 #define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
-#include <boost/filesystem.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -30,6 +29,7 @@ namespace node {
 
 // Not localizable.
 #define BN_HELP_VARIABLE "help"
+#define BN_INITCHAIN_VARIABLE "initchain"
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
 
@@ -43,7 +43,7 @@ namespace node {
 class BCN_API configuration
 {
 public:
-    configuration(system::config::settings context);
+    configuration(system::chain::selection context) NOEXCEPT;
 
     /// Options.
     bool help;
@@ -52,7 +52,7 @@ public:
     bool version;
 
     /// Options and environment vars.
-    boost::filesystem::path file;
+    std::filesystem::path file;
 
     /// Settings.
     node::settings node;

@@ -16,36 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_HASH_QUEUE_HPP
-#define LIBBITCOIN_NODE_HASH_QUEUE_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_HPP
 
-#include <queue>
-#include <bitcoin/node/define.hpp>
-
-namespace libbitcoin {
-namespace node {
-
-/// A thread safe specialized inventory tracking queue.
-class BCN_API hash_queue
-{
-public:
-    /// The queue contains no entries.
-    bool empty() const;
-
-    /// Enqueue the set of hashes in order, true if previously empty.
-    bool enqueue(system::get_data_ptr message);
-
-    /// Remove the next entry if it matches the hash, true if matched.
-    bool dequeue(const system::hash_digest& hash);
-
-private:
-    typedef std::queue<system::hash_digest> queue;
-
-    queue queue_;
-    mutable system::shared_mutex mutex_;
-};
-
-} // namespace node
-} // namespace libbitcoin
+#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_block_in.hpp>
+#include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_header_in.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 #endif

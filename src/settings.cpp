@@ -18,15 +18,14 @@
  */
 #include <bitcoin/node/settings.hpp>
 
-#include <bitcoin/system.hpp>
+#include <bitcoin/network.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 using namespace bc::system;
-using namespace bc::system::asio;
 
-settings::settings()
+settings::settings() NOEXCEPT
   : maximum_deviation(1.5),
     block_latency_seconds(5),
     refresh_transactions(false)
@@ -34,14 +33,14 @@ settings::settings()
 }
 
 // There are no current distinctions spanning chain contexts.
-settings::settings(config::settings)
+settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
 }
 
-duration settings::block_latency() const
+network::duration settings::block_latency() const NOEXCEPT
 {
-    return seconds(block_latency_seconds);
+    return network::seconds(block_latency_seconds);
 }
 
 } // namespace node

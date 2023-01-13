@@ -18,56 +18,15 @@
  */
 #include <bitcoin/node/sessions/session_outbound.hpp>
 
-#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_compact_filter_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-using namespace bc::blockchain;
-using namespace bc::network;
-using namespace bc::system::message;
-using namespace std::placeholders;
-
-session_outbound::session_outbound(full_node& network, safe_chain& chain)
-  : session<network::session_outbound>(network, true),
-    chain_(chain),
-    CONSTRUCT_TRACK(node::session_outbound)
+session_outbound::session_outbound(full_node& network) NOEXCEPT
+  : session<network::session_outbound>(network)
 {
-}
-
-void session_outbound::attach_protocols(channel::ptr channel)
-{
-    const auto version = channel->negotiated_version();
-
-    if (version >= version::level::bip31)
-        attach<protocol_ping_60001>(channel)->start();
-    else
-        attach<protocol_ping_31402>(channel)->start();
-
-    if (version >= version::level::bip61)
-        attach<protocol_reject_70002>(channel)->start();
-
-    if (version >= version::level::headers)
-        attach<protocol_header_in>(channel, chain_)->start();
-
-    attach<protocol_block_in>(channel, chain_)->start();
-    attach<protocol_transaction_in>(channel, chain_)->start();
-    attach<protocol_transaction_out>(channel, chain_)->start();
-    attach<protocol_address_31402>(channel)->start();
-
-    using serve = system::message::version::service;
-    const auto services = settings_.services;
-
-    if ((services & serve::node_compact_filters) == serve::node_compact_filters)
-        attach<protocol_compact_filter_out>(channel, chain_)->start();
 }
 
 } // namespace node

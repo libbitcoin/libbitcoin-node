@@ -16,14 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <boost/test/unit_test.hpp>
-#include <bitcoin/node.hpp>
-
-using namespace bc;
+#include "test.hpp"
 
 BOOST_AUTO_TEST_SUITE(node_tests)
 
-// Just a basic test to get some coverage output.
 BOOST_AUTO_TEST_CASE(node_test)
 {
     BOOST_REQUIRE(true);
