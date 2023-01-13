@@ -18,46 +18,39 @@
  */
 #include <bitcoin/node/parser.hpp>
 
-#include <cstdint>
 #include <iostream>
-#include <string>
-#include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
 #include <bitcoin/system.hpp>
 #include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/settings.hpp>
 
-BC_DECLARE_CONFIG_DEFAULT_PATH("libbitcoin" / "bn.cfg")
-
-// TODO: localize descriptions.
+std::filesystem::path config_default_path() NOEXCEPT
+{
+    return { "libbitcoin/bn.cfg" };
+}
 
 namespace libbitcoin {
 namespace node {
 
-using namespace boost::filesystem;
-using namespace boost::program_options;
 using namespace bc::system;
 using namespace bc::system::config;
+using namespace boost::program_options;
 
 // Initialize configuration by copying the given instance.
-parser::parser(const configuration& defaults)
+parser::parser(const configuration& defaults) NOEXCEPT
   : configured(defaults)
 {
 }
 
 // Initialize configuration using defaults of the given context.
-parser::parser(config::settings context)
+parser::parser(system::chain::selection context) NOEXCEPT
   : configured(context)
 {
-    using serve = message::version::service;
+    using service = network::messages::service;
 
     // A node doesn't use history, and history is expensive.
     configured.chain.index_payments = false;
-
-    // Logs will slow things if not rotated.
-    configured.network.rotation_size = 10000000;
 
     // It is a public network.
     configured.network.inbound_connections = 100;
@@ -69,16 +62,17 @@ parser::parser(config::settings context)
     configured.network.host_pool_capacity = 10000;
 
     // Expose full node (1) and witness (8) network services by default.
-    configured.network.services = serve::node_network | serve::node_witness;
+    configured.network.services_minimum = service::node_network;
+    configured.network.services_maximum = service::node_network | service::node_witness;
 }
 
-options_metadata parser::load_options()
+options_metadata parser::load_options() THROWS
 {
     options_metadata description("options");
     description.add_options()
     (
         BN_CONFIG_VARIABLE ",c",
-        value<path>(&configured.file),
+        value<std::filesystem::path>(&configured.file),
         "Specify path to a configuration settings file."
     )
     (
@@ -88,7 +82,7 @@ options_metadata parser::load_options()
         "Display command line options."
     )
     (
-        "initchain,i",
+        BN_INITCHAIN_VARIABLE ",i",
         value<bool>(&configured.initchain)->
             default_value(false)->zero_tokens(),
         "Initialize blockchain in the configured directory."
@@ -109,14 +103,14 @@ options_metadata parser::load_options()
     return description;
 }
 
-arguments_metadata parser::load_arguments()
+arguments_metadata parser::load_arguments() THROWS
 {
     arguments_metadata description;
     return description
         .add(BN_CONFIG_VARIABLE, 1);
 }
 
-options_metadata parser::load_environment()
+options_metadata parser::load_environment() THROWS
 {
     options_metadata description("environment");
     description.add_options()
@@ -125,7 +119,7 @@ options_metadata parser::load_environment()
         // The case must match the other declarations for it to compose.
         // This composes with the cmdline options and inits to system path.
         BN_CONFIG_VARIABLE,
-        value<path>(&configured.file)->composing()
+        value<std::filesystem::path>(&configured.file)->composing()
             ->default_value(config_default_path()),
         "The path to the configuration settings file."
     );
@@ -133,52 +127,12 @@ options_metadata parser::load_environment()
     return description;
 }
 
-options_metadata parser::load_settings()
+options_metadata parser::load_settings() THROWS
 {
     options_metadata description("settings");
     description.add_options()
 
     /* [log] */
-    (
-        "log.debug_file",
-        value<path>(&configured.network.debug_file),
-        "The debug log file path, defaults to 'debug.log'."
-    )
-    (
-        "log.error_file",
-        value<path>(&configured.network.error_file),
-        "The error log file path, defaults to 'error.log'."
-    )
-    (
-        "log.archive_directory",
-        value<path>(&configured.network.archive_directory),
-        "The log archive directory, defaults to 'archive'."
-    )
-    (
-        "log.rotation_size",
-        value<size_t>(&configured.network.rotation_size),
-        "The size at which a log is archived, defaults to 10000000 (0 disables)."
-    )
-    (
-        "log.minimum_free_space",
-        value<size_t>(&configured.network.minimum_free_space),
-        "The minimum free space required in the archive directory, defaults to 0."
-    )
-    (
-        "log.maximum_archive_size",
-        value<size_t>(&configured.network.maximum_archive_size),
-        "The maximum combined size of archived logs, defaults to 0 (maximum)."
-    )
-    (
-        "log.maximum_archive_files",
-        value<size_t>(&configured.network.maximum_archive_files),
-        "The maximum number of logs to archive, defaults to 0 (maximum)."
-    )
-    (
-        "log.statistics_server",
-        value<config::authority>(&configured.network.statistics_server),
-        "The address of the statistics collection server, defaults to none."
-    )
     (
         "log.verbose",
         value<bool>(&configured.network.verbose),
@@ -263,17 +217,17 @@ options_metadata parser::load_settings()
     )
     (
         "bitcoin.bip34_active_checkpoint",
-        value<config::checkpoint>(&configured.bitcoin.bip34_active_checkpoint),
+        value<chain::checkpoint>(&configured.bitcoin.bip34_active_checkpoint),
         "The hash:height checkpoint for bip34 activation, defaults to 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8:227931."
     )
     (
         "bitcoin.bip9_bit0_active_checkpoint",
-        value<config::checkpoint>(&configured.bitcoin.bip9_bit0_active_checkpoint),
+        value<chain::checkpoint>(&configured.bitcoin.bip9_bit0_active_checkpoint),
         "The hash:height checkpoint for bip9 bit0 activation, defaults to 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5:419328."
     )
     (
         "bitcoin.bip9_bit1_active_checkpoint",
-        value<config::checkpoint>(&configured.bitcoin.bip9_bit1_active_checkpoint),
+        value<chain::checkpoint>(&configured.bitcoin.bip9_bit1_active_checkpoint),
         "The hash:height checkpoint for bip9 bit1 activation, defaults to 0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893:481824."
     )
 
@@ -294,14 +248,31 @@ options_metadata parser::load_settings()
         "The minimum network protocol version, defaults to 31402."
     )
     (
-        "network.services",
-        value<uint64_t>(&configured.network.services),
-        "The services exposed by network connections, defaults to 9 (full node, witness)."
+        "network.services_maximum",
+        value<uint64_t>(&configured.network.services_maximum),
+        "The maximum services exposed by network connections, defaults to 9 (full node, witness)."
+    )
+    (
+        "network.services_minimum",
+        value<uint64_t>(&configured.network.services_minimum),
+        "The minimum services exposed by network connections, defaults to 1 (full node)."
     )
     (
         "network.invalid_services",
         value<uint64_t>(&configured.network.invalid_services),
         "The advertised services that cause a peer to be dropped, defaults to 176."
+    )
+    // TODO: new.
+    (
+        "network.enable_reject",
+        value<bool>(&configured.network.enable_reject),
+        "Enable reject messages, defaults to true."
+    )
+    // TODO: new.
+    (
+        "network.relay_transactions",
+        value<bool>(&configured.network.relay_transactions),
+        "Enable transaction relay, defaults to true."
     )
     (
         "network.validate_checksum",
@@ -327,11 +298,6 @@ options_metadata parser::load_settings()
         "network.outbound_connections",
         value<uint32_t>(&configured.network.outbound_connections),
         "The target number of outgoing network connections, defaults to 2."
-    )
-    (
-        "network.manual_attempt_limit",
-        value<uint32_t>(&configured.network.manual_attempt_limit),
-        "The attempt limit for manual connection establishment, defaults to 0 (forever)."
     )
     (
         "network.connect_batch_size",
@@ -375,97 +341,36 @@ options_metadata parser::load_settings()
     )
     (
         "network.hosts_file",
-        value<path>(&configured.network.hosts_file),
+        value<std::filesystem::path>(&configured.network.hosts_file),
         "The peer hosts cache file path, defaults to 'hosts.cache'."
     )
     (
         "network.self",
-        value<config::authority>(&configured.network.self),
+        value<network::config::authority>(&configured.network.self),
         "The advertised public address of this node, defaults to none."
     )
     (
         "network.blacklist",
-        value<config::authority::list>(&configured.network.blacklists),
+        value<network::config::authorities>(&configured.network.blacklists),
         "IP address to disallow as a peer, multiple entries allowed."
     )
     (
         "network.peer",
-        value<config::endpoint::list>(&configured.network.peers),
+        value<network::config::endpoints>(&configured.network.peers),
         "A persistent peer node, multiple entries allowed."
     )
     (
         "network.seed",
-        value<config::endpoint::list>(&configured.network.seeds),
+        value<network::config::endpoints>(&configured.network.seeds),
         "A seed node for initializing the host pool, multiple entries allowed."
     )
 
     /* [database] */
     (
-        "database.directory",
-        value<path>(&configured.database.directory),
+        "database.dir",
+        value<std::filesystem::path>(&configured.database.dir),
         "The blockchain database directory, defaults to 'blockchain'."
     )
-    (
-        "database.flush_writes",
-        value<bool>(&configured.database.flush_writes),
-        "Flush each write to disk, defaults to false."
-    )
-    (
-        "database.cache_capacity",
-        value<uint32_t>(&configured.database.cache_capacity),
-        "The maximum number of entries in the unspent outputs cache, defaults to 10000."
-    )
-    (
-        "database.file_growth_rate",
-        value<uint16_t>(&configured.database.file_growth_rate),
-        "Full database files increase by this percentage, defaults to 5."
-    )
-    (
-        "database.block_table_buckets",
-        value<uint32_t>(&configured.database.block_table_buckets),
-        "Block hash table size, defaults to 650000."
-    )
-    (
-        "database.transaction_table_buckets",
-        value<uint32_t>(&configured.database.transaction_table_buckets),
-        "Transaction hash table size, defaults to 110000000."
-    )
-    (
-        "database.block_table_size",
-        value<uint64_t>(&configured.database.block_table_size),
-        "Block table minimum file size, defaults to 80000000."
-    )
-    (
-        "database.candidate_index_size",
-        value<uint64_t>(&configured.database.candidate_index_size),
-        "Candidate index minimum file size, defaults to 3000000."
-    )
-    (
-        "database.confirmed_index_size",
-        value<uint64_t>(&configured.database.confirmed_index_size),
-        "Confirmed index minimum file size, defaults to 3000000."
-    )
-    (
-        "database.transaction_index_size",
-        value<uint64_t>(&configured.database.transaction_index_size),
-        "Transaction index minimum file size, defaults to 3000000000."
-    )
-    (
-        "database.transaction_table_size",
-        value<uint64_t>(&configured.database.transaction_table_size),
-        "Transaction table minimum file size, defaults to 220000000000."
-    )
-    (
-        "database.neutrino_filter_table_buckets",
-        value<uint32_t>(&configured.database.neutrino_filter_table_buckets),
-        "Neutrino filter hash table size, defaults to 650000."
-    )
-    (
-        "database.neutrino_filter_table_size",
-        value<uint64_t>(&configured.database.neutrino_filter_table_size),
-        "Neutrino filter table minimum file size, defaults to 80000000."
-    )
-
 
     /* [blockchain] */
     (
@@ -495,7 +400,7 @@ options_metadata parser::load_settings()
     )
     (
         "blockchain.checkpoint",
-        value<config::checkpoint::list>(&configured.chain.checkpoints),
+        value<chain::checkpoints>(&configured.chain.checkpoints),
         "A hash:height checkpoint, multiple entries allowed."
     )
     (
@@ -646,7 +551,7 @@ options_metadata parser::load_settings()
     return description;
 }
 
-bool parser::parse(int argc, const char* argv[], std::ostream& error)
+bool parser::parse(int argc, const char* argv[], std::ostream& error) THROWS
 {
     try
     {

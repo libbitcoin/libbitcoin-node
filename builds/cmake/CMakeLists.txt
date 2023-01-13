@@ -181,20 +181,15 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/full_node.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
+    "../../src/protocols/protocol.cpp"
     "../../src/protocols/protocol_block_in.cpp"
     "../../src/protocols/protocol_block_out.cpp"
-    "../../src/protocols/protocol_compact_filter_out.cpp"
     "../../src/protocols/protocol_header_in.cpp"
     "../../src/protocols/protocol_transaction_in.cpp"
     "../../src/protocols/protocol_transaction_out.cpp"
     "../../src/sessions/session_inbound.cpp"
     "../../src/sessions/session_manual.cpp"
-    "../../src/sessions/session_outbound.cpp"
-    "../../src/utility/check_list.cpp"
-    "../../src/utility/hash_queue.cpp"
-    "../../src/utility/performance.cpp"
-    "../../src/utility/reservation.cpp"
-    "../../src/utility/reservations.cpp" )
+    "../../src/sessions/session_outbound.cpp" )
 
 # ${CANONICAL_LIB_NAME} project specific include directories.
 #------------------------------------------------------------------------------
@@ -229,16 +224,12 @@ endif()
 #------------------------------------------------------------------------------
 if (with-tests)
     add_executable( libbitcoin-node-test
-        "../../test/check_list.cpp"
         "../../test/configuration.cpp"
         "../../test/main.cpp"
         "../../test/node.cpp"
-        "../../test/performance.cpp"
-        "../../test/reservation.cpp"
-        "../../test/reservations.cpp"
         "../../test/settings.cpp"
-        "../../test/utility.cpp"
-        "../../test/utility.hpp" )
+        "../../test/test.cpp"
+        "../../test/test.hpp" )
 
     add_test( NAME libbitcoin-node-test COMMAND libbitcoin-node-test
             --run_test=*

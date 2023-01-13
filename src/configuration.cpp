@@ -28,7 +28,7 @@ namespace node {
 using namespace bc::system;
 
 // Construct with defaults derived from given context.
-configuration::configuration(config::settings context)
+configuration::configuration(system::chain::selection context) NOEXCEPT
   : help(false),
     initchain(false),
     settings(false),

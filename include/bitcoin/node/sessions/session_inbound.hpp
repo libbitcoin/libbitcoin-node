@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_SESSION_INBOUND_HPP
 
 #include <memory>
-#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session.hpp>
@@ -32,19 +31,12 @@ class full_node;
 
 /// Inbound connections session, thread safe.
 class BCN_API session_inbound
-  : public session<network::session_inbound>, track<session_inbound>
+  : public session<network::session_inbound>, network::track<session_inbound>
 {
 public:
     typedef std::shared_ptr<session_inbound> ptr;
 
-    /// Construct an instance.
-    session_inbound(full_node& network, blockchain::safe_chain& chain);
-
-protected:
-    /// Overridden to attach blockchain protocols.
-    void attach_protocols(network::channel::ptr channel) override;
-
-    blockchain::safe_chain& chain_;
+    session_inbound(full_node& network) NOEXCEPT;
 };
 
 } // namespace node

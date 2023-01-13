@@ -19,41 +19,55 @@
 #ifndef LIBBITCOIN_NODE_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSION_HPP
 
-#include <utility>
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/protocols/protocol_header_in.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class full_node;
 
-/// Intermediate session base class template.
-/// This avoids having to make network::session into a template.
+/// Session base class template.
 template <class Session>
-class BCN_API session
+class session
   : public Session
 {
+public:
+    full_node& node() const NOEXCEPT
+    {
+        return full_node_;
+    }
+
 protected:
-    /// Construct an instance.
-    session(full_node& node, bool notify_on_connect)
-      : Session(node, notify_on_connect), node_(node)
+    session(full_node& node)
+      : Session(node), full_node_(node)
     {
     }
 
-    /// Attach a protocol to a channel, caller must start the channel.
-    template <class Protocol, typename... Args>
-    typename Protocol::ptr attach(network::channel::ptr channel,
-        Args&&... args)
+    void attach_protocols(
+        const network::channel::ptr& channel) const NOEXCEPT override
     {
-        return std::make_shared<Protocol>(node_, channel,
-            std::forward<Args>(args)...);
+        const auto& self = *this;
+        const auto version = channel->negotiated_version();
+
+        // protocol_reject_70002
+        // protocol_address_31402
+        // protocol_ping_31402/60001
+        Session::attach_protocols(channel);
+
+        if (version >= network::messages::level::headers_protocol)
+            channel->attach<protocol_header_in>(self)->start();
+
+        ////channel->attach<protocol_block_in>(self)->start();
+        ////channel->attach<protocol_block_out>(self)->start();
+        ////channel->attach<protocol_transaction_in>(self)->start();
+        ////channel->attach<protocol_transaction_out>(self)->start();
     }
 
 private:
-
-    // This is thread safe.
-    full_node& node_;
+    full_node& full_node_;
 };
 
 } // namespace node

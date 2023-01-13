@@ -19,61 +19,54 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_HEADER_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_HEADER_IN_HPP
 
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <queue>
-#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class full_node;
-
 class BCN_API protocol_header_in
-  : public network::protocol_timer, track<protocol_header_in>
+  : public protocol, network::track<protocol_header_in>
 {
 public:
     typedef std::shared_ptr<protocol_header_in> ptr;
 
-    /// Construct a block protocol instance.
-    protocol_header_in(full_node& network, network::channel::ptr channel,
-        blockchain::safe_chain& chain);
+    protocol_header_in(auto& session,
+        const network::channel::ptr& channel) NOEXCEPT
+      : protocol(session, channel)
+    {
+    }
 
-    /// Start the protocol.
-    void start() override;
+    void start() NOEXCEPT override;
 
 protected:
-    // Expose polymorphic start method from base.
-    using network::protocol_timer::start;
+    const std::string& name() const NOEXCEPT override;
 
 private:
-    void report(const system::chain::header& header) const;
-    void send_top_get_headers(const system::hash_digest& stop_hash);
-    void send_next_get_headers(const system::hash_digest& start_hash);
-    void handle_fetch_header_locator(const system::code& ec,
-        system::get_headers_ptr message, const system::hash_digest& stop_hash);
-
-    bool handle_receive_headers(const system::code& ec,
-        system::headers_const_ptr message);
-    void store_header(size_t index, system::headers_const_ptr message);
-    void handle_store_header(const system::code& ec,
-        system::header_const_ptr header, size_t index,
-        system::headers_const_ptr message);
-
-    void send_send_headers();
-    void handle_timeout(const system::code& ec);
-    void handle_stop(const system::code& ec);
-
-    // These are thread safe.
-    full_node& node_;
-    blockchain::safe_chain& chain_;
-    const system::asio::duration header_latency_;
-    const bool send_headers_;
-    std::atomic<bool> sending_headers_;
+    ////void report(const system::chain::header& header) const;
+    ////void send_top_get_headers(const system::hash_digest& stop_hash);
+    ////void send_next_get_headers(const system::hash_digest& start_hash);
+    ////void handle_fetch_header_locator(const system::code& ec,
+    ////    system::get_headers_ptr message, const system::hash_digest& stop_hash);
+    ////
+    ////bool handle_receive_headers(const system::code& ec,
+    ////    system::headers_const_ptr message);
+    ////void store_header(size_t index, system::headers_const_ptr message);
+    ////void handle_store_header(const system::code& ec,
+    ////    system::header_const_ptr header, size_t index,
+    ////    system::headers_const_ptr message);
+    ////
+    ////void send_send_headers();
+    ////void handle_timeout(const system::code& ec);
+    ////void handle_stop(const system::code& ec);
+    ////
+    ////// These are thread safe.
+    ////full_node& node_;
+    ////blockchain::safe_chain& chain_;
+    ////const system::asio::duration header_latency_;
+    ////const bool send_headers_;
+    ////std::atomic<bool> sending_headers_;
 };
 
 } // namespace node

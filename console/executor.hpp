@@ -29,34 +29,34 @@ namespace node {
 class executor
 {
 public:
-    executor(parser& metadata, std::istream&, std::ostream& output,
-        std::ostream& error);
+    DELETE_COPY(executor);
 
-    /// This class is not copyable.
-    executor(const executor&) = delete;
-    void operator=(const executor&) = delete;
+    executor(parser& metadata, std::istream&, std::ostream& output,
+        std::ostream& error) NOEXCEPT;
 
     /// Invoke the menu command indicated by the metadata.
-    bool menu();
+    bool menu() NOEXCEPT;
 
 private:
-    static void stop(const system::code& ec);
-    static void handle_stop(int code);
+    static void initialize_stop() NOEXCEPT;
+    static void stop(const system::code& ec) NOEXCEPT;
+    static void handle_stop(int code) NOEXCEPT;
 
-    void handle_started(const system::code& ec);
-    void handle_running(const system::code& ec);
-    void handle_stopped(const system::code& ec);
+    void handle_started(const system::code& ec) NOEXCEPT;
+    void handle_handler(const system::code& ec) NOEXCEPT;
+    void handle_running(const system::code& ec) NOEXCEPT;
+    void handle_stopped(const system::code& ec) NOEXCEPT;
 
-    void do_help();
-    void do_settings();
-    void do_version();
-    bool do_initchain();
+    void do_help() NOEXCEPT;
+    void do_settings() NOEXCEPT;
+    void do_version() NOEXCEPT;
+    bool do_initchain() NOEXCEPT;
 
-    void initialize_output();
-    bool verify_directory();
-    bool run();
+    void initialize_output() NOEXCEPT;
+    bool verify_store() NOEXCEPT;
+    bool run() NOEXCEPT;
 
-    // Termination state.
+    static const char* name;
     static std::promise<system::code> stopping_;
 
     parser& metadata_;
@@ -75,12 +75,8 @@ private:
     "The %1% directory is not initialized, run: bn --initchain"
 #define BN_INITIALIZING_CHAIN \
     "Please wait while initializing %1% directory..."
-#define BN_INITCHAIN_NEW \
-    "Failed to create directory %1% with error, '%2%'."
 #define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
-#define BN_INITCHAIN_TRY \
-    "Failed to test directory %1% with error, '%2%'."
 #define BN_INITCHAIN_COMPLETE \
     "Completed initialization."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \

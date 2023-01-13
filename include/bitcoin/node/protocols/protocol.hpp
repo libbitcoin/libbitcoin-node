@@ -16,38 +16,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
-#define LIBBITCOIN_NODE_FULL_NODE_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOL_HPP
+#define LIBBITCOIN_NODE_PROTOCOL_HPP
 
-#include <memory>
-#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
+    
+class full_node;
+class configuration;
 
-class BCN_API full_node
-  : public network::p2p
+class BCN_API protocol
+  : public network::protocol
 {
-public:
-    typedef std::shared_ptr<full_node> ptr;
-
-    full_node(const configuration& configuration) NOEXCEPT;
-
-    void start(result_handler&& handler) NOEXCEPT override;
-    void run(result_handler&& handler) NOEXCEPT override;
+protected:
+    template <class Session>
+    protocol(const Session& session,
+        const network::channel::ptr& channel) NOEXCEPT
+      : network::protocol(session, channel),
+        full_node_(session.node())
+    {
+    }
 
     const node::configuration& configuration() const NOEXCEPT;
 
-protected:
-    network::session_manual::ptr attach_manual_session() NOEXCEPT override;
-    network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
-    network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
-
 private:
-    const node::configuration& configuration_;
+    const full_node& full_node_;
 };
 
 } // namespace node

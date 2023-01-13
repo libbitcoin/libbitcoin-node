@@ -16,23 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_STATISTICS_HPP
-#define LIBBITCOIN_NODE_STATISTICS_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_HPP
+#define LIBBITCOIN_NODE_SESSIONS_HPP
 
-#include <cstddef>
-#include <bitcoin/node/define.hpp>
-
-namespace libbitcoin {
-namespace node {
-
-struct BCN_API statistics
-{
-    size_t active_count;
-    double arithmentic_mean;
-    double standard_deviation;
-};
-
-} // namespace node
-} // namespace libbitcoin
+#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/sessions/session_inbound.hpp>
+#include <bitcoin/node/sessions/session_manual.hpp>
+#include <bitcoin/node/sessions/session_outbound.hpp>
 
 #endif
