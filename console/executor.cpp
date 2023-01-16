@@ -178,8 +178,8 @@ void executor::handle_started(const code& ec) NOEXCEPT
     output_ << BN_NODE_SEEDED << std::endl;
 
     node_->subscribe_close(
-        std::bind(&executor::handle_handler, this, _1),
-        std::bind(&executor::handle_stopped, this, _1));
+        std::bind(&executor::handle_stopped, this, _1),
+        std::bind(&executor::handle_handler, this, _1));
 }
 
 void executor::handle_handler(const code& ec) NOEXCEPT

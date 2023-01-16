@@ -33,12 +33,12 @@ full_node::full_node(const node::configuration& configuration) NOEXCEPT
 
 void full_node::start(result_handler&& handler) NOEXCEPT
 {
-    // TODO: handle this in database start.
-    if (!database::file::is_directory(configuration_.database.dir))
-    {
-        handler(system::error::not_found);
-        return;
-    }
+    ////// TODO: handle this in database start.
+    ////if (!database::file::is_directory(configuration_.database.dir))
+    ////{
+    ////    handler(system::error::not_found);
+    ////    return;
+    ////}
 
     p2p::start(std::move(handler));
 }
