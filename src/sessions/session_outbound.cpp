@@ -25,7 +25,8 @@ namespace libbitcoin {
 namespace node {
 
 session_outbound::session_outbound(full_node& network) NOEXCEPT
-  : session<network::session_outbound>(network)
+  : session<network::session_outbound>(network),
+    network::track<session_outbound>(network.log())
 {
 }
 
