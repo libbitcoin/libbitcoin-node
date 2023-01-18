@@ -34,7 +34,8 @@ public:
 
     protocol_header_in(auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : protocol(session, channel)
+      : protocol(session, channel),
+        network::track<protocol_header_in>(session.log())
     {
     }
 

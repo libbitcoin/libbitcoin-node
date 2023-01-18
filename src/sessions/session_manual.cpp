@@ -25,7 +25,8 @@ namespace libbitcoin {
 namespace node {
 
 session_manual::session_manual(full_node& network) NOEXCEPT
-  : session<network::session_manual>(network)
+  : session<network::session_manual>(network),
+    network::track<session_manual>(network.log())
 {
 }
 
