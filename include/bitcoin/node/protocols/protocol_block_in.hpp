@@ -30,7 +30,7 @@
 ////
 /////// Blocks sync protocol, thread safe.
 ////class BCN_API protocol_block_in
-////  : public network::protocol_timer, network::track<protocol_block_in>
+////  : public network::protocol_timer, network::tracker<protocol_block_in>
 ////{
 ////public:
 ////    typedef std::shared_ptr<protocol_block_in> ptr;

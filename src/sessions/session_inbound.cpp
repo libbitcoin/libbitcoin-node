@@ -26,7 +26,7 @@ namespace node {
 
 session_inbound::session_inbound(full_node& network) NOEXCEPT
   : session<network::session_inbound>(network),
-    network::track<session_inbound>(network.log())
+    network::tracker<session_inbound>(network.log())
 {
 }
 
