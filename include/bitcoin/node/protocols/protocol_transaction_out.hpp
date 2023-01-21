@@ -29,7 +29,7 @@
 ////class full_node;
 ////
 ////class BCN_API protocol_transaction_out
-////  : public network::protocol_events, network::track<protocol_transaction_out>
+////  : public network::protocol_events, network::tracker<protocol_transaction_out>
 ////{
 ////public:
 ////    typedef std::shared_ptr<protocol_transaction_out> ptr;

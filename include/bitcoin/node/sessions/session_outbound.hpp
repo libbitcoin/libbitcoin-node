@@ -31,7 +31,7 @@ class full_node;
 
 /// Outbound connections session, thread safe.
 class BCN_API session_outbound
-  : public session<network::session_outbound>, network::track<session_outbound>
+  : public session<network::session_outbound>, network::tracker<session_outbound>
 {
 public:
     typedef std::shared_ptr<session_outbound> ptr;

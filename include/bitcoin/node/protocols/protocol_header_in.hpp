@@ -27,7 +27,7 @@ namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_header_in
-  : public protocol, network::track<protocol_header_in>
+  : public protocol, network::tracker<protocol_header_in>
 {
 public:
     typedef std::shared_ptr<protocol_header_in> ptr;
@@ -35,7 +35,7 @@ public:
     protocol_header_in(auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : protocol(session, channel),
-        network::track<protocol_header_in>(session.log())
+        network::tracker<protocol_header_in>(session.log())
     {
     }
 
