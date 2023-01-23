@@ -43,7 +43,7 @@ std::promise<code> executor::stopping_;
 
 executor::executor(parser& metadata, std::istream&,  std::ostream& output,
     std::ostream& error) NOEXCEPT
-  : metadata_(metadata), output_(output), error_(error)
+  : metadata_(metadata), output_(output), error_(error), log_{}
 {
     initialize_stop();
 }
@@ -91,7 +91,7 @@ bool executor::do_initchain() NOEXCEPT
     ////const auto& settings_database = metadata_.configured.database;
     ////const auto& settings_system = metadata_.configured.bitcoin;
 
-    system::code code{};
+    const system::code code{};
     ////system::code code = bc::blockchain::block_chain_initializer(
     ////    settings_chain, settings_database, settings_system).create(
     ////        settings_system.genesis_block);
@@ -146,20 +146,21 @@ bool executor::menu() NOEXCEPT
 
 bool executor::run() NOEXCEPT
 {
-    // Set console output preamble.
+    // Set up log and write console output preamble.
     initialize_output();
 
     // Create and start node.
-    output_ << BN_NODE_INTERRUPT << std::endl;
-    output_ << BN_NODE_STARTING << std::endl;
-    node_ = std::make_shared<full_node>(metadata_.configured);
+    log_.write() << BN_NODE_INTERRUPT << std::endl;
+    log_.write() << BN_NODE_STARTING << std::endl;
+    node_ = std::make_shared<full_node>(metadata_.configured, log_);
     node_->start(std::bind(&executor::handle_started, this, _1));
 
     // Wait on stop interrupt and then signal node close.
     stopping_.get_future().wait();
-    output_ << BN_NODE_STOPPING << std::endl;
+    log_.write() << BN_NODE_STOPPING << std::endl;
     node_->close();
-    return true;
+    log_.stop(BN_NODE_STOPPED);
+    return true; 
 }
 
 void executor::handle_started(const code& ec) NOEXCEPT
@@ -171,11 +172,12 @@ void executor::handle_started(const code& ec) NOEXCEPT
             metadata_.configured.database.dir << std::endl;
         else
             error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
+
         stop(ec);
         return;
     }
 
-    output_ << BN_NODE_SEEDED << std::endl;
+    log_.write() << BN_NODE_SEEDED << std::endl;
 
     node_->subscribe_close(
         std::bind(&executor::handle_stopped, this, _1),
@@ -186,7 +188,7 @@ void executor::handle_handler(const code& ec) NOEXCEPT
 {
     if (ec)
     {
-        output_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
+        error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
         stop(ec);
         return;
     }
@@ -198,16 +200,22 @@ void executor::handle_running(const code& ec) NOEXCEPT
 {
     if (ec)
     {
-        output_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
+        error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
         stop(ec);
         return;
     }
 
-    output_ << BN_NODE_STARTED << std::endl;
+    log_.write() << BN_NODE_STARTED << std::endl;
 }
 
 void executor::handle_stopped(const code& ec) NOEXCEPT
 {
+    if (ec)
+    {
+        if (ec != network::error::service_stopped)
+            error_ << format(BN_NODE_STOP_CODE) % ec.message() << std::endl;
+    };
+
     stop(ec);
 }
 
@@ -238,14 +246,22 @@ void executor::stop(const code& ec) NOEXCEPT
 
 void executor::initialize_output() NOEXCEPT
 {
-    output_ << format(BN_LOG_HEADER) % local_time() << std::endl;
+    // Route internal logging to output_.
+    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
+    {
+        output_ << message;
+
+        // This can be disabled, which reduces log serialization cost.
+        output_.flush();
+    });
+     
+    log_.write() << format(BN_LOG_HEADER) % local_time() << std::endl;
 
     const auto& file = metadata_.configured.file;
-
     if (file.empty())
-        output_ << BN_USING_DEFAULT_CONFIG << std::endl;
+        log_.write() << BN_USING_DEFAULT_CONFIG << std::endl;
     else
-        output_ << format(BN_USING_CONFIG_FILE) % file << std::endl;
+        log_.write() << format(BN_USING_CONFIG_FILE) % file << std::endl;
 }
 
 } // namespace node

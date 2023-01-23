@@ -34,7 +34,8 @@ class BCN_API full_node
 public:
     typedef std::shared_ptr<full_node> ptr;
 
-    full_node(const configuration& configuration) NOEXCEPT;
+    full_node(const configuration& configuration,
+        const network::logger& log) NOEXCEPT;
 
     void start(result_handler&& handler) NOEXCEPT override;
     void run(result_handler&& handler) NOEXCEPT override;

@@ -25,8 +25,9 @@
 namespace libbitcoin {
 namespace node {
 
-full_node::full_node(const node::configuration& configuration) NOEXCEPT
-  : p2p(configuration.network),
+full_node::full_node(const node::configuration& configuration,
+    const network::logger& log) NOEXCEPT
+  : p2p(configuration.network, log),
     configuration_(configuration)
 {
 }
