@@ -81,6 +81,7 @@ void executor::do_version() NOEXCEPT
 
 bool executor::do_initchain() NOEXCEPT
 {
+    // TODO: change this to only console logging (change sink in capture).
     initialize_output();
     const auto& directory = metadata_.configured.database.dir;
 
