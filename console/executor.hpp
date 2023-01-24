@@ -21,6 +21,7 @@
 
 #include <future>
 #include <iostream>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
@@ -63,6 +64,7 @@ private:
     std::ostream& output_;
     std::ostream& error_;
     network::logger log_;
+    database::file::rotator sink_;
     full_node::ptr node_;
 };
 

@@ -41,9 +41,13 @@ using namespace std::placeholders;
 const char* executor::name = "bn";
 std::promise<code> executor::stopping_;
 
+// TODO: parameterize sink from config.
 executor::executor(parser& metadata, std::istream&,  std::ostream& output,
     std::ostream& error) NOEXCEPT
-  : metadata_(metadata), output_(output), error_(error), log_{}
+  : metadata_(metadata),
+    output_(output),
+    error_(error),
+    sink_{ "log1.txt", "log2.txt", 1024 }
 {
     initialize_stop();
 }
@@ -150,16 +154,18 @@ bool executor::run() NOEXCEPT
     initialize_output();
 
     // Create and start node.
-    log_.write() << BN_NODE_INTERRUPT << std::endl;
-    log_.write() << BN_NODE_STARTING << std::endl;
+    output_ << BN_NODE_INTERRUPT << std::endl;
+    output_ << BN_NODE_STARTING << std::endl;
     node_ = std::make_shared<full_node>(metadata_.configured, log_);
     node_->start(std::bind(&executor::handle_started, this, _1));
 
     // Wait on stop interrupt and then signal node close.
     stopping_.get_future().wait();
-    log_.write() << BN_NODE_STOPPING << std::endl;
+    output_ << BN_NODE_STOPPING << std::endl;
     node_->close();
-    log_.stop(BN_NODE_STOPPED);
+    log_.stop(BN_NODE_STOPPED "\n");
+    sink_.stop();
+    output_ << BN_NODE_STOPPED << std::endl;
     return true; 
 }
 
@@ -169,7 +175,7 @@ void executor::handle_started(const code& ec) NOEXCEPT
     {
         if (ec == system::error::not_found)
             error_ << format(BN_UNINITIALIZED_CHAIN) %
-            metadata_.configured.database.dir << std::endl;
+                metadata_.configured.database.dir << std::endl;
         else
             error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
 
@@ -249,12 +255,15 @@ void executor::initialize_output() NOEXCEPT
     // Route internal logging to output_.
     log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
     {
-        output_ << message;
+        sink_.write(message);
 
         // This can be disabled, which reduces log serialization cost.
-        output_.flush();
+        // Without explicit flush here the stream will flush periodically on
+        // its own and not line-by-line, with a final flush upon close.
+        sink_.flush();
     });
-     
+
+    sink_.start();
     log_.write() << format(BN_LOG_HEADER) % local_time() << std::endl;
 
     const auto& file = metadata_.configured.file;
