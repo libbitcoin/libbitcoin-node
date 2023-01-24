@@ -91,14 +91,14 @@ bool executor::do_initchain() NOEXCEPT
     ////const auto& settings_database = metadata_.configured.database;
     ////const auto& settings_system = metadata_.configured.bitcoin;
 
-    const system::code code{};
+    const system::code ec{};
     ////system::code code = bc::blockchain::block_chain_initializer(
     ////    settings_chain, settings_database, settings_system).create(
     ////        settings_system.genesis_block);
 
-    if (code)
+    if (ec)
     {
-        error_ << format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % code.message()
+        error_ << format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message()
             << std::endl;
         return false;
     }
