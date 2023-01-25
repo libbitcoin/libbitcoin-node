@@ -50,7 +50,6 @@ bool clear(const std::filesystem::path& directory) NOEXCEPT
     BC_POP_WARNING()
 }
 
-
 bool folder(const std::filesystem::path& directory) NOEXCEPT
 {
     const auto path = system::to_extended_path(directory);
