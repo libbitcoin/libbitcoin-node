@@ -536,12 +536,12 @@ options_metadata parser::load_settings() THROWS
         value<uint64_t>(&configured.chain.minimum_output_satoshis),
         "The minimum output value, defaults to 500."
     )
-    (
-        /* Internally this is network, but it is conceptually a node setting. */
-        "node.relay_transactions",
-        value<bool>(&configured.network.relay_transactions),
-        "Request that peers relay transactions, defaults to false."
-    )
+    ////(
+    ////    /* Internally this is network, but it is conceptually a node setting. */
+    ////    "node.relay_transactions",
+    ////    value<bool>(&configured.network.relay_transactions),
+    ////    "Request that peers relay transactions, defaults to false."
+    ////)
     (
         "node.refresh_transactions",
         value<bool>(&configured.node.refresh_transactions),

@@ -21,6 +21,7 @@
 
 #include <future>
 #include <iostream>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
@@ -62,6 +63,8 @@ private:
     parser& metadata_;
     std::ostream& output_;
     std::ostream& error_;
+    network::logger log_;
+    database::file::rotator sink_;
     full_node::ptr node_;
 };
 
@@ -93,12 +96,10 @@ private:
 #define BN_NODE_STARTED \
     "Node is started."
 
-#define BN_NODE_SIGNALED \
-    "Stop signal detected (code: %1%)."
 #define BN_NODE_STOPPING \
     "Please wait while the node is stopping..."
-#define BN_NODE_STOP_FAIL \
-    "Node failed to stop properly, see log."
+#define BN_NODE_STOP_CODE \
+    "Node stopped with code, %1%."
 #define BN_NODE_STOPPED \
     "Node stopped successfully."
 
