@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2022 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,19 +16,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/sessions/session_manual.hpp>
+#include <bitcoin/node/error.hpp>
 
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {
+namespace error {
 
-session_manual::session_manual(full_node& network) NOEXCEPT
-  : session<network::session_manual>(network),
-    network::tracker<session_manual>(network.log())
+DEFINE_ERROR_T_MESSAGE_MAP(error)
 {
-}
+    // general
+    { success, "success" },
+    { unknown, "unknown error" },
 
-} // namespace node
+    // blocks
+    { orphan_block, "orphan block" },
+    { insufficient_work, "insufficient work" },
+    { duplicate_block, "duplicate block" }
+};
+
+DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
+
+} // namespace error
+} // namespace database
 } // namespace libbitcoin

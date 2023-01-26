@@ -29,3 +29,4 @@ node_test/
 *.lock
 *.vsidx
 /builds/msvc/vs2022/bn/hosts.cache
+*.txt

@@ -178,6 +178,7 @@ add_definitions(
 #------------------------------------------------------------------------------
 add_library( ${CANONICAL_LIB_NAME}
     "../../src/configuration.cpp"
+    "../../src/error.cpp"
     "../../src/full_node.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
@@ -186,10 +187,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_block_out.cpp"
     "../../src/protocols/protocol_header_in.cpp"
     "../../src/protocols/protocol_transaction_in.cpp"
-    "../../src/protocols/protocol_transaction_out.cpp"
-    "../../src/sessions/session_inbound.cpp"
-    "../../src/sessions/session_manual.cpp"
-    "../../src/sessions/session_outbound.cpp" )
+    "../../src/protocols/protocol_transaction_out.cpp" )
 
 # ${CANONICAL_LIB_NAME} project specific include directories.
 #------------------------------------------------------------------------------
@@ -225,6 +223,7 @@ endif()
 if (with-tests)
     add_executable( libbitcoin-node-test
         "../../test/configuration.cpp"
+        "../../test/error.cpp"
         "../../test/main.cpp"
         "../../test/node.cpp"
         "../../test/settings.cpp"

@@ -36,6 +36,7 @@ src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdi
 src_libbitcoin_node_la_LIBADD = ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/configuration.cpp \
+    src/error.cpp \
     src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
@@ -44,10 +45,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_out.cpp \
     src/protocols/protocol_header_in.cpp \
     src/protocols/protocol_transaction_in.cpp \
-    src/protocols/protocol_transaction_out.cpp \
-    src/sessions/session_inbound.cpp \
-    src/sessions/session_manual.cpp \
-    src/sessions/session_outbound.cpp
+    src/protocols/protocol_transaction_out.cpp
 
 # local: test/libbitcoin-node-test
 #------------------------------------------------------------------------------
@@ -60,6 +58,7 @@ test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_blockchain_BU
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_blockchain_LIBS} ${bitcoin_network_LIBS}
 test_libbitcoin_node_test_SOURCES = \
     test/configuration.cpp \
+    test/error.cpp \
     test/main.cpp \
     test/node.cpp \
     test/settings.cpp \
@@ -92,6 +91,7 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
+    include/bitcoin/node/error.hpp \
     include/bitcoin/node/full_node.hpp \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \
@@ -109,11 +109,7 @@ include_bitcoin_node_protocols_HEADERS = \
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
-    include/bitcoin/node/sessions/session.hpp \
-    include/bitcoin/node/sessions/session_inbound.hpp \
-    include/bitcoin/node/sessions/session_manual.hpp \
-    include/bitcoin/node/sessions/session_outbound.hpp \
-    include/bitcoin/node/sessions/sessions.hpp
+    include/bitcoin/node/sessions/session.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

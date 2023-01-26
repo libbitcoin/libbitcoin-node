@@ -8,22 +8,22 @@
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="include">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000003}</UniqueIdentifier>
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000002}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\bitcoin">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000004}</UniqueIdentifier>
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000003}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\bitcoin\node">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000005}</UniqueIdentifier>
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000004}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\bitcoin\node\protocols">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000006}</UniqueIdentifier>
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000005}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\bitcoin\node\sessions">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000007}</UniqueIdentifier>
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000006}</UniqueIdentifier>
     </Filter>
     <Filter Include="resource">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000008}</UniqueIdentifier>
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000007}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000000}</UniqueIdentifier>
@@ -31,12 +31,12 @@
     <Filter Include="src\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000001}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\sessions">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000002}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\configuration.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\error.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\full_node.cpp">
@@ -63,15 +63,6 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp">
-      <Filter>src\sessions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp">
-      <Filter>src\sessions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp">
-      <Filter>src\sessions</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -84,6 +75,9 @@
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">
@@ -114,18 +108,6 @@
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
-      <Filter>include\bitcoin\node\sessions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp">
-      <Filter>include\bitcoin\node\sessions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp">
-      <Filter>include\bitcoin\node\sessions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp">
-      <Filter>include\bitcoin\node\sessions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp">

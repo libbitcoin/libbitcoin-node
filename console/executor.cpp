@@ -253,7 +253,7 @@ void executor::stop(const code& ec) NOEXCEPT
 
 void executor::initialize_output() NOEXCEPT
 {
-    // Route internal logging to output_.
+    // Route internal logging to rotable file.
     log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
     {
         sink_.write(message);
@@ -262,6 +262,14 @@ void executor::initialize_output() NOEXCEPT
         // Without explicit flush here the stream will flush periodically on
         // its own and not line-by-line, with a final flush upon close.
         sink_.flush();
+    });
+
+    // Route internal logging to std::cout.
+    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
+    {
+        // TODO: create sink concept that abstracts rotable log vs. console.
+        output_ << message;
+        output_.flush();
     });
 
     sink_.start();

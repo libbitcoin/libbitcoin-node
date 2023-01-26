@@ -32,18 +32,17 @@ class BCN_API protocol
   : public network::protocol
 {
 protected:
-    template <class Session>
-    protocol(const Session& session,
-        const network::channel::ptr& channel) NOEXCEPT
-      : network::protocol(session, channel),
-        full_node_(session.node())
-    {
-    }
+    typedef network::channel::ptr channel_ptr;
 
-    const node::configuration& configuration() const NOEXCEPT;
+    protocol(const network::session& session, const channel_ptr& channel,
+        full_node& node) NOEXCEPT;
+
+    /// network::protocol also exposes network::settings.
+    /// settings: bitcoin, database, blockchain, network, node.
+    const configuration& config() const NOEXCEPT;
 
 private:
-    const full_node& full_node_;
+    full_node& node_;
 };
 
 } // namespace node

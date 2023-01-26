@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,30 +16,41 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_MANUAL_HPP
-#define LIBBITCOIN_NODE_SESSION_MANUAL_HPP
+#ifndef LIBBITCOIN_NODE_ERROR_HPP
+#define LIBBITCOIN_NODE_ERROR_HPP
 
-#include <memory>
-#include <bitcoin/network.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class full_node;
+/// Alias system code.
+/// std::error_code "node" category holds node::error::error_t.
+typedef std::error_code code;
 
-/// Manual connections session, thread safe.
-class BCN_API session_manual
-  : public session<network::session_manual>, network::tracker<session_manual>
+namespace error {
+
+/// Asio failures are normalized to the error codes below.
+/// Stop by explicit call is mapped to channel_stopped or service_stopped
+/// depending on the context. Asio errors returned on cancel calls are ignored.
+enum error_t
 {
-public:
-    typedef std::shared_ptr<session_manual> ptr;
+    success,
+    unknown,
 
-    session_manual(full_node& network) NOEXCEPT;
+    orphan_block,
+    insufficient_work,
+    duplicate_block
 };
 
+// No current need for error_code equivalence mapping.
+DECLARE_ERROR_T_CODE_CATEGORY(error);
+
+} // namespace error
 } // namespace node
 } // namespace libbitcoin
+
+DECLARE_STD_ERROR_REGISTRATION(bc::node::error::error)
 
 #endif
