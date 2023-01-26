@@ -25,19 +25,17 @@
 
 namespace libbitcoin {
 namespace node {
+    
+class full_node;
 
 class BCN_API protocol_header_in
-  : public protocol, network::tracker<protocol_header_in>
+  : public node::protocol, network::tracker<protocol_header_in>
 {
 public:
     typedef std::shared_ptr<protocol_header_in> ptr;
 
-    protocol_header_in(auto& session,
-        const network::channel::ptr& channel) NOEXCEPT
-      : protocol(session, channel),
-        network::tracker<protocol_header_in>(session.log())
-    {
-    }
+    protocol_header_in(const network::session& session,
+        const channel_ptr& channel, full_node& node) NOEXCEPT;
 
     void start() NOEXCEPT override;
 
@@ -45,29 +43,28 @@ protected:
     const std::string& name() const NOEXCEPT override;
 
 private:
-    ////void report(const system::chain::header& header) const;
+    ////////void report(const system::chain::header& header) const;
     ////void send_top_get_headers(const system::hash_digest& stop_hash);
     ////void send_next_get_headers(const system::hash_digest& start_hash);
-    ////void handle_fetch_header_locator(const system::code& ec,
+    ////void handle_fetch_header_locator(const code& ec,
     ////    system::get_headers_ptr message, const system::hash_digest& stop_hash);
     ////
-    ////bool handle_receive_headers(const system::code& ec,
+    ////bool handle_receive_headers(const code& ec,
     ////    system::headers_const_ptr message);
-    ////void store_header(size_t index, system::headers_const_ptr message);
-    ////void handle_store_header(const system::code& ec,
+    ////void store_header(size_t index,
+    ////    system::headers_const_ptr message);
+    ////void handle_store_header(const code& ec,
     ////    system::header_const_ptr header, size_t index,
     ////    system::headers_const_ptr message);
-    ////
-    ////void send_send_headers();
-    ////void handle_timeout(const system::code& ec);
-    ////void handle_stop(const system::code& ec);
-    ////
-    ////// These are thread safe.
-    ////full_node& node_;
-    ////blockchain::safe_chain& chain_;
-    ////const system::asio::duration header_latency_;
-    ////const bool send_headers_;
-    ////std::atomic<bool> sending_headers_;
+    
+    void send_send_headers();
+    void handle_timeout(const code& ec);
+    void handle_stop(const code& ec);
+    
+    // These are thread safe.
+    const bool send_headers_;
+    const network::duration header_latency_;
+    std::atomic<bool> sending_headers_;
 };
 
 } // namespace node

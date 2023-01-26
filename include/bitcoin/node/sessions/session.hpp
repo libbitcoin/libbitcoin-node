@@ -30,24 +30,26 @@ namespace node {
 class full_node;
 
 /// Session base class template.
+/// This derives a session from a specialized session to change protocols.
+/// Construction is from full_node, which derives from p2p, passed to base.
 template <class Session>
 class session
   : public Session
 {
 public:
-    full_node& node() const NOEXCEPT
+    typedef std::shared_ptr<Session> ptr;
+
+    /// Session attachment passes p2p and variable args.
+    /// To avoid templatizing on p2p, pass node as first arg.
+    session(network::p2p& network, full_node& node)
+      : Session(network), node_(node)
     {
-        return full_node_;
-    }
+    };
 
 protected:
-    session(full_node& node)
-      : Session(node), full_node_(node)
-    {
-    }
+    typedef network::channel::ptr channel_ptr;
 
-    void attach_protocols(
-        const network::channel::ptr& channel) const NOEXCEPT override
+    void attach_protocols(const channel_ptr& channel) const NOEXCEPT override
     {
         const auto& self = *this;
         const auto version = channel->negotiated_version();
@@ -58,7 +60,7 @@ protected:
         Session::attach_protocols(channel);
 
         if (version >= network::messages::level::headers_protocol)
-            channel->attach<protocol_header_in>(self)->start();
+            channel->attach<protocol_header_in>(self, node_)->start();
 
         ////channel->attach<protocol_block_in>(self)->start();
         ////channel->attach<protocol_block_out>(self)->start();
@@ -67,7 +69,7 @@ protected:
     }
 
 private:
-    full_node& full_node_;
+    full_node& node_;
 };
 
 } // namespace node

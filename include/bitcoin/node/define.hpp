@@ -37,4 +37,14 @@
     #define BCN_INTERNAL BC_HELPER_DLL_LOCAL
 #endif
 
+
+namespace libbitcoin {
+namespace node {
+
+    /// Alias system code.
+    /// TODO: std::error_code "node" category holds node::error::error_t.
+    typedef std::error_code code;
+}
+}
+
 #endif
