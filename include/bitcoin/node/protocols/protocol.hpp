@@ -37,7 +37,9 @@ protected:
     protocol(const network::session& session, const channel_ptr& channel,
         full_node& node) NOEXCEPT;
 
-    const configuration& configuration() const NOEXCEPT;
+    /// network::protocol also exposes network::settings.
+    /// settings: bitcoin, database, blockchain, network, node.
+    const configuration& config() const NOEXCEPT;
 
 private:
     full_node& node_;

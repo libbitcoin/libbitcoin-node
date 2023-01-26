@@ -20,7 +20,6 @@
 
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -31,7 +30,7 @@ protocol::protocol(const network::session& session, const channel_ptr& channel,
 {
 }
 
-const node::configuration& protocol::configuration() const NOEXCEPT
+const configuration& protocol::config() const NOEXCEPT
 {
     return node_.configuration();
 }
