@@ -29,6 +29,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // general
     { success, "success" },
     { unknown, "unknown error" },
+    { store_uninitialized, "store not initialized" },
 
     // blocks
     { orphan_block, "orphan block" },

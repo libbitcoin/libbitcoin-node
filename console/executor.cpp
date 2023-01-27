@@ -42,74 +42,16 @@ const char* executor::name = "bn";
 std::promise<code> executor::stopping_;
 
 // TODO: parameterize sink from config.
-executor::executor(parser& metadata, std::istream&,  std::ostream& output,
+executor::executor(parser& metadata, std::istream&, std::ostream& output,
     std::ostream& error) NOEXCEPT
   : metadata_(metadata),
+    store_(metadata.configured.database),
+    query_(store_),
     output_(output),
     error_(error),
-    sink_{ "log1.txt", "log2.txt", 1024 }
+    sink_{ "log1.txt", "log2.txt", 10 * 1024 }
 {
     initialize_stop();
-}
-
-// Command line options.
-// ----------------------------------------------------------------------------
-
-void executor::do_help() NOEXCEPT
-{
-    const auto options = metadata_.load_options();
-    printer help(options, name, BN_INFORMATION_MESSAGE);
-    help.initialize();
-    help.commandline(output_);
-}
-
-void executor::do_settings() NOEXCEPT
-{
-    const auto settings = metadata_.load_settings();
-    printer print(settings, name, BN_SETTINGS_MESSAGE);
-    print.initialize();
-    print.settings(output_);
-}
-
-void executor::do_version() NOEXCEPT
-{
-    output_ << format(BN_VERSION_MESSAGE) %
-        LIBBITCOIN_NODE_VERSION %
-        LIBBITCOIN_BLOCKCHAIN_VERSION %
-        LIBBITCOIN_SYSTEM_VERSION << std::endl;
-}
-
-bool executor::do_initchain() NOEXCEPT
-{
-    // TODO: change this to only console logging (change sink in capture).
-    initialize_output();
-    const auto& directory = metadata_.configured.database.dir;
-
-    if (!file::create_directory(directory))
-    {
-        error_ << format(BN_INITCHAIN_EXISTS) % directory << std::endl;
-        return false;
-    }
-
-    output_ << format(BN_INITIALIZING_CHAIN) % directory << std::endl;
-    ////const auto& settings_chain = metadata_.configured.chain;
-    ////const auto& settings_database = metadata_.configured.database;
-    ////const auto& settings_system = metadata_.configured.bitcoin;
-
-    const system::code ec{};
-    ////system::code code = bc::blockchain::block_chain_initializer(
-    ////    settings_chain, settings_database, settings_system).create(
-    ////        settings_system.genesis_block);
-
-    if (ec)
-    {
-        error_ << format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message()
-            << std::endl;
-        return false;
-    }
-
-    output_ << BN_INITCHAIN_COMPLETE << std::endl;
-    return true;
 }
 
 // Menu selection.
@@ -146,27 +88,135 @@ bool executor::menu() NOEXCEPT
     return run();
 }
 
+// Command line options.
+// ----------------------------------------------------------------------------
+
+// --help
+void executor::do_help() NOEXCEPT
+{
+    const auto options = metadata_.load_options();
+    printer help(options, name, BN_INFORMATION_MESSAGE);
+    help.initialize();
+    help.commandline(output_);
+}
+
+// --settings
+// TODO: settings are parsing empty.
+void executor::do_settings() NOEXCEPT
+{
+    const auto settings = metadata_.load_settings();
+    printer print(settings, name, BN_SETTINGS_MESSAGE);
+    print.initialize();
+    print.settings(output_);
+}
+
+// --version
+void executor::do_version() NOEXCEPT
+{
+    output_ << format(BN_VERSION_MESSAGE) %
+        LIBBITCOIN_NODE_VERSION %
+        LIBBITCOIN_BLOCKCHAIN_VERSION %
+        LIBBITCOIN_SYSTEM_VERSION << std::endl;
+}
+
+// --initchain
+bool executor::do_initchain() NOEXCEPT
+{
+    const auto& directory = metadata_.configured.database.dir;
+    output_ << format(BN_INITIALIZING_CHAIN) % directory << std::endl;
+
+    if (!file::create_directory(directory))
+    {
+        output_ << format(BN_INITCHAIN_EXISTS) % directory << std::endl;
+        return false;
+    }
+
+    if (const auto ec = store_.create())
+    {
+        output_ << format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message()
+            << std::endl;
+        return false;
+    }
+
+    if (const auto ec = store_.open())
+    {
+        output_ << format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message()
+            << std::endl;
+        return false;
+    }
+
+    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
+    {
+        output_ << BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE << std::endl;
+        return false;
+    }
+
+    if (const auto ec = store_.close())
+    {
+        output_ << format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message()
+            << std::endl;
+        return false;
+    }
+
+    output_ << BN_INITCHAIN_COMPLETE << std::endl;
+    return true;
+}
+
 // Run.
 // ----------------------------------------------------------------------------
 
 bool executor::run() NOEXCEPT
 {
-    // Set up log and write console output preamble.
-    initialize_output();
+    sink_.start();
+    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
+    {
+        sink_.write(message);
+        ////sink_.flush();
+    });
+    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
+    {
+        output_ << message;
+        output_.flush();
+    });
+
+    log_.write() << format(BN_LOG_HEADER) % local_time() << std::endl;
+
+    const auto& file = metadata_.configured.file;
+
+    if (file.empty())
+        log_.write() << BN_USING_DEFAULT_CONFIG << std::endl;
+    else
+        log_.write() << format(BN_USING_CONFIG_FILE) % file << std::endl;
 
     // Create and start node.
-    output_ << BN_NODE_INTERRUPT << std::endl;
-    output_ << BN_NODE_STARTING << std::endl;
-    node_ = std::make_shared<full_node>(metadata_.configured, log_);
+    log_.write() << BN_NODE_INTERRUPT << std::endl;
+    log_.write() << BN_NODE_STARTING << std::endl;
+
+    if (const auto ec = store_.open())
+    {
+        log_.write() << format(BN_STORE_START_FAIL) % ec.message() << std::endl;
+        return false;
+    }
+
+    node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
     node_->start(std::bind(&executor::handle_started, this, _1));
 
     // Wait on stop interrupt and then signal node close.
     stopping_.get_future().wait();
-    output_ << BN_NODE_STOPPING << std::endl;
+
+    log_.write() << BN_NODE_STOPPING << std::endl;
+
     node_->close();
     log_.stop(BN_NODE_STOPPED "\n");
     sink_.stop();
-    output_ << BN_NODE_STOPPED << std::endl;
+
+    if (const auto ec = store_.close())
+    {
+        log_.write() << format(BN_STORE_STOP_FAIL) % ec.message() << std::endl;
+        return false;
+    }
+
+    log_.write() << BN_NODE_STOPPED << std::endl;
     return true; 
 }
 
@@ -175,10 +225,11 @@ void executor::handle_started(const code& ec) NOEXCEPT
     if (ec)
     {
         if (ec == system::error::not_found)
-            error_ << format(BN_UNINITIALIZED_CHAIN) %
+            log_.write() << format(BN_UNINITIALIZED_CHAIN) %
                 metadata_.configured.database.dir << std::endl;
         else
-            error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
+            log_.write() << format(BN_NODE_START_FAIL) % ec.message()
+                << std::endl;
 
         stop(ec);
         return;
@@ -195,7 +246,7 @@ void executor::handle_handler(const code& ec) NOEXCEPT
 {
     if (ec)
     {
-        error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
+        log_.write() << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
         stop(ec);
         return;
     }
@@ -207,7 +258,7 @@ void executor::handle_running(const code& ec) NOEXCEPT
 {
     if (ec)
     {
-        error_ << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
+        log_.write() << format(BN_NODE_START_FAIL) % ec.message() << std::endl;
         stop(ec);
         return;
     }
@@ -217,11 +268,8 @@ void executor::handle_running(const code& ec) NOEXCEPT
 
 void executor::handle_stopped(const code& ec) NOEXCEPT
 {
-    if (ec)
-    {
-        if (ec != network::error::service_stopped)
-            error_ << format(BN_NODE_STOP_CODE) % ec.message() << std::endl;
-    };
+    if (ec && ec != network::error::service_stopped)
+        log_.write() << format(BN_NODE_STOP_CODE) % ec.message() << std::endl;
 
     stop(ec);
 }
@@ -246,40 +294,6 @@ void executor::stop(const code& ec) NOEXCEPT
 {
     static std::once_flag stop_mutex;
     std::call_once(stop_mutex, [&]() NOEXCEPT { stopping_.set_value(ec); });
-}
-
-// Utilities.
-// ----------------------------------------------------------------------------
-
-void executor::initialize_output() NOEXCEPT
-{
-    // Route internal logging to rotable file.
-    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
-    {
-        sink_.write(message);
-
-        // This can be disabled, which reduces log serialization cost.
-        // Without explicit flush here the stream will flush periodically on
-        // its own and not line-by-line, with a final flush upon close.
-        sink_.flush();
-    });
-
-    // Route internal logging to std::cout.
-    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
-    {
-        // TODO: create sink concept that abstracts rotable log vs. console.
-        output_ << message;
-        output_.flush();
-    });
-
-    sink_.start();
-    log_.write() << format(BN_LOG_HEADER) % local_time() << std::endl;
-
-    const auto& file = metadata_.configured.file;
-    if (file.empty())
-        log_.write() << BN_USING_DEFAULT_CONFIG << std::endl;
-    else
-        log_.write() << format(BN_USING_CONFIG_FILE) % file << std::endl;
 }
 
 } // namespace node

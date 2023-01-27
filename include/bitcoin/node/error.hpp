@@ -39,6 +39,10 @@ enum error_t
     success,
     unknown,
 
+    // database
+    store_uninitialized,
+
+    // blockchain
     orphan_block,
     insufficient_work,
     duplicate_block

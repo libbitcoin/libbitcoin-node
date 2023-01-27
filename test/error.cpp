@@ -41,6 +41,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__unknown__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "unknown error");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__store_uninitialized__true_exected_message)
+{
+    constexpr auto value = error::store_uninitialized;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "store not initialized");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__orphan_block__true_exected_message)
 {
     constexpr auto value = error::orphan_block;

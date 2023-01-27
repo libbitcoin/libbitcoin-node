@@ -20,26 +20,27 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-full_node::full_node(const node::configuration& configuration,
+full_node::full_node(query_t& query, const node::configuration& configuration,
     const network::logger& log) NOEXCEPT
   : p2p(configuration.network, log),
-    configuration_(configuration)
+    config_(configuration),
+    query_(query)
 {
 }
 
 void full_node::start(result_handler&& handler) NOEXCEPT
 {
-    ////// TODO: handle this in database start.
-    ////if (!database::file::is_directory(configuration_.database.dir))
-    ////{
-    ////    handler(system::error::not_found);
-    ////    return;
-    ////}
+    if (!query_.is_initialized())
+    {
+        handler(error::store_uninitialized);
+        return;
+    }
 
     p2p::start(std::move(handler));
 }
@@ -49,30 +50,31 @@ void full_node::run(result_handler&& handler) NOEXCEPT
     p2p::run(std::move(handler));
 }
 
-const node::configuration& full_node::configuration() const NOEXCEPT
+query_t& full_node::query() NOEXCEPT
 {
-    return configuration_;
+    return query_;
 }
 
+const configuration& full_node::config() const NOEXCEPT
+{
+    return config_;
+}
 // Return is a pointer cast.
 // Session attachment passes p2p and variable args.
 // To avoid templatizing on p2p, pass node as first arg.
 
 network::session_manual::ptr full_node::attach_manual_session() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "attach_manual_session");
     return p2p::attach<node::session<network::session_manual>>(*this, *this);
 }
 
 network::session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "attach_inbound_session");
     return p2p::attach<node::session<network::session_inbound>>(*this, *this);
 }
 
 network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "attach_outbound_session");
     return p2p::attach<node::session<network::session_outbound>>(*this, *this);
 }
 

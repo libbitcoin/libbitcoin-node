@@ -30,3 +30,5 @@ node_test/
 *.vsidx
 /builds/msvc/vs2022/bn/hosts.cache
 *.txt
+*.data
+*.head
