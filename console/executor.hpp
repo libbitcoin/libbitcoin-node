@@ -53,7 +53,6 @@ private:
     void do_version() NOEXCEPT;
     bool do_initchain() NOEXCEPT;
 
-    void initialize_output() NOEXCEPT;
     bool verify_store() NOEXCEPT;
     bool run() NOEXCEPT;
 
@@ -61,6 +60,8 @@ private:
     static std::promise<system::code> stopping_;
 
     parser& metadata_;
+    store_t store_;
+    query_t query_;
     std::ostream& output_;
     std::ostream& error_;
     network::logger log_;
@@ -83,7 +84,13 @@ private:
 #define BN_INITCHAIN_COMPLETE \
     "Completed initialization."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
-    "Database creation failed with error, '%2%'."
+    "Database creation failed with error, '%1%'."
+#define BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE \
+    "Database failure to store genesis block."
+#define BN_INITCHAIN_DATABASE_OPEN_FAILURE \
+    "Database failure to open, %1%."
+#define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
+    "Database failure to close, %1%."
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
@@ -95,6 +102,11 @@ private:
     "Seeding is complete."
 #define BN_NODE_STARTED \
     "Node is started."
+
+#define BN_STORE_START_FAIL \
+    "Store failed to start with error, %1%."
+#define BN_STORE_STOP_FAIL \
+    "Store failed to stop with error, %1%."
 
 #define BN_NODE_STOPPING \
     "Please wait while the node is stopping..."

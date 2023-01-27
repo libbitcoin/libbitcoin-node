@@ -32,7 +32,7 @@ protocol::protocol(const network::session& session, const channel_ptr& channel,
 
 const configuration& protocol::config() const NOEXCEPT
 {
-    return node_.configuration();
+    return node_.config();
 }
 
 } // namespace node
