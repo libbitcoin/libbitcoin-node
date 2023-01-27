@@ -165,7 +165,6 @@ bool executor::do_initchain() NOEXCEPT
 // Run.
 // ----------------------------------------------------------------------------
 
-// TODO: hosts file not created on first run until close.
 bool executor::run() NOEXCEPT
 {
     sink_.start();
