@@ -118,7 +118,7 @@ options_metadata parser::load_environment() THROWS
     (
         // For some reason po requires this to be a lower case name.
         // The case must match the other declarations for it to compose.
-        // This composes with the cmdline options and inits to system path.
+        // This composes with the cmdline options and inits to default path.
         BN_CONFIG_VARIABLE,
         value<std::filesystem::path>(&configured.file)->composing()
             ->default_value(config_default_path()),
@@ -561,7 +561,7 @@ bool parser::parse(int argc, const char* argv[], std::ostream& error) THROWS
         load_command_variables(variables, argc, argv);
         load_environment_variables(variables, BN_ENVIRONMENT_VARIABLE_PREFIX);
 
-        // Don't load the rest if any of these options are specified.
+        // Don't load config file if any of these options are specified.
         if (!get_option(variables, BN_VERSION_VARIABLE) &&
             !get_option(variables, BN_SETTINGS_VARIABLE) &&
             !get_option(variables, BN_HELP_VARIABLE))
