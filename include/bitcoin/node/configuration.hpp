@@ -55,6 +55,7 @@ public:
     std::filesystem::path file;
 
     /// Settings.
+    log::settings log;
     node::settings node;
     blockchain::settings chain;
     database::settings database;

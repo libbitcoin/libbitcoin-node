@@ -33,6 +33,7 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     initchain(false),
     settings(false),
     version(false),
+    log(context),
     node(context),
     chain(context),
     database(context),
