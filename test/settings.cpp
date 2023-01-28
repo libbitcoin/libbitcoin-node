@@ -20,32 +20,18 @@
 
 BOOST_AUTO_TEST_SUITE(settings_tests)
 
-BOOST_AUTO_TEST_CASE(settings__construct__default_context__expected)
+// [log]
+
+BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
 {
-    node::settings configuration;
-    BOOST_REQUIRE(!configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
+    log::settings configuration{};
+    BOOST_REQUIRE_EQUAL(configuration.verbose, false);
+    BOOST_REQUIRE_EQUAL(configuration.maximum_size, 1'000'000'000_u32);
+    BOOST_REQUIRE_EQUAL(configuration.file, "rotate");
+    BOOST_REQUIRE_EQUAL(configuration.file1(), "rotate1.log");
+    BOOST_REQUIRE_EQUAL(configuration.file2(), "rotate2.log");
 }
 
-BOOST_AUTO_TEST_CASE(settings__construct__none_context__expected)
-{
-    node::settings configuration(system::chain::selection::none);
-    BOOST_REQUIRE(!configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
-}
-
-BOOST_AUTO_TEST_CASE(settings__construct__mainnet_context__expected)
-{
-    node::settings configuration(system::chain::selection::mainnet);
-    BOOST_REQUIRE(!configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
-}
-
-BOOST_AUTO_TEST_CASE(settings__construct__testnet_context__expected)
-{
-    node::settings configuration(system::chain::selection::testnet);
-    BOOST_REQUIRE(!configuration.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(configuration.block_latency_seconds, 5u);
-}
+// [node]
 
 BOOST_AUTO_TEST_SUITE_END()

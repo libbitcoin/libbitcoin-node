@@ -29,50 +29,11 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.initchain);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(!instance.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 5u);
-}
-
-BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_context__expected)
-{
-    node::configuration instance(chain::selection::mainnet);
-    BOOST_REQUIRE(!instance.help);
-    BOOST_REQUIRE(!instance.initchain);
-    BOOST_REQUIRE(!instance.settings);
-    BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(!instance.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 5u);
-}
-
-BOOST_AUTO_TEST_CASE(configuration__construct1__testnet_context__expected)
-{
-    node::configuration instance(chain::selection::testnet);
-    BOOST_REQUIRE(!instance.help);
-    BOOST_REQUIRE(!instance.initchain);
-    BOOST_REQUIRE(!instance.settings);
-    BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(!instance.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance.node.block_latency_seconds, 5u);
-}
-
-BOOST_AUTO_TEST_CASE(configuration__construct2__none_context__expected)
-{
-    node::configuration instance1(chain::selection::none);
-    instance1.help = true;
-    instance1.initchain = true;
-    instance1.settings = true;
-    instance1.version = true;
-    instance1.node.refresh_transactions = true;
-    instance1.node.block_latency_seconds = 24;
-
-    node::configuration instance2(instance1);
-
-    BOOST_REQUIRE(instance2.help);
-    BOOST_REQUIRE(instance2.initchain);
-    BOOST_REQUIRE(instance2.settings);
-    BOOST_REQUIRE(instance2.version);
-    BOOST_REQUIRE(instance2.node.refresh_transactions);
-    BOOST_REQUIRE_EQUAL(instance2.node.block_latency_seconds, 24u);
+    BOOST_REQUIRE_EQUAL(instance.log.verbose, false);
+    BOOST_REQUIRE_EQUAL(instance.log.maximum_size, 1'000'000'000_u32);
+    BOOST_REQUIRE_EQUAL(instance.log.file, "rotate");
+    BOOST_REQUIRE_EQUAL(instance.log.file1(), "rotate1.log");
+    BOOST_REQUIRE_EQUAL(instance.log.file2(), "rotate2.log");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -41,7 +41,6 @@ using namespace std::placeholders;
 const char* executor::name = "bn";
 std::promise<code> executor::stopping_;
 
-// TODO: parameterize sink from config.
 executor::executor(parser& metadata, std::istream&, std::ostream& output,
     std::ostream& error) NOEXCEPT
   : metadata_(metadata),
@@ -49,7 +48,12 @@ executor::executor(parser& metadata, std::istream&, std::ostream& output,
     query_(store_),
     output_(output),
     error_(error),
-    sink_{ "log1.txt", "log2.txt", 10 * 1024 }
+    sink_
+    {
+        metadata.configured.log.file1(),
+        metadata.configured.log.file2(),
+        to_half(metadata.configured.log.maximum_size)
+    }
 {
     initialize_stop();
 }

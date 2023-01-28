@@ -136,11 +136,36 @@ options_metadata parser::load_settings() THROWS
     /* [log] */
     (
         "log.verbose",
-        value<bool>(&configured.network.verbose),
+        value<bool>(&configured.log.verbose),
         "Enable verbose logging, defaults to false."
+    )
+    (
+        "log.maximum_size",
+        value<uint32_t>(&configured.log.maximum_size),
+        "The maximum byte size of each pair of rotated log files, defaults to 1000000000."
+    )
+    (
+        "log.file",
+        value<std::filesystem::path>(&configured.log.file),
+        "The log file base path, defaults to 'rotate'."
     )
 
     /* [bitcoin] */
+    (
+        "bitcoin.timestamp_limit_seconds",
+        value<uint32_t>(&configured.bitcoin.timestamp_limit_seconds),
+        "The future timestamp allowance, defaults to 7200."
+    )
+    (
+        "bitcoin.initial_block_subsidy_bitcoin",
+        value<uint64_t>(&configured.bitcoin.initial_subsidy_bitcoin),
+        "The initial block subsidy, defaults to 50."
+    )
+    (
+        "bitcoin.subsidy_interval",
+        value<uint64_t>(&configured.bitcoin.subsidy_interval_blocks),
+        "The subsidy halving period, defaults to 210000."
+    )
     (
         "bitcoin.retargeting_factor",
         value<uint32_t>(&configured.bitcoin.retargeting_factor),
@@ -157,30 +182,16 @@ options_metadata parser::load_settings() THROWS
         "The target block period, defaults to 600."
     )
     (
-        "bitcoin.timestamp_limit_seconds",
-        value<uint32_t>(&configured.bitcoin.timestamp_limit_seconds),
-        "The future timestamp allowance, defaults to 7200."
-    )
-    (
         "bitcoin.proof_of_work_limit",
         value<uint32_t>(&configured.bitcoin.proof_of_work_limit),
         "The proof of work limit, defaults to 486604799."
-    )
-    (
-        "bitcoin.initial_block_subsidy_bitcoin",
-        value<uint64_t>(&configured.bitcoin.initial_subsidy_bitcoin),
-        "The initial block subsidy, defaults to 50."
-    )
-    (
-        "bitcoin.subsidy_interval",
-        value<uint64_t>(&configured.bitcoin.subsidy_interval_blocks),
-        "The subsidy halving period, defaults to 210000."
     )
     (
         "bitcoin.genesis_block",
         value<config::block>(&configured.bitcoin.genesis_block),
         "The genesis block, defaults to mainnet."
     )
+    // [version properties excluded here]
     (
         "bitcoin.activation_threshold",
         value<size_t>(&configured.bitcoin.activation_threshold),
@@ -215,11 +226,6 @@ options_metadata parser::load_settings() THROWS
         "bitcoin.bip16_activation_time",
         value<uint32_t>(&configured.bitcoin.bip16_activation_time),
         "The activation time for bip16 in unix time, defaults to 1333238400."
-    )
-    (
-        "bitcoin.bip34_active_checkpoint",
-        value<chain::checkpoint>(&configured.bitcoin.bip34_active_checkpoint),
-        "The hash:height checkpoint for bip34 activation, defaults to 000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8:227931."
     )
     (
         "bitcoin.bip9_bit0_active_checkpoint",
@@ -504,16 +510,6 @@ options_metadata parser::load_settings() THROWS
 
     /* [node] */
     (
-        "node.maximum_deviation",
-        value<float>(&configured.node.maximum_deviation),
-        "The response rate standard deviation below which a peer is dropped, defaults to 1.5."
-    )
-    (
-        "node.block_latency_seconds",
-        value<uint32_t>(&configured.node.block_latency_seconds),
-        "The maximum time to wait for a requested block, defaults to 5."
-    )
-    (
         /* Internally this is blockchain, but it is conceptually a node setting. */
         "node.notify_limit_hours",
         value<uint32_t>(&configured.chain.notify_limit_hours),
@@ -536,17 +532,6 @@ options_metadata parser::load_settings() THROWS
         "node.minimum_output_satoshis",
         value<uint64_t>(&configured.chain.minimum_output_satoshis),
         "The minimum output value, defaults to 500."
-    )
-    ////(
-    ////    /* Internally this is network, but it is conceptually a node setting. */
-    ////    "node.relay_transactions",
-    ////    value<bool>(&configured.network.relay_transactions),
-    ////    "Request that peers relay transactions, defaults to false."
-    ////)
-    (
-        "node.refresh_transactions",
-        value<bool>(&configured.node.refresh_transactions),
-        "Request transactions on each channel start, defaults to false."
     );
 
     return description;

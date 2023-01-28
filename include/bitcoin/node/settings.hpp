@@ -19,26 +19,38 @@
 #ifndef LIBBITCOIN_NODE_SETTINGS_HPP
 #define LIBBITCOIN_NODE_SETTINGS_HPP
 
+#include <filesystem>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
-namespace node {
+namespace log {
 
-/// Common database configuration settings, properties not thread safe.
+/// [log] settings.
 class BCN_API settings
 {
 public:
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
-    /// Properties.
-    float maximum_deviation;
-    uint32_t block_latency_seconds;
-    bool refresh_transactions;
+    bool verbose;
+    uint32_t maximum_size;
+    std::filesystem::path file;
 
-    /// Helpers.
-    network::duration block_latency() const NOEXCEPT;
+    std::filesystem::path file1() NOEXCEPT;
+    std::filesystem::path file2() NOEXCEPT;
+};
+
+} // namespace log
+
+namespace node {
+
+/// [node] settings.
+class BCN_API settings
+{
+public:
+    settings() NOEXCEPT;
+    settings(system::chain::selection context) NOEXCEPT;
 };
 
 } // namespace node

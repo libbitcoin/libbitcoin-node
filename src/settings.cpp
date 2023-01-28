@@ -20,27 +20,48 @@
 
 #include <bitcoin/network.hpp>
 
-namespace libbitcoin {
-namespace node {
-
 using namespace bc::system;
 
+namespace libbitcoin {
+namespace log {
+
 settings::settings() NOEXCEPT
-  : maximum_deviation(1.5),
-    block_latency_seconds(5),
-    refresh_transactions(false)
+  : verbose(false),
+    maximum_size(1'000'000'000_u32),
+    file("rotate")
 {
 }
 
-// There are no current distinctions spanning chain contexts.
 settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
 }
 
-network::duration settings::block_latency() const NOEXCEPT
+std::filesystem::path settings::file1() NOEXCEPT
 {
-    return network::seconds(block_latency_seconds);
+    std::filesystem::path out{ file };
+    out.concat("1.log");
+    return out;
+}
+
+std::filesystem::path settings::file2() NOEXCEPT
+{
+    std::filesystem::path out{ file };
+    out.concat("2.log");
+    return out;
+}
+
+} // namespace log
+
+namespace node {
+
+settings::settings() NOEXCEPT
+{
+}
+
+settings::settings(chain::selection) NOEXCEPT
+  : settings()
+{
 }
 
 } // namespace node
