@@ -99,6 +99,12 @@ options_metadata parser::load_options() THROWS
         value<bool>(&configured.version)->
             default_value(false)->zero_tokens(),
         "Display version information."
+    )
+    (
+        BN_LIGHT_VARIABLE ",l",
+        value<bool>(&configured.light)->
+            default_value(false)->zero_tokens(),
+        "Disable console logging."
     );
 
     return description;

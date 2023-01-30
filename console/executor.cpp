@@ -70,7 +70,6 @@ bool executor::menu() NOEXCEPT
     if (config.initchain)
         return do_initchain();
 
-    // There are no command line arguments, just run the node.
     return run();
 }
 
@@ -161,12 +160,18 @@ bool executor::run() NOEXCEPT
         to_half(metadata_.configured.log.maximum_size)
     };
 
-    log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
-    {
-        sink_ << message;
-        output_ << message;
-        output_.flush();
-    });
+    if (metadata_.configured.light)
+        log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
+        {
+            sink_ << message;
+        });
+    else
+        log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
+        {
+            sink_ << message;
+            output_ << message;
+            output_.flush();
+        });
 
     LOGGER(format(BN_LOG_HEADER) % network::local_time());
 
