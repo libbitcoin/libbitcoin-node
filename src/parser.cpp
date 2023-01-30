@@ -99,6 +99,12 @@ options_metadata parser::load_options() THROWS
         value<bool>(&configured.version)->
             default_value(false)->zero_tokens(),
         "Display version information."
+    )
+    (
+        BN_LIGHT_VARIABLE ",l",
+        value<bool>(&configured.light)->
+            default_value(false)->zero_tokens(),
+        "Disable console logging."
     );
 
     return description;
@@ -142,12 +148,12 @@ options_metadata parser::load_settings() THROWS
     (
         "log.maximum_size",
         value<uint32_t>(&configured.log.maximum_size),
-        "The maximum byte size of each pair of rotated log files, defaults to 1000000000."
+        "The maximum byte size of each pair of rotated log files, defaults to 1000000."
     )
     (
-        "log.file",
-        value<std::filesystem::path>(&configured.log.file),
-        "The log file base path, defaults to 'rotate'."
+        "log.path",
+        value<std::filesystem::path>(&configured.log.path),
+        "The log files base path, defaults to empty."
     )
 
     /* [bitcoin] */

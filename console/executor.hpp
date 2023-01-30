@@ -44,13 +44,13 @@ private:
     static void handle_stop(int code) NOEXCEPT;
 
     void handle_started(const system::code& ec) NOEXCEPT;
-    void handle_handler(const system::code& ec) NOEXCEPT;
+    void handle_subscribed(const system::code& ec) NOEXCEPT;
     void handle_running(const system::code& ec) NOEXCEPT;
     void handle_stopped(const system::code& ec) NOEXCEPT;
 
-    void do_help() NOEXCEPT;
-    void do_settings() NOEXCEPT;
-    void do_version() NOEXCEPT;
+    bool do_help() NOEXCEPT;
+    bool do_settings() NOEXCEPT;
+    bool do_version() NOEXCEPT;
     bool do_initchain() NOEXCEPT;
 
     bool verify_store() NOEXCEPT;
@@ -59,14 +59,13 @@ private:
     static const char* name;
     static std::promise<system::code> stopping_;
 
+    full_node::ptr node_{};
     parser& metadata_;
     store_t store_;
     query_t query_;
+
+    network::logger log_{};
     std::ostream& output_;
-    std::ostream& error_;
-    network::logger log_;
-    database::file::rotator sink_;
-    full_node::ptr node_;
 };
 
 // Localizable messages.
@@ -75,8 +74,6 @@ private:
 #define BN_INFORMATION_MESSAGE \
     "Runs a full bitcoin node with additional client-server query protocol."
 
-#define BN_UNINITIALIZED_CHAIN \
-    "The %1% directory is not initialized, run: bn --initchain"
 #define BN_INITIALIZING_CHAIN \
     "Please wait while initializing %1% directory..."
 #define BN_INITCHAIN_EXISTS \
@@ -103,6 +100,10 @@ private:
 #define BN_NODE_STARTED \
     "Node is started."
 
+#define BN_UNINITIALIZED_STORE \
+    "The %1% store directory does not exist, run: bn --initchain"
+#define BN_UNINITIALIZED_CHAIN \
+    "The %1% store is not initialized, delete and run: bn --initchain"
 #define BN_STORE_START_FAIL \
     "Store failed to start with error, %1%."
 #define BN_STORE_STOP_FAIL \

@@ -35,7 +35,7 @@ public:
 
     bool verbose;
     uint32_t maximum_size;
-    std::filesystem::path file;
+    std::filesystem::path path;
 
     std::filesystem::path file1() NOEXCEPT;
     std::filesystem::path file2() NOEXCEPT;

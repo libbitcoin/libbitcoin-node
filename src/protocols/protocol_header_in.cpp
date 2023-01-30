@@ -280,13 +280,13 @@ void protocol_header_in::handle_timeout(const code& ec)
     // Can only end up here if we are ahead, tied or peer did not respond.
     // If we are stale should try another peer and not keep pounding this one.
     ////if (chain_.is_candidates_stale())
-    {
-        LOG("Peer [" << authority()
-            << "] is more behind or exceeded configured header latency.");
-
-        stop(network::error::channel_stopped);
-        return;
-    }
+    ////{
+    ////    LOG("Peer [" << authority()
+    ////        << "] is more behind or exceeded configured header latency.");
+    ////
+    ////    stop(network::error::channel_stopped);
+    ////    return;
+    ////}
 
     // In case the last request ended at exactly 2000 headers.
     send_send_headers();
