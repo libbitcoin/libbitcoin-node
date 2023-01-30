@@ -100,8 +100,10 @@ private:
 #define BN_NODE_STARTED \
     "Node is started."
 
+#define BN_UNINITIALIZED_STORE \
+    "The %1% store directory does not exist, run: bn --initchain"
 #define BN_UNINITIALIZED_CHAIN \
-    "The %1% directory is not initialized, run: bn --initchain"
+    "The %1% store is not initialized, delete and run: bn --initchain"
 #define BN_STORE_START_FAIL \
     "Store failed to start with error, %1%."
 #define BN_STORE_STOP_FAIL \

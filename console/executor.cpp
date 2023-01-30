@@ -180,6 +180,15 @@ bool executor::run() NOEXCEPT
         LOGGER(format(BN_USING_CONFIG_FILE) % file);
     }
 
+    const auto& store = metadata_.configured.database.dir;
+    if (!database::file::is_directory(store))
+    {
+        LOGGER(format(BN_UNINITIALIZED_STORE) % store);
+        log_.stop(BN_NODE_STOPPED "\n");
+        sink_.flush();
+        return false;
+    }
+
     // Open store, create and start node, wait on stop interrupt.
     LOGGER(BN_NODE_INTERRUPT);
     LOGGER(BN_NODE_STARTING);
@@ -188,6 +197,7 @@ bool executor::run() NOEXCEPT
     {
         LOGGER(format(BN_STORE_START_FAIL) % ec.message());
         log_.stop(BN_NODE_STOPPED "\n");
+        sink_.flush();
         return false;
     }
 
@@ -203,10 +213,12 @@ bool executor::run() NOEXCEPT
     {
         LOGGER(format(BN_STORE_STOP_FAIL) % ec.message());
         log_.stop(BN_NODE_STOPPED "\n");
+        sink_.flush();
         return false;
     }
 
     log_.stop(BN_NODE_STOPPED "\n");
+    sink_.flush();
     return true; 
 }
 
@@ -216,8 +228,8 @@ void executor::handle_started(const code& ec) NOEXCEPT
     {
         if (ec == error::store_uninitialized)
         {
-            const auto database = metadata_.configured.database.dir;
-            LOGGER(format(BN_UNINITIALIZED_CHAIN) % database);
+            const auto store = metadata_.configured.database.dir;
+            LOGGER(format(BN_UNINITIALIZED_CHAIN) % store);
         }
         else
         {
