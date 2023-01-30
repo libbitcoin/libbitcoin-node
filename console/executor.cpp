@@ -46,13 +46,7 @@ executor::executor(parser& metadata, std::istream&, std::ostream& output,
   : metadata_(metadata),
     store_(metadata.configured.database),
     query_(store_),
-    output_(output),
-    sink_
-    {
-        metadata.configured.log.file1(),
-        metadata.configured.log.file2(),
-        to_half(metadata.configured.log.maximum_size)
-    }
+    output_(output)
 {
     initialize_stop();
 }
@@ -154,6 +148,19 @@ bool executor::do_initchain() NOEXCEPT
 
 bool executor::run() NOEXCEPT
 {
+    // No logging for log setup, could use console.
+    const auto& logs = metadata_.configured.log.path;
+    if (!logs.empty())
+        database::file::create_directory(logs);
+
+    database::file::stream::out::rotator sink_
+    {
+        // Standard file names, both within the logs directory.
+        metadata_.configured.log.file1(),
+        metadata_.configured.log.file2(),
+        to_half(metadata_.configured.log.maximum_size)
+    };
+
     log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
     {
         sink_ << message;
@@ -161,7 +168,7 @@ bool executor::run() NOEXCEPT
         output_.flush();
     });
 
-    LOGGER(format(BN_LOG_HEADER) % network::local_time() << std::endl);
+    LOGGER(format(BN_LOG_HEADER) % network::local_time());
 
     const auto& file = metadata_.configured.file;
     if (file.empty())
@@ -176,11 +183,14 @@ bool executor::run() NOEXCEPT
     // Open store, create and start node, wait on stop interrupt.
     LOGGER(BN_NODE_INTERRUPT);
     LOGGER(BN_NODE_STARTING);
+
     if (const auto ec = store_.open())
     {
         LOGGER(format(BN_STORE_START_FAIL) % ec.message());
+        log_.stop(BN_NODE_STOPPED "\n");
         return false;
     }
+
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
     node_->start(std::bind(&executor::handle_started, this, _1));
     stopping_.get_future().wait();
@@ -188,13 +198,15 @@ bool executor::run() NOEXCEPT
     // Close node, close store, stop logger, stop log sink.
     LOGGER(BN_NODE_STOPPING);
     node_->close();
+
     if (const auto ec = store_.close())
     {
         LOGGER(format(BN_STORE_STOP_FAIL) % ec.message());
+        log_.stop(BN_NODE_STOPPED "\n");
         return false;
     }
+
     log_.stop(BN_NODE_STOPPED "\n");
-    LOGGER(BN_NODE_STOPPED);
     return true; 
 }
 

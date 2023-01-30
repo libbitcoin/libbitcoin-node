@@ -28,7 +28,7 @@ namespace log {
 settings::settings() NOEXCEPT
   : verbose(false),
     maximum_size(1'000'000'000_u32),
-    file("rotate")
+    path{}
 {
 }
 
@@ -39,15 +39,23 @@ settings::settings(chain::selection) NOEXCEPT
 
 std::filesystem::path settings::file1() NOEXCEPT
 {
-    std::filesystem::path out{ file };
-    out.concat("1.log");
+    std::filesystem::path out{ path };
+
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+    out.concat("node1.log");
+    BC_POP_WARNING()
+
     return out;
 }
 
 std::filesystem::path settings::file2() NOEXCEPT
 {
-    std::filesystem::path out{ file };
-    out.concat("2.log");
+    std::filesystem::path out{ path };
+
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+    out.concat("node2.log");
+    BC_POP_WARNING()
+
     return out;
 }
 

@@ -145,9 +145,9 @@ options_metadata parser::load_settings() THROWS
         "The maximum byte size of each pair of rotated log files, defaults to 1000000000."
     )
     (
-        "log.file",
-        value<std::filesystem::path>(&configured.log.file),
-        "The log file base path, defaults to 'rotate'."
+        "log.path",
+        value<std::filesystem::path>(&configured.log.path),
+        "The log files base path, defaults to empty."
     )
 
     /* [bitcoin] */

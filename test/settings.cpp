@@ -27,9 +27,9 @@ BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
     log::settings configuration{};
     BOOST_REQUIRE_EQUAL(configuration.verbose, false);
     BOOST_REQUIRE_EQUAL(configuration.maximum_size, 1'000'000'000_u32);
-    BOOST_REQUIRE_EQUAL(configuration.file, "rotate");
-    BOOST_REQUIRE_EQUAL(configuration.file1(), "rotate1.log");
-    BOOST_REQUIRE_EQUAL(configuration.file2(), "rotate2.log");
+    BOOST_REQUIRE_EQUAL(configuration.path, "");
+    BOOST_REQUIRE_EQUAL(configuration.file1(), "node1.log");
+    BOOST_REQUIRE_EQUAL(configuration.file2(), "node2.log");
 }
 
 // [node]

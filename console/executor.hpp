@@ -39,8 +39,6 @@ public:
     bool menu() NOEXCEPT;
 
 private:
-    using file_rotator = database::file::stream::out::rotator;
-
     static void initialize_stop() NOEXCEPT;
     static void stop(const system::code& ec) NOEXCEPT;
     static void handle_stop(int code) NOEXCEPT;
@@ -61,13 +59,13 @@ private:
     static const char* name;
     static std::promise<system::code> stopping_;
 
+    full_node::ptr node_{};
     parser& metadata_;
     store_t store_;
     query_t query_;
+
+    network::logger log_{};
     std::ostream& output_;
-    network::logger log_;
-    file_rotator sink_;
-    full_node::ptr node_;
 };
 
 // Localizable messages.
@@ -76,8 +74,6 @@ private:
 #define BN_INFORMATION_MESSAGE \
     "Runs a full bitcoin node with additional client-server query protocol."
 
-#define BN_UNINITIALIZED_CHAIN \
-    "The %1% directory is not initialized, run: bn --initchain"
 #define BN_INITIALIZING_CHAIN \
     "Please wait while initializing %1% directory..."
 #define BN_INITCHAIN_EXISTS \
@@ -104,6 +100,8 @@ private:
 #define BN_NODE_STARTED \
     "Node is started."
 
+#define BN_UNINITIALIZED_CHAIN \
+    "The %1% directory is not initialized, run: bn --initchain"
 #define BN_STORE_START_FAIL \
     "Store failed to start with error, %1%."
 #define BN_STORE_STOP_FAIL \
