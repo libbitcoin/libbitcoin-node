@@ -39,18 +39,20 @@ public:
     bool menu() NOEXCEPT;
 
 private:
+    using file_rotator = database::file::stream::out::rotator;
+
     static void initialize_stop() NOEXCEPT;
     static void stop(const system::code& ec) NOEXCEPT;
     static void handle_stop(int code) NOEXCEPT;
 
     void handle_started(const system::code& ec) NOEXCEPT;
-    void handle_handler(const system::code& ec) NOEXCEPT;
+    void handle_subscribed(const system::code& ec) NOEXCEPT;
     void handle_running(const system::code& ec) NOEXCEPT;
     void handle_stopped(const system::code& ec) NOEXCEPT;
 
-    void do_help() NOEXCEPT;
-    void do_settings() NOEXCEPT;
-    void do_version() NOEXCEPT;
+    bool do_help() NOEXCEPT;
+    bool do_settings() NOEXCEPT;
+    bool do_version() NOEXCEPT;
     bool do_initchain() NOEXCEPT;
 
     bool verify_store() NOEXCEPT;
@@ -63,9 +65,8 @@ private:
     store_t store_;
     query_t query_;
     std::ostream& output_;
-    std::ostream& error_;
     network::logger log_;
-    database::file::rotator sink_;
+    file_rotator sink_;
     full_node::ptr node_;
 };
 
