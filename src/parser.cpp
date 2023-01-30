@@ -142,7 +142,7 @@ options_metadata parser::load_settings() THROWS
     (
         "log.maximum_size",
         value<uint32_t>(&configured.log.maximum_size),
-        "The maximum byte size of each pair of rotated log files, defaults to 1000000000."
+        "The maximum byte size of each pair of rotated log files, defaults to 1000000."
     )
     (
         "log.path",
