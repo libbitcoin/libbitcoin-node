@@ -66,6 +66,7 @@ private:
 
     network::logger log_{};
     std::ostream& output_;
+    std::istream& input_;
 };
 
 // Localizable messages.

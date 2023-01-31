@@ -42,7 +42,7 @@ std::filesystem::path settings::file1() NOEXCEPT
     std::filesystem::path out{ path };
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    out.concat("node1.log");
+    out.concat("bn_end.log");
     BC_POP_WARNING()
 
     return out;
@@ -53,7 +53,7 @@ std::filesystem::path settings::file2() NOEXCEPT
     std::filesystem::path out{ path };
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    out.concat("node2.log");
+    out.concat("bn_begin.log");
     BC_POP_WARNING()
 
     return out;

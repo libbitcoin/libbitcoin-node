@@ -33,8 +33,8 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE_EQUAL(instance.log.verbose, false);
     BOOST_REQUIRE_EQUAL(instance.log.maximum_size, 1'000'000_u32);
     BOOST_REQUIRE_EQUAL(instance.log.path, "");
-    BOOST_REQUIRE_EQUAL(instance.log.file1(), "node1.log");
-    BOOST_REQUIRE_EQUAL(instance.log.file2(), "node2.log");
+    BOOST_REQUIRE_EQUAL(instance.log.file1(), "bn_end.log");
+    BOOST_REQUIRE_EQUAL(instance.log.file2(), "bn_begin.log");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

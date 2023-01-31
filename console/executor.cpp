@@ -41,11 +41,12 @@ using namespace std::placeholders;
 const char* executor::name = "bn";
 std::promise<code> executor::stopping_;
 
-executor::executor(parser& metadata, std::istream&, std::ostream& output,
+executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     std::ostream&) NOEXCEPT
   : metadata_(metadata),
     store_(metadata.configured.database),
     query_(store_),
+    input_(input),
     output_(output)
 {
     initialize_stop();
@@ -160,6 +161,7 @@ bool executor::run() NOEXCEPT
         to_half(metadata_.configured.log.maximum_size)
     };
 
+    // Handlers are invoked on a strand of the logger threadpool.
     if (metadata_.configured.light)
         log_.subscribe([&](const code&, const std::string& message) NOEXCEPT
         {
