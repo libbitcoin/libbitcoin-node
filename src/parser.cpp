@@ -52,12 +52,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     // A node doesn't use history, and history is expensive.
     configured.chain.index_payments = false;
 
-    configured.network.threads = 1;
-    configured.network.connect_batch_size = 3;
-    configured.network.outbound_connections = 8;
-
     // It is a public network.
-    configured.network.inbound_connections = 100;
+    configured.network.inbound_connections = 10;
 
     // A node allows 10000 host names by default.
     configured.network.host_pool_capacity = 10000;
