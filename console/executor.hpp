@@ -97,7 +97,7 @@ private:
 #define BN_NODE_START_FAIL \
     "Node failed to start with error, %1%."
 #define BN_NODE_SEEDED \
-    "Seeding is complete."
+    "Seeding stage is complete."
 #define BN_NODE_STARTED \
     "Node is started."
 
