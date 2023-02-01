@@ -39,24 +39,16 @@ settings::settings(chain::selection) NOEXCEPT
 
 std::filesystem::path settings::file1() NOEXCEPT
 {
-    std::filesystem::path out{ path };
-
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    out.concat("bn_end.log");
+    return path / "bn_end.log";
     BC_POP_WARNING()
-
-    return out;
 }
 
 std::filesystem::path settings::file2() NOEXCEPT
 {
-    std::filesystem::path out{ path };
-
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    out.concat("bn_begin.log");
+    return path / "bn_begin.log";
     BC_POP_WARNING()
-
-    return out;
 }
 
 } // namespace log
