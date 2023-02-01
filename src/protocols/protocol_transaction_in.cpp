@@ -66,7 +66,7 @@
 ////    // Because of inconsistent implementation by version we must allow relay
 ////    // at bip37 version or below. Enforcement starts above bip37 version.
 ////    relay_from_peer_(negotiated_version() <= version::level::bip37 ||
-////        node.network_settings().relay_transactions),
+////        node.network_settings().enable_relay),
 ////
 ////    // TODO: move memory_pool to a derived class protocol_transaction_in_60002.
 ////    refresh_pool_(negotiated_version() >= version::level::bip35 &&

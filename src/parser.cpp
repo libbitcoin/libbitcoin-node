@@ -271,16 +271,19 @@ options_metadata parser::load_settings() THROWS
         value<uint64_t>(&configured.network.invalid_services),
         "The advertised services that cause a peer to be dropped, defaults to 176."
     )
-    // TODO: new.
     (
         "network.enable_reject",
         value<bool>(&configured.network.enable_reject),
-        "Enable reject messages, defaults to true."
+        "Enable reject messages, defaults to false."
     )
-    // TODO: new.
     (
-        "network.relay_transactions",
-        value<bool>(&configured.network.relay_transactions),
+        "network.enable_alert",
+        value<bool>(&configured.network.enable_alert),
+        "Enable alert messages, defaults to false."
+    )
+    (
+        "network.enable_relay",
+        value<bool>(&configured.network.enable_relay),
         "Enable transaction relay, defaults to true."
     )
     (
@@ -347,6 +350,11 @@ options_metadata parser::load_settings() THROWS
         "network.host_pool_capacity",
         value<uint32_t>(&configured.network.host_pool_capacity),
         "The maximum number of peer hosts in the pool, defaults to 10000."
+    )
+    (
+        "network.user_agent",
+        value<std::string>(&configured.network.user_agent),
+        "The node user agent string, defaults to '" BC_USER_AGENT "'."
     )
     (
         "network.hosts_file",
