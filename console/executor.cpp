@@ -235,8 +235,8 @@ void executor::handle_started(const code& ec) NOEXCEPT
     {
         if (ec == error::store_uninitialized)
         {
-            const auto store = metadata_.configured.database.dir;
-            LOGGER(format(BN_UNINITIALIZED_CHAIN) % store);
+            LOGGER(format(BN_UNINITIALIZED_CHAIN) %
+                metadata_.configured.database.dir);
         }
         else
         {
@@ -246,8 +246,6 @@ void executor::handle_started(const code& ec) NOEXCEPT
         stop(ec);
         return;
     }
-
-    LOGGER(BN_NODE_SEEDED);
 
     node_->subscribe_close(
         std::bind(&executor::handle_stopped, this, _1),
