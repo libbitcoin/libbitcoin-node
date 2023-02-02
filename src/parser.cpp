@@ -346,13 +346,18 @@ options_metadata parser::load_settings() THROWS
         "The maximum number of peer hosts in the pool, defaults to 10000."
     )
     (
+        "network.rate_limit",
+        value<uint32_t>(&configured.network.rate_limit),
+        "The peer download rate limit in bytes per second, defaults to 1024."
+    )
+    (
         "network.user_agent",
         value<std::string>(&configured.network.user_agent),
         "The node user agent string, defaults to '" BC_USER_AGENT "'."
     )
     (
-        "network.hosts_file",
-        value<std::filesystem::path>(&configured.network.hosts_file),
+        "network.path",
+        value<std::filesystem::path>(&configured.network.path),
         "The peer hosts cache file path, defaults to 'hosts.cache'."
     )
     (
@@ -378,8 +383,8 @@ options_metadata parser::load_settings() THROWS
 
     /* [database] */
     (
-        "database.dir",
-        value<std::filesystem::path>(&configured.database.dir),
+        "database.path",
+        value<std::filesystem::path>(&configured.database.path),
         "The blockchain database directory, defaults to 'blockchain'."
     )
 
