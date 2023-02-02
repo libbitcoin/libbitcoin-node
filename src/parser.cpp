@@ -48,17 +48,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
   : configured(context)
 {
     using service = network::messages::service;
-
-    // A node doesn't use history, and history is expensive.
     configured.chain.index_payments = false;
-
-    // It is a public network.
-    configured.network.inbound_connections = 10;
-
-    // A node allows 10000 host names by default.
+    configured.network.enable_relay = true;
     configured.network.host_pool_capacity = 10000;
-
-    // Expose full node (1) and witness (8) network services by default.
+    configured.network.outbound_connections = 10;
+    configured.network.connect_batch_size = 5;
     configured.network.services_minimum = service::node_network;
     configured.network.services_maximum = service::node_network | service::node_witness;
 }
@@ -309,7 +303,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.outbound_connections",
         value<uint32_t>(&configured.network.outbound_connections),
-        "The target number of outgoing network connections, defaults to 2."
+        "The target number of outgoing network connections, defaults to 10."
     )
     (
         "network.connect_batch_size",
