@@ -346,6 +346,11 @@ options_metadata parser::load_settings() THROWS
         "The maximum number of peer hosts in the pool, defaults to 10000."
     )
     (
+        "network.rate_limit",
+        value<uint32_t>(&configured.network.rate_limit),
+        "The peer download rate limit in bytes per second, defaults to 1024."
+    )
+    (
         "network.user_agent",
         value<std::string>(&configured.network.user_agent),
         "The node user agent string, defaults to '" BC_USER_AGENT "'."
