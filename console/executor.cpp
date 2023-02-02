@@ -106,7 +106,7 @@ bool executor::do_version() NOEXCEPT
 // --initchain
 bool executor::do_initchain() NOEXCEPT
 {
-    const auto& directory = metadata_.configured.database.dir;
+    const auto& directory = metadata_.configured.database.path;
     CONSOLE(format(BN_INITIALIZING_CHAIN) % directory);
 
     if (!database::file::create_directory(directory))
@@ -187,7 +187,7 @@ bool executor::run() NOEXCEPT
         LOGGER(format(BN_USING_CONFIG_FILE) % file);
     }
 
-    const auto& store = metadata_.configured.database.dir;
+    const auto& store = metadata_.configured.database.path;
     if (!database::file::is_directory(store))
     {
         LOGGER(format(BN_UNINITIALIZED_STORE) % store);
@@ -236,7 +236,7 @@ void executor::handle_started(const code& ec) NOEXCEPT
         if (ec == error::store_uninitialized)
         {
             LOGGER(format(BN_UNINITIALIZED_CHAIN) %
-                metadata_.configured.database.dir);
+                metadata_.configured.database.path);
         }
         else
         {
