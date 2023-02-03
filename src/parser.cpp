@@ -241,6 +241,16 @@ options_metadata parser::load_settings() THROWS
         "The minimum number of threads in the network threadpool, defaults to 0 (physical cores)."
     )
     (
+        "network.address_maximum",
+        value<uint16_t>(&configured.network.address_maximum),
+        "The maximum network protocol version, defaults to 70013."
+    )
+    (
+        "network.address_minimum",
+        value<uint16_t>(&configured.network.address_minimum),
+        "The maximum network protocol version, defaults to 70013."
+    )
+    (
         "network.protocol_maximum",
         value<uint32_t>(&configured.network.protocol_maximum),
         "The maximum network protocol version, defaults to 70013."
