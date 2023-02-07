@@ -44,6 +44,8 @@ namespace node {
 class BCN_API configuration
 {
 public:
+    DEFAULT_COPY_MOVE_DESTRUCT(configuration);
+
     configuration(system::chain::selection context) NOEXCEPT;
 
     /// Options.
