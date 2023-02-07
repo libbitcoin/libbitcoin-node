@@ -143,7 +143,7 @@ options_metadata parser::load_settings() THROWS
     (
         "log.path",
         value<std::filesystem::path>(&configured.log.path),
-        "The log files base path, defaults to empty."
+        "The log files directory, defaults to empty."
     )
 
     /* [bitcoin] */
@@ -368,7 +368,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.path",
         value<std::filesystem::path>(&configured.network.path),
-        "The peer hosts cache file path, defaults to 'hosts.cache'."
+        "The peer address cache file directory, defaults to empty."
     )
     (
         "network.self",
