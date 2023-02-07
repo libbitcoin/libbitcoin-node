@@ -381,6 +381,11 @@ options_metadata parser::load_settings() THROWS
         "IP address to disallow as a peer, multiple entries allowed."
     )
     (
+        "network.whitelist",
+        value<network::config::authorities>(&configured.network.whitelists),
+        "IP address to allow as a peer, multiple entries allowed."
+    )
+    (
         "network.peer",
         value<network::config::endpoints>(&configured.network.peers),
         "A persistent peer node, multiple entries allowed."
