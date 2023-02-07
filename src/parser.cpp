@@ -143,7 +143,7 @@ options_metadata parser::load_settings() THROWS
     (
         "log.path",
         value<std::filesystem::path>(&configured.log.path),
-        "The log files base path, defaults to empty."
+        "The log files directory, defaults to empty."
     )
 
     /* [bitcoin] */
@@ -239,6 +239,16 @@ options_metadata parser::load_settings() THROWS
         "network.threads",
         value<uint32_t>(&configured.network.threads),
         "The minimum number of threads in the network threadpool, defaults to 0 (physical cores)."
+    )
+    (
+        "network.address_maximum",
+        value<uint16_t>(&configured.network.address_maximum),
+        "The maximum network protocol version, defaults to 70013."
+    )
+    (
+        "network.address_minimum",
+        value<uint16_t>(&configured.network.address_minimum),
+        "The maximum network protocol version, defaults to 70013."
     )
     (
         "network.protocol_maximum",
@@ -358,7 +368,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.path",
         value<std::filesystem::path>(&configured.network.path),
-        "The peer hosts cache file path, defaults to 'hosts.cache'."
+        "The peer address cache file directory, defaults to empty."
     )
     (
         "network.self",
@@ -369,6 +379,11 @@ options_metadata parser::load_settings() THROWS
         "network.blacklist",
         value<network::config::authorities>(&configured.network.blacklists),
         "IP address to disallow as a peer, multiple entries allowed."
+    )
+    (
+        "network.whitelist",
+        value<network::config::authorities>(&configured.network.whitelists),
+        "IP address to allow as a peer, multiple entries allowed."
     )
     (
         "network.peer",

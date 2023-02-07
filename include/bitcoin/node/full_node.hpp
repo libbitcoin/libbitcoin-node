@@ -35,6 +35,7 @@ class BCN_API full_node
 {
 public:
     typedef std::shared_ptr<full_node> ptr;
+    using result_handler = network::result_handler;
 
     full_node(query_t& query, const configuration& configuration,
         const network::logger& log) NOEXCEPT;

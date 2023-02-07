@@ -30,6 +30,8 @@ namespace log {
 class BCN_API settings
 {
 public:
+    DEFAULT_COPY_MOVE_DESTRUCT(settings);
+
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
@@ -37,8 +39,8 @@ public:
     uint32_t maximum_size;
     std::filesystem::path path;
 
-    std::filesystem::path file1() NOEXCEPT;
-    std::filesystem::path file2() NOEXCEPT;
+    virtual std::filesystem::path file1() NOEXCEPT;
+    virtual std::filesystem::path file2() NOEXCEPT;
 };
 
 } // namespace log
@@ -49,6 +51,8 @@ namespace node {
 class BCN_API settings
 {
 public:
+    DEFAULT_COPY_MOVE_DESTRUCT(settings);
+
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 };
