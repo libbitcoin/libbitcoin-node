@@ -247,6 +247,8 @@ void executor::handle_started(const code& ec) NOEXCEPT
         return;
     }
 
+    LOGGER(BN_NODE_STARTED);
+
     node_->subscribe_close(
         std::bind(&executor::handle_stopped, this, _1),
         std::bind(&executor::handle_subscribed, this, _1));
@@ -273,7 +275,7 @@ void executor::handle_running(const code& ec) NOEXCEPT
         return;
     }
 
-    LOGGER(BN_NODE_STARTED);
+    LOGGER(BN_NODE_RUNNING);
 }
 
 void executor::handle_stopped(const code& ec) NOEXCEPT
