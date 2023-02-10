@@ -321,6 +321,11 @@ options_metadata parser::load_settings() THROWS
         "The number of concurrent attempts to establish one connection, defaults to 5."
     )
     (
+        "network.retry_timeout_seconds",
+        value<uint32_t>(&configured.network.retry_timeout_seconds),
+        "The time delay for failed connection retry, defaults to 1."
+    )
+    (
         "network.connect_timeout_seconds",
         value<uint32_t>(&configured.network.connect_timeout_seconds),
         "The time limit for connection establishment, defaults to 5."
