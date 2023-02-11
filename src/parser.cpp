@@ -361,6 +361,11 @@ options_metadata parser::load_settings() THROWS
         "The maximum number of peer hosts in the pool, defaults to 10000."
     )
     (
+        "network.minimum_buffer",
+        value<uint32_t>(&configured.network.minimum_buffer),
+        "The minimum retained read buffer size, defaults to 4000000."
+    )
+    (
         "network.rate_limit",
         value<uint32_t>(&configured.network.rate_limit),
         "The peer download rate limit in bytes per second, defaults to 1024."
