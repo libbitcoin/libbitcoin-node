@@ -291,6 +291,11 @@ options_metadata parser::load_settings() THROWS
         "Enable transaction relay, defaults to true."
     )
     (
+        "network.enable_ipv6",
+        value<bool>(&configured.network.enable_ipv6),
+        "Enable interpet protocol version 6 (IPv6), defaults to true."
+    )
+    (
         "network.validate_checksum",
         value<bool>(&configured.network.validate_checksum),
         "Validate the checksum of network messages, defaults to false."
@@ -319,6 +324,11 @@ options_metadata parser::load_settings() THROWS
         "network.connect_batch_size",
         value<uint32_t>(&configured.network.connect_batch_size),
         "The number of concurrent attempts to establish one connection, defaults to 5."
+    )
+    (
+        "network.retry_timeout_seconds",
+        value<uint32_t>(&configured.network.retry_timeout_seconds),
+        "The time delay for failed connection retry, defaults to 1."
     )
     (
         "network.connect_timeout_seconds",
@@ -354,6 +364,11 @@ options_metadata parser::load_settings() THROWS
         "network.host_pool_capacity",
         value<uint32_t>(&configured.network.host_pool_capacity),
         "The maximum number of peer hosts in the pool, defaults to 10000."
+    )
+    (
+        "network.minimum_buffer",
+        value<uint32_t>(&configured.network.minimum_buffer),
+        "The minimum retained read buffer size, defaults to 4000000."
     )
     (
         "network.rate_limit",

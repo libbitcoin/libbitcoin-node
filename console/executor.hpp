@@ -98,6 +98,8 @@ private:
     "Node failed to start with error, %1%."
 #define BN_NODE_STARTED \
     "Node is started."
+#define BN_NODE_RUNNING \
+    "Node is running."
 
 #define BN_UNINITIALIZED_STORE \
     "The %1% store directory does not exist, run: bn --initchain"
