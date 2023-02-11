@@ -296,6 +296,11 @@ options_metadata parser::load_settings() THROWS
         "Enable interpet protocol version 6 (IPv6), defaults to false."
     )
     (
+        "network.enable_loopback",
+        value<bool>(&configured.network.enable_loopback),
+        "Allow connections from the node to itself, defaults to false."
+    )
+    (
         "network.validate_checksum",
         value<bool>(&configured.network.validate_checksum),
         "Validate the checksum of network messages, defaults to false."
