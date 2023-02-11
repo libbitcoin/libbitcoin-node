@@ -291,6 +291,11 @@ options_metadata parser::load_settings() THROWS
         "Enable transaction relay, defaults to true."
     )
     (
+        "network.enable_ipv6",
+        value<bool>(&configured.network.enable_ipv6),
+        "Enable interpet protocol version 6 (IPv6), defaults to true."
+    )
+    (
         "network.validate_checksum",
         value<bool>(&configured.network.validate_checksum),
         "Validate the checksum of network messages, defaults to false."
