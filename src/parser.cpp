@@ -293,7 +293,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.enable_ipv6",
         value<bool>(&configured.network.enable_ipv6),
-        "Enable interpet protocol version 6 (IPv6), defaults to true."
+        "Enable interpet protocol version 6 (IPv6), defaults to false."
     )
     (
         "network.validate_checksum",
