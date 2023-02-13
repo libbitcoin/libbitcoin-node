@@ -251,10 +251,10 @@ void executor::handle_started(const code& ec) NOEXCEPT
 
     node_->subscribe_close(
         std::bind(&executor::handle_stopped, this, _1),
-        std::bind(&executor::handle_subscribed, this, _1));
+        std::bind(&executor::handle_subscribed, this, _1, _2));
 }
 
-void executor::handle_subscribed(const code& ec) NOEXCEPT
+void executor::handle_subscribed(const code& ec, size_t) NOEXCEPT
 {
     if (ec)
     {
@@ -278,7 +278,7 @@ void executor::handle_running(const code& ec) NOEXCEPT
     LOGGER(BN_NODE_RUNNING);
 }
 
-void executor::handle_stopped(const code& ec) NOEXCEPT
+bool executor::handle_stopped(const code& ec) NOEXCEPT
 {
     if (ec && ec != network::error::service_stopped)
     {
@@ -286,6 +286,7 @@ void executor::handle_stopped(const code& ec) NOEXCEPT
     }
 
     stop(ec);
+    return false;
 }
 
 // Stop signal.

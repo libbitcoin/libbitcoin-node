@@ -44,9 +44,9 @@ private:
     static void handle_stop(int code) NOEXCEPT;
 
     void handle_started(const system::code& ec) NOEXCEPT;
-    void handle_subscribed(const system::code& ec) NOEXCEPT;
+    void handle_subscribed(const system::code& ec, size_t key) NOEXCEPT;
     void handle_running(const system::code& ec) NOEXCEPT;
-    void handle_stopped(const system::code& ec) NOEXCEPT;
+    bool handle_stopped(const system::code& ec) NOEXCEPT;
 
     bool do_help() NOEXCEPT;
     bool do_settings() NOEXCEPT;
