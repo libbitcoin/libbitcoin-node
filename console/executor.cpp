@@ -40,6 +40,7 @@ using namespace std::placeholders;
 
 const char* executor::name = "bn";
 std::promise<code> executor::stopping_;
+constexpr size_t channel_target = 500;
 
 executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     std::ostream&) NOEXCEPT
@@ -209,6 +210,36 @@ bool executor::run() NOEXCEPT
     }
 
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
+    node_->subscribe_connect(
+        [&](const code&, const network::channel::ptr&) NOEXCEPT
+        {
+            const auto count = node_->channel_count();
+
+            if (is_zero(count % 10))
+            {
+                LOGGER("Channel count (" << count << ").");
+            }
+
+            if (count >= channel_target)
+            {
+                LOGGER("Stopping at channel target (" << channel_target << ").");
+                stop(error::success);
+                return false;
+            }
+
+            return true;
+        },
+        [&](const code&, uintptr_t) NOEXCEPT { /* subscribe complete */ });
+
+    node_->subscribe_close(
+        [&](const code&) NOEXCEPT
+        {
+            LOGGER("Closing with (" << node_->channel_count() << ") "
+                   "channels and (" << node_->address_count() << ") addresses.");
+            return false;
+        },
+        [&](const code&, size_t) NOEXCEPT { /* subscribe complete */ });
+
     node_->start(std::bind(&executor::handle_started, this, _1));
     stopping_.get_future().wait();
 
