@@ -59,6 +59,7 @@ const configuration& full_node::config() const NOEXCEPT
 {
     return config_;
 }
+
 // Return is a pointer cast.
 // Session attachment passes p2p and variable args.
 // To avoid templatizing on p2p, pass node as first arg.

@@ -49,7 +49,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
 {
     using service = network::messages::service;
     configured.chain.index_payments = false;
-    configured.network.enable_relay = true;
+    configured.network.enable_address = true;
+    configured.network.enable_transaction = true;
     configured.network.host_pool_capacity = 10000;
     configured.network.outbound_connections = 10;
     configured.network.connect_batch_size = 5;
@@ -276,9 +277,9 @@ options_metadata parser::load_settings() THROWS
         "The advertised services that cause a peer to be dropped, defaults to 176."
     )
     (
-        "network.enable_reject",
-        value<bool>(&configured.network.enable_reject),
-        "Enable reject messages, defaults to false."
+        "network.enable_address",
+        value<bool>(&configured.network.enable_address),
+        "Enable address messages, defaults to false."
     )
     (
         "network.enable_alert",
@@ -286,8 +287,13 @@ options_metadata parser::load_settings() THROWS
         "Enable alert messages, defaults to false."
     )
     (
-        "network.enable_relay",
-        value<bool>(&configured.network.enable_relay),
+        "network.enable_reject",
+        value<bool>(&configured.network.enable_reject),
+        "Enable reject messages, defaults to false."
+    )
+    (
+        "network.enable_transaction",
+        value<bool>(&configured.network.enable_transaction),
         "Enable transaction relay, defaults to true."
     )
     (

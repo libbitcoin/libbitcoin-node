@@ -39,10 +39,10 @@ class session
 public:
     typedef std::shared_ptr<Session> ptr;
 
-    /// Session attachment passes p2p and variable args.
+    /// Session attachment passes p2p, key and variable args.
     /// To avoid templatizing on p2p, pass node as first arg.
-    session(network::p2p& network, full_node& node)
-      : Session(network), node_(node)
+    session(network::p2p& network, size_t key, full_node& node)
+      : Session(network, key), node_(node)
     {
     };
 
