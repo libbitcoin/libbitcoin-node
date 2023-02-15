@@ -347,13 +347,13 @@ options_metadata parser::load_settings() THROWS
         "The time limit for connection establishment, defaults to 5."
     )
     (
-        "network.channel_handshake_seconds",
-        value<uint32_t>(&configured.network.channel_handshake_seconds),
+        "network.handshake_timeout_seconds",
+        value<uint32_t>(&configured.network.handshake_timeout_seconds),
         "The time limit to complete the connection handshake, defaults to 30."
     )
     (
-        "network.channel_germination_seconds",
-        value<uint32_t>(&configured.network.channel_germination_seconds),
+        "network.seeding_timeout_seconds",
+        value<uint32_t>(&configured.network.seeding_timeout_seconds),
         "The time limit for obtaining seed addresses, defaults to 30."
     )
     (

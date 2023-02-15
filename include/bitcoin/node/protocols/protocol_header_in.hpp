@@ -39,9 +39,6 @@ public:
 
     void start() NOEXCEPT override;
 
-protected:
-    const std::string& name() const NOEXCEPT override;
-
 private:
     ////////void report(const system::chain::header& header) const;
     ////void send_top_get_headers(const system::hash_digest& stop_hash);
