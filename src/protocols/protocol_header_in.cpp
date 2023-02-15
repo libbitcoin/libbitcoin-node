@@ -34,12 +34,6 @@ using namespace std::placeholders;
 
 // TODO: move send_headers to a derived class protocol_header_in_70012.
 
-const std::string& protocol_header_in::name() const NOEXCEPT
-{
-    static const std::string protocol_name = "protocol_header_in";
-    return protocol_name;
-}
-
 // TODO: header latency config.
 protocol_header_in::protocol_header_in(const network::session& session,
     const channel_ptr& channel, full_node& node) NOEXCEPT
