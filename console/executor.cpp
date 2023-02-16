@@ -40,7 +40,6 @@ using namespace std::placeholders;
 
 const char* executor::name = "bn";
 std::promise<code> executor::stopping_;
-constexpr size_t channel_target = 500;
 
 executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     std::ostream&)
@@ -245,21 +244,30 @@ bool executor::run()
         {
             const auto count = node_->channel_count();
 
-            if (is_zero(count % 10))
+            if (to_bool(metadata_.configured.node.interval) &&
+                is_zero(count % metadata_.configured.node.interval))
             {
                 LOGGER("Channel count (" << count << ").");
             }
 
-            if (count >= channel_target)
+            if (to_bool(metadata_.configured.node.target) &&
+                (count >= metadata_.configured.node.target))
             {
-                LOGGER("Stopping at channel target (" << channel_target << ").");
+                LOGGER("Stopping at channel target ("
+                    << metadata_.configured.node.target << ").");
+
                 stop(error::success);
                 return false;
             }
 
             return true;
         },
-        [&](const code&, uintptr_t) { /* subscribe complete */ });
+        [&](const code&, uintptr_t)
+        {
+            // By not handling it is possible stop could fire before complete.
+            // But the handler is not required for termination, so this is ok.
+            // The error code in the handler can be used to differentiate.
+        });
 
     node_->subscribe_close(
         [&](const code&)
@@ -268,7 +276,12 @@ bool executor::run()
                    "channels and (" << node_->address_count() << ") addresses.");
             return false;
         },
-        [&](const code&, size_t) { /* subscribe complete */ });
+        [&](const code&, size_t)
+        {
+            // By not handling it is possible stop could fire before complete.
+            // But the handler is not required for termination, so this is ok.
+            // The error code in the handler can be used to differentiate.
+        });
 
     node_->start(std::bind(&executor::handle_started, this, _1));
     stopping_.get_future().wait();
