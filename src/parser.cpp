@@ -560,6 +560,16 @@ options_metadata parser::load_settings() THROWS
 
     /* [node] */
     (
+        "node.target",
+        value<uint16_t>(&configured.node.target),
+        "Channel count that triggers node stop, defaults to 0 (0 disables)."
+    )
+    (
+        "node.interval",
+        value<uint16_t>(&configured.node.interval),
+        "Channel count reporting interval, defaults to 0 (0 disables)."
+    )
+    (
         /* Internally this is blockchain, but it is conceptually a node setting. */
         "node.notify_limit_hours",
         value<uint32_t>(&configured.chain.notify_limit_hours),
@@ -599,7 +609,8 @@ bool parser::parse(int argc, const char* argv[], std::ostream& error) THROWS
         // Don't load config file if any of these options are specified.
         if (!get_option(variables, BN_VERSION_VARIABLE) &&
             !get_option(variables, BN_SETTINGS_VARIABLE) &&
-            !get_option(variables, BN_HELP_VARIABLE))
+            !get_option(variables, BN_HELP_VARIABLE) &&
+            !get_option(variables, BN_INITCHAIN_VARIABLE))
         {
             // Returns true if the settings were loaded from a file.
             file = load_configuration_variables(variables, BN_CONFIG_VARIABLE);

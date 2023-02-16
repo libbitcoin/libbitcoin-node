@@ -33,28 +33,28 @@ public:
     DELETE_COPY(executor);
 
     executor(parser& metadata, std::istream&, std::ostream& output,
-        std::ostream& error) NOEXCEPT;
+        std::ostream& error);
 
     /// Invoke the menu command indicated by the metadata.
-    bool menu() NOEXCEPT;
+    bool menu();
 
 private:
-    static void initialize_stop() NOEXCEPT;
-    static void stop(const system::code& ec) NOEXCEPT;
-    static void handle_stop(int code) NOEXCEPT;
+    static void initialize_stop();
+    static void stop(const system::code& ec);
+    static void handle_stop(int code);
 
-    void handle_started(const system::code& ec) NOEXCEPT;
-    void handle_subscribed(const system::code& ec, size_t key) NOEXCEPT;
-    void handle_running(const system::code& ec) NOEXCEPT;
-    bool handle_stopped(const system::code& ec) NOEXCEPT;
+    void handle_started(const system::code& ec);
+    void handle_subscribed(const system::code& ec, size_t key);
+    void handle_running(const system::code& ec);
+    bool handle_stopped(const system::code& ec);
 
-    bool do_help() NOEXCEPT;
-    bool do_settings() NOEXCEPT;
-    bool do_version() NOEXCEPT;
-    bool do_initchain() NOEXCEPT;
+    bool do_help();
+    bool do_settings();
+    bool do_version();
+    bool do_initchain();
 
-    bool verify_store() NOEXCEPT;
-    bool run() NOEXCEPT;
+    bool verify_store();
+    bool run();
 
     static const char* name;
     static std::promise<system::code> stopping_;
@@ -64,12 +64,14 @@ private:
     store_t store_;
     query_t query_;
 
+    std::promise<system::code> log_stopped_{};
     network::logger log_{};
     std::ostream& output_;
     std::istream& input_;
 };
 
 // Localizable messages.
+
 #define BN_SETTINGS_MESSAGE \
     "These are the configuration settings that can be set."
 #define BN_INFORMATION_MESSAGE \
@@ -128,7 +130,8 @@ private:
     "libbitcoin:            %3%"
 #define BN_LOG_HEADER \
     "================= startup %1% =================="
-
+#define BN_NODE_FOOTER \
+    "================= shutdown (%1%) ========================"
 } // namespace node
 } // namespace libbitcoin
 

@@ -55,6 +55,10 @@ public:
 
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
+
+    // TODO: these aren't actually node settings.
+    uint16_t target;
+    uint16_t interval;
 };
 
 } // namespace node

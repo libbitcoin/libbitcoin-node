@@ -56,6 +56,8 @@ std::filesystem::path settings::file2() NOEXCEPT
 namespace node {
 
 settings::settings() NOEXCEPT
+  : target{ 0 },
+    interval{ 0 }
 {
 }
 
