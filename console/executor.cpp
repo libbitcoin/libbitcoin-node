@@ -242,16 +242,23 @@ bool executor::run()
     node_->subscribe_connect(
         [&](const code&, const network::channel::ptr&)
         {
-            const auto count = node_->channel_count();
-
             if (to_bool(metadata_.configured.node.interval) &&
-                is_zero(count % metadata_.configured.node.interval))
+                is_zero(node_->channel_count() %
+                    metadata_.configured.node.interval))
             {
-                LOGGER("Channel count (" << count << ").");
+                LOGGER("Queues "
+                       "{inbound:"  << node_->inbound_channel_count() << "}"
+                       "{channels:" << node_->channel_count() << "}"
+                       "{vector:"   << node_->vector_count() << "}"
+                       "{auths:"    << node_->authorities_count() << "}"
+                       "{nonces:"   << node_->nonces_count() << "}"
+                       "{hosts:"    << node_->address_count() << "}"
+                       "{close:"    << node_->stop_subscriber_count() << "}"
+                       "{connect:"  << node_->connect_subscriber_count() << "}.");
             }
 
             if (to_bool(metadata_.configured.node.target) &&
-                (count >= metadata_.configured.node.target))
+                (node_->channel_count() >= metadata_.configured.node.target))
             {
                 LOGGER("Stopping at channel target ("
                     << metadata_.configured.node.target << ").");
@@ -272,8 +279,15 @@ bool executor::run()
     node_->subscribe_close(
         [&](const code&)
         {
-            LOGGER("Closing with (" << node_->channel_count() << ") "
-                   "channels and (" << node_->address_count() << ") addresses.");
+            LOGGER("Queues "
+                   "{inbound:"  << node_->inbound_channel_count() << "}"
+                   "{channels:" << node_->channel_count() << "}"
+                   "{vector:"   << node_->vector_count() << "}"
+                   "{auths:"    << node_->authorities_count() << "}"
+                   "{nonces:"   << node_->nonces_count() << "}"
+                   "{hosts:"    << node_->address_count() << "}"
+                   "{close:"    << node_->stop_subscriber_count() << "}"
+                   "{connect:"  << node_->connect_subscriber_count() << "}.");
             return false;
         },
         [&](const code&, size_t)
@@ -282,6 +296,9 @@ bool executor::run()
             // But the handler is not required for termination, so this is ok.
             // The error code in the handler can be used to differentiate.
         });
+
+    LOGGER("Log period: " << metadata_.configured.node.interval);
+    LOGGER("Stop target: " << metadata_.configured.node.target);
 
     node_->start(std::bind(&executor::handle_started, this, _1));
     stopping_.get_future().wait();
