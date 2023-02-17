@@ -83,6 +83,7 @@ bool executor::menu()
 // --help
 bool executor::do_help()
 {
+    log_.stop();
     printer help(metadata_.load_options(), name, BN_INFORMATION_MESSAGE);
     help.initialize();
     help.commandline(output_);
@@ -92,6 +93,7 @@ bool executor::do_help()
 // --settings
 bool executor::do_settings()
 {
+    log_.stop();
     printer print(metadata_.load_settings(), name, BN_SETTINGS_MESSAGE);
     print.initialize();
     print.settings(output_);
@@ -101,6 +103,7 @@ bool executor::do_settings()
 // --version
 bool executor::do_version()
 {
+    log_.stop();
     CONSOLE(format(BN_VERSION_MESSAGE) % LIBBITCOIN_NODE_VERSION %
         LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_SYSTEM_VERSION);
     return true;
@@ -109,6 +112,7 @@ bool executor::do_version()
 // --initchain
 bool executor::do_initchain()
 {
+    log_.stop();
     const auto& directory = metadata_.configured.database.path;
     CONSOLE(format(BN_INITIALIZING_CHAIN) % directory);
 
