@@ -31,6 +31,9 @@
 #define CONSOLE(message) output_ << message << std::endl
 #define LOGGER(message) log_.write() << message << std::endl
 
+// TODO: look into boost signal_set.
+// www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
+
 namespace libbitcoin {
 namespace node {
 
@@ -279,7 +282,7 @@ bool executor::run()
     node_->subscribe_close(
         [&](const code&)
         {
-            LOGGER("Queues "
+            LOGGER("Closed "
                    "{inbound:"  << node_->inbound_channel_count() << "}"
                    "{channels:" << node_->channel_count() << "}"
                    "{vector:"   << node_->vector_count() << "}"
