@@ -77,7 +77,9 @@ console_bn_LDADD = src/libbitcoin-node.la ${bitcoin_blockchain_LIBS} ${bitcoin_n
 console_bn_SOURCES = \
     console/executor.cpp \
     console/executor.hpp \
-    console/main.cpp
+    console/main.cpp \
+    console/stack_trace.cpp \
+    console/stack_trace.hpp
 
 endif WITH_CONSOLE
 

@@ -19,8 +19,50 @@
 #include <iostream>
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
+#include "stack_trace.hpp"
 
+#ifdef HAVE_MSC
+
+namespace libbitcoin
+{
+namespace system
+{
+    std::istream& cin = cin_stream();
+    std::ostream& cout = cout_stream();
+    std::ostream& cerr = cerr_stream();
+    int main(int argc, char* argv[]);
+}
+}
+
+int wmain(int argc, wchar_t* argv[])
+{
+    __try
+    {
+        return libbitcoin::system::call_utf8_main(argc, argv,
+            &libbitcoin::system::main);
+    }
+    __except (dump_stack_trace(GetExceptionInformation()))
+    {
+        return 1;
+    }
+}
+
+// This is invoked by dump_stack_trace.
+void handle_stack_trace(const std::string& trace) NOEXCEPT
+{
+    libbitcoin::system::cout << trace;
+    libbitcoin::system::cout.flush();
+}
+
+// This is invoked by dump_stack_trace.
+std::string pdb_path() NOEXCEPT
+{
+    return {};
+}
+
+#else
 BC_USE_LIBBITCOIN_MAIN
+#endif
 
 /// Invoke this program with the raw arguments provided on the command line.
 /// All console input and output streams for the application originate here.

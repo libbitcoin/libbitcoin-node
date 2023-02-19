@@ -72,9 +72,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\console\executor.cpp" />
     <ClCompile Include="..\..\..\..\console\main.cpp" />
+    <ClCompile Include="..\..\..\..\console\stack_trace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\console\executor.hpp" />
+    <ClInclude Include="..\..\..\..\console\stack_trace.hpp" />
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>
   <ItemGroup>

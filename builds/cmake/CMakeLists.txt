@@ -257,7 +257,9 @@ if (with-console)
         "../../console/executor.cpp"
         "../../console/executor.hpp"
         "../../console/libbitcoin.ico"
-        "../../console/main.cpp" )
+        "../../console/main.cpp"
+        "../../console/stack_trace.cpp"
+        "../../console/stack_trace.hpp" )
 
 #     bn project specific include directories.
 #------------------------------------------------------------------------------
