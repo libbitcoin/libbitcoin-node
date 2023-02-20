@@ -131,6 +131,13 @@ options_metadata parser::load_settings() THROWS
     description.add_options()
 
     /* [log] */
+#if defined (HAVE_MSC)
+    (
+        "log.symbols",
+        value<std::filesystem::path>(&configured.log.symbols),
+        "Path to windows debug build symbols file (.pdb)."
+    )
+#endif
     (
         "log.verbose",
         value<bool>(&configured.log.verbose),
@@ -323,17 +330,17 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "network.inbound_connections",
-        value<uint32_t>(&configured.network.inbound_connections),
+        value<uint16_t>(&configured.network.inbound_connections),
         "The target number of incoming network connections, defaults to 0."
     )
     (
         "network.outbound_connections",
-        value<uint32_t>(&configured.network.outbound_connections),
+        value<uint16_t>(&configured.network.outbound_connections),
         "The target number of outgoing network connections, defaults to 10."
     )
     (
         "network.connect_batch_size",
-        value<uint32_t>(&configured.network.connect_batch_size),
+        value<uint16_t>(&configured.network.connect_batch_size),
         "The number of concurrent attempts to establish one connection, defaults to 5."
     )
     (

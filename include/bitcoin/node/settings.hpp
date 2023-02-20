@@ -38,6 +38,9 @@ public:
     bool verbose;
     uint32_t maximum_size;
     std::filesystem::path path;
+#if defined (HAVE_MSC)
+    std::filesystem::path symbols;
+#endif
 
     virtual std::filesystem::path file1() NOEXCEPT;
     virtual std::filesystem::path file2() NOEXCEPT;
