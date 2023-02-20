@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include <new>
 #include <sstream>
 #include <bitcoin/system.hpp>
@@ -77,10 +78,13 @@ inline STACKFRAME64 get_stack_frame(const CONTEXT& context) NOEXCEPT
 static std::string get_undecorated(HANDLE process, DWORD64 address) NOEXCEPT
 {
     constexpr size_t maximum{ 1024 };
-    constexpr auto buffer_size = static_cast<DWORD>(maximum);
+    constexpr auto buffer_size = possible_narrow_cast<DWORD>(maximum);
     constexpr size_t struct_size{ sizeof(IMAGEHLP_SYMBOL64) + maximum };
+
+    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
     const auto symbol = std::unique_ptr<IMAGEHLP_SYMBOL64>(
         pointer_cast<IMAGEHLP_SYMBOL64>(operator new(struct_size)));
+    BC_POP_WARNING()
 
     if (!symbol)
         return {};
