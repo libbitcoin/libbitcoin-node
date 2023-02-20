@@ -22,9 +22,10 @@
 #include <bitcoin/system.hpp>
 
 #if defined(HAVE_MSC)
+
 #include <windows.h>
 
-DWORD dump_stack_trace(EXCEPTION_POINTERS* exception) THROWS;
+DWORD dump_stack_trace(unsigned int code, EXCEPTION_POINTERS* exception) THROWS;
 
 #endif
 #endif

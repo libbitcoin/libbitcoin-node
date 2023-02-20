@@ -18,15 +18,16 @@
  */
 #include "stack_trace.hpp"
 
+#include <bitcoin/system.hpp>
+
+#if defined(HAVE_MSC)
+
 #include <algorithm>
 #include <exception>
 #include <iterator>
 #include <memory>
 #include <new>
 #include <sstream>
-#include <bitcoin/system.hpp>
-
-#if defined(HAVE_MSC)
 
 #include <windows.h>
 #include <psapi.h>
@@ -37,7 +38,7 @@
 #pragma comment(lib, "dbghelp.lib")
 
 // Must define pdb_path() and handle_stack_trace when using dump_stack_trace.
-extern std::string pdb_path() NOEXCEPT;
+extern std::wstring pdb_path() NOEXCEPT;
 extern void handle_stack_trace(const std::string& trace) NOEXCEPT;
 
 constexpr size_t depth_limit{ 10 };
@@ -47,8 +48,8 @@ using namespace system;
 
 struct module_data
 {
-    std::string image;
-    std::string module;
+    std::wstring image;
+    std::wstring module;
     DWORD dll_size;
     void* dll_base;
 };
@@ -78,38 +79,51 @@ inline STACKFRAME64 get_stack_frame(const CONTEXT& context) NOEXCEPT
 
 static std::string get_undecorated(HANDLE process, DWORD64 address) NOEXCEPT
 {
-    constexpr size_t maximum{ 1024 };
-    constexpr auto buffer_size = possible_narrow_cast<DWORD>(maximum);
-    constexpr size_t struct_size{ sizeof(IMAGEHLP_SYMBOL64) + maximum };
+    // Including null terminator.
+    constexpr DWORD maximum_characters{ 1024 };
+
+    // First character in the name is accounted for in structure size.
+    constexpr size_t struct_size{ sizeof(SYMBOL_INFOW) +
+        sub1(maximum_characters) * sizeof(wchar_t) };
 
     BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-    const auto symbol = std::unique_ptr<IMAGEHLP_SYMBOL64>(
-        pointer_cast<IMAGEHLP_SYMBOL64>(operator new(struct_size)));
+    const auto symbol = std::unique_ptr<SYMBOL_INFOW>(
+        pointer_cast<SYMBOL_INFOW>(operator new(struct_size)));
     BC_POP_WARNING()
 
     if (!symbol)
         return {};
 
-    symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64);
-    symbol->MaxNameLength = maximum;
-    symbol->Name[0] = '\0';
-    symbol->Address = 0;
-    symbol->Flags = 0;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFOW);
+    symbol->TypeIndex = 0;
+    symbol->Reserved[0] = 0;
+    symbol->Reserved[1] = 0;
+    symbol->Index = 0;
     symbol->Size = 0;
+    symbol->ModBase = 0;
+    symbol->Flags = 0;
+    symbol->Value = 0;
+    symbol->Address = 0;
+    symbol->Register = 0;
+    symbol->Scope = 0;
+    symbol->Tag = 0;
+    symbol->NameLen = 0;
+    symbol->MaxNameLen = maximum_characters;
+    symbol->Name[0] = wchar_t{ '\0' };
 
     DWORD64 displace{};
-    if (SymGetSymFromAddr64(process, address, &displace,
-        symbol.get()) == FALSE || is_zero(symbol->MaxNameLength))
+    if (SymFromAddrW(process, address, &displace, symbol.get()) == FALSE ||
+        is_zero(symbol->MaxNameLen))
     {
         return {};
     }
 
-    std::string undecorated{};
-    undecorated.resize(maximum);
-    undecorated.resize(UnDecorateSymbolName(symbol->Name,
-        undecorated.data(), buffer_size, UNDNAME_COMPLETE));
+    std::wstring undecorated{};
+    undecorated.resize(maximum_characters);
+    undecorated.resize(UnDecorateSymbolNameW(symbol->Name,
+        undecorated.data(), maximum_characters, UNDNAME_COMPLETE));
 
-    return undecorated;
+    return to_utf8(undecorated);
 }
 
 inline DWORD get_machine(HANDLE process) THROWS
@@ -145,17 +159,18 @@ inline DWORD get_machine(HANDLE process) THROWS
             data.dll_size = info.SizeOfImage;
 
             data.image.resize(module_buffer_size);
-            if (GetModuleFileNameExA(process, handle, data.image.data(),
+            if (GetModuleFileNameExW(process, handle, data.image.data(),
                 module_buffer_size) == FALSE)
                 throw(std::logic_error("GetModuleFileNameExA"));
 
             data.module.resize(module_buffer_size);
-            if (GetModuleBaseNameA(process, handle, data.module.data(),
+            if (GetModuleBaseNameW(process, handle, data.module.data(),
                 module_buffer_size) == FALSE)
                 throw(std::logic_error("GetModuleBaseNameA"));
 
-            SymLoadModule64(process, NULL, data.image.data(), data.module.data(),
-                reinterpret_cast<DWORD64>(data.dll_base), data.dll_size);
+            SymLoadModuleExW(process, NULL, data.image.data(), data.module.data(),
+                reinterpret_cast<DWORD64>(data.dll_base), data.dll_size, NULL,
+                SLMFLAG_NO_SYMBOLS);
 
             return data;
         });
@@ -168,56 +183,69 @@ inline DWORD get_machine(HANDLE process) THROWS
     return header->FileHeader.Machine;
 }
 
-DWORD dump_stack_trace(EXCEPTION_POINTERS* exception) THROWS
+DWORD dump_stack_trace(unsigned int, EXCEPTION_POINTERS* exception) THROWS
 {
     if (is_null(exception) || is_null(exception->ContextRecord))
         return EXCEPTION_EXECUTE_HANDLER;
 
+    // NULL for defaults, otherwise semicolon seperated directories.
+    const auto search = pdb_path().empty() ? NULL : pdb_path().c_str();
     const auto process = GetCurrentProcess();
-    if (SymInitialize(process, pdb_path().c_str(), false) == FALSE)
+    const auto thread = GetCurrentThread();
+
+    if (SymInitializeW(process, search, TRUE) == FALSE)
         throw(std::logic_error("SymInitialize"));
 
-    SymSetOptions(SymGetOptions() | SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    SymSetOptions(SymGetOptions()
+        | SYMOPT_DEFERRED_LOADS
+        | SYMOPT_LOAD_LINES
+        | SYMOPT_UNDNAME);
 
-    const auto thread = GetCurrentThread();
+    DWORD displace{};
+    std::ostringstream tracer{};
+    IMAGEHLP_LINE64 line{ sizeof(IMAGEHLP_LINE64) };
     const auto machine = get_machine(process);
     const auto context = exception->ContextRecord;
     auto it = get_stack_frame(*context);
-
-    DWORD displace{};
-    IMAGEHLP_LINE64 line{};
-    line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-    std::ostringstream tracer{};
-
     auto iteration = zero;
-    while ((iteration++ < depth_limit) && !is_zero(it.AddrReturn.Offset))
+
+    do
     {
         // Get undecorated function name.
         const auto name = get_undecorated(process, it.AddrPC.Offset);
 
+        // When this?
         if (name == "main")
+        {
+            tracer << "no symbols";
             break;
+        }
 
+        // Compiled in release mode.
         if (name == "RaiseException")
-            return EXCEPTION_EXECUTE_HANDLER;
+        {
+            tracer << "no symbols";
+            break;
+        }
 
         // Get line.
         if (SymGetLineFromAddr64(process, it.AddrPC.Offset, &displace,
             &line) == FALSE)
             break;
-
+        
         // Write line.
         tracer
             << name << ":"
             << line.FileName
             << "(" << line.LineNumber << ")"
             << std::endl;
-
-        // Advance interator.
+        
+        // Advance iterator.
         if (StackWalk64(machine, process, thread, &it, context, NULL,
             SymFunctionTableAccess64, SymGetModuleBase64, NULL) == FALSE)
             break;
-    }
+
+    } while ((iteration++ < depth_limit) && !is_zero(it.AddrReturn.Offset));
 
     handle_stack_trace(tracer.str());
 

@@ -16,12 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <cstdlib>
 #include <iostream>
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
-#include "stack_trace.hpp"
 
 #ifdef HAVE_MSC
+#include "stack_trace.hpp"
 
 namespace libbitcoin
 {
@@ -34,30 +35,32 @@ namespace system
 }
 }
 
+namespace bc = libbitcoin;
+std::filesystem::path symbols_path{};
+
 int wmain(int argc, wchar_t* argv[])
 {
     __try
     {
-        return libbitcoin::system::call_utf8_main(argc, argv,
-            &libbitcoin::system::main);
+        return bc::system::call_utf8_main(argc, argv, &bc::system::main);
     }
-    __except (dump_stack_trace(GetExceptionInformation()))
+    __except (dump_stack_trace(GetExceptionCode(), GetExceptionInformation()))
     {
-        return 1;
+        return -1;
     }
 }
 
 // This is invoked by dump_stack_trace.
 void handle_stack_trace(const std::string& trace) NOEXCEPT
 {
-    libbitcoin::system::cout << trace;
-    libbitcoin::system::cout.flush();
+    bc::system::cout << "unhandled exception" << std::endl;
+    bc::system::cout << trace << std::endl;
 }
 
 // This is invoked by dump_stack_trace.
-std::string pdb_path() NOEXCEPT
+std::wstring pdb_path() NOEXCEPT
 {
-    return {};
+    return bc::system::to_extended_path(symbols_path);
 }
 
 #else
@@ -78,6 +81,10 @@ int bc::system::main(int argc, char* argv[])
 
     if (!metadata.parse(argc, args, cerr))
         return -1;
+
+#if defined(HAVE_MSC)
+    symbols_path = metadata.configured.log.symbols;
+#endif
 
     executor host(metadata, cin, cout, cerr);
     return host.menu() ? 0 : -1;
