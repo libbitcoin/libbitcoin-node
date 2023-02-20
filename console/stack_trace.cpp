@@ -19,6 +19,7 @@
 #include "stack_trace.hpp"
 
 #include <algorithm>
+#include <exception>
 #include <iterator>
 #include <memory>
 #include <new>
