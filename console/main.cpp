@@ -16,11 +16,56 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <cstdlib>
 #include <iostream>
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
 
+#ifdef HAVE_MSC
+#include "stack_trace.hpp"
+
+namespace libbitcoin
+{
+namespace system
+{
+    std::istream& cin = cin_stream();
+    std::ostream& cout = cout_stream();
+    std::ostream& cerr = cerr_stream();
+    int main(int argc, char* argv[]);
+}
+}
+
+namespace bc = libbitcoin;
+std::filesystem::path symbols_path{};
+
+int wmain(int argc, wchar_t* argv[])
+{
+    __try
+    {
+        return bc::system::call_utf8_main(argc, argv, &bc::system::main);
+    }
+    __except (dump_stack_trace(GetExceptionCode(), GetExceptionInformation()))
+    {
+        return -1;
+    }
+}
+
+// This is invoked by dump_stack_trace.
+void handle_stack_trace(const std::string& trace) NOEXCEPT
+{
+    bc::system::cout << "unhandled exception" << std::endl;
+    bc::system::cout << trace << std::endl;
+}
+
+// This is invoked by dump_stack_trace.
+std::wstring pdb_path() NOEXCEPT
+{
+    return bc::system::to_extended_path(symbols_path);
+}
+
+#else
 BC_USE_LIBBITCOIN_MAIN
+#endif
 
 /// Invoke this program with the raw arguments provided on the command line.
 /// All console input and output streams for the application originate here.
@@ -36,6 +81,10 @@ int bc::system::main(int argc, char* argv[])
 
     if (!metadata.parse(argc, args, cerr))
         return -1;
+
+#if defined(HAVE_MSC)
+    symbols_path = metadata.configured.log.symbols;
+#endif
 
     executor host(metadata, cin, cout, cerr);
     return host.menu() ? 0 : -1;

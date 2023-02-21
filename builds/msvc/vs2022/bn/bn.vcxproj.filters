@@ -21,9 +21,15 @@
     <ClCompile Include="..\..\..\..\console\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\console\stack_trace.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\console\executor.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\console\stack_trace.hpp">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\resource.h">

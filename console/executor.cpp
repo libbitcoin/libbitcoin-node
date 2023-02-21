@@ -31,6 +31,9 @@
 #define CONSOLE(message) output_ << message << std::endl
 #define LOGGER(message) log_.write() << message << std::endl
 
+// TODO: look into boost signal_set.
+// www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
+
 namespace libbitcoin {
 namespace node {
 
@@ -80,6 +83,7 @@ bool executor::menu()
 // --help
 bool executor::do_help()
 {
+    log_.stop();
     printer help(metadata_.load_options(), name, BN_INFORMATION_MESSAGE);
     help.initialize();
     help.commandline(output_);
@@ -89,6 +93,7 @@ bool executor::do_help()
 // --settings
 bool executor::do_settings()
 {
+    log_.stop();
     printer print(metadata_.load_settings(), name, BN_SETTINGS_MESSAGE);
     print.initialize();
     print.settings(output_);
@@ -98,6 +103,7 @@ bool executor::do_settings()
 // --version
 bool executor::do_version()
 {
+    log_.stop();
     CONSOLE(format(BN_VERSION_MESSAGE) % LIBBITCOIN_NODE_VERSION %
         LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_SYSTEM_VERSION);
     return true;
@@ -106,6 +112,7 @@ bool executor::do_version()
 // --initchain
 bool executor::do_initchain()
 {
+    log_.stop();
     const auto& directory = metadata_.configured.database.path;
     CONSOLE(format(BN_INITIALIZING_CHAIN) % directory);
 
@@ -242,16 +249,23 @@ bool executor::run()
     node_->subscribe_connect(
         [&](const code&, const network::channel::ptr&)
         {
-            const auto count = node_->channel_count();
-
             if (to_bool(metadata_.configured.node.interval) &&
-                is_zero(count % metadata_.configured.node.interval))
+                is_zero(node_->channel_count() %
+                    metadata_.configured.node.interval))
             {
-                LOGGER("Channel count (" << count << ").");
+                LOGGER("Queues "
+                       "{inbound:"  << node_->inbound_channel_count() << "}"
+                       "{channels:" << node_->channel_count() << "}"
+                       "{vector:"   << node_->vector_count() << "}"
+                       "{auths:"    << node_->authorities_count() << "}"
+                       "{nonces:"   << node_->nonces_count() << "}"
+                       "{hosts:"    << node_->address_count() << "}"
+                       "{close:"    << node_->stop_subscriber_count() << "}"
+                       "{connect:"  << node_->connect_subscriber_count() << "}.");
             }
 
             if (to_bool(metadata_.configured.node.target) &&
-                (count >= metadata_.configured.node.target))
+                (node_->channel_count() >= metadata_.configured.node.target))
             {
                 LOGGER("Stopping at channel target ("
                     << metadata_.configured.node.target << ").");
@@ -272,8 +286,15 @@ bool executor::run()
     node_->subscribe_close(
         [&](const code&)
         {
-            LOGGER("Closing with (" << node_->channel_count() << ") "
-                   "channels and (" << node_->address_count() << ") addresses.");
+            LOGGER("Closed "
+                   "{inbound:"  << node_->inbound_channel_count() << "}"
+                   "{channels:" << node_->channel_count() << "}"
+                   "{vector:"   << node_->vector_count() << "}"
+                   "{auths:"    << node_->authorities_count() << "}"
+                   "{nonces:"   << node_->nonces_count() << "}"
+                   "{hosts:"    << node_->address_count() << "}"
+                   "{close:"    << node_->stop_subscriber_count() << "}"
+                   "{connect:"  << node_->connect_subscriber_count() << "}.");
             return false;
         },
         [&](const code&, size_t)
@@ -282,6 +303,9 @@ bool executor::run()
             // But the handler is not required for termination, so this is ok.
             // The error code in the handler can be used to differentiate.
         });
+
+    LOGGER("Log period: " << metadata_.configured.node.interval);
+    LOGGER("Stop target: " << metadata_.configured.node.target);
 
     node_->start(std::bind(&executor::handle_started, this, _1));
     stopping_.get_future().wait();
