@@ -254,14 +254,14 @@ bool executor::run()
                     metadata_.configured.node.interval))
             {
                 LOGGER("Queues "
-                       "{inbound:"  << node_->inbound_channel_count() << "}"
-                       "{channels:" << node_->channel_count() << "}"
-                       "{vector:"   << node_->vector_count() << "}"
-                       "{auths:"    << node_->authorities_count() << "}"
-                       "{nonces:"   << node_->nonces_count() << "}"
-                       "{hosts:"    << node_->address_count() << "}"
-                       "{close:"    << node_->stop_subscriber_count() << "}"
-                       "{connect:"  << node_->connect_subscriber_count() << "}.");
+                       "{inbound:"   << node_->inbound_channel_count() << "}"
+                       "{channels:"  << node_->channel_count() << "}"
+                       "{broadcast:" << node_->broadcast_count() << "}"
+                       "{reserved:"  << node_->reserved_count() << "}"
+                       "{nonces:"    << node_->nonces_count() << "}"
+                       "{hosts:"     << node_->address_count() << "}"
+                       "{close:"     << node_->stop_subscriber_count() << "}"
+                       "{connect:"   << node_->connect_subscriber_count() << "}.");
             }
 
             if (to_bool(metadata_.configured.node.target) &&
@@ -287,14 +287,14 @@ bool executor::run()
         [&](const code&)
         {
             LOGGER("Closed "
-                   "{inbound:"  << node_->inbound_channel_count() << "}"
-                   "{channels:" << node_->channel_count() << "}"
-                   "{vector:"   << node_->vector_count() << "}"
-                   "{auths:"    << node_->authorities_count() << "}"
-                   "{nonces:"   << node_->nonces_count() << "}"
-                   "{hosts:"    << node_->address_count() << "}"
-                   "{close:"    << node_->stop_subscriber_count() << "}"
-                   "{connect:"  << node_->connect_subscriber_count() << "}.");
+                   "{inbound:"   << node_->inbound_channel_count() << "}"
+                   "{channels:"  << node_->channel_count() << "}"
+                   "{broadcast:" << node_->broadcast_count() << "}"
+                   "{reserved:"  << node_->reserved_count() << "}"
+                   "{nonces:"    << node_->nonces_count() << "}"
+                   "{hosts:"     << node_->address_count() << "}"
+                   "{close:"     << node_->stop_subscriber_count() << "}"
+                   "{connect:"   << node_->connect_subscriber_count() << "}.");
             return false;
         },
         [&](const code&, size_t)
