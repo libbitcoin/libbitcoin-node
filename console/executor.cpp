@@ -256,10 +256,10 @@ bool executor::run()
                 LOGGER("Queues "
                        "{inbound:"   << node_->inbound_channel_count() << "}"
                        "{channels:"  << node_->channel_count() << "}"
-                       "{broadcast:" << node_->broadcast_count() << "}"
                        "{reserved:"  << node_->reserved_count() << "}"
                        "{nonces:"    << node_->nonces_count() << "}"
                        "{hosts:"     << node_->address_count() << "}"
+                       "{broadcast:" << node_->broadcast_count() << "}"
                        "{close:"     << node_->stop_subscriber_count() << "}"
                        "{connect:"   << node_->connect_subscriber_count() << "}.");
             }
@@ -289,10 +289,10 @@ bool executor::run()
             LOGGER("Closed "
                    "{inbound:"   << node_->inbound_channel_count() << "}"
                    "{channels:"  << node_->channel_count() << "}"
-                   "{broadcast:" << node_->broadcast_count() << "}"
                    "{reserved:"  << node_->reserved_count() << "}"
                    "{nonces:"    << node_->nonces_count() << "}"
                    "{hosts:"     << node_->address_count() << "}"
+                   "{broadcast:" << node_->broadcast_count() << "}"
                    "{close:"     << node_->stop_subscriber_count() << "}"
                    "{connect:"   << node_->connect_subscriber_count() << "}.");
             return false;
