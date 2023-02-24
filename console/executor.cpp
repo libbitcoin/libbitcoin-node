@@ -39,6 +39,7 @@ namespace node {
 
 using boost::format;
 using system::config::printer;
+using namespace network;
 using namespace std::placeholders;
 
 const char* executor::name = "bn";
@@ -168,50 +169,66 @@ bool executor::run()
         to_half(metadata_.configured.log.maximum_size)
     };
 
+    log_.subscribe_events([&](const code& ec, uint8_t event, size_t count,
+        const logger::time_point& point) NOEXCEPT
+        {
+            if (ec) return false;
+            sink_ << "[" << system::serialize(event) << "." << count << "."
+                << system::serialize(point.time_since_epoch().count()) << "]"
+                << std::endl;
+            return true;
+    });
+
     // Handlers are invoked on a strand of the logger threadpool.
     if (metadata_.configured.light)
     {
-        log_.subscribe([&](const code& ec, const std::string& message)
-        {
-            if (ec)
+        log_.subscribe_messages(
+            [&](const code& ec, time_t time, const std::string& message) NOEXCEPT
             {
-                sink_ << message << std::endl;
-                const auto foot = (format(BN_NODE_FOOTER) % ec.message()).str();
-                sink_ << foot << std::endl;
-                log_stopped_.set_value(ec);
-                return false;
-            }
-            else
-            {
-                sink_ << message;
-                return true;
-            }
-        });
-        LOGGER(format(BN_LOG_HEADER) % network::local_time());
+                const auto prefix = format_zulu_time(time) + " ";
+
+                if (ec)
+                {
+                    sink_ << prefix << message << std::endl;
+                    sink_ << prefix << BN_NODE_FOOTER << std::endl;
+                    log_stopped_.set_value(ec);
+                    return false;
+                }
+                else
+                {
+                    sink_ << prefix << message;
+                    return true;
+                }
+            });
+
+        LOGGER(BN_LOG_HEADER);
     }
     else
     {
-        log_.subscribe([&](const code& ec, const std::string& message)
-        {
-            if (ec)
+        log_.subscribe_messages(
+            [&](const code& ec, time_t time, const std::string& message) NOEXCEPT
             {
-                sink_ << message << std::endl;
-                output_ << message << std::endl;
-                const auto foot = (format(BN_NODE_FOOTER) % ec.message()).str();
-                sink_ << foot << std::endl;
-                output_ << foot << std::endl;
-                log_stopped_.set_value(ec);
-                return false;
-            }
-            else
-            {
-                sink_ << message;
-                output_ << message;
-                output_.flush();
-                return true;
-            }
-        });
-        LOGGER(format(BN_LOG_HEADER) % network::local_time());
+                const auto prefix = format_zulu_time(time) + " ";
+
+                if (ec)
+                {
+                    sink_ << prefix << message << std::endl;
+                    output_ << prefix << message << std::endl;
+                    sink_ << prefix << BN_NODE_FOOTER << std::endl;
+                    output_ << prefix << BN_NODE_FOOTER << std::endl;
+                    log_stopped_.set_value(ec);
+                    return false;
+                }
+                else
+                {
+                    sink_ << prefix << message;
+                    output_ << prefix << message;
+                    output_.flush();
+                    return true;
+                }
+            });
+
+        LOGGER(BN_LOG_HEADER);
     }
 
     const auto& file = metadata_.configured.file;
@@ -247,21 +264,21 @@ bool executor::run()
 
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
     node_->subscribe_connect(
-        [&](const code&, const network::channel::ptr&)
+        [&](const code&, const channel::ptr&)
         {
             if (to_bool(metadata_.configured.node.interval) &&
                 is_zero(node_->channel_count() %
                     metadata_.configured.node.interval))
             {
-                LOGGER("Queues "
-                       "{inbound:"   << node_->inbound_channel_count() << "}"
-                       "{channels:"  << node_->channel_count() << "}"
-                       "{reserved:"  << node_->reserved_count() << "}"
-                       "{nonces:"    << node_->nonces_count() << "}"
-                       "{hosts:"     << node_->address_count() << "}"
-                       "{broadcast:" << node_->broadcast_count() << "}"
-                       "{close:"     << node_->stop_subscriber_count() << "}"
-                       "{connect:"   << node_->connect_subscriber_count() << "}.");
+                LOGGER(
+                    "{in:" << node_->inbound_channel_count() << "}"
+                    "{ch:" << node_->channel_count() << "}"
+                    "{rv:" << node_->reserved_count() << "}"
+                    "{nc:" << node_->nonces_count() << "}"
+                    "{ad:" << node_->address_count() << "}"
+                    "{bs:" << node_->broadcast_count() << "}"
+                    "{ss:" << node_->stop_subscriber_count() << "}"
+                    "{cs:" << node_->connect_subscriber_count() << "}.");
             }
 
             if (to_bool(metadata_.configured.node.target) &&
@@ -286,15 +303,15 @@ bool executor::run()
     node_->subscribe_close(
         [&](const code&)
         {
-            LOGGER("Closed "
-                   "{inbound:"   << node_->inbound_channel_count() << "}"
-                   "{channels:"  << node_->channel_count() << "}"
-                   "{reserved:"  << node_->reserved_count() << "}"
-                   "{nonces:"    << node_->nonces_count() << "}"
-                   "{hosts:"     << node_->address_count() << "}"
-                   "{broadcast:" << node_->broadcast_count() << "}"
-                   "{close:"     << node_->stop_subscriber_count() << "}"
-                   "{connect:"   << node_->connect_subscriber_count() << "}.");
+            LOGGER(
+                "{in:" << node_->inbound_channel_count() << "}"
+                "{ch:" << node_->channel_count() << "}"
+                "{rv:" << node_->reserved_count() << "}"
+                "{nc:" << node_->nonces_count() << "}"
+                "{ad:" << node_->address_count() << "}"
+                "{bs:" << node_->broadcast_count() << "}"
+                "{ss:" << node_->stop_subscriber_count() << "}"
+                "{cs:" << node_->connect_subscriber_count() << "}.");
             return false;
         },
         [&](const code&, size_t)

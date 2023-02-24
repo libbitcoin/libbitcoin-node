@@ -129,9 +129,9 @@ private:
     "libbitcoin-blockchain: %2%\n" \
     "libbitcoin:            %3%"
 #define BN_LOG_HEADER \
-    "================= startup %1% =================="
+    "====================== startup ======================="
 #define BN_NODE_FOOTER \
-    "================= shutdown (%1%) ========================"
+    "====================== shutdown ======================"
 } // namespace node
 } // namespace libbitcoin
 

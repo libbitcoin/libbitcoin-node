@@ -60,7 +60,7 @@ private:
     
     // These are thread safe.
     const bool send_headers_;
-    const network::duration header_latency_;
+    const network::steady_clock::duration header_latency_;
     std::atomic<bool> sending_headers_;
 };
 
