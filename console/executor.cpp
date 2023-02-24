@@ -169,11 +169,21 @@ bool executor::run()
         to_half(metadata_.configured.log.maximum_size)
     };
 
+    log_.subscribe_events([&](const code& ec, uint8_t event, size_t count,
+        const logger::time_point& point) NOEXCEPT
+        {
+            if (ec) return false;
+            sink_ << "[" << system::serialize(event) << "." << count << "."
+                << system::serialize(point.time_since_epoch().count()) << "]"
+                << std::endl;
+            return true;
+    });
+
     // Handlers are invoked on a strand of the logger threadpool.
     if (metadata_.configured.light)
     {
         log_.subscribe_messages(
-            [&](const code& ec, time_t time, const std::string& message)
+            [&](const code& ec, time_t time, const std::string& message) NOEXCEPT
             {
                 const auto prefix = format_zulu_time(time) + " ";
 
@@ -196,7 +206,7 @@ bool executor::run()
     else
     {
         log_.subscribe_messages(
-            [&](const code& ec, time_t time, const std::string& message)
+            [&](const code& ec, time_t time, const std::string& message) NOEXCEPT
             {
                 const auto prefix = format_zulu_time(time) + " ";
 
