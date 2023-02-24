@@ -190,14 +190,14 @@
 ////}
 ////
 ////template<typename Type>
-////float to_float(const asio::duration& time)
+////float to_float(const steady_clock::duration& time)
 ////{
 ////    const auto count = std::chrono::duration_cast<Type>(time).count();
 ////    return static_cast<float>(count);
 ////}
 ////
 ////template<typename Type>
-////size_t to_ratio(const asio::duration& time, size_t value)
+////size_t to_ratio(const steady_clock::duration& time, size_t value)
 ////{
 ////    return static_cast<size_t>(std::round(to_float<Type>(time) / value));
 ////}
