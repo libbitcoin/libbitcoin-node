@@ -70,7 +70,7 @@ private:
     std::istream& input_;
 };
 
-// Localizable messages.
+// Localizable messages (set at level_t::reserved).
 
 #define BN_SETTINGS_MESSAGE \
     "These are the configuration settings that can be set."
@@ -118,6 +118,10 @@ private:
     "Node stopped with code, %1%."
 #define BN_NODE_STOPPED \
     "Node stopped successfully."
+#define BN_CHANNEL_LOG_PERIOD \
+    "Log period: %1%"
+#define BN_CHANNEL_STOP_TARGET \
+    "Stop target: %1%"
 
 #define BN_USING_CONFIG_FILE \
     "Using config file: %1%"
