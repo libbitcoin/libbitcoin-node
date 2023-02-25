@@ -29,16 +29,17 @@ namespace node {
 
 #define CLASS protocol_header_in
 
+using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
 // TODO: move send_headers to a derived class protocol_header_in_70012.
 
 // TODO: header latency config.
-protocol_header_in::protocol_header_in(const network::session& session,
+protocol_header_in::protocol_header_in(const session& session,
     const channel_ptr& channel, full_node& node) NOEXCEPT
   : node::protocol(session, channel, node),
-    send_headers_(negotiated_version() >= network::messages::level::bip130),
+    send_headers_(negotiated_version() >= level::bip130),
     header_latency_(network::seconds(5)),
     sending_headers_(true),
     network::tracker<protocol_header_in>(session.log())
@@ -264,7 +265,7 @@ void protocol_header_in::handle_timeout(const code& ec)
 
     if (ec && ec != network::error::channel_timeout)
     {
-        LOG("Failure in header timer for [" << authority() << "] "
+        LOGP("Failure in header timer for [" << authority() << "] "
             << ec.message());
 
         stop(ec);
@@ -298,7 +299,7 @@ void protocol_header_in::send_send_headers()
     if (sending_headers_.exchange(true))
         return;
 
-    LOG("Headers are current for peer [" << authority() << "].");
+    LOGP("Headers are current for peer [" << authority() << "].");
 
     // Request header announcements only after becoming current.
     if (send_headers_)
@@ -309,7 +310,7 @@ void protocol_header_in::send_send_headers()
 
 void protocol_header_in::handle_stop(const code&)
 {
-    LOG("Stopped header_in protocol for [" << authority() << "].");
+    LOGP("Stopped header_in protocol for [" << authority() << "].");
 }
 
 } // namespace node
