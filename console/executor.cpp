@@ -262,6 +262,9 @@ bool executor::run()
         return false;
     }
 
+    // initialize network settings.
+    metadata_.configured.network.initialize();
+
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
     node_->subscribe_connect(
         [&](const code&, const channel::ptr&)
