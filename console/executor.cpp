@@ -29,7 +29,7 @@
 #include <bitcoin/node.hpp>
 
 #define CONSOLE(message) output_ << message << std::endl
-#define LOGGER(message) log_.write() << message << std::endl
+#define LOGGER(message) log_.write(level_t::news) << message << std::endl
 
 // TODO: look into boost signal_set.
 // www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
@@ -39,6 +39,7 @@ namespace node {
 
 using boost::format;
 using system::config::printer;
+using namespace system;
 using namespace network;
 using namespace std::placeholders;
 
@@ -173,9 +174,9 @@ bool executor::run()
         const logger::time_point& point) NOEXCEPT
         {
             if (ec) return false;
-            sink_ << "[" << system::serialize(event) << "." << count << "."
-                << system::serialize(point.time_since_epoch().count()) << "]"
-                << std::endl;
+            sink_
+                << encode_base16(to_big_endian(point.time_since_epoch().count()))
+                << " [" << serialize(event) << "." << count << "]" << std::endl;
             return true;
     });
 
@@ -183,9 +184,14 @@ bool executor::run()
     if (metadata_.configured.light)
     {
         log_.subscribe_messages(
-            [&](const code& ec, time_t time, const std::string& message) NOEXCEPT
+            [&](const code& ec, uint8_t level, time_t time,
+                const std::string& message) NOEXCEPT
             {
-                const auto prefix = format_zulu_time(time) + " ";
+                if (!ec && (level == level_t::quit || level == level_t::proxy))
+                    return true;
+
+                const auto prefix = format_zulu_time(time) + "." +
+                    serialize(level) + " ";
 
                 if (ec)
                 {
@@ -206,9 +212,14 @@ bool executor::run()
     else
     {
         log_.subscribe_messages(
-            [&](const code& ec, time_t time, const std::string& message) NOEXCEPT
+            [&](const code& ec, uint8_t level, time_t time,
+                const std::string& message) NOEXCEPT
             {
-                const auto prefix = format_zulu_time(time) + " ";
+                if (!ec && (level == level_t::quit || level == level_t::proxy))
+                    return true;
+
+                const auto prefix = format_zulu_time(time) + "." +
+                    serialize(level) + " ";
 
                 if (ec)
                 {
