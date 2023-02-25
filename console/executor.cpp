@@ -29,7 +29,7 @@
 #include <bitcoin/node.hpp>
 
 #define CONSOLE(message) output_ << message << std::endl
-#define LOGGER(message) log_.write(level_t::news) << message << std::endl
+#define LOGGER(message) log_.write(level_t::reserved) << message << std::endl
 
 // TODO: look into boost signal_set.
 // www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
@@ -256,7 +256,7 @@ bool executor::run()
     if (!database::file::is_directory(store))
     {
         LOGGER(format(BN_UNINITIALIZED_STORE) % store);
-        log_.stop(BN_NODE_STOPPED);
+        log_.stop(BN_NODE_STOPPED, level_t::reserved);
         log_stopped_.get_future().wait();
         return false;
     }
@@ -268,7 +268,7 @@ bool executor::run()
     if (const auto ec = store_.open())
     {
         LOGGER(format(BN_STORE_START_FAIL) % ec.message());
-        log_.stop(BN_NODE_STOPPED);
+        log_.stop(BN_NODE_STOPPED, level_t::reserved);
         log_stopped_.get_future().wait();
         return false;
     }
@@ -348,12 +348,12 @@ bool executor::run()
     if (const auto ec = store_.close())
     {
         LOGGER(format(BN_STORE_STOP_FAIL) % ec.message());
-        log_.stop(BN_NODE_STOPPED);
+        log_.stop(BN_NODE_STOPPED, level_t::reserved);
         log_stopped_.get_future().wait();
         return false;
     }
 
-    log_.stop(BN_NODE_STOPPED);
+    log_.stop(BN_NODE_STOPPED, level_t::reserved);
     log_stopped_.get_future().wait();
     return true; 
 }
