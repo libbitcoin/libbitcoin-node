@@ -29,7 +29,11 @@
 #include <bitcoin/node.hpp>
 
 #define CONSOLE(message) output_ << message << std::endl
-#define LOGGER(message) log_.write(level_t::news) << message << std::endl
+#define LOGGER(message) \
+    log_.write(level_t::reserved) << message << std::endl
+#define STOPPER(message) \
+    log_.stop(message, level_t::reserved); \
+    log_stopped_.get_future().wait()
 
 // TODO: look into boost signal_set.
 // www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
@@ -162,6 +166,7 @@ bool executor::run()
     if (!logs.empty())
         database::file::create_directory(logs);
 
+    // Create message log rotating file sink.
     database::file::stream::out::rotator sink_
     {
         // Standard file names, both within the logs directory.
@@ -170,6 +175,7 @@ bool executor::run()
         to_half(metadata_.configured.log.maximum_size)
     };
 
+    // Subscribe to log events.
     log_.subscribe_events([&](const code& ec, uint8_t event, size_t count,
         const logger::time_point& point) NOEXCEPT
         {
@@ -180,14 +186,15 @@ bool executor::run()
             return true;
     });
 
-    // Handlers are invoked on a strand of the logger threadpool.
+    // Subscribe to log messages.
     if (metadata_.configured.light)
     {
         log_.subscribe_messages(
             [&](const code& ec, uint8_t level, time_t time,
                 const std::string& message) NOEXCEPT
             {
-                if (!ec && (level == level_t::quit || level == level_t::proxy))
+                // --light logs only reserved (bn localized) messages.
+                if (!ec && (level != level_t::reserved))
                     return true;
 
                 const auto prefix = format_zulu_time(time) + "." +
@@ -196,13 +203,17 @@ bool executor::run()
                 if (ec)
                 {
                     sink_ << prefix << message << std::endl;
+                    output_ << prefix << message << std::endl;
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
+                    output_ << prefix << BN_NODE_FOOTER << std::endl;
                     log_stopped_.set_value(ec);
                     return false;
                 }
                 else
                 {
                     sink_ << prefix << message;
+                    output_ << prefix << message;
+                    output_.flush();
                     return true;
                 }
             });
@@ -252,31 +263,33 @@ bool executor::run()
         LOGGER(format(BN_USING_CONFIG_FILE) % file);
     }
 
+    // Verify store exists.
     const auto& store = metadata_.configured.database.path;
     if (!database::file::is_directory(store))
     {
         LOGGER(format(BN_UNINITIALIZED_STORE) % store);
-        log_.stop(BN_NODE_STOPPED);
-        log_stopped_.get_future().wait();
+        STOPPER(BN_NODE_STOPPED);
         return false;
     }
 
-    // Open store, create and start node, wait on stop interrupt.
     LOGGER(BN_NODE_INTERRUPT);
     LOGGER(BN_NODE_STARTING);
 
+    // Open store.
     if (const auto ec = store_.open())
     {
         LOGGER(format(BN_STORE_START_FAIL) % ec.message());
-        log_.stop(BN_NODE_STOPPED);
-        log_stopped_.get_future().wait();
+        STOPPER(BN_NODE_STOPPED);
         return false;
     }
 
-    // initialize network settings.
+    // Initialize network settings.
     metadata_.configured.network.initialize();
 
+    // Create and start node.
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
+
+    // Subscribe to channel connections.
     node_->subscribe_connect(
         [&](const code&, const channel::ptr&)
         {
@@ -301,6 +314,7 @@ bool executor::run()
                 LOGGER("Stopping at channel target ("
                     << metadata_.configured.node.target << ").");
 
+                // Signal stop (simulates ctrl-c).
                 stop(error::success);
                 return false;
             }
@@ -314,6 +328,7 @@ bool executor::run()
             // The error code in the handler can be used to differentiate.
         });
 
+    // Subscribe to node close.
     node_->subscribe_close(
         [&](const code&)
         {
@@ -335,26 +350,29 @@ bool executor::run()
             // The error code in the handler can be used to differentiate.
         });
 
-    LOGGER("Log period: " << metadata_.configured.node.interval);
-    LOGGER("Stop target: " << metadata_.configured.node.target);
+    LOGGER(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
+    LOGGER(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
 
+    // Start node.
     node_->start(std::bind(&executor::handle_started, this, _1));
+
+    // Wait on signal to stop (ctrl-c).
     stopping_.get_future().wait();
 
-    // Close node, close store, stop logger, stop log sink.
     LOGGER(BN_NODE_STOPPING);
+
+    // Close node (if not already closed by self).
     node_->close();
 
+    // Stop logger and log sink.
     if (const auto ec = store_.close())
     {
         LOGGER(format(BN_STORE_STOP_FAIL) % ec.message());
-        log_.stop(BN_NODE_STOPPED);
-        log_stopped_.get_future().wait();
+        STOPPER(BN_NODE_STOPPED);
         return false;
     }
 
-    log_.stop(BN_NODE_STOPPED);
-    log_stopped_.get_future().wait();
+    STOPPER(BN_NODE_STOPPED);
     return true; 
 }
 
@@ -414,6 +432,7 @@ bool executor::handle_stopped(const code& ec)
         LOGGER(format(BN_NODE_STOP_CODE) % ec.message());
     }
 
+    // Signal stop (simulates ctrl-c).
     stop(ec);
     return false;
 }
