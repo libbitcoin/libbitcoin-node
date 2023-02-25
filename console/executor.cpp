@@ -187,7 +187,7 @@ bool executor::run()
             [&](const code& ec, uint8_t level, time_t time,
                 const std::string& message) NOEXCEPT
             {
-                if (!ec && (level == level_t::quit || level == level_t::proxy))
+                if (!ec && (level != level_t::reserved))
                     return true;
 
                 const auto prefix = format_zulu_time(time) + "." +
@@ -196,13 +196,17 @@ bool executor::run()
                 if (ec)
                 {
                     sink_ << prefix << message << std::endl;
+                    output_ << prefix << message << std::endl;
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
+                    output_ << prefix << BN_NODE_FOOTER << std::endl;
                     log_stopped_.set_value(ec);
                     return false;
                 }
                 else
                 {
                     sink_ << prefix << message;
+                    output_ << prefix << message;
+                    output_.flush();
                     return true;
                 }
             });
