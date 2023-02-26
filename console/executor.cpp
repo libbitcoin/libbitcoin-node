@@ -18,6 +18,52 @@
  */
 #include "executor.hpp"
 
+#if defined(HAVE_WINDOWS_LIBS)
+
+#include <windows.h>
+
+void set_console_echo() NOEXCEPT
+{
+    const auto handle = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode{};
+    GetConsoleMode(handle, &mode);
+    SetConsoleMode(handle, mode | ENABLE_ECHO_INPUT);
+}
+
+void unset_console_echo() NOEXCEPT
+{
+    const auto handle = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode{};
+    GetConsoleMode(handle, &mode);
+    SetConsoleMode(handle, mode & ~ENABLE_ECHO_INPUT);
+}
+
+#elif defined(HAVE_NX_LIBS)
+
+#include <termios.h>
+
+void set_console_echo() NOEXCEPT
+{
+    termios terminal{};
+    tcgetattr(0, &terminal);
+    term.c_lflag |= ECHO;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal);
+}
+void unset_console_echo() NOEXCEPT
+{
+    termios terminal{};
+    tcgetattr(0, &terminal);
+    terminal.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal);
+}
+
+#else
+
+void set_console_echo() NOEXCEPT {}
+void unset_console_echo() NOEXCEPT {}
+
+#endif
+
 #include <csignal>
 #include <functional>
 #include <future>
@@ -32,6 +78,7 @@
 #define LOGGER(message) \
     log_.write(level_t::reserved) << message << std::endl
 #define STOPPER(message) \
+    cap_.stop(); \
     log_.stop(message, level_t::reserved); \
     log_stopped_.get_future().wait()
 
@@ -59,6 +106,7 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     output_(output)
 {
     initialize_stop();
+    unset_console_echo();
 }
 
 // Menu selection.
@@ -110,8 +158,12 @@ bool executor::do_settings()
 bool executor::do_version()
 {
     log_.stop();
-    CONSOLE(format(BN_VERSION_MESSAGE) % LIBBITCOIN_NODE_VERSION %
-        LIBBITCOIN_BLOCKCHAIN_VERSION % LIBBITCOIN_SYSTEM_VERSION);
+    CONSOLE(format(BN_VERSION_MESSAGE)
+        % LIBBITCOIN_NODE_VERSION
+        % LIBBITCOIN_BLOCKCHAIN_VERSION
+        % LIBBITCOIN_DATABASE_VERSION
+        % LIBBITCOIN_NETWORK_VERSION
+        % LIBBITCOIN_SYSTEM_VERSION);
     return true;
 }
 
@@ -206,6 +258,7 @@ bool executor::run()
                     output_ << prefix << message << std::endl;
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
                     output_ << prefix << BN_NODE_FOOTER << std::endl;
+                    output_ << prefix << BN_NODE_TERMINATE << std::endl;
                     log_stopped_.set_value(ec);
                     return false;
                 }
@@ -217,8 +270,6 @@ bool executor::run()
                     return true;
                 }
             });
-
-        LOGGER(BN_LOG_HEADER);
     }
     else
     {
@@ -238,6 +289,7 @@ bool executor::run()
                     output_ << prefix << message << std::endl;
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
                     output_ << prefix << BN_NODE_FOOTER << std::endl;
+                    output_ << prefix << BN_NODE_TERMINATE << std::endl;
                     log_stopped_.set_value(ec);
                     return false;
                 }
@@ -249,9 +301,30 @@ bool executor::run()
                     return true;
                 }
             });
-
-        LOGGER(BN_LOG_HEADER);
     }
+
+    // Capture console input and send to log.
+    // TODO: generalize and rationalize capture stop with <ctrl-c>.
+    cap_.subscribe([&](const code& ec, const std::string& line) NOEXCEPT
+    {
+        LOGGER("console: " << line);
+
+        // Signal stop (simulates <ctrl-c>).
+        if (system::trim_copy(line) == "stop")
+        {
+            stop(error::success);
+            return false;
+        }
+
+        return !ec;
+    },
+    [&](const code&) NOEXCEPT
+    {
+        // continue from here to capture all startup std::cin.
+    });
+
+    LOGGER(BN_LOG_HEADER);
+    cap_.start();
 
     const auto& file = metadata_.configured.file;
     if (file.empty())
@@ -314,7 +387,7 @@ bool executor::run()
                 LOGGER("Stopping at channel target ("
                     << metadata_.configured.node.target << ").");
 
-                // Signal stop (simulates ctrl-c).
+                // Signal stop (simulates <ctrl-c>).
                 stop(error::success);
                 return false;
             }
@@ -356,7 +429,7 @@ bool executor::run()
     // Start node.
     node_->start(std::bind(&executor::handle_started, this, _1));
 
-    // Wait on signal to stop (ctrl-c).
+    // Wait on signal to stop (<ctrl-c>).
     stopping_.get_future().wait();
 
     LOGGER(BN_NODE_STOPPING);
@@ -432,7 +505,7 @@ bool executor::handle_stopped(const code& ec)
         LOGGER(format(BN_NODE_STOP_CODE) % ec.message());
     }
 
-    // Signal stop (simulates ctrl-c).
+    // Signal stop (simulates <ctrl-c>).
     stop(ec);
     return false;
 }
