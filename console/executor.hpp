@@ -64,10 +64,11 @@ private:
     store_t store_;
     query_t query_;
 
-    std::promise<system::code> log_stopped_{};
-    network::logger log_{};
-    std::ostream& output_;
     std::istream& input_;
+    std::ostream& output_;
+    network::logger log_{};
+    network::capture cap_{ input_, "q" };
+    std::promise<system::code> log_stopped_{};
 };
 
 // Localizable messages (set at level_t::reserved).
@@ -128,14 +129,19 @@ private:
 #define BN_USING_DEFAULT_CONFIG \
     "Using default configuration settings."
 #define BN_VERSION_MESSAGE \
-    "\nVersion Information:\n\n" \
+    "\nVersion Information\n" \
+    "----------------------------\n" \
     "libbitcoin-node:       %1%\n" \
     "libbitcoin-blockchain: %2%\n" \
-    "libbitcoin:            %3%"
+    "libbitcoin-database:   %3%\n" \
+    "libbitcoin-network:    %4%\n" \
+    "libbitcoin-system:     %5%"
 #define BN_LOG_HEADER \
     "====================== startup ======================="
 #define BN_NODE_FOOTER \
     "====================== shutdown ======================"
+#define BN_NODE_TERMINATE \
+    "Press <enter> to exit..."
 } // namespace node
 } // namespace libbitcoin
 
