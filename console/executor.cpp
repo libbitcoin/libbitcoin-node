@@ -46,7 +46,7 @@ void set_console_echo() NOEXCEPT
 {
     termios terminal{};
     tcgetattr(0, &terminal);
-    term.c_lflag |= ECHO;
+    terminal.c_lflag |= ECHO;
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal);
 }
 void unset_console_echo() NOEXCEPT
@@ -254,6 +254,7 @@ bool executor::run()
 
                 if (ec)
                 {
+                    // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
                     sink_ << prefix << message << std::endl;
                     output_ << prefix << message << std::endl;
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
@@ -285,6 +286,7 @@ bool executor::run()
 
                 if (ec)
                 {
+                    // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
                     sink_ << prefix << message << std::endl;
                     output_ << prefix << message << std::endl;
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
@@ -307,15 +309,18 @@ bool executor::run()
     // TODO: generalize and rationalize capture stop with <ctrl-c>.
     cap_.subscribe([&](const code& ec, const std::string& line) NOEXCEPT
     {
-        LOGGER("console: " << line);
+        const auto trim = system::trim_copy(line);
+        if (trim.empty())
+            return !ec;
 
-        // Signal stop (simulates <ctrl-c>).
-        if (system::trim_copy(line) == "stop")
+        if (trim == "q")
         {
+            LOGGER("CONSOLE: quit");
             stop(error::success);
             return false;
         }
 
+        LOGGER("CONSOLE: " << trim);
         return !ec;
     },
     [&](const code&) NOEXCEPT

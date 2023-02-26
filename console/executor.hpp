@@ -67,7 +67,7 @@ private:
     std::istream& input_;
     std::ostream& output_;
     network::logger log_{};
-    network::capture cap_{ input_ };
+    network::capture cap_{ input_, "q" };
     std::promise<system::code> log_stopped_{};
 };
 
