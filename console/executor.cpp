@@ -27,17 +27,6 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
-#define CONSOLE(message) output_ << message << std::endl
-#define LOGGER(message) \
-    log_.write(level_t::reserved) << message << std::endl
-#define STOPPER(message) \
-    cap_.stop(); \
-    log_.stop(message, level_t::reserved); \
-    stopped_.get_future().wait()
-
-// TODO: look into boost signal_set.
-// www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
-
 namespace libbitcoin {
 namespace node {
 
@@ -46,7 +35,6 @@ using system::config::printer;
 using namespace system;
 using namespace network;
 using namespace std::placeholders;
-
 const char* executor::name = "bn";
 std::promise<code> executor::stopping_{};
 
@@ -63,6 +51,26 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
 
     // Capture <ctrl-c>.
     initialize_stop();
+}
+
+// Utility.
+// ----------------------------------------------------------------------------
+
+void executor::logger(const auto& message)
+{
+    log_.write(level_t::reserved) << message << std::endl;
+};
+
+void executor::console(const auto& message)
+{
+    output_ << message << std::endl;
+};
+
+void executor::stopper(const auto& message)
+{
+    cap_.stop();
+    log_.stop(message, level_t::reserved);
+    stopped_.get_future().wait();
 }
 
 // Menu selection.
@@ -114,7 +122,7 @@ bool executor::do_settings()
 bool executor::do_version()
 {
     log_.stop();
-    CONSOLE(format(BN_VERSION_MESSAGE)
+    console(format(BN_VERSION_MESSAGE)
         % LIBBITCOIN_NODE_VERSION
         % LIBBITCOIN_BLOCKCHAIN_VERSION
         % LIBBITCOIN_DATABASE_VERSION
@@ -128,139 +136,143 @@ bool executor::do_initchain()
 {
     log_.stop();
     const auto& directory = metadata_.configured.database.path;
-    CONSOLE(format(BN_INITIALIZING_CHAIN) % directory);
+    console(format(BN_INITIALIZING_CHAIN) % directory);
 
     if (!database::file::create_directory(directory))
     {
-        CONSOLE(format(BN_INITCHAIN_EXISTS) % directory);
+        console(format(BN_INITCHAIN_EXISTS) % directory);
         return false;
     }
 
     if (const auto ec = store_.create())
     {
-        CONSOLE(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
+        console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
         return false;
     }
 
     if (const auto ec = store_.open())
     {
-        CONSOLE(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
+        console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
         return false;
     }
 
     if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
     {
-        CONSOLE(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
+        console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
         return false;
     }
 
     if (const auto ec = store_.close())
     {
-        CONSOLE(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
+        console(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
         return false;
     }
 
-    CONSOLE(BN_INITCHAIN_COMPLETE);
+    console(BN_INITCHAIN_COMPLETE);
     return true;
 }
 
 // Run.
 // ----------------------------------------------------------------------------
 
-bool executor::do_run()
+// Create message log rotating file sink.
+executor::rotator_t executor::create_sink(
+    const std::filesystem::path& path) const
 {
-    // No logging for log setup, could use console.
-    const auto& logs = metadata_.configured.log.path;
-    if (!logs.empty())
-        database::file::create_directory(logs);
+    // No logging for log setup failure, could use console.
+    if (!path.empty())
+        database::file::create_directory(path);
 
-    // Create message log rotating file sink.
-    database::file::stream::out::rotator sink_
+    return
     {
         // Standard file names, both within the logs directory.
         metadata_.configured.log.file1(),
         metadata_.configured.log.file2(),
         to_half(metadata_.configured.log.maximum_size)
     };
+}
 
-    // Subscribe to log events.
+void executor::subscribe_light(rotator_t& sink)
+{
+    log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
+        const std::string& message)
+    {
+        // --light logs only ec and 'reserved' (bn localized) messages.
+        if (!ec && (level != level_t::reserved))
+            return true;
+
+        const auto prefix = format_zulu_time(time) + "." +
+            serialize(level) + " ";
+
+        if (ec)
+        {
+            // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
+            sink << prefix << message << std::endl;
+            output_ << prefix << message << std::endl;
+            sink << prefix << BN_NODE_FOOTER << std::endl;
+            output_ << prefix << BN_NODE_FOOTER << std::endl;
+            output_ << prefix << BN_NODE_TERMINATE << std::endl;
+            stopped_.set_value(ec);
+            return false;
+        }
+        else
+        {
+            sink << prefix << message;
+            output_ << prefix << message;
+            output_.flush();
+            return true;
+        }
+    });
+}
+
+void executor::subscribe_full(rotator_t& sink)
+{
+    log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
+        const std::string& message)
+    {
+        // Avoiding 'quit' and 'proxy' messages for now (too verbose).
+        if (!ec && (level == level_t::quit || level == level_t::proxy))
+            return true;
+
+        const auto prefix = format_zulu_time(time) + "." +
+            serialize(level) + " ";
+
+        if (ec)
+        {
+            // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
+            sink << prefix << message << std::endl;
+            output_ << prefix << message << std::endl;
+            sink << prefix << BN_NODE_FOOTER << std::endl;
+            output_ << prefix << BN_NODE_FOOTER << std::endl;
+            output_ << prefix << BN_NODE_TERMINATE << std::endl;
+            stopped_.set_value(ec);
+            return false;
+        }
+        else
+        {
+            sink << prefix << message;
+            output_ << prefix << message;
+            output_.flush();
+            return true;
+        }
+    });
+}
+
+void executor::subscribe_events(rotator_t& sink)
+{
     log_.subscribe_events([&](const code& ec, uint8_t event, size_t count,
         const logger::time_point& point)
-        {
-            if (ec) return false;
-            sink_
-                << encode_base16(to_big_endian(point.time_since_epoch().count()))
-                << " [" << serialize(event) << "." << count << "]" << std::endl;
-            return true;
+    {
+        if (ec) return false;
+        sink
+            << encode_base16(to_big_endian(point.time_since_epoch().count()))
+            << " [" << serialize(event) << "." << count << "]" << std::endl;
+        return true;
     });
+}
 
-    // Subscribe to log messages.
-    if (metadata_.configured.light)
-    {
-        log_.subscribe_messages(
-            [&](const code& ec, uint8_t level, time_t time,
-                const std::string& message)
-            {
-                // --light logs only reserved (bn localized) messages.
-                if (!ec && (level != level_t::reserved))
-                    return true;
-
-                const auto prefix = format_zulu_time(time) + "." +
-                    serialize(level) + " ";
-
-                if (ec)
-                {
-                    // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
-                    sink_ << prefix << message << std::endl;
-                    output_ << prefix << message << std::endl;
-                    sink_ << prefix << BN_NODE_FOOTER << std::endl;
-                    output_ << prefix << BN_NODE_FOOTER << std::endl;
-                    output_ << prefix << BN_NODE_TERMINATE << std::endl;
-                    stopped_.set_value(ec);
-                    return false;
-                }
-                else
-                {
-                    sink_ << prefix << message;
-                    output_ << prefix << message;
-                    output_.flush();
-                    return true;
-                }
-            });
-    }
-    else
-    {
-        log_.subscribe_messages(
-            [&](const code& ec, uint8_t level, time_t time,
-                const std::string& message)
-            {
-                if (!ec && (level == level_t::quit || level == level_t::proxy))
-                    return true;
-
-                const auto prefix = format_zulu_time(time) + "." +
-                    serialize(level) + " ";
-
-                if (ec)
-                {
-                    // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
-                    sink_ << prefix << message << std::endl;
-                    output_ << prefix << message << std::endl;
-                    sink_ << prefix << BN_NODE_FOOTER << std::endl;
-                    output_ << prefix << BN_NODE_FOOTER << std::endl;
-                    output_ << prefix << BN_NODE_TERMINATE << std::endl;
-                    stopped_.set_value(ec);
-                    return false;
-                }
-                else
-                {
-                    sink_ << prefix << message;
-                    output_ << prefix << message;
-                    output_.flush();
-                    return true;
-                }
-            });
-    }
-
+void executor::subscribe_capture()
+{
     // Capture console input and send to log.
     // TODO: generalize and rationalize capture stop with <ctrl-c>.
     cap_.subscribe([&](const code& ec, const std::string& line)
@@ -271,102 +283,29 @@ bool executor::do_run()
 
         if (trim == "q")
         {
-            LOGGER("CONSOLE: quit");
+            logger("CONSOLE: quit");
             stop(error::success);
             return false;
         }
 
-        LOGGER("CONSOLE: " << trim);
+        logger("CONSOLE: " + trim);
         return !ec;
     },
     [&](const code&)
     {
         // continue from here to capture all startup std::cin.
     });
+}
 
-    LOGGER(BN_LOG_HEADER);
-    cap_.start();
-
-    const auto& file = metadata_.configured.file;
-    if (file.empty())
+void executor::subscribe_connect()
+{
+    node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        LOGGER(BN_USING_DEFAULT_CONFIG);
-    }
-    else
-    {
-        LOGGER(format(BN_USING_CONFIG_FILE) % file);
-    }
-
-    // Verify store exists.
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        LOGGER(format(BN_UNINITIALIZED_STORE) % store);
-        STOPPER(BN_NODE_STOPPED);
-        return false;
-    }
-
-    LOGGER(BN_NODE_INTERRUPT);
-    LOGGER(BN_NODE_STARTING);
-
-    // Open store.
-    if (const auto ec = store_.open())
-    {
-        LOGGER(format(BN_STORE_START_FAIL) % ec.message());
-        STOPPER(BN_NODE_STOPPED);
-        return false;
-    }
-
-    // Initialize network settings.
-    metadata_.configured.network.initialize();
-
-    // Create and start node.
-    node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
-
-    // Subscribe to channel connections.
-    node_->subscribe_connect(
-        [&](const code&, const channel::ptr&)
+        if (to_bool(metadata_.configured.node.interval) &&
+            is_zero(node_->channel_count() %
+                metadata_.configured.node.interval))
         {
-            if (to_bool(metadata_.configured.node.interval) &&
-                is_zero(node_->channel_count() %
-                    metadata_.configured.node.interval))
-            {
-                LOGGER(
-                    "{in:" << node_->inbound_channel_count() << "}"
-                    "{ch:" << node_->channel_count() << "}"
-                    "{rv:" << node_->reserved_count() << "}"
-                    "{nc:" << node_->nonces_count() << "}"
-                    "{ad:" << node_->address_count() << "}"
-                    "{bs:" << node_->broadcast_count() << "}"
-                    "{ss:" << node_->stop_subscriber_count() << "}"
-                    "{cs:" << node_->connect_subscriber_count() << "}.");
-            }
-
-            if (to_bool(metadata_.configured.node.target) &&
-                (node_->channel_count() >= metadata_.configured.node.target))
-            {
-                LOGGER("Stopping at channel target ("
-                    << metadata_.configured.node.target << ").");
-
-                // Signal stop (simulates <ctrl-c>).
-                stop(error::success);
-                return false;
-            }
-
-            return true;
-        },
-        [&](const code&, uintptr_t)
-        {
-            // By not handling it is possible stop could fire before complete.
-            // But the handler is not required for termination, so this is ok.
-            // The error code in the handler can be used to differentiate.
-        });
-
-    // Subscribe to node close.
-    node_->subscribe_close(
-        [&](const code&)
-        {
-            LOGGER(
+            log_.write(level_t::reserved) <<
                 "{in:" << node_->inbound_channel_count() << "}"
                 "{ch:" << node_->channel_count() << "}"
                 "{rv:" << node_->reserved_count() << "}"
@@ -374,61 +313,150 @@ bool executor::do_run()
                 "{ad:" << node_->address_count() << "}"
                 "{bs:" << node_->broadcast_count() << "}"
                 "{ss:" << node_->stop_subscriber_count() << "}"
-                "{cs:" << node_->connect_subscriber_count() << "}.");
-            return false;
-        },
-        [&](const code&, size_t)
-        {
-            // By not handling it is possible stop could fire before complete.
-            // But the handler is not required for termination, so this is ok.
-            // The error code in the handler can be used to differentiate.
-        });
+                "{cs:" << node_->connect_subscriber_count() << "}."
+                << std::endl;
+        }
 
-    LOGGER(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
-    LOGGER(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
+        if (to_bool(metadata_.configured.node.target) &&
+            (node_->channel_count() >= metadata_.configured.node.target))
+        {
+            log_.write(level_t::reserved) << "Stopping at channel target ("
+                << metadata_.configured.node.target << ")." << std::endl;
+
+            // Signal stop (simulates <ctrl-c>).
+            stop(error::success);
+            return false;
+        }
+
+        return true;
+    },
+    [&](const code&, uintptr_t)
+    {
+        // By not handling it is possible stop could fire before complete.
+        // But the handler is not required for termination, so this is ok.
+        // The error code in the handler can be used to differentiate.
+    });
+}
+
+void executor::subscribe_close()
+{
+    node_->subscribe_close([&](const code&)
+    {
+        log_.write(level_t::reserved) <<
+            "{in:" << node_->inbound_channel_count() << "}"
+            "{ch:" << node_->channel_count() << "}"
+            "{rv:" << node_->reserved_count() << "}"
+            "{nc:" << node_->nonces_count() << "}"
+            "{ad:" << node_->address_count() << "}"
+            "{bs:" << node_->broadcast_count() << "}"
+            "{ss:" << node_->stop_subscriber_count() << "}"
+            "{cs:" << node_->connect_subscriber_count() << "}."
+            << std::endl;
+
+        return false;
+    },
+    [&](const code&, size_t)
+    {
+        // By not handling it is possible stop could fire before complete.
+        // But the handler is not required for termination, so this is ok.
+        // The error code in the handler can be used to differentiate.
+    });
+}
+
+// ----------------------------------------------------------------------------
+
+// [--light]
+bool executor::do_run()
+{
+    auto sink = create_sink(metadata_.configured.log.path);
+
+    if (metadata_.configured.light)
+        subscribe_light(sink);
+    else
+        subscribe_full(sink);
+
+    subscribe_events(sink);
+    subscribe_capture();
+    logger(BN_LOG_HEADER);
+
+    const auto& file = metadata_.configured.file;
+
+    if (file.empty())
+        logger(BN_USING_DEFAULT_CONFIG);
+    else
+        logger(format(BN_USING_CONFIG_FILE) % file);
+
+    // Verify store exists.
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        logger(format(BN_UNINITIALIZED_STORE) % store);
+        stopper(BN_NODE_STOPPED);
+        return false;
+    }
+
+    logger(BN_NODE_INTERRUPT);
+    logger(BN_NODE_STARTING);
+    cap_.start();
+
+    // Open store.
+    if (const auto ec = store_.open())
+    {
+        logger(format(BN_STORE_START_FAIL) % ec.message());
+        stopper(BN_NODE_STOPPED);
+        return false;
+    }
+
+    // Create node.
+    metadata_.configured.network.initialize();
+    node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
+
+    // Subscribe node.
+    subscribe_connect();
+    subscribe_close();
+
+    logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
+    logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
 
     // Start node.
     node_->start(std::bind(&executor::handle_started, this, _1));
 
-    // Wait on signal to stop (<ctrl-c>).
+    // Wait on signal to stop node (<ctrl-c>).
     stopping_.get_future().wait();
+    logger(BN_NODE_STOPPING);
 
-    LOGGER(BN_NODE_STOPPING);
-
-    // Close node (if not already closed by self).
+    // Stop node (if not already stopped by self).
     node_->close();
 
-    // Stop logger and log sink.
+    // Close store.
     if (const auto ec = store_.close())
     {
-        LOGGER(format(BN_STORE_STOP_FAIL) % ec.message());
-        STOPPER(BN_NODE_STOPPED);
+        logger(format(BN_STORE_STOP_FAIL) % ec.message());
+        stopper(BN_NODE_STOPPED);
         return false;
     }
 
-    STOPPER(BN_NODE_STOPPED);
+    stopper(BN_NODE_STOPPED);
     return true; 
 }
+
+// ----------------------------------------------------------------------------
 
 void executor::handle_started(const code& ec)
 {
     if (ec)
     {
         if (ec == error::store_uninitialized)
-        {
-            LOGGER(format(BN_UNINITIALIZED_CHAIN) %
+            logger(format(BN_UNINITIALIZED_CHAIN) %
                 metadata_.configured.database.path);
-        }
         else
-        {
-            LOGGER(format(BN_NODE_START_FAIL) % ec.message());
-        }
+            logger(format(BN_NODE_START_FAIL) % ec.message());
 
         stop(ec);
         return;
     }
 
-    LOGGER(BN_NODE_STARTED);
+    logger(BN_NODE_STARTED);
 
     node_->subscribe_close(
         std::bind(&executor::handle_stopped, this, _1),
@@ -439,7 +467,7 @@ void executor::handle_subscribed(const code& ec, size_t)
 {
     if (ec)
     {
-        LOGGER(format(BN_NODE_START_FAIL) % ec.message());
+        logger(format(BN_NODE_START_FAIL) % ec.message());
         stop(ec);
         return;
     }
@@ -451,20 +479,18 @@ void executor::handle_running(const code& ec)
 {
     if (ec)
     {
-        LOGGER(format(BN_NODE_START_FAIL) % ec.message());
+        logger(format(BN_NODE_START_FAIL) % ec.message());
         stop(ec);
         return;
     }
 
-    LOGGER(BN_NODE_RUNNING);
+    logger(BN_NODE_RUNNING);
 }
 
 bool executor::handle_stopped(const code& ec)
 {
     if (ec && ec != network::error::service_stopped)
-    {
-        LOGGER(format(BN_NODE_STOP_CODE) % ec.message());
-    }
+        logger(format(BN_NODE_STOP_CODE) % ec.message());
 
     // Signal stop (simulates <ctrl-c>).
     stop(ec);
