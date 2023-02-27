@@ -21,11 +21,12 @@
 
 #include <bitcoin/system.hpp>
 
+ // This is some temporary code to explore emission of win32 stack dump.
 #if defined(HAVE_MSC)
 
 #include <windows.h>
 
-DWORD dump_stack_trace(unsigned int code, EXCEPTION_POINTERS* exception) THROWS;
+DWORD dump_stack_trace(unsigned code, EXCEPTION_POINTERS* exception) THROWS;
 
 #endif
 #endif

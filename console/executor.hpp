@@ -52,12 +52,11 @@ private:
     bool do_settings();
     bool do_version();
     bool do_initchain();
-
-    bool verify_store();
-    bool run();
+    bool do_run();
 
     static const char* name;
     static std::promise<system::code> stopping_;
+    std::promise<system::code> stopped_{};
 
     full_node::ptr node_{};
     parser& metadata_;
@@ -68,7 +67,6 @@ private:
     std::ostream& output_;
     network::logger log_{};
     network::capture cap_{ input_, "q" };
-    std::promise<system::code> log_stopped_{};
 };
 
 // Localizable messages (set at level_t::reserved).

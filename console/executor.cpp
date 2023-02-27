@@ -33,7 +33,7 @@
 #define STOPPER(message) \
     cap_.stop(); \
     log_.stop(message, level_t::reserved); \
-    log_stopped_.get_future().wait()
+    stopped_.get_future().wait()
 
 // TODO: look into boost signal_set.
 // www.boost.org/doc/libs/1_81_0/doc/html/boost_asio/overview/signals.html
@@ -48,7 +48,7 @@ using namespace network;
 using namespace std::placeholders;
 
 const char* executor::name = "bn";
-std::promise<code> executor::stopping_;
+std::promise<code> executor::stopping_{};
 
 executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     std::ostream&)
@@ -58,8 +58,11 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     input_(input),
     output_(output)
 {
+    // Turn of console echoing from std::cin to std:cout.
+    system::unset_console_echo();
+
+    // Capture <ctrl-c>.
     initialize_stop();
-    unset_console_echo();
 }
 
 // Menu selection.
@@ -81,7 +84,7 @@ bool executor::menu()
     if (config.initchain)
         return do_initchain();
 
-    return run();
+    return do_run();
 }
 
 // Command line options.
@@ -164,7 +167,7 @@ bool executor::do_initchain()
 // Run.
 // ----------------------------------------------------------------------------
 
-bool executor::run()
+bool executor::do_run()
 {
     // No logging for log setup, could use console.
     const auto& logs = metadata_.configured.log.path;
@@ -182,7 +185,7 @@ bool executor::run()
 
     // Subscribe to log events.
     log_.subscribe_events([&](const code& ec, uint8_t event, size_t count,
-        const logger::time_point& point) NOEXCEPT
+        const logger::time_point& point)
         {
             if (ec) return false;
             sink_
@@ -196,7 +199,7 @@ bool executor::run()
     {
         log_.subscribe_messages(
             [&](const code& ec, uint8_t level, time_t time,
-                const std::string& message) NOEXCEPT
+                const std::string& message)
             {
                 // --light logs only reserved (bn localized) messages.
                 if (!ec && (level != level_t::reserved))
@@ -213,7 +216,7 @@ bool executor::run()
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
                     output_ << prefix << BN_NODE_FOOTER << std::endl;
                     output_ << prefix << BN_NODE_TERMINATE << std::endl;
-                    log_stopped_.set_value(ec);
+                    stopped_.set_value(ec);
                     return false;
                 }
                 else
@@ -229,7 +232,7 @@ bool executor::run()
     {
         log_.subscribe_messages(
             [&](const code& ec, uint8_t level, time_t time,
-                const std::string& message) NOEXCEPT
+                const std::string& message)
             {
                 if (!ec && (level == level_t::quit || level == level_t::proxy))
                     return true;
@@ -245,7 +248,7 @@ bool executor::run()
                     sink_ << prefix << BN_NODE_FOOTER << std::endl;
                     output_ << prefix << BN_NODE_FOOTER << std::endl;
                     output_ << prefix << BN_NODE_TERMINATE << std::endl;
-                    log_stopped_.set_value(ec);
+                    stopped_.set_value(ec);
                     return false;
                 }
                 else
@@ -260,7 +263,7 @@ bool executor::run()
 
     // Capture console input and send to log.
     // TODO: generalize and rationalize capture stop with <ctrl-c>.
-    cap_.subscribe([&](const code& ec, const std::string& line) NOEXCEPT
+    cap_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto trim = system::trim_copy(line);
         if (trim.empty())
@@ -276,7 +279,7 @@ bool executor::run()
         LOGGER("CONSOLE: " << trim);
         return !ec;
     },
-    [&](const code&) NOEXCEPT
+    [&](const code&)
     {
         // continue from here to capture all startup std::cin.
     });

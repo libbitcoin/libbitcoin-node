@@ -21,13 +21,12 @@
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
 
+// This is some temporary code to explore emission of win32 stack dump.
 #ifdef HAVE_MSC
 #include "stack_trace.hpp"
 
-namespace libbitcoin
-{
-namespace system
-{
+namespace libbitcoin {
+namespace system {
     std::istream& cin = cin_stream();
     std::ostream& cout = cout_stream();
     std::ostream& cerr = cerr_stream();
