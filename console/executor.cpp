@@ -18,59 +18,12 @@
  */
 #include "executor.hpp"
 
-#if defined(HAVE_WINDOWS_LIBS)
-
-#include <windows.h>
-
-void set_console_echo() NOEXCEPT
-{
-    const auto handle = GetStdHandle(STD_INPUT_HANDLE);
-    DWORD mode{};
-    GetConsoleMode(handle, &mode);
-    SetConsoleMode(handle, mode | ENABLE_ECHO_INPUT);
-}
-
-void unset_console_echo() NOEXCEPT
-{
-    const auto handle = GetStdHandle(STD_INPUT_HANDLE);
-    DWORD mode{};
-    GetConsoleMode(handle, &mode);
-    SetConsoleMode(handle, mode & ~ENABLE_ECHO_INPUT);
-}
-
-#elif defined(HAVE_NX_LIBS)
-
-#include <termios.h>
-
-void set_console_echo() NOEXCEPT
-{
-    termios terminal{};
-    tcgetattr(0, &terminal);
-    terminal.c_lflag |= ECHO;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal);
-}
-void unset_console_echo() NOEXCEPT
-{
-    termios terminal{};
-    tcgetattr(0, &terminal);
-    terminal.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal);
-}
-
-#else
-
-void set_console_echo() NOEXCEPT {}
-void unset_console_echo() NOEXCEPT {}
-
-#endif
-
 #include <csignal>
 #include <functional>
 #include <future>
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <boost/core/null_deleter.hpp>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
