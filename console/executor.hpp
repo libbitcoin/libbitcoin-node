@@ -39,6 +39,10 @@ public:
     bool menu();
 
 private:
+    void logger(const auto& message);
+    void console(const auto& message);
+    void stopper(const auto& message);
+
     static void initialize_stop();
     static void stop(const system::code& ec);
     static void handle_stop(int code);
@@ -52,12 +56,20 @@ private:
     bool do_settings();
     bool do_version();
     bool do_initchain();
+    bool do_run();
 
-    bool verify_store();
-    bool run();
+    using rotator_t = database::file::stream::out::rotator;
+    rotator_t create_sink(const std::filesystem::path& path) const;
+    void subscribe_light(rotator_t& sink);
+    void subscribe_full(rotator_t& sink);
+    void subscribe_events(rotator_t& sink);
+    void subscribe_capture();
+    void subscribe_connect();
+    void subscribe_close();
 
     static const char* name;
     static std::promise<system::code> stopping_;
+    std::promise<system::code> stopped_{};
 
     full_node::ptr node_{};
     parser& metadata_;
@@ -68,7 +80,6 @@ private:
     std::ostream& output_;
     network::logger log_{};
     network::capture cap_{ input_, "q" };
-    std::promise<system::code> log_stopped_{};
 };
 
 // Localizable messages (set at level_t::reserved).

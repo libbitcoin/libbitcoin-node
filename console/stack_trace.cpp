@@ -20,6 +20,7 @@
 
 #include <bitcoin/system.hpp>
 
+ // This is some temporary code to explore emission of win32 stack dump.
 #if defined(HAVE_MSC)
 
 #include <algorithm>
@@ -183,7 +184,7 @@ inline DWORD get_machine(HANDLE process) THROWS
     return header->FileHeader.Machine;
 }
 
-DWORD dump_stack_trace(unsigned int, EXCEPTION_POINTERS* exception) THROWS
+DWORD dump_stack_trace(unsigned, EXCEPTION_POINTERS* exception) THROWS
 {
     if (is_null(exception) || is_null(exception->ContextRecord))
         return EXCEPTION_EXECUTE_HANDLER;
@@ -217,14 +218,14 @@ DWORD dump_stack_trace(unsigned int, EXCEPTION_POINTERS* exception) THROWS
         // When this?
         if (name == "main")
         {
-            tracer << "no symbols";
+            tracer << "((no symbols))";
             break;
         }
 
         // Compiled in release mode.
         if (name == "RaiseException")
         {
-            tracer << "no symbols";
+            tracer << "[[no symbols]]";
             break;
         }
 
@@ -235,9 +236,7 @@ DWORD dump_stack_trace(unsigned int, EXCEPTION_POINTERS* exception) THROWS
         
         // Write line.
         tracer
-            << name << ":"
-            << line.FileName
-            << "(" << line.LineNumber << ")"
+            << name << " -> " << line.FileName << "(" << line.LineNumber << ")"
             << std::endl;
         
         // Advance iterator.

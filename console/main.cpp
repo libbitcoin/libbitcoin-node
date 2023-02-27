@@ -21,13 +21,12 @@
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
 
+// This is some temporary code to explore emission of win32 stack dump.
 #ifdef HAVE_MSC
 #include "stack_trace.hpp"
 
-namespace libbitcoin
-{
-namespace system
-{
+namespace libbitcoin {
+namespace system {
     std::istream& cin = cin_stream();
     std::ostream& cout = cout_stream();
     std::ostream& cerr = cerr_stream();
@@ -53,8 +52,9 @@ int wmain(int argc, wchar_t* argv[])
 // This is invoked by dump_stack_trace.
 void handle_stack_trace(const std::string& trace) NOEXCEPT
 {
-    bc::system::cout << "unhandled exception" << std::endl;
+    bc::system::cout << "<<unhandled exception start>>" << std::endl;
     bc::system::cout << trace << std::endl;
+    bc::system::cout << "<<unhandled exception end>>" << std::endl;
 }
 
 // This is invoked by dump_stack_trace.
