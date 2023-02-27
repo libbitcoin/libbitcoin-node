@@ -52,9 +52,15 @@ int wmain(int argc, wchar_t* argv[])
 // This is invoked by dump_stack_trace.
 void handle_stack_trace(const std::string& trace) NOEXCEPT
 {
-    bc::system::cout << "<<unhandled exception start>>" << std::endl;
+    if (trace.empty())
+    {
+        bc::system::cout << "<<unhandled exception>>" << std::endl;
+        return;
+    }
+
+    bc::system::cout << "<<unhandled exception - start trace>>" << std::endl;
     bc::system::cout << trace << std::endl;
-    bc::system::cout << "<<unhandled exception end>>" << std::endl;
+    bc::system::cout << "<<unhandled exception - end trace>>" << std::endl;
 }
 
 // This is invoked by dump_stack_trace.
