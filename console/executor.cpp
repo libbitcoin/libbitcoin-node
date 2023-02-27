@@ -273,8 +273,6 @@ void executor::subscribe_events(rotator_t& sink)
 
 void executor::subscribe_capture()
 {
-    // Capture console input and send to log.
-    // TODO: generalize and rationalize capture stop with <ctrl-c>.
     cap_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto trim = system::trim_copy(line);
@@ -293,7 +291,7 @@ void executor::subscribe_capture()
     },
     [&](const code&)
     {
-        // continue from here to capture all startup std::cin.
+        // Continue from here to capture all startup std::cin.
     });
 }
 
