@@ -218,14 +218,14 @@ DWORD dump_stack_trace(unsigned, EXCEPTION_POINTERS* exception) THROWS
         // When this?
         if (name == "main")
         {
-            tracer << "no symbols";
+            tracer << "((no symbols))";
             break;
         }
 
         // Compiled in release mode.
         if (name == "RaiseException")
         {
-            tracer << "no symbols";
+            tracer << "[[no symbols]]";
             break;
         }
 
@@ -236,9 +236,7 @@ DWORD dump_stack_trace(unsigned, EXCEPTION_POINTERS* exception) THROWS
         
         // Write line.
         tracer
-            << name << ":"
-            << line.FileName
-            << "(" << line.LineNumber << ")"
+            << name << " -> " << line.FileName << "(" << line.LineNumber << ")"
             << std::endl;
         
         // Advance iterator.
