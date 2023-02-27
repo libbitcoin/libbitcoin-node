@@ -234,6 +234,10 @@ void executor::subscribe_full(rotator_t& sink)
         if (!ec && (level == level_t::quit || level == level_t::proxy))
             return true;
 
+        // Object logging in !NDEBUG builds can be toggled via stdin.
+        if (!ec && (!log_objects_ && level == level_t::objects))
+            return true;
+
         const auto prefix = format_zulu_time(time) + "." +
             serialize(level) + " ";
 
@@ -271,22 +275,37 @@ void executor::subscribe_events(rotator_t& sink)
     });
 }
 
+inline std::string to_text(bool value)
+{
+    return value ? "true" : "false";
+}
+
 void executor::subscribe_capture()
 {
     cap_.subscribe([&](const code& ec, const std::string& line)
     {
-        const auto trim = system::trim_copy(line);
-        if (trim.empty())
+        const auto token = system::trim_copy(line);
+        if (token.empty())
             return !ec;
 
-        if (trim == "q")
+        // Quit application.
+        if (token == "q")
         {
             logger("CONSOLE: quit");
             stop(error::success);
             return false;
         }
 
-        logger("CONSOLE: " + trim);
+        // TODO: implement as numeric log level toggle.
+        if (token == "o")
+        {
+            log_objects_ = !log_objects_;
+            logger("CONSOLE: objects (" + to_text(log_objects_) + ")");
+            return true;
+        }
+
+        // Echo by line.
+        logger("CONSOLE: " + token);
         return !ec;
     },
     [&](const code&)

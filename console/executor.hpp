@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_EXECUTOR_HPP
 #define LIBBITCOIN_NODE_EXECUTOR_HPP
 
+#include <atomic>
 #include <future>
 #include <iostream>
 #include <bitcoin/database.hpp>
@@ -68,7 +69,8 @@ private:
     void subscribe_close();
 
     static const char* name;
-    static std::promise<system::code> stopping_;
+    static std::promise<system::code> stopping_; 
+    std::atomic_bool log_objects_{ false };
     std::promise<system::code> stopped_{};
 
     full_node::ptr node_{};
