@@ -328,7 +328,6 @@ void executor::subscribe_connect()
                 "{rv:" << node_->reserved_count() << "}"
                 "{nc:" << node_->nonces_count() << "}"
                 "{ad:" << node_->address_count() << "}"
-                "{bs:" << node_->broadcast_count() << "}"
                 "{ss:" << node_->stop_subscriber_count() << "}"
                 "{cs:" << node_->connect_subscriber_count() << "}."
                 << std::endl;
@@ -365,7 +364,6 @@ void executor::subscribe_close()
             "{rv:" << node_->reserved_count() << "}"
             "{nc:" << node_->nonces_count() << "}"
             "{ad:" << node_->address_count() << "}"
-            "{bs:" << node_->broadcast_count() << "}"
             "{ss:" << node_->stop_subscriber_count() << "}"
             "{cs:" << node_->connect_subscriber_count() << "}."
             << std::endl;
