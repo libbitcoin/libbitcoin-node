@@ -306,7 +306,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.enable_ipv6",
         value<bool>(&configured.network.enable_ipv6),
-        "Enable interpet protocol version 6 (IPv6), defaults to false."
+        "Enable internet protocol version 6 (IPv6), defaults to false."
     )
     (
         "network.enable_loopback",
