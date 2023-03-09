@@ -324,11 +324,6 @@ options_metadata parser::load_settings() THROWS
         "The magic number for message headers, defaults to 3652501241."
     )
     (
-        "network.inbound_port",
-        value<uint16_t>(&configured.network.inbound_port),
-        "The port for incoming connections, defaults to 8333."
-    )
-    (
         "network.inbound_connections",
         value<uint16_t>(&configured.network.inbound_connections),
         "The target number of incoming network connections, defaults to 0."
@@ -404,9 +399,14 @@ options_metadata parser::load_settings() THROWS
         "The peer address cache file directory, defaults to empty."
     )
     (
+        "network.bind",
+        value<network::config::authorities>(&configured.network.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8333."
+    )
+    (
         "network.self",
-        value<network::config::authority>(&configured.network.self),
-        "The advertised public address of this node, defaults to none."
+        value<network::config::authorities>(&configured.network.selfs),
+        "IP address to advertise, multiple entries allowed."
     )
     (
         "network.blacklist",
