@@ -49,9 +49,9 @@ public:
 protected:
     typedef network::channel::ptr channel_ptr;
 
-    void attach_protocols(const channel_ptr& channel) const NOEXCEPT override
+    void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
-        const auto& self = *this;
+        auto& self = *this;
         const auto version = channel->negotiated_version();
 
         // protocol_reject_70002

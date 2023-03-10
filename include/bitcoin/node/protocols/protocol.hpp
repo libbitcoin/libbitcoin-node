@@ -34,7 +34,7 @@ class BCN_API protocol
 protected:
     typedef network::channel::ptr channel_ptr;
 
-    protocol(const network::session& session, const channel_ptr& channel,
+    protocol(network::session& session, const channel_ptr& channel,
         full_node& node) NOEXCEPT;
 
     /// network::protocol also exposes network::settings.

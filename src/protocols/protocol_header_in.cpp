@@ -36,7 +36,7 @@ using namespace std::placeholders;
 // TODO: move send_headers to a derived class protocol_header_in_70012.
 
 // TODO: header latency config.
-protocol_header_in::protocol_header_in(const session& session,
+protocol_header_in::protocol_header_in(session& session,
     const channel_ptr& channel, full_node& node) NOEXCEPT
   : node::protocol(session, channel, node),
     send_headers_(negotiated_version() >= level::bip130),
