@@ -24,7 +24,7 @@
 namespace libbitcoin {
 namespace node {
 
-protocol::protocol(const network::session& session, const channel_ptr& channel,
+protocol::protocol(network::session& session, const channel_ptr& channel,
     full_node& node) NOEXCEPT
   : network::protocol(session, channel), node_(node)
 {

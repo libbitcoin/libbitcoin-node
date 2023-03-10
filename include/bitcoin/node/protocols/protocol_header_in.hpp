@@ -34,7 +34,7 @@ class BCN_API protocol_header_in
 public:
     typedef std::shared_ptr<protocol_header_in> ptr;
 
-    protocol_header_in(const network::session& session,
+    protocol_header_in(network::session& session,
         const channel_ptr& channel, full_node& node) NOEXCEPT;
 
     void start() NOEXCEPT override;
