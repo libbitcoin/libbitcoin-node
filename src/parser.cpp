@@ -47,13 +47,13 @@ parser::parser(const configuration& defaults) NOEXCEPT
 parser::parser(system::chain::selection context) NOEXCEPT
   : configured(context)
 {
+    using level = network::messages::level;
     using service = network::messages::service;
-    configured.chain.index_payments = false;
     configured.network.enable_address = true;
     configured.network.enable_transaction = true;
     configured.network.host_pool_capacity = 10000;
-    configured.network.outbound_connections = 10;
-    configured.network.connect_batch_size = 5;
+    configured.network.protocol_maximum = level::bip133;
+    configured.network.protocol_minimum = level::minimum_protocol;
     configured.network.services_minimum = service::node_network;
     configured.network.services_maximum = service::node_network | service::node_witness;
 }
@@ -246,17 +246,17 @@ options_metadata parser::load_settings() THROWS
     (
         "network.threads",
         value<uint32_t>(&configured.network.threads),
-        "The minimum number of threads in the network threadpool, defaults to 0 (physical cores)."
+        "The minimum number of threads in the network threadpool, defaults to 1."
     )
     (
-        "network.address_maximum",
-        value<uint16_t>(&configured.network.address_maximum),
-        "The maximum network protocol version, defaults to 70013."
+        "network.address_upper",
+        value<uint16_t>(&configured.network.address_upper),
+        "The upper bound for address selection divisor, defaults to 10."
     )
     (
-        "network.address_minimum",
-        value<uint16_t>(&configured.network.address_minimum),
-        "The maximum network protocol version, defaults to 70013."
+        "network.address_lower",
+        value<uint16_t>(&configured.network.address_lower),
+        "The lower bound for address selection divisor, defaults to 5."
     )
     (
         "network.protocol_maximum",
@@ -286,7 +286,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.enable_address",
         value<bool>(&configured.network.enable_address),
-        "Enable address messages, defaults to false."
+        "Enable address messages, defaults to true."
     )
     (
         "network.enable_alert",
@@ -366,7 +366,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.channel_inactivity_minutes",
         value<uint32_t>(&configured.network.channel_inactivity_minutes),
-        "The inactivity time limit for any connection, defaults to 30."
+        "The inactivity time limit for any connection, defaults to 10."
     )
     (
         "network.channel_expiration_minutes",
