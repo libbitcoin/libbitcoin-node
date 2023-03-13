@@ -39,10 +39,10 @@ class session
 public:
     typedef std::shared_ptr<Session> ptr;
 
-    /// Session attachment passes p2p, key and variable args.
+    /// Session attachment passes p2p, identifier and variable args.
     /// To avoid templatizing on p2p, pass node as first arg.
-    session(network::p2p& network, size_t key, full_node& node)
-      : Session(network, key), node_(node)
+    session(network::p2p& network, uint64_t identifier, full_node& node)
+      : Session(network, identifier), node_(node)
     {
     };
 
@@ -51,21 +51,13 @@ protected:
 
     void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
+        Session::attach_protocols(channel);
+
         auto& self = *this;
         const auto version = channel->negotiated_version();
 
-        // protocol_reject_70002
-        // protocol_address_31402
-        // protocol_ping_31402/60001
-        Session::attach_protocols(channel);
-
         if (version >= network::messages::level::headers_protocol)
             channel->attach<protocol_header_in>(self, node_)->start();
-
-        ////channel->attach<protocol_block_in>(self)->start();
-        ////channel->attach<protocol_block_out>(self)->start();
-        ////channel->attach<protocol_transaction_in>(self)->start();
-        ////channel->attach<protocol_transaction_out>(self)->start();
     }
 
 private:
