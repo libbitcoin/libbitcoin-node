@@ -30,8 +30,40 @@ using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
+// Start.
+// ----------------------------------------------------------------------------
+
 void protocol_header_in::start() NOEXCEPT
 {
+    BC_ASSERT_MSG(stranded(), "protocol_header_in");
+
+    if (started())
+        return;
+
+    SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
+
+    // TODO: initial block locator.
+    SEND1(get_headers{}, handle_send, _1);
+
+    protocol::start();
+}
+
+// Inbound (headers).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_in::handle_receive_headers(const code& ec,
+    const headers::cptr& message) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "protocol_address_in_31402");
+
+    if (stopped(ec))
+        return false;
+
+    LOGP("Received (" << message->header_ptrs.size() << ") headers from ["
+        << authority() << "].");
+
+    // TODO: next block locator.
+    return true;
 }
 
 } // namespace node

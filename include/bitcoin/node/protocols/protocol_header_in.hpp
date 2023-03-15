@@ -41,6 +41,10 @@ public:
 
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
+
+protected:
+    virtual bool handle_receive_headers(const code& ec,
+        const network::messages::headers::cptr& message) NOEXCEPT;
 };
 
 } // namespace node
