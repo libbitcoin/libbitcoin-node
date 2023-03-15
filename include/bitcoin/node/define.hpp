@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_DEFINE_HPP
 
 #include <bitcoin/system.hpp>
+#include <bitcoin/database.hpp>
 
 // We use the generic helper definitions in libbitcoin to define BCN_API
 // and BCN_INTERNAL. BCN_API is used for the public API symbols. It either DLL
@@ -44,6 +45,10 @@ namespace node {
     /// Alias system code.
     /// TODO: std::error_code "node" category holds node::error::error_t.
     typedef std::error_code code;
+
+    typedef database::map map_t;
+    typedef database::store<map_t> store_t;
+    typedef database::query<store_t> query_t;
 }
 }
 

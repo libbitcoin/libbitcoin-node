@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -18,21 +18,21 @@
  */
 #include <bitcoin/node/protocols/protocol.hpp>
 
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-protocol::protocol(network::session& session, const channel_ptr& channel,
-    full_node& node) NOEXCEPT
-  : network::protocol(session, channel), node_(node)
-{
-}
-
 const configuration& protocol::config() const NOEXCEPT
 {
-    return node_.config();
+    return session_.config();
+}
+
+query_t& protocol::query() const NOEXCEPT
+{
+    return session_.query();
 }
 
 } // namespace node

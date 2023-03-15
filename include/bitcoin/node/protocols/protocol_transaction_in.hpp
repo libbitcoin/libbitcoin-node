@@ -16,8 +16,8 @@
 //// * You should have received a copy of the GNU Affero General Public License
 //// * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //// */
-////#ifndef LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_IN_HPP
-////#define LIBBITCOIN_NODE_PROTOCOL_TRANSACTION_IN_HPP
+////#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_HPP
+////#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_HPP
 ////
 ////#include <bitcoin/blockchain.hpp>
 ////#include <bitcoin/network.hpp>

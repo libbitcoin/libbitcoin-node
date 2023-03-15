@@ -83,6 +83,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out.cpp" />
+    <ClCompile Include="..\..\..\..\src\sessions\session.cpp" />
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -92,6 +93,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\mixin.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out.hpp" />

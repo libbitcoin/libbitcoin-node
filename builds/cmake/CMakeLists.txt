@@ -187,7 +187,8 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_block_out.cpp"
     "../../src/protocols/protocol_header_in.cpp"
     "../../src/protocols/protocol_transaction_in.cpp"
-    "../../src/protocols/protocol_transaction_out.cpp" )
+    "../../src/protocols/protocol_transaction_out.cpp"
+    "../../src/sessions/session.cpp" )
 
 # ${CANONICAL_LIB_NAME} project specific include directories.
 #------------------------------------------------------------------------------

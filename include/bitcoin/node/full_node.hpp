@@ -26,10 +26,6 @@
 namespace libbitcoin {
 namespace node {
 
-typedef database::map map_t;
-typedef database::store<map_t> store_t;
-typedef database::query<store_t> query_t;
-
 class BCN_API full_node
   : public network::p2p
 {
@@ -44,6 +40,8 @@ public:
     void run(result_handler&& handler) NOEXCEPT override;
 
     const configuration& config() const NOEXCEPT;
+
+    /// TODO: This is UNGUARDED.
     query_t& query() NOEXCEPT;
 
 protected:
@@ -52,7 +50,10 @@ protected:
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
 
 private:
+    // This is thread safe.
     const configuration& config_;
+
+    // This is UNGUARDED.
     query_t& query_;
 };
 

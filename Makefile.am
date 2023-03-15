@@ -45,7 +45,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_out.cpp \
     src/protocols/protocol_header_in.cpp \
     src/protocols/protocol_transaction_in.cpp \
-    src/protocols/protocol_transaction_out.cpp
+    src/protocols/protocol_transaction_out.cpp \
+    src/sessions/session.cpp
 
 # local: test/libbitcoin-node-test
 #------------------------------------------------------------------------------
@@ -101,6 +102,7 @@ include_bitcoin_node_HEADERS = \
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
+    include/bitcoin/node/protocols/mixin.hpp \
     include/bitcoin/node/protocols/protocol.hpp \
     include/bitcoin/node/protocols/protocol_block_in.hpp \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
