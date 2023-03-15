@@ -435,6 +435,16 @@ options_metadata parser::load_settings() THROWS
         value<std::filesystem::path>(&configured.database.path),
         "The blockchain database directory, defaults to 'blockchain'."
     )
+    (
+        "database.header_buckets",
+        value<uint32_t>(&configured.database.header_buckets),
+        "The number of buckets in the header table head, defaults to '100'."
+    )
+    (
+        "database.header_size",
+        value<uint32_t>(&configured.database.header_size),
+        "The minimum allocation of the header table body, defaults to '1'."
+    )
 
     /* [blockchain] */
     (
@@ -616,8 +626,7 @@ bool parser::parse(int argc, const char* argv[], std::ostream& error) THROWS
         // Don't load config file if any of these options are specified.
         if (!get_option(variables, BN_VERSION_VARIABLE) &&
             !get_option(variables, BN_SETTINGS_VARIABLE) &&
-            !get_option(variables, BN_HELP_VARIABLE) &&
-            !get_option(variables, BN_INITCHAIN_VARIABLE))
+            !get_option(variables, BN_HELP_VARIABLE))
         {
             // Returns true if the settings were loaded from a file.
             file = load_configuration_variables(variables, BN_CONFIG_VARIABLE);
