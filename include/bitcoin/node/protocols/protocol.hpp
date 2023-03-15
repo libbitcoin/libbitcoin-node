@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,33 +16,41 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOL_HPP
-#define LIBBITCOIN_NODE_PROTOCOL_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class full_node;
-class configuration;
 
+/// Abstract base for node protocols.
 class BCN_API protocol
   : public network::protocol
 {
 protected:
     typedef network::channel::ptr channel_ptr;
 
-    protocol(network::session& session, const channel_ptr& channel,
-        full_node& node) NOEXCEPT;
+    // Session implements both network::session and node::session.
+    template <typename Session>
+    protocol(Session& session, const channel_ptr& channel) NOEXCEPT
+      : network::protocol(session, channel),
+        session_(session)
+    {
+    }
 
-    /// network::protocol also exposes network::settings.
-    /// settings: bitcoin, database, blockchain, network, node.
+    /// Command, environ, log, node, chain, network, database, bitcoin options.
     const configuration& config() const NOEXCEPT;
 
+    /// TODO: This is UNGUARDED.
+    query_t& query() const NOEXCEPT;
+
 private:
-    full_node& node_;
+    session& session_;
 };
 
 } // namespace node

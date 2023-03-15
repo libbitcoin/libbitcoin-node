@@ -16,14 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 
+#include <bitcoin/node/protocols/mixin.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
+ ////#include <bitcoin/node/protocols/protocol_block_in.hpp>
+ ////#include <bitcoin/node/protocols/protocol_block_out.hpp>
 #include <bitcoin/node/protocols/protocol_header_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+////#include <bitcoin/node/protocols/protocol_header_out.hpp>
+////#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
+////#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 #endif

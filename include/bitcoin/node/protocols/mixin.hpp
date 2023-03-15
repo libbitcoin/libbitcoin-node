@@ -1,0 +1,67 @@
+/**
+ * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
+ *
+ * This file is part of libbitcoin.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
+
+#include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/sessions/session.hpp>
+////#include <bitcoin/node/protocols/protocol_block_in.hpp>
+////#include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_header_in.hpp>
+////#include <bitcoin/node/protocols/protocol_header_out.hpp>
+////#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
+////#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+
+namespace libbitcoin {
+namespace node {
+
+/// Session base class template for protocol attach mixin.
+/// node::session does not derive from network::session (siblings).
+/// This avoids the diamond inheritance problem between network/node.
+/// For this reason protocol contructors are templatized on Session.
+template <class Session>
+class mixin
+  : public Session, public node::session
+{
+public:
+    mixin(full_node& node, uint64_t identifier) NOEXCEPT
+      : Session(node, identifier), session(node)
+    {
+    };
+
+protected:
+    void attach_protocols(
+        const network::channel::ptr& channel) NOEXCEPT override
+    {
+        Session::attach_protocols(channel);
+
+        auto& self = *this;
+        const auto version = channel->negotiated_version();
+
+        if (version >= network::messages::level::headers_protocol)
+            channel->attach<protocol_header_in>(self)->start();
+    }
+};
+
+} // namespace node
+} // namespace libbitcoin
+
+#endif

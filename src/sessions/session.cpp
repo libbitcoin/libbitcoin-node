@@ -16,33 +16,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_HPP
-#define LIBBITCOIN_NODE_SESSION_HPP
+#include <bitcoin/node/sessions/session.hpp>
 
-#include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Node session base class.
-class BCN_API session
+session::session(full_node& node) NOEXCEPT
+  : node_(node)
 {
-public:
-    session(full_node& node) NOEXCEPT;
+}
 
-    /// Command, environ, log, node, chain, network, database, bitcoin options.
-    const configuration& config() const NOEXCEPT;
+const configuration& session::config() const NOEXCEPT
+{
+    return node_.config();
+}
 
-    /// TODO: This is UNGUARDED.
-    query_t& query() const NOEXCEPT;
-
-private:
-    full_node& node_;
-};
+query_t& session::query() const NOEXCEPT
+{
+    return node_.query();
+}
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif

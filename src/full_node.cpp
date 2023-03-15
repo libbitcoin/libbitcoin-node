@@ -21,13 +21,15 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
-#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/protocols/protocols.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-full_node::full_node(query_t& query, const node::configuration& configuration,
-    const network::logger& log) NOEXCEPT
+using namespace network;
+
+full_node::full_node(query_t& query, const configuration& configuration,
+    const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
     config_(configuration),
     query_(query)
@@ -60,23 +62,19 @@ const configuration& full_node::config() const NOEXCEPT
     return config_;
 }
 
-// Return is a pointer cast.
-// Session attachment passes p2p and variable args.
-// To avoid templatizing on p2p, pass node as first arg.
-
-network::session_manual::ptr full_node::attach_manual_session() NOEXCEPT
+session_manual::ptr full_node::attach_manual_session() NOEXCEPT
 {
-    return p2p::attach<node::session<network::session_manual>>(*this, *this);
+    return p2p::attach<mixin<session_manual>>(*this);
 }
 
-network::session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
+session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 {
-    return p2p::attach<node::session<network::session_inbound>>(*this, *this);
+    return p2p::attach<mixin<session_inbound>>(*this);
 }
 
-network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
+session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
-    return p2p::attach<node::session<network::session_outbound>>(*this, *this);
+    return p2p::attach<mixin<session_outbound>>(*this);
 }
 
 } // namespace node
