@@ -21,14 +21,14 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
 namespace libbitcoin {
 namespace node {
     
 class BCN_API protocol_header_in_70012
-  : public protocol_header_in_31800, network::tracker<protocol_header_in_70012>
+  : public protocol_header_in_31800,
+    network::tracker<protocol_header_in_70012>
 {
 public:
     typedef std::shared_ptr<protocol_header_in_70012> ptr;

@@ -27,7 +27,8 @@ namespace libbitcoin {
 namespace node {
     
 class BCN_API protocol_header_in_31800
-  : public node::protocol, network::tracker<protocol_header_in_31800>
+  : public node::protocol,
+    network::tracker<protocol_header_in_31800>
 {
 public:
     typedef std::shared_ptr<protocol_header_in_31800> ptr;
