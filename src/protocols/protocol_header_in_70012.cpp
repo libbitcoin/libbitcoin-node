@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2019 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,17 +16,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
-
-#include <bitcoin/node/protocols/mixin.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
- ////#include <bitcoin/node/protocols/protocol_block_in.hpp>
- ////#include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
-////#include <bitcoin/node/protocols/protocol_header_out.hpp>
-////#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-////#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
-#endif
+#include <bitcoin/system.hpp>
+#include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
+
+namespace libbitcoin {
+namespace node {
+
+#define CLASS protocol_header_in_70012
+
+using namespace network::messages;
+using namespace std::placeholders;
+
+void protocol_header_in_70012::send_send_headers() NOEXCEPT
+{
+    // TODO: request header announcements only after becoming current.
+    // TODO: otherwise wated bandwidth and disorder is possible (channel drop).
+    // TODO: this should be a subscribed blockchain event ("current").
+    SEND1(send_headers{}, handle_send, _1);
+}
+
+} // namespace node
+} // namespace libbitcoin

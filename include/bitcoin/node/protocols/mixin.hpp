@@ -25,7 +25,8 @@
 #include <bitcoin/node/sessions/session.hpp>
 ////#include <bitcoin/node/protocols/protocol_block_in.hpp>
 ////#include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
 ////#include <bitcoin/node/protocols/protocol_header_out.hpp>
 ////#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 ////#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
@@ -56,8 +57,10 @@ protected:
         auto& self = *this;
         const auto version = channel->negotiated_version();
 
-        if (version >= network::messages::level::headers_protocol)
-            channel->attach<protocol_header_in>(self)->start();
+        if (version >= network::messages::level::bip130)
+            channel->attach<protocol_header_in_70012>(self)->start();
+        else if (version >= network::messages::level::headers_protocol)
+            channel->attach<protocol_header_in_31800>(self)->start();
     }
 };
 

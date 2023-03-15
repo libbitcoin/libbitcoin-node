@@ -185,7 +185,8 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol.cpp"
     "../../src/protocols/protocol_block_in.cpp"
     "../../src/protocols/protocol_block_out.cpp"
-    "../../src/protocols/protocol_header_in.cpp"
+    "../../src/protocols/protocol_header_in_31800.cpp"
+    "../../src/protocols/protocol_header_in_70012.cpp"
     "../../src/protocols/protocol_transaction_in.cpp"
     "../../src/protocols/protocol_transaction_out.cpp"
     "../../src/sessions/session.cpp" )
