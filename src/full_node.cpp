@@ -28,7 +28,7 @@ namespace node {
 
 using namespace network;
 
-full_node::full_node(query_t& query, const configuration& configuration,
+full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
     config_(configuration),
@@ -52,7 +52,7 @@ void full_node::run(result_handler&& handler) NOEXCEPT
     p2p::run(std::move(handler));
 }
 
-query_t& full_node::query() NOEXCEPT
+full_node::query& full_node::archive() const NOEXCEPT
 {
     return query_;
 }

@@ -27,7 +27,8 @@
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>

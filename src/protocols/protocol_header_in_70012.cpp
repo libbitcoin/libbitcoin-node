@@ -16,24 +16,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
 
+#include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-const configuration& protocol::config() const NOEXCEPT
-{
-    return session_.config();
-}
+#define CLASS protocol_header_in_70012
 
-full_node::query& protocol::archive() const NOEXCEPT
+using namespace network::messages;
+using namespace std::placeholders;
+
+void protocol_header_in_70012::send_send_headers() NOEXCEPT
 {
-    return session_.archive();
+    // TODO: request header announcements only after becoming current.
+    // TODO: otherwise wated bandwidth and disorder is possible (channel drop).
+    // TODO: this should be a subscribed blockchain event ("current").
+    SEND1(send_headers{}, handle_send, _1);
 }
 
 } // namespace node

@@ -74,10 +74,10 @@ private:
     std::atomic_bool log_protocol_{ false };
     std::promise<system::code> stopped_{};
 
-    full_node::ptr node_{};
     parser& metadata_;
-    store_t store_;
-    query_t query_;
+    full_node::store store_;
+    full_node::query query_;
+    full_node::ptr node_{};
 
     std::istream& input_;
     std::ostream& output_;

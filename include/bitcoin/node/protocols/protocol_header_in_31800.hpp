@@ -16,33 +16,42 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_HPP
-#define LIBBITCOIN_NODE_SESSION_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_31800_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_31800_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-/// Node session base class.
-class BCN_API session
+    
+class BCN_API protocol_header_in_31800
+  : public node::protocol,
+    network::tracker<protocol_header_in_31800>
 {
 public:
-    /// Configuration settings for all libraries.
-    const configuration& config() const NOEXCEPT;
+    typedef std::shared_ptr<protocol_header_in_31800> ptr;
 
-    /// Thread safe synchronous archival interface.
-    full_node::query& archive() const NOEXCEPT;
+    template <typename Session>
+    protocol_header_in_31800(Session& session,
+        const channel_ptr& channel) NOEXCEPT
+      : node::protocol(session, channel),
+        network::tracker<protocol_header_in_31800>(session.log())
+    {
+    }
+
+    /// Start protocol (strand required).
+    void start() NOEXCEPT override;
 
 protected:
-    /// Construct the session.
-    session(full_node& node) NOEXCEPT;
+    virtual bool handle_receive_headers(const code& ec,
+        const network::messages::headers::cptr& message) NOEXCEPT;
 
 private:
-    // This is thread safe (mostly).
-    full_node& node_;
+    network::messages::get_headers create_get_headers() NOEXCEPT;
+    network::messages::get_headers create_get_headers(
+        system::hashes&& start_hashes) NOEXCEPT;
 };
 
 } // namespace node

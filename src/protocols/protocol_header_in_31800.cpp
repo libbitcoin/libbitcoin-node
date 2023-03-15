@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_header_in.hpp>
+#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
 #include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
@@ -25,7 +25,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_header_in
+#define CLASS protocol_header_in_31800
 
 using namespace system;
 using namespace network;
@@ -35,9 +35,9 @@ using namespace std::placeholders;
 // Start.
 // ----------------------------------------------------------------------------
 
-void protocol_header_in::start() NOEXCEPT
+void protocol_header_in_31800::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_header_in");
+    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
 
     if (started())
         return;
@@ -50,15 +50,7 @@ void protocol_header_in::start() NOEXCEPT
 // Inbound (headers).
 // ----------------------------------------------------------------------------
 
-////// TODO: move send_headers to a derived class protocol_header_in_70012.
-////void protocol_header_in::send_send_headers() NOEXCEPT
-////{
-////    // TODO: request header announcements only after becoming current.
-////    // TODO: this should be a subscribed blockchain event ("current").
-////    SEND1(send_headers{}, handle_send, _1);
-////}
-
-bool protocol_header_in::handle_receive_headers(const code& ec,
+bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_address_in_31402");
@@ -74,7 +66,7 @@ bool protocol_header_in::handle_receive_headers(const code& ec,
     for (const auto& header: message->header_ptrs)
     {
         // TODO: maintain context progression and store with header.
-        if (!query().set(*header, database::context{}))
+        if (!archive().set(*header, database::context{}))
         {
             stop(network::error::protocol_violation);
             return false;
@@ -92,14 +84,15 @@ bool protocol_header_in::handle_receive_headers(const code& ec,
 }
 
 // private
-get_headers protocol_header_in::create_get_headers() NOEXCEPT
+get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
-    return create_get_headers(query().get_hashes(get_blocks::heights(
-        query().get_top_candidate())));
+    return create_get_headers(archive().get_hashes(get_blocks::heights(
+        archive().get_top_candidate())));
 }
 
 // private
-get_headers protocol_header_in::create_get_headers(hashes&& hashes) NOEXCEPT
+get_headers protocol_header_in_31800::create_get_headers(
+    hashes&& hashes) NOEXCEPT
 {
     if (!hashes.empty())
     {
@@ -107,7 +100,7 @@ get_headers protocol_header_in::create_get_headers(hashes&& hashes) NOEXCEPT
             << "] from [" << authority() << "].");
     }
 
-    return { std::move(hashes), null_hash };
+    return { std::move(hashes) };
 }
 
 } // namespace node
