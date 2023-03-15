@@ -20,6 +20,8 @@
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
 #include <memory>
+#include <bitcoin/database.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -30,19 +32,25 @@ class BCN_API full_node
   : public network::p2p
 {
 public:
+    typedef database::store<database::map> store;
+    typedef database::query<store> query;
     typedef std::shared_ptr<full_node> ptr;
-    using result_handler = network::result_handler;
 
-    full_node(query_t& query, const configuration& configuration,
+    /// Construct the node.
+    full_node(query& query, const configuration& configuration,
         const network::logger& log) NOEXCEPT;
 
-    void start(result_handler&& handler) NOEXCEPT override;
-    void run(result_handler&& handler) NOEXCEPT override;
+    /// Start the node (seed and manual services).
+    void start(network::result_handler&& handler) NOEXCEPT override;
 
+    /// Run the node (inbound and outbound services).
+    void run(network::result_handler&& handler) NOEXCEPT override;
+
+    // Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
-    /// TODO: This is UNGUARDED.
-    query_t& query() NOEXCEPT;
+    /// Thread safe synchronous archival interface.
+    query& archive() const NOEXCEPT;
 
 protected:
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
@@ -50,11 +58,9 @@ protected:
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
 
 private:
-    // This is thread safe.
+    // These are thread safe.
     const configuration& config_;
-
-    // This is UNGUARDED.
-    query_t& query_;
+    query& query_;
 };
 
 } // namespace node

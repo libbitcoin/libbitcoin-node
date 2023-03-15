@@ -66,7 +66,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     for (const auto& header: message->header_ptrs)
     {
         // TODO: maintain context progression and store with header.
-        if (!query().set(*header, database::context{}))
+        if (!archive().set(*header, database::context{}))
         {
             stop(network::error::protocol_violation);
             return false;
@@ -86,8 +86,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // private
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
-    return create_get_headers(query().get_hashes(get_blocks::heights(
-        query().get_top_candidate())));
+    return create_get_headers(archive().get_hashes(get_blocks::heights(
+        archive().get_top_candidate())));
 }
 
 // private

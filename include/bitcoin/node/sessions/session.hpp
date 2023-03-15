@@ -30,15 +30,18 @@ namespace node {
 class BCN_API session
 {
 public:
-    session(full_node& node) NOEXCEPT;
-
-    /// Command, environ, log, node, chain, network, database, bitcoin options.
+    /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
-    /// TODO: This is UNGUARDED.
-    query_t& query() const NOEXCEPT;
+    /// Thread safe synchronous archival interface.
+    full_node::query& archive() const NOEXCEPT;
+
+protected:
+    /// Construct the session.
+    session(full_node& node) NOEXCEPT;
 
 private:
+    // This is thread safe (mostly).
     full_node& node_;
 };
 

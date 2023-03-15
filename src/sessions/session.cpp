@@ -35,9 +35,9 @@ const configuration& session::config() const NOEXCEPT
     return node_.config();
 }
 
-query_t& session::query() const NOEXCEPT
+full_node::query& session::archive() const NOEXCEPT
 {
-    return node_.query();
+    return node_.archive();
 }
 
 } // namespace node

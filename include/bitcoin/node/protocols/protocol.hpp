@@ -35,7 +35,7 @@ class BCN_API protocol
 protected:
     typedef network::channel::ptr channel_ptr;
 
-    // Session implements both network::session and node::session.
+    /// Session implements both network::session and node::session.
     template <typename Session>
     protocol(Session& session, const channel_ptr& channel) NOEXCEPT
       : network::protocol(session, channel),
@@ -43,11 +43,11 @@ protected:
     {
     }
 
-    /// Command, environ, log, node, chain, network, database, bitcoin options.
+    /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
-    /// TODO: This is UNGUARDED.
-    query_t& query() const NOEXCEPT;
+    /// Thread safe synchronous archival interface.
+    full_node::query& archive() const NOEXCEPT;
 
 private:
     session& session_;

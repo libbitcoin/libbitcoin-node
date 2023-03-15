@@ -21,6 +21,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -30,9 +31,9 @@ const configuration& protocol::config() const NOEXCEPT
     return session_.config();
 }
 
-query_t& protocol::query() const NOEXCEPT
+full_node::query& protocol::archive() const NOEXCEPT
 {
-    return session_.query();
+    return session_.archive();
 }
 
 } // namespace node
