@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in.hpp>
 
+#include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -26,6 +27,7 @@ namespace node {
 
 #define CLASS protocol_header_in
 
+using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
@@ -41,15 +43,20 @@ void protocol_header_in::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
-
-    // TODO: initial block locator.
-    SEND1(get_headers{}, handle_send, _1);
-
+    SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
 }
 
 // Inbound (headers).
 // ----------------------------------------------------------------------------
+
+////// TODO: move send_headers to a derived class protocol_header_in_70012.
+////void protocol_header_in::send_send_headers() NOEXCEPT
+////{
+////    // TODO: request header announcements only after becoming current.
+////    // TODO: this should be a subscribed blockchain event ("current").
+////    SEND1(send_headers{}, handle_send, _1);
+////}
 
 bool protocol_header_in::handle_receive_headers(const code& ec,
     const headers::cptr& message) NOEXCEPT
@@ -62,8 +69,45 @@ bool protocol_header_in::handle_receive_headers(const code& ec,
     LOGP("Received (" << message->header_ptrs.size() << ") headers from ["
         << authority() << "].");
 
-    // TODO: next block locator.
+    // TODO: optimize header hashing using read buffer in message deserialize.
+    // Store each header, drop channel if fails (missing parent).
+    for (const auto& header: message->header_ptrs)
+    {
+        // TODO: maintain context progression and store with header.
+        if (!query().set(*header, database::context{}))
+        {
+            stop(network::error::protocol_violation);
+            return false;
+        }
+    };
+
+    // Protocol requires max_get_headers unless complete.
+    if (message->header_ptrs.size() == max_get_headers)
+    {
+        SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
+            handle_send, _1);
+    }
+
     return true;
+}
+
+// private
+get_headers protocol_header_in::create_get_headers() NOEXCEPT
+{
+    return create_get_headers(query().get_hashes(get_blocks::heights(
+        query().get_top_candidate())));
+}
+
+// private
+get_headers protocol_header_in::create_get_headers(hashes&& hashes) NOEXCEPT
+{
+    if (!hashes.empty())
+    {
+        LOGP("Request headers after [" << encode_hash(hashes.front())
+            << "] from [" << authority() << "].");
+    }
+
+    return { std::move(hashes), null_hash };
 }
 
 } // namespace node
