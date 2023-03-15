@@ -43,8 +43,14 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    ////virtual void send_send_headers() NOEXCEPT;
     virtual bool handle_receive_headers(const code& ec,
         const network::messages::headers::cptr& message) NOEXCEPT;
+
+private:
+    network::messages::get_headers create_get_headers() NOEXCEPT;
+    network::messages::get_headers create_get_headers(
+        system::hashes&& start_hashes) NOEXCEPT;
 };
 
 } // namespace node

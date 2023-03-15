@@ -234,8 +234,12 @@ void executor::subscribe_full(rotator_t& sink)
         if (!ec && (level == level_t::quit || level == level_t::proxy))
             return true;
 
-        // Object logging in !NDEBUG builds can be toggled via stdin.
+        // Object logging in !NDEBUG builds can be toggled via stdin ('o').
         if (!ec && (!log_objects_ && level == level_t::objects))
+            return true;
+
+        // Protocol logging can be toggled via stdin ('p').
+        if (!ec && (!log_protocol_ && level == level_t::protocol))
             return true;
 
         const auto prefix = format_zulu_time(time) + "." +
@@ -301,6 +305,14 @@ void executor::subscribe_capture()
         {
             log_objects_ = !log_objects_;
             logger("CONSOLE: objects (" + to_text(log_objects_) + ")");
+            return true;
+        }
+
+        // TODO: implement as numeric log level toggle.
+        if (token == "p")
+        {
+            log_protocol_ = !log_protocol_;
+            logger("CONSOLE: protocol (" + to_text(log_protocol_) + ")");
             return true;
         }
 
