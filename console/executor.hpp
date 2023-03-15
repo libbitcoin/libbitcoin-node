@@ -71,6 +71,7 @@ private:
     static const char* name;
     static std::promise<system::code> stopping_; 
     std::atomic_bool log_objects_{ false };
+    std::atomic_bool log_protocol_{ false };
     std::promise<system::code> stopped_{};
 
     full_node::ptr node_{};
