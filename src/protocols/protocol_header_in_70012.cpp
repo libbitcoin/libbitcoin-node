@@ -35,7 +35,7 @@ void protocol_header_in_70012::complete(const headers& message,
 {
     protocol_header_in_31800::complete(message, start);
     SEND1(send_headers{}, handle_send, _1);
-    LOGP("Requested header announcements from [" << authority() << "].");
+    LOGP("Request header announcements from [" << authority() << "].");
 }
 
 } // namespace node
