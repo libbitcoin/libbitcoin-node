@@ -45,6 +45,9 @@ protected:
     /// Invoked when initial headers sync is complete.
     void complete(const network::messages::headers& message,
         uint32_t start) NOEXCEPT override;
+
+private:
+    bool sent_{};
 };
 
 } // namespace node

@@ -33,9 +33,16 @@ using namespace std::placeholders;
 void protocol_header_in_70012::complete(const headers& message,
     uint32_t start) NOEXCEPT
 {
+    // This could be the end of a catch-up sequence, or a singleton
+    // announcement. The distinction is ultimately arbitrary.
     protocol_header_in_31800::complete(message, start);
-    SEND1(send_headers{}, handle_send, _1);
-    LOGP("Request header announcements from [" << authority() << "].");
+
+    if (!sent_)
+    {
+        SEND1(send_headers{}, handle_send, _1);
+        LOGP("Request header announcements from [" << authority() << "].");
+        sent_ = true;
+    }
 }
 
 } // namespace node
