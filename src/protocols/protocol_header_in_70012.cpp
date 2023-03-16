@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
 
-#include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -27,15 +26,23 @@ namespace node {
 
 #define CLASS protocol_header_in_70012
 
+using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
-void protocol_header_in_70012::send_send_headers() NOEXCEPT
+void protocol_header_in_70012::complete(const headers& message,
+    uint32_t start) NOEXCEPT
 {
-    // TODO: request header announcements only after becoming current.
-    // TODO: otherwise wated bandwidth and disorder is possible (channel drop).
-    // TODO: this should be a subscribed blockchain event ("current").
-    SEND1(send_headers{}, handle_send, _1);
+    // This could be the end of a catch-up sequence, or a singleton
+    // announcement. The distinction is ultimately arbitrary.
+    protocol_header_in_31800::complete(message, start);
+
+    if (!sent_)
+    {
+        SEND1(send_headers{}, handle_send, _1);
+        LOGP("Request header announcements from [" << authority() << "].");
+        sent_ = true;
+    }
 }
 
 } // namespace node

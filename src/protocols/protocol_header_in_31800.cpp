@@ -18,7 +18,8 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
-#include <bitcoin/system.hpp>
+#include <utility>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -42,7 +43,7 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
+    SUBSCRIBE_CHANNEL3(headers, handle_receive_headers, _1, _2, unix_time());
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
 }
@@ -51,7 +52,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
-    const headers::cptr& message) NOEXCEPT
+    const headers::cptr& message, uint32_t start) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_address_in_31402");
 
@@ -61,26 +62,66 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     LOGP("Received (" << message->header_ptrs.size() << ") headers from ["
         << authority() << "].");
 
+    code check{};
+    const auto& coin = config().bitcoin;
+
     // TODO: optimize header hashing using read buffer in message deserialize.
-    // Store each header, drop channel if fails (missing parent).
+    // Store each header, drop channel if invalid.
     for (const auto& header: message->header_ptrs)
     {
+        check = header->check(
+            coin.timestamp_limit_seconds,
+            coin.proof_of_work_limit,
+            coin.scrypt_proof_of_work);
+
+        if (check)
+        {
+            LOGR("Invalid header [" << encode_hash(header->hash())
+                << "] from [" << authority() << "] " << check.message());
+
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
         // TODO: maintain context progression and store with header.
-        if (!archive().set(*header, database::context{}))
+        if (!archive().set(*header, database::context{ 1, 42, 7 }))
         {
             stop(network::error::protocol_violation);
             return false;
         }
-    };
+    }
 
-    // Protocol requires max_get_headers unless complete.
+    // Protocol presumes max_get_headers unless complete.
     if (message->header_ptrs.size() == max_get_headers)
     {
+        // Requesting at max_get_headers assumes there may be more.
         SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
             handle_send, _1);
     }
+    else
+    {
+        complete(*message, start);
+    }
 
     return true;
+}
+
+void protocol_header_in_31800::complete(const headers& message,
+    uint32_t LOG_ONLY(start)) NOEXCEPT
+{
+    if (message.header_ptrs.empty())
+    {
+        // Empty message may happen in case where last header is 2000th.
+        LOGN("Headers from [" << authority() << "] complete in ("
+            << (unix_time() - start) << ") secs.");
+    }
+    else
+    {
+        // Using header_fk as height proxy.
+        LOGN("Headers from [" << authority() << "] stopped at ("
+            << archive().to_header(message.header_ptrs.back()->hash())
+            << ") in (" << (unix_time() - start) << ") secs.");
+    }
 }
 
 // private

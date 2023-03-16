@@ -130,36 +130,99 @@ options_metadata parser::load_settings() THROWS
     options_metadata description("settings");
     description.add_options()
 
-    /* [log] */
-#if defined (HAVE_MSC)
+    /* [fork] */
     (
-        "log.symbols",
-        value<std::filesystem::path>(&configured.log.symbols),
-        "Path to windows debug build symbols file (.pdb)."
-    )
-#endif
-    (
-        "log.verbose",
-        value<bool>(&configured.log.verbose),
-        "Enable verbose logging, defaults to false."
+        "fork.difficult",
+        value<bool>(&configured.bitcoin.difficult),
+        "Require difficult blocks, defaults to true (use false for testnet)."
     )
     (
-        "log.maximum_size",
-        value<uint32_t>(&configured.log.maximum_size),
-        "The maximum byte size of each pair of rotated log files, defaults to 1000000."
+        "fork.retarget",
+        value<bool>(&configured.bitcoin.retarget),
+        "Retarget difficulty, defaults to true."
     )
     (
-        "log.path",
-        value<std::filesystem::path>(&configured.log.path),
-        "The log files directory, defaults to empty."
+        "fork.bip16",
+        value<bool>(&configured.bitcoin.bip16),
+        "Add pay-to-script-hash processing, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip30",
+        value<bool>(&configured.bitcoin.bip30),
+        "Disallow collision of unspent transaction hashes, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip34",
+        value<bool>(&configured.bitcoin.bip34),
+        "Require coinbase input includes block height, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip42",
+        value<bool>(&configured.bitcoin.bip42),
+        "Finite monetary supply, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip66",
+        value<bool>(&configured.bitcoin.bip66),
+        "Require strict signature encoding, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip65",
+        value<bool>(&configured.bitcoin.bip65),
+        "Add check-locktime-verify op code, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip90",
+        value<bool>(&configured.bitcoin.bip90),
+        "Assume bip34, bip65, and bip66 activation if enabled, defaults to true (hard fork)."
+    )
+    (
+        "fork.bip68",
+        value<bool>(&configured.bitcoin.bip68),
+        "Add relative locktime enforcement, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip112",
+        value<bool>(&configured.bitcoin.bip112),
+        "Add check-sequence-verify op code, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip113",
+        value<bool>(&configured.bitcoin.bip113),
+        "Use median time past for locktime, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip141",
+        value<bool>(&configured.bitcoin.bip141),
+        "Segregated witness consensus layer, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip143",
+        value<bool>(&configured.bitcoin.bip143),
+        "Version 0 transaction digest, defaults to true (soft fork)."
+    )
+    (
+        "fork.bip147",
+        value<bool>(&configured.bitcoin.bip147),
+        "Prevent dummy value malleability, defaults to true (soft fork)."
+    )
+    (
+        "fork.time_warp_patch",
+        value<bool>(&configured.bitcoin.time_warp_patch),
+        "Fix time warp bug, defaults to false (hard fork)."
+    )
+    (
+        "fork.retarget_overflow_patch",
+        value<bool>(&configured.bitcoin.retarget_overflow_patch),
+        "Fix target overflow for very low difficulty, defaults to false (hard fork)."
+    )
+    (
+        "fork.scrypt_proof_of_work",
+        value<bool>(&configured.bitcoin.scrypt_proof_of_work),
+        "Use scrypt hashing for proof of work, defaults to false (hard fork)."
     )
 
     /* [bitcoin] */
-    (
-        "bitcoin.timestamp_limit_seconds",
-        value<uint32_t>(&configured.bitcoin.timestamp_limit_seconds),
-        "The future timestamp allowance, defaults to 7200."
-    )
     (
         "bitcoin.initial_block_subsidy_bitcoin",
         value<uint64_t>(&configured.bitcoin.initial_subsidy_bitcoin),
@@ -169,6 +232,11 @@ options_metadata parser::load_settings() THROWS
         "bitcoin.subsidy_interval",
         value<uint64_t>(&configured.bitcoin.subsidy_interval_blocks),
         "The subsidy halving period, defaults to 210000."
+    )
+    (
+        "bitcoin.timestamp_limit_seconds",
+        value<uint32_t>(&configured.bitcoin.timestamp_limit_seconds),
+        "The future timestamp allowance, defaults to 7200."
     )
     (
         "bitcoin.retargeting_factor",
@@ -231,6 +299,7 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.bitcoin.bip16_activation_time),
         "The activation time for bip16 in unix time, defaults to 1333238400."
     )
+    // [bip34_active_checkpoint excluded here]
     (
         "bitcoin.bip9_bit0_active_checkpoint",
         value<chain::checkpoint>(&configured.bitcoin.bip9_bit0_active_checkpoint),
@@ -446,135 +515,6 @@ options_metadata parser::load_settings() THROWS
         "The minimum allocation of the header table body, defaults to '1'."
     )
 
-    /* [blockchain] */
-    (
-        "blockchain.cores",
-        value<uint32_t>(&configured.chain.cores),
-        "The number of cores dedicated to block validation, defaults to 0 (physical cores)."
-    )
-    (
-        "blockchain.priority",
-        value<bool>(&configured.chain.priority),
-        "Use high thread priority for block validation, defaults to true."
-    )
-    (
-        "blockchain.use_libconsensus",
-        value<bool>(&configured.chain.use_libconsensus),
-        "Use libconsensus for script validation if integrated, defaults to false."
-    )
-    (
-        "blockchain.reorganization_limit",
-        value<uint32_t>(&configured.chain.reorganization_limit),
-        "The maximum reorganization depth, defaults to 0 (unlimited)."
-    )
-    (
-        "blockchain.block_buffer_limit",
-        value<uint32_t>(&configured.chain.block_buffer_limit),
-        "The maximum number of blocks to buffer, defaults to 0 (none)."
-    )
-    (
-        "blockchain.checkpoint",
-        value<chain::checkpoints>(&configured.chain.checkpoints),
-        "A hash:height checkpoint, multiple entries allowed."
-    )
-    (
-        "blockchain.bip158",
-        value<bool>(&configured.chain.bip158),
-        "Neutrino filter (bip158 basic filter) support, defaults to false."
-    )
-
-    /* [fork] */
-    (
-        "fork.difficult",
-        value<bool>(&configured.chain.difficult),
-        "Require difficult blocks, defaults to true (use false for testnet)."
-    )
-    (
-        "fork.retarget",
-        value<bool>(&configured.chain.retarget),
-        "Retarget difficulty, defaults to true."
-    )
-    (
-        "fork.bip16",
-        value<bool>(&configured.chain.bip16),
-        "Add pay-to-script-hash processing, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip30",
-        value<bool>(&configured.chain.bip30),
-        "Disallow collision of unspent transaction hashes, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip34",
-        value<bool>(&configured.chain.bip34),
-        "Require coinbase input includes block height, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip42",
-        value<bool>(&configured.chain.bip42),
-        "Finite monetary supply, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip66",
-        value<bool>(&configured.chain.bip66),
-        "Require strict signature encoding, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip65",
-        value<bool>(&configured.chain.bip65),
-        "Add check-locktime-verify op code, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip90",
-        value<bool>(&configured.chain.bip90),
-        "Assume bip34, bip65, and bip66 activation if enabled, defaults to true (hard fork)."
-    )
-    (
-        "fork.bip68",
-        value<bool>(&configured.chain.bip68),
-        "Add relative locktime enforcement, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip112",
-        value<bool>(&configured.chain.bip112),
-        "Add check-sequence-verify op code, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip113",
-        value<bool>(&configured.chain.bip113),
-        "Use median time past for locktime, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip141",
-        value<bool>(&configured.chain.bip141),
-        "Segregated witness consensus layer, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip143",
-        value<bool>(&configured.chain.bip143),
-        "Version 0 transaction digest, defaults to true (soft fork)."
-    )
-    (
-        "fork.bip147",
-        value<bool>(&configured.chain.bip147),
-        "Prevent dummy value malleability, defaults to true (soft fork)."
-    )
-    (
-        "fork.time_warp_patch",
-        value<bool>(&configured.chain.time_warp_patch),
-        "Fix time warp bug, defaults to false (hard fork)."
-    )
-    (
-        "fork.retarget_overflow_patch",
-        value<bool>(&configured.chain.retarget_overflow_patch),
-        "Fix target overflow for very low difficulty, defaults to false (hard fork)."
-    )
-    (
-        "fork.scrypt_proof_of_work",
-        value<bool>(&configured.chain.scrypt_proof_of_work),
-        "Use scrypt hashing for proof of work, defaults to false (hard fork)."
-    )
-
     /* [node] */
     (
         "node.target",
@@ -586,29 +526,49 @@ options_metadata parser::load_settings() THROWS
         value<uint16_t>(&configured.node.interval),
         "Channel count reporting interval, defaults to 0 (0 disables)."
     )
+    ////(
+    ////    "node.notify_limit_hours",
+    ////    value<uint32_t>(&configured.node.notify_limit_hours),
+    ////    "Disable relay when top block age exceeds, defaults to 24 (0 disables)."
+    ////)
+    ////(
+    ////    "node.byte_fee_satoshis",
+    ////    value<float>(&configured.node.byte_fee_satoshis),
+    ////    "The minimum fee per byte, cumulative for conflicts, defaults to 1."
+    ////)
+    ////(
+    ////    "node.sigop_fee_satoshis",
+    ////    value<float>(&configured.node.sigop_fee_satoshis),
+    ////    "The minimum fee per sigop, additional to byte fee, defaults to 100."
+    ////)
+    ////(
+    ////    "node.minimum_output_satoshis",
+    ////    value<uint64_t>(&configured.node.minimum_output_satoshis),
+    ////    "The minimum output value, defaults to 500."
+    ////)
+
+    /* [log] */
+#if defined (HAVE_MSC)
     (
-        /* Internally this is blockchain, but it is conceptually a node setting. */
-        "node.notify_limit_hours",
-        value<uint32_t>(&configured.chain.notify_limit_hours),
-        "Disable relay when top block age exceeds, defaults to 24 (0 disables)."
+        "log.symbols",
+        value<std::filesystem::path>(&configured.log.symbols),
+        "Path to windows debug build symbols file (.pdb)."
+    )
+#endif
+    (
+        "log.verbose",
+        value<bool>(&configured.log.verbose),
+        "Enable verbose logging, defaults to false."
     )
     (
-        /* Internally this is blockchain, but it is conceptually a node setting. */
-        "node.byte_fee_satoshis",
-        value<float>(&configured.chain.byte_fee_satoshis),
-        "The minimum fee per byte, cumulative for conflicts, defaults to 1."
+        "log.maximum_size",
+        value<uint32_t>(&configured.log.maximum_size),
+        "The maximum byte size of each pair of rotated log files, defaults to 1000000."
     )
     (
-        /* Internally this is blockchain, but it is conceptually a node setting. */
-        "node.sigop_fee_satoshis",
-        value<float>(&configured.chain.sigop_fee_satoshis),
-        "The minimum fee per sigop, additional to byte fee, defaults to 100."
-    )
-    (
-        /* Internally this is blockchain, but it is conceptually a node setting. */
-        "node.minimum_output_satoshis",
-        value<uint64_t>(&configured.chain.minimum_output_satoshis),
-        "The minimum output value, defaults to 500."
+        "log.path",
+        value<std::filesystem::path>(&configured.log.path),
+        "The log files directory, defaults to empty."
     );
 
     return description;
