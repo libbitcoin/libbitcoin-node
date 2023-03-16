@@ -94,6 +94,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // Protocol presumes max_get_headers unless complete.
     if (message->header_ptrs.size() == max_get_headers)
     {
+        // Requesting at max_get_headers assumes there may be more.
         SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
             handle_send, _1);
     }
