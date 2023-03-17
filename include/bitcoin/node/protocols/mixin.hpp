@@ -19,12 +19,15 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
 
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
+#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
+#include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -44,18 +47,35 @@ public:
     };
 
 protected:
+    void attach_handshake(const network::channel::ptr& channel,
+        network::result_handler&& handler) NOEXCEPT override
+    {
+        // Set the current top for version protocol, before handshake.
+        channel->set_start_height(archive().get_top_confirmed());
+
+        // Attach and execute appropriate version protocol.
+        Session::attach_handshake(channel, std::move(handler));
+    }
+
     void attach_protocols(
         const network::channel::ptr& channel) NOEXCEPT override
     {
+        // Attach appropriate alert, reject, ping, and/or address protocols.
         Session::attach_protocols(channel);
 
         auto& self = *this;
         const auto version = channel->negotiated_version();
 
         if (version >= network::messages::level::bip130)
+        {
             channel->attach<protocol_header_in_70012>(self)->start();
+            channel->attach<protocol_header_out_70012>(self)->start();
+        }
         else if (version >= network::messages::level::headers_protocol)
+        {
             channel->attach<protocol_header_in_31800>(self)->start();
+            channel->attach<protocol_header_out_31800>(self)->start();
+        }
     }
 };
 

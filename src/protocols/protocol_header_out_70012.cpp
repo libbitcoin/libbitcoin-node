@@ -16,36 +16,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_HPP
+#include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class BCN_API protocol_transaction_in
-  : public node::protocol,
-    network::tracker<protocol_transaction_in>
-{
-public:
-    typedef std::shared_ptr<protocol_transaction_in> ptr;
 
-    template <typename Session>
-    protocol_transaction_in(Session& session,
-        const channel_ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
-        network::tracker<protocol_transaction_in>(session.log())
-    {
-    }
+#define CLASS protocol_header_out_70012
 
-    /// Start protocol (strand required).
-    void start() NOEXCEPT override;
-};
+using namespace network;
+using namespace network::messages;
+using namespace std::placeholders;
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif

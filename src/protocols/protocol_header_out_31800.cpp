@@ -16,36 +16,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_HPP
+#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 
+#include <utility>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class BCN_API protocol_transaction_in
-  : public node::protocol,
-    network::tracker<protocol_transaction_in>
+
+#define CLASS protocol_header_out_31800
+
+using namespace system;
+using namespace network;
+using namespace network::messages;
+using namespace std::placeholders;
+
+// Start.
+// ----------------------------------------------------------------------------
+
+void protocol_header_out_31800::start() NOEXCEPT
 {
-public:
-    typedef std::shared_ptr<protocol_transaction_in> ptr;
+    BC_ASSERT_MSG(stranded(), "protocol_header_out_31800");
 
-    template <typename Session>
-    protocol_transaction_in(Session& session,
-        const channel_ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
-        network::tracker<protocol_transaction_in>(session.log())
-    {
-    }
+    if (started())
+        return;
 
-    /// Start protocol (strand required).
-    void start() NOEXCEPT override;
-};
+    protocol::start();
+}
+
+// Outbound (get_headers).
+// ----------------------------------------------------------------------------
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif
