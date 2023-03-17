@@ -16,41 +16,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
+#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 
+#include <utility>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class BCN_API protocol_header_in_70012
-  : public protocol_header_in_31800,
-    network::tracker<protocol_header_in_70012>
+
+#define CLASS protocol_header_out_31800
+
+using namespace system;
+using namespace network;
+using namespace network::messages;
+using namespace std::placeholders;
+
+// Start.
+// ----------------------------------------------------------------------------
+
+void protocol_header_out_31800::start() NOEXCEPT
 {
-public:
-    typedef std::shared_ptr<protocol_header_in_70012> ptr;
+    BC_ASSERT_MSG(stranded(), "protocol_header_out_31800");
 
-    template <typename Session>
-    protocol_header_in_70012(Session& session,
-        const channel_ptr& channel) NOEXCEPT
-      : node::protocol_header_in_31800(session, channel),
-        network::tracker<protocol_header_in_70012>(session.log())
-    {
-    }
+    if (started())
+        return;
 
-protected:
-    /// Invoked when initial headers sync is complete.
-    void complete(const network::messages::headers& message,
-        uint32_t start) NOEXCEPT override;
+    protocol::start();
+}
 
-private:
-    bool sent_{};
-};
+// Outbound (get_headers).
+// ----------------------------------------------------------------------------
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif

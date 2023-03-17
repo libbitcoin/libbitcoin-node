@@ -16,38 +16,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_OUT_70012_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_OUT_70012_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
+#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-class BCN_API protocol_header_in_70012
-  : public protocol_header_in_31800,
-    network::tracker<protocol_header_in_70012>
+class BCN_API protocol_header_out_70012
+  : public protocol_header_out_31800,
+    network::tracker<protocol_header_out_70012>
 {
 public:
-    typedef std::shared_ptr<protocol_header_in_70012> ptr;
+    typedef std::shared_ptr<protocol_header_out_70012> ptr;
 
     template <typename Session>
-    protocol_header_in_70012(Session& session,
+    protocol_header_out_70012(Session& session,
         const channel_ptr& channel) NOEXCEPT
-      : node::protocol_header_in_31800(session, channel),
-        network::tracker<protocol_header_in_70012>(session.log())
+      : node::protocol_header_out_31800(session, channel),
+        network::tracker<protocol_header_out_70012>(session.log())
     {
     }
-
-protected:
-    /// Invoked when initial headers sync is complete.
-    void complete(const network::messages::headers& message,
-        uint32_t start) NOEXCEPT override;
-
-private:
-    bool sent_{};
 };
 
 } // namespace node
