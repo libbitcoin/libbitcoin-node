@@ -22,6 +22,7 @@
 #include <atomic>
 #include <future>
 #include <iostream>
+#include <unordered_map>
 #include <bitcoin/database.hpp>
 #include <bitcoin/node.hpp>
 
@@ -61,31 +62,47 @@ private:
 
     using rotator_t = database::file::stream::out::rotator;
     rotator_t create_sink(const std::filesystem::path& path) const;
-    void subscribe_light(rotator_t& sink);
     void subscribe_full(rotator_t& sink);
+    void subscribe_light(rotator_t& sink);
     void subscribe_events(rotator_t& sink);
     void subscribe_capture();
     void subscribe_connect();
     void subscribe_close();
 
-    static const char* name;
-    static std::promise<system::code> stopping_; 
-    std::atomic_bool log_objects_{ false };
-    std::atomic_bool log_protocol_{ false };
-    std::promise<system::code> stopped_{};
+    static const std::string quit_;
+    static const std::string name_;
+    static const std::unordered_map<uint8_t, bool> defined_;
+    static const std::unordered_map<uint8_t, std::string> display_;
+    static const std::unordered_map<std::string, uint8_t> keys_;
+    static constexpr size_t logs = add1(network::levels::quit);
+    static std::promise<system::code> stopping_;
 
     parser& metadata_;
     full_node::store store_;
     full_node::query query_;
+    std::promise<system::code> stopped_{};
     full_node::ptr node_{};
 
     std::istream& input_;
     std::ostream& output_;
     network::logger log_{};
-    network::capture cap_{ input_, "q" };
+    network::capture cap_{ input_, quit_ };
+    std_array<std::atomic_bool, logs> toggle_
+    {
+        true,  // application
+        network::levels::news_defined,
+        false, //network::levels::objects_defined,
+        network::levels::session_defined,
+        false, //network::levels::protocol_defined,
+        false, //network::levels::proxy_defined,
+        false, //network::levels::wire_defined,
+        network::levels::remote_defined,
+        network::levels::fault_defined,
+        network::levels::quit_defined
+    };
 };
 
-// Localizable messages (set at level_t::reserved).
+// Localizable messages.
 
 #define BN_SETTINGS_MESSAGE \
     "These are the configuration settings that can be set."
