@@ -86,6 +86,10 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         // TODO: maintain context progression and store with header.
         if (!archive().set(*header, database::context{ 1, 42, 7 }))
         {
+            // Header with missing non-genesis parent.
+            LOGR("Database error set(header) [" << encode_hash(header->hash())
+                << "] from [" << authority() << "].");
+
             stop(network::error::protocol_violation);
             return false;
         }

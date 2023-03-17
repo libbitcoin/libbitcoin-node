@@ -514,6 +514,11 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.database.header_size),
         "The minimum allocation of the header table body, defaults to '1'."
     )
+    (
+        "database.header_rate",
+        value<uint16_t>(&configured.database.header_rate),
+        "The percentage expansion of the header table body, defaults to '50'."
+    )
 
     /* [node] */
     (
