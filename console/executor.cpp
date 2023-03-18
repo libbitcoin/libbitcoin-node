@@ -307,13 +307,14 @@ void executor::subscribe_light(rotator_t& sink)
 
 void executor::subscribe_events(rotator_t& sink)
 {
-    log_.subscribe_events([&](const code& ec, uint8_t event, size_t count,
-        const logger::time_point& point)
+    log_.subscribe_events([&](const code& ec, uint8_t event, uint64_t value,
+        const logger::time& point)
     {
         if (ec) return false;
         sink
-            << encode_base16(to_big_endian(point.time_since_epoch().count()))
-            << " [" << serialize(event) << "." << count << "]" << std::endl;
+            << "[" << serialize(event) << "] "
+            << point.time_since_epoch() << " "
+            << value << std::endl;
         return true;
     });
 }
@@ -341,11 +342,9 @@ void executor::subscribe_capture()
 
         if (defined_.at(index))
         {
-            logger("CONSOLE: " + display_.at(index) + (toggle_.at(index) ?
-                " logging (off)." : " logging (on)."));
-
-            // Toggle log level (after showing it).
             toggle_.at(index) = !toggle_.at(index);
+            logger("CONSOLE: " + display_.at(index) + (toggle_.at(index) ?
+                " logging (on)." : " logging (off)."));
         }
         else
         {

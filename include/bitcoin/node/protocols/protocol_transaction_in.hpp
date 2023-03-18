@@ -37,7 +37,7 @@ public:
     protocol_transaction_in(Session& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_transaction_in>(session.log())
+        network::tracker<protocol_transaction_in>(session.log)
     {
     }
 

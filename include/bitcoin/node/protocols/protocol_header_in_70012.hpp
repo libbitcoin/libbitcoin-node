@@ -37,14 +37,14 @@ public:
     protocol_header_in_70012(Session& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol_header_in_31800(session, channel),
-        network::tracker<protocol_header_in_70012>(session.log())
+        network::tracker<protocol_header_in_70012>(session.log)
     {
     }
 
 protected:
     /// Invoked when initial headers sync is complete.
     void complete(const network::messages::headers& message,
-        uint32_t start) NOEXCEPT override;
+        const network::logger::time& start) NOEXCEPT override;
 
 private:
     bool sent_{};
