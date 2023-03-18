@@ -37,7 +37,7 @@ public:
     protocol_header_in_31800(Session& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_header_in_31800>(session.log())
+        network::tracker<protocol_header_in_31800>(session.log)
     {
     }
 
@@ -47,12 +47,12 @@ public:
 protected:
     /// Invoked when initial headers sync is complete.
     virtual void complete(const network::messages::headers& message,
-        uint32_t start) NOEXCEPT;
+        const network::logger::time& start) NOEXCEPT;
 
     /// Recieved incoming headers message.
     virtual bool handle_receive_headers(const code& ec,
         const network::messages::headers::cptr& message,
-        uint32_t start) NOEXCEPT;
+        const network::logger::time& start) NOEXCEPT;
 
 private:
     network::messages::get_headers create_get_headers() NOEXCEPT;

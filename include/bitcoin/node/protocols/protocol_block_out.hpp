@@ -37,7 +37,7 @@ public:
     protocol_block_out(Session& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_block_out>(session.log())
+        network::tracker<protocol_block_out>(session.log)
     {
     }
 

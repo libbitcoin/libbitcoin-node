@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
+#include <chrono>
 #include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -32,6 +33,7 @@ using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
+using namespace std::chrono;
 
 // Start.
 // ----------------------------------------------------------------------------
@@ -43,7 +45,7 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    SUBSCRIBE_CHANNEL3(headers, handle_receive_headers, _1, _2, unix_time());
+    SUBSCRIBE_CHANNEL3(headers, handle_receive_headers, _1, _2, logger::now());
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
 }
@@ -52,7 +54,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
-    const headers::cptr& message, uint32_t start) NOEXCEPT
+    const headers::cptr& message, const logger::time& start) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_address_in_31402");
 
@@ -111,20 +113,25 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 }
 
 void protocol_header_in_31800::complete(const headers& message,
-    uint32_t LOG_ONLY(start)) NOEXCEPT
+    const logger::time& LOG_ONLY(start)) NOEXCEPT
 {
+    // TODO: log only the first sequence (see 70012::complete).
+
+    reporter::fire(42);
+    reporter::span(24, start);
+
     if (message.header_ptrs.empty())
     {
         // Empty message may happen in case where last header is 2000th.
-        LOGN("Headers from [" << authority() << "] complete in ("
-            << (unix_time() - start) << ") secs.");
+        LOGN("Headers from [" << authority() << "] complete in "
+            << (logger::now() - start) << ".");
     }
     else
     {
         // Using header_fk as height proxy.
-        LOGN("Headers from [" << authority() << "] stopped at ("
+        LOGN("Headers from [" << authority() << "] at ("
             << archive().to_header(message.header_ptrs.back()->hash())
-            << ") in (" << (unix_time() - start) << ") secs.");
+            << ") complete in " << (logger::now() - start) << ".");
     }
 }
 

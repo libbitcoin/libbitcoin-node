@@ -31,7 +31,7 @@ using namespace network::messages;
 using namespace std::placeholders;
 
 void protocol_header_in_70012::complete(const headers& message,
-    uint32_t start) NOEXCEPT
+    const logger::time& start) NOEXCEPT
 {
     // This could be the end of a catch-up sequence, or a singleton
     // announcement. The distinction is ultimately arbitrary.

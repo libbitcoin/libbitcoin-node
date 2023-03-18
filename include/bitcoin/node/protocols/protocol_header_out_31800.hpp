@@ -37,7 +37,7 @@ public:
     protocol_header_out_31800(Session& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_header_out_31800>(session.log())
+        network::tracker<protocol_header_out_31800>(session.log)
     {
     }
 
