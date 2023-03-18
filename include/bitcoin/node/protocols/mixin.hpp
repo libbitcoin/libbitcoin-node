@@ -24,10 +24,14 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/protocols/protocol_block_in.hpp>
+#include <bitcoin/node/protocols/protocol_block_out.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
 #include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -76,6 +80,11 @@ protected:
             channel->attach<protocol_header_in_31800>(self)->start();
             channel->attach<protocol_header_out_31800>(self)->start();
         }
+
+        channel->attach<protocol_block_in>(self)->start();
+        channel->attach<protocol_block_out>(self)->start();
+        channel->attach<protocol_transaction_in>(self)->start();
+        channel->attach<protocol_transaction_out>(self)->start();
     }
 };
 

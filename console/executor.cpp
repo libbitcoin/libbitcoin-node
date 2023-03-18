@@ -35,7 +35,51 @@ using system::config::printer;
 using namespace system;
 using namespace network;
 using namespace std::placeholders;
-const char* executor::name = "bn";
+
+// const executor statics
+const std::string executor::quit_{ "q" };
+const std::string executor::name_{ "bn" };
+const std::unordered_map<uint8_t, bool> executor::defined_
+{
+    { levels::application, true },
+    { levels::news,        levels::news_defined },
+    { levels::objects,     levels::objects_defined },
+    { levels::session,     levels::session_defined },
+    { levels::protocol,    levels::protocol_defined },
+    { levels::proxy,       levels::proxy_defined },
+    { levels::wire,        levels::wire_defined },
+    { levels::remote,      levels::remote_defined },
+    { levels::fault,       levels::fault_defined },
+    { levels::quit,        levels::quit_defined }
+};
+const std::unordered_map<uint8_t, std::string> executor::display_
+{
+    { levels::application, "Toggle Application" },
+    { levels::news,        "Toggle News" },
+    { levels::objects,     "Toggle Objects" },
+    { levels::session,     "Toggle Session" },
+    { levels::protocol,    "Toggle Protocol" },
+    { levels::proxy,       "Toggle proXy" },
+    { levels::wire,        "Toggle Wire shark" },
+    { levels::remote,      "Toggle Remote fault" },
+    { levels::fault,       "Toggle internal Fault" },
+    { levels::quit,        "Quit" }
+};
+const std::unordered_map<std::string, uint8_t> executor::keys_
+{
+    { "a", levels::application },
+    { "n", levels::news },
+    { "o", levels::objects },
+    { "s", levels::session },
+    { "p", levels::protocol },
+    { "x", levels::proxy },
+    { "w", levels::wire },
+    { "r", levels::remote },
+    { "f", levels::fault },
+    { quit_, levels::quit }
+};
+
+// non-const executor static (global for interrupt handling).
 std::promise<code> executor::stopping_{};
 
 executor::executor(parser& metadata, std::istream& input, std::ostream& output,
@@ -58,7 +102,7 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
 
 void executor::logger(const auto& message)
 {
-    log_.write(level_t::reserved) << message << std::endl;
+    log_.write(levels::application) << message << std::endl;
 };
 
 void executor::console(const auto& message)
@@ -69,7 +113,7 @@ void executor::console(const auto& message)
 void executor::stopper(const auto& message)
 {
     cap_.stop();
-    log_.stop(message, level_t::reserved);
+    log_.stop(message, levels::application);
     stopped_.get_future().wait();
 }
 
@@ -92,6 +136,7 @@ bool executor::menu()
     if (config.initchain)
         return do_initchain();
 
+    // --light handled here.
     return do_run();
 }
 
@@ -102,7 +147,7 @@ bool executor::menu()
 bool executor::do_help()
 {
     log_.stop();
-    printer help(metadata_.load_options(), name, BN_INFORMATION_MESSAGE);
+    printer help(metadata_.load_options(), name_, BN_INFORMATION_MESSAGE);
     help.initialize();
     help.commandline(output_);
     return true;
@@ -112,7 +157,7 @@ bool executor::do_help()
 bool executor::do_settings()
 {
     log_.stop();
-    printer print(metadata_.load_settings(), name, BN_SETTINGS_MESSAGE);
+    printer print(metadata_.load_settings(), name_, BN_SETTINGS_MESSAGE);
     print.initialize();
     print.settings(output_);
     return true;
@@ -192,13 +237,13 @@ executor::rotator_t executor::create_sink(
     };
 }
 
-void executor::subscribe_light(rotator_t& sink)
+void executor::subscribe_full(rotator_t& sink)
 {
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
     {
-        // --light logs only ec and 'reserved' (bn localized) messages.
-        if (!ec && (level != level_t::reserved))
+        // Write only selected logs.
+        if (!ec && !toggle_.at(level))
             return true;
 
         const auto prefix = format_zulu_time(time) + "." +
@@ -206,7 +251,6 @@ void executor::subscribe_light(rotator_t& sink)
 
         if (ec)
         {
-            // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
             sink << prefix << message << std::endl;
             output_ << prefix << message << std::endl;
             sink << prefix << BN_NODE_FOOTER << std::endl;
@@ -225,42 +269,37 @@ void executor::subscribe_light(rotator_t& sink)
     });
 }
 
-void executor::subscribe_full(rotator_t& sink)
+void executor::subscribe_light(rotator_t& sink)
 {
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
     {
-        // Avoiding 'quit' and 'proxy' messages for now (too verbose).
-        if (!ec && (level == level_t::quit || level == level_t::proxy))
-            return true;
-
-        // Object logging in !NDEBUG builds can be toggled via stdin ('o').
-        if (!ec && (!log_objects_ && level == level_t::objects))
-            return true;
-
-        // Protocol logging can be toggled via stdin ('p').
-        if (!ec && (!log_protocol_ && level == level_t::protocol))
-            return true;
-
         const auto prefix = format_zulu_time(time) + "." +
             serialize(level) + " ";
 
+        // Write only selected logs to the console.
         if (ec)
         {
-            // TODO: no show BN_NODE_TERMINATE on capture/ctrl-c stop.
-            sink << prefix << message << std::endl;
-            output_ << prefix << message << std::endl;
-            sink << prefix << BN_NODE_FOOTER << std::endl;
             output_ << prefix << BN_NODE_FOOTER << std::endl;
             output_ << prefix << BN_NODE_TERMINATE << std::endl;
+        }
+        else if (toggle_.at(level))
+        {
+            output_ << prefix << message;
+            output_.flush();
+        }
+
+        // Write all logs to the log file.
+        if (ec)
+        {
+            sink << prefix << message << std::endl;
+            sink << prefix << BN_NODE_FOOTER << std::endl;
             stopped_.set_value(ec);
             return false;
         }
         else
         {
             sink << prefix << message;
-            output_ << prefix << message;
-            output_.flush();
             return true;
         }
     });
@@ -279,50 +318,46 @@ void executor::subscribe_events(rotator_t& sink)
     });
 }
 
-inline std::string to_text(bool value)
-{
-    return value ? "true" : "false";
-}
-
 void executor::subscribe_capture()
 {
     cap_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto token = system::trim_copy(line);
-        if (token.empty())
-            return !ec;
-
-        // Quit application.
-        if (token == "q")
+        if (!keys_.contains(token))
         {
-            logger("CONSOLE: quit");
+            logger("CONSOLE: '" + line + "'");
+            return !ec;
+        }
+
+        const auto index = keys_.at(token);
+
+        // Quit (this level isn't a toggle).
+        if (index == levels::quit)
+        {
+            logger("CONSOLE: " + display_.at(index));
             stop(error::success);
             return false;
         }
 
-        // TODO: implement as numeric log level toggle.
-        if (token == "o")
+        if (defined_.at(index))
         {
-            log_objects_ = !log_objects_;
-            logger("CONSOLE: objects (" + to_text(log_objects_) + ")");
-            return true;
+            logger("CONSOLE: " + display_.at(index) + (toggle_.at(index) ?
+                " logging (off)." : " logging (on)."));
+
+            // Toggle log level (after showing it).
+            toggle_.at(index) = !toggle_.at(index);
+        }
+        else
+        {
+            // Selected log level was not compiled.
+            logger("CONSOLE: " + display_.at(index) + " logging (undefined).");
         }
 
-        // TODO: implement as numeric log level toggle.
-        if (token == "p")
-        {
-            log_protocol_ = !log_protocol_;
-            logger("CONSOLE: protocol (" + to_text(log_protocol_) + ")");
-            return true;
-        }
-
-        // Echo by line.
-        logger("CONSOLE: " + token);
         return !ec;
     },
     [&](const code&)
     {
-        // Continue from here to capture all startup std::cin.
+        // subscription completion handler.
     });
 }
 
@@ -334,7 +369,7 @@ void executor::subscribe_connect()
             is_zero(node_->channel_count() %
                 metadata_.configured.node.interval))
         {
-            log_.write(level_t::reserved) <<
+            log_.write(levels::application) <<
                 "{in:" << node_->inbound_channel_count() << "}"
                 "{ch:" << node_->channel_count() << "}"
                 "{rv:" << node_->reserved_count() << "}"
@@ -348,7 +383,7 @@ void executor::subscribe_connect()
         if (to_bool(metadata_.configured.node.target) &&
             (node_->channel_count() >= metadata_.configured.node.target))
         {
-            log_.write(level_t::reserved) << "Stopping at channel target ("
+            log_.write(levels::application) << "Stopping at channel target ("
                 << metadata_.configured.node.target << ")." << std::endl;
 
             // Signal stop (simulates <ctrl-c>).
@@ -370,7 +405,7 @@ void executor::subscribe_close()
 {
     node_->subscribe_close([&](const code&)
     {
-        log_.write(level_t::reserved) <<
+        log_.write(levels::application) <<
             "{in:" << node_->inbound_channel_count() << "}"
             "{ch:" << node_->channel_count() << "}"
             "{rv:" << node_->reserved_count() << "}"
