@@ -86,10 +86,10 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         }
 
         // TODO: maintain context progression and store with header.
+        // tx.hash is computed from message buffer and cached on chain object.
         if (!archive().set(*header, database::context{ 1, 42, 7 }))
         {
-            // Header with missing non-genesis parent.
-            LOGR("Database error set(header) [" << encode_hash(header->hash())
+            LOGR("Orphan header [" << encode_hash(header->hash())
                 << "] from [" << authority() << "].");
 
             stop(network::error::protocol_violation);
@@ -100,12 +100,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // Protocol presumes max_get_headers unless complete.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        // Requesting at max_get_headers assumes there may be more.
         SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
             handle_send, _1);
     }
     else
     {
+        // This assumes an empty response will be sent if caught up at 2000.
         complete(*message, start);
     }
 
