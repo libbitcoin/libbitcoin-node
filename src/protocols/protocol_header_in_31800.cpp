@@ -56,7 +56,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message, const logger::time& start) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_address_in_31402");
+    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
 
     if (stopped(ec))
         return false;
@@ -139,7 +139,7 @@ void protocol_header_in_31800::complete(const headers& message,
 // private
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
-    return create_get_headers(archive().get_hashes(get_blocks::heights(
+    return create_get_headers(archive().get_hashes(get_headers::heights(
         archive().get_top_candidate())));
 }
 
