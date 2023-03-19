@@ -45,6 +45,7 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
+    // There is one common headers subscription.
     SUBSCRIBE_CHANNEL3(headers, handle_receive_headers, _1, _2, logger::now());
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
