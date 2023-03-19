@@ -311,9 +311,11 @@ void executor::subscribe_events(rotator_t& sink)
         const logger::time& point)
     {
         if (ec) return false;
+
+        // C++20: duration not yet serializable in g++.
         sink
             << "[" << serialize(event) << "] "
-            << point.time_since_epoch() << " "
+            << point.time_since_epoch().count() << " "
             << value << std::endl;
         return true;
     });
