@@ -45,6 +45,7 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
+    // There is one common headers subscription.
     SUBSCRIBE_CHANNEL3(headers, handle_receive_headers, _1, _2, logger::now());
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
@@ -56,7 +57,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message, const logger::time& start) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_address_in_31402");
+    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
 
     if (stopped(ec))
         return false;
@@ -86,10 +87,10 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         }
 
         // TODO: maintain context progression and store with header.
+        // tx.hash is computed from message buffer and cached on chain object.
         if (!archive().set(*header, database::context{ 1, 42, 7 }))
         {
-            // Header with missing non-genesis parent.
-            LOGR("Database error set(header) [" << encode_hash(header->hash())
+            LOGR("Orphan header [" << encode_hash(header->hash())
                 << "] from [" << authority() << "].");
 
             stop(network::error::protocol_violation);
@@ -100,12 +101,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // Protocol presumes max_get_headers unless complete.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        // Requesting at max_get_headers assumes there may be more.
         SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
             handle_send, _1);
     }
     else
     {
+        // This assumes an empty response will be sent if caught up at 2000.
         complete(*message, start);
     }
 
@@ -139,7 +140,7 @@ void protocol_header_in_31800::complete(const headers& message,
 // private
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
-    return create_get_headers(archive().get_hashes(get_blocks::heights(
+    return create_get_headers(archive().get_hashes(get_headers::heights(
         archive().get_top_candidate())));
 }
 

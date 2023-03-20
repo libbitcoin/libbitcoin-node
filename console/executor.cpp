@@ -459,10 +459,10 @@ bool executor::do_run()
     }
 
     logger(BN_NODE_INTERRUPT);
-    logger(BN_NODE_STARTING);
     cap_.start();
 
     // Open store.
+    logger(BN_STORE_STARTING);
     if (const auto ec = store_.open())
     {
         logger(format(BN_STORE_START_FAIL) % ec.message());
@@ -481,17 +481,19 @@ bool executor::do_run()
     logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
     logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
 
-    // Start node.
+    // Start network.
+    logger(BN_NETWORK_STARTING);
     node_->start(std::bind(&executor::handle_started, this, _1));
 
     // Wait on signal to stop node (<ctrl-c>).
     stopping_.get_future().wait();
-    logger(BN_NODE_STOPPING);
+    logger(BN_NETWORK_STOPPING);
 
-    // Stop node (if not already stopped by self).
+    // Stop network (if not already stopped by self).
     node_->close();
 
-    // Close store.
+    // Stop store (flush to disk).
+    logger(BN_STORE_STOPPING);
     if (const auto ec = store_.close())
     {
         logger(format(BN_STORE_STOP_FAIL) % ec.message());
@@ -499,6 +501,7 @@ bool executor::do_run()
         return false;
     }
 
+    // Node is stopped.
     stopper(BN_NODE_STOPPED);
     return true; 
 }

@@ -504,6 +504,8 @@ options_metadata parser::load_settings() THROWS
         value<std::filesystem::path>(&configured.database.path),
         "The blockchain database directory, defaults to 'blockchain'."
     )
+
+    /* header */
     (
         "database.header_buckets",
         value<uint32_t>(&configured.database.header_buckets),
@@ -511,13 +513,95 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "database.header_size",
-        value<uint32_t>(&configured.database.header_size),
+        value<uint64_t>(&configured.database.header_size),
         "The minimum allocation of the header table body, defaults to '1'."
     )
     (
         "database.header_rate",
         value<uint16_t>(&configured.database.header_rate),
         "The percentage expansion of the header table body, defaults to '50'."
+    )
+
+    /* txs */
+    (
+        "database.txs_buckets",
+        value<uint32_t>(&configured.database.txs_buckets),
+        "The number of buckets in the txs table head, defaults to '100'."
+    )
+    (
+        "database.txs_size",
+        value<uint64_t>(&configured.database.txs_size),
+        "The minimum allocation of the txs table body, defaults to '1'."
+    )
+    (
+        "database.txs_rate",
+        value<uint16_t>(&configured.database.txs_rate),
+        "The percentage expansion of the txs table body, defaults to '50'."
+    )
+
+    /* tx */
+    (
+        "database.tx_buckets",
+        value<uint32_t>(&configured.database.tx_buckets),
+        "The number of buckets in the tx table head, defaults to '100'."
+    )
+    (
+        "database.tx_size",
+        value<uint64_t>(&configured.database.tx_size),
+        "The minimum allocation of the tx table body, defaults to '1'."
+    )
+    (
+        "database.tx_rate",
+        value<uint16_t>(&configured.database.tx_rate),
+        "The percentage expansion of the tx table body, defaults to '50'."
+    )
+
+    /* point */
+    (
+        "database.point_buckets",
+        value<uint32_t>(&configured.database.point_buckets),
+        "The number of buckets in the point table head, defaults to '100'."
+    )
+    (
+        "database.point_size",
+        value<uint64_t>(&configured.database.point_size),
+        "The minimum allocation of the point table body, defaults to '1'."
+    )
+    (
+        "database.point_rate",
+        value<uint16_t>(&configured.database.point_rate),
+        "The percentage expansion of the point table body, defaults to '50'."
+    )
+
+    /* input */
+    (
+        "database.input_buckets",
+        value<uint32_t>(&configured.database.input_buckets),
+        "The number of buckets in the input table head, defaults to '100'."
+    )
+    (
+        "database.input_size",
+        value<uint64_t>(&configured.database.input_size),
+        "The minimum allocation of the input table body, defaults to '1'."
+    )
+    (
+        "database.input_rate",
+        value<uint16_t>(&configured.database.input_rate),
+        "The percentage expansion of the input table body, defaults to '50'."
+    )
+
+    /* output */
+    (
+        "database.output_size",
+        value<uint64_t>(&configured.database.output_size),
+        "The minimum allocation of the output table body, defaults to '1'."
+    )
+
+    /* puts */
+    (
+        "database.puts_size",
+        value<uint64_t>(&configured.database.puts_size),
+        "The minimum allocation of the puts table body, defaults to '1'."
     )
 
     /* [node] */

@@ -43,6 +43,32 @@ public:
 
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
+
+protected:
+    struct track
+    {
+        const size_t announced;
+        const system::hash_digest last;
+        system::hashes hashes;
+    };
+
+    typedef std::shared_ptr<track> track_ptr;
+
+    /// Recieved incoming inventory message.
+    virtual bool handle_receive_inventory(const code& ec,
+        const network::messages::inventory::cptr& message) NOEXCEPT;
+
+    /// Recieved incoming block message.
+    virtual bool handle_receive_block(const code& ec,
+        const network::messages::block::cptr& message,
+        const track_ptr& tracker) NOEXCEPT;
+
+private:
+    network::messages::get_blocks create_get_inventory() NOEXCEPT;
+    network::messages::get_blocks create_get_inventory(
+        system::hashes&& start_hashes) NOEXCEPT;
+    network::messages::get_data create_get_data(
+        const network::messages::inventory& message) const NOEXCEPT;
 };
 
 } // namespace node

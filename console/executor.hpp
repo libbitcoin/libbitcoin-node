@@ -126,8 +126,10 @@ private:
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
-#define BN_NODE_STARTING \
-    "Please wait while the node is starting..."
+#define BN_STORE_STARTING \
+    "Please wait while the store is starting..."
+#define BN_NETWORK_STARTING \
+    "Please wait while the network is starting..."
 #define BN_NODE_START_FAIL \
     "Node failed to start with error, %1%."
 #define BN_NODE_STARTED \
@@ -141,11 +143,13 @@ private:
     "The %1% store is not initialized, delete and run: bn --initchain"
 #define BN_STORE_START_FAIL \
     "Store failed to start with error, %1%."
+#define BN_STORE_STOPPING \
+    "Please wait while the store is stopping..."
 #define BN_STORE_STOP_FAIL \
     "Store failed to stop with error, %1%."
 
-#define BN_NODE_STOPPING \
-    "Please wait while the node is stopping..."
+#define BN_NETWORK_STOPPING \
+    "Please wait while the network is stopping..."
 #define BN_NODE_STOP_CODE \
     "Node stopped with code, %1%."
 #define BN_NODE_STOPPED \
