@@ -99,12 +99,12 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
         << authority() << "].");
 
     // Track this inventory until exhausted.
-    const auto tracker = std::make_shared<track>
-    (
+    const auto tracker = std::make_shared<track>(track
+    {
         message->items.size(),
         message->items.back().hash,
         to_hashes(getter)
-    );
+    });
 
     // TODO: these must be limited for DOS protection.
     // There is one block subscription for each received unexhausted inventory.
