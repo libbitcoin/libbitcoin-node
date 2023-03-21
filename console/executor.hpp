@@ -74,6 +74,8 @@ private:
     static const std::unordered_map<uint8_t, bool> defined_;
     static const std::unordered_map<uint8_t, std::string> display_;
     static const std::unordered_map<std::string, uint8_t> keys_;
+    static const std::unordered_map<database::event_t, std::string> events_;
+    static const std::unordered_map<database::table_t, std::string> tables_;
     static constexpr size_t logs = add1(network::levels::quit);
     static std::promise<system::code> stopping_;
 
@@ -114,15 +116,24 @@ private:
 #define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_COMPLETE \
-    "Completed initialization."
+    "Completed initialization in %1% ms."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
     "Database creation failed with error, '%1%'."
+#define BN_INITCHAIN_DATABASE_INITIALIZE \
+    "Database storing genesis block."
 #define BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE \
     "Database failure to store genesis block."
 #define BN_INITCHAIN_DATABASE_OPEN_FAILURE \
     "Database failure to open, %1%."
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
+
+#define BN_CREATE \
+    "create::%1%(%2%)"
+#define BN_OPEN \
+    "open::%1%(%2%)"
+#define BN_CLOSE \
+    "close::%1%(%2%)"
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
