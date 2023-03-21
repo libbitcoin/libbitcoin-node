@@ -18,6 +18,7 @@
  */
 #include "executor.hpp"
 
+#include <chrono>
 #include <csignal>
 #include <functional>
 #include <future>
@@ -77,6 +78,68 @@ const std::unordered_map<std::string, uint8_t> executor::keys_
     { "r", levels::remote },
     { "f", levels::fault },
     { quit_, levels::quit }
+};
+const std::unordered_map<database::event_t, std::string> executor::events_
+{
+    { database::event_t::create_file, "create_file" },
+    { database::event_t::open_file, "open_file" },
+    { database::event_t::load_file, "load_file" },
+    { database::event_t::unload_file, "unload_file" },
+    { database::event_t::close_file, "close_file" },
+    { database::event_t::create_table, "create_table" },
+    { database::event_t::verify_table, "verify_table" },
+    { database::event_t::close_table, "close_table" }
+};
+const std::unordered_map<database::table_t, std::string> executor::tables_
+{
+    { database::table_t::header_table, "header_table" },
+    { database::table_t::header_head, "header_head" },
+    { database::table_t::header_body, "header_body" },
+    { database::table_t::point_table, "point_table" },
+    { database::table_t::point_head, "point_head" },
+    { database::table_t::point_body, "point_body" },
+    { database::table_t::input_table, "input_table" },
+    { database::table_t::input_head, "input_head" },
+    { database::table_t::input_body, "input_body" },
+    { database::table_t::output_table, "output_table" },
+    { database::table_t::output_head, "output_head" },
+    { database::table_t::output_body, "output_body" },
+    { database::table_t::puts_table, "puts_table" },
+    { database::table_t::puts_head, "puts_head" },
+    { database::table_t::puts_body, "puts_body" },
+    { database::table_t::tx_table, "tx_table" },
+    { database::table_t::tx_head, "tx_head" },
+    { database::table_t::txs_table, "txs_table" },
+    { database::table_t::tx_body, "tx_body" },
+    { database::table_t::txs_head, "txs_head" },
+    { database::table_t::txs_body, "txs_body" },
+    { database::table_t::address_table, "address_table" },
+    { database::table_t::address_head, "address_head" },
+    { database::table_t::address_body, "address_body" },
+    { database::table_t::candidate_table, "candidate_table" },
+    { database::table_t::candidate_head, "candidate_head" },
+    { database::table_t::candidate_body, "candidate_body" },
+    { database::table_t::confirmed_table, "confirmed_table" },
+    { database::table_t::confirmed_head, "confirmed_head" },
+    { database::table_t::confirmed_body, "confirmed_body" },
+    { database::table_t::strong_tx_table, "strong_tx_table" },
+    { database::table_t::strong_tx_head, "strong_tx_head" },
+    { database::table_t::strong_tx_body, "strong_tx_body" },
+    { database::table_t::bootstrap_table, "bootstrap_table" },
+    { database::table_t::bootstrap_head, "bootstrap_head" },
+    { database::table_t::bootstrap_body, "bootstrap_body" },
+    { database::table_t::buffer_table, "buffer_table" },
+    { database::table_t::buffer_head, "buffer_head" },
+    { database::table_t::buffer_body, "buffer_body" },
+    { database::table_t::neutrino_table, "neutrino_table" },
+    { database::table_t::neutrino_head, "neutrino_head" },
+    { database::table_t::neutrino_body, "neutrino_body" },
+    { database::table_t::validated_bk_table, "validated_bk_table" },
+    { database::table_t::validated_bk_head, "validated_bk_head" },
+    { database::table_t::validated_bk_body, "validated_bk_body" },
+    { database::table_t::validated_tx_table, "validated_tx_table" },
+    { database::table_t::validated_tx_head, "validated_tx_head" },
+    { database::table_t::validated_tx_body, "validated_tx_body" }
 };
 
 // non-const executor static (global for interrupt handling).
@@ -179,41 +242,56 @@ bool executor::do_version()
 // --initchain
 bool executor::do_initchain()
 {
+    using namespace database;
+    using namespace std::chrono;
+
     log_.stop();
     const auto& directory = metadata_.configured.database.path;
     console(format(BN_INITIALIZING_CHAIN) % directory);
+    const auto start = steady_clock::now();
 
-    if (!database::file::create_directory(directory))
+    if (!file::create_directory(directory))
     {
         console(format(BN_INITCHAIN_EXISTS) % directory);
         return false;
     }
 
-    if (const auto ec = store_.create())
+    if (const auto ec = store_.create([&](event_t event, table_t table)
+    {
+        console(format(BN_CREATE) % events_.at(event) % tables_.at(table));
+    }))
     {
         console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
         return false;
     }
 
-    if (const auto ec = store_.open())
+    if (const auto ec = store_.open([&](event_t event, table_t table)
+    {
+        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
     {
         console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
         return false;
     }
 
+    console(BN_INITCHAIN_DATABASE_INITIALIZE);
     if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
     {
         console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
         return false;
     }
 
-    if (const auto ec = store_.close())
+    if (const auto ec = store_.close([&](event_t event, table_t table)
+    {
+        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
     {
         console(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
         return false;
     }
 
-    console(BN_INITCHAIN_COMPLETE);
+    const auto span = duration_cast<milliseconds>(steady_clock::now() - start);
+    console(format(BN_INITCHAIN_COMPLETE) % span.count());
     return true;
 }
 
@@ -431,6 +509,7 @@ void executor::subscribe_close()
 // [--light]
 bool executor::do_run()
 {
+    using namespace database;
     auto sink = create_sink(metadata_.configured.log.path);
 
     if (metadata_.configured.light)
@@ -463,7 +542,10 @@ bool executor::do_run()
 
     // Open store.
     logger(BN_STORE_STARTING);
-    if (const auto ec = store_.open())
+    if (const auto ec = store_.open([&](event_t event, table_t table)
+    {
+        logger(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
     {
         logger(format(BN_STORE_START_FAIL) % ec.message());
         stopper(BN_NODE_STOPPED);
@@ -494,7 +576,10 @@ bool executor::do_run()
 
     // Stop store (flush to disk).
     logger(BN_STORE_STOPPING);
-    if (const auto ec = store_.close())
+    if (const auto ec = store_.close([&](event_t event, table_t table)
+    {
+        logger(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
     {
         logger(format(BN_STORE_STOP_FAIL) % ec.message());
         stopper(BN_NODE_STOPPED);
