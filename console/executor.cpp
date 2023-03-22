@@ -282,7 +282,7 @@ bool executor::do_totals()
     tx_link::integer tx{};
     size_t inputs{}, outputs{};
     std::pair<size_t, size_t> puts{};
-    const auto start = steady_clock::now();
+    const auto start = logger::now();
     console(BN_TOTALS_START);
 
     do
@@ -297,7 +297,7 @@ bool executor::do_totals()
     while (to_bool(puts.first) && to_bool(puts.second) &&
         ++tx != tx_link::terminal);
 
-    const auto span = duration_cast<milliseconds>(steady_clock::now() - start);
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
     console(format(BN_TOTALS_STOP) % span.count());
 
     // Close store.
@@ -324,7 +324,7 @@ bool executor::do_initchain()
     log_.stop();
     const auto& directory = metadata_.configured.database.path;
     console(format(BN_INITIALIZING_CHAIN) % directory);
-    const auto start = steady_clock::now();
+    const auto start = logger::now();
 
     if (!file::create_directory(directory))
     {
@@ -366,7 +366,7 @@ bool executor::do_initchain()
         return false;
     }
 
-    const auto span = duration_cast<milliseconds>(steady_clock::now() - start);
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
     console(format(BN_INITCHAIN_COMPLETE) % span.count());
     return true;
 }
