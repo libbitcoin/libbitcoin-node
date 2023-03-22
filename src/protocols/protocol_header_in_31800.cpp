@@ -120,20 +120,20 @@ void protocol_header_in_31800::complete(const headers& message,
 
     reporter::fire(42);
     reporter::span(24, start);
-    LOG_ONLY(const auto nanoseconds = (logger::now() - start).count();)
+    LOG_ONLY(const auto span = duration_cast<milliseconds>(logger::now() - start);)
 
     if (message.header_ptrs.empty())
     {
         // Empty message may happen in case where last header is 2000th.
         LOGN("Headers from [" << authority() << "] complete in "
-            << nanoseconds << "ns.");
+            << span.count() << "ms.");
     }
     else
     {
         // Using header_fk as height proxy.
         LOGN("Headers from [" << authority() << "] at ("
             << archive().to_header(message.header_ptrs.back()->hash())
-            << ") complete in " << nanoseconds << "ns.");
+            << ") complete in " << span.count() << "ms.");
     }
 }
 

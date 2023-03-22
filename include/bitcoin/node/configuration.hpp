@@ -32,6 +32,7 @@ namespace node {
 #define BN_INITCHAIN_VARIABLE "initchain"
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
+#define BN_TOTALS_VARIABLE "totals"
 #define BN_LIGHT_VARIABLE "light"
 
 // This must be lower case but the env var part can be any case.
@@ -53,6 +54,7 @@ public:
     bool initchain;
     bool settings;
     bool version;
+    bool totals;
     bool light;
 
     /// Options and environment vars.

@@ -25,6 +25,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
@@ -196,6 +197,9 @@ bool executor::menu()
     if (config.version)
         return do_version();
 
+    if (config.totals)
+        return do_totals();
+
     if (config.initchain)
         return do_initchain();
 
@@ -239,6 +243,78 @@ bool executor::do_version()
     return true;
 }
 
+// --totals
+bool executor::do_totals()
+{
+    using namespace database;
+    using namespace std::chrono;
+    constexpr auto frequency = 100'000;
+
+    log_.stop();
+    const auto& file = metadata_.configured.file;
+
+    if (file.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % file);
+
+    // Verify store exists.
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_STORE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](event_t event, table_t table)
+    {
+        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    // Accumulate puts until no inputs/outputs.
+    // tx is a record table, links are sequential.
+    tx_link::integer tx{};
+    size_t inputs{}, outputs{};
+    std::pair<size_t, size_t> puts{};
+    const auto start = logger::now();
+    console(BN_TOTALS_START);
+
+    do
+    {
+        puts = query_.tx_puts(tx);
+        inputs += puts.first;
+        outputs += puts.second;
+
+        if (is_zero(tx % frequency))
+            console(format(BN_TOTALS_DISPLAY) % tx % inputs % outputs);
+    }
+    while (to_bool(puts.first) && to_bool(puts.second) &&
+        ++tx != tx_link::terminal);
+
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    console(format(BN_TOTALS_STOP) % span.count());
+
+    // Close store.
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](event_t event, table_t table)
+    {
+        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STOPPED);
+    return true;
+}
+
 // --initchain
 bool executor::do_initchain()
 {
@@ -248,7 +324,7 @@ bool executor::do_initchain()
     log_.stop();
     const auto& directory = metadata_.configured.database.path;
     console(format(BN_INITIALIZING_CHAIN) % directory);
-    const auto start = steady_clock::now();
+    const auto start = logger::now();
 
     if (!file::create_directory(directory))
     {
@@ -290,7 +366,7 @@ bool executor::do_initchain()
         return false;
     }
 
-    const auto span = duration_cast<milliseconds>(steady_clock::now() - start);
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
     console(format(BN_INITCHAIN_COMPLETE) % span.count());
     return true;
 }
@@ -424,12 +500,12 @@ void executor::subscribe_capture()
         {
             toggle_.at(index) = !toggle_.at(index);
             logger("CONSOLE: " + display_.at(index) + (toggle_.at(index) ?
-                " logging (on)." : " logging (off)."));
+                " logging (+)." : " logging (-)."));
         }
         else
         {
             // Selected log level was not compiled.
-            logger("CONSOLE: " + display_.at(index) + " logging (undefined).");
+            logger("CONSOLE: " + display_.at(index) + " logging (~).");
         }
 
         return !ec;
@@ -574,7 +650,7 @@ bool executor::do_run()
     // Stop network (if not already stopped by self).
     node_->close();
 
-    // Stop store (flush to disk).
+    // Close store (flush to disk).
     logger(BN_STORE_STOPPING);
     if (const auto ec = store_.close([&](event_t event, table_t table)
     {
