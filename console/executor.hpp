@@ -57,6 +57,7 @@ private:
     bool do_help();
     bool do_settings();
     bool do_version();
+    bool do_totals();
     bool do_initchain();
     bool do_run();
 
@@ -127,6 +128,15 @@ private:
     "Database failure to open, %1%."
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
+
+#define BN_TOTALS_START \
+    "Start totaling."
+#define BN_TOTALS_DISPLAY \
+    "transaction:%1%, inputs:%2%, outputs:%3%"
+#define BN_TOTALS_STOP \
+    "Stop totaling (%1% ms)."
+#define BN_STORE_STOPPED \
+    "Store stopped successfully."
 
 #define BN_CREATE \
     "create::%1%(%2%)"
