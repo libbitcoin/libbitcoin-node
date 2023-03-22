@@ -293,9 +293,9 @@ bool executor::do_totals()
         if (is_zero(tx % frequency))
             console(format(BN_TOTALS_DISPLAY) % tx % inputs % outputs);
     }
-    console(format(BN_TOTALS_DISPLAY) % --tx % inputs % outputs);
 
     const auto span = duration_cast<milliseconds>(logger::now() - start);
+    console(format(BN_TOTALS_DISPLAY) % --tx % inputs % outputs);
     console(format(BN_TOTALS_STOP) % span.count());
 
     // Close store.
