@@ -43,7 +43,7 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    // There is one common inventory subscription.
+    // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
     SEND1(create_get_inventory(), handle_send, _1);
     protocol::start();
@@ -176,6 +176,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     }
 
     // Release subscription if exhausted.
+    // This will terminate block iteration if send_headers has been sent.
+    // Otherwise handle_receive_inventory will restart inventory iteration.
     return !tracker->hashes.empty();
 }
 
