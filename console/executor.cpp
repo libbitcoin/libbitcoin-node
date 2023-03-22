@@ -277,25 +277,23 @@ bool executor::do_totals()
         return false;
     }
 
-    // Accumulate puts until no inputs/outputs.
-    // tx is a record table, links are sequential.
+    console(BN_TOTALS_START);
     tx_link::integer tx{};
     size_t inputs{}, outputs{};
-    std::pair<size_t, size_t> puts{};
     const auto start = logger::now();
-    console(BN_TOTALS_START);
 
-    do
+    // Links are sequential and therefore iterable, however the terminal
+    // condition assumes all tx entries fully written (ok for stopped node).
+    // A running node cannot safely iterate over record links, but stopped can.
+    for (auto puts = query_.tx_puts(tx); to_bool(puts.first);
+        puts = query_.tx_puts(++tx))
     {
-        puts = query_.tx_puts(tx);
         inputs += puts.first;
         outputs += puts.second;
-
         if (is_zero(tx % frequency))
             console(format(BN_TOTALS_DISPLAY) % tx % inputs % outputs);
     }
-    while (to_bool(puts.first) && to_bool(puts.second) &&
-        ++tx != tx_link::terminal);
+    console(format(BN_TOTALS_DISPLAY) % --tx % inputs % outputs);
 
     const auto span = duration_cast<milliseconds>(logger::now() - start);
     console(format(BN_TOTALS_STOP) % span.count());
