@@ -86,6 +86,12 @@ options_metadata parser::load_options() THROWS
         "Display all configuration settings."
     )
     (
+        BN_VERSION_VARIABLE ",v",
+        value<bool>(&configured.version)->
+            default_value(false)->zero_tokens(),
+        "Display version information."
+    )
+    (
         BN_TOTALS_VARIABLE ",t",
         value<bool>(&configured.totals)->
             default_value(false)->zero_tokens(),
