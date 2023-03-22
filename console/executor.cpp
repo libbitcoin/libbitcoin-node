@@ -285,8 +285,8 @@ bool executor::do_totals()
     // Links are sequential and therefore iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
-    for (auto puts = query_.tx_puts(tx); to_bool(puts.first);
-        puts = query_.tx_puts(++tx))
+    for (auto puts = query_.put_slabs(tx); to_bool(puts.first);
+        puts = query_.put_slabs(++tx))
     {
         inputs += puts.first;
         outputs += puts.second;
