@@ -25,6 +25,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
