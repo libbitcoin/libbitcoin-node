@@ -129,12 +129,34 @@ private:
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
 
-#define BN_TOTALS_START \
-    "Start totaling."
-#define BN_TOTALS_DISPLAY \
+#define BN_TOTALS_BUCKETS \
+    "Head buckets:\n" \
+    "header:%1%\n" \
+    "point:%2%\n" \
+    "input:%3%\n" \
+    "txs:%4%\n" \
+    "tx:%5%"
+#define BN_TOTALS_RECORDS \
+    "Table records:\n" \
+    "header:%1%\n" \
+    "point:%2%\n" \
+    "puts:%3%\n" \
+    "tx:%4%"
+#define BN_TOTALS_SIZES \
+    "Body sizes:\n" \
+    "header:%1%\n" \
+    "output:%2%\n" \
+    "input:%3%\n" \
+    "point:%4%\n" \
+    "puts:%5%\n" \
+    "txs:%6%\n" \
+    "tx:%7%"
+#define BN_TOTALS_PUTS_START \
+    "Start counting."
+#define BN_TOTALS_PUTS \
     "transaction:%1%, inputs:%2%, outputs:%3%"
-#define BN_TOTALS_STOP \
-    "Stop totaling (%1% ms)."
+#define BN_TOTALS_PUTS_STOP \
+    "Stop counting (%1% ms)."
 #define BN_STORE_STOPPED \
     "Store stopped successfully."
 

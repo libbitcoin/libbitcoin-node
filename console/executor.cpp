@@ -277,7 +277,27 @@ bool executor::do_totals()
         return false;
     }
 
-    console(BN_TOTALS_START);
+    console(format(BN_TOTALS_BUCKETS) %
+        query_.header_buckets() %
+        query_.point_buckets() %
+        query_.input_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets());
+    console(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.point_records() %
+        query_.puts_records() %
+        query_.tx_records());
+    console(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.output_size() %
+        query_.input_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.txs_size() %
+        query_.tx_size());
+
+    console(BN_TOTALS_PUTS_START);
     tx_link::integer tx{};
     size_t inputs{}, outputs{};
     const auto start = logger::now();
@@ -291,12 +311,12 @@ bool executor::do_totals()
         inputs += puts.first;
         outputs += puts.second;
         if (is_zero(tx % frequency))
-            console(format(BN_TOTALS_DISPLAY) % tx % inputs % outputs);
+            console(format(BN_TOTALS_PUTS) % tx % inputs % outputs);
     }
 
     const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format(BN_TOTALS_DISPLAY) % --tx % inputs % outputs);
-    console(format(BN_TOTALS_STOP) % span.count());
+    console(format(BN_TOTALS_PUTS) % --tx % inputs % outputs);
+    console(format(BN_TOTALS_PUTS_STOP) % span.count());
 
     // Close store.
     console(BN_STORE_STOPPING);
