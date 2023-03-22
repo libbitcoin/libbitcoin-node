@@ -56,15 +56,15 @@ const std::unordered_map<uint8_t, bool> executor::defined_
 };
 const std::unordered_map<uint8_t, std::string> executor::display_
 {
-    { levels::application, "Toggle Application" },
-    { levels::news,        "Toggle News" },
-    { levels::objects,     "Toggle Objects" },
-    { levels::session,     "Toggle Session" },
-    { levels::protocol,    "Toggle Protocol" },
-    { levels::proxy,       "Toggle proXy" },
-    { levels::wire,        "Toggle Wire shark" },
-    { levels::remote,      "Toggle Remote fault" },
-    { levels::fault,       "Toggle internal Fault" },
+    { levels::application, "toggle Application" },
+    { levels::news,        "toggle News" },
+    { levels::objects,     "toggle Objects" },
+    { levels::session,     "toggle Session" },
+    { levels::protocol,    "toggle Protocol" },
+    { levels::proxy,       "toggle proXy" },
+    { levels::wire,        "toggle Wire shark" }, // not implemented
+    { levels::remote,      "toggle Remote fault" },
+    { levels::fault,       "toggle internal Fault" },
     { levels::quit,        "Quit" }
 };
 const std::unordered_map<std::string, uint8_t> executor::keys_
