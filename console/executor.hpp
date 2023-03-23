@@ -57,8 +57,8 @@ private:
     bool do_help();
     bool do_settings();
     bool do_version();
-    bool do_totals();
     bool do_initchain();
+    bool do_totals();
     bool do_run();
 
     using rotator_t = database::file::stream::out::rotator;
@@ -116,8 +116,10 @@ private:
     "Please wait while initializing %1% directory..."
 #define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
+#define BN_INITCHAIN_CREATING \
+    "Please wait while creating the store..."
 #define BN_INITCHAIN_COMPLETE \
-    "Completed initialization in %1% ms."
+    "Created and initialized empty chain in %1% ms."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
     "Database creation failed with error, '%1%'."
 #define BN_INITCHAIN_DATABASE_INITIALIZE \
@@ -129,12 +131,43 @@ private:
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
 
+#define BN_TOTALS_RECORDS \
+    "Table records...\n" \
+    "   header :%1%\n"  \
+    "   tx     :%2%\n"\
+    "   point  :%3%\n" \
+    "   puts   :%4%"
+#define BN_TOTALS_SIZES \
+    "Body sizes...\n" \
+    "   header :%1%\n" \
+    "   txs    :%2%\n" \
+    "   tx     :%3%\n" \
+    "   point  :%4%\n" \
+    "   puts   :%5%\n" \
+    "   input  :%6%\n" \
+    "   output :%7%"
 #define BN_TOTALS_START \
-    "Start totaling."
-#define BN_TOTALS_DISPLAY \
-    "transaction:%1%, inputs:%2%, outputs:%3%"
+    "Table slabs..."
+#define BN_TOTALS_SLABS \
+    "   @tx    :%1%, inputs:%2%, outputs:%3%"
 #define BN_TOTALS_STOP \
-    "Stop totaling (%1% ms)."
+    "   seconds:%1%\n" \
+    "   input  :%2%\n" \
+    "   output :%3%"
+#define BN_TOTALS_COLLISION \
+    "Head buckets...\n" \
+    "   header :%1% (%2%)\n" \
+    "   txs    :%3% (%4%)\n" \
+    "   tx     :%5% (%6%)\n" \
+    "   point  :%7% (%8%)\n" \
+    "   input  :%9% (%10%)"
+#define BN_TOTALS_BUCKETS \
+    "Head buckets...\n" \
+    "   header :%1%\n" \
+    "   txs    :%2%\n" \
+    "   tx     :%3%\n" \
+    "   point  :%4%\n" \
+    "   input  :%5%"
 #define BN_STORE_STOPPED \
     "Store stopped successfully."
 

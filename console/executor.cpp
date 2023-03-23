@@ -243,6 +243,92 @@ bool executor::do_version()
     return true;
 }
 
+// --initchain
+bool executor::do_initchain()
+{
+    using namespace database;
+    using namespace std::chrono;
+
+    log_.stop();
+    const auto& directory = metadata_.configured.database.path;
+    console(format(BN_INITIALIZING_CHAIN) % directory);
+    const auto start = logger::now();
+
+    const auto& file = metadata_.configured.file;
+    if (file.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % file);
+
+    if (!file::create_directory(directory))
+    {
+        console(format(BN_INITCHAIN_EXISTS) % directory);
+        return false;
+    }
+
+    console(BN_INITCHAIN_CREATING);
+    if (const auto ec = store_.create([&](event_t event, table_t table)
+    {
+        console(format(BN_CREATE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](event_t event, table_t table)
+    {
+        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
+        return false;
+    }
+
+    console(BN_INITCHAIN_DATABASE_INITIALIZE);
+    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
+    {
+        console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
+        return false;
+    }
+
+    // Records and sizes reflect genesis block only.
+    console(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    console(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+    console(format(BN_TOTALS_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.input_buckets());
+
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](event_t event, table_t table)
+    {
+        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
+        return false;
+    }
+
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    console(format(BN_INITCHAIN_COMPLETE) % span.count());
+    return true;
+}
+
 // --totals
 bool executor::do_totals()
 {
@@ -277,7 +363,21 @@ bool executor::do_totals()
         return false;
     }
 
+    console(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    console(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
     console(BN_TOTALS_START);
+
     tx_link::integer tx{};
     size_t inputs{}, outputs{};
     const auto start = logger::now();
@@ -285,18 +385,24 @@ bool executor::do_totals()
     // Links are sequential and therefore iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
-    for (auto puts = query_.tx_puts(tx); to_bool(puts.first);
-        puts = query_.tx_puts(++tx))
+    for (auto puts = query_.put_slabs(tx); to_bool(puts.first);
+        puts = query_.put_slabs(++tx))
     {
         inputs += puts.first;
         outputs += puts.second;
         if (is_zero(tx % frequency))
-            console(format(BN_TOTALS_DISPLAY) % tx % inputs % outputs);
+            console(format(BN_TOTALS_SLABS) % tx % inputs % outputs);
     }
 
-    const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format(BN_TOTALS_DISPLAY) % --tx % inputs % outputs);
-    console(format(BN_TOTALS_STOP) % span.count());
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    console(format(BN_TOTALS_STOP) % span.count() % inputs % outputs);
+
+    console(format(BN_TOTALS_COLLISION) %
+        query_.header_buckets() % ((1.0 * query_.header_records()) / query_.header_buckets()) %
+        query_.txs_buckets() % ((1.0 * query_.header_records()) / query_.txs_buckets()) %
+        query_.tx_buckets() % ((1.0 * query_.tx_records()) / query_.tx_buckets()) %
+        query_.point_buckets() % ((1.0 * query_.point_records()) / query_.point_buckets()) %
+        query_.input_buckets() % ((1.0 * inputs) / query_.input_buckets()));
 
     // Close store.
     console(BN_STORE_STOPPING);
@@ -310,62 +416,6 @@ bool executor::do_totals()
     }
 
     console(BN_STORE_STOPPED);
-    return true;
-}
-
-// --initchain
-bool executor::do_initchain()
-{
-    using namespace database;
-    using namespace std::chrono;
-
-    log_.stop();
-    const auto& directory = metadata_.configured.database.path;
-    console(format(BN_INITIALIZING_CHAIN) % directory);
-    const auto start = logger::now();
-
-    if (!file::create_directory(directory))
-    {
-        console(format(BN_INITCHAIN_EXISTS) % directory);
-        return false;
-    }
-
-    if (const auto ec = store_.create([&](event_t event, table_t table)
-    {
-        console(format(BN_CREATE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
-        return false;
-    }
-
-    if (const auto ec = store_.open([&](event_t event, table_t table)
-    {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
-        return false;
-    }
-
-    console(BN_INITCHAIN_DATABASE_INITIALIZE);
-    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
-    {
-        console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
-        return false;
-    }
-
-    if (const auto ec = store_.close([&](event_t event, table_t table)
-    {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
-        return false;
-    }
-
-    const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format(BN_INITCHAIN_COMPLETE) % span.count());
     return true;
 }
 
@@ -626,6 +676,26 @@ bool executor::do_run()
         return false;
     }
 
+    logger(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    logger(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+    logger(format(BN_TOTALS_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.input_buckets());
+
     // Create node.
     metadata_.configured.network.initialize();
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
@@ -647,6 +717,20 @@ bool executor::do_run()
 
     // Stop network (if not already stopped by self).
     node_->close();
+
+    logger(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    logger(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
 
     // Close store (flush to disk).
     logger(BN_STORE_STOPPING);
