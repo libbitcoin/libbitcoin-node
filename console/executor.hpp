@@ -129,34 +129,45 @@ private:
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
 
-#define BN_TOTALS_BUCKETS \
-    "Head buckets:\n" \
-    "header:%1%\n" \
-    "point:%2%\n" \
-    "input:%3%\n" \
-    "txs:%4%\n" \
-    "tx:%5%"
 #define BN_TOTALS_RECORDS \
-    "Table records:\n" \
-    "header:%1%\n" \
-    "point:%2%\n" \
-    "puts:%3%\n" \
-    "tx:%4%"
+    "Table records...\n" \
+    "   header :%1%\n"  \
+    "   tx     :%2%\n"\
+    "   point  :%3%\n" \
+    "   puts   :%4%"
 #define BN_TOTALS_SIZES \
-    "Body sizes:\n" \
-    "header:%1%\n" \
-    "output:%2%\n" \
-    "input:%3%\n" \
-    "point:%4%\n" \
-    "puts:%5%\n" \
-    "txs:%6%\n" \
-    "tx:%7%"
-#define BN_TOTALS_PUTS_START \
-    "Start counting."
-#define BN_TOTALS_PUTS \
-    "transaction:%1%, inputs:%2%, outputs:%3%"
-#define BN_TOTALS_PUTS_STOP \
-    "Stop counting (%1% ms)."
+    "Body sizes...\n" \
+    "   header :%1%\n" \
+    "   txs    :%2%\n" \
+    "   tx     :%3%\n" \
+    "   point  :%4%\n" \
+    "   puts   :%5%\n" \
+    "   input  :%6%\n" \
+    "   output :%7%"
+#define BN_TOTALS_START \
+    "Table slabs..."
+#define BN_TOTALS_SLABS \
+    "   @tx    :%1%, inputs:%2%, outputs:%3%"
+#define BN_TOTALS_STOP \
+    "   scan   :%1% ms\n" \
+    "   inputs :%2%\n" \
+    "   outputs:%3%\n" \
+    "   utxos  :%4%\n" \
+    "   rate   :%5%"
+#define BN_TOTALS_COLLISION \
+    "Head buckets...\n" \
+    "   header :%1% (%2%)\n" \
+    "   txs    :%3% (%4%)\n" \
+    "   tx     :%5% (%6%)\n" \
+    "   point  :%7% (%8%)\n" \
+    "   input  :%9% (%10%)"
+#define BN_TOTALS_BUCKETS \
+    "Head buckets...\n" \
+    "   header :%1%\n" \
+    "   txs    :%2%\n" \
+    "   tx     :%3%\n" \
+    "   point  :%4%\n" \
+    "   input  :%5%"
 #define BN_STORE_STOPPED \
     "Store stopped successfully."
 

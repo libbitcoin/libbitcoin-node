@@ -277,27 +277,21 @@ bool executor::do_totals()
         return false;
     }
 
-    console(format(BN_TOTALS_BUCKETS) %
-        query_.header_buckets() %
-        query_.point_buckets() %
-        query_.input_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets());
-    console(format(BN_TOTALS_RECORDS) %
-        query_.header_records() %
-        query_.point_records() %
-        query_.puts_records() %
-        query_.tx_records());
     console(format(BN_TOTALS_SIZES) %
         query_.header_size() %
-        query_.output_size() %
-        query_.input_size() %
+        query_.txs_size() %
+        query_.tx_size() %
         query_.point_size() %
         query_.puts_size() %
-        query_.txs_size() %
-        query_.tx_size());
+        query_.input_size() %
+        query_.output_size());
+    console(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+    console(BN_TOTALS_START);
 
-    console(BN_TOTALS_PUTS_START);
     tx_link::integer tx{};
     size_t inputs{}, outputs{};
     const auto start = logger::now();
@@ -311,12 +305,20 @@ bool executor::do_totals()
         inputs += puts.first;
         outputs += puts.second;
         if (is_zero(tx % frequency))
-            console(format(BN_TOTALS_PUTS) % tx % inputs % outputs);
+            console(format(BN_TOTALS_SLABS) % tx % inputs % outputs);
     }
 
     const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format(BN_TOTALS_PUTS) % --tx % inputs % outputs);
-    console(format(BN_TOTALS_PUTS_STOP) % span.count());
+    const auto unspent = floored_subtract(outputs, inputs);
+    console(format(BN_TOTALS_STOP) % span.count() %
+        inputs % outputs % unspent % (1.0 * unspent / outputs));
+
+    console(format(BN_TOTALS_COLLISION) %
+        query_.header_buckets() % ((1.0 * query_.header_records()) / query_.header_buckets()) %
+        query_.txs_buckets() % ((1.0 * query_.header_records()) / query_.txs_buckets()) %
+        query_.tx_buckets() % ((1.0 * query_.tx_records()) / query_.tx_buckets()) %
+        query_.point_buckets() % ((1.0 * query_.point_records()) / query_.point_buckets()) %
+        query_.input_buckets() % ((1.0 * inputs) / query_.input_buckets()));
 
     // Close store.
     console(BN_STORE_STOPPING);
@@ -374,6 +376,27 @@ bool executor::do_initchain()
         console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
         return false;
     }
+
+    // Records and sizes reflect genesis block only.
+    console(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    console(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+    console(format(BN_TOTALS_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.input_buckets());
 
     if (const auto ec = store_.close([&](event_t event, table_t table)
     {
@@ -646,6 +669,26 @@ bool executor::do_run()
         return false;
     }
 
+    logger(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    logger(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+    logger(format(BN_TOTALS_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.input_buckets());
+
     // Create node.
     metadata_.configured.network.initialize();
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
@@ -667,6 +710,20 @@ bool executor::do_run()
 
     // Stop network (if not already stopped by self).
     node_->close();
+
+    logger(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    logger(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
 
     // Close store (flush to disk).
     logger(BN_STORE_STOPPING);
