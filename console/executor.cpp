@@ -37,6 +37,7 @@ using system::config::printer;
 using namespace system;
 using namespace network;
 using namespace std::placeholders;
+using namespace std::chrono;
 
 // const executor statics
 const std::string executor::quit_{ "q" };
@@ -247,7 +248,6 @@ bool executor::do_version()
 bool executor::do_initchain()
 {
     using namespace database;
-    using namespace std::chrono;
 
     log_.stop();
     const auto& directory = metadata_.configured.database.path;
@@ -333,7 +333,6 @@ bool executor::do_initchain()
 bool executor::do_totals()
 {
     using namespace database;
-    using namespace std::chrono;
     constexpr auto frequency = 100'000;
 
     log_.stop();
@@ -509,16 +508,49 @@ void executor::subscribe_light(rotator_t& sink)
 
 void executor::subscribe_events(rotator_t& sink)
 {
-    log_.subscribe_events([&](const code& ec, uint8_t event, uint64_t value,
-        const logger::time& point)
+    log_.subscribe_events([&sink, start = logger::now()](const code& ec,
+        uint8_t event, uint64_t value, const logger::time& point)
     {
         if (ec) return false;
 
-        // C++20: duration not yet serializable in g++.
-        sink
-            << "[" << serialize(event) << "] "
-            << point.time_since_epoch().count() << " "
-            << value << std::endl;
+        switch (event)
+        {
+            case event_header:
+            {
+                if (to_bool(value % 10'000))
+                    return true;
+
+                sink << "[header]";
+                break;
+            }
+            case event_block:
+            {
+                if (to_bool(value % 10'000))
+                    return true;
+
+                sink << "[block]";
+                break;
+            }
+            case event_current_headers:
+            {
+                sink << "[headers]";
+                break;
+            }
+            case event_current_blocks:
+            {
+                sink << "[blocks]";
+                break;
+            }
+            case event_validated:
+            case event_confirmed:
+            case event_current_validated:
+            case event_current_confirmed:
+            default:
+                return true;
+        }
+
+        const auto time = duration_cast<seconds>(point - start).count();
+        sink << " " << value << " " << time << std::endl;
         return true;
     });
 }
