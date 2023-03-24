@@ -72,14 +72,15 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    constexpr auto block_id = inventory::type_id::block;
 
     if (stopped(ec))
         return false;
 
-    const auto getter = create_get_data(*message);
-
-    LOGP("Received (" << message->items.size() << ") block inventory from ["
+    LOGP("Received (" << message->count(block_id) << ") block inventory from ["
         << authority() << "].");
+
+    const auto getter = create_get_data(*message);
 
     // If getter is empty it may be only because we have them all, so iterate.
     if (getter.items.empty())
@@ -162,23 +163,48 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
     }
 
+    // This will be incorrect with multiple peers or headers protocol.
+    // archive().header_records() is a weak proxy for current height (top).
+    reporter::fire(event_block, archive().header_records());
+
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
         << authority() << "].");
 
-    // Protocol presumes max_get_blocks unless complete.
-    if ((tracker->announced == max_get_blocks) && tracker->hashes.empty())
+    // Handle completion of the inventory block subset.
+    if (tracker->hashes.empty())
     {
-        LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
-        SEND1(create_get_inventory({ tracker->last }), handle_send, _1);
+        // Implementation presumes max_get_blocks unless complete.
+        if (tracker->announced == max_get_blocks)
+        {
+            LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
+            SEND1(create_get_inventory({ tracker->last }), handle_send, _1);
+        }
+        else
+        {
+            // Currency stalls if current on 500 as empty message is ambiguous.
+            // This is ok, since currency is not used for anything essential.
+            current();
+        }
     }
 
     // Release subscription if exhausted.
     // This will terminate block iteration if send_headers has been sent.
     // Otherwise handle_receive_inventory will restart inventory iteration.
     return !tracker->hashes.empty();
+}
+
+// This could be the end of a catch-up sequence, or a singleton announcement.
+// The distinction is ultimately arbitrary, but thissignals initial currency.
+void protocol_block_in::current() NOEXCEPT
+{
+    // This will be incorrect with multiple peers or headers protocol.
+    // archive().header_records() is a weak proxy for current height (top).
+    const auto top = archive().header_records();
+    reporter::fire(event_current_blocks, top);
+    LOGN("Blocks from [" << authority() << "] complete at (" << top << ").");
 }
 
 // private

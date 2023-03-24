@@ -63,6 +63,10 @@ protected:
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
 
+protected:
+    /// Invoked when initial blocks sync is current.
+    virtual void current() NOEXCEPT;
+
 private:
     network::messages::get_blocks create_get_inventory() NOEXCEPT;
     network::messages::get_blocks create_get_inventory(
