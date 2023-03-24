@@ -421,24 +421,24 @@ bool executor::do_totals()
 // Run.
 // ----------------------------------------------------------------------------
 
-// Create message log rotating file sink.
-executor::rotator_t executor::create_sink(
-    const std::filesystem::path& path) const
+executor::rotator_t executor::create_log_sink() const
 {
-    // No logging for log setup failure, could use console.
-    if (!path.empty())
-        database::file::create_directory(path);
-
     return
     {
-        // Standard file names, both within the logs directory.
-        metadata_.configured.log.file1(),
-        metadata_.configured.log.file2(),
+        // Standard file names, within the [node].path directory.
+        metadata_.configured.log.log_file1(),
+        metadata_.configured.log.log_file2(),
         to_half(metadata_.configured.log.maximum_size)
     };
 }
 
-void executor::subscribe_full(rotator_t& sink)
+system::ofstream executor::create_event_sink() const
+{
+    // Standard file name, within the [node].path directory.
+    return { metadata_.configured.log.events_file() };
+}
+
+void executor::subscribe_full(std::ostream& sink)
 {
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
@@ -470,7 +470,7 @@ void executor::subscribe_full(rotator_t& sink)
     });
 }
 
-void executor::subscribe_light(rotator_t& sink)
+void executor::subscribe_light(std::ostream& sink)
 {
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
@@ -506,7 +506,7 @@ void executor::subscribe_light(rotator_t& sink)
     });
 }
 
-void executor::subscribe_events(rotator_t& sink)
+void executor::subscribe_events(std::ostream& sink)
 {
     log_.subscribe_events([&sink, start = logger::now()](const code& ec,
         uint8_t event, uint64_t value, const logger::time& point)
@@ -666,16 +666,26 @@ void executor::subscribe_close()
 bool executor::do_run()
 {
     using namespace database;
-    auto sink = create_sink(metadata_.configured.log.path);
+    if (!metadata_.configured.log.path.empty())
+        database::file::create_directory(metadata_.configured.log.path);
 
+    // TODO: remove --light.
+    auto log = create_log_sink();
     if (metadata_.configured.light)
-        subscribe_light(sink);
+        subscribe_light(log);
     else
-        subscribe_full(sink);
+        subscribe_full(log);
 
-    subscribe_events(sink);
+    auto events = create_event_sink();
+    subscribe_events(events);
+    if (!log || !events)
+    {
+        console(BN_LOG_INITIALIZE_FAILURE);
+        return false;
+    }
+
     subscribe_capture();
-    logger(BN_LOG_HEADER);
+    logger(BN_LOG_INITIALIZE_FAILURE);
 
     const auto& file = metadata_.configured.file;
 

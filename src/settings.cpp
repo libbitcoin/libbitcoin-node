@@ -36,17 +36,24 @@ settings::settings(chain::selection) NOEXCEPT
 {
 }
 
-std::filesystem::path settings::file1() NOEXCEPT
+std::filesystem::path settings::log_file1() NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return path / "bn_end.log";
     BC_POP_WARNING()
 }
 
-std::filesystem::path settings::file2() NOEXCEPT
+std::filesystem::path settings::log_file2() NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return path / "bn_begin.log";
+    BC_POP_WARNING()
+}
+
+std::filesystem::path settings::events_file() NOEXCEPT
+{
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+    return path / "events.log";
     BC_POP_WARNING()
 }
 

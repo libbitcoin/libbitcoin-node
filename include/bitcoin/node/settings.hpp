@@ -42,8 +42,9 @@ public:
     std::filesystem::path symbols;
 #endif
 
-    virtual std::filesystem::path file1() NOEXCEPT;
-    virtual std::filesystem::path file2() NOEXCEPT;
+    virtual std::filesystem::path log_file1() NOEXCEPT;
+    virtual std::filesystem::path log_file2() NOEXCEPT;
+    virtual std::filesystem::path events_file() NOEXCEPT;
 };
 
 } // namespace log
