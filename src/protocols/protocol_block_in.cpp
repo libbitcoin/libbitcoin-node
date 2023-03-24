@@ -175,7 +175,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Temporary.
     if (is_zero(header_records % 50'000))
     {
-        LOGP("BLOCK: " << header_records
+        LOGN("BLOCK: " << header_records
             << " " << query.tx_records()
             << " " << query.archive_size()
             << " " << query.input_size()
