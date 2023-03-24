@@ -686,10 +686,9 @@ bool executor::do_run()
     }
 
     subscribe_capture();
-    logger(BN_LOG_INITIALIZE_FAILURE);
+    logger(BN_LOG_HEADER);
 
     const auto& file = metadata_.configured.file;
-
     if (file.empty())
         logger(BN_USING_DEFAULT_CONFIG);
     else
