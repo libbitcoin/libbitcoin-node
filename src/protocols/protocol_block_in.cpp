@@ -230,18 +230,18 @@ get_blocks protocol_block_in::create_get_inventory(hashes&& hashes) NOEXCEPT
 get_data protocol_block_in::create_get_data(
     const inventory& message) const NOEXCEPT
 {
-    constexpr auto block_type = inventory::type_id::block;
-
     get_data getter{};
-    getter.items.reserve(message.count(block_type));
+    getter.items.reserve(message.count(type_id::block));
     for (const auto& item: message.items)
-        if ((item.type == block_type) && !archive().is_block(item.hash))
-            getter.items.push_back(item);
+    {
+        // bip144: get_data uses witness constant but inventory does not.
+        if ((item.type == type_id::block) && !archive().is_block(item.hash))
+            getter.items.emplace_back(block_type_, item.hash);
+    }
 
     getter.items.shrink_to_fit();
     return getter;
 }
-
 
 } // namespace node
 } // namespace libbitcoin
