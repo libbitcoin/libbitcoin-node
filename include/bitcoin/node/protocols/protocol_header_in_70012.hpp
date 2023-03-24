@@ -42,9 +42,8 @@ public:
     }
 
 protected:
-    /// Invoked when initial headers sync is complete.
-    void complete(const network::messages::headers& message,
-        const network::logger::time& start) NOEXCEPT override;
+    /// Invoked when initial headers sync is current.
+    void current() NOEXCEPT override;
 
 private:
     bool sent_{};

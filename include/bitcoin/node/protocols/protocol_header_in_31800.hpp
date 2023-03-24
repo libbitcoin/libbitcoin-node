@@ -45,14 +45,12 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Invoked when initial headers sync is complete.
-    virtual void complete(const network::messages::headers& message,
-        const network::logger::time& start) NOEXCEPT;
+    /// Invoked when initial headers sync is current.
+    virtual void current() NOEXCEPT;
 
     /// Recieved incoming headers message.
     virtual bool handle_receive_headers(const code& ec,
-        const network::messages::headers::cptr& message,
-        const network::logger::time& start) NOEXCEPT;
+        const network::messages::headers::cptr& message) NOEXCEPT;
 
 private:
     network::messages::get_headers create_get_headers() NOEXCEPT;

@@ -45,8 +45,8 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    // There is one common headers subscription.
-    SUBSCRIBE_CHANNEL3(headers, handle_receive_headers, _1, _2, logger::now());
+    // There is one persistent common headers subscription.
+    SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
 }
@@ -55,18 +55,18 @@ void protocol_header_in_31800::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
-    const headers::cptr& message, const logger::time& start) NOEXCEPT
+    const headers::cptr& message) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
 
     if (stopped(ec))
         return false;
 
-    LOGP("Received (" << message->header_ptrs.size() << ") headers from ["
-        << authority() << "].");
-
     code check{};
     const auto& coin = config().bitcoin;
+
+    LOGP("Headers (" << message->header_ptrs.size() << ") from ["
+        << authority() << "].");
 
     // TODO: optimize header hashing using read buffer in message deserialize.
     // Store each header, drop channel if invalid.
@@ -96,6 +96,10 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             stop(network::error::protocol_violation);
             return false;
         }
+
+        // This will be incorrect with multiple peers or block protocol.
+        // archive().header_records() is a weak proxy for current height (top).
+        reporter::fire(event_header, archive().header_records());
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -106,35 +110,22 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     }
     else
     {
-        // This assumes an empty response will be sent if caught up at 2000.
-        complete(*message, start);
+        // Currency assumes empty response from peer if caught up at 2000.
+        current();
     }
 
     return true;
 }
 
-void protocol_header_in_31800::complete(const headers& message,
-    const logger::time& LOG_ONLY(start)) NOEXCEPT
+// This could be the end of a catch-up sequence, or a singleton announcement.
+// The distinction is ultimately arbitrary, but thissignals initial currency.
+void protocol_header_in_31800::current() NOEXCEPT
 {
-    // TODO: log only the first sequence (see 70012::complete).
-
-    reporter::fire(42);
-    reporter::span(24, start);
-    LOG_ONLY(const auto span = duration_cast<milliseconds>(logger::now() - start);)
-
-    if (message.header_ptrs.empty())
-    {
-        // Empty message may happen in case where last header is 2000th.
-        LOGN("Headers from [" << authority() << "] complete in "
-            << span.count() << "ms.");
-    }
-    else
-    {
-        // Using header_fk as height proxy.
-        LOGN("Headers from [" << authority() << "] at ("
-            << archive().to_header(message.header_ptrs.back()->hash())
-            << ") complete in " << span.count() << "ms.");
-    }
+    // This will be incorrect with multiple peers or block protocol.
+    // archive().header_records() is a weak proxy for current height (top).
+    const auto top = archive().header_records();
+    reporter::fire(event_current_headers, top);
+    LOGN("Headers from [" << authority() << "] complete at (" << top << ").");
 }
 
 // private
