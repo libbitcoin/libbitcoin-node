@@ -517,40 +517,41 @@ void executor::subscribe_events(std::ostream& sink)
         {
             case event_header:
             {
-                if (to_bool(value % 10'000))
-                    return true;
-
-                sink << "[header]";
+                if (is_zero(value % 10'000))
+                {
+                    const auto time = duration_cast<seconds>(point - start).count();
+                    sink << "[header] " << value << " " << time << std::endl;
+                }
                 break;
             }
             case event_block:
             {
-                if (to_bool(value % 10'000))
-                    return true;
-
-                sink << "[block]";
+                if (is_zero(value % 10'000))
+                {
+                    const auto time = duration_cast<seconds>(point - start).count();
+                    sink << "[block] " << value << " " << time << std::endl;
+                }
                 break;
             }
             case event_current_headers:
             {
-                sink << "[headers]";
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[headers] " << value << " " << time << std::endl;
                 break;
             }
             case event_current_blocks:
             {
-                sink << "[blocks]";
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[blocks] " << value << " " << time << std::endl;
                 break;
             }
             case event_validated:
             case event_confirmed:
             case event_current_validated:
             case event_current_confirmed:
-            default:
-                return true;
+            default: break;
         }
 
-        const auto time = duration_cast<seconds>(point - start).count();
-        sink << " " << value << " " << time << std::endl;
         return true;
     });
 }

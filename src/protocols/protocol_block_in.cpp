@@ -165,13 +165,25 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     // This will be incorrect with multiple peers or headers protocol.
     // archive().header_records() is a weak proxy for current height (top).
-    reporter::fire(event_block, archive().header_records());
-
-    // Order is reversed, so next is at back.
-    tracker->hashes.pop_back();
+    const auto& query = archive();
+    const auto header_records = query.header_records();
+    reporter::fire(event_block, header_records);
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
         << authority() << "].");
+
+    // Temporary.
+    if (is_zero(header_records % 50'000))
+    {
+        LOGP("BLOCK: " << header_records
+            << " " << query.tx_records()
+            << " " << query.archive_size()
+            << " " << query.input_size()
+            << " " << query.output_size());
+    }
+
+    // Order is reversed, so next is at back.
+    tracker->hashes.pop_back();
 
     // Handle completion of the inventory block subset.
     if (tracker->hashes.empty())
