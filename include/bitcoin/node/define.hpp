@@ -44,6 +44,18 @@ namespace node {
     /// Alias system code.
     /// TODO: std::error_code "node" category holds node::error::error_t.
     typedef std::error_code code;
+
+    enum events : uint8_t
+    {
+        event_header,
+        event_block,
+        event_validated,
+        event_confirmed,
+        event_current_headers,
+        event_current_blocks,
+        event_current_validated,
+        event_current_confirmed
+    };
 }
 }
 

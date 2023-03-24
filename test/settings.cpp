@@ -28,8 +28,9 @@ BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
     BOOST_REQUIRE_EQUAL(configuration.verbose, false);
     BOOST_REQUIRE_EQUAL(configuration.maximum_size, 1'000'000_u32);
     BOOST_REQUIRE_EQUAL(configuration.path, "");
-    BOOST_REQUIRE_EQUAL(configuration.file1(), "bn_end.log");
-    BOOST_REQUIRE_EQUAL(configuration.file2(), "bn_begin.log");
+    BOOST_REQUIRE_EQUAL(configuration.log_file1(), "bn_end.log");
+    BOOST_REQUIRE_EQUAL(configuration.log_file2(), "bn_begin.log");
+    BOOST_REQUIRE_EQUAL(configuration.events_file(), "events.log");
 }
 
 // [node]

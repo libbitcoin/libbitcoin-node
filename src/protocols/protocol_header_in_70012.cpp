@@ -30,12 +30,9 @@ using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
-void protocol_header_in_70012::complete(const headers& message,
-    const logger::time& start) NOEXCEPT
+void protocol_header_in_70012::current() NOEXCEPT
 {
-    // This could be the end of a catch-up sequence, or a singleton
-    // announcement. The distinction is ultimately arbitrary.
-    protocol_header_in_31800::complete(message, start);
+    protocol_header_in_31800::current();
 
     if (!sent_)
     {

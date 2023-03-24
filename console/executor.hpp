@@ -41,6 +41,8 @@ public:
     bool menu();
 
 private:
+    using rotator_t = database::file::stream::out::rotator;
+
     void logger(const auto& message);
     void console(const auto& message);
     void stopper(const auto& message);
@@ -61,11 +63,11 @@ private:
     bool do_totals();
     bool do_run();
 
-    using rotator_t = database::file::stream::out::rotator;
-    rotator_t create_sink(const std::filesystem::path& path) const;
-    void subscribe_full(rotator_t& sink);
-    void subscribe_light(rotator_t& sink);
-    void subscribe_events(rotator_t& sink);
+    rotator_t create_log_sink() const;
+    system::ofstream create_event_sink() const;
+    void subscribe_full(std::ostream& sink);
+    void subscribe_light(std::ostream& sink);
+    void subscribe_events(std::ostream& sink);
     void subscribe_capture();
     void subscribe_connect();
     void subscribe_close();
@@ -213,6 +215,8 @@ private:
 #define BN_CHANNEL_STOP_TARGET \
     "Stop target: %1%"
 
+#define BN_LOG_INITIALIZE_FAILURE \
+    "Failed to initialize logging."
 #define BN_USING_CONFIG_FILE \
     "Using config file: %1%"
 #define BN_USING_DEFAULT_CONFIG \

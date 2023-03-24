@@ -43,6 +43,9 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
+    // Initialize fixed start time.
+    start_ = unix_time();
+
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
     SEND1(create_get_inventory(), handle_send, _1);
@@ -72,14 +75,15 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    constexpr auto block_id = inventory::type_id::block;
 
     if (stopped(ec))
         return false;
 
-    const auto getter = create_get_data(*message);
-
-    LOGP("Received (" << message->items.size() << ") block inventory from ["
+    LOGP("Received (" << message->count(block_id) << ") block inventory from ["
         << authority() << "].");
+
+    const auto getter = create_get_data(*message);
 
     // If getter is empty it may be only because we have them all, so iterate.
     if (getter.items.empty())
@@ -162,23 +166,61 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
     }
 
-    // Order is reversed, so next is at back.
-    tracker->hashes.pop_back();
+    // This will be incorrect with multiple peers or headers protocol.
+    // archive().header_records() is a weak proxy for current height (top).
+    const auto& query = archive();
+    const auto header_records = query.header_records();
+    reporter::fire(event_block, header_records);
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
         << authority() << "].");
 
-    // Protocol presumes max_get_blocks unless complete.
-    if ((tracker->announced == max_get_blocks) && tracker->hashes.empty())
+    // Temporary.
+    if (is_zero(header_records % 10'000))
     {
-        LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
-        SEND1(create_get_inventory({ tracker->last }), handle_send, _1);
+        LOGN("BLOCK: " << header_records
+            << " " << (unix_time() - start_)
+            << " " << query.tx_records()
+            << " " << query.archive_size()
+            << " " << query.input_size()
+            << " " << query.output_size());
+    }
+
+    // Order is reversed, so next is at back.
+    tracker->hashes.pop_back();
+
+    // Handle completion of the inventory block subset.
+    if (tracker->hashes.empty())
+    {
+        // Implementation presumes max_get_blocks unless complete.
+        if (tracker->announced == max_get_blocks)
+        {
+            LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
+            SEND1(create_get_inventory({ tracker->last }), handle_send, _1);
+        }
+        else
+        {
+            // Currency stalls if current on 500 as empty message is ambiguous.
+            // This is ok, since currency is not used for anything essential.
+            current();
+        }
     }
 
     // Release subscription if exhausted.
     // This will terminate block iteration if send_headers has been sent.
     // Otherwise handle_receive_inventory will restart inventory iteration.
     return !tracker->hashes.empty();
+}
+
+// This could be the end of a catch-up sequence, or a singleton announcement.
+// The distinction is ultimately arbitrary, but thissignals initial currency.
+void protocol_block_in::current() NOEXCEPT
+{
+    // This will be incorrect with multiple peers or headers protocol.
+    // archive().header_records() is a weak proxy for current height (top).
+    const auto top = archive().header_records();
+    reporter::fire(event_current_blocks, top);
+    LOGN("Blocks from [" << authority() << "] complete at (" << top << ").");
 }
 
 // private
@@ -204,18 +246,19 @@ get_blocks protocol_block_in::create_get_inventory(hashes&& hashes) NOEXCEPT
 get_data protocol_block_in::create_get_data(
     const inventory& message) const NOEXCEPT
 {
-    constexpr auto block_type = inventory::type_id::block;
-
     get_data getter{};
-    getter.items.reserve(message.count(block_type));
+    getter.items.reserve(message.count(type_id::block));
     for (const auto& item: message.items)
-        if ((item.type == block_type) && !archive().is_block(item.hash))
-            getter.items.push_back(item);
+    {
+        // clang emplace_back bug (no matching constructor), using push_back.
+        // bip144: get_data uses witness constant but inventory does not.
+        if ((item.type == type_id::block) && !archive().is_block(item.hash))
+            getter.items.push_back({ block_type_, item.hash });
+    }
 
     getter.items.shrink_to_fit();
     return getter;
 }
-
 
 } // namespace node
 } // namespace libbitcoin

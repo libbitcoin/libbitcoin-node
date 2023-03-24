@@ -37,6 +37,7 @@ using system::config::printer;
 using namespace system;
 using namespace network;
 using namespace std::placeholders;
+using namespace std::chrono;
 
 // const executor statics
 const std::string executor::quit_{ "q" };
@@ -247,7 +248,6 @@ bool executor::do_version()
 bool executor::do_initchain()
 {
     using namespace database;
-    using namespace std::chrono;
 
     log_.stop();
     const auto& directory = metadata_.configured.database.path;
@@ -333,7 +333,6 @@ bool executor::do_initchain()
 bool executor::do_totals()
 {
     using namespace database;
-    using namespace std::chrono;
     constexpr auto frequency = 100'000;
 
     log_.stop();
@@ -422,24 +421,24 @@ bool executor::do_totals()
 // Run.
 // ----------------------------------------------------------------------------
 
-// Create message log rotating file sink.
-executor::rotator_t executor::create_sink(
-    const std::filesystem::path& path) const
+executor::rotator_t executor::create_log_sink() const
 {
-    // No logging for log setup failure, could use console.
-    if (!path.empty())
-        database::file::create_directory(path);
-
     return
     {
-        // Standard file names, both within the logs directory.
-        metadata_.configured.log.file1(),
-        metadata_.configured.log.file2(),
+        // Standard file names, within the [node].path directory.
+        metadata_.configured.log.log_file1(),
+        metadata_.configured.log.log_file2(),
         to_half(metadata_.configured.log.maximum_size)
     };
 }
 
-void executor::subscribe_full(rotator_t& sink)
+system::ofstream executor::create_event_sink() const
+{
+    // Standard file name, within the [node].path directory.
+    return { metadata_.configured.log.events_file() };
+}
+
+void executor::subscribe_full(std::ostream& sink)
 {
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
@@ -471,7 +470,7 @@ void executor::subscribe_full(rotator_t& sink)
     });
 }
 
-void executor::subscribe_light(rotator_t& sink)
+void executor::subscribe_light(std::ostream& sink)
 {
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
@@ -507,18 +506,52 @@ void executor::subscribe_light(rotator_t& sink)
     });
 }
 
-void executor::subscribe_events(rotator_t& sink)
+void executor::subscribe_events(std::ostream& sink)
 {
-    log_.subscribe_events([&](const code& ec, uint8_t event, uint64_t value,
-        const logger::time& point)
+    log_.subscribe_events([&sink, start = logger::now()](const code& ec,
+        uint8_t event, uint64_t value, const logger::time& point)
     {
         if (ec) return false;
 
-        // C++20: duration not yet serializable in g++.
-        sink
-            << "[" << serialize(event) << "] "
-            << point.time_since_epoch().count() << " "
-            << value << std::endl;
+        switch (event)
+        {
+            case event_header:
+            {
+                if (is_zero(value % 10'000))
+                {
+                    const auto time = duration_cast<seconds>(point - start).count();
+                    sink << "[header] " << value << " " << time << std::endl;
+                }
+                break;
+            }
+            case event_block:
+            {
+                if (is_zero(value % 10'000))
+                {
+                    const auto time = duration_cast<seconds>(point - start).count();
+                    sink << "[block] " << value << " " << time << std::endl;
+                }
+                break;
+            }
+            case event_current_headers:
+            {
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[headers] " << value << " " << time << std::endl;
+                break;
+            }
+            case event_current_blocks:
+            {
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[blocks] " << value << " " << time << std::endl;
+                break;
+            }
+            case event_validated:
+            case event_confirmed:
+            case event_current_validated:
+            case event_current_confirmed:
+            default: break;
+        }
+
         return true;
     });
 }
@@ -634,19 +667,28 @@ void executor::subscribe_close()
 bool executor::do_run()
 {
     using namespace database;
-    auto sink = create_sink(metadata_.configured.log.path);
+    if (!metadata_.configured.log.path.empty())
+        database::file::create_directory(metadata_.configured.log.path);
 
+    // TODO: remove --light.
+    auto log = create_log_sink();
     if (metadata_.configured.light)
-        subscribe_light(sink);
+        subscribe_light(log);
     else
-        subscribe_full(sink);
+        subscribe_full(log);
 
-    subscribe_events(sink);
+    auto events = create_event_sink();
+    subscribe_events(events);
+    if (!log || !events)
+    {
+        console(BN_LOG_INITIALIZE_FAILURE);
+        return false;
+    }
+
     subscribe_capture();
     logger(BN_LOG_HEADER);
 
     const auto& file = metadata_.configured.file;
-
     if (file.empty())
         logger(BN_USING_DEFAULT_CONFIG);
     else

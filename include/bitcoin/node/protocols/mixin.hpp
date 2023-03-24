@@ -68,23 +68,23 @@ protected:
         Session::attach_protocols(channel);
 
         auto& self = *this;
-        const auto version = channel->negotiated_version();
+        ////const auto version = channel->negotiated_version();
 
-        if (version >= network::messages::level::bip130)
-        {
-            channel->attach<protocol_header_in_70012>(self)->start();
-            channel->attach<protocol_header_out_70012>(self)->start();
-        }
-        else if (version >= network::messages::level::headers_protocol)
-        {
-            channel->attach<protocol_header_in_31800>(self)->start();
-            channel->attach<protocol_header_out_31800>(self)->start();
-        }
+        ////if (version >= network::messages::level::bip130)
+        ////{
+        ////    channel->attach<protocol_header_in_70012>(self)->start();
+        ////    channel->attach<protocol_header_out_70012>(self)->start();
+        ////}
+        ////else if (version >= network::messages::level::headers_protocol)
+        ////{
+        ////    channel->attach<protocol_header_in_31800>(self)->start();
+        ////    channel->attach<protocol_header_out_31800>(self)->start();
+        ////}
 
         channel->attach<protocol_block_in>(self)->start();
-        channel->attach<protocol_block_out>(self)->start();
-        channel->attach<protocol_transaction_in>(self)->start();
-        channel->attach<protocol_transaction_out>(self)->start();
+        ////channel->attach<protocol_block_out>(self)->start();
+        ////channel->attach<protocol_transaction_in>(self)->start();
+        ////channel->attach<protocol_transaction_out>(self)->start();
     }
 };
 

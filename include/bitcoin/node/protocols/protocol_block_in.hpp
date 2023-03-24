@@ -32,12 +32,15 @@ class BCN_API protocol_block_in
 {
 public:
     typedef std::shared_ptr<protocol_block_in> ptr;
+    using type_id = network::messages::inventory::type_id;
 
     template <typename Session>
     protocol_block_in(Session& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_block_in>(session.log)
+        network::tracker<protocol_block_in>(session.log),
+        block_type_(session.config().network.witness_node() ?
+            type_id::witness_block : type_id::block)
     {
     }
 
@@ -63,12 +66,19 @@ protected:
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
 
+protected:
+    /// Invoked when initial blocks sync is current.
+    virtual void current() NOEXCEPT;
+
 private:
     network::messages::get_blocks create_get_inventory() NOEXCEPT;
     network::messages::get_blocks create_get_inventory(
         system::hashes&& start_hashes) NOEXCEPT;
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
+
+    uint32_t start_{};
+    const network::messages::inventory::type_id block_type_;
 };
 
 } // namespace node
