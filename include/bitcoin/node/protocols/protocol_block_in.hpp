@@ -77,6 +77,7 @@ private:
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
 
+    uint32_t start_{};
     const network::messages::inventory::type_id block_type_;
 };
 

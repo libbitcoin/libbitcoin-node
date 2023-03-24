@@ -43,6 +43,9 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
+    // Initialize fixed start time.
+    start_ = unix_time();
+
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
     SEND1(create_get_inventory(), handle_send, _1);
@@ -173,9 +176,10 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         << authority() << "].");
 
     // Temporary.
-    if (is_zero(header_records % 50'000))
+    if (is_zero(header_records % 10'000))
     {
         LOGN("BLOCK: " << header_records
+            << " " << (unix_time() - start_)
             << " " << query.tx_records()
             << " " << query.archive_size()
             << " " << query.input_size()
