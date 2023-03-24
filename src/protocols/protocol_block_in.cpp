@@ -250,9 +250,10 @@ get_data protocol_block_in::create_get_data(
     getter.items.reserve(message.count(type_id::block));
     for (const auto& item: message.items)
     {
+        // clang emplace_back bug (no matching constructor), using push_back.
         // bip144: get_data uses witness constant but inventory does not.
         if ((item.type == type_id::block) && !archive().is_block(item.hash))
-            getter.items.emplace_back(block_type_, item.hash);
+            getter.items.push_back({ block_type_, item.hash });
     }
 
     getter.items.shrink_to_fit();
