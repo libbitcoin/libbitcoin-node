@@ -144,8 +144,11 @@ const std::unordered_map<database::table_t, std::string> executor::tables_
     { database::table_t::validated_tx_body, "validated_tx_body" }
 };
 
-// non-const executor static (global for interrupt handling).
+// non-const member static (global for blocking interrupt handling).
 std::promise<code> executor::stopping_{};
+
+// non-const member static (global for non-blocking interrupt handling).
+std::atomic_bool executor::cancel_{};
 
 executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     std::ostream&)
@@ -376,6 +379,7 @@ bool executor::do_totals()
         query_.point_records() %
         query_.puts_records());
     console(BN_TOTALS_START);
+    console(BN_TOTALS_INTERRUPT);
 
     tx_link::integer tx{};
     size_t inputs{}, outputs{};
@@ -384,7 +388,7 @@ bool executor::do_totals()
     // Links are sequential and therefore iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
-    for (auto puts = query_.put_slabs(tx); to_bool(puts.first);
+    for (auto puts = query_.put_slabs(tx); to_bool(puts.first) && !cancel_.load();
         puts = query_.put_slabs(++tx))
     {
         inputs += puts.first;
@@ -392,6 +396,9 @@ bool executor::do_totals()
         if (is_zero(tx % frequency))
             console(format(BN_TOTALS_SLABS) % tx % inputs % outputs);
     }
+
+    if (cancel_)
+        console(BN_TOTALS_CANCELED);
 
     const auto span = duration_cast<seconds>(logger::now() - start);
     console(format(BN_TOTALS_STOP) % span.count() % inputs % outputs);
@@ -867,7 +874,11 @@ void executor::handle_stop(int)
 void executor::stop(const code& ec)
 {
     static std::once_flag stop_mutex;
-    std::call_once(stop_mutex, [&]() { stopping_.set_value(ec); });
+    std::call_once(stop_mutex, [&]()
+    {
+        cancel_.store(true);
+        stopping_.set_value(ec);
+    });
 }
 
 } // namespace node
