@@ -23,6 +23,13 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
+// The block protocol is partially obsoleted by the headers protocol.
+// Both block and header protocols conflate iterative requests and unsolicited
+// announcements, which introduces several ambiguities. Furthermore inventory
+// messages can contain a mix of types, further increasing complexity. Unlike
+// header protocol, block protocol cannot leave annoucement disabled until
+// caught up and in both cases nodes announce to peers that are not caught up.
+
 namespace libbitcoin {
 namespace node {
 
