@@ -71,9 +71,12 @@ protected:
     virtual void current() NOEXCEPT;
 
 private:
-    network::messages::get_blocks create_get_inventory() NOEXCEPT;
+    network::messages::get_blocks create_get_inventory() const NOEXCEPT;
     network::messages::get_blocks create_get_inventory(
-        system::hashes&& start_hashes) NOEXCEPT;
+        const system::hash_digest& last) const NOEXCEPT;
+    network::messages::get_blocks create_get_inventory(
+        system::hashes&& start_hashes) const NOEXCEPT;
+
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
 

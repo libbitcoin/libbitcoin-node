@@ -35,6 +35,10 @@ using namespace network::messages;
 using namespace std::placeholders;
 using namespace std::chrono;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 // Start.
 // ----------------------------------------------------------------------------
 
@@ -147,6 +151,9 @@ get_headers protocol_header_in_31800::create_get_headers(
 
     return { std::move(hashes) };
 }
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
