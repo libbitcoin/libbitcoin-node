@@ -49,14 +49,17 @@ parser::parser(system::chain::selection context) NOEXCEPT
 {
     using level = network::messages::level;
     using service = network::messages::service;
+    constexpr auto witness_node =
+        service::node_network |
+        service::node_witness;
 
     configured.network.enable_address = true;
     configured.network.enable_transaction = true;
     configured.network.host_pool_capacity = 10000;
     configured.network.protocol_maximum = level::bip133;
     configured.network.protocol_minimum = level::minimum_protocol;
-    configured.network.services_minimum = service::node_network;
-    configured.network.services_maximum = service::node_network | service::node_witness;
+    configured.network.services_minimum = witness_node;
+    configured.network.services_maximum = witness_node;
 
     configured.database.header_buckets = 521'357;
     configured.database.header_size = 75'857'492;
