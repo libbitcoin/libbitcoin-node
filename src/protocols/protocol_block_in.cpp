@@ -247,7 +247,7 @@ get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 get_blocks protocol_block_in::create_get_inventory(
     const hash_digest& last) const NOEXCEPT
 {
-    return create_get_inventory({ last });
+    return create_get_inventory(hashes{ last });
 }
 
 get_blocks protocol_block_in::create_get_inventory(
