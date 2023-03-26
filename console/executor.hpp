@@ -71,7 +71,7 @@ private:
     void subscribe_connect();
     void subscribe_close();
 
-    void count_slabs() const;
+    void measure_store() const;
 
     static const std::string quit_;
     static const std::string name_;

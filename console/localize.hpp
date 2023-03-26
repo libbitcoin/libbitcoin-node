@@ -89,9 +89,9 @@ namespace node {
     "   point  :%4%\n" \
     "   input  :%5%"
 #define BN_TOTALS_INTERRUPT \
-    "Press CTRL-C to cancel."
+    "Press CTRL-C to cancel operation."
 #define BN_TOTALS_CANCELED \
-    "CTRL-C detected, stopping..."
+    "CTRL-C detected, canceling operation..."
 
 // run/general
 

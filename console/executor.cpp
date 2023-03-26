@@ -338,8 +338,23 @@ bool executor::do_initchain()
 // Totals.
 // ----------------------------------------------------------------------------
 
-void executor::count_slabs() const
+void executor::measure_store() const
 {
+    console(format(BN_TOTALS_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    console(format(BN_TOTALS_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+    console(BN_TOTALS_SLABS);
+
     console(BN_TOTALS_INTERRUPT);
     database::tx_link::integer link{};
     size_t inputs{}, outputs{};
@@ -376,6 +391,8 @@ void executor::count_slabs() const
         query_.input_buckets() % input);
 }
 
+// ----------------------------------------------------------------------------
+
 // --totals
 bool executor::do_totals()
 {
@@ -404,21 +421,7 @@ bool executor::do_totals()
         return false;
     }
 
-    console(format(BN_TOTALS_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.puts_size() %
-        query_.input_size() %
-        query_.output_size());
-    console(format(BN_TOTALS_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.puts_records());
-    console(BN_TOTALS_SLABS);
-    count_slabs();
+    measure_store();
 
     // Close store.
     console(BN_STORE_STOPPING);
