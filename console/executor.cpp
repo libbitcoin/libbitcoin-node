@@ -353,8 +353,8 @@ void executor::measure_store() const
         query_.tx_records() %
         query_.point_records() %
         query_.puts_records());
-    console(BN_TOTALS_SLABS);
 
+    console(BN_TOTALS_SLABS);
     console(BN_TOTALS_INTERRUPT);
     database::tx_link::integer link{};
     size_t inputs{}, outputs{};
@@ -373,9 +373,7 @@ void executor::measure_store() const
             console(format(BN_TOTALS_SLABS_ROW) % link % inputs % outputs);
     }
 
-    if (cancel_)
-        console(BN_TOTALS_CANCELED);
-
+    if (cancel_) console(BN_TOTALS_CANCELED);
     const auto header = (1. * query_.header_records()) / query_.header_buckets();
     const auto txs = (1. * query_.header_records()) / query_.txs_buckets();
     const auto tx = (1. * query_.tx_records()) / query_.tx_buckets();
