@@ -126,12 +126,6 @@ options_metadata parser::load_options() THROWS
         value<bool>(&configured.totals)->
             default_value(false)->zero_tokens(),
         "Compute and display store totals."
-    )
-    (
-        BN_LIGHT_VARIABLE ",l",
-        value<bool>(&configured.light)->
-            default_value(false)->zero_tokens(),
-        "Disable console logging."
     );
 
     return description;

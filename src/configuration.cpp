@@ -34,7 +34,6 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     settings(false),
     version(false),
     totals(false),
-    light(false),
     log(context),
     node(context),
     chain(context),
