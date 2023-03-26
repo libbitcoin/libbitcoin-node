@@ -76,6 +76,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\console\executor.hpp" />
+    <ClInclude Include="..\..\..\..\console\localize.hpp" />
     <ClInclude Include="..\..\..\..\console\stack_trace.hpp" />
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>

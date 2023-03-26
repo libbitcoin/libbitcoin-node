@@ -33,7 +33,6 @@ namespace node {
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
 #define BN_TOTALS_VARIABLE "totals"
-#define BN_LIGHT_VARIABLE "light"
 
 // This must be lower case but the env var part can be any case.
 #define BN_CONFIG_VARIABLE "config"
@@ -55,7 +54,6 @@ public:
     bool settings;
     bool version;
     bool totals;
-    bool light;
 
     /// Options and environment vars.
     std::filesystem::path file;

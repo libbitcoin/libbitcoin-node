@@ -261,6 +261,7 @@ if (with-console)
         "../../console/executor.cpp"
         "../../console/executor.hpp"
         "../../console/libbitcoin.ico"
+        "../../console/localize.hpp"
         "../../console/main.cpp"
         "../../console/stack_trace.cpp"
         "../../console/stack_trace.hpp" )

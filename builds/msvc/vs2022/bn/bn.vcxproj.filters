@@ -29,6 +29,9 @@
     <ClInclude Include="..\..\..\..\console\executor.hpp">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\console\localize.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\console\stack_trace.hpp">
       <Filter>src</Filter>
     </ClInclude>

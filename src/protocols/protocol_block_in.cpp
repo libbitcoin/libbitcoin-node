@@ -23,6 +23,13 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
+// The block protocol is partially obsoleted by the headers protocol.
+// Both block and header protocols conflate iterative requests and unsolicited
+// announcements, which introduces several ambiguities. Furthermore inventory
+// messages can contain a mix of types, further increasing complexity. Unlike
+// header protocol, block protocol cannot leave annoucement disabled until
+// caught up and in both cases nodes announce to peers that are not caught up.
+
 namespace libbitcoin {
 namespace node {
 
@@ -32,6 +39,10 @@ using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
+
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // Start.
 // ----------------------------------------------------------------------------
@@ -60,13 +71,14 @@ inline hashes to_hashes(const get_data& getter) NOEXCEPT
 {
     hashes out{};
     out.resize(getter.items.size());
+
+    // Order reversed for individual erase performance (using pop_back).
     std::transform(getter.items.rbegin(), getter.items.rend(), out.begin(),
         [](const auto& item) NOEXCEPT
         {
             return item.hash;
         });
 
-    // Order reversed for individual erase performance.
     return out;
 }
 
@@ -92,7 +104,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
         if (message->items.size() == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (empty maximal).");
-            SEND1(create_get_inventory({ message->items.back().hash }),
+            SEND1(create_get_inventory(message->items.back().hash),
                 handle_send, _1);
         }
 
@@ -105,8 +117,8 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     // Track this inventory until exhausted.
     const auto tracker = std::make_shared<track>(track
     {
-        message->items.size(),
-        message->items.back().hash,
+        getter.items.size(),
+        getter.items.back().hash,
         to_hashes(getter)
     });
 
@@ -196,7 +208,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         if (tracker->announced == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
-            SEND1(create_get_inventory({ tracker->last }), handle_send, _1);
+            SEND1(create_get_inventory(tracker->last), handle_send, _1);
         }
         else
         {
@@ -224,14 +236,22 @@ void protocol_block_in::current() NOEXCEPT
 }
 
 // private
-get_blocks protocol_block_in::create_get_inventory() NOEXCEPT
+// ----------------------------------------------------------------------------
+
+get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
-    return create_get_inventory(archive().get_hashes(get_blocks::heights(
-        archive().get_top_candidate())));
+    const auto top = archive().get_top_candidate();
+    return create_get_inventory(archive().get_hashes(get_blocks::heights(top)));
 }
 
-// private
-get_blocks protocol_block_in::create_get_inventory(hashes&& hashes) NOEXCEPT
+get_blocks protocol_block_in::create_get_inventory(
+    const hash_digest& last) const NOEXCEPT
+{
+    return create_get_inventory(hashes{ last });
+}
+
+get_blocks protocol_block_in::create_get_inventory(
+    hashes&& hashes) const NOEXCEPT
 {
     if (!hashes.empty())
     {
@@ -242,23 +262,24 @@ get_blocks protocol_block_in::create_get_inventory(hashes&& hashes) NOEXCEPT
     return { std::move(hashes) };
 }
 
-// private
 get_data protocol_block_in::create_get_data(
     const inventory& message) const NOEXCEPT
 {
     get_data getter{};
     getter.items.reserve(message.count(type_id::block));
+
+    // clang emplace_back bug (no matching constructor), using push_back.
+    // bip144: get_data uses witness constant but inventory does not.
     for (const auto& item: message.items)
-    {
-        // clang emplace_back bug (no matching constructor), using push_back.
-        // bip144: get_data uses witness constant but inventory does not.
         if ((item.type == type_id::block) && !archive().is_block(item.hash))
             getter.items.push_back({ block_type_, item.hash });
-    }
 
     getter.items.shrink_to_fit();
     return getter;
 }
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
