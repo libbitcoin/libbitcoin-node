@@ -826,7 +826,7 @@ bool executor::handle_stopped(const code& ec)
 // Stop signal.
 // ----------------------------------------------------------------------------
 
-void executor::initialize_stop()
+void executor::initialize_stop() NOEXCEPT
 {
     std::signal(SIGINT, handle_stop);
     std::signal(SIGTERM, handle_stop);

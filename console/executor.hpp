@@ -47,7 +47,7 @@ private:
     void console(const auto& message) const;
     void stopper(const auto& message);
 
-    static void initialize_stop();
+    static void initialize_stop() NOEXCEPT;
     static void stop(const system::code& ec);
     static void handle_stop(int code);
 
@@ -65,7 +65,6 @@ private:
 
     rotator_t create_log_sink() const;
     system::ofstream create_event_sink() const;
-
     void subscribe_log(std::ostream& sink);
     void subscribe_events(std::ostream& sink);
     void subscribe_capture();
