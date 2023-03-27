@@ -86,6 +86,24 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     configured.database.puts_size = 22'299'936'405;
     configured.database.puts_rate = 5;
+
+    configured.database.candidate_size = 2'347'641;
+    configured.database.candidate_rate = 5;
+
+    configured.database.confirmed_size = 2'347'641;
+    configured.database.confirmed_rate = 5;
+
+    configured.database.strong_tx_buckets = 544'452'363;
+    configured.database.strong_tx_size = 8'993'402'022;
+    configured.database.strong_tx_rate = 5;
+
+    configured.database.validated_tx_buckets = 544'452'363;
+    configured.database.validated_tx_size = 18'238'143'836;
+    configured.database.validated_tx_rate = 5;
+
+    configured.database.validated_bk_buckets = 521'357;
+    configured.database.validated_bk_size = 7'042'923;
+    configured.database.validated_bk_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS
@@ -122,10 +140,22 @@ options_metadata parser::load_options() THROWS
         "Display version information."
     )
     (
-        BN_TOTALS_VARIABLE ",t",
-        value<bool>(&configured.totals)->
+        BN_MEASURE_VARIABLE ",m",
+        value<bool>(&configured.measure)->
             default_value(false)->zero_tokens(),
-        "Compute and display store totals."
+        "Compute and display store measures."
+    )
+    (
+        BN_READ_VARIABLE ",r",
+        value<bool>(&configured.read)->
+            default_value(false)->zero_tokens(),
+        "Read test and display performance."
+    )
+    (
+        BN_WRITE_VARIABLE ",w",
+        value<bool>(&configured.write)->
+            default_value(false)->zero_tokens(),
+        "Write test and display performance."
     );
 
     return description;
@@ -642,6 +672,81 @@ options_metadata parser::load_settings() THROWS
         "database.puts_rate",
         value<uint16_t>(&configured.database.puts_rate),
         "The percentage expansion of the puts table body, defaults to '5'."
+    )
+
+    /* candidate */
+    (
+        "database.candidate_size",
+        value<uint64_t>(&configured.database.candidate_size),
+        "The minimum allocation of the candidate table body, defaults to '2347641'."
+    )
+    (
+        "database.candidate_rate",
+        value<uint16_t>(&configured.database.candidate_rate),
+        "The percentage expansion of the candidate table body, defaults to '5'."
+    )
+
+    /* confirmed */
+    (
+        "database.confirmed_size",
+        value<uint64_t>(&configured.database.confirmed_size),
+        "The minimum allocation of the candidate table body, defaults to '2347641'."
+    )
+    (
+        "database.confirmed_rate",
+        value<uint16_t>(&configured.database.confirmed_rate),
+        "The percentage expansion of the candidate table body, defaults to '5'."
+    )
+
+    /* strong_tx */
+    (
+        "database.strong_tx_buckets",
+        value<uint32_t>(&configured.database.strong_tx_buckets),
+        "The number of buckets in the strong_tx table head, defaults to '544452363'."
+    )
+    (
+        "database.strong_tx_size",
+        value<uint64_t>(&configured.database.strong_tx_size),
+        "The minimum allocation of the strong_tx table body, defaults to '8993402022'."
+    )
+    (
+        "database.strong_tx_rate",
+        value<uint16_t>(&configured.database.strong_tx_rate),
+        "The percentage expansion of the strong_tx table body, defaults to '5'."
+    )
+
+    /* validated_tx */
+    (
+        "database.validated_tx_buckets",
+        value<uint32_t>(&configured.database.validated_tx_buckets),
+        "The number of buckets in the validated_tx table head, defaults to '544452363'."
+    )
+    (
+        "database.validated_tx_size",
+        value<uint64_t>(&configured.database.validated_tx_size),
+        "The minimum allocation of the validated_tx table body, defaults to '18238143836'."
+    )
+    (
+        "database.validated_tx_rate",
+        value<uint16_t>(&configured.database.validated_tx_rate),
+        "The percentage expansion of the validated_tx table body, defaults to '5'."
+    )
+
+    /* validated_bk */
+    (
+        "database.validated_bk_buckets",
+        value<uint32_t>(&configured.database.validated_bk_buckets),
+        "The number of buckets in the validated_bk table head, defaults to '521357'."
+    )
+    (
+        "database.validated_bk_size",
+        value<uint64_t>(&configured.database.validated_bk_size),
+        "The minimum allocation of the validated_bk table body, defaults to '7042923'."
+    )
+    (
+        "database.validated_bk_rate",
+        value<uint16_t>(&configured.database.validated_bk_rate),
+        "The percentage expansion of the validated_bk table body, defaults to '5'."
     )
 
     /* [node] */

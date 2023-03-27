@@ -50,14 +50,14 @@ namespace node {
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
 
-// --totals
-#define BN_TOTALS_RECORDS \
+// --measure
+#define BN_MEASURE_RECORDS \
     "Table records...\n" \
     "   header :%1%\n"  \
     "   tx     :%2%\n"\
     "   point  :%3%\n" \
     "   puts   :%4%"
-#define BN_TOTALS_SIZES \
+#define BN_MEASURE_SIZES \
     "Body sizes...\n" \
     "   header :%1%\n" \
     "   txs    :%2%\n" \
@@ -66,32 +66,40 @@ namespace node {
     "   puts   :%5%\n" \
     "   input  :%6%\n" \
     "   output :%7%"
-#define BN_TOTALS_SLABS \
+#define BN_MEASURE_SLABS \
     "Table slabs..."
-#define BN_TOTALS_SLABS_ROW \
+#define BN_MEASURE_SLABS_ROW \
     "   @tx    :%1%, inputs:%2%, outputs:%3%"
-#define BN_TOTALS_STOP \
+#define BN_MEASURE_STOP \
     "   seconds:%1%\n" \
     "   input  :%2%\n" \
     "   output :%3%"
-#define BN_TOTALS_COLLISION_RATES \
+#define BN_MEASURE_COLLISION_RATES \
     "Head buckets...\n" \
     "   header :%1% (%2%)\n" \
     "   txs    :%3% (%4%)\n" \
     "   tx     :%5% (%6%)\n" \
     "   point  :%7% (%8%)\n" \
     "   input  :%9% (%10%)"
-#define BN_TOTALS_BUCKETS \
+#define BN_MEASURE_BUCKETS \
     "Head buckets...\n" \
     "   header :%1%\n" \
     "   txs    :%2%\n" \
     "   tx     :%3%\n" \
     "   point  :%4%\n" \
     "   input  :%5%"
-#define BN_TOTALS_INTERRUPT \
+#define BN_MEASURE_INTERRUPT \
     "Press CTRL-C to cancel operation."
-#define BN_TOTALS_CANCELED \
+#define BN_MEASURE_CANCELED \
     "CTRL-C detected, canceling operation..."
+
+// --read
+#define BN_READ_ROW \
+    "READ: %1% in %2% secs (%3%)."
+
+// --write
+#define BN_WRITE_ROW \
+    "WRITE: %1% in %2% secs (%3%)."
 
 // run/general
 

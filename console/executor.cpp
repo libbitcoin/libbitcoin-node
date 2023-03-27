@@ -40,12 +40,6 @@ using namespace network;
 using namespace std::placeholders;
 using namespace std::chrono;
 
-// Block frequency of --totals slab scan reporting.
-constexpr auto slabs_frequency = 100'000;
-
-// Frequency of block/header event reporting.
-constexpr auto blocks_frequency = 10'000;
-
 // const executor statics
 const std::string executor::quit_{ "q" };
 const std::string executor::name_{ "bn" };
@@ -192,6 +186,98 @@ void executor::stopper(const auto& message)
     stopped_.get_future().wait();
 }
 
+void executor::measure_size() const
+{
+    constexpr auto frequency = 100'000;
+
+    console(format(BN_MEASURE_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.puts_size() %
+        query_.input_size() %
+        query_.output_size());
+    console(format(BN_MEASURE_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.puts_records());
+
+    console(BN_MEASURE_SLABS);
+    console(BN_MEASURE_INTERRUPT);
+    database::tx_link::integer link{};
+    size_t inputs{}, outputs{};
+    const auto start = unix_time();
+
+    // Links are sequential and therefore iterable, however the terminal
+    // condition assumes all tx entries fully written (ok for stopped node).
+    // A running node cannot safely iterate over record links, but stopped can.
+    for (auto puts = query_.put_slabs(link);
+        to_bool(puts.first) && !cancel_.load();
+        puts = query_.put_slabs(++link))
+    {
+        inputs += puts.first;
+        outputs += puts.second;
+        if (is_zero(link % frequency))
+            console(format(BN_MEASURE_SLABS_ROW) % link % inputs % outputs);
+    }
+
+    if (cancel_) console(BN_MEASURE_CANCELED);
+    const auto header = (1. * query_.header_records()) / query_.header_buckets();
+    const auto txs = (1. * query_.header_records()) / query_.txs_buckets();
+    const auto tx = (1. * query_.tx_records()) / query_.tx_buckets();
+    const auto point = (1. * query_.point_records()) / query_.point_buckets();
+    const auto input = (1. * inputs) / query_.input_buckets();
+    console(format(BN_MEASURE_STOP) % (unix_time() - start) % inputs % outputs);
+    console(format(BN_MEASURE_COLLISION_RATES) %
+        query_.header_buckets() % header %
+        query_.txs_buckets() % txs %
+        query_.tx_buckets() % tx %
+        query_.point_buckets() % point %
+        query_.input_buckets() % input);
+}
+
+void executor::read_test() const
+{
+    constexpr auto frequency = 10'000;
+    const auto start = unix_time();
+    database::header_link::integer link{};
+    size_t height{};
+    bool all{};
+
+    const auto count = query_.header_records();
+    for (; !cancel_.load() && height < count; ++link, ++height)
+    {
+        all &= query_.is_confirmable_block(link, height);
+        if (is_zero(height % frequency))
+            console(format(BN_READ_ROW) %
+                height % (unix_time() - start) % all);
+    }
+
+    console(format(BN_READ_ROW) % height % (unix_time() - start) % all);
+}
+
+void executor::write_test()
+{
+    constexpr auto frequency = 10'000;
+    const auto start = unix_time();
+    database::tx_link::integer link{};
+    size_t height{};
+    bool all{};
+
+    const auto count = query_.header_records();
+    for (; !cancel_.load() && height < count; ++link, ++height)
+    {
+        all &= query_.set_block_confirmable(link, 99);
+        if (is_zero(height % frequency))
+            console(format(BN_WRITE_ROW) % height %
+                (unix_time() - start) % all);
+    }
+
+    console(format(BN_WRITE_ROW) % height % (unix_time() - start) % all);
+}
+
 // Menu selection.
 // ----------------------------------------------------------------------------
 
@@ -208,8 +294,14 @@ bool executor::menu()
     if (config.version)
         return do_version();
 
-    if (config.totals)
-        return do_totals();
+    if (config.measure)
+        return do_measure();
+
+    if (config.read)
+        return do_read();
+
+    if (config.write)
+        return do_write();
 
     if (config.initchain)
         return do_initchain();
@@ -300,7 +392,7 @@ bool executor::do_initchain()
     }
 
     // Records and sizes reflect genesis block only.
-    console(format(BN_TOTALS_SIZES) %
+    console(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
         query_.tx_size() %
@@ -308,12 +400,12 @@ bool executor::do_initchain()
         query_.puts_size() %
         query_.input_size() %
         query_.output_size());
-    console(format(BN_TOTALS_RECORDS) %
+    console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
         query_.puts_records());
-    console(format(BN_TOTALS_BUCKETS) %
+    console(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
         query_.tx_buckets() %
@@ -335,64 +427,8 @@ bool executor::do_initchain()
     return true;
 }
 
-// Totals.
-// ----------------------------------------------------------------------------
-
-void executor::measure_store() const
-{
-    console(format(BN_TOTALS_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.puts_size() %
-        query_.input_size() %
-        query_.output_size());
-    console(format(BN_TOTALS_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.puts_records());
-
-    console(BN_TOTALS_SLABS);
-    console(BN_TOTALS_INTERRUPT);
-    database::tx_link::integer link{};
-    size_t inputs{}, outputs{};
-    const auto start = logger::now();
-
-    // Links are sequential and therefore iterable, however the terminal
-    // condition assumes all tx entries fully written (ok for stopped node).
-    // A running node cannot safely iterate over record links, but stopped can.
-    for (auto puts = query_.put_slabs(link);
-        to_bool(puts.first) && !cancel_.load();
-        puts = query_.put_slabs(++link))
-    {
-        inputs += puts.first;
-        outputs += puts.second;
-        if (is_zero(link % slabs_frequency))
-            console(format(BN_TOTALS_SLABS_ROW) % link % inputs % outputs);
-    }
-
-    if (cancel_) console(BN_TOTALS_CANCELED);
-    const auto header = (1. * query_.header_records()) / query_.header_buckets();
-    const auto txs = (1. * query_.header_records()) / query_.txs_buckets();
-    const auto tx = (1. * query_.tx_records()) / query_.tx_buckets();
-    const auto point = (1. * query_.point_records()) / query_.point_buckets();
-    const auto input = (1. * inputs) / query_.input_buckets();
-    const auto span = duration_cast<seconds>(logger::now() - start);
-    console(format(BN_TOTALS_STOP) % span.count() % inputs % outputs);
-    console(format(BN_TOTALS_COLLISION_RATES) %
-        query_.header_buckets() % header %
-        query_.txs_buckets() % txs %
-        query_.tx_buckets() % tx %
-        query_.point_buckets() % point %
-        query_.input_buckets() % input);
-}
-
-// ----------------------------------------------------------------------------
-
-// --totals
-bool executor::do_totals()
+// --measure
+bool executor::do_measure()
 {
     log_.stop();
     const auto& configuration = metadata_.configured.file;
@@ -419,7 +455,97 @@ bool executor::do_totals()
         return false;
     }
 
-    measure_store();
+    measure_size();
+
+    // Close store.
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](auto event, auto table)
+    {
+        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STOPPED);
+    return true;
+}
+
+// --read
+bool executor::do_read()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_STORE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](auto event, auto table)
+    {
+        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    read_test();
+
+    // Close store.
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](auto event, auto table)
+    {
+        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STOPPED);
+    return true;
+}
+
+// --write[f]
+bool executor::do_write()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_STORE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](auto event, auto table)
+    {
+        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    write_test();
 
     // Close store.
     console(BN_STORE_STOPPING);
@@ -490,6 +616,8 @@ void executor::subscribe_log(std::ostream& sink)
 
 void executor::subscribe_events(std::ostream& sink)
 {
+    constexpr auto frequency = 10'000;
+
     log_.subscribe_events([&sink, start = logger::now()](const code& ec,
         uint8_t event, uint64_t value, const logger::time& point)
     {
@@ -499,7 +627,7 @@ void executor::subscribe_events(std::ostream& sink)
         {
             case event_header:
             {
-                if (is_zero(value % blocks_frequency))
+                if (is_zero(value % frequency))
                 {
                     const auto time = duration_cast<seconds>(point - start).count();
                     sink << "[header] " << value << " " << time << std::endl;
@@ -508,7 +636,7 @@ void executor::subscribe_events(std::ostream& sink)
             }
             case event_block:
             {
-                if (is_zero(value % blocks_frequency))
+                if (is_zero(value % frequency))
                 {
                     const auto time = duration_cast<seconds>(point - start).count();
                     sink << "[block] " << value << " " << time << std::endl;
@@ -694,7 +822,7 @@ bool executor::do_run()
         return false;
     }
 
-    logger(format(BN_TOTALS_SIZES) %
+    logger(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
         query_.tx_size() %
@@ -702,12 +830,12 @@ bool executor::do_run()
         query_.puts_size() %
         query_.input_size() %
         query_.output_size());
-    logger(format(BN_TOTALS_RECORDS) %
+    logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
         query_.puts_records());
-    logger(format(BN_TOTALS_BUCKETS) %
+    logger(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
         query_.tx_buckets() %
@@ -736,7 +864,7 @@ bool executor::do_run()
     // Stop network (if not already stopped by self).
     node_->close();
 
-    logger(format(BN_TOTALS_SIZES) %
+    logger(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
         query_.tx_size() %
@@ -744,7 +872,7 @@ bool executor::do_run()
         query_.puts_size() %
         query_.input_size() %
         query_.output_size());
-    logger(format(BN_TOTALS_RECORDS) %
+    logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
