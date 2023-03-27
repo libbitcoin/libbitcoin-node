@@ -50,6 +50,11 @@ namespace node {
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
     "Database failure to close, %1%."
 
+#define BN_OPERATION_INTERRUPT \
+    "Press CTRL-C to cancel operation."
+#define BN_OPERATION_CANCELED \
+    "CTRL-C detected, canceling operation..."
+
 // --measure
 #define BN_MEASURE_RECORDS \
     "Table records...\n" \
@@ -59,9 +64,7 @@ namespace node {
     "   puts     :%4%\n" \
     "   candidate:%5%\n" \
     "   confirmed:%6%\n" \
-    "   strong_tx:%7%\n" \
-    "   valid_tx :%8%\n" \
-    "   valid_bk :%9%"
+    "   strong_tx:%7%"
 #define BN_MEASURE_SIZES \
     "Body sizes...\n" \
     "   header   :%1%\n" \
@@ -104,18 +107,14 @@ namespace node {
     "   strong_tx:%6%\n" \
     "   valid_tx :%7%\n" \
     "   valid_bk :%8%"
-#define BN_MEASURE_INTERRUPT \
-    "Press CTRL-C to cancel operation."
-#define BN_MEASURE_CANCELED \
-    "CTRL-C detected, canceling operation..."
 
 // --read
 #define BN_READ_ROW \
-    "READ: %1% in %2% secs (%3%)."
+    ": %1% in %2% secs (%3%)."
 
 // --write
 #define BN_WRITE_ROW \
-    "WRITE: %1% in %2% secs (%3%)."
+    ": %1% in %2% secs (%3%)."
 
 // run/general
 

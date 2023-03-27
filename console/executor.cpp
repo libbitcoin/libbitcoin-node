@@ -210,12 +210,10 @@ void executor::measure_size() const
         query_.puts_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
-        query_.strong_tx_records() %
-        query_.validated_tx_records() %
-        query_.validated_bk_records());
+        query_.strong_tx_records());
 
     console(BN_MEASURE_SLABS);
-    console(BN_MEASURE_INTERRUPT);
+    console(BN_OPERATION_INTERRUPT);
     database::tx_link::integer link{};
     size_t inputs{}, outputs{};
     const auto start = unix_time();
@@ -233,9 +231,10 @@ void executor::measure_size() const
             console(format(BN_MEASURE_SLABS_ROW) % link % inputs % outputs);
     }
 
-    if (cancel_) console(BN_MEASURE_CANCELED);
+    if (cancel_) console(BN_OPERATION_CANCELED);
     console(format(BN_MEASURE_STOP) % inputs % outputs % (unix_time() - start));
 
+    // txs, validated_tx, validated_bk are estimates - assume 1:1 records.
     const auto header = (1.0 * query_.header_records()) /
         query_.header_buckets();
     const auto txs = (1.0 * query_.header_records()) /
@@ -248,9 +247,9 @@ void executor::measure_size() const
         query_.input_buckets();
     const auto strong_tx = (1.0 * query_.strong_tx_records()) /
         query_.strong_tx_buckets();
-    const auto validated_tx = (1.0 * query_.validated_tx_records()) /
+    const auto validated_tx = (1.0 * query_.tx_records()) /
         query_.validated_tx_buckets();
-    const auto validated_bk = (1.0 * query_.validated_bk_records()) /
+    const auto validated_bk = (1.0 * query_.header_records()) /
         query_.validated_bk_buckets();
     console(format(BN_MEASURE_COLLISION_RATES) %
         query_.header_buckets() % header %
@@ -269,18 +268,21 @@ void executor::read_test() const
     const auto start = unix_time();
     database::header_link::integer link{};
     size_t height{};
-    bool all{};
+    bool all{ true };
 
+    console(BN_OPERATION_INTERRUPT);
     const auto count = query_.header_records();
     for (; !cancel_.load() && height < count; ++link, ++height)
     {
         all &= query_.is_confirmable_block(link, height);
         if (is_zero(height % frequency))
-            console(format(BN_READ_ROW) %
+            console(format("is_confirmable_block" BN_READ_ROW) %
                 height % (unix_time() - start) % all);
     }
 
-    console(format(BN_READ_ROW) % height % (unix_time() - start) % all);
+    if (cancel_) console(BN_OPERATION_CANCELED);
+    console(format("is_confirmable_block" BN_READ_ROW) %
+        height % (unix_time() - start) % all);
 }
 
 void executor::write_test()
@@ -289,18 +291,23 @@ void executor::write_test()
     const auto start = unix_time();
     database::tx_link::integer link{};
     size_t height{};
-    bool all{};
+    bool all{ true };
 
-    const auto count = query_.header_records();
+    console(BN_OPERATION_INTERRUPT);
+    const auto count = query_.tx_records();
+    ////const auto count = query_.header_records();
     for (; !cancel_.load() && height < count; ++link, ++height)
     {
-        all &= query_.set_block_confirmable(link, 99);
+        ////all &= query_.set_block_confirmable(link, 42);
+        all &= query_.set_tx_connected(link, { 1, 2, 3 }, 42, 99);
         if (is_zero(height % frequency))
-            console(format(BN_WRITE_ROW) % height %
+            console(format("set_tx_connected" BN_WRITE_ROW) % height %
                 (unix_time() - start) % all);
     }
 
-    console(format(BN_WRITE_ROW) % height % (unix_time() - start) % all);
+    if (cancel_) console(BN_OPERATION_CANCELED);
+    console(format("set_tx_connected" BN_WRITE_ROW) % height %
+        (unix_time() - start) % all);
 }
 
 // Menu selection.
@@ -437,9 +444,7 @@ bool executor::do_initchain()
         query_.puts_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
-        query_.strong_tx_records() %
-        query_.validated_tx_records() %
-        query_.validated_bk_records());
+        query_.strong_tx_records());
     console(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
@@ -880,9 +885,7 @@ bool executor::do_run()
         query_.puts_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
-        query_.strong_tx_records() %
-        query_.validated_tx_records() %
-        query_.validated_bk_records());
+        query_.strong_tx_records());
     logger(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
@@ -935,9 +938,7 @@ bool executor::do_run()
         query_.puts_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
-        query_.strong_tx_records() %
-        query_.validated_tx_records() %
-        query_.validated_bk_records());
+        query_.strong_tx_records());
 
     // Close store (flush to disk).
     logger(BN_STORE_STOPPING);

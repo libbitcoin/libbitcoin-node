@@ -102,11 +102,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.strong_tx_rate = 5;
 
     configured.database.validated_tx_buckets = 544'452'363;
-    configured.database.validated_tx_size = 17'986'804'044;
+    configured.database.validated_tx_size =  18'804'386'046;
     configured.database.validated_tx_rate = 5;
 
     configured.database.validated_bk_buckets = 521'357;
-    configured.database.validated_bk_size = 7'042'923;
+    configured.database.validated_bk_size =  6'260'376;
     configured.database.validated_bk_rate = 5;
 
     // optional
@@ -745,7 +745,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_tx_size",
         value<uint64_t>(&configured.database.validated_tx_size),
-        "The minimum allocation of the validated_tx table body, defaults to '17986804044'."
+        "The minimum allocation of the validated_tx table body, defaults to '18804386046'."
     )
     (
         "database.validated_tx_rate",
@@ -762,7 +762,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_size",
         value<uint64_t>(&configured.database.validated_bk_size),
-        "The minimum allocation of the validated_bk table body, defaults to '7042923'."
+        "The minimum allocation of the validated_bk table body, defaults to '6260376'."
     )
     (
         "database.validated_bk_rate",
