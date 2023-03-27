@@ -78,7 +78,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.point_rate = 5;
 
     configured.database.input_buckets = 1'440'664'028;
-    configured.database.input_size = 231'213'148'231;
+    configured.database.input_size =  341'130'276'477;
     configured.database.input_rate = 5;
 
     configured.database.output_size = 81'899'650'592;
@@ -98,7 +98,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.strong_tx_rate = 5;
 
     configured.database.validated_tx_buckets = 544'452'363;
-    configured.database.validated_tx_size = 18'238'143'836;
+    configured.database.validated_tx_size = 17'986'804'044;
     configured.database.validated_tx_rate = 5;
 
     configured.database.validated_bk_buckets = 521'357;
@@ -642,7 +642,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.input_size",
         value<uint64_t>(&configured.database.input_size),
-        "The minimum allocation of the input table body, defaults to '231213148231'."
+        "The minimum allocation of the input table body, defaults to '341130276477'."
     )
     (
         "database.input_rate",
@@ -724,7 +724,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_tx_size",
         value<uint64_t>(&configured.database.validated_tx_size),
-        "The minimum allocation of the validated_tx table body, defaults to '18238143836'."
+        "The minimum allocation of the validated_tx table body, defaults to '17986804044'."
     )
     (
         "database.validated_tx_rate",
