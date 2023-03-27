@@ -32,7 +32,9 @@ namespace node {
 #define BN_INITCHAIN_VARIABLE "initchain"
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
-#define BN_TOTALS_VARIABLE "totals"
+#define BN_MEASURE_VARIABLE "measure"
+#define BN_READ_VARIABLE "read"
+#define BN_WRITE_VARIABLE "write"
 
 // This must be lower case but the env var part can be any case.
 #define BN_CONFIG_VARIABLE "config"
@@ -53,7 +55,9 @@ public:
     bool initchain;
     bool settings;
     bool version;
-    bool totals;
+    bool measure;
+    bool read;
+    bool write;
 
     /// Options and environment vars.
     std::filesystem::path file;
