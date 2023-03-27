@@ -111,6 +111,9 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // optional
 
+    configured.database.bootstrap_size = 1;
+    configured.database.bootstrap_rate = 5;
+
     configured.database.address_buckets = 100;
     configured.database.address_size = 1;
     configured.database.address_rate = 5;
@@ -122,9 +125,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.neutrino_buckets = 100;
     configured.database.neutrino_size = 1;
     configured.database.neutrino_rate = 5;
-
-    configured.database.bootstrap_size = 1;
-    configured.database.bootstrap_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS
