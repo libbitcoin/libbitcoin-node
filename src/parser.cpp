@@ -61,6 +61,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.services_minimum = witness_node;
     configured.network.services_maximum = witness_node;
 
+    // archive
+
     configured.database.header_buckets = 521'357;
     configured.database.header_size = 75'857'492;
     configured.database.header_rate = 5;
@@ -87,6 +89,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.puts_size = 22'299'936'405;
     configured.database.puts_rate = 5;
 
+    // metadata
+
     configured.database.candidate_size = 2'347'641;
     configured.database.candidate_rate = 5;
 
@@ -104,6 +108,23 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.validated_bk_buckets = 521'357;
     configured.database.validated_bk_size = 7'042'923;
     configured.database.validated_bk_rate = 5;
+
+    // optional
+
+    configured.database.address_buckets = 100;
+    configured.database.address_size = 1;
+    configured.database.address_rate = 5;
+
+    configured.database.buffer_buckets = 100;
+    configured.database.buffer_size = 1;
+    configured.database.buffer_rate = 5;
+
+    configured.database.neutrino_buckets = 100;
+    configured.database.neutrino_size = 1;
+    configured.database.neutrino_rate = 5;
+
+    configured.database.bootstrap_size = 1;
+    configured.database.bootstrap_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS

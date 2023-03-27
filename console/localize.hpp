@@ -53,41 +53,57 @@ namespace node {
 // --measure
 #define BN_MEASURE_RECORDS \
     "Table records...\n" \
-    "   header :%1%\n"  \
-    "   tx     :%2%\n"\
-    "   point  :%3%\n" \
-    "   puts   :%4%"
+    "   header   :%1%\n" \
+    "   tx       :%2%\n" \
+    "   point    :%3%\n" \
+    "   puts     :%4%\n" \
+    "   candidate:%5%\n" \
+    "   confirmed:%6%\n" \
+    "   strong_tx:%7%\n" \
+    "   valid_tx :%8%\n" \
+    "   valid_bk :%9%"
 #define BN_MEASURE_SIZES \
     "Body sizes...\n" \
-    "   header :%1%\n" \
-    "   txs    :%2%\n" \
-    "   tx     :%3%\n" \
-    "   point  :%4%\n" \
-    "   puts   :%5%\n" \
-    "   input  :%6%\n" \
-    "   output :%7%"
+    "   header   :%1%\n" \
+    "   txs      :%2%\n" \
+    "   tx       :%3%\n" \
+    "   point    :%4%\n" \
+    "   input    :%5%\n" \
+    "   output   :%6%\n" \
+    "   puts     :%7%\n" \
+    "   candidate:%8%\n" \
+    "   confirmed:%9%\n" \
+    "   strong_tx:%10%\n" \
+    "   valid_tx :%11%\n" \
+    "   valid_bk :%12%"
 #define BN_MEASURE_SLABS \
     "Table slabs..."
 #define BN_MEASURE_SLABS_ROW \
-    "   @tx    :%1%, inputs:%2%, outputs:%3%"
+    "   @tx      :%1%, inputs:%2%, outputs:%3%"
 #define BN_MEASURE_STOP \
-    "   seconds:%1%\n" \
-    "   input  :%2%\n" \
-    "   output :%3%"
+    "   input    :%1%\n" \
+    "   output   :%2%\n" \
+    "   seconds  :%3%"
 #define BN_MEASURE_COLLISION_RATES \
     "Head buckets...\n" \
-    "   header :%1% (%2%)\n" \
-    "   txs    :%3% (%4%)\n" \
-    "   tx     :%5% (%6%)\n" \
-    "   point  :%7% (%8%)\n" \
-    "   input  :%9% (%10%)"
+    "   header   :%1% (%2%)\n" \
+    "   txs      :%3% (%4%)\n" \
+    "   tx       :%5% (%6%)\n" \
+    "   point    :%7% (%8%)\n" \
+    "   input    :%9% (%10%)\n" \
+    "   strong_tx:%11% (%12%)\n" \
+    "   valid_tx :%13% (%14%)\n" \
+    "   valid_bk :%15% (%16%)"
 #define BN_MEASURE_BUCKETS \
     "Head buckets...\n" \
-    "   header :%1%\n" \
-    "   txs    :%2%\n" \
-    "   tx     :%3%\n" \
-    "   point  :%4%\n" \
-    "   input  :%5%"
+    "   header   :%1%\n" \
+    "   txs      :%2%\n" \
+    "   tx       :%3%\n" \
+    "   point    :%4%\n" \
+    "   input    :%5%\n" \
+    "   strong_tx:%6%\n" \
+    "   valid_tx :%7%\n" \
+    "   valid_bk :%8%"
 #define BN_MEASURE_INTERRUPT \
     "Press CTRL-C to cancel operation."
 #define BN_MEASURE_CANCELED \

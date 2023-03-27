@@ -195,14 +195,24 @@ void executor::measure_size() const
         query_.txs_size() %
         query_.tx_size() %
         query_.point_size() %
-        query_.puts_size() %
         query_.input_size() %
-        query_.output_size());
+        query_.output_size() %
+        query_.puts_size() %
+        query_.candidate_size() %
+        query_.confirmed_size() %
+        query_.strong_tx_size() %
+        query_.validated_tx_size() %
+        query_.validated_bk_size());
     console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
-        query_.puts_records());
+        query_.puts_records() %
+        query_.candidate_records() %
+        query_.confirmed_records() %
+        query_.strong_tx_records() %
+        query_.validated_tx_records() %
+        query_.validated_bk_records());
 
     console(BN_MEASURE_SLABS);
     console(BN_MEASURE_INTERRUPT);
@@ -224,18 +234,33 @@ void executor::measure_size() const
     }
 
     if (cancel_) console(BN_MEASURE_CANCELED);
-    const auto header = (1. * query_.header_records()) / query_.header_buckets();
-    const auto txs = (1. * query_.header_records()) / query_.txs_buckets();
-    const auto tx = (1. * query_.tx_records()) / query_.tx_buckets();
-    const auto point = (1. * query_.point_records()) / query_.point_buckets();
-    const auto input = (1. * inputs) / query_.input_buckets();
-    console(format(BN_MEASURE_STOP) % (unix_time() - start) % inputs % outputs);
+    console(format(BN_MEASURE_STOP) % inputs % outputs % (unix_time() - start));
+
+    const auto header = (1.0 * query_.header_records()) /
+        query_.header_buckets();
+    const auto txs = (1.0 * query_.header_records()) /
+        query_.txs_buckets();
+    const auto tx = (1.0 * query_.tx_records()) /
+        query_.tx_buckets();
+    const auto point = (1.0 * query_.point_records()) /
+        query_.point_buckets();
+    const auto input = (1.0 * inputs) /
+        query_.input_buckets();
+    const auto strong_tx = (1.0 * query_.strong_tx_records()) /
+        query_.strong_tx_buckets();
+    const auto validated_tx = (1.0 * query_.validated_tx_records()) /
+        query_.validated_tx_buckets();
+    const auto validated_bk = (1.0 * query_.validated_bk_records()) /
+        query_.validated_bk_buckets();
     console(format(BN_MEASURE_COLLISION_RATES) %
         query_.header_buckets() % header %
         query_.txs_buckets() % txs %
         query_.tx_buckets() % tx %
         query_.point_buckets() % point %
-        query_.input_buckets() % input);
+        query_.input_buckets() % input %
+        query_.strong_tx_buckets() % strong_tx %
+        query_.validated_tx_buckets() % validated_tx %
+        query_.validated_bk_buckets() % validated_bk);
 }
 
 void executor::read_test() const
@@ -397,20 +422,33 @@ bool executor::do_initchain()
         query_.txs_size() %
         query_.tx_size() %
         query_.point_size() %
-        query_.puts_size() %
         query_.input_size() %
-        query_.output_size());
+        query_.output_size() %
+        query_.puts_size() %
+        query_.candidate_size() %
+        query_.confirmed_size() %
+        query_.strong_tx_size() %
+        query_.validated_tx_size() %
+        query_.validated_bk_size());
     console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
-        query_.puts_records());
+        query_.puts_records() %
+        query_.candidate_records() %
+        query_.confirmed_records() %
+        query_.strong_tx_records() %
+        query_.validated_tx_records() %
+        query_.validated_bk_records());
     console(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
         query_.tx_buckets() %
         query_.point_buckets() %
-        query_.input_buckets());
+        query_.input_buckets() %
+        query_.strong_tx_buckets() %
+        query_.validated_tx_buckets() %
+        query_.validated_bk_buckets());
 
     console(BN_STORE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
@@ -827,20 +865,33 @@ bool executor::do_run()
         query_.txs_size() %
         query_.tx_size() %
         query_.point_size() %
-        query_.puts_size() %
         query_.input_size() %
-        query_.output_size());
+        query_.output_size() %
+        query_.puts_size() %
+        query_.candidate_size() %
+        query_.confirmed_size() %
+        query_.strong_tx_size() %
+        query_.validated_tx_size() %
+        query_.validated_bk_size());
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
-        query_.puts_records());
+        query_.puts_records() %
+        query_.candidate_records() %
+        query_.confirmed_records() %
+        query_.strong_tx_records() %
+        query_.validated_tx_records() %
+        query_.validated_bk_records());
     logger(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
         query_.tx_buckets() %
         query_.point_buckets() %
-        query_.input_buckets());
+        query_.input_buckets() %
+        query_.strong_tx_buckets() %
+        query_.validated_tx_buckets() %
+        query_.validated_bk_buckets());
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -869,14 +920,24 @@ bool executor::do_run()
         query_.txs_size() %
         query_.tx_size() %
         query_.point_size() %
-        query_.puts_size() %
         query_.input_size() %
-        query_.output_size());
+        query_.output_size() %
+        query_.puts_size() %
+        query_.candidate_size() %
+        query_.confirmed_size() %
+        query_.strong_tx_size() %
+        query_.validated_tx_size() %
+        query_.validated_bk_size());
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
-        query_.puts_records());
+        query_.puts_records() %
+        query_.candidate_records() %
+        query_.confirmed_records() %
+        query_.strong_tx_records() %
+        query_.validated_tx_records() %
+        query_.validated_bk_records());
 
     // Close store (flush to disk).
     logger(BN_STORE_STOPPING);
