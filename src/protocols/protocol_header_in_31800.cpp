@@ -66,37 +66,79 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    code check{};
+    code error{};
     const auto& coin = config().bitcoin;
+    const auto& checks = coin.checkpoints;
 
     LOGP("Headers (" << message->header_ptrs.size() << ") from ["
         << authority() << "].");
 
-    // TODO: optimize header hashing using read buffer in message deserialize.
     // Store each header, drop channel if invalid.
-    for (const auto& header: message->header_ptrs)
+    for (const auto& header_ptr: message->header_ptrs)
     {
-        check = header->check(
-            coin.timestamp_limit_seconds,
-            coin.proof_of_work_limit,
-            coin.scrypt_proof_of_work);
+        if (stopped())
+            return false;
 
-        if (check)
+        const auto& header = *header_ptr;
+        error = header.check(coin.timestamp_limit_seconds,
+            coin.proof_of_work_limit, coin.scrypt_proof_of_work);
+
+        if (error)
         {
-            LOGR("Invalid header [" << encode_hash(header->hash())
-                << "] from [" << authority() << "] " << check.message());
-
+            LOGR("Invalid header [" << encode_hash(header.hash()) << "] from ["
+                << authority() << "] " << error.message());
             stop(network::error::protocol_violation);
             return false;
         }
 
-        // TODO: maintain context progression and store with header.
-        // tx.hash is computed from message buffer and cached on chain object.
-        if (!archive().set(*header, database::context{ 1, 42, 7 }))
+        size_t height{};
+        if (!archive().get_height(height, archive().to_header(
+            header.previous_block_hash())))
         {
-            LOGR("Orphan header [" << encode_hash(header->hash())
-                << "] from [" << authority() << "].");
+            LOGR("Orphan header [" << encode_hash(header.hash()) << "] from ["
+                << authority() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
 
+        if (chain::checkpoint::is_conflict(checks, header.hash(), ++height))
+        {
+            LOGR("Checkpoint conflict [" << encode_hash(header.hash())
+                << "] from [" << authority() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        const auto state = archive().get_chain_state(coin, header, height);
+        error = header.accept(state->context());
+
+        if (error)
+        {
+            LOGR("Invalid header [" << encode_hash(header.hash())
+                << "] from [" << authority() << "] " << error.message());
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        const auto link = archive().set_link(header,
+        {
+            state->forks(),
+            possible_narrow_cast<uint32_t>(height),
+            state->median_time_past()
+        });
+
+        if (link.is_terminal())
+        {
+            LOGF("Set header error [" << encode_hash(header.hash())
+                << "] from [" << authority() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        if (!archive().push_candidate(link))
+        {
+            LOGF("Push header error [" << encode_hash(header.hash())
+                << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
         }
