@@ -56,6 +56,9 @@ private:
     network::messages::get_headers create_get_headers() NOEXCEPT;
     network::messages::get_headers create_get_headers(
         system::hashes&& start_hashes) NOEXCEPT;
+
+    // Protected by strand.
+    system::chain::chain_state::ptr state_{};
 };
 
 } // namespace node
