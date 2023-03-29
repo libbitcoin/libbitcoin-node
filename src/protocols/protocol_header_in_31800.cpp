@@ -36,6 +36,7 @@ using namespace std::placeholders;
 using namespace std::chrono;
 
 // Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -48,6 +49,16 @@ void protocol_header_in_31800::start() NOEXCEPT
 
     if (started())
         return;
+
+    // get_chain_state is always CANDIDATE.
+    state_ = archive().get_chain_state(config().bitcoin,
+        archive().get_top_candidate());
+
+    if (!state_)
+    {
+        LOGF("Unexpected error, state not initialized.");
+        return;
+    }
 
     // There is one persistent common headers subscription.
     SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
@@ -66,7 +77,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    code error{};
     const auto& coin = config().bitcoin;
     const auto& checks = coin.checkpoints;
 
@@ -80,7 +90,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
 
         const auto& header = *header_ptr;
-        error = header.check(coin.timestamp_limit_seconds,
+        code error = header.check(coin.timestamp_limit_seconds,
             coin.proof_of_work_limit, coin.scrypt_proof_of_work);
 
         if (error)
@@ -91,17 +101,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        size_t height{};
-        if (!archive().get_height(height, archive().to_header(
-            header.previous_block_hash())))
-        {
-            LOGR("Orphan header [" << encode_hash(header.hash()) << "] from ["
-                << authority() << "].");
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        if (chain::checkpoint::is_conflict(checks, header.hash(), ++height))
+        const auto height = add1(state_->height());
+        if (chain::checkpoint::is_conflict(checks, header.hash(), height))
         {
             LOGR("Checkpoint conflict [" << encode_hash(header.hash())
                 << "] from [" << authority() << "].");
@@ -109,12 +110,14 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        const auto state = archive().get_chain_state(coin, header, height);
-        error = header.accept(state->context());
+        // Rolling forward chain_state eliminates database cost.
+        // get_chain_state doubles time cost, from ~15 to ~30 secs.
+        state_.reset(new chain::chain_state(*state_, header, coin));
+        error = header.accept(state_->context());
 
-        if (error)
+        if (!state_)
         {
-            LOGR("Invalid header [" << encode_hash(header.hash())
+            LOGR("Orphan header [" << encode_hash(header.hash())
                 << "] from [" << authority() << "] " << error.message());
             stop(network::error::protocol_violation);
             return false;
@@ -122,14 +125,16 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 
         const auto link = archive().set_link(header,
         {
-            state->forks(),
+            state_->forks(),
             possible_narrow_cast<uint32_t>(height),
-            state->median_time_past()
+            state_->median_time_past()
         });
 
+        // TODO: Early parent check can be implemented by chain_state.
+        // This allows it to be pre-verified without hitting the store.
         if (link.is_terminal())
         {
-            LOGF("Set header error [" << encode_hash(header.hash())
+            LOGF("Orphan header [" << encode_hash(header.hash())
                 << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
@@ -137,7 +142,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 
         if (!archive().push_candidate(link))
         {
-            LOGF("Push header error [" << encode_hash(header.hash())
+            LOGF("Push candidate error [" << encode_hash(header.hash())
                 << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
@@ -177,8 +182,9 @@ void protocol_header_in_31800::current() NOEXCEPT
 // private
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
-    return create_get_headers(archive().get_hashes(get_headers::heights(
-        archive().get_top_candidate())));
+    // header sync is always CANDIDATEs.
+    return create_get_headers(archive().get_candidate_hashes(
+        get_headers::heights(archive().get_top_candidate())));
 }
 
 // private
@@ -194,6 +200,7 @@ get_headers protocol_header_in_31800::create_get_headers(
     return { std::move(hashes) };
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 

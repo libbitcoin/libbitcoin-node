@@ -240,8 +240,10 @@ void protocol_block_in::current() NOEXCEPT
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
+    // block sync is always CANDIDATEs.
     const auto top = archive().get_top_candidate();
-    return create_get_inventory(archive().get_hashes(get_blocks::heights(top)));
+    return create_get_inventory(archive().get_candidate_hashes(
+        get_blocks::heights(top)));
 }
 
 get_blocks protocol_block_in::create_get_inventory(
