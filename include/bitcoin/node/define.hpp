@@ -47,6 +47,7 @@ namespace node {
 
     enum events : uint8_t
     {
+        event_archive,
         event_header,
         event_block,
         event_validated,

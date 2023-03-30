@@ -659,8 +659,6 @@ void executor::subscribe_log(std::ostream& sink)
 
 void executor::subscribe_events(std::ostream& sink)
 {
-    constexpr auto frequency = 10'000;
-
     log_.subscribe_events([&sink, start = logger::now()](const code& ec,
         uint8_t event, uint64_t value, const logger::time& point)
     {
@@ -668,22 +666,22 @@ void executor::subscribe_events(std::ostream& sink)
 
         switch (event)
         {
+            case event_archive:
+            {
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[archive] " << value << " " << time << std::endl;
+                break;
+            }
             case event_header:
             {
-                if (is_zero(value % frequency))
-                {
-                    const auto time = duration_cast<seconds>(point - start).count();
-                    sink << "[header] " << value << " " << time << std::endl;
-                }
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[header] " << value << " " << time << std::endl;
                 break;
             }
             case event_block:
             {
-                if (is_zero(value % frequency))
-                {
-                    const auto time = duration_cast<seconds>(point - start).count();
-                    sink << "[block] " << value << " " << time << std::endl;
-                }
+                const auto time = duration_cast<seconds>(point - start).count();
+                sink << "[block] " << value << " " << time << std::endl;
                 break;
             }
             case event_current_headers:

@@ -18,8 +18,8 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
-#include <chrono>
 #include <utility>
+#include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -33,7 +33,6 @@ using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
-using namespace std::chrono;
 
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_NEW_OR_DELETE)
@@ -50,13 +49,12 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    // get_chain_state is always CANDIDATE.
-    state_ = archive().get_chain_state(config().bitcoin,
-        archive().get_top_candidate());
+    // header sync is always CANDIDATEs.
+    state_ = archive().get_candidate_chain_state(config().bitcoin);
 
     if (!state_)
     {
-        LOGF("Unexpected error, state not initialized.");
+        LOGF("protocol_header_in_31800, state not initialized.");
         return;
     }
 
@@ -79,9 +77,10 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 
     const auto& coin = config().bitcoin;
     const auto& checks = coin.checkpoints;
+    auto& query = archive();
 
-    LOGP("Headers (" << message->header_ptrs.size() << ") from ["
-        << authority() << "].");
+    LOGP("Headers (" << message->header_ptrs.size()
+        << ") from [" << authority() << "].");
 
     // Store each header, drop channel if invalid.
     for (const auto& header_ptr: message->header_ptrs)
@@ -90,67 +89,67 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
 
         const auto& header = *header_ptr;
-        code error = header.check(coin.timestamp_limit_seconds,
+        const auto hash = header.hash();
+        auto error = header.check(coin.timestamp_limit_seconds,
             coin.proof_of_work_limit, coin.scrypt_proof_of_work);
 
         if (error)
         {
-            LOGR("Invalid header [" << encode_hash(header.hash()) << "] from ["
-                << authority() << "] " << error.message());
+            LOGR("Invalid header (check) [" << encode_hash(hash)
+                << "] from [" << authority() << "] " << error.message());
             stop(network::error::protocol_violation);
             return false;
         }
 
         const auto height = add1(state_->height());
-        if (chain::checkpoint::is_conflict(checks, header.hash(), height))
+        if (chain::checkpoint::is_conflict(checks, hash, height))
         {
-            LOGR("Checkpoint conflict [" << encode_hash(header.hash())
+            LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
         }
 
         // Rolling forward chain_state eliminates database cost.
-        // get_chain_state doubles time cost, from ~15 to ~30 secs.
         state_.reset(new chain::chain_state(*state_, header, coin));
         error = header.accept(state_->context());
 
-        if (!state_)
+        if (error)
         {
-            LOGR("Orphan header [" << encode_hash(header.hash())
+            LOGR("Invalid header (accept) [" << encode_hash(hash)
                 << "] from [" << authority() << "] " << error.message());
             stop(network::error::protocol_violation);
             return false;
         }
 
-        const auto link = archive().set_link(header,
+        // TODO: Early parent check can be implemented by chain_state.
+        // This allows it to be pre-verified without hitting the store.
+        const auto link = query.set_link(header,
         {
             state_->forks(),
             possible_narrow_cast<uint32_t>(height),
             state_->median_time_past()
         });
 
-        // TODO: Early parent check can be implemented by chain_state.
-        // This allows it to be pre-verified without hitting the store.
         if (link.is_terminal())
         {
-            LOGF("Orphan header [" << encode_hash(header.hash())
+            LOGF("Orphan header [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
         }
 
-        if (!archive().push_candidate(link))
+        // This is the job of the header chaser.
+        if (!query.push_candidate(link))
         {
-            LOGF("Push candidate error [" << encode_hash(header.hash())
+            LOGF("Push candidate error [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
         }
 
-        // This will be incorrect with multiple peers or block protocol.
-        // archive().header_records() is a weak proxy for current height (top).
-        reporter::fire(event_header, archive().header_records());
+        if (is_zero(height % 10'000))
+            reporter::fire(event_header, height);
     }
 
     // Protocol presumes max_get_headers unless complete.

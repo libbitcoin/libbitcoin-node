@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
 #include <utility>
+#include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -41,6 +42,7 @@ using namespace network::messages;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -54,8 +56,14 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    // Initialize fixed start time.
     start_ = unix_time();
+    state_ = archive().get_confirmed_chain_state(config().bitcoin);
+
+    if (!state_)
+    {
+        LOGF("protocol_block_in, state not initialized.");
+        return;
+    }
 
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
@@ -143,60 +151,121 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // An uncorrelated block may have not been announced via inv (ie by miner).
-    if (tracker->hashes.back() != message->block_ptr->hash())
-    {
-        LOGP("Uncorrelated block [" << encode_hash(message->block_ptr->hash())
-            << "] from [" << authority() << "].");
+    const auto& block = *message->block_ptr;
+    const auto hash = block.hash();
 
-        // This may be for another handler.
+    // An uncorrelated block may have not been announced via inv (ie by miner).
+    if (tracker->hashes.back() != hash)
+    {
+        // This may be for another (such as annouce handler).
+        ////LOGP("Uncorrelated block [" << encode_hash(hash)
+        ////    << "] from [" << authority() << "].");
         return true;
     }
 
-    // TODO: maintain context progression and store with header.
-    // block.hash is computed from message buffer and cached on chain object.
-    if (!archive().set(*message->block_ptr, database::context{ 1, 42, 7 }))
+    const auto& coin = config().bitcoin;
+    const auto& checks = coin.checkpoints;
+    auto error = block.check();
+
+    if (error)
+    {
+        // assume announced.
+        LOGR("Invalid block (check) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        ////stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // TODO: chain_state capture hash, check parents to ensure in branch.
+    // TODO: this will allow skip of announcements due to not next in branch.
+    const auto height = add1(state_->height());
+    if (chain::checkpoint::is_conflict(checks, hash, height))
+    {
+        LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
+            << "] from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // TODO: Early parent check can be implemented by chain_state.
+    // This allows it to be pre-verified without hitting the store.
+    auto& query = archive();
+    const auto link = query.set_link(block,
+    {
+        state_->forks(),
+        possible_narrow_cast<uint32_t>(height),
+        state_->median_time_past()
+    });
+
+    if (link.is_terminal())
     {
         if (tracker->announced > maximum_advertisement)
         {
+            // Treat orphan from larger-than-announce as invalid inventory.
             LOGR("Orphan block inventory ["
                 << encode_hash(message->block_ptr->hash()) << "] from ["
                 << authority() << "].");
-    
-            // Treat orphan from larger-than-announce as invalid inventory.
             stop(network::error::protocol_violation);
             return false;
         }
         else
         {
-            LOGP("Orphan block announcement ["
-                << encode_hash(message->block_ptr->hash()) << "] from ["
-                << authority() << "].");
-    
             // Unlike headers, block announcements may come before caught-up.
+            LOGP("Orphan block announcement ["
+                << encode_hash(message->block_ptr->hash())
+                << "] from [" << authority() << "].");
             return false;
         }
     }
 
+    // Populate block.tx.input.prevouts.
+    // Block must be archived or this will miss internal prevouts.
+    // Not goood for blocks first DoS protection.
+    if (!query.populate(block))
+    {
+        LOGR("Invalid block (populate) [" << encode_hash(hash)
+            << "] from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // Rolling forward chain_state eliminates database cost.
+    state_.reset(new chain::chain_state(*state_, block.header(), coin));
+    error = block.accept(state_->context(), coin.subsidy_interval_blocks,
+        coin.initial_subsidy());
+
+    if (error)
+    {
+        LOGR("Invalid block (accept) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // This is the job of the confirmation chaser.
+    if (!query.push_confirmed(link))
+    {
+        LOGF("Push confirmed error [" << encode_hash(hash)
+            << "] from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
     // This will be incorrect with multiple peers or headers protocol.
-    // archive().header_records() is a weak proxy for current height (top).
-    const auto& query = archive();
-    const auto header_records = query.header_records();
-    reporter::fire(event_block, header_records);
+    // query.header_records() is a weak proxy for current height (top).
+    if (is_zero(height % 10'000))
+    {
+        const auto archive_size = query.archive_size();
+        reporter::fire(event_block, height);
+        reporter::fire(event_archive, archive_size);
+        LOGN("BLOCK:" << height
+            << " sec:" << (unix_time() - start_)
+            << " txs:" << query.tx_records()
+            << " arc:" << archive_size);
+    }
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
         << authority() << "].");
-
-    // Temporary.
-    if (is_zero(header_records % 10'000))
-    {
-        LOGN("BLOCK: " << header_records
-            << " " << (unix_time() - start_)
-            << " " << query.tx_records()
-            << " " << query.archive_size()
-            << " " << query.input_size()
-            << " " << query.output_size());
-    }
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
@@ -240,9 +309,9 @@ void protocol_block_in::current() NOEXCEPT
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
-    // block sync is always CANDIDATEs.
-    const auto top = archive().get_top_candidate();
-    return create_get_inventory(archive().get_candidate_hashes(
+    // block sync is always CONFIRMEDs.
+    const auto top = archive().get_top_confirmed();
+    return create_get_inventory(archive().get_confirmed_hashes(
         get_blocks::heights(top)));
 }
 
@@ -280,6 +349,7 @@ get_data protocol_block_in::create_get_data(
     return getter;
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 
