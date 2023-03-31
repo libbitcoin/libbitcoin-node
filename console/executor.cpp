@@ -310,6 +310,114 @@ void executor::write_test()
         (unix_time() - start) % all);
 }
 
+// TODO: create a block/tx dumper.
+////void executor::read_test() const
+////{
+////    constexpr auto hash251684 = base16_hash(
+////        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
+////    constexpr auto hash9 = base16_hash(
+////        "61a078472543e9de9247446076320499c108b52307d8d0fafbe53b5c4e32acc4");
+////
+////    const auto link = query_.to_header(hash251684);
+////    if (link.is_terminal())
+////    {
+////        console("link.is_terminal()");
+////        return;
+////    }
+////
+////    const auto block = query_.get_block(link);
+////    if (!block)
+////    {
+////        console("!block");
+////        return;
+////    }
+////    if (!block->is_valid())
+////    {
+////        console("!block->is_valid()");
+////        return;
+////    }
+////
+////    database::context ctx{};
+////    if (!query_.get_context(ctx, link))
+////    {
+////        console("!query_.get_context(ctx, link)");
+////        return;
+////    }
+////
+////    // flags:131223 height:251684 mtp:1376283946
+////    console(format("flags:%1% height:%2% mtp:%3%") %
+////        ctx.flags % ctx.height % ctx.mtp);
+////
+////    // minimum_block_version and work_required are only for header validate.
+////    chain::context state{};
+////    state.forks = ctx.flags;
+////    state.height = ctx.height;
+////    state.median_time_past = ctx.mtp;
+////    state.timestamp = block->header().timestamp();
+////    state.minimum_block_version = 0;
+////    state.work_required = 0;
+////    if (!query_.populate(*block))
+////    {
+////        console("!query_.populate(*block)");
+////        return;
+////    }
+////
+////    code ec{};
+////    if ((ec = block->check()))
+////    {
+////        console(format("Block check: %1%") % ec.message());
+////        return;
+////    }
+////
+////    const auto& coin = metadata_.configured.bitcoin;
+////    if ((ec = block->accept(state, coin.subsidy_interval_blocks,
+////        coin.initial_subsidy())))
+////    {
+////        console(format("Block accept: %1%") % ec.message());
+////        return;
+////    }
+////
+////    if ((ec = block->connect(state)))
+////    {
+////        console(format("Block connect: %1%") % ec.message());
+////        return;
+////    }
+////
+////    console("Validated block 251684.");
+////}
+////
+////void executor::write_test()
+////{
+////    constexpr auto hash251684 = base16_hash(
+////        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
+////    const auto link = query_.to_header(hash251684);
+////    if (link.is_terminal())
+////    {
+////        console("link.is_terminal()");
+////        return;
+////    }
+////
+////    if (query_.confirmed_records() != 251684u)
+////    {
+////        console("!query_.confirmed_records() != 251684u");
+////        return;
+////    }
+////
+////    if (!query_.push_confirmed(link))
+////    {
+////        console("!query_.push_confirmed(link)");
+////        return;
+////    }
+////
+////    if (query_.confirmed_records() != 251685u)
+////    {
+////        console("!query_.confirmed_records() != 251685u");
+////        return;
+////    }
+////
+////    console("Successfully confirmed block 251684.");
+////}
+
 // Menu selection.
 // ----------------------------------------------------------------------------
 
@@ -489,9 +597,9 @@ bool executor::do_measure()
 
     // Open store.
     console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    if (const auto ec = store_.open([&](auto, auto)
     {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_START_FAIL) % ec.message());
@@ -502,9 +610,9 @@ bool executor::do_measure()
 
     // Close store.
     console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
+    if (const auto ec = store_.close([&](auto, auto)
     {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_STOP_FAIL) % ec.message());
@@ -534,9 +642,9 @@ bool executor::do_read()
 
     // Open store.
     console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    if (const auto ec = store_.open([&](auto, auto)
     {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_START_FAIL) % ec.message());
@@ -547,9 +655,9 @@ bool executor::do_read()
 
     // Close store.
     console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
+    if (const auto ec = store_.close([&](auto, auto)
     {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_STOP_FAIL) % ec.message());
@@ -579,9 +687,9 @@ bool executor::do_write()
 
     // Open store.
     console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    if (const auto ec = store_.open([&](auto, auto)
     {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_START_FAIL) % ec.message());
@@ -592,9 +700,9 @@ bool executor::do_write()
 
     // Close store.
     console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
+    if (const auto ec = store_.close([&](auto, auto)
     {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_STOP_FAIL) % ec.message());
