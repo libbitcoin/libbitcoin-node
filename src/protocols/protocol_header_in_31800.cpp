@@ -90,9 +90,17 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 
         const auto& header = *header_ptr;
         const auto hash = header.hash();
+        if (header.previous_block_hash() != state_->hash())
+        {
+            // Out of order or invalid.
+            LOGP("Orphan header [" << encode_hash(hash)
+                << "] from [" << authority() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
         auto error = header.check(coin.timestamp_limit_seconds,
             coin.proof_of_work_limit, coin.scrypt_proof_of_work);
-
         if (error)
         {
             LOGR("Invalid header (check) [" << encode_hash(hash)
@@ -101,8 +109,11 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        const auto height = add1(state_->height());
-        if (chain::checkpoint::is_conflict(checks, hash, height))
+        // Rolling forward chain_state eliminates database cost.
+        state_.reset(new chain::chain_state(*state_, header, coin));
+        const auto ctx = state_->context();
+
+        if (chain::checkpoint::is_conflict(checks, hash, ctx.height))
         {
             LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
@@ -110,10 +121,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // Rolling forward chain_state eliminates database cost.
-        state_.reset(new chain::chain_state(*state_, header, coin));
-        error = header.accept(state_->context());
-
+        error = header.accept(ctx);
         if (error)
         {
             LOGR("Invalid header (accept) [" << encode_hash(hash)
@@ -122,20 +130,13 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // TODO: Early parent check can be implemented by chain_state.
-        // This allows it to be pre-verified without hitting the store.
-        const auto link = query.set_link(header,
-        {
-            state_->forks(),
-            possible_narrow_cast<uint32_t>(height),
-            state_->median_time_past()
-        });
-
+        const auto link = query.set_link(header, ctx);
         if (link.is_terminal())
         {
-            LOGF("Orphan header [" << encode_hash(hash)
+            // This should only be from missing parent, but guarded above.
+            LOGF("Store header error [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
-            stop(network::error::protocol_violation);
+            stop(network::error::unknown);
             return false;
         }
 
@@ -144,12 +145,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         {
             LOGF("Push candidate error [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
-            stop(network::error::protocol_violation);
+            stop(network::error::unknown);
             return false;
         }
 
-        if (is_zero(height % 10'000))
-            reporter::fire(event_header, height);
+        if (is_zero(ctx.height % 10'000))
+            reporter::fire(event_header, ctx.height);
     }
 
     // Protocol presumes max_get_headers unless complete.

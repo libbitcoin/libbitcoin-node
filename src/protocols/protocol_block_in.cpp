@@ -153,11 +153,10 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     const auto& block = *message->block_ptr;
     const auto hash = block.hash();
-
-    // An uncorrelated block may have not been announced via inv (ie by miner).
     if (tracker->hashes.back() != hash)
     {
-        // This may be for another (such as annouce handler).
+        // This may be for another inventory (such as annouce handler).
+        // May have not been announced via inv (ie by miner).
         ////LOGP("Uncorrelated block [" << encode_hash(hash)
         ////    << "] from [" << authority() << "].");
         return true;
@@ -165,40 +164,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     const auto& coin = config().bitcoin;
     const auto& checks = coin.checkpoints;
-    auto error = block.check();
-
-    if (error)
+    if (block.header().previous_block_hash() != state_->hash())
     {
-        // assume announced.
-        LOGR("Invalid block (check) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        ////stop(network::error::protocol_violation);
-        return false;
-    }
-
-    // TODO: chain_state capture hash, check parents to ensure in branch.
-    // TODO: this will allow skip of announcements due to not next in branch.
-    const auto height = add1(state_->height());
-    if (chain::checkpoint::is_conflict(checks, hash, height))
-    {
-        LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
-
-    // TODO: Early parent check can be implemented by chain_state.
-    // This allows it to be pre-verified without hitting the store.
-    auto& query = archive();
-    const auto link = query.set_link(block,
-    {
-        state_->forks(),
-        possible_narrow_cast<uint32_t>(height),
-        state_->median_time_past()
-    });
-
-    if (link.is_terminal())
-    {
+        // Out of order or invalid.
         if (tracker->announced > maximum_advertisement)
         {
             // Treat orphan from larger-than-announce as invalid inventory.
@@ -218,9 +186,40 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
     }
 
-    // Populate block.tx.input.prevouts.
-    // Block must be archived or this will miss internal prevouts.
-    // Not goood for blocks first DoS protection.
+    auto error = block.check();
+    if (error)
+    {
+        // assume announced.
+        LOGR("Invalid block (check) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        ////stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // Rolling forward chain_state eliminates database cost.
+    state_.reset(new chain::chain_state(*state_, block.header(), coin));
+    const auto ctx = state_->context();
+
+    if (chain::checkpoint::is_conflict(checks, hash, ctx.height))
+    {
+        LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
+            << "] from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    auto& query = archive();
+    const auto link = query.set_link(block, ctx);
+    if (link.is_terminal())
+    {
+        // This should only be from missing parent, but guarded above.
+        LOGF("Store block error [" << encode_hash(hash)
+            << "] from [" << authority() << "].");
+        stop(network::error::unknown);
+        return false;
+    }
+
+    // Block must be archived for full populate (no DoS protect).
     if (!query.populate(block))
     {
         LOGR("Invalid block (populate) [" << encode_hash(hash)
@@ -229,9 +228,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // Rolling forward chain_state eliminates database cost.
-    state_.reset(new chain::chain_state(*state_, block.header(), coin));
-    error = block.accept(state_->context(), coin.subsidy_interval_blocks,
+    error = block.accept(ctx, coin.subsidy_interval_blocks,
         coin.initial_subsidy());
 
     if (error)
@@ -242,23 +239,32 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
+    error = block.connect(ctx);
+    if (error)
+    {
+        LOGR("Invalid block (connect) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
     // This is the job of the confirmation chaser.
     if (!query.push_confirmed(link))
     {
         LOGF("Push confirmed error [" << encode_hash(hash)
             << "] from [" << authority() << "].");
-        stop(network::error::protocol_violation);
+        stop(network::error::unknown);
         return false;
     }
 
     // This will be incorrect with multiple peers or headers protocol.
     // query.header_records() is a weak proxy for current height (top).
-    if (is_zero(height % 10'000))
+    if (is_zero(ctx.height % 10'000))
     {
         const auto archive_size = query.archive_size();
-        reporter::fire(event_block, height);
+        reporter::fire(event_block, ctx.height);
         reporter::fire(event_archive, archive_size);
-        LOGN("BLOCK:" << height
+        LOGN("BLOCK:" << ctx.height
             << " sec:" << (unix_time() - start_)
             << " txs:" << query.tx_records()
             << " arc:" << archive_size);
