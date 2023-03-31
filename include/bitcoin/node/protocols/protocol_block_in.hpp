@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 
+#include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
@@ -80,8 +81,12 @@ private:
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
 
-    uint32_t start_{};
+    // Thread safe.
     const network::messages::inventory::type_id block_type_;
+
+    // Protected by strand.
+    uint32_t start_{};
+    system::chain::chain_state::ptr state_{};
 };
 
 } // namespace node

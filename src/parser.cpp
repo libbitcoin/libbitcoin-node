@@ -311,7 +311,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "bitcoin.subsidy_interval",
-        value<uint64_t>(&configured.bitcoin.subsidy_interval_blocks),
+        value<uint32_t>(&configured.bitcoin.subsidy_interval_blocks),
         "The subsidy halving period, defaults to 210000."
     )
     (
