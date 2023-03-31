@@ -248,6 +248,10 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
+    // If populate, accept, or connect fail this is bypassed and a restart will
+    // initialize state_ at the prior block as top. But this block exists, so
+    // it will be skipped for download. This results in the next being orphaned
+    // following the channel stop/start or any subsequent runs on the store.
     // This is the job of the confirmation chaser.
     if (!query.push_confirmed(link))
     {
@@ -264,10 +268,10 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         const auto archive_size = query.archive_size();
         reporter::fire(event_block, ctx.height);
         reporter::fire(event_archive, archive_size);
-        LOGN("BLOCK:" << ctx.height
-            << " sec:" << (unix_time() - start_)
-            << " txs:" << query.tx_records()
-            << " arc:" << archive_size);
+        LOGN("BLOCK: " << ctx.height
+            << " sec: " << (unix_time() - start_)
+            << " txs: " << query.tx_records()
+            << " arc: " << archive_size);
     }
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
