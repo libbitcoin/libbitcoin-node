@@ -264,10 +264,10 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         const auto archive_size = query.archive_size();
         reporter::fire(event_block, ctx.height);
         reporter::fire(event_archive, archive_size);
-        LOGN("BLOCK:" << ctx.height
-            << " sec:" << (unix_time() - start_)
-            << " txs:" << query.tx_records()
-            << " arc:" << archive_size);
+        LOGN("BLOCK: " << ctx.height
+            << " sec: " << (unix_time() - start_)
+            << " txs: " << query.tx_records()
+            << " arc: " << archive_size);
     }
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
