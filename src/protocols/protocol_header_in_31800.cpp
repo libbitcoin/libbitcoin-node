@@ -76,7 +76,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         return false;
 
     const auto& coin = config().bitcoin;
-    const auto& checks = coin.checkpoints;
     auto& query = archive();
 
     LOGP("Headers (" << message->header_ptrs.size()
@@ -109,11 +108,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // Rolling forward chain_state eliminates database cost.
-        state_.reset(new chain::chain_state(*state_, header, coin));
-        const auto ctx = state_->context();
-
-        if (chain::checkpoint::is_conflict(checks, hash, ctx.height))
+        const auto height = add1(state_->height());
+        if (chain::checkpoint::is_conflict(coin.checkpoints, hash, height))
         {
             LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
@@ -121,6 +117,10 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
+        // Rolling forward chain_state eliminates database cost.
+        state_.reset(new chain::chain_state(*state_, header, coin));
+
+        const auto ctx = state_->context();
         error = header.accept(ctx);
         if (error)
         {

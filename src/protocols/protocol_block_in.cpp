@@ -152,18 +152,13 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     }
 
     const auto& block = *message->block_ptr;
-    const auto hash = block.hash();
-    if (tracker->hashes.back() != hash)
-    {
-        // This may be for another inventory (such as annouce handler).
-        // May have not been announced via inv (ie by miner).
-        ////LOGP("Uncorrelated block [" << encode_hash(hash)
-        ////    << "] from [" << authority() << "].");
-        return true;
-    }
-
     const auto& coin = config().bitcoin;
-    const auto& checks = coin.checkpoints;
+    const auto hash = block.hash();
+
+    // May not have been announced (ie miner broadcast) or different inv.
+    if (tracker->hashes.back() != hash)
+        return true;
+
     if (block.header().previous_block_hash() != state_->hash())
     {
         // Out of order or invalid.
@@ -192,15 +187,12 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         // assume announced.
         LOGR("Invalid block (check) [" << encode_hash(hash)
             << "] from [" << authority() << "] " << error.message());
-        ////stop(network::error::protocol_violation);
+        stop(network::error::protocol_violation);
         return false;
     }
 
-    // Rolling forward chain_state eliminates database cost.
-    state_.reset(new chain::chain_state(*state_, block.header(), coin));
-    const auto ctx = state_->context();
-
-    if (chain::checkpoint::is_conflict(checks, hash, ctx.height))
+    const auto height = add1(state_->height());
+    if (chain::checkpoint::is_conflict(coin.checkpoints, hash, height))
     {
         LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
             << "] from [" << authority() << "].");
@@ -208,7 +200,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
+    // Rolling forward chain_state eliminates database cost.
+    state_.reset(new chain::chain_state(*state_, block.header(), coin));
+
     auto& query = archive();
+    const auto ctx = state_->context();
     const auto link = query.set_link(block, ctx);
     if (link.is_terminal())
     {
@@ -230,7 +226,6 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     error = block.accept(ctx, coin.subsidy_interval_blocks,
         coin.initial_subsidy());
-
     if (error)
     {
         LOGR("Invalid block (accept) [" << encode_hash(hash)
@@ -269,9 +264,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         reporter::fire(event_block, ctx.height);
         reporter::fire(event_archive, archive_size);
         LOGN("BLOCK: " << ctx.height
-            << " sec: " << (unix_time() - start_)
+            << " secs: " << (unix_time() - start_)
             << " txs: " << query.tx_records()
-            << " arc: " << archive_size);
+            << " archive: " << archive_size);
     }
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
