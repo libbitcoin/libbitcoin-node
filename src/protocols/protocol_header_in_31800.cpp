@@ -108,8 +108,9 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        const auto height = add1(state_->height());
-        if (chain::checkpoint::is_conflict(coin.checkpoints, hash, height))
+        // TODO: sort by height and shortcircuit.
+        if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+            add1(state_->height())))
         {
             LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
@@ -169,14 +170,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 }
 
 // This could be the end of a catch-up sequence, or a singleton announcement.
-// The distinction is ultimately arbitrary, but thissignals initial currency.
+// The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_header_in_31800::current() NOEXCEPT
 {
-    // This will be incorrect with multiple peers or block protocol.
-    // archive().header_records() is a weak proxy for current height (top).
-    const auto top = archive().header_records();
-    reporter::fire(event_current_headers, top);
-    LOGN("Headers from [" << authority() << "] complete at (" << top << ").");
+    reporter::fire(event_current_headers, state_->height());
+    LOGN("Headers from [" << authority() << "] complete at ("
+        << state_->height() << ").");
 }
 
 // private

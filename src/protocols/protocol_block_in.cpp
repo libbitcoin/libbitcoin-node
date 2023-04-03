@@ -191,8 +191,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    const auto height = add1(state_->height());
-    if (chain::checkpoint::is_conflict(coin.checkpoints, hash, height))
+    // TODO: only in header.
+    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+        add1(state_->height())))
     {
         LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
             << "] from [" << authority() << "].");
@@ -256,17 +257,15 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // This will be incorrect with multiple peers or headers protocol.
-    // query.header_records() is a weak proxy for current height (top).
+    // Size will be incorrect with multiple peers or headers protocol.
     if (is_zero(ctx.height % 10'000))
     {
-        const auto archive_size = query.archive_size();
         reporter::fire(event_block, ctx.height);
-        reporter::fire(event_archive, archive_size);
+        reporter::fire(event_archive, query.archive_size());
         LOGN("BLOCK: " << ctx.height
             << " secs: " << (unix_time() - start_)
             << " txs: " << query.tx_records()
-            << " archive: " << archive_size);
+            << " archive: " << query.archive_size());
     }
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
@@ -299,14 +298,12 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 }
 
 // This could be the end of a catch-up sequence, or a singleton announcement.
-// The distinction is ultimately arbitrary, but thissignals initial currency.
+// The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_block_in::current() NOEXCEPT
 {
-    // This will be incorrect with multiple peers or headers protocol.
-    // archive().header_records() is a weak proxy for current height (top).
-    const auto top = archive().header_records();
-    reporter::fire(event_current_blocks, top);
-    LOGN("Blocks from [" << authority() << "] complete at (" << top << ").");
+    reporter::fire(event_current_blocks, state_->height());
+    LOGN("Blocks from [" << authority() << "] complete at ("
+        << state_->height() << ").");
 }
 
 // private
@@ -315,9 +312,8 @@ void protocol_block_in::current() NOEXCEPT
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
     // block sync is always CONFIRMEDs.
-    const auto top = archive().get_top_confirmed();
     return create_get_inventory(archive().get_confirmed_hashes(
-        get_blocks::heights(top)));
+        get_blocks::heights(archive().get_top_confirmed())));
 }
 
 get_blocks protocol_block_in::create_get_inventory(
