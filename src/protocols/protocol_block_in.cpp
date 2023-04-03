@@ -191,8 +191,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    const auto height = add1(state_->height());
-    if (chain::checkpoint::is_conflict(coin.checkpoints, hash, height))
+    // TODO: only in header.
+    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+        add1(state_->height())))
     {
         LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
             << "] from [" << authority() << "].");

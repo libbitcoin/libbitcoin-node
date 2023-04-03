@@ -108,8 +108,9 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        const auto height = add1(state_->height());
-        if (chain::checkpoint::is_conflict(coin.checkpoints, hash, height))
+        // TODO: sort by height and shortcircuit.
+        if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+            add1(state_->height())))
         {
             LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
