@@ -287,33 +287,33 @@ void executor::measure_size() const
 
 void executor::read_test() const
 {
-    constexpr auto hash481831 = base16_hash(
-        "0000000000000000008c40ba590fe957fb31ba256c82ae3ea4c378f46e3aa9b3");
+    constexpr auto hash481832 = base16_hash(
+        "000000000000000000da5d057cb3ad421cd9135b2d11898818f6f0c1e84287f6");
 
-    ////console("HIT <enter> TO START");
-    ////std::string line{};
-    ////std::getline(input_, line);
+    console("HIT <enter> TO START");
+    std::string line{};
+    std::getline(input_, line);
     const auto start = unix_time();
 
-    for (size_t height = 481'831; (height <= 481'831) && !cancel_; ++height)
+    for (size_t height = 483'162; (height <= 483'162) && !cancel_; ++height)
     {
-        // 2s
-        const auto link = query_.to_header(hash481831);
+        // 2s 0s
+        const auto link = query_.to_header(hash481832);
         if (link.is_terminal())
         {
             console("to_confirmed");
             return;
         }
 
-        // 109s
+        // 109s 111s
         const auto block = query_.get_block(link);
-        if (!block || !block->is_valid() || block->hash() != hash481831)
+        if (!block || !block->is_valid() || block->hash() != hash481832)
         {
             console("get_block");
             return;
         }
         
-        // 125s
+        // 125s 125s
         code ec{};
         if ((ec = block->check()))
         {
@@ -321,7 +321,7 @@ void executor::read_test() const
             return;
         }
 
-        // 117s
+        // 117s 122s
         if (chain::checkpoint::is_conflict(
             metadata_.configured.bitcoin.checkpoints, block->hash(), height))
         {
@@ -329,7 +329,11 @@ void executor::read_test() const
             return;
         }
 
-        // 191s
+        ////// ???? 125s/128s
+        ////block->populate();
+
+        // 191s 215s/212s/208s [independent]
+        // ???? 228s/219s/200s [combined]
         if (!query_.populate(*block))
         {
             console("populate");
