@@ -287,27 +287,34 @@ void executor::measure_size() const
 
 void executor::read_test() const
 {
-    constexpr auto hash481832 = base16_hash(
-        "000000000000000000da5d057cb3ad421cd9135b2d11898818f6f0c1e84287f6");
+    constexpr auto hash492224 = base16_hash(
+        "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
 
     console("HIT <enter> TO START");
     std::string line{};
     std::getline(input_, line);
     const auto start = unix_time();
 
-    for (size_t height = 483'162; (height <= 483'162) && !cancel_; ++height)
+    for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
     {
         // 2s 0s
-        const auto link = query_.to_header(hash481832);
+        const auto link = query_.to_header(hash492224);
         if (link.is_terminal())
         {
-            console("to_confirmed");
+            console("to_header");
             return;
         }
 
+        ////const auto link = query_.to_confirmed(height);
+        ////if (link.is_terminal())
+        ////{
+        ////    console("to_confirmed");
+        ////    return;
+        ////}
+
         // 109s 111s
         const auto block = query_.get_block(link);
-        if (!block || !block->is_valid() || block->hash() != hash481832)
+        if (!block || !block->is_valid() || block->hash() != hash492224)
         {
             console("get_block");
             return;
@@ -317,7 +324,7 @@ void executor::read_test() const
         code ec{};
         if ((ec = block->check()))
         {
-            console(format("Block [%1%] check: %2%") % height % ec.message());
+            console(format("Block [%1%] check1: %2%") % height % ec.message());
             return;
         }
 
@@ -356,7 +363,15 @@ void executor::read_test() const
         state.timestamp = block->header().timestamp();
 
         // hack in bit0 late and _bit1(segwit) on schedule.
-        state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+        state.forks |= (chain::forks::bip9_bit0_group |
+            chain::forks::bip9_bit1_group);
+
+        // split from accept.
+        if ((ec = block->check(state)))
+        {
+            console(format("Block [%1%] check2: %2%") % height % ec.message());
+            return;
+        }
 
         // 199s
         const auto& coin = metadata_.configured.bitcoin;
@@ -376,14 +391,13 @@ void executor::read_test() const
 
         ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
         ////{
-        ////    constexpr size_t index = 1906;
+        ////    constexpr size_t index = 1933;
         ////    const auto& tx = *block->transactions_ptr()->at(index);
         ////    if ((ec = tx.connect(state)))
         ////    {
-        ////        console(format("Tx (%1%) [%2%][%3%] %4%")
+        ////        console(format("Tx (%1%) [%2%] %3%")
         ////            % index
         ////            % encode_hash(tx.hash(false))
-        ////            % encode_hash(tx.hash(true))
         ////            % ec.message());
         ////    }
         ////}

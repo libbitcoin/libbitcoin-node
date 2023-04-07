@@ -185,7 +185,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     if (error)
     {
         // assume announced.
-        LOGR("Invalid block (check) [" << encode_hash(hash)
+        LOGR("Invalid block (check1) [" << encode_hash(hash)
             << "] from [" << authority() << "] " << error.message());
         stop(network::error::protocol_violation);
         return false;
@@ -208,7 +208,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     auto state = state_->context();
     
     // hack in bit0 late and _bit1(segwit) on schedule.
-    ////state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+    state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
     const auto link = query.set_link(block, state);
     if (link.is_terminal())
     {
@@ -224,6 +224,15 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     {
         LOGR("Invalid block (populate) [" << encode_hash(hash)
             << "] from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    error = block.check(state);
+    if (error)
+    {
+        LOGR("Invalid block (check2) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
         stop(network::error::protocol_violation);
         return false;
     }
