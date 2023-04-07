@@ -287,38 +287,48 @@ void executor::measure_size() const
 
 void executor::read_test() const
 {
+    constexpr auto hash492224 = base16_hash(
+        "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
+
     console("HIT <enter> TO START");
     std::string line{};
     std::getline(input_, line);
     const auto start = unix_time();
 
-    for (size_t height = 300'000; (height <= 310'000) && !cancel_; ++height)
+    for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
     {
-        // 2s
-        const auto link = query_.to_confirmed(height);
+        // 2s 0s
+        const auto link = query_.to_header(hash492224);
         if (link.is_terminal())
         {
-            console("to_confirmed");
+            console("to_header");
             return;
         }
 
-        // 109s
+        ////const auto link = query_.to_confirmed(height);
+        ////if (link.is_terminal())
+        ////{
+        ////    console("to_confirmed");
+        ////    return;
+        ////}
+
+        // 109s 111s
         const auto block = query_.get_block(link);
-        if (!block || !block->is_valid())
+        if (!block || !block->is_valid() || block->hash() != hash492224)
         {
             console("get_block");
             return;
         }
         
-        // 125s
+        // 125s 125s
         code ec{};
         if ((ec = block->check()))
         {
-            console(format("Block [%1%] check: %2%") % height % ec.message());
+            console(format("Block [%1%] check1: %2%") % height % ec.message());
             return;
         }
 
-        // 117s (reduced!)
+        // 117s 122s
         if (chain::checkpoint::is_conflict(
             metadata_.configured.bitcoin.checkpoints, block->hash(), height))
         {
@@ -326,14 +336,18 @@ void executor::read_test() const
             return;
         }
 
-        // 191s
+        ////// ???? 125s/128s
+        ////block->populate();
+
+        // 191s 215s/212s/208s [independent]
+        // ???? 228s/219s/200s [combined]
         if (!query_.populate(*block))
         {
             console("populate");
             return;
         }
 
-        // 182s (reduced!)
+        // 182s
         database::context ctx{};
         if (!query_.get_context(ctx, link) || ctx.height != height)
         {
@@ -341,11 +355,23 @@ void executor::read_test() const
             return;
         }
 
+        // Fabricate chain_state context from store context.
         chain::context state{};
         state.forks = ctx.flags;
         state.height = ctx.height;
         state.median_time_past = ctx.mtp;
         state.timestamp = block->header().timestamp();
+
+        // hack in bit0 late and _bit1(segwit) on schedule.
+        state.forks |= (chain::forks::bip9_bit0_group |
+            chain::forks::bip9_bit1_group);
+
+        // split from accept.
+        if ((ec = block->check(state)))
+        {
+            console(format("Block [%1%] check2: %2%") % height % ec.message());
+            return;
+        }
 
         // 199s
         const auto& coin = metadata_.configured.bitcoin;
@@ -362,6 +388,19 @@ void executor::read_test() const
             console(format("Block [%1%] connect: %2%") % height % ec.message());
             return;
         }
+
+        ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
+        ////{
+        ////    constexpr size_t index = 1933;
+        ////    const auto& tx = *block->transactions_ptr()->at(index);
+        ////    if ((ec = tx.connect(state)))
+        ////    {
+        ////        console(format("Tx (%1%) [%2%] %3%")
+        ////            % index
+        ////            % encode_hash(tx.hash(false))
+        ////            % ec.message());
+        ////    }
+        ////}
 
         // +10s for all.
         console(format("block:%1%") % height);
@@ -684,9 +723,9 @@ bool executor::do_measure()
 
     // Open store.
     console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
+    if (const auto ec = store_.open([&](auto event, auto table)
     {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_START_FAIL) % ec.message());
@@ -697,9 +736,9 @@ bool executor::do_measure()
 
     // Close store.
     console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
+    if (const auto ec = store_.close([&](auto event, auto table)
     {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_STOP_FAIL) % ec.message());

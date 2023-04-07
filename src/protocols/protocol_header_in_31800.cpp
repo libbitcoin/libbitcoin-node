@@ -121,8 +121,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         // Rolling forward chain_state eliminates database cost.
         state_.reset(new chain::chain_state(*state_, header, coin));
 
-        const auto ctx = state_->context();
-        error = header.accept(ctx);
+        const auto state = state_->context();
+        error = header.accept(state);
         if (error)
         {
             LOGR("Invalid header (accept) [" << encode_hash(hash)
@@ -131,7 +131,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        const auto link = query.set_link(header, ctx);
+        const auto link = query.set_link(header, state);
         if (link.is_terminal())
         {
             // This should only be from missing parent, but guarded above.
@@ -150,8 +150,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        if (is_zero(ctx.height % 10'000))
-            reporter::fire(event_header, ctx.height);
+        if (is_zero(state.height % 10'000))
+            reporter::fire(event_header, state.height);
     }
 
     // Protocol presumes max_get_headers unless complete.
