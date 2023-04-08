@@ -262,154 +262,159 @@ void executor::measure_size() const
         query_.validated_bk_buckets() % validated_bk);
 }
 
-////void executor::read_test() const
-////{
-////    constexpr auto frequency = 10'000;
-////    const auto start = unix_time();
-////    database::header_link::integer link{};
-////    size_t height{};
-////    bool all{ true };
-////
-////    console(BN_OPERATION_INTERRUPT);
-////    const auto count = query_.header_records();
-////    for (; !cancel_.load() && height < count; ++link, ++height)
-////    {
-////        all &= query_.is_confirmable_block(link, height);
-////        if (is_zero(height % frequency))
-////            console(format("is_confirmable_block" BN_READ_ROW) %
-////                height % (unix_time() - start) % all);
-////    }
-////
-////    if (cancel_) console(BN_OPERATION_CANCELED);
-////    console(format("is_confirmable_block" BN_READ_ROW) %
-////        height % (unix_time() - start) % all);
-////}
-
 void executor::read_test() const
 {
-    constexpr auto hash492224 = base16_hash(
-        "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
-
-    console("HIT <enter> TO START");
-    std::string line{};
-    std::getline(input_, line);
+    constexpr auto frequency = 10'000;
     const auto start = unix_time();
+    database::header_link::integer link{};
+    size_t height{};
+    bool all{ true };
+    code ec{};
 
-    for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
+    console(BN_OPERATION_INTERRUPT);
+    const auto count = query_.header_records();
+    for (; !cancel_.load() && height < count; ++link, ++height)
     {
-        // 2s 0s
-        const auto link = query_.to_header(hash492224);
-        if (link.is_terminal())
-        {
-            console("to_header");
-            return;
-        }
+        // This propagates from chain state.
+        constexpr auto bip68 = true;
+        constexpr auto bip30 = false;
 
-        ////const auto link = query_.to_confirmed(height);
-        ////if (link.is_terminal())
-        ////{
-        ////    console("to_confirmed");
-        ////    return;
-        ////}
-
-        // 109s 111s
-        const auto block = query_.get_block(link);
-        if (!block || !block->is_valid() || block->hash() != hash492224)
-        {
-            console("get_block");
-            return;
-        }
-        
-        // 125s 125s
-        code ec{};
-        if ((ec = block->check()))
-        {
-            console(format("Block [%1%] check1: %2%") % height % ec.message());
-            return;
-        }
-
-        // 117s 122s
-        if (chain::checkpoint::is_conflict(
-            metadata_.configured.bitcoin.checkpoints, block->hash(), height))
-        {
-            console(format("Block [%1%] checkpoint conflict") % height);
-            return;
-        }
-
-        ////// ???? 125s/128s
-        ////block->populate();
-
-        // 191s 215s/212s/208s [independent]
-        // ???? 228s/219s/200s [combined]
-        if (!query_.populate(*block))
-        {
-            console("populate");
-            return;
-        }
-
-        // 182s
-        database::context ctx{};
-        if (!query_.get_context(ctx, link) || ctx.height != height)
-        {
-            console("get_context");
-            return;
-        }
-
-        // Fabricate chain_state context from store context.
-        chain::context state{};
-        state.forks = ctx.flags;
-        state.height = ctx.height;
-        state.median_time_past = ctx.mtp;
-        state.timestamp = block->header().timestamp();
-
-        // hack in bit0 late and _bit1(segwit) on schedule.
-        state.forks |= (chain::forks::bip9_bit0_group |
-            chain::forks::bip9_bit1_group);
-
-        // split from accept.
-        if ((ec = block->check(state)))
-        {
-            console(format("Block [%1%] check2: %2%") % height % ec.message());
-            return;
-        }
-
-        // 199s
-        const auto& coin = metadata_.configured.bitcoin;
-        if ((ec = block->accept(state, coin.subsidy_interval_blocks,
-            coin.initial_subsidy())))
-        {
-            console(format("Block [%1%] accept: %2%") % height % ec.message());
-            return;
-        }
-
-        // 1410s
-        if ((ec = block->connect(state)))
-        {
-            console(format("Block [%1%] connect: %2%") % height % ec.message());
-            return;
-        }
-
-        ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
-        ////{
-        ////    constexpr size_t index = 1933;
-        ////    const auto& tx = *block->transactions_ptr()->at(index);
-        ////    if ((ec = tx.connect(state)))
-        ////    {
-        ////        console(format("Tx (%1%) [%2%] %3%")
-        ////            % index
-        ////            % encode_hash(tx.hash(false))
-        ////            % ec.message());
-        ////    }
-        ////}
-
-        // +10s for all.
-        console(format("block:%1%") % height);
-        ////console(format("block:%1% flags:%2% mtp:%3%") %
-        ////    ctx.height % ctx.flags % ctx.mtp);
+        all &= !!query_.chain_confirmable(link, bip68, bip30);
+        if (is_zero(height % frequency))
+            console(format("is_confirmable_block" BN_READ_ROW) %
+                height % (unix_time() - start) % all);
     }
 
-    console(format("STOP (%1% secs)") % (unix_time() - start));
+    if (cancel_) console(BN_OPERATION_CANCELED);
+    console(format("is_confirmable_block" BN_READ_ROW) %
+        height % (unix_time() - start) % all);
 }
+
+////void executor::read_test() const
+////{
+////    constexpr auto hash492224 = base16_hash(
+////        "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
+////
+////    console("HIT <enter> TO START");
+////    std::string line{};
+////    std::getline(input_, line);
+////    const auto start = unix_time();
+////
+////    for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
+////    {
+////        // 2s 0s
+////        const auto link = query_.to_header(hash492224);
+////        if (link.is_terminal())
+////        {
+////            console("to_header");
+////            return;
+////        }
+////
+////        ////const auto link = query_.to_confirmed(height);
+////        ////if (link.is_terminal())
+////        ////{
+////        ////    console("to_confirmed");
+////        ////    return;
+////        ////}
+////
+////        // 109s 111s
+////        const auto block = query_.get_block(link);
+////        if (!block || !block->is_valid() || block->hash() != hash492224)
+////        {
+////            console("get_block");
+////            return;
+////        }
+////        
+////        // 125s 125s
+////        code ec{};
+////        if ((ec = block->check()))
+////        {
+////            console(format("Block [%1%] check1: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        // 117s 122s
+////        if (chain::checkpoint::is_conflict(
+////            metadata_.configured.bitcoin.checkpoints, block->hash(), height))
+////        {
+////            console(format("Block [%1%] checkpoint conflict") % height);
+////            return;
+////        }
+////
+////        ////// ???? 125s/128s
+////        ////block->populate();
+////
+////        // 191s 215s/212s/208s [independent]
+////        // ???? 228s/219s/200s [combined]
+////        if (!query_.populate(*block))
+////        {
+////            console("populate");
+////            return;
+////        }
+////
+////        // 182s
+////        database::context ctx{};
+////        if (!query_.get_context(ctx, link) || ctx.height != height)
+////        {
+////            console("get_context");
+////            return;
+////        }
+////
+////        // Fabricate chain_state context from store context.
+////        chain::context state{};
+////        state.forks = ctx.flags;
+////        state.height = ctx.height;
+////        state.median_time_past = ctx.mtp;
+////        state.timestamp = block->header().timestamp();
+////
+////        // hack in bit0 late and _bit1(segwit) on schedule.
+////        state.forks |= (chain::forks::bip9_bit0_group |
+////            chain::forks::bip9_bit1_group);
+////
+////        // split from accept.
+////        if ((ec = block->check(state)))
+////        {
+////            console(format("Block [%1%] check2: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        // 199s
+////        const auto& coin = metadata_.configured.bitcoin;
+////        if ((ec = block->accept(state, coin.subsidy_interval_blocks,
+////            coin.initial_subsidy())))
+////        {
+////            console(format("Block [%1%] accept: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        // 1410s
+////        if ((ec = block->connect(state)))
+////        {
+////            console(format("Block [%1%] connect: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
+////        ////{
+////        ////    constexpr size_t index = 1933;
+////        ////    const auto& tx = *block->transactions_ptr()->at(index);
+////        ////    if ((ec = tx.connect(state)))
+////        ////    {
+////        ////        console(format("Tx (%1%) [%2%] %3%")
+////        ////            % index
+////        ////            % encode_hash(tx.hash(false))
+////        ////            % ec.message());
+////        ////    }
+////        ////}
+////
+////        // +10s for all.
+////        console(format("block:%1%") % height);
+////        ////console(format("block:%1% flags:%2% mtp:%3%") %
+////        ////    ctx.height % ctx.flags % ctx.mtp);
+////    }
+////
+////    console(format("STOP (%1% secs)") % (unix_time() - start));
+////}
 
 void executor::write_test()
 {
