@@ -264,30 +264,37 @@ void executor::measure_size() const
 
 void executor::read_test() const
 {
+    // This propagates from chain state.
+    ////constexpr auto bip30 = false;
+    const auto bip68 = metadata_.configured.bitcoin.bip9_bit0_active_checkpoint.height();
     constexpr auto frequency = 10'000;
     const auto start = unix_time();
     database::header_link::integer link{};
     size_t height{};
-    bool all{ true };
     code ec{};
 
     console(BN_OPERATION_INTERRUPT);
-    const auto count = query_.header_records();
-    for (; !cancel_.load() && height < count; ++link, ++height)
-    {
-        // This propagates from chain state.
-        constexpr auto bip68 = true;
-        constexpr auto bip30 = false;
 
-        all &= !!query_.chain_confirmable(link, bip68, bip30);
-        if (is_zero(height % frequency))
-            console(format("is_confirmable_block" BN_READ_ROW) %
-                height % (unix_time() - start) % all);
+    for (; !cancel_ && height < query_.header_records(); ++link, ++height)
+    {
+        if ((ec = query_.block_confirmable(link, height >= bip68)))
+        {
+            cancel_ = true;
+            console(format("Failure: block_confirmable: %1%") % ec.message());
+        }
+        else
+        {
+            if (is_zero(height % frequency))
+                console(format("block_confirmable" BN_READ_ROW) %
+                    height % (unix_time() - start));
+        }
     }
 
-    if (cancel_) console(BN_OPERATION_CANCELED);
-    console(format("is_confirmable_block" BN_READ_ROW) %
-        height % (unix_time() - start) % all);
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("block_confirmable" BN_READ_ROW) %
+        height % (unix_time() - start));
 }
 
 ////void executor::read_test() const
@@ -418,27 +425,72 @@ void executor::read_test() const
 
 void executor::write_test()
 {
-    constexpr auto frequency = 10'000;
-    const auto start = unix_time();
-    database::tx_link::integer link{};
-    size_t height{};
-    bool all{ true };
-
-    console(BN_OPERATION_INTERRUPT);
-    const auto count = query_.tx_records();
-    ////const auto count = query_.header_records();
-    for (; !cancel_.load() && height < count; ++link, ++height)
-    {
-        ////all &= query_.set_block_confirmable(link, 42);
-        all &= query_.set_tx_connected(link, { 1, 2, 3 }, 42, 99);
-        if (is_zero(height % frequency))
-            console(format("set_tx_connected" BN_WRITE_ROW) % height %
-                (unix_time() - start) % all);
-    }
-
-    if (cancel_) console(BN_OPERATION_CANCELED);
-    console(format("set_tx_connected" BN_WRITE_ROW) % height %
-        (unix_time() - start) % all);
+    ////constexpr auto mtp = 3_u32;
+    ////constexpr auto flags = 1_u32;
+    ////constexpr auto fees = 42_u64;
+    ////constexpr auto sigops = 2_size;
+    ////constexpr auto frequency = 10'000;
+    ////const auto start = unix_time();
+    ////database::header_link::integer link{};
+    ////
+    ////console(BN_OPERATION_INTERRUPT);
+    ////
+    ////////const auto set_txs_connected = [this](const auto& header, size_t height) NOEXCEPT
+    ////////{
+    ////////    const auto index = possible_narrow_cast<uint32_t>(height);
+    ////////    const database::context ctx{ flags, index, mtp };
+    ////////
+    ////////    for (const auto& tx: query_.to_txs(header))
+    ////////        if (!query_.set_tx_connected(tx, ctx, fees, sigops))
+    ////////            return false;
+    ////////
+    ////////    return true;
+    ////////};
+    ////
+    ////auto height = query_.get_top_confirmed();
+    ////while (++height < query_.header_records() && !cancel_)
+    ////{
+    ////    // Assumes height is header link.
+    ////    link = possible_narrow_cast<database::header_link::integer>(height);
+    ////
+    ////    if (!query_.set_strong(link))
+    ////    {
+    ////        cancel_ = true;
+    ////        console("Failure: set_strong");
+    ////    }
+    ////    ////else if (!set_txs_connected(link, height))
+    ////    ////{
+    ////    ////    cancel_ = true;
+    ////    ////    console("Failure: set_txs_connected");
+    ////    ////}
+    ////    ////else if (!query_.set_block_confirmable(link, fees))
+    ////    ////{
+    ////    ////    cancel_ = true;
+    ////    ////    console("Failure: set_block_confirmable");
+    ////    ////}
+    ////    else if (!query_.push_candidate(link))
+    ////    {
+    ////        cancel_ = true;
+    ////        console("Failure: push_candidate");
+    ////    }
+    ////    else if (!query_.push_confirmed(link))
+    ////    {
+    ////        cancel_ = true;
+    ////        console("Failure: push_confirmed");
+    ////    }
+    ////    else
+    ////    {
+    ////        if (is_zero(height % frequency))
+    ////            console(format("block" BN_WRITE_ROW) %
+    ////                height % (unix_time() - start));
+    ////    }
+    ////}
+    ////
+    ////if (cancel_)
+    ////    console(BN_OPERATION_CANCELED);
+    ////
+    ////console(format("block" BN_WRITE_ROW) %
+    ////    height % (unix_time() - start));
 }
 
 // TODO: create a block/tx dumper.
