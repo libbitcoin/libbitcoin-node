@@ -207,7 +207,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     auto& query = archive();
     auto state = state_->context();
     
-    // hack in bit0 late and _bit1(segwit) on schedule.
+    // hack in bit0 late and bit1(segwit) on schedule.
     state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
     const auto link = query.set_link(block, state);
     if (link.is_terminal())
