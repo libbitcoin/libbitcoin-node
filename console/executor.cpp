@@ -264,36 +264,76 @@ void executor::measure_size() const
 
 void executor::read_test() const
 {
-    // This propagates from chain state.
-    ////constexpr auto bip30 = false;
-    const auto bip68 = metadata_.configured.bitcoin.bip9_bit0_active_checkpoint.height();
     constexpr auto frequency = 10'000;
     const auto start = unix_time();
-    database::header_link::integer link{};
-    size_t height{};
-    code ec{};
 
     console(BN_OPERATION_INTERRUPT);
 
-    for (; !cancel_ && height < query_.header_records(); ++link, ++height)
+    auto height = zero;//// query_.get_top_confirmed();
+    while (!cancel_ && (++height < query_.header_records()))
     {
-        if ((ec = query_.block_confirmable(link, height >= bip68)))
+        // Assumes height is header link.
+        auto link = possible_narrow_cast<database::header_link::integer>(height);
+
+        for (const auto& tx: query_.to_txs(link))
         {
-            cancel_ = true;
-            console(format("Failure: block_confirmable: %1%") % ec.message());
+            const auto bk = query_.to_block(tx);
+            if (bk.is_terminal())
+            {
+                cancel_ = true;
+                console(format("is_terminal %1%") % link);
+            }
+            else if (bk != link)
+            {
+                ////cancel_ = true;
+                console(format("to_block %1% link %2%") % bk % link);
+            }
+
+            if (cancel_)
+                break;
         }
-        else
-        {
-            if (is_zero(height % frequency))
-                console(format("block_confirmable" BN_READ_ROW) %
-                    height % (unix_time() - start));
-        }
+
+        if (is_zero(height % frequency))
+            console(format("strong_tx.get" BN_READ_ROW) %
+                height % (unix_time() - start));
     }
+
+    ////uint32_t flags{};
+    ////while (++height < query_.header_records() && !cancel_)
+    ////{
+    ////    // Assumes height is header link.
+    ////    auto link = possible_narrow_cast<database::header_link::integer>(height);
+    ////
+    ////    database::context ctx{};
+    ////    if (!query_.get_context(ctx, link))
+    ////    {
+    ////        // total chain cost: 1 sec.
+    ////        cancel_ = true;
+    ////        console("get_context");
+    ////    }
+    ////    else if (ctx.height != height)
+    ////    {
+    ////        cancel_ = true;
+    ////        console("height");
+    ////    }
+    ////    else
+    ////    {
+    ////        if (is_zero(height % frequency))
+    ////            console(format("read_test" BN_READ_ROW) %
+    ////                height % (unix_time() - start));
+    ////    }
+    ////
+    ////    if (ctx.flags != flags)
+    ////    {
+    ////        console(format("flags %1% %2% %3%") % height % flags % ctx.flags);
+    ////        flags = ctx.flags;
+    ////    }
+    ////}
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("block_confirmable" BN_READ_ROW) %
+    console(format("read_test" BN_READ_ROW) %
         height % (unix_time() - start));
 }
 
@@ -425,72 +465,69 @@ void executor::read_test() const
 
 void executor::write_test()
 {
-    ////constexpr auto mtp = 3_u32;
-    ////constexpr auto flags = 1_u32;
-    ////constexpr auto fees = 42_u64;
-    ////constexpr auto sigops = 2_size;
-    ////constexpr auto frequency = 10'000;
-    ////const auto start = unix_time();
-    ////database::header_link::integer link{};
-    ////
-    ////console(BN_OPERATION_INTERRUPT);
-    ////
-    ////////const auto set_txs_connected = [this](const auto& header, size_t height) NOEXCEPT
-    ////////{
-    ////////    const auto index = possible_narrow_cast<uint32_t>(height);
-    ////////    const database::context ctx{ flags, index, mtp };
-    ////////
-    ////////    for (const auto& tx: query_.to_txs(header))
-    ////////        if (!query_.set_tx_connected(tx, ctx, fees, sigops))
-    ////////            return false;
-    ////////
-    ////////    return true;
-    ////////};
-    ////
-    ////auto height = query_.get_top_confirmed();
-    ////while (++height < query_.header_records() && !cancel_)
-    ////{
-    ////    // Assumes height is header link.
-    ////    link = possible_narrow_cast<database::header_link::integer>(height);
-    ////
-    ////    if (!query_.set_strong(link))
-    ////    {
-    ////        cancel_ = true;
-    ////        console("Failure: set_strong");
-    ////    }
-    ////    ////else if (!set_txs_connected(link, height))
-    ////    ////{
-    ////    ////    cancel_ = true;
-    ////    ////    console("Failure: set_txs_connected");
-    ////    ////}
-    ////    ////else if (!query_.set_block_confirmable(link, fees))
-    ////    ////{
-    ////    ////    cancel_ = true;
-    ////    ////    console("Failure: set_block_confirmable");
-    ////    ////}
-    ////    else if (!query_.push_candidate(link))
-    ////    {
-    ////        cancel_ = true;
-    ////        console("Failure: push_candidate");
-    ////    }
-    ////    else if (!query_.push_confirmed(link))
-    ////    {
-    ////        cancel_ = true;
-    ////        console("Failure: push_confirmed");
-    ////    }
-    ////    else
-    ////    {
-    ////        if (is_zero(height % frequency))
-    ////            console(format("block" BN_WRITE_ROW) %
-    ////                height % (unix_time() - start));
-    ////    }
-    ////}
-    ////
-    ////if (cancel_)
-    ////    console(BN_OPERATION_CANCELED);
-    ////
-    ////console(format("block" BN_WRITE_ROW) %
-    ////    height % (unix_time() - start));
+    ////constexpr uint64_t fees = 99;
+    constexpr auto frequency = 10'000;
+    const auto start = unix_time();
+    ////code ec{};
+
+    console(BN_OPERATION_INTERRUPT);
+
+    auto height = zero;//// query_.get_top_confirmed();
+    while (!cancel_ && (++height < query_.header_records()))
+    {
+        // Assumes height is header link.
+        auto link = possible_narrow_cast<database::header_link::integer>(height);
+
+        if (!query_.set_strong(link))
+        {
+            // memory resident, no disk, parallel, 100% cpu
+            // total chain cost: 78 min. (same as set_txs_connected).
+            cancel_ = true;
+            console("Failure: set_strong");
+        }
+        ////else if ((ec = query_.block_confirmable(link)))
+        ////{
+        ////    cancel_ = true;
+        ////    console(format("Failure: block_confirmable, %1%") % ec.message());
+        ////}
+        ////else if (!query_.set_txs_connected(link))
+        ////{
+        ////    // memory resident, no disk, parallel, 100% cpu
+        ////    // total chain cost: 78 min. (bogus fees/sigops).
+        ////    cancel_ = true;
+        ////    console("Failure: set_txs_connected");
+        ////}
+        ////else if (!query_.set_block_confirmable(link, fees))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    cancel_ = true;
+        ////    console("Failure: set_block_confirmable");
+        ////}
+        ////else if (!query_.push_candidate(link))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    cancel_ = true;
+        ////    console("Failure: push_candidate");
+        ////}
+        ////else if (!query_.push_confirmed(link))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    cancel_ = true;
+        ////    console("Failure: push_confirmed");
+        ////}
+        else
+        {
+            if (is_zero(height % frequency))
+                console(format("block" BN_WRITE_ROW) %
+                    height % (unix_time() - start));
+        }
+    }
+    
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+    
+    console(format("block" BN_WRITE_ROW) %
+        height % (unix_time() - start));
 }
 
 // TODO: create a block/tx dumper.
@@ -780,9 +817,9 @@ bool executor::do_measure()
 
     // Open store.
     console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    if (const auto ec = store_.open([&](auto, auto)
     {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_START_FAIL) % ec.message());
@@ -793,9 +830,9 @@ bool executor::do_measure()
 
     // Close store.
     console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
+    if (const auto ec = store_.close([&](auto, auto)
     {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_STOP_FAIL) % ec.message());
