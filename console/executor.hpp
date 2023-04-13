@@ -61,6 +61,7 @@ private:
     bool do_version();
     bool do_initchain();
     bool do_measure();
+    bool do_flags();
     bool do_read();
     bool do_write();
     bool do_run();
@@ -73,9 +74,10 @@ private:
     void subscribe_connect();
     void subscribe_close();
 
+    void measure_size() const;
+    void scan_flags() const;
     void write_test();
     void read_test() const;
-    void measure_size() const;
 
     static const std::string quit_;
     static const std::string name_;

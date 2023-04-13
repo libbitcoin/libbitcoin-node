@@ -110,11 +110,11 @@ namespace node {
 
 // --read
 #define BN_READ_ROW \
-    ": %1% in %2% secs (%3%)."
+    ": %1% in %2% secs."
 
 // --write
 #define BN_WRITE_ROW \
-    ": %1% in %2% secs (%3%)."
+    ": %1% in %2% secs."
 
 // run/general
 

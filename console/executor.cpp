@@ -262,181 +262,213 @@ void executor::measure_size() const
         query_.validated_bk_buckets() % validated_bk);
 }
 
-////void executor::read_test() const
-////{
-////    constexpr auto frequency = 10'000;
-////    const auto start = unix_time();
-////    database::header_link::integer link{};
-////    size_t height{};
-////    bool all{ true };
-////
-////    console(BN_OPERATION_INTERRUPT);
-////    const auto count = query_.header_records();
-////    for (; !cancel_.load() && height < count; ++link, ++height)
-////    {
-////        all &= query_.is_confirmable_block(link, height);
-////        if (is_zero(height % frequency))
-////            console(format("is_confirmable_block" BN_READ_ROW) %
-////                height % (unix_time() - start) % all);
-////    }
-////
-////    if (cancel_) console(BN_OPERATION_CANCELED);
-////    console(format("is_confirmable_block" BN_READ_ROW) %
-////        height % (unix_time() - start) % all);
-////}
+void executor::scan_flags() const
+{
+    const auto start = unix_time();
+    uint32_t flags{};
+    size_t height{};
+
+    console(BN_OPERATION_INTERRUPT);
+
+    // TODO: change this to walk candidate/confirmed index.
+    while (!cancel_ && (++height < query_.header_records()))
+    {
+        // Assumes height is header link.
+        auto link = possible_narrow_cast<database::header_link::integer>(height);
+    
+        database::context ctx{};
+        if (!query_.get_context(ctx, link))
+        {
+            // total chain cost: 1 sec.
+            cancel_ = true;
+            console("get_context");
+        }
+        else if (ctx.height != height)
+        {
+            cancel_ = true;
+            console("height");
+        }
+    
+        if (ctx.flags != flags)
+        {
+            console(format("height %1% before %2% at %3%") %
+                height % flags % ctx.flags);
+            flags = ctx.flags;
+        }
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("scan_flags" BN_READ_ROW) %
+        height % (unix_time() - start));
+}
 
 void executor::read_test() const
 {
-    constexpr auto hash492224 = base16_hash(
-        "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
-
-    console("HIT <enter> TO START");
-    std::string line{};
-    std::getline(input_, line);
-    const auto start = unix_time();
-
-    for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
-    {
-        // 2s 0s
-        const auto link = query_.to_header(hash492224);
-        if (link.is_terminal())
-        {
-            console("to_header");
-            return;
-        }
-
-        ////const auto link = query_.to_confirmed(height);
-        ////if (link.is_terminal())
-        ////{
-        ////    console("to_confirmed");
-        ////    return;
-        ////}
-
-        // 109s 111s
-        const auto block = query_.get_block(link);
-        if (!block || !block->is_valid() || block->hash() != hash492224)
-        {
-            console("get_block");
-            return;
-        }
-        
-        // 125s 125s
-        code ec{};
-        if ((ec = block->check()))
-        {
-            console(format("Block [%1%] check1: %2%") % height % ec.message());
-            return;
-        }
-
-        // 117s 122s
-        if (chain::checkpoint::is_conflict(
-            metadata_.configured.bitcoin.checkpoints, block->hash(), height))
-        {
-            console(format("Block [%1%] checkpoint conflict") % height);
-            return;
-        }
-
-        ////// ???? 125s/128s
-        ////block->populate();
-
-        // 191s 215s/212s/208s [independent]
-        // ???? 228s/219s/200s [combined]
-        if (!query_.populate(*block))
-        {
-            console("populate");
-            return;
-        }
-
-        // 182s
-        database::context ctx{};
-        if (!query_.get_context(ctx, link) || ctx.height != height)
-        {
-            console("get_context");
-            return;
-        }
-
-        // Fabricate chain_state context from store context.
-        chain::context state{};
-        state.forks = ctx.flags;
-        state.height = ctx.height;
-        state.median_time_past = ctx.mtp;
-        state.timestamp = block->header().timestamp();
-
-        // hack in bit0 late and _bit1(segwit) on schedule.
-        state.forks |= (chain::forks::bip9_bit0_group |
-            chain::forks::bip9_bit1_group);
-
-        // split from accept.
-        if ((ec = block->check(state)))
-        {
-            console(format("Block [%1%] check2: %2%") % height % ec.message());
-            return;
-        }
-
-        // 199s
-        const auto& coin = metadata_.configured.bitcoin;
-        if ((ec = block->accept(state, coin.subsidy_interval_blocks,
-            coin.initial_subsidy())))
-        {
-            console(format("Block [%1%] accept: %2%") % height % ec.message());
-            return;
-        }
-
-        // 1410s
-        if ((ec = block->connect(state)))
-        {
-            console(format("Block [%1%] connect: %2%") % height % ec.message());
-            return;
-        }
-
-        ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
-        ////{
-        ////    constexpr size_t index = 1933;
-        ////    const auto& tx = *block->transactions_ptr()->at(index);
-        ////    if ((ec = tx.connect(state)))
-        ////    {
-        ////        console(format("Tx (%1%) [%2%] %3%")
-        ////            % index
-        ////            % encode_hash(tx.hash(false))
-        ////            % ec.message());
-        ////    }
-        ////}
-
-        // +10s for all.
-        console(format("block:%1%") % height);
-        ////console(format("block:%1% flags:%2% mtp:%3%") %
-        ////    ctx.height % ctx.flags % ctx.mtp);
-    }
-
-    console(format("STOP (%1% secs)") % (unix_time() - start));
-}
-
-void executor::write_test()
-{
     constexpr auto frequency = 10'000;
     const auto start = unix_time();
-    database::tx_link::integer link{};
-    size_t height{};
-    bool all{ true };
 
     console(BN_OPERATION_INTERRUPT);
-    const auto count = query_.tx_records();
-    ////const auto count = query_.header_records();
-    for (; !cancel_.load() && height < count; ++link, ++height)
+
+    auto height = zero;//// query_.get_top_confirmed();
+    while (!cancel_ && (++height < query_.header_records()))
     {
-        ////all &= query_.set_block_confirmable(link, 42);
-        all &= query_.set_tx_connected(link, { 1, 2, 3 }, 42, 99);
+        // Assumes height is header link.
+        auto link = possible_narrow_cast<database::header_link::integer>(height);
+
+        const auto links = query_.to_txs(link);
+        cancel_ = !std_all_of(bc::seq, links.begin(), links.end(),
+            [&](const auto& tx)
+            {
+                const auto bk = query_.to_block(tx);
+                if (bk.is_terminal())
+                {
+                    console(format("strong_tx.is_terminal %1%") % link);
+                    return false;
+                }
+
+                return true;
+            });
+
         if (is_zero(height % frequency))
-            console(format("set_tx_connected" BN_WRITE_ROW) % height %
-                (unix_time() - start) % all);
+            console(format("strong_tx.get" BN_READ_ROW) %
+                height % (unix_time() - start));
     }
 
-    if (cancel_) console(BN_OPERATION_CANCELED);
-    console(format("set_tx_connected" BN_WRITE_ROW) % height %
-        (unix_time() - start) % all);
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("read_test" BN_READ_ROW) %
+        height % (unix_time() - start));
 }
 
-// TODO: create a block/tx dumper.
+////void executor::read_test() const
+////{
+////    constexpr auto hash492224 = base16_hash(
+////        "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
+////
+////    console("HIT <enter> TO START");
+////    std::string line{};
+////    std::getline(input_, line);
+////    const auto start = unix_time();
+////
+////    for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
+////    {
+////        // 2s 0s
+////        const auto link = query_.to_header(hash492224);
+////        if (link.is_terminal())
+////        {
+////            console("to_header");
+////            return;
+////        }
+////
+////        ////const auto link = query_.to_confirmed(height);
+////        ////if (link.is_terminal())
+////        ////{
+////        ////    console("to_confirmed");
+////        ////    return;
+////        ////}
+////
+////        // 109s 111s
+////        const auto block = query_.get_block(link);
+////        if (!block || !block->is_valid() || block->hash() != hash492224)
+////        {
+////            console("get_block");
+////            return;
+////        }
+////        
+////        // 125s 125s
+////        code ec{};
+////        if ((ec = block->check()))
+////        {
+////            console(format("Block [%1%] check1: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        // 117s 122s
+////        if (chain::checkpoint::is_conflict(
+////            metadata_.configured.bitcoin.checkpoints, block->hash(), height))
+////        {
+////            console(format("Block [%1%] checkpoint conflict") % height);
+////            return;
+////        }
+////
+////        ////// ???? 125s/128s
+////        ////block->populate();
+////
+////        // 191s 215s/212s/208s [independent]
+////        // ???? 228s/219s/200s [combined]
+////        if (!query_.populate(*block))
+////        {
+////            console("populate");
+////            return;
+////        }
+////
+////        // 182s
+////        database::context ctx{};
+////        if (!query_.get_context(ctx, link) || ctx.height != height)
+////        {
+////            console("get_context");
+////            return;
+////        }
+////
+////        // Fabricate chain_state context from store context.
+////        chain::context state{};
+////        state.forks = ctx.flags;
+////        state.height = ctx.height;
+////        state.median_time_past = ctx.mtp;
+////        state.timestamp = block->header().timestamp();
+////
+////        // hack in bit0 late and _bit1(segwit) on schedule.
+////        state.forks |= (chain::forks::bip9_bit0_group |
+////            chain::forks::bip9_bit1_group);
+////
+////        // split from accept.
+////        if ((ec = block->check(state)))
+////        {
+////            console(format("Block [%1%] check2: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        // 199s
+////        const auto& coin = metadata_.configured.bitcoin;
+////        if ((ec = block->accept(state, coin.subsidy_interval_blocks,
+////            coin.initial_subsidy())))
+////        {
+////            console(format("Block [%1%] accept: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        // 1410s
+////        if ((ec = block->connect(state)))
+////        {
+////            console(format("Block [%1%] connect: %2%") % height % ec.message());
+////            return;
+////        }
+////
+////        ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
+////        ////{
+////        ////    constexpr size_t index = 1933;
+////        ////    const auto& tx = *block->transactions_ptr()->at(index);
+////        ////    if ((ec = tx.connect(state)))
+////        ////    {
+////        ////        console(format("Tx (%1%) [%2%] %3%")
+////        ////            % index
+////        ////            % encode_hash(tx.hash(false))
+////        ////            % ec.message());
+////        ////    }
+////        ////}
+////
+////        // +10s for all.
+////        console(format("block:%1%") % height);
+////        ////console(format("block:%1% flags:%2% mtp:%3%") %
+////        ////    ctx.height % ctx.flags % ctx.mtp);
+////    }
+////
+////    console(format("STOP (%1% secs)") % (unix_time() - start));
+////}
+////// TODO: create a block/tx dumper.
 ////void executor::read_test() const
 ////{
 ////    constexpr auto hash251684 = base16_hash(
@@ -512,6 +544,74 @@ void executor::write_test()
 ////    console("Validated block 251684.");
 ////}
 ////
+
+void executor::write_test()
+{
+    ////constexpr uint64_t fees = 99;
+    constexpr auto frequency = 10'000;
+    const auto start = unix_time();
+    code ec{};
+
+    console(BN_OPERATION_INTERRUPT);
+
+    auto height = zero;//// query_.get_top_confirmed();
+    while (!cancel_ && (++height < query_.header_records()))
+    {
+        // Assumes height is header link.
+        auto link = possible_narrow_cast<database::header_link::integer>(height);
+
+        if (!query_.set_strong(link))
+        {
+            // total sequential chain cost: 19 min.
+            cancel_ = true;
+            console("Failure: set_strong");
+        }
+        else if ((ec = query_.block_confirmable(link)))
+        {
+            // subtract cost of set_strong
+            // must set_strong before each (no push, verifies non-use).
+            cancel_ = true;
+            console(format("Failure: block_confirmable, %1%") % ec.message());
+        }
+        ////else if (!query_.set_txs_connected(link))
+        ////{
+        ////    // total sequential chain cost: 21 min.
+        ////    cancel_ = true;
+        ////    console("Failure: set_txs_connected");
+        ////}
+        ////else if (!query_.set_block_confirmable(link, fees))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    cancel_ = true;
+        ////    console("Failure: set_block_confirmable");
+        ////}
+        ////else if (!query_.push_candidate(link))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    cancel_ = true;
+        ////    console("Failure: push_candidate");
+        ////}
+        ////else if (!query_.push_confirmed(link))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    cancel_ = true;
+        ////    console("Failure: push_confirmed");
+        ////}
+        else
+        {
+            if (is_zero(height % frequency))
+                console(format("block" BN_WRITE_ROW) %
+                    height % (unix_time() - start));
+        }
+    }
+    
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+    
+    console(format("block" BN_WRITE_ROW) %
+        height % (unix_time() - start));
+}
+
 ////void executor::write_test()
 ////{
 ////    constexpr auto hash251684 = base16_hash(
@@ -562,6 +662,9 @@ bool executor::menu()
 
     if (config.measure)
         return do_measure();
+
+    if (config.flags)
+        return do_flags();
 
     if (config.read)
         return do_read();
@@ -723,9 +826,9 @@ bool executor::do_measure()
 
     // Open store.
     console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    if (const auto ec = store_.open([&](auto, auto)
     {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_START_FAIL) % ec.message());
@@ -736,9 +839,54 @@ bool executor::do_measure()
 
     // Close store.
     console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
+    if (const auto ec = store_.close([&](auto, auto)
     {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STOPPED);
+    return true;
+}
+
+// --flags
+bool executor::do_flags()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_STORE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    scan_flags();
+
+    // Close store.
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
         console(format(BN_STORE_STOP_FAIL) % ec.message());

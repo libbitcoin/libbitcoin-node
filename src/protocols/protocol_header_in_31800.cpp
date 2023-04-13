@@ -108,7 +108,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // TODO: sort by height and shortcircuit.
         if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
             add1(state_->height())))
         {
@@ -131,6 +130,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
+        // hack in bit0 late and bit1(segwit) on schedule.
+        //// state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
         const auto link = query.set_link(header, state);
         if (link.is_terminal())
         {
