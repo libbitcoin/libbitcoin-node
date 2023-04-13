@@ -34,6 +34,7 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     settings(false),
     version(false),
     measure(false),
+    flags(false),
     read(false),
     write(false),
     log(context),
