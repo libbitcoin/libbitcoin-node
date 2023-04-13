@@ -262,6 +262,48 @@ void executor::measure_size() const
         query_.validated_bk_buckets() % validated_bk);
 }
 
+void executor::scan_flags() const
+{
+    const auto start = unix_time();
+    uint32_t flags{};
+    size_t height{};
+
+    console(BN_OPERATION_INTERRUPT);
+
+    // TODO: change this to walk candidate/confirmed index.
+    while (!cancel_ && (++height < query_.header_records()))
+    {
+        // Assumes height is header link.
+        auto link = possible_narrow_cast<database::header_link::integer>(height);
+    
+        database::context ctx{};
+        if (!query_.get_context(ctx, link))
+        {
+            // total chain cost: 1 sec.
+            cancel_ = true;
+            console("get_context");
+        }
+        else if (ctx.height != height)
+        {
+            cancel_ = true;
+            console("height");
+        }
+    
+        if (ctx.flags != flags)
+        {
+            console(format("height %1% before %2% at %3%") %
+                height % flags % ctx.flags);
+            flags = ctx.flags;
+        }
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("scan_flags" BN_READ_ROW) %
+        height % (unix_time() - start));
+}
+
 void executor::read_test() const
 {
     constexpr auto frequency = 10'000;
@@ -275,60 +317,24 @@ void executor::read_test() const
         // Assumes height is header link.
         auto link = possible_narrow_cast<database::header_link::integer>(height);
 
-        for (const auto& tx: query_.to_txs(link))
-        {
-            const auto bk = query_.to_block(tx);
-            if (bk.is_terminal())
+        const auto links = query_.to_txs(link);
+        cancel_ = !std_all_of(bc::seq, links.begin(), links.end(),
+            [&](const auto& tx)
             {
-                cancel_ = true;
-                console(format("is_terminal %1%") % link);
-            }
-            else if (bk != link)
-            {
-                ////cancel_ = true;
-                console(format("to_block %1% link %2%") % bk % link);
-            }
+                const auto bk = query_.to_block(tx);
+                if (bk.is_terminal())
+                {
+                    console(format("strong_tx.is_terminal %1%") % link);
+                    return false;
+                }
 
-            if (cancel_)
-                break;
-        }
+                return true;
+            });
 
         if (is_zero(height % frequency))
             console(format("strong_tx.get" BN_READ_ROW) %
                 height % (unix_time() - start));
     }
-
-    ////uint32_t flags{};
-    ////while (++height < query_.header_records() && !cancel_)
-    ////{
-    ////    // Assumes height is header link.
-    ////    auto link = possible_narrow_cast<database::header_link::integer>(height);
-    ////
-    ////    database::context ctx{};
-    ////    if (!query_.get_context(ctx, link))
-    ////    {
-    ////        // total chain cost: 1 sec.
-    ////        cancel_ = true;
-    ////        console("get_context");
-    ////    }
-    ////    else if (ctx.height != height)
-    ////    {
-    ////        cancel_ = true;
-    ////        console("height");
-    ////    }
-    ////    else
-    ////    {
-    ////        if (is_zero(height % frequency))
-    ////            console(format("read_test" BN_READ_ROW) %
-    ////                height % (unix_time() - start));
-    ////    }
-    ////
-    ////    if (ctx.flags != flags)
-    ////    {
-    ////        console(format("flags %1% %2% %3%") % height % flags % ctx.flags);
-    ////        flags = ctx.flags;
-    ////    }
-    ////}
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
@@ -467,13 +473,14 @@ void executor::write_test()
 {
     ////constexpr uint64_t fees = 99;
     constexpr auto frequency = 10'000;
-    const auto start = unix_time();
+    auto start = unix_time();
     ////code ec{};
 
     console(BN_OPERATION_INTERRUPT);
+    console("WRITE");
 
     auto height = zero;//// query_.get_top_confirmed();
-    while (!cancel_ && (++height < query_.header_records()))
+    while (!cancel_ && (++height < 370'001u))
     {
         // Assumes height is header link.
         auto link = possible_narrow_cast<database::header_link::integer>(height);
@@ -657,6 +664,9 @@ bool executor::menu()
     if (config.measure)
         return do_measure();
 
+    if (config.flags)
+        return do_flags();
+
     if (config.read)
         return do_read();
 
@@ -827,6 +837,51 @@ bool executor::do_measure()
     }
 
     measure_size();
+
+    // Close store.
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STOPPED);
+    return true;
+}
+
+// --flags
+bool executor::do_flags()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_STORE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    scan_flags();
 
     // Close store.
     console(BN_STORE_STOPPING);
