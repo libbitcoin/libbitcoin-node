@@ -205,10 +205,10 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
 
     auto& query = archive();
-    auto state = state_->context();
+    const auto state = state_->context();
     
     // hack in bit0 late and bit1(segwit) on schedule.
-    state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+    //// state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
     const auto link = query.set_link(block, state);
     if (link.is_terminal())
     {
@@ -237,24 +237,24 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    error = block.accept(state, coin.subsidy_interval_blocks,
-        coin.initial_subsidy());
-    if (error)
-    {
-        LOGR("Invalid block (accept) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////error = block.accept(state, coin.subsidy_interval_blocks,
+    ////    coin.initial_subsidy());
+    ////if (error)
+    ////{
+    ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "] " << error.message());
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
-    error = block.connect(state);
-    if (error)
-    {
-        LOGR("Invalid block (connect) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////error = block.connect(state);
+    ////if (error)
+    ////{
+    ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "] " << error.message());
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
     // If populate, accept, or connect fail this is bypassed and a restart will
     // initialize state_ at the prior block as top. But this block exists, so
