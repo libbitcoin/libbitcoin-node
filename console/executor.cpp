@@ -308,39 +308,112 @@ void executor::scan_flags() const
 
 void executor::read_test() const
 {
-    constexpr auto frequency = 10'000;
     const auto start = unix_time();
 
     console(BN_OPERATION_INTERRUPT);
 
-    auto height = zero;//// query_.get_top_confirmed();
-    while (!cancel_ && (++height < query_.header_records()))
+    auto filled = zero;
+    auto bucket = zero;
+    while (!cancel_ && (++bucket < query_.header_buckets()))
     {
-        // Assumes height is header link.
-        auto link = possible_narrow_cast<database::header_link::integer>(height);
-        const auto txs = query_.to_txs(link);
+        const auto top = query_.top_header(bucket);
+        if (!top.is_terminal())
+            ++filled;
 
-        for (const auto& tx: txs)
-        {
-            const auto strong = !query_.to_block(tx).is_terminal();
-            if (!strong)
-            {
-                console(format("strong_tx.is_terminal %1%") % link);
-                cancel_ = true;
-                break;
-            }
-        };
-
-        if (is_zero(height % frequency))
-            console(format("strong_tx.get" BN_READ_ROW) %
-                height % (unix_time() - start));
+        if (is_zero(bucket % 10'000))
+            console(format("header" BN_READ_ROW) %
+                bucket % (unix_time() - start));
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("read_test" BN_READ_ROW) %
-        height % (unix_time() - start));
+    console(format("header" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.txs_buckets()))
+    {
+        const auto top = query_.top_txs(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 10'000))
+            console(format("txs" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("txs" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.tx_buckets()))
+    {
+        const auto top = query_.top_tx(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 1'000'000))
+            console(format("tx" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("tx" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.point_buckets()))
+    {
+        const auto top = query_.top_point(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 1'000'000))
+            console(format("point" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("point" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.input_buckets()))
+    {
+        const auto top = query_.top_input(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 50'000'000))
+            console(format("input" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("input" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
 }
 
 ////void executor::read_test() const
