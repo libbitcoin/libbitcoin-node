@@ -30,6 +30,8 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
+////std::atomic<size_t> foobar{};
+
 namespace libbitcoin {
 namespace node {
 
@@ -218,7 +220,7 @@ void executor::measure_size() const
     size_t inputs{}, outputs{};
     const auto start = unix_time();
 
-    // Links are sequential and therefore iterable, however the terminal
+    // Tx (record) links are sequential and so iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
     for (auto puts = query_.put_slabs(link);
@@ -316,20 +318,18 @@ void executor::read_test() const
     {
         // Assumes height is header link.
         auto link = possible_narrow_cast<database::header_link::integer>(height);
+        const auto txs = query_.to_txs(link);
 
-        const auto links = query_.to_txs(link);
-        cancel_ = !std_all_of(bc::seq, links.begin(), links.end(),
-            [&](const auto& tx)
+        for (const auto& tx: txs)
+        {
+            const auto strong = !query_.to_block(tx).is_terminal();
+            if (!strong)
             {
-                const auto bk = query_.to_block(tx);
-                if (bk.is_terminal())
-                {
-                    console(format("strong_tx.is_terminal %1%") % link);
-                    return false;
-                }
-
-                return true;
-            });
+                console(format("strong_tx.is_terminal %1%") % link);
+                cancel_ = true;
+                break;
+            }
+        };
 
         if (is_zero(height % frequency))
             console(format("strong_tx.get" BN_READ_ROW) %
@@ -563,39 +563,40 @@ void executor::write_test()
         if (!query_.set_strong(link))
         {
             // total sequential chain cost: 19 min.
-            cancel_ = true;
             console("Failure: set_strong");
+            break;
         }
         else if ((ec = query_.block_confirmable(link)))
         {
             // subtract cost of set_strong
             // must set_strong before each (no push, verifies non-use).
-            cancel_ = true;
             console(format("Failure: block_confirmable, %1%") % ec.message());
+            break;
         }
         ////else if (!query_.set_txs_connected(link))
         ////{
         ////    // total sequential chain cost: 21 min.
-        ////    cancel_ = true;
         ////    console("Failure: set_txs_connected");
+        ////    break;
         ////}
         ////else if (!query_.set_block_confirmable(link, fees))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    cancel_ = true;
         ////    console("Failure: set_block_confirmable");
+        ////    break;
+        ////    break;
         ////}
         ////else if (!query_.push_candidate(link))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    cancel_ = true;
         ////    console("Failure: push_candidate");
+        ////    break;
         ////}
         ////else if (!query_.push_confirmed(link))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    cancel_ = true;
         ////    console("Failure: push_confirmed");
+        ////    break;
         ////}
         else
         {
