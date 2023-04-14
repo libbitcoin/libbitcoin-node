@@ -30,6 +30,8 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
+////std::atomic<size_t> foobar{};
+
 namespace libbitcoin {
 namespace node {
 
@@ -218,7 +220,7 @@ void executor::measure_size() const
     size_t inputs{}, outputs{};
     const auto start = unix_time();
 
-    // Links are sequential and therefore iterable, however the terminal
+    // Tx (record) links are sequential and so iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
     for (auto puts = query_.put_slabs(link);
@@ -306,41 +308,112 @@ void executor::scan_flags() const
 
 void executor::read_test() const
 {
-    constexpr auto frequency = 10'000;
     const auto start = unix_time();
 
     console(BN_OPERATION_INTERRUPT);
 
-    auto height = zero;//// query_.get_top_confirmed();
-    while (!cancel_ && (++height < query_.header_records()))
+    auto filled = zero;
+    auto bucket = zero;
+    while (!cancel_ && (++bucket < query_.header_buckets()))
     {
-        // Assumes height is header link.
-        auto link = possible_narrow_cast<database::header_link::integer>(height);
+        const auto top = query_.top_header(bucket);
+        if (!top.is_terminal())
+            ++filled;
 
-        const auto links = query_.to_txs(link);
-        cancel_ = !std_all_of(bc::seq, links.begin(), links.end(),
-            [&](const auto& tx)
-            {
-                const auto bk = query_.to_block(tx);
-                if (bk.is_terminal())
-                {
-                    console(format("strong_tx.is_terminal %1%") % link);
-                    return false;
-                }
-
-                return true;
-            });
-
-        if (is_zero(height % frequency))
-            console(format("strong_tx.get" BN_READ_ROW) %
-                height % (unix_time() - start));
+        if (is_zero(bucket % 10'000))
+            console(format("header" BN_READ_ROW) %
+                bucket % (unix_time() - start));
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("read_test" BN_READ_ROW) %
-        height % (unix_time() - start));
+    console(format("header" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.txs_buckets()))
+    {
+        const auto top = query_.top_txs(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 10'000))
+            console(format("txs" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("txs" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.tx_buckets()))
+    {
+        const auto top = query_.top_tx(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 1'000'000))
+            console(format("tx" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("tx" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.point_buckets()))
+    {
+        const auto top = query_.top_point(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 1'000'000))
+            console(format("point" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("point" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    filled = zero;
+    bucket = zero;
+    while (!cancel_ && (++bucket < query_.input_buckets()))
+    {
+        const auto top = query_.top_input(bucket);
+        if (!top.is_terminal())
+            ++filled;
+
+        if (is_zero(bucket % 50'000'000))
+            console(format("input" BN_READ_ROW) %
+                bucket % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("input" BN_READ_ROW) %
+        (1.0 * filled / bucket) % (unix_time() - start));
 }
 
 ////void executor::read_test() const
@@ -563,39 +636,40 @@ void executor::write_test()
         if (!query_.set_strong(link))
         {
             // total sequential chain cost: 19 min.
-            cancel_ = true;
             console("Failure: set_strong");
+            break;
         }
         else if ((ec = query_.block_confirmable(link)))
         {
             // subtract cost of set_strong
             // must set_strong before each (no push, verifies non-use).
-            cancel_ = true;
             console(format("Failure: block_confirmable, %1%") % ec.message());
+            break;
         }
         ////else if (!query_.set_txs_connected(link))
         ////{
         ////    // total sequential chain cost: 21 min.
-        ////    cancel_ = true;
         ////    console("Failure: set_txs_connected");
+        ////    break;
         ////}
         ////else if (!query_.set_block_confirmable(link, fees))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    cancel_ = true;
         ////    console("Failure: set_block_confirmable");
+        ////    break;
+        ////    break;
         ////}
         ////else if (!query_.push_candidate(link))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    cancel_ = true;
         ////    console("Failure: push_candidate");
+        ////    break;
         ////}
         ////else if (!query_.push_confirmed(link))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    cancel_ = true;
         ////    console("Failure: push_confirmed");
+        ////    break;
         ////}
         else
         {
