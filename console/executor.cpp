@@ -493,71 +493,81 @@ void executor::read_test() const
     header.shrink_to_fit();
     txs.shrink_to_fit();
     
-    ////// tx
-    ////// ------------------------------------------------------------------------
-    ////start = unix_time();
-    ////
-    ////const auto tx_buckets = query_.tx_buckets();
-    ////const auto tx_records = query_.tx_records();
-    ////std_vector<size_t> tx(tx_buckets, empty);
-    ////
-    ////index = zero;
-    ////while (!cancel_ && (++index < tx_records))
-    ////{
-    ////    const tx_link link = possible_narrow_cast<tx_link::integer>(index);
-    ////    ++tx.at(djb2_hash(query_.get_tx_key(link.value)) % tx_buckets);
-    ////
-    ////    if (is_zero(index % 1'000'000))
-    ////        console(format("tx" BN_READ_ROW) %
-    ////            index % (unix_time() - start));
-    ////}
-    ////
-    ////if (cancel_)
-    ////    console(BN_OPERATION_CANCELED);
-    ////
-    ////const auto tx_count = count(tx);
-    ////console(format("tx" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
-    ////    index % (unix_time() - start) % tx_buckets % tx_count %
-    ////    (1.0 * tx_count / tx_buckets));
-    ////
-    ////distinct(tx);
-    ////const auto tx_max = *std::max_element(tx.begin(), tx.end());
-    ////console(format("unique tx: %1% %2%") % sub1(tx.size()) % tx_max);
-    ////
-    ////tx.clear();
-    ////tx.shrink_to_fit();
-    ////
-    ////// point
-    ////// ------------------------------------------------------------------------
-    ////start = unix_time();
-    ////
-    ////const auto point_buckets = query_.point_buckets();
-    ////const auto point_records = query_.point_records();
-    ////std_vector<size_t> point(point_buckets, empty);
-    ////
-    ////index = zero;
-    ////while (!cancel_ && (++index < point_records))
-    ////{
-    ////    // Uses sequence of tx hashes to simulate point hashes.
-    ////    const tx_link link = possible_narrow_cast<tx_link::integer>(index);
-    ////    ++point.at(djb2_hash(query_.get_point_key(link.value)) % point_buckets);
-    ////
-    ////    if (is_zero(index % 1'000'000))
-    ////        console(format("point" BN_READ_ROW) %
-    ////            index % (unix_time() - start));
-    ////}
-    ////
-    ////if (cancel_)
-    ////    console(BN_OPERATION_CANCELED);
-    ////
-    ////const auto point_count = count(point);
-    ////console(format("point" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
-    ////    index % (unix_time() - start) % point_buckets % point_count %
-    ////    (1.0 * point_count / point_buckets));
-    ////
-    ////distinct(point);
-    ////const auto point_max = *std::max_element(point.begin(), point.end());
-    ////console(format("unique point: %1% %2%") % sub1(point.size()) % point_max);
+    // tx
+    // ------------------------------------------------------------------------
+    start = unix_time();
+    
+    const auto tx_buckets = query_.tx_buckets();
+    const auto tx_records = query_.tx_records();
+    std_vector<size_t> tx(tx_buckets, empty);
+    
+    index = zero;
+    while (!cancel_ && (++index < tx_records))
+    {
+        const tx_link link = possible_narrow_cast<tx_link::integer>(index);
+        ++tx.at(djb2_hash(query_.get_tx_key(link.value)) % tx_buckets);
+    
+        if (is_zero(index % 1'000'000))
+            console(format("tx" BN_READ_ROW) %
+                index % (unix_time() - start));
+    }
+    
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+    
+    const auto tx_count = count(tx);
+    console(format("tx" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
+        index % (unix_time() - start) % tx_buckets % tx_count %
+        (1.0 * tx_count / tx_buckets));
+
+    console("tx dump");
+    for (const auto& entry: dump(tx))
+        console(format("length: %1% frequency: %2%") %
+            entry.first % entry.second);
+    
+    distinct(tx);
+    const auto tx_max = *std::max_element(tx.begin(), tx.end());
+    console(format("unique tx: %1% %2%") % sub1(tx.size()) % tx_max);
+    
+    tx.clear();
+    tx.shrink_to_fit();
+    
+    // point
+    // ------------------------------------------------------------------------
+    start = unix_time();
+    
+    const auto point_buckets = query_.point_buckets();
+    const auto point_records = query_.point_records();
+    std_vector<size_t> point(point_buckets, empty);
+    
+    index = zero;
+    while (!cancel_ && (++index < point_records))
+    {
+        // Uses sequence of tx hashes to simulate point hashes.
+        const tx_link link = possible_narrow_cast<tx_link::integer>(index);
+        ++point.at(djb2_hash(query_.get_point_key(link.value)) % point_buckets);
+    
+        if (is_zero(index % 1'000'000))
+            console(format("point" BN_READ_ROW) %
+                index % (unix_time() - start));
+    }
+    
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+    
+    const auto point_count = count(point);
+    console(format("point" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
+        index % (unix_time() - start) % point_buckets % point_count %
+        (1.0 * point_count / point_buckets));
+
+    console("point dump");
+    for (const auto& entry: dump(point))
+        console(format("length: %1% frequency: %2%") %
+            entry.first % entry.second);
+    
+    distinct(point);
+    const auto point_max = *std::max_element(point.begin(), point.end());
+    console(format("unique point: %1% %2%") % sub1(point.size()) % point_max);
 
     // input
     // ------------------------------------------------------------------------
@@ -576,9 +586,9 @@ void executor::read_test() const
         const header_link link = possible_narrow_cast<header_link::integer>(index);
 
         const auto transactions = query_.to_txs(link);
-        for (const auto& tx: transactions)
+        for (const auto& transaction: transactions)
         {
-            const auto inputs = query_.to_tx_inputs(tx);
+            const auto inputs = query_.to_tx_inputs(transaction);
             for (const auto& in: inputs)
             {
                 ++total;
@@ -600,7 +610,7 @@ void executor::read_test() const
         (1.0 * input_count / input_buckets));
 
     console("input dump");
-    for (const auto& entry : dump(input))
+    for (const auto& entry: dump(input))
         console(format("length: %1% frequency: %2%") %
             entry.first % entry.second);
 
