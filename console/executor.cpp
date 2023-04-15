@@ -19,18 +19,18 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <csignal>
 #include <functional>
 #include <future>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
-
-////std::atomic<size_t> foobar{};
 
 namespace libbitcoin {
 namespace node {
@@ -306,7 +306,7 @@ void executor::scan_flags() const
         height % (unix_time() - start));
 }
 
-void executor::read_test() const
+void executor::scan_buckets() const
 {
     const auto start = unix_time();
 
@@ -414,6 +414,199 @@ void executor::read_test() const
 
     console(format("input" BN_READ_ROW) %
         (1.0 * filled / bucket) % (unix_time() - start));
+}
+
+void executor::read_test() const
+{
+    using namespace database;
+    constexpr uint32_t empty = 0;
+
+    constexpr auto count = [](const auto& list)
+    {
+        return std::accumulate(list.begin(), list.end(), zero,
+            [](size_t total, const auto& value)
+            {
+                return total + to_int(to_bool(value));
+            });
+    };
+
+    const auto dump = [&](const auto& list)
+    {
+        // map frequency to length.
+        std::map<size_t, size_t> map{};
+        for (const auto value: list)
+            ++map[value];
+
+        return map;
+    };
+
+    console(BN_OPERATION_INTERRUPT);
+
+    // header-txs
+    // ------------------------------------------------------------------------
+    auto start = unix_time();
+    
+    const auto header_buckets = query_.header_buckets();
+    const auto header_records = query_.header_records();
+    std_vector<size_t> header(header_buckets, empty);
+    std_vector<size_t> txs(header_buckets, empty);
+    
+    auto index = zero;
+    while (!cancel_ && (++index < header_records))
+    {
+        const header_link link = possible_narrow_cast<header_link::integer>(index);
+        ++header.at(djb2_hash(query_.get_header_key(link.value)) % header_buckets);
+        ++txs.at(djb2_hash((header_link::bytes)link) % header_buckets);
+    
+        if (is_zero(index % 10'000))
+            console(format("header" BN_READ_ROW) %
+                index % (unix_time() - start));
+    }
+    
+    const auto header_count = count(header);
+    const auto txs_count = count(txs);
+    console(format("header-txs" BN_READ_ROW " buckets %3% filled %4% %5% saturation %6% %7%") %
+        index % (unix_time() - start) % header_buckets % header_count % txs_count %
+        (1.0 * header_count / header_buckets) %
+        (1.0 * txs_count / header_buckets));
+
+    console("header dump");
+    for (const auto& entry: dump(header))
+        console(format("length: %1% frequency: %2%") %
+            entry.first % entry.second);
+
+    console("txs dump");
+    for (const auto& entry: dump(txs))
+        console(format("length: %1% frequency: %2%") %
+            entry.first % entry.second);
+    
+    distinct(header);
+    distinct(txs);
+    const auto header_max = *std::max_element(header.begin(), header.end());
+    const auto txs_max = *std::max_element(txs.begin(), txs.end());
+    console(format("unique header-txs: %1% %2% %3% %4%") %
+        sub1(header.size()) % sub1(txs.size()) %
+        header_max % txs_max);
+    
+    header.clear();
+    txs.clear();
+    header.shrink_to_fit();
+    txs.shrink_to_fit();
+    
+    ////// tx
+    ////// ------------------------------------------------------------------------
+    ////start = unix_time();
+    ////
+    ////const auto tx_buckets = query_.tx_buckets();
+    ////const auto tx_records = query_.tx_records();
+    ////std_vector<size_t> tx(tx_buckets, empty);
+    ////
+    ////index = zero;
+    ////while (!cancel_ && (++index < tx_records))
+    ////{
+    ////    const tx_link link = possible_narrow_cast<tx_link::integer>(index);
+    ////    ++tx.at(djb2_hash(query_.get_tx_key(link.value)) % tx_buckets);
+    ////
+    ////    if (is_zero(index % 1'000'000))
+    ////        console(format("tx" BN_READ_ROW) %
+    ////            index % (unix_time() - start));
+    ////}
+    ////
+    ////if (cancel_)
+    ////    console(BN_OPERATION_CANCELED);
+    ////
+    ////const auto tx_count = count(tx);
+    ////console(format("tx" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
+    ////    index % (unix_time() - start) % tx_buckets % tx_count %
+    ////    (1.0 * tx_count / tx_buckets));
+    ////
+    ////distinct(tx);
+    ////const auto tx_max = *std::max_element(tx.begin(), tx.end());
+    ////console(format("unique tx: %1% %2%") % sub1(tx.size()) % tx_max);
+    ////
+    ////tx.clear();
+    ////tx.shrink_to_fit();
+    ////
+    ////// point
+    ////// ------------------------------------------------------------------------
+    ////start = unix_time();
+    ////
+    ////const auto point_buckets = query_.point_buckets();
+    ////const auto point_records = query_.point_records();
+    ////std_vector<size_t> point(point_buckets, empty);
+    ////
+    ////index = zero;
+    ////while (!cancel_ && (++index < point_records))
+    ////{
+    ////    // Uses sequence of tx hashes to simulate point hashes.
+    ////    const tx_link link = possible_narrow_cast<tx_link::integer>(index);
+    ////    ++point.at(djb2_hash(query_.get_point_key(link.value)) % point_buckets);
+    ////
+    ////    if (is_zero(index % 1'000'000))
+    ////        console(format("point" BN_READ_ROW) %
+    ////            index % (unix_time() - start));
+    ////}
+    ////
+    ////if (cancel_)
+    ////    console(BN_OPERATION_CANCELED);
+    ////
+    ////const auto point_count = count(point);
+    ////console(format("point" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
+    ////    index % (unix_time() - start) % point_buckets % point_count %
+    ////    (1.0 * point_count / point_buckets));
+    ////
+    ////distinct(point);
+    ////const auto point_max = *std::max_element(point.begin(), point.end());
+    ////console(format("unique point: %1% %2%") % sub1(point.size()) % point_max);
+
+    // input
+    // ------------------------------------------------------------------------
+    start = unix_time();
+
+    ////constexpr auto input_slabs = 2'177'073'608_u64;
+    const auto input_buckets = query_.input_buckets();
+    std_vector<size_t> input(input_buckets, empty);
+
+    index = zero;
+    auto total = zero;
+    while (!cancel_ && (++index < query_.header_records()))
+    {
+        // Spenders of cb prevouts are input table search conflicts.
+        // But they are still pushed to the input hash table.
+        const header_link link = possible_narrow_cast<header_link::integer>(index);
+
+        const auto transactions = query_.to_txs(link);
+        for (const auto& tx: transactions)
+        {
+            const auto inputs = query_.to_tx_inputs(tx);
+            for (const auto& in: inputs)
+            {
+                ++total;
+                ++input.at(djb2_hash(query_.to_input_point(in)) % input_buckets);
+            }
+        }
+
+        if (is_zero(index % 10'000))
+            console(format("input" BN_READ_ROW) %
+                index % (unix_time() - start));
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    const auto input_count = count(input);
+    console(format("input" BN_READ_ROW " buckets %3% filled %4% saturation %5%") %
+        total % (unix_time() - start) % input_buckets % input_count %
+        (1.0 * input_count / input_buckets));
+
+    console("input dump");
+    for (const auto& entry : dump(input))
+        console(format("length: %1% frequency: %2%") %
+            entry.first % entry.second);
+
+    distinct(input);
+    const auto input_max = *std::max_element(input.begin(), input.end());
+    console(format("unique input: %1% %2%") % sub1(input.size()) % input_max);
 }
 
 ////void executor::read_test() const
@@ -737,6 +930,9 @@ bool executor::menu()
     if (config.measure)
         return do_measure();
 
+    if (config.buckets)
+        return do_buckets();
+
     if (config.flags)
         return do_flags();
 
@@ -910,6 +1106,51 @@ bool executor::do_measure()
     }
 
     measure_size();
+
+    // Close store.
+    console(BN_STORE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_STORE_STOPPED);
+    return true;
+}
+
+// --buckets
+bool executor::do_buckets()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_STORE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_STORE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_STORE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    scan_buckets();
 
     // Close store.
     console(BN_STORE_STOPPING);
