@@ -167,6 +167,12 @@ options_metadata parser::load_options() THROWS
         "Compute and display store measures."
     )
     (
+        BN_BUCKETS_VARIABLE ",b",
+        value<bool>(&configured.buckets)->
+            default_value(false)->zero_tokens(),
+        "Compute and display all bucket densities."
+    )
+    (
         BN_FLAGS_VARIABLE ",f",
         value<bool>(&configured.flags)->
             default_value(false)->zero_tokens(),

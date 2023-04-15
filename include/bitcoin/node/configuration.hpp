@@ -33,6 +33,7 @@ namespace node {
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
 #define BN_MEASURE_VARIABLE "measure"
+#define BN_BUCKETS_VARIABLE "buckets"
 #define BN_FLAGS_VARIABLE "flags"
 #define BN_READ_VARIABLE "read"
 #define BN_WRITE_VARIABLE "write"
@@ -57,6 +58,7 @@ public:
     bool settings;
     bool version;
     bool measure;
+    bool buckets;
     bool flags;
     bool read;
     bool write;
