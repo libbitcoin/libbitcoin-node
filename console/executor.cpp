@@ -424,228 +424,283 @@ void executor::scan_buckets() const
 void executor::read_test() const
 {
     using namespace database;
-    constexpr auto empty = 0u;
-    constexpr auto tx_frequency = 1'000'000u;
-    constexpr auto block_frequency = 10'000u;
-    constexpr auto count = [](const auto& list)
+    constexpr auto frequency = 1'000u;
+    const auto start = unix_time();
+    auto height = zero;
+
+    while (!cancel_ && (++height < query_.header_records()))
     {
-        return std::accumulate(list.begin(), list.end(), zero,
-            [](size_t total, const auto& value)
-            {
-                return total + to_int(to_bool(value));
-            });
-    };
-    constexpr auto dump = [&](const auto& list)
-    {
-        // map frequency to length.
-        std::map<size_t, size_t> map{};
-        for (const auto value: list)
-            ++map[value];
+        const header_link link{
+            possible_narrow_cast<header_link::integer>(height) };
 
-        return map;
-    };
-    constexpr auto floater = [](const auto value)
-    {
-        return 1.0 * value;
-    };
-    constexpr auto hash = [](const auto& key)
-    {
-        constexpr auto length = array_count<decltype(key)>;
-        constexpr auto size = std::min(length, sizeof(size_t));
-        size_t value{};
-        std::copy_n(key.begin(), size, system::byte_cast(value).begin());
-        return value;
-    };
+        ////const auto ptr = query_.get_header(link);
+        ////if (!ptr)
+        ////{
+        ////    console("Failure: get_header");
+        ////    break;
+        ////}
+        ////else if (is_zero(ptr->bits()))
+        ////{
+        ////    console("Failure: zero bits");
+        ////    break;
+        ////}
 
-    console(BN_OPERATION_INTERRUPT);
+        ////const auto txs = query_.to_txs(link);
+        ////if (txs.empty())
+        ////{
+        ////    console("Failure: to_txs");
+        ////    break;
+        ////}
 
-    // header & txs
-    // ------------------------------------------------------------------------
-    auto start = unix_time();
-    
-    const auto header_buckets = query_.header_buckets();
-    const auto header_records = query_.header_records();
-    std_vector<size_t> header(header_buckets, empty);
-    std_vector<size_t> txs(header_buckets, empty);
-    
-    auto index = zero;
-    while (!cancel_ && (++index < header_records))
-    {
-        const header_link link{ possible_narrow_cast<header_link::integer>(index) };
-        ++header.at(hash(query_.get_header_key(link.value)) % header_buckets);
-        ++txs.at(hash((header_link::bytes)link) % header_buckets);
-
-        if (is_zero(index % block_frequency))
-            console(format("header" BN_READ_ROW) %
-                index % (unix_time() - start));
-    }
-
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    // ........................................................................
-    
-    const auto header_count = count(header);
-    console(format("header: %1% in %2%s buckets %3% filled %4% rate %5% ") %
-        index % (unix_time() - start) % header_buckets % header_count %
-        (floater(header_count) / header_buckets));
-
-    for (const auto& entry: dump(header))
-        console(format("header: %1% frequency: %2%") %
-            entry.first % entry.second);
-
-    header.clear();
-    header.shrink_to_fit();
-
-    // ........................................................................
-
-    const auto txs_count = count(txs);
-    console(format("header & txs: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % header_buckets % txs_count %
-        (floater(txs_count) / header_buckets));
-
-    for (const auto& entry: dump(txs))
-        console(format("txs: %1% frequency: %2%") %
-            entry.first % entry.second);
- 
-    txs.clear();
-    txs.shrink_to_fit();
-    
-    // tx & strong_tx
-    // ------------------------------------------------------------------------
-    start = unix_time();
-    
-    const auto tx_buckets = query_.tx_buckets();
-    const auto tx_records = query_.tx_records();
-    std_vector<size_t> tx(tx_buckets, empty);
-    std_vector<size_t> strong_tx(tx_buckets, empty);
-    
-    index = zero;
-    while (!cancel_ && (++index < tx_records))
-    {
-        const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
-        ++tx.at(hash(query_.get_tx_key(link.value)) % tx_buckets);
-        ++strong_tx.at(hash((tx_link::bytes)link) % tx_buckets);
-
-        if (is_zero(index % tx_frequency))
-            console(format("tx & strong_tx" BN_READ_ROW) %
-                index % (unix_time() - start));
-    }
-    
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    // ........................................................................
-    
-    const auto tx_count = count(tx);
-    console(format("tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % tx_buckets % tx_count %
-        (floater(tx_count) / tx_buckets));
-
-    for (const auto& entry: dump(tx))
-        console(format("tx: %1% frequency: %2%") %
-            entry.first % entry.second);
-    
-    tx.clear();
-    tx.shrink_to_fit();
-
-    // ........................................................................
-    
-    const auto strong_tx_count = count(strong_tx);
-    console(format("strong_tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % tx_buckets % strong_tx_count %
-        (floater(strong_tx_count) / tx_buckets));
-
-    for (const auto& entry: dump(strong_tx))
-        console(format("strong_tx: %1% frequency: %2%") %
-            entry.first % entry.second);
-
-    strong_tx.clear();
-    strong_tx.shrink_to_fit();
-    
-    // point
-    // ------------------------------------------------------------------------
-    start = unix_time();
-    
-    const auto point_buckets = query_.point_buckets();
-    const auto point_records = query_.point_records();
-    std_vector<size_t> point(point_buckets, empty);
-    
-    index = zero;
-    while (!cancel_ && (++index < point_records))
-    {
-        const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
-        ++point.at(hash(query_.get_point_key(link.value)) % point_buckets);
-
-        if (is_zero(index % tx_frequency))
-            console(format("point" BN_READ_ROW) %
-                index % (unix_time() - start));
-    }
-    
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    // ........................................................................
-    
-    const auto point_count = count(point);
-    console(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % point_buckets % point_count %
-        (floater(point_count) / point_buckets));
-
-    for (const auto& entry: dump(point))
-        console(format("point: %1% frequency: %2%") %
-            entry.first % entry.second);
-
-    point.clear();
-    point.shrink_to_fit();
-
-    // input
-    // ------------------------------------------------------------------------
-    start = unix_time();
-
-    const auto input_buckets = query_.input_buckets();
-    std_vector<size_t> input(input_buckets, empty);
-
-    index = zero;
-    auto total = zero;
-    while (!cancel_ && (++index < query_.header_records()))
-    {
-        const header_link link{ possible_narrow_cast<header_link::integer>(index) };
-        const auto transactions = query_.to_txs(link);
-
-        for (const auto& transaction: transactions)
+        const auto ptr = query_.get_block(link);
+        if (!ptr)
         {
-            const auto inputs = query_.to_tx_inputs(transaction);
-            for (const auto& in: inputs)
-            {
-                ++total;
-                ++input.at(hash(query_.to_foreign_point(in)) % input_buckets);
-            }
+            console("Failure: get_block");
+            break;
+        }
+        else if (!ptr->is_valid())
+        {
+            console("Failure: is_valid");
+            break;
         }
 
-        // Block iterator.
-        if (is_zero(index % block_frequency))
-            console(format("input" BN_READ_ROW) %
-                index % (unix_time() - start));
+        if (is_zero(height % frequency))
+            console(format("get_block" BN_READ_ROW) %
+                height % (unix_time() - start));
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    // ........................................................................
-
-    const auto input_count = count(input);
-    console(format("input: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        total % (unix_time() - start) % input_buckets % input_count %
-        (floater(input_count) / input_buckets));
-
-    for (const auto& entry: dump(input))
-        console(format("input: %1% frequency: %2%") %
-            entry.first % entry.second);
-
-    input.clear();
-    input.shrink_to_fit();
+    console(format("get_block" BN_READ_ROW) %
+        height % (unix_time() - start));
 }
+
+////void executor::read_test() const
+////{
+////    using namespace database;
+////    constexpr auto empty = 0u;
+////    constexpr auto tx_frequency = 1'000'000u;
+////    constexpr auto block_frequency = 10'000u;
+////    constexpr auto count = [](const auto& list)
+////    {
+////        return std::accumulate(list.begin(), list.end(), zero,
+////            [](size_t total, const auto& value)
+////            {
+////                return total + to_int(to_bool(value));
+////            });
+////    };
+////    constexpr auto dump = [&](const auto& list)
+////    {
+////        // map frequency to length.
+////        std::map<size_t, size_t> map{};
+////        for (const auto value: list)
+////            ++map[value];
+////
+////        return map;
+////    };
+////    constexpr auto floater = [](const auto value)
+////    {
+////        return 1.0 * value;
+////    };
+////    constexpr auto hash = [](const auto& key)
+////    {
+////        constexpr auto length = array_count<decltype(key)>;
+////        constexpr auto size = std::min(length, sizeof(size_t));
+////        size_t value{};
+////        std::copy_n(key.begin(), size, system::byte_cast(value).begin());
+////        return value;
+////    };
+////
+////    console(BN_OPERATION_INTERRUPT);
+////
+////    // header & txs
+////    // ------------------------------------------------------------------------
+////    auto start = unix_time();
+////    
+////    const auto header_buckets = query_.header_buckets();
+////    const auto header_records = query_.header_records();
+////    std_vector<size_t> header(header_buckets, empty);
+////    std_vector<size_t> txs(header_buckets, empty);
+////    
+////    auto index = zero;
+////    while (!cancel_ && (++index < header_records))
+////    {
+////        const header_link link{ possible_narrow_cast<header_link::integer>(index) };
+////        ++header.at(hash(query_.get_header_key(link.value)) % header_buckets);
+////        ++txs.at(hash((header_link::bytes)link) % header_buckets);
+////
+////        if (is_zero(index % block_frequency))
+////            console(format("header" BN_READ_ROW) %
+////                index % (unix_time() - start));
+////    }
+////
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////
+////    // ........................................................................
+////    
+////    const auto header_count = count(header);
+////    console(format("header: %1% in %2%s buckets %3% filled %4% rate %5% ") %
+////        index % (unix_time() - start) % header_buckets % header_count %
+////        (floater(header_count) / header_buckets));
+////
+////    for (const auto& entry: dump(header))
+////        console(format("header: %1% frequency: %2%") %
+////            entry.first % entry.second);
+////
+////    header.clear();
+////    header.shrink_to_fit();
+////
+////    // ........................................................................
+////
+////    const auto txs_count = count(txs);
+////    console(format("header & txs: %1% in %2%s buckets %3% filled %4% rate %5%") %
+////        index % (unix_time() - start) % header_buckets % txs_count %
+////        (floater(txs_count) / header_buckets));
+////
+////    for (const auto& entry: dump(txs))
+////        console(format("txs: %1% frequency: %2%") %
+////            entry.first % entry.second);
+//// 
+////    txs.clear();
+////    txs.shrink_to_fit();
+////    
+////    // tx & strong_tx
+////    // ------------------------------------------------------------------------
+////    start = unix_time();
+////    
+////    const auto tx_buckets = query_.tx_buckets();
+////    const auto tx_records = query_.tx_records();
+////    std_vector<size_t> tx(tx_buckets, empty);
+////    std_vector<size_t> strong_tx(tx_buckets, empty);
+////    
+////    index = zero;
+////    while (!cancel_ && (++index < tx_records))
+////    {
+////        const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
+////        ++tx.at(hash(query_.get_tx_key(link.value)) % tx_buckets);
+////        ++strong_tx.at(hash((tx_link::bytes)link) % tx_buckets);
+////
+////        if (is_zero(index % tx_frequency))
+////            console(format("tx & strong_tx" BN_READ_ROW) %
+////                index % (unix_time() - start));
+////    }
+////    
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////
+////    // ........................................................................
+////    
+////    const auto tx_count = count(tx);
+////    console(format("tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
+////        index % (unix_time() - start) % tx_buckets % tx_count %
+////        (floater(tx_count) / tx_buckets));
+////
+////    for (const auto& entry: dump(tx))
+////        console(format("tx: %1% frequency: %2%") %
+////            entry.first % entry.second);
+////    
+////    tx.clear();
+////    tx.shrink_to_fit();
+////
+////    // ........................................................................
+////    
+////    const auto strong_tx_count = count(strong_tx);
+////    console(format("strong_tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
+////        index % (unix_time() - start) % tx_buckets % strong_tx_count %
+////        (floater(strong_tx_count) / tx_buckets));
+////
+////    for (const auto& entry: dump(strong_tx))
+////        console(format("strong_tx: %1% frequency: %2%") %
+////            entry.first % entry.second);
+////
+////    strong_tx.clear();
+////    strong_tx.shrink_to_fit();
+////    
+////    // point
+////    // ------------------------------------------------------------------------
+////    start = unix_time();
+////    
+////    const auto point_buckets = query_.point_buckets();
+////    const auto point_records = query_.point_records();
+////    std_vector<size_t> point(point_buckets, empty);
+////    
+////    index = zero;
+////    while (!cancel_ && (++index < point_records))
+////    {
+////        const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
+////        ++point.at(hash(query_.get_point_key(link.value)) % point_buckets);
+////
+////        if (is_zero(index % tx_frequency))
+////            console(format("point" BN_READ_ROW) %
+////                index % (unix_time() - start));
+////    }
+////    
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////
+////    // ........................................................................
+////    
+////    const auto point_count = count(point);
+////    console(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
+////        index % (unix_time() - start) % point_buckets % point_count %
+////        (floater(point_count) / point_buckets));
+////
+////    for (const auto& entry: dump(point))
+////        console(format("point: %1% frequency: %2%") %
+////            entry.first % entry.second);
+////
+////    point.clear();
+////    point.shrink_to_fit();
+////
+////    // input
+////    // ------------------------------------------------------------------------
+////    start = unix_time();
+////
+////    const auto input_buckets = query_.input_buckets();
+////    std_vector<size_t> input(input_buckets, empty);
+////
+////    index = zero;
+////    auto total = zero;
+////    while (!cancel_ && (++index < query_.header_records()))
+////    {
+////        const header_link link{ possible_narrow_cast<header_link::integer>(index) };
+////        const auto transactions = query_.to_txs(link);
+////
+////        for (const auto& transaction: transactions)
+////        {
+////            const auto inputs = query_.to_tx_inputs(transaction);
+////            for (const auto& in: inputs)
+////            {
+////                ++total;
+////                ++input.at(hash(query_.to_foreign_point(in)) % input_buckets);
+////            }
+////        }
+////
+////        // Block iterator.
+////        if (is_zero(index % block_frequency))
+////            console(format("input" BN_READ_ROW) %
+////                index % (unix_time() - start));
+////    }
+////
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////
+////    // ........................................................................
+////
+////    const auto input_count = count(input);
+////    console(format("input: %1% in %2%s buckets %3% filled %4% rate %5%") %
+////        total % (unix_time() - start) % input_buckets % input_count %
+////        (floater(input_count) / input_buckets));
+////
+////    for (const auto& entry: dump(input))
+////        console(format("input: %1% frequency: %2%") %
+////            entry.first % entry.second);
+////
+////    input.clear();
+////    input.shrink_to_fit();
+////}
 
 ////void executor::read_test() const
 ////{
@@ -852,83 +907,159 @@ void executor::read_test() const
 void executor::write_test()
 {
     using namespace database;
-    ////constexpr uint64_t fees = 99;
-    constexpr auto frequency = 10'000;
+    constexpr size_t block_frequency = 10'000;
+    constexpr size_t point_frequency = 100'000;
+    constexpr size_t limit = 300'000;
     const auto start = unix_time();
-    code ec{};
 
     console(BN_OPERATION_INTERRUPT);
+    const auto maximum = std::min(limit, query_.header_records());
+    cached_points points{};
 
-    auto height = zero;//// query_.get_top_confirmed();
-    while (!cancel_ && (++height < query_.header_records()))
+    auto height = zero;
+    while (!cancel_ && (++height < maximum))
     {
-        // Assumes height is header link.
         const header_link link{ possible_narrow_cast<header_link::integer>(height) };
-
-        if (!query_.set_strong(link))
+        if (!query_.create_cached_points(points, link))
         {
-            // total sequential chain cost: 19 min.
-            console("Failure: set_strong");
+            console("Failure: create_cached_points");
             break;
         }
-        else if ((ec = query_.block_confirmable(link)))
-        {
-            // subtract cost of set_strong
-            // must set_strong before each (no push, verifies non-use).
-            console(format("Failure: block_confirmable, %1%") % ec.message());
-            break;
-        }
-        ////if (!query_.set_txs_connected(link))
-        ////{
-        ////    // total sequential chain cost: 21 min.
-        ////    console("Failure: set_txs_connected");
-        ////    break;
-        ////}
-        ////if (!query_.set_block_confirmable(link, fees))
-        ////{
-        ////    // total chain cost: 1 sec.
-        ////    console("Failure: set_block_confirmable");
-        ////    break;
-        ////    break;
-        ////}
-        ////else if (!query_.push_candidate(link))
-        ////{
-        ////    // total chain cost: 1 sec.
-        ////    console("Failure: push_candidate");
-        ////    break;
-        ////}
-        ////else if (!query_.push_confirmed(link))
-        ////{
-        ////    // total chain cost: 1 sec.
-        ////    console("Failure: push_confirmed");
-        ////    break;
-        ////}
         else
         {
-            if (is_zero(height % frequency))
-            {
-                console(format("block" BN_WRITE_ROW
-                    " txs[3]:%3% strong_tx[4]:%4% input[7]:%5% hash[32]:%6%") %
-                    height % (unix_time() - start) %
-                    foobar3.load() %
-                    foobar4.load() %
-                    foobar7.load() %
-                    foobar32.load());
+            if (is_zero(height % block_frequency))
+                console(format("create_cached_points" BN_WRITE_ROW) %
+                    height % (unix_time() - start));
+        }
+    }
 
-                foobar3.store(one);
-                foobar4.store(one);
-                foobar7.store(one);
-                foobar32.store(one);
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("create_cached_points blocks %1% inputs %2% in %3% secs.") %
+        height % points.size() % (unix_time() - start));
+
+    // ------------------------------------------------------------------------
+
+    code ec{};
+    auto count = zero;
+    header_link link{ 0u };
+
+    for (const auto& point: points)
+    {
+        if (cancel_) break;
+        height = point.height;
+
+        while (link < height)
+        {
+            if (!query_.set_strong((link = add1(link.value))))
+            {
+                console("Failure: set_strong");
+                break;
             }
+        }
+
+        ++count;
+        if ((ec = query_.point_confirmable(point)))
+        {
+            console(format("Failure: point_confirmable, %1%") % ec.message());
+            break;
+        }
+        else
+        {
+            if (is_zero(count % point_frequency))
+                console(format("point_confirmable" BN_WRITE_ROW) %
+                    count % (unix_time() - start));
         }
     }
     
     if (cancel_)
         console(BN_OPERATION_CANCELED);
     
-    console(format("block" BN_WRITE_ROW) %
-        height % (unix_time() - start));
+    console(format("point_confirmable blocks %1% inputs %2% in %3% secs.") %
+        height % count % (unix_time() - start));
 }
+
+////void executor::write_test()
+////{
+////    using namespace database;
+////    ////constexpr uint64_t fees = 99;
+////    constexpr auto frequency = 10'000;
+////    const auto start = unix_time();
+////    code ec{};
+////
+////    console(BN_OPERATION_INTERRUPT);
+////
+////    auto height = zero;//// query_.get_top_confirmed();
+////    while (!cancel_ && (++height < query_.header_records()))
+////    {
+////        // Assumes height is header link.
+////        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
+////
+////        if (!query_.set_strong(link))
+////        {
+////            // total sequential chain cost: 19 min.
+////            console("Failure: set_strong");
+////            break;
+////        }
+////        else if ((ec = query_.block_confirmable(link)))
+////        {
+////            // subtract cost of set_strong
+////            // must set_strong before each (no push, verifies non-use).
+////            console(format("Failure: block_confirmable, %1%") % ec.message());
+////            break;
+////        }
+////        ////if (!query_.set_txs_connected(link))
+////        ////{
+////        ////    // total sequential chain cost: 21 min.
+////        ////    console("Failure: set_txs_connected");
+////        ////    break;
+////        ////}
+////        ////if (!query_.set_block_confirmable(link, fees))
+////        ////{
+////        ////    // total chain cost: 1 sec.
+////        ////    console("Failure: set_block_confirmable");
+////        ////    break;
+////        ////    break;
+////        ////}
+////        ////else if (!query_.push_candidate(link))
+////        ////{
+////        ////    // total chain cost: 1 sec.
+////        ////    console("Failure: push_candidate");
+////        ////    break;
+////        ////}
+////        ////else if (!query_.push_confirmed(link))
+////        ////{
+////        ////    // total chain cost: 1 sec.
+////        ////    console("Failure: push_confirmed");
+////        ////    break;
+////        ////}
+////        else
+////        {
+////            if (is_zero(height % frequency))
+////            {
+////                console(format("block" BN_WRITE_ROW
+////                    " txs[3]:%3% strong_tx[4]:%4% input[7]:%5% hash[32]:%6%") %
+////                    height % (unix_time() - start) %
+////                    foobar3.load() %
+////                    foobar4.load() %
+////                    foobar7.load() %
+////                    foobar32.load());
+////
+////                foobar3.store(one);
+////                foobar4.store(one);
+////                foobar7.store(one);
+////                foobar32.store(one);
+////            }
+////        }
+////    }
+////    
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////    
+////    console(format("block" BN_WRITE_ROW) %
+////        height % (unix_time() - start));
+////}
 
 ////void executor::write_test()
 ////{
