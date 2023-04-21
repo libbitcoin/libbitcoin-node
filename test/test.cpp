@@ -17,6 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "test.hpp"
+#include <atomic>
+
+std::atomic<size_t> foobar3{ bc::one };
+std::atomic<size_t> foobar4{ bc::one };
+std::atomic<size_t> foobar7{ bc::one };
+std::atomic<size_t> foobar32{ bc::one };
 
 namespace std {
 

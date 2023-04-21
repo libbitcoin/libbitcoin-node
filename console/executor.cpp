@@ -20,6 +20,7 @@
 #include "localize.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <csignal>
 #include <functional>
