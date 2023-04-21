@@ -61,6 +61,7 @@ private:
     bool do_version();
     bool do_initchain();
     bool do_measure();
+    bool do_buckets();
     bool do_flags();
     bool do_read();
     bool do_write();
@@ -76,6 +77,7 @@ private:
 
     void measure_size() const;
     void scan_flags() const;
+    void scan_buckets() const;
     void write_test();
     void read_test() const;
 

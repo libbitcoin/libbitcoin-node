@@ -97,6 +97,10 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.confirmed_size = 2'347'641;
     configured.database.confirmed_rate = 5;
 
+    configured.database.spend_buckets = 1'440'664'028;
+    configured.database.spend_size = 32'449'972'080;
+    configured.database.spend_rate = 5;
+
     configured.database.strong_tx_buckets = 544'452'363;
     configured.database.strong_tx_size = 8'993'402'022;
     configured.database.strong_tx_rate = 5;
@@ -165,6 +169,12 @@ options_metadata parser::load_options() THROWS
         value<bool>(&configured.measure)->
             default_value(false)->zero_tokens(),
         "Compute and display store measures."
+    )
+    (
+        BN_BUCKETS_VARIABLE ",b",
+        value<bool>(&configured.buckets)->
+            default_value(false)->zero_tokens(),
+        "Compute and display all bucket densities."
     )
     (
         BN_FLAGS_VARIABLE ",f",
@@ -723,6 +733,23 @@ options_metadata parser::load_settings() THROWS
         "database.confirmed_rate",
         value<uint16_t>(&configured.database.confirmed_rate),
         "The percentage expansion of the candidate table body, defaults to '5'."
+    )
+
+    /* spend */
+    (
+        "database.spend_buckets",
+        value<uint32_t>(&configured.database.spend_buckets),
+        "The number of buckets in the spend table head, defaults to '1440664028'."
+    )
+    (
+        "database.spend_size",
+        value<uint64_t>(&configured.database.spend_size),
+        "The minimum allocation of the spend table body, defaults to '32449972080'."
+    )
+    (
+        "database.spend_rate",
+        value<uint16_t>(&configured.database.spend_rate),
+        "The percentage expansion of the spend table body, defaults to '5'."
     )
 
     /* strong_tx */

@@ -64,7 +64,8 @@ namespace node {
     "   puts     :%4%\n" \
     "   candidate:%5%\n" \
     "   confirmed:%6%\n" \
-    "   strong_tx:%7%"
+    "   spend    :%7%\n" \
+    "   strong_tx:%8%"
 #define BN_MEASURE_SIZES \
     "Body sizes...\n" \
     "   header   :%1%\n" \
@@ -76,9 +77,10 @@ namespace node {
     "   puts     :%7%\n" \
     "   candidate:%8%\n" \
     "   confirmed:%9%\n" \
-    "   strong_tx:%10%\n" \
-    "   valid_tx :%11%\n" \
-    "   valid_bk :%12%"
+    "   spend    :%10%\n" \
+    "   strong_tx:%11%\n" \
+    "   valid_tx :%12%\n" \
+    "   valid_bk :%13%"
 #define BN_MEASURE_SLABS \
     "Table slabs..."
 #define BN_MEASURE_SLABS_ROW \
@@ -94,9 +96,10 @@ namespace node {
     "   tx       :%5% (%6%)\n" \
     "   point    :%7% (%8%)\n" \
     "   input    :%9% (%10%)\n" \
-    "   strong_tx:%11% (%12%)\n" \
-    "   valid_tx :%13% (%14%)\n" \
-    "   valid_bk :%15% (%16%)"
+    "   spend    :%11% (%12%)\n" \
+    "   strong_tx:%13% (%14%)\n" \
+    "   valid_tx :%15% (%16%)\n" \
+    "   valid_bk :%17% (%18%)"
 #define BN_MEASURE_BUCKETS \
     "Head buckets...\n" \
     "   header   :%1%\n" \
@@ -104,9 +107,10 @@ namespace node {
     "   tx       :%3%\n" \
     "   point    :%4%\n" \
     "   input    :%5%\n" \
-    "   strong_tx:%6%\n" \
-    "   valid_tx :%7%\n" \
-    "   valid_bk :%8%"
+    "   spend    :%6%\n" \
+    "   strong_tx:%7%\n" \
+    "   valid_tx :%8%\n" \
+    "   valid_bk :%9%"
 
 // --read
 #define BN_READ_ROW \

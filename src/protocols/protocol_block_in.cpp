@@ -181,25 +181,25 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
     }
 
-    auto error = block.check();
-    if (error)
-    {
-        // assume announced.
-        LOGR("Invalid block (check1) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////auto error = block.check();
+    ////if (error)
+    ////{
+    ////    // assume announced.
+    ////    LOGR("Invalid block (check1) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "] " << error.message());
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
-    // TODO: only in header.
-    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
-        add1(state_->height())))
-    {
-        LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////// TODO: only in header.
+    ////if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+    ////    add1(state_->height())))
+    ////{
+    ////    LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "].");
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
     // Rolling forward chain_state eliminates database cost.
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
@@ -219,23 +219,23 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // Block must be archived for full populate (no DoS protect).
-    if (!query.populate(block))
-    {
-        LOGR("Invalid block (populate) [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////// Block must be archived for full populate (no DoS protect).
+    ////if (!query.populate(block))
+    ////{
+    ////    LOGR("Invalid block (populate) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "].");
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
-    error = block.check(state);
-    if (error)
-    {
-        LOGR("Invalid block (check2) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////error = block.check(state);
+    ////if (error)
+    ////{
+    ////    LOGR("Invalid block (check2) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "] " << error.message());
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
     ////error = block.accept(state, coin.subsidy_interval_blocks,
     ////    coin.initial_subsidy());
@@ -272,8 +272,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Size will be incorrect with multiple peers or headers protocol.
     if (is_zero(state.height % 10'000))
     {
-        reporter::fire(event_block, state.height);
-        reporter::fire(event_archive, query.archive_size());
+        ////reporter::fire(event_block, state.height);
+        ////reporter::fire(event_archive, query.archive_size());
         LOGN("BLOCK: " << state.height
             << " secs: " << (unix_time() - start_)
             << " txs: " << query.tx_records()
