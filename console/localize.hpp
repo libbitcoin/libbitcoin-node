@@ -95,22 +95,20 @@ namespace node {
     "   txs      :%3% (%4%)\n" \
     "   tx       :%5% (%6%)\n" \
     "   point    :%7% (%8%)\n" \
-    "   input    :%9% (%10%)\n" \
-    "   spend    :%11% (%12%)\n" \
-    "   strong_tx:%13% (%14%)\n" \
-    "   valid_tx :%15% (%16%)\n" \
-    "   valid_bk :%17% (%18%)"
+    "   spend    :%9% (%10%)\n" \
+    "   strong_tx:%11% (%12%)\n" \
+    "   valid_tx :%13% (%14%)\n" \
+    "   valid_bk :%15% (%16%)"
 #define BN_MEASURE_BUCKETS \
     "Head buckets...\n" \
     "   header   :%1%\n" \
     "   txs      :%2%\n" \
     "   tx       :%3%\n" \
     "   point    :%4%\n" \
-    "   input    :%5%\n" \
-    "   spend    :%6%\n" \
-    "   strong_tx:%7%\n" \
-    "   valid_tx :%8%\n" \
-    "   valid_bk :%9%"
+    "   spend    :%5%\n" \
+    "   strong_tx:%6%\n" \
+    "   valid_tx :%7%\n" \
+    "   valid_bk :%8%"
 
 // --read
 #define BN_READ_ROW \
