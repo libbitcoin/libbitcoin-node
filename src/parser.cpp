@@ -176,6 +176,12 @@ options_metadata parser::load_options() THROWS
         "Compute and display all bucket densities."
     )
     (
+        BN_COLLISIONS_VARIABLE ",l",
+        value<bool>(&configured.collisions)->
+            default_value(false)->zero_tokens(),
+        "Compute and display hashmap collision stats."
+    )
+    (
         BN_FLAGS_VARIABLE ",f",
         value<bool>(&configured.flags)->
             default_value(false)->zero_tokens(),
