@@ -35,6 +35,7 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     version(false),
     measure(false),
     buckets(false),
+    collisions(false),
     flags(false),
     read(false),
     write(false),
