@@ -79,7 +79,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.point_size = 29'152'872'144;
     configured.database.point_rate = 5;
 
-    configured.database.input_buckets = 1'440'664'028;
     configured.database.input_size =  341'130'276'477;
     configured.database.input_rate = 5;
 
@@ -671,11 +670,6 @@ options_metadata parser::load_settings() THROWS
     )
 
     /* input */
-    (
-        "database.input_buckets",
-        value<uint32_t>(&configured.database.input_buckets),
-        "The number of buckets in the input table head, defaults to '1440664028'."
-    )
     (
         "database.input_size",
         value<uint64_t>(&configured.database.input_size),

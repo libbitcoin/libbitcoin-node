@@ -234,9 +234,9 @@ void executor::measure_size() const
     // Tx (record) links are sequential and so iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
-    for (auto puts = query_.put_slabs(link);
+    for (auto puts = query_.put_counts(link);
         to_bool(puts.first) && !cancel_.load();
-        puts = query_.put_slabs(++link))
+        puts = query_.put_counts(++link))
     {
         inputs += puts.first;
         outputs += puts.second;
@@ -256,8 +256,6 @@ void executor::measure_size() const
         query_.tx_buckets();
     const auto point = (1.0 * query_.point_records()) /
         query_.point_buckets();
-    const auto input = (1.0 * inputs) /
-        query_.input_buckets();
     const auto spend = (1.0 * query_.spend_records()) /
         query_.spend_buckets();
     const auto strong_tx = (1.0 * query_.strong_tx_records()) /
@@ -271,7 +269,6 @@ void executor::measure_size() const
         query_.txs_buckets() % txs %
         query_.tx_buckets() % tx %
         query_.point_buckets() % point %
-        query_.input_buckets() % input %
         query_.spend_buckets() % spend %
         query_.strong_tx_buckets() % strong_tx %
         query_.validated_tx_buckets() % validated_tx %
@@ -412,21 +409,21 @@ void executor::scan_buckets() const
 
     filled = zero;
     bucket = zero;
-    while (!cancel_ && (++bucket < query_.input_buckets()))
+    while (!cancel_ && (++bucket < query_.spend_buckets()))
     {
-        const auto top = query_.top_input(bucket);
+        const auto top = query_.top_spend(bucket);
         if (!top.is_terminal())
             ++filled;
 
         if (is_zero(bucket % 50'000'000))
-            console(format("input" BN_READ_ROW) %
+            console(format("spend" BN_READ_ROW) %
                 bucket % (unix_time() - start));
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("input" BN_READ_ROW) %
+    console(format("spend" BN_READ_ROW) %
         (1.0 * filled / bucket) % (unix_time() - start));
 }
 
@@ -730,7 +727,7 @@ void executor::read_test() const
             for (const auto& in: inputs)
             {
                 ++total;
-                ++spend.at(hash(query_.to_foreign_point(in)) % spend_buckets);
+                ++spend.at(hash(query_.to_spend_key(in)) % spend_buckets);
             }
         }
 
@@ -1072,113 +1069,113 @@ void executor::read_test() const
 ////        height % (unix_time() - start));
 ////}
 
-void executor::write_test()
-{
-    using namespace database;
-    constexpr size_t block_frequency = 10'000;
-    constexpr size_t point_frequency = 100'000;
-    constexpr size_t limit = 533'000;
-    const auto start = unix_time();
-
-    console(BN_OPERATION_INTERRUPT);
-    const auto maximum = std::min(limit, query_.header_records());
-    cached_points points{};
-
-    auto height = zero;
-    while (!cancel_ && (++height < maximum))
-    {
-        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
-        if (!query_.create_cached_points(points, link))
-        {
-            console("Failure: create_cached_points");
-            break;
-        }
-        else
-        {
-            if (is_zero(height % block_frequency))
-                console(format("create_cached_points" BN_WRITE_ROW) %
-                    height % (unix_time() - start));
-        }
-    }
-
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    console(format("create_cached_points blocks %1% inputs %2% in %3% secs.") %
-        height % points.size() % (unix_time() - start));
-
-    // ------------------------------------------------------------------------
-
-    code ec{};
-    auto count = zero;
-    header_link link{ 0u };
-
-    for (const auto& point: points)
-    {
-        if (cancel_) break;
-        height = point.height;
-
-        while (link < height)
-        {
-            if (!query_.set_strong((link = add1(link.value))))
-            {
-                console("Failure: set_strong");
-                break;
-            }
-        }
-
-        ++count;
-        if ((ec = query_.point_confirmable(point)))
-        {
-            console(format("Failure: point_confirmable, %1%") % ec.message());
-            break;
-        }
-        else
-        {
-            if (is_zero(count % point_frequency))
-                console(format("point_confirmable" BN_WRITE_ROW) %
-                    count % (unix_time() - start));
-        }
-    }
-    
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-    
-    console(format("point_confirmable blocks %1% inputs %2% in %3% secs.") %
-        height % count % (unix_time() - start));
-}
-
 ////void executor::write_test()
 ////{
-////    constexpr auto hash251684 = base16_hash(
-////        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
-////    const auto link = query_.to_header(hash251684);
-////    if (link.is_terminal())
+////    using namespace database;
+////    constexpr size_t block_frequency = 10'000;
+////    constexpr size_t point_frequency = 100'000;
+////    constexpr size_t limit = 533'000;
+////    const auto start = unix_time();
+////
+////    console(BN_OPERATION_INTERRUPT);
+////    const auto maximum = std::min(limit, query_.header_records());
+////    cached_points points{};
+////
+////    auto height = zero;
+////    while (!cancel_ && (++height < maximum))
 ////    {
-////        console("link.is_terminal()");
-////        return;
+////        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
+////        if (!query_.create_cached_points(points, link))
+////        {
+////            console("Failure: create_cached_points");
+////            break;
+////        }
+////        else
+////        {
+////            if (is_zero(height % block_frequency))
+////                console(format("create_cached_points" BN_WRITE_ROW) %
+////                    height % (unix_time() - start));
+////        }
 ////    }
 ////
-////    if (query_.confirmed_records() != 251684u)
-////    {
-////        console("!query_.confirmed_records() != 251684u");
-////        return;
-////    }
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
 ////
-////    if (!query_.push_confirmed(link))
-////    {
-////        console("!query_.push_confirmed(link)");
-////        return;
-////    }
+////    console(format("create_cached_points blocks %1% inputs %2% in %3% secs.") %
+////        height % points.size() % (unix_time() - start));
 ////
-////    if (query_.confirmed_records() != 251685u)
-////    {
-////        console("!query_.confirmed_records() != 251685u");
-////        return;
-////    }
+////    // ------------------------------------------------------------------------
 ////
-////    console("Successfully confirmed block 251684.");
+////    code ec{};
+////    auto count = zero;
+////    header_link link{ 0u };
+////
+////    for (const auto& point: points)
+////    {
+////        if (cancel_) break;
+////        height = point.height;
+////
+////        while (link < height)
+////        {
+////            if (!query_.set_strong((link = add1(link.value))))
+////            {
+////                console("Failure: set_strong");
+////                break;
+////            }
+////        }
+////
+////        ++count;
+////        if ((ec = query_.point_confirmable(point)))
+////        {
+////            console(format("Failure: point_confirmable, %1%") % ec.message());
+////            break;
+////        }
+////        else
+////        {
+////            if (is_zero(count % point_frequency))
+////                console(format("point_confirmable" BN_WRITE_ROW) %
+////                    count % (unix_time() - start));
+////        }
+////    }
+////    
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////    
+////    console(format("point_confirmable blocks %1% inputs %2% in %3% secs.") %
+////        height % count % (unix_time() - start));
 ////}
+
+void executor::write_test()
+{
+    constexpr auto hash251684 = base16_hash(
+        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
+    const auto link = query_.to_header(hash251684);
+    if (link.is_terminal())
+    {
+        console("link.is_terminal()");
+        return;
+    }
+
+    if (query_.confirmed_records() != 251684u)
+    {
+        console("!query_.confirmed_records() != 251684u");
+        return;
+    }
+
+    if (!query_.push_confirmed(link))
+    {
+        console("!query_.push_confirmed(link)");
+        return;
+    }
+
+    if (query_.confirmed_records() != 251685u)
+    {
+        console("!query_.confirmed_records() != 251685u");
+        return;
+    }
+
+    console("Successfully confirmed block 251684.");
+}
 
 // Menu selection.
 // ----------------------------------------------------------------------------
@@ -1328,7 +1325,6 @@ bool executor::do_initchain()
         query_.txs_buckets() %
         query_.tx_buckets() %
         query_.point_buckets() %
-        query_.input_buckets() %
         query_.spend_buckets() %
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
@@ -1860,7 +1856,6 @@ bool executor::do_run()
         query_.txs_buckets() %
         query_.tx_buckets() %
         query_.point_buckets() %
-        query_.input_buckets() %
         query_.spend_buckets() %
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
