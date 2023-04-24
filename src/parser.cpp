@@ -63,53 +63,61 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // archive
 
+    // TODO: header_buckets = 524'493
     configured.database.header_buckets = 521'357;
-    configured.database.header_size = 75'857'492;
+    configured.database.header_size = 77'076'918;
     configured.database.header_rate = 5;
 
+    // TODO: txs_buckets = header_buckets
     configured.database.txs_buckets = 521'357;
-    configured.database.txs_size = 3'275'316'580;
+    configured.database.txs_size = 3'349'740'645;
     configured.database.txs_rate = 5;
 
+    // TODO: tx_buckets = 551'320'125
     configured.database.tx_buckets = 544'452'363;
-    configured.database.tx_size = 50'634'069'728;
+    configured.database.tx_size = 51'785'499'310;
     configured.database.tx_rate = 5;
 
+    // TODO: point_buckets = 546'188'501
     configured.database.point_buckets = 539'868'003;
-    configured.database.point_size = 29'152'872'144;
+    configured.database.point_size = 29'789'120'826;
     configured.database.point_rate = 5;
 
-    configured.database.input_size =  341'130'276'477;
+    configured.database.input_size = 333'399'116'115;
     configured.database.input_rate = 5;
 
-    configured.database.output_size = 81'899'650'592;
+    configured.database.output_size = 81'253'269'896;
     configured.database.output_rate = 5;
 
-    configured.database.puts_size = 22'299'936'405;
+    configured.database.puts_size = 22'825'494'737;
     configured.database.puts_rate = 5;
 
     // metadata
 
-    configured.database.candidate_size = 2'347'641;
+    configured.database.candidate_size = 2'383'822;
     configured.database.candidate_rate = 5;
 
-    configured.database.confirmed_size = 2'347'641;
+    configured.database.confirmed_size = 2'383'822;
     configured.database.confirmed_rate = 5;
 
+    // TODO: spend_buckets = 1'459'791'875
     configured.database.spend_buckets = 1'440'664'028;
-    configured.database.spend_size = 32'449'972'080;
+    configured.database.spend_size = 33'173'770'352;
     configured.database.spend_rate = 5;
 
+    // TODO: strong_tx_buckets = tx_buckets
     configured.database.strong_tx_buckets = 544'452'363;
-    configured.database.strong_tx_size = 8'993'402'022;
+    configured.database.strong_tx_size = 9'187'749'878;
     configured.database.strong_tx_rate = 5;
 
+    // TODO: validated_tx_buckets = tx_buckets
     configured.database.validated_tx_buckets = 544'452'363;
-    configured.database.validated_tx_size =  18'804'386'046;
+    configured.database.validated_tx_size = 18'992'429'906;
     configured.database.validated_tx_rate = 5;
 
+    // TODO: validated_bk_buckets = header_buckets
     configured.database.validated_bk_buckets = 521'357;
-    configured.database.validated_bk_size =  6'260'376;
+    configured.database.validated_bk_size = 6'322'979;
     configured.database.validated_bk_rate = 5;
 
     // optional
