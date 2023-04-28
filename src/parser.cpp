@@ -64,40 +64,40 @@ parser::parser(system::chain::selection context) NOEXCEPT
     // archive
 
     configured.database.header_buckets = 524'493;
-    configured.database.header_size = 77'076'918;
+    configured.database.header_size = 77'141'872;
     configured.database.header_rate = 5;
 
     configured.database.txs_buckets = 524'493;
-    configured.database.txs_size = 3'349'740'645;
+    configured.database.txs_size = 3'357'982'206;
     configured.database.txs_rate = 5;
 
     configured.database.tx_buckets = 551'320'125;
-    configured.database.tx_size = 51'785'499'310;
+    configured.database.tx_size = 51'913'129'453;
     configured.database.tx_rate = 5;
 
     configured.database.point_buckets = 546'188'501;
-    configured.database.point_size = 29'789'120'826;
+    configured.database.point_size = 2'984'0089'620;
     configured.database.point_rate = 5;
 
     configured.database.spend_buckets = 1'459'791'875;
-    configured.database.spend_size = 53'097'103'092;
+    configured.database.spend_size = 53'206'231'790;
     configured.database.spend_rate = 5;
 
-    configured.database.puts_size = 20'613'115'442;
+    configured.database.puts_size = 20'659'465'287;
     configured.database.puts_rate = 5;
 
-    configured.database.input_size = 300'213'426'682;
+    configured.database.input_size = 305'136'375'030;
     configured.database.input_rate = 5;
 
-    configured.database.output_size = 81'253'269'896;
+    configured.database.output_size = 81'451'591'673;
     configured.database.output_rate = 5;
 
     // metadata
 
-    configured.database.candidate_size = 2'383'822;
+    configured.database.candidate_size = 2'385'831;
     configured.database.candidate_rate = 5;
 
-    configured.database.confirmed_size = 2'383'822;
+    configured.database.confirmed_size = 2'385'831;
     configured.database.confirmed_rate = 5;
 
     configured.database.strong_tx_buckets = 551'320'125;
