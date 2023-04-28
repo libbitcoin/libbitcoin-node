@@ -61,11 +61,10 @@ namespace node {
     "   header   :%1%\n" \
     "   tx       :%2%\n" \
     "   point    :%3%\n" \
-    "   puts     :%4%\n" \
-    "   candidate:%5%\n" \
-    "   confirmed:%6%\n" \
-    "   spend    :%7%\n" \
-    "   strong_tx:%8%"
+    "   candidate:%4%\n" \
+    "   confirmed:%5%\n" \
+    "   spend    :%6%\n" \
+    "   strong_tx:%7%"
 #define BN_MEASURE_SIZES \
     "Body sizes...\n" \
     "   header   :%1%\n" \

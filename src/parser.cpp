@@ -63,34 +63,34 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // archive
 
-    // TODO: header_buckets = 524'493
-    configured.database.header_buckets = 521'357;
+    configured.database.header_buckets = 524'493;
     configured.database.header_size = 77'076'918;
     configured.database.header_rate = 5;
 
-    // TODO: txs_buckets = header_buckets
-    configured.database.txs_buckets = 521'357;
+    configured.database.txs_buckets = 524'493;
     configured.database.txs_size = 3'349'740'645;
     configured.database.txs_rate = 5;
 
-    // TODO: tx_buckets = 551'320'125
-    configured.database.tx_buckets = 544'452'363;
+    configured.database.tx_buckets = 551'320'125;
     configured.database.tx_size = 51'785'499'310;
     configured.database.tx_rate = 5;
 
-    // TODO: point_buckets = 546'188'501
-    configured.database.point_buckets = 539'868'003;
+    configured.database.point_buckets = 546'188'501;
     configured.database.point_size = 29'789'120'826;
     configured.database.point_rate = 5;
 
-    configured.database.input_size = 333'399'116'115;
+    configured.database.spend_buckets = 1'459'791'875;
+    configured.database.spend_size = 53'097'103'092;
+    configured.database.spend_rate = 5;
+
+    configured.database.puts_size = 20'613'115'442;
+    configured.database.puts_rate = 5;
+
+    configured.database.input_size = 300'213'426'682;
     configured.database.input_rate = 5;
 
     configured.database.output_size = 81'253'269'896;
     configured.database.output_rate = 5;
-
-    configured.database.puts_size = 22'825'494'737;
-    configured.database.puts_rate = 5;
 
     // metadata
 
@@ -100,23 +100,15 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.confirmed_size = 2'383'822;
     configured.database.confirmed_rate = 5;
 
-    // TODO: spend_buckets = 1'459'791'875
-    configured.database.spend_buckets = 1'440'664'028;
-    configured.database.spend_size = 33'173'770'352;
-    configured.database.spend_rate = 5;
-
-    // TODO: strong_tx_buckets = tx_buckets
-    configured.database.strong_tx_buckets = 544'452'363;
+    configured.database.strong_tx_buckets = 551'320'125;
     configured.database.strong_tx_size = 9'187'749'878;
     configured.database.strong_tx_rate = 5;
 
-    // TODO: validated_tx_buckets = tx_buckets
-    configured.database.validated_tx_buckets = 544'452'363;
+    configured.database.validated_tx_buckets = 551'320'125;
     configured.database.validated_tx_size = 18'992'429'906;
     configured.database.validated_tx_rate = 5;
 
-    // TODO: validated_bk_buckets = header_buckets
-    configured.database.validated_bk_buckets = 521'357;
+    configured.database.validated_bk_buckets = 524'493;
     configured.database.validated_bk_size = 6'322'979;
     configured.database.validated_bk_rate = 5;
 
@@ -619,12 +611,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.header_buckets",
         value<uint32_t>(&configured.database.header_buckets),
-        "The number of buckets in the header table head, defaults to '521357'."
+        "The number of buckets in the header table head, defaults to '524493'."
     )
     (
         "database.header_size",
         value<uint64_t>(&configured.database.header_size),
-        "The minimum allocation of the header table body, defaults to '75857492'."
+        "The minimum allocation of the header table body, defaults to '77076918'."
     )
     (
         "database.header_rate",
@@ -636,12 +628,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.txs_buckets",
         value<uint32_t>(&configured.database.txs_buckets),
-        "The number of buckets in the txs table head, defaults to '521357'."
+        "The number of buckets in the txs table head, defaults to '524493'."
     )
     (
         "database.txs_size",
         value<uint64_t>(&configured.database.txs_size),
-        "The minimum allocation of the txs table body, defaults to '3275316580'."
+        "The minimum allocation of the txs table body, defaults to '3349740645'."
     )
     (
         "database.txs_rate",
@@ -653,12 +645,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.tx_buckets",
         value<uint32_t>(&configured.database.tx_buckets),
-        "The number of buckets in the tx table head, defaults to '544452363'."
+        "The number of buckets in the tx table head, defaults to '551320125'."
     )
     (
         "database.tx_size",
         value<uint64_t>(&configured.database.tx_size),
-        "The minimum allocation of the tx table body, defaults to '50634069728'."
+        "The minimum allocation of the tx table body, defaults to '51785499310'."
     )
     (
         "database.tx_rate",
@@ -670,12 +662,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.point_buckets",
         value<uint32_t>(&configured.database.point_buckets),
-        "The number of buckets in the point table head, defaults to '539868003'."
+        "The number of buckets in the point table head, defaults to '546188501'."
     )
     (
         "database.point_size",
         value<uint64_t>(&configured.database.point_size),
-        "The minimum allocation of the point table body, defaults to '29152872144'."
+        "The minimum allocation of the point table body, defaults to '29789120826'."
     )
     (
         "database.point_rate",
@@ -683,11 +675,40 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the point table body, defaults to '5'."
     )
 
+    /* spend */
+    (
+        "database.spend_buckets",
+        value<uint32_t>(&configured.database.spend_buckets),
+        "The number of buckets in the spend table head, defaults to '1459791875'."
+    )
+    (
+        "database.spend_size",
+        value<uint64_t>(&configured.database.spend_size),
+        "The minimum allocation of the spend table body, defaults to '53097103092'."
+    )
+    (
+        "database.spend_rate",
+        value<uint16_t>(&configured.database.spend_rate),
+        "The percentage expansion of the spend table body, defaults to '5'."
+    )
+
+    /* puts */
+    (
+        "database.puts_size",
+        value<uint64_t>(&configured.database.puts_size),
+        "The minimum allocation of the puts table body, defaults to '20613115442'."
+    )
+    (
+        "database.puts_rate",
+        value<uint16_t>(&configured.database.puts_rate),
+        "The percentage expansion of the puts table body, defaults to '5'."
+    )
+
     /* input */
     (
         "database.input_size",
         value<uint64_t>(&configured.database.input_size),
-        "The minimum allocation of the input table body, defaults to '341130276477'."
+        "The minimum allocation of the input table body, defaults to '300213426682'."
     )
     (
         "database.input_rate",
@@ -699,7 +720,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.output_size",
         value<uint64_t>(&configured.database.output_size),
-        "The minimum allocation of the output table body, defaults to '81899650592'."
+        "The minimum allocation of the output table body, defaults to '81253269896'."
     )
     (
         "database.output_rate",
@@ -707,23 +728,11 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the output table body, defaults to '5'."
     )
 
-    /* puts */
-    (
-        "database.puts_size",
-        value<uint64_t>(&configured.database.puts_size),
-        "The minimum allocation of the puts table body, defaults to '22299936405'."
-    )
-    (
-        "database.puts_rate",
-        value<uint16_t>(&configured.database.puts_rate),
-        "The percentage expansion of the puts table body, defaults to '5'."
-    )
-
     /* candidate */
     (
         "database.candidate_size",
         value<uint64_t>(&configured.database.candidate_size),
-        "The minimum allocation of the candidate table body, defaults to '2347641'."
+        "The minimum allocation of the candidate table body, defaults to '2383822'."
     )
     (
         "database.candidate_rate",
@@ -735,7 +744,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.confirmed_size",
         value<uint64_t>(&configured.database.confirmed_size),
-        "The minimum allocation of the candidate table body, defaults to '2347641'."
+        "The minimum allocation of the candidate table body, defaults to '2383822'."
     )
     (
         "database.confirmed_rate",
@@ -743,33 +752,16 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the candidate table body, defaults to '5'."
     )
 
-    /* spend */
-    (
-        "database.spend_buckets",
-        value<uint32_t>(&configured.database.spend_buckets),
-        "The number of buckets in the spend table head, defaults to '1440664028'."
-    )
-    (
-        "database.spend_size",
-        value<uint64_t>(&configured.database.spend_size),
-        "The minimum allocation of the spend table body, defaults to '32449972080'."
-    )
-    (
-        "database.spend_rate",
-        value<uint16_t>(&configured.database.spend_rate),
-        "The percentage expansion of the spend table body, defaults to '5'."
-    )
-
     /* strong_tx */
     (
         "database.strong_tx_buckets",
         value<uint32_t>(&configured.database.strong_tx_buckets),
-        "The number of buckets in the strong_tx table head, defaults to '544452363'."
+        "The number of buckets in the strong_tx table head, defaults to '551320125'."
     )
     (
         "database.strong_tx_size",
         value<uint64_t>(&configured.database.strong_tx_size),
-        "The minimum allocation of the strong_tx table body, defaults to '8993402022'."
+        "The minimum allocation of the strong_tx table body, defaults to '9187749878'."
     )
     (
         "database.strong_tx_rate",
@@ -781,12 +773,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_tx_buckets",
         value<uint32_t>(&configured.database.validated_tx_buckets),
-        "The number of buckets in the validated_tx table head, defaults to '544452363'."
+        "The number of buckets in the validated_tx table head, defaults to '551320125'."
     )
     (
         "database.validated_tx_size",
         value<uint64_t>(&configured.database.validated_tx_size),
-        "The minimum allocation of the validated_tx table body, defaults to '18804386046'."
+        "The minimum allocation of the validated_tx table body, defaults to '18992429906'."
     )
     (
         "database.validated_tx_rate",
@@ -798,12 +790,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_buckets",
         value<uint32_t>(&configured.database.validated_bk_buckets),
-        "The number of buckets in the validated_bk table head, defaults to '521357'."
+        "The number of buckets in the validated_bk table head, defaults to '524493'."
     )
     (
         "database.validated_bk_size",
         value<uint64_t>(&configured.database.validated_bk_size),
-        "The minimum allocation of the validated_bk table body, defaults to '6260376'."
+        "The minimum allocation of the validated_bk table body, defaults to '6322979'."
     )
     (
         "database.validated_bk_rate",
