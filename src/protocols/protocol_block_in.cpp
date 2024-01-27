@@ -205,11 +205,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
 
     auto& query = archive();
-    const auto state = state_->context();
+    const auto context = state_->context();
     
     // hack in bit0 late and bit1(segwit) on schedule.
-    //// state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
-    const auto link = query.set_link(block, state);
+    //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+    const auto link = query.set_link(block, context);
     if (link.is_terminal())
     {
         // This should only be from missing parent, but guarded above.
@@ -228,7 +228,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////    return false;
     ////}
 
-    ////error = block.check(state);
+    ////error = block.check(context);
     ////if (error)
     ////{
     ////    LOGR("Invalid block (check2) [" << encode_hash(hash)
@@ -237,7 +237,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////    return false;
     ////}
 
-    ////error = block.accept(state, coin.subsidy_interval_blocks,
+    ////error = block.accept(context, coin.subsidy_interval_blocks,
     ////    coin.initial_subsidy());
     ////if (error)
     ////{
@@ -247,7 +247,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////    return false;
     ////}
 
-    ////error = block.connect(state);
+    ////error = block.connect(context);
     ////if (error)
     ////{
     ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
@@ -270,11 +270,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     }
 
     // Size will be incorrect with multiple peers or headers protocol.
-    if (is_zero(state.height % 10'000))
+    if (is_zero(context.height % 10'000))
     {
-        ////reporter::fire(event_block, state.height);
+        ////reporter::fire(event_block, context.height);
         ////reporter::fire(event_archive, query.archive_size());
-        LOGN("BLOCK: " << state.height
+        LOGN("BLOCK: " << context.height
             << " secs: " << (unix_time() - start_)
             << " txs: " << query.tx_records()
             << " archive: " << query.archive_size());
