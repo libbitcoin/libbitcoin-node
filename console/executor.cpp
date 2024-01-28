@@ -38,10 +38,10 @@ namespace node {
 
 using boost::format;
 using system::config::printer;
-using namespace system;
 using namespace network;
-using namespace std::placeholders;
+using namespace system;
 using namespace std::chrono;
+using namespace std::placeholders;
 
 // const executor statics
 const std::string executor::quit_{ "q" };
