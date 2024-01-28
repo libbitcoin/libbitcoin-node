@@ -95,15 +95,15 @@ private:
     static std::atomic_bool cancel_;
 
     parser& metadata_;
+    full_node::ptr node_{};
     full_node::store store_;
     full_node::query query_;
     std::promise<system::code> stopped_{};
-    full_node::ptr node_{};
 
     std::istream& input_;
     std::ostream& output_;
     network::logger log_{};
-    network::capture cap_{ input_, quit_ };
+    network::capture capture_{ input_, quit_ };
     std_array<std::atomic_bool, logs> toggle_
     {
         true,  // application

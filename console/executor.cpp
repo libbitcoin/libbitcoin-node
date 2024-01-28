@@ -187,7 +187,7 @@ void executor::console(const auto& message) const
 
 void executor::stopper(const auto& message)
 {
-    cap_.stop();
+    capture_.stop();
     log_.stop(message, levels::application);
     stopped_.get_future().wait();
 }
@@ -1598,7 +1598,7 @@ void executor::subscribe_events(std::ostream& sink)
 
 void executor::subscribe_capture()
 {
-    cap_.subscribe([&](const code& ec, const std::string& line)
+    capture_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto token = system::trim_copy(line);
         if (!keys_.contains(token))
@@ -1738,7 +1738,7 @@ bool executor::do_run()
     }
 
     logger(BN_NODE_INTERRUPT);
-    cap_.start();
+    capture_.start();
 
     // Open store.
     logger(BN_STORE_STARTING);
