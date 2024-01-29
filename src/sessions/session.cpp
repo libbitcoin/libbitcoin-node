@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/sessions/session.hpp>
 
+#include <utility>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -28,6 +29,17 @@ namespace node {
 session::session(full_node& node) NOEXCEPT
   : node_(node)
 {
+}
+
+void session::subscribe_poll(uint64_t key,
+    full_node::poll_notifier&& handler) const NOEXCEPT
+{
+    node_.subscribe_poll(key, std::move(handler));
+}
+
+void session::unsubscribe_poll(uint64_t key) const NOEXCEPT
+{
+    node_.unsubscribe_poll(key);
 }
 
 const configuration& session::config() const NOEXCEPT

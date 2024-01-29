@@ -23,6 +23,7 @@
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
+#include <bitcoin/node/chasers/block_chaser.hpp>
 #include <bitcoin/node/protocols/mixin.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>

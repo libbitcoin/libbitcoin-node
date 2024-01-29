@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
+#include <cmath>
 #include <utility>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
@@ -46,7 +47,7 @@ BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Start.
+// Start/stop.
 // ----------------------------------------------------------------------------
 
 void protocol_block_in::start() NOEXCEPT
@@ -65,10 +66,47 @@ void protocol_block_in::start() NOEXCEPT
         return;
     }
 
+    // Subscription completion is lazy, but will complete before unsubscribe.
+    subscribe_poll(BIND2(handle_poll, _1, _2));
+
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
     SEND1(create_get_inventory(), handle_send, _1);
     protocol::start();
+}
+
+void protocol_block_in::stopping(const code& ec) NOEXCEPT
+{
+    unsubscribe_poll();
+    protocol::stopping(ec);
+}
+
+// Performance polling.
+// ----------------------------------------------------------------------------
+
+////bool protocol_block_in::get_rate(size_t& bytes) NOEXCEPT
+////{
+////    const auto cold = (bytes_ == max_size_t);
+////    bytes = bytes_.exchange(zero);
+////    return !cold;
+////}
+
+bool protocol_block_in::handle_poll(const code& ec, size_t) NOEXCEPT
+{
+    if (ec == network::error::desubscribed ||
+        ec == network::error::service_stopped)
+        return false;
+
+    if (ec)
+    {
+        LOGF("Handle poll error, " << ec.message());
+        return false;
+    }
+
+    // TODO: return bytes or stop channel.
+
+    // This is running in the network (not channel) strand.
+    return true;
 }
 
 // Inbound (blocks).
@@ -144,6 +182,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     if (stopped(ec))
         return false;
+
+    bytes_ += message->cached_size;
 
     if (tracker->hashes.empty())
     {

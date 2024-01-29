@@ -250,6 +250,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/full_node.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
+    "../../src/chasers/block_chaser.cpp"
     "../../src/protocols/protocol.cpp"
     "../../src/protocols/protocol_block_in.cpp"
     "../../src/protocols/protocol_block_out.cpp"

@@ -43,6 +43,12 @@ protected:
     {
     }
 
+    /// Subscribe to performance polling.
+    void subscribe_poll(full_node::poll_notifier&& handler) const NOEXCEPT;
+
+    /// Unsubscribe from performance polling.
+    void unsubscribe_poll() const NOEXCEPT;
+
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 

@@ -42,6 +42,9 @@ enum error_t : uint8_t
     // database
     store_uninitialized,
 
+    // network
+    slow_channel,
+
     // blockchain
     orphan_block,
     insufficient_work,

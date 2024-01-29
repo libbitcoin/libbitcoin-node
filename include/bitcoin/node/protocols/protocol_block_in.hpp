@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 
+#include <atomic>
 #include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -45,8 +46,9 @@ public:
     {
     }
 
-    /// Start protocol (strand required).
+    /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
     struct track
@@ -67,6 +69,9 @@ protected:
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
 
+    /// Handle performance poll notification.
+    virtual bool handle_poll(const code& ec, size_t) NOEXCEPT;
+
 protected:
     /// Invoked when initial blocks sync is current.
     virtual void current() NOEXCEPT;
@@ -83,6 +88,7 @@ private:
 
     // Thread safe.
     const network::messages::inventory::type_id block_type_;
+    std::atomic<size_t> bytes_{ max_size_t };
 
     // Protected by strand.
     uint32_t start_{};

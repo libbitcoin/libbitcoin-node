@@ -40,6 +40,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
+    src/chasers/block_chaser.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_block_in.cpp \
     src/protocols/protocol_block_out.cpp \
@@ -103,6 +104,10 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
+
+include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers
+include_bitcoin_node_chasers_HEADERS = \
+    include/bitcoin/node/chasers/block_chaser.hpp
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \

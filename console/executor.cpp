@@ -665,7 +665,7 @@ void executor::read_test() const
     using namespace database;
     constexpr auto frequency = 100'000u;
     const auto start = unix_time();
-    auto tx = 792'854'831_size;
+    auto tx = 664'400'000_size;
 
     // Read all data except genesis (ie. for validation).
     while (!cancel_ && (++tx < query_.tx_records()))
@@ -918,11 +918,11 @@ void executor::read_test() const
 ////}
 ////
 
-// arbitrary testing (non-const).
-void executor::write_test()
-{
-    console("No write test implemented.");
-}
+////// arbitrary testing (non-const).
+////void executor::write_test()
+////{
+////    console("No write test implemented.");
+////}
 
 ////void executor::write_test()
 ////{
@@ -937,6 +937,12 @@ void executor::write_test()
 ////    {
 ////        // Assumes height is header link.
 ////        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
+////
+////        if (!query_.push_confirmed(link))
+////        {
+////            console("!query_.push_confirmed(link)");
+////            return;
+////        }
 ////
 ////        if (!query_.push_candidate(link))
 ////        {
@@ -956,71 +962,72 @@ void executor::write_test()
 ////        height % (fine_clock::now() - start1).count());
 ////}
 
-////void executor::write_test()
-////{
-////    using namespace database;
-////    ////constexpr uint64_t fees = 99;
-////    constexpr auto frequency = 10'000;
-////    const auto start = unix_time();
-////    code ec{};
-////
-////    console(BN_OPERATION_INTERRUPT);
-////
-////    auto height = zero;//// query_.get_top_confirmed();
-////    while (!cancel_ && (++height < query_.header_records()))
-////    {
-////        // Assumes height is header link.
-////        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
-////
-////        if (!query_.set_strong(link))
-////        {
-////            // total sequential chain cost: 18.7 min (now 6.6).
-////            console("Failure: set_strong");
-////            break;
-////        }
-////        else if ((ec = query_.block_confirmable(link)))
-////        {
-////            // must set_strong before each (no push, verifies non-use).
-////            console(format("Failure: block_confirmable, %1%") % ec.message());
-////            break;
-////        }
-////        ////if (!query_.set_txs_connected(link))
-////        ////{
-////        ////    // total sequential chain cost: 21 min.
-////        ////    console("Failure: set_txs_connected");
-////        ////    break;
-////        ////}
-////        ////if (!query_.set_block_confirmable(link, fees))
-////        ////{
-////        ////    // total chain cost: 1 sec.
-////        ////    console("Failure: set_block_confirmable");
-////        ////    break;
-////        ////    break;
-////        ////}
-////        ////else if (!query_.push_candidate(link))
-////        ////{
-////        ////    // total chain cost: 1 sec.
-////        ////    console("Failure: push_candidate");
-////        ////    break;
-////        ////}
-////        ////else if (!query_.push_confirmed(link))
-////        ////{
-////        ////    // total chain cost: 1 sec.
-////        ////    console("Failure: push_confirmed");
-////        ////    break;
-////        ////}
-////
-////        if (is_zero(height % frequency))
-////            console(format("block" BN_WRITE_ROW) %
-////                height % (unix_time() - start));
-////    }
-////    
-////    if (cancel_)
-////        console(BN_OPERATION_CANCELED);
-////    
-////    console(format("block" BN_WRITE_ROW) %
-////        height % (unix_time() - start));
-////}
+void executor::write_test()
+{
+    using namespace database;
+    ////constexpr uint64_t fees = 99;
+    constexpr auto frequency = 10'000;
+    const auto start = unix_time();
+    code ec{};
+
+    console(BN_OPERATION_INTERRUPT);
+
+    auto height = zero;//// query_.get_top_confirmed();
+    const auto records = query_.header_records();
+    while (!cancel_ && (++height < records))
+    {
+        // Assumes height is header link.
+        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
+
+        if (!query_.set_strong(link))
+        {
+            // total sequential chain cost: 18.7 min (now 6.6).
+            console("Failure: set_strong");
+            break;
+        }
+        else if ((ec = query_.block_confirmable(link)))
+        {
+            // must set_strong before each (no push, verifies non-use).
+            console(format("Failure: block_confirmable, %1%") % ec.message());
+            break;
+        }
+        ////if (!query_.set_txs_connected(link))
+        ////{
+        ////    // total sequential chain cost: 21 min.
+        ////    console("Failure: set_txs_connected");
+        ////    break;
+        ////}
+        ////if (!query_.set_block_confirmable(link, fees))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    console("Failure: set_block_confirmable");
+        ////    break;
+        ////    break;
+        ////}
+        ////else if (!query_.push_candidate(link))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    console("Failure: push_candidate");
+        ////    break;
+        ////}
+        ////else if (!query_.push_confirmed(link))
+        ////{
+        ////    // total chain cost: 1 sec.
+        ////    console("Failure: push_confirmed");
+        ////    break;
+        ////}
+
+        if (is_zero(height % frequency))
+            console(format("block" BN_WRITE_ROW) %
+                height % (unix_time() - start));
+    }
+    
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+    
+    console(format("block" BN_WRITE_ROW) %
+        height % (unix_time() - start));
+}
 
 ////void executor::write_test()
 ////{
