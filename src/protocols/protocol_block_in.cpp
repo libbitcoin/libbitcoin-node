@@ -155,16 +155,17 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     const auto& coin = config().bitcoin;
     const auto hash = block.hash();
 
-    // May not have been announced (ie miner broadcast) or different inv.
+    // May not have been announced (miner broadcast) or different inv.
     if (tracker->hashes.back() != hash)
         return true;
 
+    // Out of order (orphan).
     if (block.header().previous_block_hash() != state_->hash())
     {
-        // Out of order or invalid.
+        // Announcements are assumed to be small in number.
         if (tracker->announced > maximum_advertisement)
         {
-            // Treat orphan from larger-than-announce as invalid inventory.
+            // Treat as invalid inventory.
             LOGR("Orphan block inventory ["
                 << encode_hash(message->block_ptr->hash()) << "] from ["
                 << authority() << "].");
@@ -173,7 +174,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
         else
         {
-            // Unlike headers, block announcements may come before caught-up.
+            // Block announcements may come before caught-up.
             LOGP("Orphan block announcement ["
                 << encode_hash(message->block_ptr->hash())
                 << "] from [" << authority() << "].");
@@ -181,15 +182,14 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
     }
 
-    ////auto error = block.check();
-    ////if (error)
-    ////{
-    ////    // assume announced.
-    ////    LOGR("Invalid block (check1) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
+    auto error = block.check();
+    if (error)
+    {
+        LOGR("Invalid block (check) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        stop(network::error::protocol_violation);
+        return false;
+    }
 
     // Rolling forward chain_state eliminates database cost.
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -211,50 +211,45 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    ////// Block must be archived for full populate (no DoS protect).
-    ////if (!query.populate(block))
-    ////{
-    ////    LOGR("Invalid block (populate) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "].");
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
+    // Block must be archived for populate.
+    if (!query.populate(block))
+    {
+        // Invalid block is archived.
+        LOGR("Invalid block (populate) [" << encode_hash(hash)
+            << "] from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
 
-    ////error = block.check(context);
-    ////if (error)
-    ////{
-    ////    LOGR("Invalid block (check2) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
+    error = block.accept(context, coin.subsidy_interval_blocks,
+        coin.initial_subsidy());
+    if (error)
+    {
+        // Invalid block is archived.
+        LOGR("Invalid block (accept) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        stop(network::error::protocol_violation);
+        return false;
+    }
 
-    ////error = block.accept(context, coin.subsidy_interval_blocks,
-    ////    coin.initial_subsidy());
-    ////if (error)
-    ////{
-    ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-
-    ////error = block.connect(context);
-    ////if (error)
-    ////{
-    ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
+    error = block.connect(context);
+    if (error)
+    {
+        // Invalid block is archived.
+        LOGR("Invalid block (connect) [" << encode_hash(hash)
+            << "] from [" << authority() << "] " << error.message());
+        stop(network::error::protocol_violation);
+        return false;
+    }
 
     // If populate, accept, or connect fail this is bypassed and a restart will
     // initialize state_ at the prior block as top. But this block exists, so
     // it will be skipped for download. This results in the next being orphaned
     // following the channel stop/start or any subsequent runs on the store.
-    // This is the job of the confirmation chaser.
+    // This is the job of the confirmation chaser (todo).
     if (!query.push_confirmed(link))
     {
+        // Invalid block is archived.
         LOGF("Push confirmed error [" << encode_hash(hash)
             << "] from [" << authority() << "].");
         stop(network::error::unknown);
@@ -305,7 +300,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 // The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_block_in::current() NOEXCEPT
 {
-    reporter::fire(event_current_blocks, state_->height());
+    ////reporter::fire(event_current_blocks, state_->height());
     LOGN("Blocks from [" << authority() << "] complete at ("
         << state_->height() << ").");
 }
