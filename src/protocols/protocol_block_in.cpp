@@ -202,7 +202,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////}
 
     // Rolling forward chain_state eliminates database cost.
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
+    BC_POP_WARNING()
 
     auto& query = archive();
     const auto context = state_->context();
