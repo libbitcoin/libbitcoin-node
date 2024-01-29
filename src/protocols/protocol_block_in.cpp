@@ -191,16 +191,6 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////    return false;
     ////}
 
-    ////// TODO: only in header.
-    ////if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
-    ////    add1(state_->height())))
-    ////{
-    ////    LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "].");
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-
     // Rolling forward chain_state eliminates database cost.
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
