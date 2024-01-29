@@ -132,12 +132,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // hack in bit0 late and bit1(segwit) on schedule.
+        // TODO: ensure soft forks activated in chain_state.
         //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
         const auto link = query.set_link(header, context);
         if (link.is_terminal())
         {
-            // This should only be from missing parent, but guarded above.
+            // Should only be from missing parent, and that's guarded above.
             LOGF("Store header error [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
             stop(network::error::unknown);
