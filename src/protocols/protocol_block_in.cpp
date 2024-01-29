@@ -201,6 +201,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     
     // TODO: ensure soft forks activated in chain_state.
     //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+
     const auto link = query.set_link(block, context);
     if (link.is_terminal())
     {
@@ -211,53 +212,53 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // Block must be archived for populate.
-    if (!query.populate(block))
-    {
-        // Invalid block is archived.
-        LOGR("Invalid block (populate) [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////// Block must be archived for populate.
+    ////if (!query.populate(block))
+    ////{
+    ////    // Invalid block is archived.
+    ////    LOGR("Invalid block (populate) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "].");
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
-    error = block.accept(context, coin.subsidy_interval_blocks,
-        coin.initial_subsidy());
-    if (error)
-    {
-        // Invalid block is archived.
-        LOGR("Invalid block (accept) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////error = block.accept(context, coin.subsidy_interval_blocks,
+    ////    coin.initial_subsidy());
+    ////if (error)
+    ////{
+    ////    // Invalid block is archived.
+    ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "] " << error.message());
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
-    error = block.connect(context);
-    if (error)
-    {
-        // Invalid block is archived.
-        LOGR("Invalid block (connect) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////error = block.connect(context);
+    ////if (error)
+    ////{
+    ////    // Invalid block is archived.
+    ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "] " << error.message());
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
-    // If populate, accept, or connect fail this is bypassed and a restart will
-    // initialize state_ at the prior block as top. But this block exists, so
-    // it will be skipped for download. This results in the next being orphaned
-    // following the channel stop/start or any subsequent runs on the store.
-    // This is the job of the confirmation chaser (todo).
-    if (!query.push_confirmed(link))
-    {
-        // Invalid block is archived.
-        LOGF("Push confirmed error [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::unknown);
-        return false;
-    }
+    ////// If populate, accept, or connect fail this is bypassed and a restart will
+    ////// initialize state_ at the prior block as top. But this block exists, so
+    ////// it will be skipped for download. This results in the next being orphaned
+    ////// following the channel stop/start or any subsequent runs on the store.
+    ////// This is the job of the confirmation chaser (todo).
+    ////if (!query.push_confirmed(link))
+    ////{
+    ////    // Invalid block is archived.
+    ////    LOGF("Push confirmed error [" << encode_hash(hash)
+    ////        << "] from [" << authority() << "].");
+    ////    stop(network::error::unknown);
+    ////    return false;
+    ////}
 
     // Size will be incorrect with multiple peers or headers protocol.
-    if (is_zero(context.height % 10'000))
+    if (is_zero(context.height % 1'000))
     {
         ////reporter::fire(event_block, context.height);
         ////reporter::fire(event_archive, query.archive_size());

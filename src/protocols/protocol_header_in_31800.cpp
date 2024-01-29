@@ -134,6 +134,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 
         // TODO: ensure soft forks activated in chain_state.
         //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+
         const auto link = query.set_link(header, context);
         if (link.is_terminal())
         {
@@ -153,8 +154,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        if (is_zero(context.height % 10'000))
-            reporter::fire(event_header, context.height);
+        ////if (is_zero(context.height % 10'000))
+        ////    reporter::fire(event_header, context.height);
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -176,7 +177,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_header_in_31800::current() NOEXCEPT
 {
-    reporter::fire(event_current_headers, state_->height());
+    ////reporter::fire(event_current_headers, state_->height());
     LOGN("Headers from [" << authority() << "] complete at ("
         << state_->height() << ").");
 }
