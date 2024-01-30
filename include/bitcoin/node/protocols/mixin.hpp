@@ -68,6 +68,7 @@ protected:
         Session::attach_protocols(channel);
 
         auto& self = *this;
+        constexpr auto performance = true;
         ////const auto version = channel->negotiated_version();
         ////
         ////if (version >= network::messages::level::bip130)
@@ -81,7 +82,8 @@ protected:
         ////    channel->attach<protocol_header_out_31800>(self)->start();
         ////}
 
-        channel->attach<protocol_block_in>(self)->start();
+        // TODO: limit this to session_outbound through derivation.
+        channel->attach<protocol_block_in>(self, performance)->start();
         ////channel->attach<protocol_block_out>(self)->start();
         ////channel->attach<protocol_transaction_in>(self)->start();
         ////channel->attach<protocol_transaction_out>(self)->start();

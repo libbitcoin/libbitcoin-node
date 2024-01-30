@@ -26,14 +26,9 @@
 namespace libbitcoin {
 namespace node {
 
-void protocol::subscribe_poll(full_node::poll_notifier&& handler) const NOEXCEPT
+bool protocol::performance(size_t) const NOEXCEPT
 {
-    session_.subscribe_poll(identifier(), std::move(handler));
-}
-
-void protocol::unsubscribe_poll() const NOEXCEPT
-{
-    session_.unsubscribe_poll(identifier());
+    return true;
 }
 
 const configuration& protocol::config() const NOEXCEPT

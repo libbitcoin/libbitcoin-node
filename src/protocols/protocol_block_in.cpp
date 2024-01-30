@@ -24,6 +24,7 @@
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/error.hpp>
 
 // The block protocol is partially obsoleted by the headers protocol.
 // Both block and header protocols conflate iterative requests and unsolicited
@@ -47,6 +48,33 @@ BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// Performance polling.
+// ----------------------------------------------------------------------------
+
+void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+
+    if (stopped() || ec == network::error::operation_canceled)
+        return;
+
+    if (ec)
+    {
+        LOGF("Performance timer error, " << ec.message());
+        return;
+    }
+
+    if (!performance(bytes_))
+    {
+        stop(error::slow_channel);
+        return;
+    };
+
+    log.fire(event_block, bytes_);
+    bytes_ = zero;
+    performance_timer_->start(BIND1(handle_performance, _1));
+}
+
 // Start/stop.
 // ----------------------------------------------------------------------------
 
@@ -66,8 +94,8 @@ void protocol_block_in::start() NOEXCEPT
         return;
     }
 
-    // Subscription completion is lazy, but will complete before unsubscribe.
-    subscribe_poll(BIND2(handle_poll, _1, _2));
+    if (report_performance_)
+        performance_timer_->start(BIND1(handle_performance, _1));
 
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
@@ -77,37 +105,9 @@ void protocol_block_in::start() NOEXCEPT
 
 void protocol_block_in::stopping(const code& ec) NOEXCEPT
 {
-    unsubscribe_poll();
+    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    performance_timer_->stop();
     protocol::stopping(ec);
-}
-
-// Performance polling.
-// ----------------------------------------------------------------------------
-
-// Cold until first poll so that will have full interval.
-////bool protocol_block_in::get_rate(size_t& bytes) NOEXCEPT
-////{
-////    const auto cold = (bytes_ == max_size_t);
-////    bytes = bytes_.exchange(zero);
-////    return !cold;
-////}
-
-bool protocol_block_in::handle_poll(const code& ec, size_t) NOEXCEPT
-{
-    if (ec == network::error::desubscribed ||
-        ec == network::error::service_stopped)
-        return false;
-
-    if (ec)
-    {
-        LOGF("Handle poll error, " << ec.message());
-        return false;
-    }
-
-    // TODO: return bytes or stop channel.
-
-    // This is running in the network (not channel) strand.
-    return true;
 }
 
 // Inbound (blocks).
@@ -235,80 +235,80 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
     BC_POP_WARNING()
 
-    auto& query = archive();
-    const auto context = state_->context();
-    
-    // TODO: ensure soft forks activated in chain_state.
-    //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+    ////auto& query = archive();
+    ////const auto context = state_->context();
+    ////
+    ////// TODO: ensure soft forks activated in chain_state.
+    //////// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
 
-    const auto link = query.set_link(block, context);
-    if (link.is_terminal())
-    {
-        // Should only be from missing parent, and that's guarded above.
-        LOGF("Store block error [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::unknown);
-        return false;
-    }
-
-    ////// Block must be archived for populate.
-    ////if (!query.populate(block))
+    ////const auto link = query.set_link(block, context);
+    ////if (link.is_terminal())
     ////{
-    ////    // Invalid block is archived.
-    ////    LOGR("Invalid block (populate) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "].");
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-
-    ////error = block.accept(context, coin.subsidy_interval_blocks,
-    ////    coin.initial_subsidy());
-    ////if (error)
-    ////{
-    ////    // Invalid block is archived.
-    ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-
-    ////error = block.connect(context);
-    ////if (error)
-    ////{
-    ////    // Invalid block is archived.
-    ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-
-    ////// If populate, accept, or connect fail this is bypassed and a restart will
-    ////// initialize state_ at the prior block as top. But this block exists, so
-    ////// it will be skipped for download. This results in the next being orphaned
-    ////// following the channel stop/start or any subsequent runs on the store.
-    ////// This is the job of the confirmation chaser (todo).
-    ////if (!query.push_confirmed(link))
-    ////{
-    ////    // Invalid block is archived.
-    ////    LOGF("Push confirmed error [" << encode_hash(hash)
+    ////    // Should only be from missing parent, and that's guarded above.
+    ////    LOGF("Store block error [" << encode_hash(hash)
     ////        << "] from [" << authority() << "].");
     ////    stop(network::error::unknown);
     ////    return false;
     ////}
 
-    // Size will be incorrect with multiple peers or headers protocol.
-    if (is_zero(context.height % 1'000))
-    {
-        ////reporter::fire(event_block, context.height);
-        ////reporter::fire(event_archive, query.archive_size());
-        LOGN("BLOCK: " << context.height
-            << " secs: " << (unix_time() - start_)
-            << " txs: " << query.tx_records()
-            << " archive: " << query.archive_size());
-    }
+    ////////// Block must be archived for populate.
+    ////////if (!query.populate(block))
+    ////////{
+    ////////    // Invalid block is archived.
+    ////////    LOGR("Invalid block (populate) [" << encode_hash(hash)
+    ////////        << "] from [" << authority() << "].");
+    ////////    stop(network::error::protocol_violation);
+    ////////    return false;
+    ////////}
 
-    LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
-        << authority() << "].");
+    ////////error = block.accept(context, coin.subsidy_interval_blocks,
+    ////////    coin.initial_subsidy());
+    ////////if (error)
+    ////////{
+    ////////    // Invalid block is archived.
+    ////////    LOGR("Invalid block (accept) [" << encode_hash(hash)
+    ////////        << "] from [" << authority() << "] " << error.message());
+    ////////    stop(network::error::protocol_violation);
+    ////////    return false;
+    ////////}
+
+    ////////error = block.connect(context);
+    ////////if (error)
+    ////////{
+    ////////    // Invalid block is archived.
+    ////////    LOGR("Invalid block (connect) [" << encode_hash(hash)
+    ////////        << "] from [" << authority() << "] " << error.message());
+    ////////    stop(network::error::protocol_violation);
+    ////////    return false;
+    ////////}
+
+    ////////// If populate, accept, or connect fail this is bypassed and a restart will
+    ////////// initialize state_ at the prior block as top. But this block exists, so
+    ////////// it will be skipped for download. This results in the next being orphaned
+    ////////// following the channel stop/start or any subsequent runs on the store.
+    ////////// This is the job of the confirmation chaser (todo).
+    ////////if (!query.push_confirmed(link))
+    ////////{
+    ////////    // Invalid block is archived.
+    ////////    LOGF("Push confirmed error [" << encode_hash(hash)
+    ////////        << "] from [" << authority() << "].");
+    ////////    stop(network::error::unknown);
+    ////////    return false;
+    ////////}
+
+    ////// Size will be incorrect with multiple peers or headers protocol.
+    ////if (is_zero(context.height % 1'000))
+    ////{
+    ////    ////reporter::fire(event_block, context.height);
+    ////    ////reporter::fire(event_archive, query.archive_size());
+    ////    LOGN("BLOCK: " << context.height
+    ////        << " secs: " << (unix_time() - start_)
+    ////        << " txs: " << query.tx_records()
+    ////        << " archive: " << query.archive_size());
+    ////}
+
+    ////LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
+    ////    << authority() << "].");
 
     // Accumulate byte count.
     bytes_ += message->cached_size;

@@ -19,7 +19,8 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 
-#include <atomic>
+#include <chrono>
+#include <memory>
 #include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -38,11 +39,14 @@ public:
 
     template <typename Session>
     protocol_block_in(Session& session,
-        const channel_ptr& channel) NOEXCEPT
+        const channel_ptr& channel, bool report_performance) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_block_in>(session.log),
+        report_performance_(report_performance),
         block_type_(session.config().network.witness_node() ?
-            type_id::witness_block : type_id::block)
+            type_id::witness_block : type_id::block),
+        performance_timer_(std::make_shared<network::deadline>(
+            session.log, channel->strand(), std::chrono::seconds(10)))
     {
     }
 
@@ -69,10 +73,9 @@ protected:
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
 
-    /// Handle performance poll notification.
-    virtual bool handle_poll(const code& ec, size_t) NOEXCEPT;
+    /// Handle performance timer event.
+    virtual void handle_performance(const code& ec) NOEXCEPT;
 
-protected:
     /// Invoked when initial blocks sync is current.
     virtual void current() NOEXCEPT;
 
@@ -87,12 +90,14 @@ private:
         const network::messages::inventory& message) const NOEXCEPT;
 
     // Thread safe.
+    const bool report_performance_;
     const network::messages::inventory::type_id block_type_;
-    std::atomic<size_t> bytes_{ max_size_t };
 
     // Protected by strand.
     uint32_t start_{};
+    size_t bytes_{ zero };
     system::chain::chain_state::ptr state_{};
+    network::deadline::ptr performance_timer_;
 };
 
 } // namespace node

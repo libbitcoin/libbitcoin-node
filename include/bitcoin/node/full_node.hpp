@@ -39,8 +39,6 @@ public:
 
     // TODO: set arguments.
     typedef network::desubscriber<object_key, size_t> poll_subscriber;
-    typedef poll_subscriber::handler poll_notifier;
-    typedef poll_subscriber::completer poll_completer;
 
     /// Constructors.
     /// -----------------------------------------------------------------------
@@ -57,17 +55,6 @@ public:
 
     /// Run the node (inbound and outbound services).
     ////void run(network::result_handler&& handler) NOEXCEPT override;
-
-    /// Subscriptions.
-    /// -----------------------------------------------------------------------
-
-    /// Subscribe to performance polling.
-    /// A call after close invokes handlers with error::subscriber_stopped.
-    virtual void subscribe_poll(object_key key,
-        poll_notifier&& handler) NOEXCEPT;
-
-    /// Unsubscribe by subscription key, error::desubscribed passed to handler.
-    virtual void unsubscribe_poll(object_key key) NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -89,19 +76,9 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
-    void poll(const code& ec) NOEXCEPT;
-
-    void do_unsubscribe_poll(object_key key) NOEXCEPT;
-    void do_subscribe_poll(object_key key,
-        const poll_notifier& handler) NOEXCEPT;
-
     // These are thread safe.
     const configuration& config_;
     query& query_;
-
-    // These are protected by strand.
-    poll_subscriber poll_subscriber_;
-    network::deadline::ptr poll_timer_;
 };
 
 } // namespace node
