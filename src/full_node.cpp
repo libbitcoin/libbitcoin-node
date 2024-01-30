@@ -58,6 +58,7 @@ void full_node::start(result_handler&& handler) NOEXCEPT
     p2p::start(std::move(handler));
 }
 
+// Base (p2p) invokes do_run() override.
 ////void full_node::run(result_handler&& handler) NOEXCEPT
 ////{
 ////    p2p::run(std::move(handler));

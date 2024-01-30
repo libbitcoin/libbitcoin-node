@@ -84,6 +84,7 @@ void protocol_block_in::stopping(const code& ec) NOEXCEPT
 // Performance polling.
 // ----------------------------------------------------------------------------
 
+// Cold until first poll so that will have full interval.
 ////bool protocol_block_in::get_rate(size_t& bytes) NOEXCEPT
 ////{
 ////    const auto cold = (bytes_ == max_size_t);
@@ -182,8 +183,6 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     if (stopped(ec))
         return false;
-
-    bytes_ += message->cached_size;
 
     if (tracker->hashes.empty())
     {
@@ -310,6 +309,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
         << authority() << "].");
+
+    // Accumulate byte count.
+    bytes_ += message->cached_size;
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();

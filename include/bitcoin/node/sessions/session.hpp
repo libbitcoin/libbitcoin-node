@@ -26,7 +26,7 @@
 namespace libbitcoin {
 namespace node {
     
-/// Abstract base for node sessions.
+/// Concrete base class for node sessions.
 class BCN_API session
 {
 public:
