@@ -221,7 +221,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
     }
 
-    auto error = block.check();
+    const auto error = block.check();
     if (error)
     {
         LOGR("Invalid block (check) [" << encode_hash(hash)
@@ -240,7 +240,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////
     ////// TODO: ensure soft forks activated in chain_state.
     //////// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
-
+    ////
     ////const auto link = query.set_link(block, context);
     ////if (link.is_terminal())
     ////{
@@ -250,7 +250,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////    stop(network::error::unknown);
     ////    return false;
     ////}
-
+    ////
     ////////// Block must be archived for populate.
     ////////if (!query.populate(block))
     ////////{
@@ -260,7 +260,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////////    stop(network::error::protocol_violation);
     ////////    return false;
     ////////}
-
+    ////
     ////////error = block.accept(context, coin.subsidy_interval_blocks,
     ////////    coin.initial_subsidy());
     ////////if (error)
@@ -271,7 +271,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////////    stop(network::error::protocol_violation);
     ////////    return false;
     ////////}
-
+    ////
     ////////error = block.connect(context);
     ////////if (error)
     ////////{
@@ -281,7 +281,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////////    stop(network::error::protocol_violation);
     ////////    return false;
     ////////}
-
+    ////
     ////////// If populate, accept, or connect fail this is bypassed and a restart will
     ////////// initialize state_ at the prior block as top. But this block exists, so
     ////////// it will be skipped for download. This results in the next being orphaned
@@ -295,7 +295,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////////    stop(network::error::unknown);
     ////////    return false;
     ////////}
-
+    ////
     ////// Size will be incorrect with multiple peers or headers protocol.
     ////if (is_zero(context.height % 1'000))
     ////{
@@ -306,7 +306,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////        << " txs: " << query.tx_records()
     ////        << " archive: " << query.archive_size());
     ////}
-
+    ////
     ////LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] from ["
     ////    << authority() << "].");
 

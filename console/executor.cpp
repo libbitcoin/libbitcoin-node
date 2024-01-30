@@ -21,7 +21,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <chrono>
 #include <csignal>
 #include <functional>
 #include <future>
@@ -40,7 +39,6 @@ using boost::format;
 using system::config::printer;
 using namespace network;
 using namespace system;
-using namespace std::chrono;
 using namespace std::placeholders;
 
 // const executor statics

@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 
-#include <chrono>
 #include <memory>
 #include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
@@ -37,6 +36,7 @@ public:
     typedef std::shared_ptr<protocol_block_in> ptr;
     using type_id = network::messages::inventory::type_id;
 
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename Session>
     protocol_block_in(Session& session,
         const channel_ptr& channel, bool report_performance) NOEXCEPT
@@ -46,9 +46,10 @@ public:
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         performance_timer_(std::make_shared<network::deadline>(
-            session.log, channel->strand(), std::chrono::seconds(10)))
+            session.log, channel->strand(), network::seconds(10)))
     {
     }
+    BC_POP_WARNING()
 
     /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;
