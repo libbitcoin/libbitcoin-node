@@ -23,7 +23,7 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/protocols/session.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -35,11 +35,9 @@ class BCN_API protocol
 protected:
     typedef network::channel::ptr channel_ptr;
 
-    /// Session implements both network::session and node::session.
     template <typename Session>
     protocol(Session& session, const channel_ptr& channel) NOEXCEPT
-      : network::protocol(session, channel),
-        session_(session)
+      : network::protocol(session, channel), session_(session)
     {
     }
 

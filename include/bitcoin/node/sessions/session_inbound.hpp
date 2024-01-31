@@ -16,30 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol.hpp>
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_INBOUND_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_INBOUND_HPP
 
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
-#include <bitcoin/node/define.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/protocols/protocols.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-bool protocol::performance(size_t bytes) const NOEXCEPT
-{
-    return session_.performance(bytes);
-}
-
-const configuration& protocol::config() const NOEXCEPT
-{
-    return session_.config();
-}
-
-full_node::query& protocol::archive() const NOEXCEPT
-{
-    return session_.archive();
-}
+using session_inbound = attach<network::session_inbound>;
 
 } // namespace node
 } // namespace libbitcoin
+
+#endif

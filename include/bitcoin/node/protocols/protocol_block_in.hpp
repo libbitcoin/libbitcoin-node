@@ -46,7 +46,7 @@ public:
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         performance_timer_(std::make_shared<network::deadline>(
-            session.log, channel->strand(), network::seconds(10)))
+            session.log, channel->strand(), network::seconds(3)))
     {
     }
     BC_POP_WARNING()

@@ -23,7 +23,6 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
@@ -32,20 +31,21 @@
 #include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+#include <bitcoin/node/protocols/session.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Session base class template for protocol attach mixin.
+/// Session base class template for protocol attachment.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
-/// For this reason protocol contructors are templatized on Session.
+/// Protocol contructors are templatized on Session, obtaining session.
 template <class Session>
-class mixin
+class attach
   : public Session, public node::session
 {
 public:
-    mixin(full_node& node, uint64_t identifier) NOEXCEPT
+    attach(full_node& node, uint64_t identifier) NOEXCEPT
       : Session(node, identifier), session(node)
     {
     };
@@ -82,37 +82,6 @@ protected:
         ////}
 
         constexpr auto performance = false;
-        channel->attach<protocol_block_in>(self, performance)->start();
-        ////channel->attach<protocol_block_out>(self)->start();
-        ////channel->attach<protocol_transaction_in>(self)->start();
-        ////channel->attach<protocol_transaction_out>(self)->start();
-    }
-};
-
-typedef mixin<network::session_manual> session_manual;
-typedef mixin<network::session_inbound> session_inbound;
-
-class session_outbound
-  : public mixin<network::session_outbound>
-{
-public:
-    session_outbound(full_node& node, uint64_t identifier) NOEXCEPT
-      : mixin(node, identifier)
-    {
-        // mixin(node, identifier)...
-        // Set the current top for version protocol, before handshake.
-        // Attach and execute appropriate version protocol.
-    };
-
-protected:
-    void attach_protocols(
-        const network::channel::ptr& channel) NOEXCEPT override
-    {
-        // Attach appropriate alert, reject, ping, and/or address protocols.
-        network::session_outbound::attach_protocols(channel);
-
-        auto& self = *this;
-        constexpr auto performance = true;
         channel->attach<protocol_block_in>(self, performance)->start();
         ////channel->attach<protocol_block_out>(self)->start();
         ////channel->attach<protocol_transaction_in>(self)->start();

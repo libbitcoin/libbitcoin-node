@@ -16,33 +16,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_HPP
-#define LIBBITCOIN_NODE_SESSION_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/protocols/protocols.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-/// Concrete base class for node sessions.
-class BCN_API session
+class BCN_API session_outbound
+  : public attach<network::session_outbound>
 {
 public:
-    /// Configuration settings for all libraries.
-    const configuration& config() const NOEXCEPT;
+    session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
-    /// Thread safe synchronous archival interface.
-    full_node::query& archive() const NOEXCEPT;
+    bool performance(size_t) const NOEXCEPT override;
 
 protected:
-    /// Construct the session.
-    session(full_node& node) NOEXCEPT;
-
-private:
-    // This is thread safe (mostly).
-    full_node& node_;
+    void attach_protocols(
+        const network::channel::ptr& channel) NOEXCEPT override;
 };
 
 } // namespace node

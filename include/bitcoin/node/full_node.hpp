@@ -22,7 +22,6 @@
 #include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/chasers/block_chaser.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 

@@ -19,7 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 
-#include <bitcoin/node/protocols/mixin.hpp>
+#include <bitcoin/node/protocols/attach.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
@@ -29,5 +29,6 @@
 #include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+#include <bitcoin/node/protocols/session.hpp>
 
 #endif

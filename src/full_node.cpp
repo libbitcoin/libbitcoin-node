@@ -22,7 +22,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
-#include <bitcoin/node/protocols/protocols.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {

@@ -16,30 +16,42 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol.hpp>
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_SESSION_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_SESSION_HPP
 
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-bool protocol::performance(size_t bytes) const NOEXCEPT
+    
+/// Common protocol session context.
+/// This is in protocols directory because attach requires it.
+class BCN_API session
 {
-    return session_.performance(bytes);
-}
+public:
+    /// Handle performance, base returns false (implied terminate).
+    virtual bool performance(size_t bytes) const NOEXCEPT;
 
-const configuration& protocol::config() const NOEXCEPT
-{
-    return session_.config();
-}
+    /// Configuration settings for all libraries.
+    const configuration& config() const NOEXCEPT;
 
-full_node::query& protocol::archive() const NOEXCEPT
-{
-    return session_.archive();
-}
+    /// Thread safe synchronous archival interface.
+    full_node::query& archive() const NOEXCEPT;
+
+protected:
+    DEFAULT_COPY_MOVE_DESTRUCT(session);
+
+    /// Construct/destruct the session.
+    session(full_node& node) NOEXCEPT;
+
+private:
+    // This is thread safe (mostly).
+    full_node& node_;
+};
 
 } // namespace node
 } // namespace libbitcoin
+
+#endif

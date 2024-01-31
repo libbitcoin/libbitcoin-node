@@ -50,7 +50,10 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_header_out_70012.cpp \
     src/protocols/protocol_transaction_in.cpp \
     src/protocols/protocol_transaction_out.cpp \
-    src/sessions/session.cpp
+    src/protocols/session.cpp \
+    src/sessions/session_inbound.cpp \
+    src/sessions/session_manual.cpp \
+    src/sessions/session_outbound.cpp
 
 # local: test/libbitcoin-node-test
 #------------------------------------------------------------------------------
@@ -111,7 +114,7 @@ include_bitcoin_node_chasers_HEADERS = \
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
-    include/bitcoin/node/protocols/mixin.hpp \
+    include/bitcoin/node/protocols/attach.hpp \
     include/bitcoin/node/protocols/protocol.hpp \
     include/bitcoin/node/protocols/protocol_block_in.hpp \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
@@ -121,11 +124,15 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_header_out_70012.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out.hpp \
-    include/bitcoin/node/protocols/protocols.hpp
+    include/bitcoin/node/protocols/protocols.hpp \
+    include/bitcoin/node/protocols/session.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
-    include/bitcoin/node/sessions/session.hpp
+    include/bitcoin/node/sessions/session_inbound.hpp \
+    include/bitcoin/node/sessions/session_manual.hpp \
+    include/bitcoin/node/sessions/session_outbound.hpp \
+    include/bitcoin/node/sessions/sessions.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

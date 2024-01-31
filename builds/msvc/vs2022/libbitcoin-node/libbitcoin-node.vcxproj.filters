@@ -84,7 +84,16 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\sessions\session.cpp">
+    <ClCompile Include="..\..\..\..\src\protocols\session.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp">
       <Filter>src\sessions</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\settings.cpp">
@@ -113,7 +122,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\mixin.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\attach.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp">
@@ -146,7 +155,19 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\session.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp">
