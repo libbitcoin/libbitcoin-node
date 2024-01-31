@@ -18,6 +18,8 @@
  */
 #include <bitcoin/node/sessions/session_outbound.hpp>
 
+#include <algorithm>
+#include <cmath>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -30,15 +32,28 @@ session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
   : attach(node, identifier)
 {
-    // attach(node, identifier)...
-    // Set the current top for version protocol, before handshake.
-    // Attach and execute appropriate version protocol.
 };
 
-    // Overrides session::performance.
-bool session_outbound::performance(size_t) const NOEXCEPT
+// Overrides session::performance.
+bool session_outbound::performance(size_t bytes) NOEXCEPT
 {
-    return true;
+    // TODO: pass completion handler and bounce to do_performance().
+    ////BC_ASSERT_MSG(stranded(), "session_outbound");
+
+    const auto count = config().network.outbound_connections;
+    speeds_.push_front(static_cast<double>(bytes));
+    speeds_.resize(count);
+    const auto mean = std::accumulate(speeds_.begin(), speeds_.end(), 0.0) / count;
+    const auto vary = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
+        [mean](auto sum, auto speed) NOEXCEPT
+        {
+            const auto difference = speed - mean;
+            return sum + (difference * difference);
+        }) / count;
+    const auto standard_deviation = std::sqrt(vary);
+
+    // TODO: return false via completion handler if bytes less than N SD.
+    return standard_deviation >= 0.0;
 }
 
 void session_outbound::attach_protocols(

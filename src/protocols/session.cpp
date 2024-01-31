@@ -30,7 +30,7 @@ session::session(full_node& node) NOEXCEPT
 {
 }
 
-bool session::performance(size_t) const NOEXCEPT
+bool session::performance(size_t) NOEXCEPT
 {
     return false;
 }

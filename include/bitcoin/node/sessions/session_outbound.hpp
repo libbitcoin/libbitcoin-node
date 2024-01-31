@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 
+#include <deque>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -33,11 +34,15 @@ class BCN_API session_outbound
 public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
-    bool performance(size_t) const NOEXCEPT override;
+    bool performance(size_t bytes) NOEXCEPT override;
 
 protected:
     void attach_protocols(
         const network::channel::ptr& channel) NOEXCEPT override;
+
+private:
+    // This is protected by strand.
+    std::deque<double> speeds_;
 };
 
 } // namespace node

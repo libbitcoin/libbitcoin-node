@@ -32,7 +32,7 @@ class BCN_API session
 {
 public:
     /// Handle performance, base returns false (implied terminate).
-    virtual bool performance(size_t bytes) const NOEXCEPT;
+    virtual bool performance(size_t bytes) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
