@@ -98,17 +98,17 @@ const configuration& full_node::config() const NOEXCEPT
 
 session_manual::ptr full_node::attach_manual_session() NOEXCEPT
 {
-    return p2p::attach<mixin<session_manual>>(*this);
+    return p2p::attach<node::session_manual>(*this);
 }
 
 session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 {
-    return p2p::attach<mixin<session_inbound>>(*this);
+    return p2p::attach<node::session_inbound>(*this);
 }
 
 session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
-    return p2p::attach<mixin<session_outbound>>(*this);
+    return p2p::attach<node::session_outbound>(*this);
 }
 
 BC_POP_WARNING()

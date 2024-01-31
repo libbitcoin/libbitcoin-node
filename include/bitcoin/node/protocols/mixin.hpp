@@ -68,7 +68,6 @@ protected:
         Session::attach_protocols(channel);
 
         auto& self = *this;
-        constexpr auto performance = true;
         ////const auto version = channel->negotiated_version();
         ////
         ////if (version >= network::messages::level::bip130)
@@ -82,7 +81,38 @@ protected:
         ////    channel->attach<protocol_header_out_31800>(self)->start();
         ////}
 
-        // TODO: limit this to session_outbound through derivation.
+        constexpr auto performance = false;
+        channel->attach<protocol_block_in>(self, performance)->start();
+        ////channel->attach<protocol_block_out>(self)->start();
+        ////channel->attach<protocol_transaction_in>(self)->start();
+        ////channel->attach<protocol_transaction_out>(self)->start();
+    }
+};
+
+typedef mixin<network::session_manual> session_manual;
+typedef mixin<network::session_inbound> session_inbound;
+
+class session_outbound
+  : public mixin<network::session_outbound>
+{
+public:
+    session_outbound(full_node& node, uint64_t identifier) NOEXCEPT
+      : mixin(node, identifier)
+    {
+        // mixin(node, identifier)...
+        // Set the current top for version protocol, before handshake.
+        // Attach and execute appropriate version protocol.
+    };
+
+protected:
+    void attach_protocols(
+        const network::channel::ptr& channel) NOEXCEPT override
+    {
+        // Attach appropriate alert, reject, ping, and/or address protocols.
+        network::session_outbound::attach_protocols(channel);
+
+        auto& self = *this;
+        constexpr auto performance = true;
         channel->attach<protocol_block_in>(self, performance)->start();
         ////channel->attach<protocol_block_out>(self)->start();
         ////channel->attach<protocol_transaction_in>(self)->start();
