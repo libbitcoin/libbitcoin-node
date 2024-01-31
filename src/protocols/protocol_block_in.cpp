@@ -51,9 +51,9 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 // Performance polling.
 // ----------------------------------------------------------------------------
 
-void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
+void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT_MSG(!stranded(), "expected channel strand");
 
     if (stopped() || ec == network::error::operation_canceled)
         return;
@@ -61,18 +61,27 @@ void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
     if (ec)
     {
         LOGF("Performance timer error, " << ec.message());
+        stop(ec);
         return;
     }
 
-    if (!performance(bytes_))
+    performance(identifier(), bytes_, BIND1(handle_performance, ec));
+}
+
+void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "expected network strand");
+
+    if (!stopped() && ec)
     {
-        stop(error::slow_channel);
+        LOGF("Performance error, " << ec.message());
+        stop(ec);
         return;
     };
 
     log.fire(event_block, bytes_);
     bytes_ = zero;
-    performance_timer_->start(BIND1(handle_performance, _1));
+    performance_timer_->start(BIND1(handle_performance_timer, _1));
 }
 
 // Start/stop.
@@ -95,7 +104,7 @@ void protocol_block_in::start() NOEXCEPT
     }
 
     if (report_performance_)
-        performance_timer_->start(BIND1(handle_performance, _1));
+        performance_timer_->start(BIND1(handle_performance_timer, _1));
 
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);

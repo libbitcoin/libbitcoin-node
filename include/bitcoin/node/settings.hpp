@@ -61,8 +61,15 @@ public:
     settings(system::chain::selection context) NOEXCEPT;
 
     // TODO: these aren't actually node settings.
-    uint16_t target;
-    uint16_t interval;
+    uint16_t target{ 0 };
+    uint16_t interval{ 0 };
+
+    /// Properties.
+    float allowed_deviation;
+    uint16_t sample_period_seconds;
+
+    /// Helpers.
+    virtual network::steady_clock::duration sample_period() const NOEXCEPT;
 };
 
 } // namespace node

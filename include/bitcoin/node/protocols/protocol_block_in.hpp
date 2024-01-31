@@ -42,11 +42,12 @@ public:
         const channel_ptr& channel, bool report_performance) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_block_in>(session.log),
-        report_performance_(report_performance),
+        report_performance_(report_performance &&
+            !is_zero(session.config().node.sample_period_seconds)),
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
-        performance_timer_(std::make_shared<network::deadline>(
-            session.log, channel->strand(), network::seconds(3)))
+        performance_timer_(std::make_shared<network::deadline>(session.log,
+            channel->strand(), session.config().node.sample_period()))
     {
     }
     BC_POP_WARNING()
@@ -75,6 +76,9 @@ protected:
         const track_ptr& tracker) NOEXCEPT;
 
     /// Handle performance timer event.
+    virtual void handle_performance_timer(const code& ec) NOEXCEPT;
+
+    /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
     /// Invoked when initial blocks sync is current.

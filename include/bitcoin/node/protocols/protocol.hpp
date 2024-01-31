@@ -42,7 +42,8 @@ protected:
     }
 
     /// Report performance, false directs self-terminate.
-    bool performance(size_t bytes) const NOEXCEPT;
+    void performance(uint64_t channel, size_t speed,
+        network::result_handler&& handler) const NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;

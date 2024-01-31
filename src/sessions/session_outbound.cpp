@@ -22,11 +22,16 @@
 #include <cmath>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 
 namespace libbitcoin {
 namespace node {
+
+#define CLASS session_outbound
+    
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
@@ -34,26 +39,56 @@ session_outbound::session_outbound(full_node& node,
 {
 };
 
-// Overrides session::performance.
-bool session_outbound::performance(size_t bytes) NOEXCEPT
+void session_outbound::performance(uint64_t channel, size_t speed,
+    network::result_handler&& handler) NOEXCEPT
 {
-    // TODO: pass completion handler and bounce to do_performance().
-    ////BC_ASSERT_MSG(stranded(), "session_outbound");
+    boost::asio::post(strand(),
+        BIND3(do_performance, channel, speed, handler));
+}
 
-    const auto count = config().network.outbound_connections;
-    speeds_.push_front(static_cast<double>(bytes));
-    speeds_.resize(count);
-    const auto mean = std::accumulate(speeds_.begin(), speeds_.end(), 0.0) / count;
-    const auto vary = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
-        [mean](auto sum, auto speed) NOEXCEPT
+void session_outbound::do_performance(uint64_t channel, size_t speed,
+    const network::result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "session_outbound");
+
+    // Always remove record on stalled channel (and channel close).
+    if (is_zero(speed))
+    {
+        speeds_.erase(channel);
+        handler(error::stalled_channel);
+        return;
+    }
+
+    speeds_[channel] = static_cast<double>(speed);
+
+    const auto size = speeds_.size();
+    const auto mean = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
+        [](double sum, const auto& element) NOEXCEPT
         {
-            const auto difference = speed - mean;
-            return sum + (difference * difference);
-        }) / count;
-    const auto standard_deviation = std::sqrt(vary);
+            return sum + element.second;
+        }) / size;
 
-    // TODO: return false via completion handler if bytes less than N SD.
-    return standard_deviation >= 0.0;
+    // Keep this channel if its performance deviation is at/above average.
+    if (speed >= mean)
+    {
+        handler(error::success);
+        return;
+    }
+
+    const auto variance = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
+        [mean](double sum, const auto& element) NOEXCEPT
+        {
+            const auto difference = element.second - mean;
+            return sum + (difference * difference);
+        }) / size;
+
+    const auto standard_deviation = std::sqrt(variance);
+    const auto allowed_deviation = this->config().node.allowed_deviation;
+
+    // Drop this channel if the magnitude of its below average performance
+    // deviation exceeds the allowed multiple of standard deviations.
+    const auto slow = (mean - speed) > (allowed_deviation * standard_deviation);
+    handler(slow ? error::slow_channel : error::success);
 }
 
 void session_outbound::attach_protocols(
@@ -69,6 +104,8 @@ void session_outbound::attach_protocols(
     ////channel->attach<protocol_transaction_in>(self)->start();
     ////channel->attach<protocol_transaction_out>(self)->start();
 }
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

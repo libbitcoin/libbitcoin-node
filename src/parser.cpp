@@ -814,6 +814,16 @@ options_metadata parser::load_settings() THROWS
         value<uint16_t>(&configured.node.interval),
         "Channel count reporting interval, defaults to 0 (0 disables)."
     )
+    (
+        "node.allowed_deviation",
+        value<float>(&configured.node.allowed_deviation),
+        "Allowable underperformance standard deviation, defaults to 1.0."
+    )
+    (
+        "node.sample_period_seconds",
+        value<uint16_t>(&configured.node.sample_period_seconds),
+        "Performance sampling time period, defaults to 5 (0 disables)."
+    )
     ////(
     ////    "node.notify_limit_hours",
     ////    value<uint32_t>(&configured.node.notify_limit_hours),

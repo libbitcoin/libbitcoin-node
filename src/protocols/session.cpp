@@ -18,8 +18,10 @@
  */
 #include <bitcoin/node/protocols/session.hpp>
 
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
@@ -30,9 +32,10 @@ session::session(full_node& node) NOEXCEPT
 {
 }
 
-bool session::performance(size_t) NOEXCEPT
+void session::performance(uint64_t, size_t,
+    network::result_handler&& handler) NOEXCEPT
 {
-    return false;
+    handler(error::unknown);
 }
 
 const configuration& session::config() const NOEXCEPT
@@ -44,6 +47,5 @@ full_node::query& session::archive() const NOEXCEPT
 {
     return node_.archive();
 }
-
 } // namespace node
 } // namespace libbitcoin

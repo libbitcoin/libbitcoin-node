@@ -62,14 +62,19 @@ std::filesystem::path settings::events_file() NOEXCEPT
 namespace node {
 
 settings::settings() NOEXCEPT
-  : target{ 0 },
-    interval{ 0 }
+  : allowed_deviation{ 1.0 },
+    sample_period_seconds{ 5 }
 {
 }
 
 settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
+}
+
+network::steady_clock::duration settings::sample_period() const NOEXCEPT
+{
+    return network::seconds(sample_period_seconds);
 }
 
 } // namespace node
