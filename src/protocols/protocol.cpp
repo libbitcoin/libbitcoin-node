@@ -27,7 +27,7 @@
 namespace libbitcoin {
 namespace node {
 
-void protocol::performance(uint64_t channel, size_t speed,
+void protocol::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) const NOEXCEPT
 {
     session_.performance(channel, speed, std::move(handler));

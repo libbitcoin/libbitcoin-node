@@ -39,14 +39,14 @@ session_outbound::session_outbound(full_node& node,
 {
 };
 
-void session_outbound::performance(uint64_t channel, size_t speed,
+void session_outbound::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         BIND3(do_performance, channel, speed, handler));
 }
 
-void session_outbound::do_performance(uint64_t channel, size_t speed,
+void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "session_outbound");
@@ -83,7 +83,7 @@ void session_outbound::do_performance(uint64_t channel, size_t speed,
         }) / size;
 
     const auto standard_deviation = std::sqrt(variance);
-    const auto allowed_deviation = this->config().node.allowed_deviation;
+    const auto allowed_deviation = config().node.allowed_deviation;
 
     // Drop this channel if the magnitude of its below average performance
     // deviation exceeds the allowed multiple of standard deviations.

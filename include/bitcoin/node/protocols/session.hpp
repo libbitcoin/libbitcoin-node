@@ -32,7 +32,7 @@ class BCN_API session
 {
 public:
     /// Handle performance, base returns false (implied terminate).
-    virtual void performance(uint64_t channel, size_t speed,
+    virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT;
 
     /// Configuration settings for all libraries.

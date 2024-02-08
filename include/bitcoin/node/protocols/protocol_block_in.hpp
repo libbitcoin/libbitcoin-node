@@ -99,8 +99,8 @@ private:
     const network::messages::inventory::type_id block_type_;
 
     // Protected by strand.
-    uint32_t start_{};
-    size_t bytes_{ zero };
+    uint64_t bytes_{ zero };
+    network::steady_clock::time_point start_{};
     system::chain::chain_state::ptr state_{};
     network::deadline::ptr performance_timer_;
 };

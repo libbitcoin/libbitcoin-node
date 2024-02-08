@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
+#include <chrono>
 #include <cmath>
 #include <utility>
 #include <bitcoin/system.hpp>
@@ -65,22 +66,36 @@ void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
         return;
     }
 
-    performance(identifier(), bytes_, BIND1(handle_performance, ec));
+    // Compute bytes per second.
+    const auto now = steady_clock::now();
+    const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
+    const auto rate = floored_divide(bytes_, to_unsigned(gap));
+
+    // Reset counters and log rate (bytes per second).
+    bytes_ = zero;
+    start_ = now;
+    log.fire(event_block, rate);
+
+    // Channel will continue to process blocks while this call excecutes on the
+    // network strand. Timer will not be restarted until this call completes.
+    performance(identifier(), rate, BIND1(handle_performance, ec));
 }
 
 void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "expected network strand");
 
-    if (!stopped() && ec)
+    if (stopped())
+        return;
+
+    // stalled_channel or slow_channel
+    if (ec)
     {
         LOGF("Performance error, " << ec.message());
         stop(ec);
         return;
     };
 
-    log.fire(event_block, bytes_);
-    bytes_ = zero;
     performance_timer_->start(BIND1(handle_performance_timer, _1));
 }
 
@@ -94,7 +109,7 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    start_ = unix_time();
+    start_ = steady_clock::now();
     state_ = archive().get_confirmed_chain_state(config().bitcoin);
 
     if (!state_)

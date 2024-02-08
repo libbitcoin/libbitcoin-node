@@ -32,7 +32,7 @@ session::session(full_node& node) NOEXCEPT
 {
 }
 
-void session::performance(uint64_t, size_t,
+void session::performance(uint64_t, uint64_t,
     network::result_handler&& handler) NOEXCEPT
 {
     handler(error::unknown);

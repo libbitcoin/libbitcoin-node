@@ -34,7 +34,7 @@ class BCN_API session_outbound
 public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
-    void performance(uint64_t channel, size_t speed,
+    void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT override;
 
 protected:
@@ -42,7 +42,7 @@ protected:
         const network::channel::ptr& channel) NOEXCEPT override;
 
 private:
-    void do_performance(uint64_t channel, size_t speed,
+    void do_performance(uint64_t channel, uint64_t speed,
         const network::result_handler& handler) NOEXCEPT;
 
     // This is protected by strand.
