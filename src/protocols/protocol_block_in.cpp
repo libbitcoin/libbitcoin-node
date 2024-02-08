@@ -66,12 +66,12 @@ void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
         return;
     }
 
-    // Compute bytes per second.
+    // Compute rate in bytes per second.
     const auto now = steady_clock::now();
     const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
     const auto rate = floored_divide(bytes_, to_unsigned(gap));
 
-    // Reset counters and log rate (bytes per second).
+    // Reset counters and log rate.
     bytes_ = zero;
     start_ = now;
     log.fire(event_block, rate);
