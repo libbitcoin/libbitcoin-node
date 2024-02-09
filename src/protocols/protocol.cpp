@@ -28,6 +28,10 @@
 namespace libbitcoin {
 namespace node {
 
+protocol::~protocol() NOEXCEPT
+{
+}
+
 void protocol::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) const NOEXCEPT
 {

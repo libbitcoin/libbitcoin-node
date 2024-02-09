@@ -47,8 +47,10 @@ protected:
     {
     }
 
+    virtual ~protocol() NOEXCEPT;
+
     /// Report performance, false directs self-terminate.
-    void performance(uint64_t channel, uint64_t speed,
+    virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) const NOEXCEPT;
 
     /// Configuration settings for all libraries.
