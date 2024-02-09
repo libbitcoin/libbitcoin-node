@@ -36,9 +36,6 @@ public:
     typedef database::store<database::map> store;
     typedef database::query<store> query;
 
-    // TODO: set arguments.
-    typedef network::desubscriber<object_key, size_t> poll_subscriber;
-
     /// Constructors.
     /// -----------------------------------------------------------------------
 
@@ -52,13 +49,13 @@ public:
     /// Start the node (seed and manual services).
     void start(network::result_handler&& handler) NOEXCEPT override;
 
-    /// Run the node (inbound and outbound services).
-    ////void run(network::result_handler&& handler) NOEXCEPT override;
+    /// Run the node (inbound/outbound services and blockchain chasers).
+    void run(network::result_handler&& handler) NOEXCEPT override;
 
     /// Properties.
     /// -----------------------------------------------------------------------
 
-    // Configuration settings for all libraries.
+    /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
     /// Thread safe synchronous archival interface.
