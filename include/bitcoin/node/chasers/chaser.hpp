@@ -31,7 +31,8 @@ class full_node;
 /// Each chaser operates on its own strand, implemented here, allowing
 /// concurrent chaser operations to the extent that threads are available.
 class BCN_API chaser
-  : public network::reporter, protected network::tracker<chaser>
+  : public network::enable_shared_from_base<chaser>,
+    public network::reporter
 {
 public:
     typedef uint64_t object_key;

@@ -21,6 +21,7 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/chasers/chaser.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -29,46 +30,10 @@ class full_node;
 
 /// Chase down unconfirmed transactions.
 class BCN_API chaser_transaction
-  : public network::reporter, protected network::tracker<chaser_transaction>
+   : public chaser, protected network::tracker<chaser_transaction>
 {
 public:
-    typedef uint64_t object_key;
-    typedef network::desubscriber<object_key> subscriber;
-    typedef subscriber::handler notifier;
-    DELETE_COPY_MOVE(chaser_transaction);
-
-    /// Construct an instance.
-    /// -----------------------------------------------------------------------
     chaser_transaction(full_node& node) NOEXCEPT;
-    ~chaser_transaction() NOEXCEPT;
-
-    /// Start/stop.
-    /// -----------------------------------------------------------------------
-    void start(network::result_handler&& handler) NOEXCEPT;
-    void stop() NOEXCEPT;
-
-    /// Subscriptions.
-    /// -----------------------------------------------------------------------
-    object_key subscribe(notifier&& handler) NOEXCEPT;
-    bool notify(object_key key) NOEXCEPT;
-
-    /// Properties.
-    /// -----------------------------------------------------------------------
-    bool stopped() const NOEXCEPT;
-    bool stranded() const NOEXCEPT;
-
-private:
-    object_key create_key() NOEXCEPT;
-    void do_stop() NOEXCEPT;
-
-    // These are thread safe (mostly).
-    full_node& node_;
-    network::asio::strand strand_;
-    std::atomic_bool stopped_{ true };
-
-    // These are protected by the strand.
-    object_key keys_{};
-    subscriber subscriber_;
 };
 
 } // namespace node

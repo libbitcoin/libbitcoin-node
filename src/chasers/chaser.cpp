@@ -31,8 +31,7 @@ chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
     subscriber_(strand_),
-    reporter(node.log),
-    tracker<chaser>(node.log)
+    reporter(node.log)
 {
 }
 
