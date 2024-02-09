@@ -109,7 +109,6 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    start_ = steady_clock::now();
     state_ = archive().get_confirmed_chain_state(config().bitcoin);
 
     if (!state_)
@@ -119,7 +118,10 @@ void protocol_block_in::start() NOEXCEPT
     }
 
     if (report_performance_)
+    {
+        start_ = steady_clock::now();
         performance_timer_->start(BIND1(handle_performance_timer, _1));
+    }
 
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
