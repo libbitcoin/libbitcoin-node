@@ -35,7 +35,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
-  : attach(node, identifier)
+  : attach(node, identifier),
+    network::tracker<session_outbound>(node.log)
 {
 };
 

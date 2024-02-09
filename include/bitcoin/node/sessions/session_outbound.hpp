@@ -29,7 +29,8 @@ namespace libbitcoin {
 namespace node {
     
 class BCN_API session_outbound
-  : public attach<network::session_outbound>
+  : public attach<network::session_outbound>,
+    protected network::tracker<session_outbound>
 {
 public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
