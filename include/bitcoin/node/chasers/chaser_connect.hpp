@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CONNECT_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_CONNECT_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -29,19 +29,19 @@ class full_node;
 
 /// Chase down blocks in the the candidate header chain for validation.
 /// Notify subscribers with the "block connected" event.
-class BCN_API chaser_validate
-  : public network::reporter, protected network::tracker<chaser_validate>
+class BCN_API chaser_connect
+  : public network::reporter, protected network::tracker<chaser_connect>
 {
 public:
     typedef uint64_t object_key;
     typedef network::desubscriber<object_key> subscriber;
     typedef subscriber::handler notifier;
-    DELETE_COPY_MOVE(chaser_validate);
+    DELETE_COPY_MOVE(chaser_connect);
 
     /// Construct an instance.
     /// -----------------------------------------------------------------------
-    chaser_validate(full_node& node) NOEXCEPT;
-    ~chaser_validate() NOEXCEPT;
+    chaser_connect(full_node& node) NOEXCEPT;
+    ~chaser_connect() NOEXCEPT;
 
     /// Start/stop.
     /// -----------------------------------------------------------------------

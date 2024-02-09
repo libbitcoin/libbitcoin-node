@@ -30,7 +30,6 @@ class full_node;
 /// Abstract base chaser.
 /// Each chaser operates on its own strand, implemented here, allowing
 /// concurrent chaser operations to the extent that threads are available.
-/// 
 class BCN_API chaser
   : public network::reporter, protected network::tracker<chaser>
 {
@@ -39,11 +38,6 @@ public:
     typedef network::desubscriber<object_key> subscriber;
     typedef subscriber::handler notifier;
     DELETE_COPY_MOVE(chaser);
-
-    /// Construct an instance.
-    /// -----------------------------------------------------------------------
-    chaser(full_node& node) NOEXCEPT;
-    ~chaser() NOEXCEPT;
 
     /// Start/stop.
     /// -----------------------------------------------------------------------
@@ -59,6 +53,10 @@ public:
     /// -----------------------------------------------------------------------
     bool stopped() const NOEXCEPT;
     bool stranded() const NOEXCEPT;
+
+protected:
+    chaser(full_node& node) NOEXCEPT;
+    virtual ~chaser() NOEXCEPT;
 
 private:
     object_key create_key() NOEXCEPT;

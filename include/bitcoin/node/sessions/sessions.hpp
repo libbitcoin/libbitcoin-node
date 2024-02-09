@@ -19,10 +19,8 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
 
-// session.hpp must be included by /protocols/attach.hpp
-// and therefore cannot be included here (avoids circularity).
-// However the header is included in /sessions for taxonomic consistency.
-////#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/sessions/attach.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>

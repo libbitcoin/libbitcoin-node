@@ -16,23 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
+#define LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 
 #include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
-#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
-#include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
-
-// Individual inclusion to prevent cycle.
+#include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {

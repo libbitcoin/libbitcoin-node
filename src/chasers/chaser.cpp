@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/chasers/chaser_validate.hpp>
+#include <bitcoin/node/chasers/chaser.hpp>
 
 #include <functional>
 #include <bitcoin/network.hpp>
@@ -27,22 +27,22 @@ namespace node {
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-chaser_validate::chaser_validate(full_node& node) NOEXCEPT
+chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
     subscriber_(strand_),
     reporter(node.log),
-    tracker<chaser_validate>(node.log)
+    tracker<chaser>(node.log)
 {
 }
 
-chaser_validate::~chaser_validate() NOEXCEPT
+chaser::~chaser() NOEXCEPT
 {
-    BC_ASSERT_MSG(stopped(), "The validation chaser was not stopped.");
-    if (!stopped()) { LOGF("~chaser_validate is not stopped."); }
+    BC_ASSERT_MSG(stopped(), "The chaser was not stopped.");
+    if (!stopped()) { LOGF("~chaser is not stopped."); }
 }
 
-void chaser_validate::start(network::result_handler&& handler) NOEXCEPT
+void chaser::start(network::result_handler&& handler) NOEXCEPT
 {
     if (!stopped())
     {
@@ -54,16 +54,16 @@ void chaser_validate::start(network::result_handler&& handler) NOEXCEPT
     handler(network::error::success);
 }
 
-void chaser_validate::stop() NOEXCEPT
+void chaser::stop() NOEXCEPT
 {
     stopped_.store(true);
 
-    // The chaser_validate can be deleted once threadpool joins after this call.
+    // The chaser can be deleted once threadpool joins after this call.
     boost::asio::post(strand_,
-        std::bind(&chaser_validate::do_stop, this));
+        std::bind(&chaser::do_stop, this));
 }
 
-chaser_validate::object_key chaser_validate::subscribe(notifier&& handler) NOEXCEPT
+chaser::object_key chaser::subscribe(notifier&& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
     const auto key = create_key();
@@ -72,23 +72,23 @@ chaser_validate::object_key chaser_validate::subscribe(notifier&& handler) NOEXC
 }
 
 // TODO: closing channel notifies itself to desubscribe.
-bool chaser_validate::notify(object_key key) NOEXCEPT
+bool chaser::notify(object_key key) NOEXCEPT
 {
     return subscriber_.notify_one(key, network::error::success);
 }
 
-bool chaser_validate::stopped() const NOEXCEPT
+bool chaser::stopped() const NOEXCEPT
 {
     return stopped_.load();
 }
 
-bool chaser_validate::stranded() const NOEXCEPT
+bool chaser::stranded() const NOEXCEPT
 {
     return strand_.running_in_this_thread();
 }
 
 // private
-chaser_validate::object_key chaser_validate::create_key() NOEXCEPT
+chaser::object_key chaser::create_key() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
 
@@ -102,7 +102,7 @@ chaser_validate::object_key chaser_validate::create_key() NOEXCEPT
 }
 
 // private
-void chaser_validate::do_stop() NOEXCEPT
+void chaser::do_stop() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
 

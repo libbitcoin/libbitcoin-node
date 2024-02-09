@@ -24,8 +24,9 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 
-// Individual inclusion to prevent cycle.
+// Individual inclusion to prevent cycle (can't forward declare).
 #include <bitcoin/node/sessions/session.hpp>
+////class session;
 
 namespace libbitcoin {
 namespace node {
@@ -34,6 +35,9 @@ namespace node {
 class BCN_API protocol
   : public network::protocol
 {
+public:
+    DELETE_COPY_MOVE(protocol);
+
 protected:
     typedef network::channel::ptr channel_ptr;
 

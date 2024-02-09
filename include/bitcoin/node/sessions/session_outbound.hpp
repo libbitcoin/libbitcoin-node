@@ -23,8 +23,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/protocols/protocols.hpp>
-#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/sessions/attach.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -35,7 +34,7 @@ class BCN_API session_outbound
 public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
-    void performance(uint64_t channel, uint64_t speed,
+    virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT override;
 
 protected:

@@ -30,6 +30,8 @@ namespace node {
 class BCN_API session
 {
 public:
+    DELETE_COPY_MOVE(session);
+
     /// Handle performance, base returns false (implied terminate).
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT;
@@ -41,10 +43,12 @@ public:
     full_node::query& archive() const NOEXCEPT;
 
 protected:
-    DEFAULT_COPY_MOVE_DESTRUCT(session);
 
     /// Construct/destruct the session.
     session(full_node& node) NOEXCEPT;
+
+    /// Asserts that session is stopped.
+    virtual ~session() NOEXCEPT;
 
 private:
     // This is thread safe (mostly).

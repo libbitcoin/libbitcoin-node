@@ -22,8 +22,8 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
+#include <bitcoin/node/chasers/chaser_connect.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
-#include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #endif

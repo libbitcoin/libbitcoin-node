@@ -32,6 +32,10 @@ session::session(full_node& node) NOEXCEPT
 {
 }
 
+session::~session() NOEXCEPT
+{
+}
+
 void session::performance(uint64_t, uint64_t,
     network::result_handler&& handler) NOEXCEPT
 {
