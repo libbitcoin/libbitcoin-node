@@ -42,7 +42,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\chasers\block_chaser.cpp">
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_header.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_validate.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\configuration.cpp">
@@ -104,7 +116,25 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
       <Filter>include\bitcoin</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\block_chaser.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_transaction.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_validate.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chasers.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp">
@@ -155,8 +185,8 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\session.hpp">
-      <Filter>include\bitcoin\node\protocols</Filter>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>

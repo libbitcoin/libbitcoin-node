@@ -40,7 +40,11 @@ src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
-    src/chasers/block_chaser.cpp \
+    src/chasers/chaser_check.cpp \
+    src/chasers/chaser_confirm.cpp \
+    src/chasers/chaser_header.cpp \
+    src/chasers/chaser_transaction.cpp \
+    src/chasers/chaser_validate.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_block_in.cpp \
     src/protocols/protocol_block_out.cpp \
@@ -110,7 +114,13 @@ include_bitcoin_node_HEADERS = \
 
 include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers
 include_bitcoin_node_chasers_HEADERS = \
-    include/bitcoin/node/chasers/block_chaser.hpp
+    include/bitcoin/node/chasers/chaser.hpp \
+    include/bitcoin/node/chasers/chaser_check.hpp \
+    include/bitcoin/node/chasers/chaser_confirm.hpp \
+    include/bitcoin/node/chasers/chaser_header.hpp \
+    include/bitcoin/node/chasers/chaser_transaction.hpp \
+    include/bitcoin/node/chasers/chaser_validate.hpp \
+    include/bitcoin/node/chasers/chasers.hpp
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
@@ -124,11 +134,11 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_header_out_70012.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out.hpp \
-    include/bitcoin/node/protocols/protocols.hpp \
-    include/bitcoin/node/protocols/session.hpp
+    include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
+    include/bitcoin/node/sessions/session.hpp \
     include/bitcoin/node/sessions/session_inbound.hpp \
     include/bitcoin/node/sessions/session_manual.hpp \
     include/bitcoin/node/sessions/session_outbound.hpp \

@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_BLOCK_CHASER_HPP
-#define LIBBITCOIN_NODE_CHASERS_BLOCK_CHASER_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -27,21 +27,23 @@ namespace node {
 
 class full_node;
 
-/// Chase down blocks for the candidate header chain.
-/// Notify subscribers with gap closed event.
-class BCN_API block_chaser
-  : public network::reporter, protected network::tracker<block_chaser>
+/// Abstract base chaser.
+/// Each chaser operates on its own strand, implemented here, allowing
+/// concurrent chaser operations to the extent that threads are available.
+/// 
+class BCN_API chaser
+  : public network::reporter, protected network::tracker<chaser>
 {
 public:
     typedef uint64_t object_key;
     typedef network::desubscriber<object_key> subscriber;
     typedef subscriber::handler notifier;
-    DELETE_COPY_MOVE(block_chaser);
+    DELETE_COPY_MOVE(chaser);
 
     /// Construct an instance.
     /// -----------------------------------------------------------------------
-    block_chaser(full_node& node) NOEXCEPT;
-    ~block_chaser() NOEXCEPT;
+    chaser(full_node& node) NOEXCEPT;
+    ~chaser() NOEXCEPT;
 
     /// Start/stop.
     /// -----------------------------------------------------------------------
@@ -67,10 +69,9 @@ private:
     network::asio::strand strand_;
     std::atomic_bool stopped_{ true };
 
-    // These are not thread safe.
+    // These are protected by the strand.
     object_key keys_{};
     subscriber subscriber_;
-    network::deadline::ptr timer_;
 };
 
 } // namespace node

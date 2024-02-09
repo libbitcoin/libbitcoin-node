@@ -73,7 +73,11 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\chasers\block_chaser.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_header.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_validate.cpp" />
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
@@ -95,7 +99,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\block_chaser.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_transaction.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_validate.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chasers.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
@@ -112,7 +122,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\session.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />

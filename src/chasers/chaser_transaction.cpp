@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/chasers/block_chaser.hpp>
+#include <bitcoin/node/chasers/chaser_transaction.hpp>
 
 #include <functional>
 #include <bitcoin/network.hpp>
@@ -26,26 +26,23 @@ namespace libbitcoin {
 namespace node {
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    
-// TODO: replace channel_heartbeat.
-block_chaser::block_chaser(full_node& node) NOEXCEPT
+
+chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
     subscriber_(strand_),
-    timer_(std::make_shared<network::deadline>(node.log, strand_,
-        node.network_settings().channel_heartbeat())),
     reporter(node.log),
-    tracker<block_chaser>(node.log)
+    tracker<chaser_transaction>(node.log)
 {
 }
 
-block_chaser::~block_chaser() NOEXCEPT
+chaser_transaction::~chaser_transaction() NOEXCEPT
 {
-    BC_ASSERT_MSG(stopped(), "The block chaser was not stopped.");
-    if (!stopped()) { LOGF("~block_chaser is not stopped."); }
+    BC_ASSERT_MSG(stopped(), "The transaction chaser was not stopped.");
+    if (!stopped()) { LOGF("~chaser_transaction is not stopped."); }
 }
 
-void block_chaser::start(network::result_handler&& handler) NOEXCEPT
+void chaser_transaction::start(network::result_handler&& handler) NOEXCEPT
 {
     if (!stopped())
     {
@@ -53,38 +50,20 @@ void block_chaser::start(network::result_handler&& handler) NOEXCEPT
         return;
     }
 
-    timer_->start([this](const code& ec) NOEXCEPT
-    {
-        BC_ASSERT_MSG(stranded(), "strand");
-
-        if (stopped())
-            return;
-
-        if (ec)
-        {
-            LOGF("Chaser timer fail, " << ec.message());
-            stop();
-            return;
-        }
-
-        // TODO: collect performance.
-        ////stop(network::error::channel_expired);
-    });
-
     stopped_.store(false);
     handler(network::error::success);
 }
 
-void block_chaser::stop() NOEXCEPT
+void chaser_transaction::stop() NOEXCEPT
 {
     stopped_.store(true);
 
-    // The block_chaser can be deleted once threadpool joins after this call.
+    // The chaser_transaction can be deleted once threadpool joins after this call.
     boost::asio::post(strand_,
-        std::bind(&block_chaser::do_stop, this));
+        std::bind(&chaser_transaction::do_stop, this));
 }
 
-block_chaser::object_key block_chaser::subscribe(notifier&& handler) NOEXCEPT
+chaser_transaction::object_key chaser_transaction::subscribe(notifier&& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
     const auto key = create_key();
@@ -93,23 +72,23 @@ block_chaser::object_key block_chaser::subscribe(notifier&& handler) NOEXCEPT
 }
 
 // TODO: closing channel notifies itself to desubscribe.
-bool block_chaser::notify(object_key key) NOEXCEPT
+bool chaser_transaction::notify(object_key key) NOEXCEPT
 {
     return subscriber_.notify_one(key, network::error::success);
 }
 
-bool block_chaser::stopped() const NOEXCEPT
+bool chaser_transaction::stopped() const NOEXCEPT
 {
     return stopped_.load();
 }
 
-bool block_chaser::stranded() const NOEXCEPT
+bool chaser_transaction::stranded() const NOEXCEPT
 {
     return strand_.running_in_this_thread();
 }
 
 // private
-block_chaser::object_key block_chaser::create_key() NOEXCEPT
+chaser_transaction::object_key chaser_transaction::create_key() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
 
@@ -123,11 +102,10 @@ block_chaser::object_key block_chaser::create_key() NOEXCEPT
 }
 
 // private
-void block_chaser::do_stop() NOEXCEPT
+void chaser_transaction::do_stop() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
 
-    timer_->stop();
     subscriber_.stop(network::error::service_stopped);
 }
 

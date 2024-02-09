@@ -21,6 +21,7 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {

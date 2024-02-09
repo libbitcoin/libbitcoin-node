@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_SESSION_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_SESSION_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -26,8 +26,7 @@
 namespace libbitcoin {
 namespace node {
     
-/// Common protocol session context.
-/// This is in protocols directory because attach requires it.
+/// Common session context.
 class BCN_API session
 {
 public:

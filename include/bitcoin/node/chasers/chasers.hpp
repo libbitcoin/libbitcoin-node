@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2024 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,15 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
-#define LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
 
-// session.hpp must be included by /protocols/attach.hpp
-// and therefore cannot be included here (avoids circularity).
-// However the header is included in /sessions for taxonomic consistency.
-////#include <bitcoin/node/sessions/session.hpp>
-#include <bitcoin/node/sessions/session_inbound.hpp>
-#include <bitcoin/node/sessions/session_manual.hpp>
-#include <bitcoin/node/sessions/session_outbound.hpp>
+#include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/chasers/chaser_check.hpp>
+#include <bitcoin/node/chasers/chaser_confirm.hpp>
+#include <bitcoin/node/chasers/chaser_header.hpp>
+#include <bitcoin/node/chasers/chaser_transaction.hpp>
+#include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #endif
