@@ -28,7 +28,7 @@ namespace node {
     
 class BCN_API protocol_header_out_70012
   : public protocol_header_out_31800,
-    network::tracker<protocol_header_out_70012>
+    protected network::tracker<protocol_header_out_70012>
 {
 public:
     typedef std::shared_ptr<protocol_header_out_70012> ptr;
