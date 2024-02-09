@@ -18,22 +18,22 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            cxx: "clang++-14"
+            cxx: "clang++-15"
             link: "dynamic"
-            optimization: "size"
+            optimization: "debug"
             assert: "debug"
             coverage: "nocov"
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: ""
-            cc: "clang-14"
-            flags: "-Os -fPIE"
+            cc: "clang-15"
+            flags: "-Og -fPIE"
             options: "--enable-isystem"
             packager: "apt"
             packages: ""
 
           - os: ubuntu-22.04
-            cxx: "clang++-14"
+            cxx: "clang++-15"
             link: "static"
             optimization: "size"
             assert: "ndebug"
@@ -41,7 +41,7 @@ jobs:
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang-15"
             flags: "-Os -fPIE"
             options: "--enable-isystem"
             packager: "apt"
@@ -65,20 +65,20 @@ jobs:
           - os: ubuntu-22.04
             cxx: "g++-11"
             link: "static"
-            optimization: "debug"
+            optimization: "size"
             assert: "ndebug"
             coverage: "cov"
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "gcc-11"
-            flags: "-Og -g --coverage -fPIE"
+            flags: "-Os -g --coverage -fPIE"
             options: "--enable-isystem"
             packager: "apt"
             packages: "lcov"
 
           - os: macos-latest
-            cxx: "clang++-14"
+            cxx: "clang++"
             link: "dynamic"
             optimization: "size"
             assert: "ndebug"
@@ -86,14 +86,14 @@ jobs:
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang"
             flags: "-Os -fPIE"
             options: "--enable-isystem"
             packager: "brew"
             packages: ""
 
           - os: macos-latest
-            cxx: "clang++-14"
+            cxx: "clang++"
             link: "static"
             optimization: "size"
             assert: "ndebug"
@@ -101,7 +101,7 @@ jobs:
             boost: "--build-boost"
             consensus: "--without-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang"
             flags: "-Os -fvisibility=hidden -fPIE"
             options: "--enable-isystem"
             packager: "brew"
@@ -119,7 +119,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prepare toolchain [generic]
         run: |
@@ -140,7 +140,7 @@ jobs:
         shell: bash
         run: |
           WORKSPACE_SUBPATH="${GITHUB_WORKSPACE%libbitcoin-node}"
-          echo "LIBBITCOIN_SRC_PATH=$WORKSPACE_SUBPATH" >> $GITHUB_ENV
+          echo "LIBBITCOIN_SRC_PATH=${WORKSPACE_SUBPATH}" >> $GITHUB_ENV
           if [[ ${{ matrix.assert }} == 'ndebug' ]]; then
             echo "ASSERT_NDEBUG=--enable-ndebug" >> $GITHUB_ENV
           else
@@ -152,8 +152,14 @@ jobs:
             echo "LINKAGE=--disable-shared" >> $GITHUB_ENV
           fi
           if [[ ${{ matrix.link }} == 'dynamic' ]]; then
-            echo "LDFLAGS=-Wl,-rpath,$WORKSPACE_SUBPATH/prefix/lib" >> $GITHUB_ENV
+            echo "LDFLAGS=-Wl,-rpath,${WORKSPACE_SUBPATH}prefix/lib" >> $GITHUB_ENV
           fi
+
+      - name: Display Compiler details
+        shell: bash
+        run: |
+          ${CC} -v
+          ${CXX} -v
 
       - name: Display CPU details
         if: ${{ (runner.os == 'Linux') }}
@@ -164,8 +170,8 @@ jobs:
       - name: Execute install.sh
         run: >
           ./install.sh
-          --build-dir=$LIBBITCOIN_SRC_PATH ${{ matrix.options }}
-          --prefix=$LIBBITCOIN_SRC_PATH/prefix
+          --build-dir=${{ env.LIBBITCOIN_SRC_PATH }} ${{ matrix.options }}
+          --prefix=${{ env.LIBBITCOIN_SRC_PATH }}prefix
           ${{ env.LINKAGE }}
           ${{ env.ASSERT_NDEBUG }}
           ${{ matrix.boost }}
@@ -242,22 +248,22 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            cxx: "clang++-14"
+            cxx: "clang++-15"
             link: "dynamic"
-            optimization: "size"
+            optimization: "debug"
             assert: "debug"
             coverage: "nocov"
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: ""
-            cc: "clang-14"
-            flags: "-Os -fPIE"
+            cc: "clang-15"
+            flags: "-Og -fPIE"
             options: ""
             packager: "apt"
             packages: ""
 
           - os: ubuntu-22.04
-            cxx: "clang++-14"
+            cxx: "clang++-15"
             link: "static"
             optimization: "size"
             assert: "ndebug"
@@ -265,7 +271,7 @@ jobs:
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang-15"
             flags: "-Os -fPIE"
             options: ""
             packager: "apt"
@@ -289,20 +295,20 @@ jobs:
           - os: ubuntu-22.04
             cxx: "g++-11"
             link: "static"
-            optimization: "debug"
+            optimization: "size"
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "gcc-11"
-            flags: "-Og -fPIE"
+            flags: "-Os -fPIE"
             options: ""
             packager: "apt"
             packages: ""
 
           - os: macos-latest
-            cxx: "clang++-14"
+            cxx: "clang++"
             link: "dynamic"
             optimization: "size"
             assert: "ndebug"
@@ -310,14 +316,14 @@ jobs:
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang"
             flags: "-Os -fPIE"
             options: ""
             packager: "brew"
             packages: ""
 
           - os: macos-latest
-            cxx: "clang++-14"
+            cxx: "clang++"
             link: "static"
             optimization: "size"
             assert: "ndebug"
@@ -325,7 +331,7 @@ jobs:
             boost: "--build-boost"
             consensus: "--without-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang"
             flags: "-Os -fvisibility=hidden -fPIE"
             options: ""
             packager: "brew"
@@ -343,7 +349,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prepare toolchain [generic]
         run: |
@@ -364,7 +370,7 @@ jobs:
         shell: bash
         run: |
           WORKSPACE_SUBPATH="${GITHUB_WORKSPACE%libbitcoin-node}"
-          echo "LIBBITCOIN_SRC_PATH=$WORKSPACE_SUBPATH" >> $GITHUB_ENV
+          echo "LIBBITCOIN_SRC_PATH=${WORKSPACE_SUBPATH}" >> $GITHUB_ENV
           if [[ ${{ matrix.packager }} == 'brew' ]]; then
             echo "CMAKE_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
           fi
@@ -379,8 +385,14 @@ jobs:
             echo "LINKAGE=--disable-shared" >> $GITHUB_ENV
           fi
           if [[ ${{ matrix.link }} == 'dynamic' ]]; then
-            echo "LDFLAGS=-Wl,-rpath,$WORKSPACE_SUBPATH/prefix/lib" >> $GITHUB_ENV
+            echo "LDFLAGS=-Wl,-rpath,${WORKSPACE_SUBPATH}prefix/lib" >> $GITHUB_ENV
           fi
+
+      - name: Display Compiler details
+        shell: bash
+        run: |
+          ${CC} -v
+          ${CXX} -v
 
       - name: Display CPU details
         if: ${{ (runner.os == 'Linux') }}
@@ -391,8 +403,8 @@ jobs:
       - name: Execute install-cmake.sh
         run: >
           ./install-cmake.sh
-          --build-dir=$LIBBITCOIN_SRC_PATH ${{ matrix.options }}
-          --prefix=$LIBBITCOIN_SRC_PATH/prefix
+          --build-dir=${{ env.LIBBITCOIN_SRC_PATH }} ${{ matrix.options }}
+          --prefix=${{ env.LIBBITCOIN_SRC_PATH }}prefix
           ${{ env.LINKAGE }}
           ${{ env.ASSERT_NDEBUG }}
           ${{ matrix.boost }}
@@ -480,23 +492,23 @@ jobs:
         include:
           - os: ubuntu-22.04
             preset: "nix-gnu-debug-shared"
-            cxx: "clang++-14"
+            cxx: "clang++-15"
             link: "dynamic"
-            optimization: "size"
+            optimization: "debug"
             assert: "debug"
             coverage: "nocov"
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: ""
-            cc: "clang-14"
-            flags: "-Os -fPIE"
+            cc: "clang-15"
+            flags: "-Og -fPIE"
             options: ""
             packager: "apt"
             packages: ""
 
           - os: ubuntu-22.04
             preset: "nix-gnu-release-static-size"
-            cxx: "clang++-14"
+            cxx: "clang++-15"
             link: "static"
             optimization: "size"
             assert: "ndebug"
@@ -504,7 +516,7 @@ jobs:
             boost: "--build-boost"
             consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
-            cc: "clang-14"
+            cc: "clang-15"
             flags: "-Os -fPIE"
             options: ""
             packager: "apt"
@@ -538,7 +550,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prepare toolchain [generic]
         run: |
@@ -559,7 +571,7 @@ jobs:
         shell: bash
         run: |
           WORKSPACE_SUBPATH="${GITHUB_WORKSPACE%libbitcoin-node}"
-          echo "LIBBITCOIN_SRC_PATH=$WORKSPACE_SUBPATH" >> $GITHUB_ENV
+          echo "LIBBITCOIN_SRC_PATH=${WORKSPACE_SUBPATH}" >> $GITHUB_ENV
           if [[ ${{ matrix.packager }} == 'brew' ]]; then
             echo "CMAKE_LIBRARY_PATH=/usr/local/lib" >> $GITHUB_ENV
           fi
@@ -574,8 +586,14 @@ jobs:
             echo "LINKAGE=--disable-shared" >> $GITHUB_ENV
           fi
           if [[ ${{ matrix.link }} == 'dynamic' ]]; then
-            echo "LDFLAGS=-Wl,-rpath,$WORKSPACE_SUBPATH/prefix/${{ matrix.preset }}/lib" >> $GITHUB_ENV
+            echo "LDFLAGS=-Wl,-rpath,${WORKSPACE_SUBPATH}prefix/${{ matrix.preset }}/lib" >> $GITHUB_ENV
           fi
+
+      - name: Display Compiler details
+        shell: bash
+        run: |
+          ${CC} -v
+          ${CXX} -v
 
       - name: Display CPU details
         if: ${{ (runner.os == 'Linux') }}
@@ -586,8 +604,8 @@ jobs:
       - name: Execute install-cmakepresets.sh
         run: >
           ./install-cmakepresets.sh
-          --build-dir=$LIBBITCOIN_SRC_PATH ${{ matrix.options }}
-          --prefix=$LIBBITCOIN_SRC_PATH/prefix/${{ matrix.preset }}
+          --build-dir=${{ env.LIBBITCOIN_SRC_PATH }} ${{ matrix.options }}
+          --prefix=${{ env.LIBBITCOIN_SRC_PATH }}prefix/${{ matrix.preset }}
           --preset=${{ matrix.preset }}
           ${{ env.LINKAGE }}
           ${{ env.ASSERT_NDEBUG }}
@@ -694,7 +712,7 @@ jobs:
           msbuild-architecture: x64
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Initialize SDK
         shell: powershell
