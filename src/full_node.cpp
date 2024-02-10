@@ -52,18 +52,28 @@ void full_node::start(result_handler&& handler) NOEXCEPT
         return;
     }
 
+    // Base (p2p) invokes do_start().
     p2p::start(std::move(handler));
 }
 
-// Base (p2p) invokes do_run() override.
+void full_node::do_start(const result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "full_node");
+
+    // Do stuff here.
+
+    p2p::do_start(handler);
+}
+
 void full_node::run(result_handler&& handler) NOEXCEPT
 {
+    // Base (p2p) invokes do_run().
     p2p::run(std::move(handler));
 }
 
 void full_node::do_run(const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "timer");
+    BC_ASSERT_MSG(stranded(), "full_node");
 
     if (closed())
     {
@@ -71,12 +81,23 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
         return;
     }
 
+    // Do stuff here.
+
     p2p::do_run(handler);
+}
+
+void full_node::close() NOEXCEPT
+{
+    // Base (p2p) invokes do_close().
+    p2p::close();
 }
 
 void full_node::do_close() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "timer");
+    BC_ASSERT_MSG(stranded(), "full_node");
+
+    // Do stuff here.
+
     p2p::do_close();
 }
 

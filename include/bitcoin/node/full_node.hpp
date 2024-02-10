@@ -52,6 +52,9 @@ public:
     /// Run the node (inbound/outbound services and blockchain chasers).
     void run(network::result_handler&& handler) NOEXCEPT override;
 
+    /// Close the node.
+    void close() NOEXCEPT override;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 
@@ -67,7 +70,7 @@ protected:
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
 
-    /// Override do_close to start/stop poll timer.
+    void do_start(const network::result_handler& handler) NOEXCEPT override;
     void do_run(const network::result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;
 
