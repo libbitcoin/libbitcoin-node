@@ -16,36 +16,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_MIXIN_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
+#define LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 
 #include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
-#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
-#include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Session base class template for protocol attach mixin.
+/// Session base class template for protocol attachment.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
-/// For this reason protocol contructors are templatized on Session.
+/// Protocol contructors are templatized on Session, obtaining session.
 template <class Session>
-class mixin
+class attach
   : public Session, public node::session
 {
 public:
-    mixin(full_node& node, uint64_t identifier) NOEXCEPT
+    attach(full_node& node, uint64_t identifier) NOEXCEPT
       : Session(node, identifier), session(node)
     {
     };
@@ -81,7 +74,8 @@ protected:
         ////    channel->attach<protocol_header_out_31800>(self)->start();
         ////}
 
-        channel->attach<protocol_block_in>(self)->start();
+        constexpr auto performance = false;
+        channel->attach<protocol_block_in>(self, performance)->start();
         ////channel->attach<protocol_block_out>(self)->start();
         ////channel->attach<protocol_transaction_in>(self)->start();
         ////channel->attach<protocol_transaction_out>(self)->start();

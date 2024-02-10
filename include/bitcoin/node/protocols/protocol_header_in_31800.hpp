@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_31800_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_31800_HPP
 
-#include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
@@ -29,7 +28,7 @@ namespace node {
     
 class BCN_API protocol_header_in_31800
   : public node::protocol,
-    network::tracker<protocol_header_in_31800>
+    protected network::tracker<protocol_header_in_31800>
 {
 public:
     typedef std::shared_ptr<protocol_header_in_31800> ptr;

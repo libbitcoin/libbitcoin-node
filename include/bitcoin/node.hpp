@@ -23,7 +23,13 @@
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
-#include <bitcoin/node/protocols/mixin.hpp>
+#include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/chasers/chaser_check.hpp>
+#include <bitcoin/node/chasers/chaser_confirm.hpp>
+#include <bitcoin/node/chasers/chaser_connect.hpp>
+#include <bitcoin/node/chasers/chaser_header.hpp>
+#include <bitcoin/node/chasers/chaser_transaction.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
@@ -34,6 +40,11 @@
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
+#include <bitcoin/node/sessions/attach.hpp>
 #include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/sessions/session_inbound.hpp>
+#include <bitcoin/node/sessions/session_manual.hpp>
+#include <bitcoin/node/sessions/session_outbound.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 #endif

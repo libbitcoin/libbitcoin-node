@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2024 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,17 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
 
-#include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_70012.hpp>
-#include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
-#include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_in.hpp>
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+#include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/chasers/chaser_check.hpp>
+#include <bitcoin/node/chasers/chaser_confirm.hpp>
+#include <bitcoin/node/chasers/chaser_connect.hpp>
+#include <bitcoin/node/chasers/chaser_header.hpp>
+#include <bitcoin/node/chasers/chaser_transaction.hpp>
 
 #endif

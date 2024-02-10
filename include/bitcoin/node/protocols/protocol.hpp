@@ -23,7 +23,10 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
+
+// Individual inclusion to prevent cycle (can't forward declare).
 #include <bitcoin/node/sessions/session.hpp>
+////class session;
 
 namespace libbitcoin {
 namespace node {
@@ -32,16 +35,23 @@ namespace node {
 class BCN_API protocol
   : public network::protocol
 {
+public:
+    DELETE_COPY_MOVE(protocol);
+
 protected:
     typedef network::channel::ptr channel_ptr;
 
-    /// Session implements both network::session and node::session.
     template <typename Session>
     protocol(Session& session, const channel_ptr& channel) NOEXCEPT
-      : network::protocol(session, channel),
-        session_(session)
+      : network::protocol(session, channel), session_(session)
     {
     }
+
+    virtual ~protocol() NOEXCEPT;
+
+    /// Report performance, false directs self-terminate.
+    virtual void performance(uint64_t channel, uint64_t speed,
+        network::result_handler&& handler) const NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;

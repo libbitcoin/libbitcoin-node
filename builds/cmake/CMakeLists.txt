@@ -250,6 +250,12 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/full_node.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
+    "../../src/chasers/chaser.cpp"
+    "../../src/chasers/chaser_check.cpp"
+    "../../src/chasers/chaser_confirm.cpp"
+    "../../src/chasers/chaser_connect.cpp"
+    "../../src/chasers/chaser_header.cpp"
+    "../../src/chasers/chaser_transaction.cpp"
     "../../src/protocols/protocol.cpp"
     "../../src/protocols/protocol_block_in.cpp"
     "../../src/protocols/protocol_block_out.cpp"
@@ -259,7 +265,10 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_header_out_70012.cpp"
     "../../src/protocols/protocol_transaction_in.cpp"
     "../../src/protocols/protocol_transaction_out.cpp"
-    "../../src/sessions/session.cpp" )
+    "../../src/sessions/session.cpp"
+    "../../src/sessions/session_inbound.cpp"
+    "../../src/sessions/session_manual.cpp"
+    "../../src/sessions/session_outbound.cpp" )
 
 # ${CANONICAL_LIB_NAME} project specific include directory normalization for build.
 #------------------------------------------------------------------------------

@@ -28,7 +28,7 @@ namespace node {
     
 class BCN_API protocol_block_out
   : public node::protocol,
-    network::tracker<protocol_block_out>
+    protected network::tracker<protocol_block_out>
 {
 public:
     typedef std::shared_ptr<protocol_block_out> ptr;

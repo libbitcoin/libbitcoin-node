@@ -81,6 +81,9 @@ int bc::system::main(int argc, char* argv[])
     using namespace bc::node;
     using namespace bc::system;
 
+    // en.cppreference.com/w/cpp/io/ios_base/sync_with_stdio
+    std::ios_base::sync_with_stdio(false);
+
     set_utf8_stdio();
     parser metadata(chain::selection::mainnet);
     const auto& args = const_cast<const char**>(argv);

@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 
-#include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
@@ -29,24 +28,31 @@ namespace node {
     
 class BCN_API protocol_block_in
   : public node::protocol,
-    network::tracker<protocol_block_in>
+    protected network::tracker<protocol_block_in>
 {
 public:
     typedef std::shared_ptr<protocol_block_in> ptr;
     using type_id = network::messages::inventory::type_id;
 
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename Session>
     protocol_block_in(Session& session,
-        const channel_ptr& channel) NOEXCEPT
+        const channel_ptr& channel, bool report_performance) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_block_in>(session.log),
+        report_performance_(report_performance &&
+            !is_zero(session.config().node.sample_period_seconds)),
         block_type_(session.config().network.witness_node() ?
-            type_id::witness_block : type_id::block)
+            type_id::witness_block : type_id::block),
+        performance_timer_(std::make_shared<network::deadline>(session.log,
+            channel->strand(), session.config().node.sample_period()))
     {
     }
+    BC_POP_WARNING()
 
-    /// Start protocol (strand required).
+    /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
     struct track
@@ -67,7 +73,12 @@ protected:
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
 
-protected:
+    /// Handle performance timer event.
+    virtual void handle_performance_timer(const code& ec) NOEXCEPT;
+
+    /// Handle result of performance reporting.
+    virtual void handle_performance(const code& ec) NOEXCEPT;
+
     /// Invoked when initial blocks sync is current.
     virtual void current() NOEXCEPT;
 
@@ -82,11 +93,14 @@ private:
         const network::messages::inventory& message) const NOEXCEPT;
 
     // Thread safe.
+    const bool report_performance_;
     const network::messages::inventory::type_id block_type_;
 
     // Protected by strand.
-    uint32_t start_{};
+    uint64_t bytes_{ zero };
+    network::steady_clock::time_point start_{};
     system::chain::chain_state::ptr state_{};
+    network::deadline::ptr performance_timer_;
 };
 
 } // namespace node

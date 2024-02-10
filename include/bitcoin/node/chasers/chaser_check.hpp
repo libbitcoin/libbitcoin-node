@@ -16,37 +16,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
+#include <bitcoin/node/chasers/chaser.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class BCN_API protocol_header_in_70012
-  : public protocol_header_in_31800,
-    protected network::tracker<protocol_header_in_70012>
+
+class full_node;
+
+/// Chase down blocks for the candidate header chain.
+/// Notify subscribers with "block checked" event.
+class BCN_API chaser_check
+  : public chaser, protected network::tracker<chaser_check>
 {
 public:
-    typedef std::shared_ptr<protocol_header_in_70012> ptr;
-
-    template <typename Session>
-    protocol_header_in_70012(Session& session,
-        const channel_ptr& channel) NOEXCEPT
-      : node::protocol_header_in_31800(session, channel),
-        network::tracker<protocol_header_in_70012>(session.log)
-    {
-    }
-
-protected:
-    /// Invoked when initial headers sync is current.
-    void current() NOEXCEPT override;
-
-private:
-    bool sent_{};
+    chaser_check(full_node& node) NOEXCEPT;
 };
 
 } // namespace node

@@ -32,30 +32,44 @@ class BCN_API full_node
   : public network::p2p
 {
 public:
+    typedef std::shared_ptr<full_node> ptr;
     typedef database::store<database::map> store;
     typedef database::query<store> query;
-    typedef std::shared_ptr<full_node> ptr;
+
+    /// Constructors.
+    /// -----------------------------------------------------------------------
 
     /// Construct the node.
     full_node(query& query, const configuration& configuration,
         const network::logger& log) NOEXCEPT;
 
+    /// Sequences.
+    /// -----------------------------------------------------------------------
+
     /// Start the node (seed and manual services).
     void start(network::result_handler&& handler) NOEXCEPT override;
 
-    /// Run the node (inbound and outbound services).
+    /// Run the node (inbound/outbound services and blockchain chasers).
     void run(network::result_handler&& handler) NOEXCEPT override;
 
-    // Configuration settings for all libraries.
+    /// Properties.
+    /// -----------------------------------------------------------------------
+
+    /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
 protected:
+    /// Session attachments.
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
+
+    /// Override do_close to start/stop poll timer.
+    void do_run(const network::result_handler& handler) NOEXCEPT override;
+    void do_close() NOEXCEPT override;
 
 private:
     // These are thread safe.

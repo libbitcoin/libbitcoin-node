@@ -118,10 +118,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         }
 
         // Rolling forward chain_state eliminates database cost.
+        BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
         state_.reset(new chain::chain_state(*state_, header, coin));
+        BC_POP_WARNING()
 
-        const auto state = state_->context();
-        error = header.accept(state);
+        const auto context = state_->context();
+        error = header.accept(context);
         if (error)
         {
             LOGR("Invalid header (accept) [" << encode_hash(hash)
@@ -130,12 +132,13 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // hack in bit0 late and bit1(segwit) on schedule.
-        //// state.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
-        const auto link = query.set_link(header, state);
+        // TODO: ensure soft forks activated in chain_state.
+        //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+
+        const auto link = query.set_link(header, context);
         if (link.is_terminal())
         {
-            // This should only be from missing parent, but guarded above.
+            // Should only be from missing parent, and that's guarded above.
             LOGF("Store header error [" << encode_hash(hash)
                 << "] from [" << authority() << "].");
             stop(network::error::unknown);
@@ -151,8 +154,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        if (is_zero(state.height % 10'000))
-            reporter::fire(event_header, state.height);
+        ////if (is_zero(context.height % 10'000))
+        ////    reporter::fire(event_header, context.height);
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -174,7 +177,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_header_in_31800::current() NOEXCEPT
 {
-    reporter::fire(event_current_headers, state_->height());
+    ////reporter::fire(event_current_headers, state_->height());
     LOGN("Headers from [" << authority() << "] complete at ("
         << state_->height() << ").");
 }

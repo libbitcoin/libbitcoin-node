@@ -40,6 +40,12 @@ src_libbitcoin_node_la_SOURCES = \
     src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
+    src/chasers/chaser.cpp \
+    src/chasers/chaser_check.cpp \
+    src/chasers/chaser_confirm.cpp \
+    src/chasers/chaser_connect.cpp \
+    src/chasers/chaser_header.cpp \
+    src/chasers/chaser_transaction.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_block_in.cpp \
     src/protocols/protocol_block_out.cpp \
@@ -49,7 +55,10 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_header_out_70012.cpp \
     src/protocols/protocol_transaction_in.cpp \
     src/protocols/protocol_transaction_out.cpp \
-    src/sessions/session.cpp
+    src/sessions/session.cpp \
+    src/sessions/session_inbound.cpp \
+    src/sessions/session_manual.cpp \
+    src/sessions/session_outbound.cpp
 
 # local: test/libbitcoin-node-test
 #------------------------------------------------------------------------------
@@ -104,9 +113,18 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
 
+include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers
+include_bitcoin_node_chasers_HEADERS = \
+    include/bitcoin/node/chasers/chaser.hpp \
+    include/bitcoin/node/chasers/chaser_check.hpp \
+    include/bitcoin/node/chasers/chaser_confirm.hpp \
+    include/bitcoin/node/chasers/chaser_connect.hpp \
+    include/bitcoin/node/chasers/chaser_header.hpp \
+    include/bitcoin/node/chasers/chaser_transaction.hpp \
+    include/bitcoin/node/chasers/chasers.hpp
+
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
-    include/bitcoin/node/protocols/mixin.hpp \
     include/bitcoin/node/protocols/protocol.hpp \
     include/bitcoin/node/protocols/protocol_block_in.hpp \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
@@ -120,7 +138,12 @@ include_bitcoin_node_protocols_HEADERS = \
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
-    include/bitcoin/node/sessions/session.hpp
+    include/bitcoin/node/sessions/attach.hpp \
+    include/bitcoin/node/sessions/session.hpp \
+    include/bitcoin/node/sessions/session_inbound.hpp \
+    include/bitcoin/node/sessions/session_manual.hpp \
+    include/bitcoin/node/sessions/session_outbound.hpp \
+    include/bitcoin/node/sessions/sessions.hpp
 
 # files => ${bash_completiondir}
 #------------------------------------------------------------------------------

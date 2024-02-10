@@ -16,37 +16,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 
+#include <unordered_map>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
+#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/sessions/attach.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-class BCN_API protocol_header_in_70012
-  : public protocol_header_in_31800,
-    protected network::tracker<protocol_header_in_70012>
+class BCN_API session_outbound
+  : public attach<network::session_outbound>,
+    protected network::tracker<session_outbound>
 {
 public:
-    typedef std::shared_ptr<protocol_header_in_70012> ptr;
+    session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
-    template <typename Session>
-    protocol_header_in_70012(Session& session,
-        const channel_ptr& channel) NOEXCEPT
-      : node::protocol_header_in_31800(session, channel),
-        network::tracker<protocol_header_in_70012>(session.log)
-    {
-    }
+    virtual void performance(uint64_t channel, uint64_t speed,
+        network::result_handler&& handler) NOEXCEPT override;
 
 protected:
-    /// Invoked when initial headers sync is current.
-    void current() NOEXCEPT override;
+    void attach_protocols(
+        const network::channel::ptr& channel) NOEXCEPT override;
 
 private:
-    bool sent_{};
+    void do_performance(uint64_t channel, uint64_t speed,
+        const network::result_handler& handler) NOEXCEPT;
+
+    // This is protected by strand.
+    std::unordered_map<uint64_t, double> speeds_;
 };
 
 } // namespace node

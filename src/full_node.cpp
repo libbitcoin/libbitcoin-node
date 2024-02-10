@@ -18,16 +18,21 @@
  */
 #include <bitcoin/node/full_node.hpp>
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
-#include <bitcoin/node/protocols/protocols.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-using namespace network;
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+using namespace network;
+using namespace std::placeholders;
+
+// TODO: replace channel_heartbeat.
 full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
@@ -35,6 +40,9 @@ full_node::full_node(query& query, const configuration& configuration,
     query_(query)
 {
 }
+
+// Sequences.
+// ----------------------------------------------------------------------------
 
 void full_node::start(result_handler&& handler) NOEXCEPT
 {
@@ -47,10 +55,33 @@ void full_node::start(result_handler&& handler) NOEXCEPT
     p2p::start(std::move(handler));
 }
 
+// Base (p2p) invokes do_run() override.
 void full_node::run(result_handler&& handler) NOEXCEPT
 {
     p2p::run(std::move(handler));
 }
+
+void full_node::do_run(const result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "timer");
+
+    if (closed())
+    {
+        handler(network::error::service_stopped);
+        return;
+    }
+
+    p2p::do_run(handler);
+}
+
+void full_node::do_close() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "timer");
+    p2p::do_close();
+}
+
+// Properties.
+// ----------------------------------------------------------------------------
 
 full_node::query& full_node::archive() const NOEXCEPT
 {
@@ -62,20 +93,25 @@ const configuration& full_node::config() const NOEXCEPT
     return config_;
 }
 
+// Session attachments.
+// ----------------------------------------------------------------------------
+
 session_manual::ptr full_node::attach_manual_session() NOEXCEPT
 {
-    return p2p::attach<mixin<session_manual>>(*this);
+    return p2p::attach<node::session_manual>(*this);
 }
 
 session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 {
-    return p2p::attach<mixin<session_inbound>>(*this);
+    return p2p::attach<node::session_inbound>(*this);
 }
 
 session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
-    return p2p::attach<mixin<session_outbound>>(*this);
+    return p2p::attach<node::session_outbound>(*this);
 }
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

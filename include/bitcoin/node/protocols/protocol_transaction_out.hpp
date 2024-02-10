@@ -28,7 +28,7 @@ namespace node {
     
 class BCN_API protocol_transaction_out
   : public node::protocol,
-    network::tracker<protocol_transaction_out>
+    protected network::tracker<protocol_transaction_out>
 {
 public:
     typedef std::shared_ptr<protocol_transaction_out> ptr;

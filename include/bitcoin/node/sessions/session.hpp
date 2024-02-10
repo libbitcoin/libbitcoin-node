@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_HPP
-#define LIBBITCOIN_NODE_SESSION_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -26,10 +26,16 @@
 namespace libbitcoin {
 namespace node {
     
-/// Abstract base for node sessions.
+/// Common session context.
 class BCN_API session
 {
 public:
+    DELETE_COPY_MOVE(session);
+
+    /// Handle performance, base returns false (implied terminate).
+    virtual void performance(uint64_t channel, uint64_t speed,
+        network::result_handler&& handler) NOEXCEPT;
+
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
@@ -37,8 +43,12 @@ public:
     full_node::query& archive() const NOEXCEPT;
 
 protected:
-    /// Construct the session.
+
+    /// Construct/destruct the session.
     session(full_node& node) NOEXCEPT;
+
+    /// Asserts that session is stopped.
+    virtual ~session() NOEXCEPT;
 
 private:
     // This is thread safe (mostly).

@@ -18,13 +18,25 @@
  */
 #include <bitcoin/node/protocols/protocol.hpp>
 
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {
+
+protocol::~protocol() NOEXCEPT
+{
+}
+
+void protocol::performance(uint64_t channel, uint64_t speed,
+    network::result_handler&& handler) const NOEXCEPT
+{
+    session_.performance(channel, speed, std::move(handler));
+}
 
 const configuration& protocol::config() const NOEXCEPT
 {

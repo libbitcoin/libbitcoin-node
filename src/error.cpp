@@ -29,9 +29,15 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // general
     { success, "success" },
     { unknown, "unknown error" },
+
+    // database
     { store_uninitialized, "store not initialized" },
 
-    // blocks
+    // network
+    { slow_channel, "slow channel" },
+    { stalled_channel, "stalled channel" },
+
+    // blockchain
     { orphan_block, "orphan block" },
     { insufficient_work, "insufficient work" },
     { duplicate_block, "duplicate block" }
