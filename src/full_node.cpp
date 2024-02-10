@@ -32,12 +32,13 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 using namespace network;
 using namespace std::placeholders;
 
-// TODO: replace channel_heartbeat.
+// p2p::strand() as it is non-virtual (safe to call from constructor).
 full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
     config_(configuration),
-    query_(query)
+    query_(query),
+    event_subscriber_(strand())
 {
 }
 

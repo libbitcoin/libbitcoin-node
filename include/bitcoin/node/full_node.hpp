@@ -35,6 +35,7 @@ public:
     typedef std::shared_ptr<full_node> ptr;
     typedef database::store<database::map> store;
     typedef database::query<store> query;
+    typedef network::subscriber<> event_subscriber;
 
     /// Constructors.
     /// -----------------------------------------------------------------------
@@ -78,6 +79,9 @@ private:
     // These are thread safe.
     const configuration& config_;
     query& query_;
+
+    // This is protected by strand.
+    event_subscriber event_subscriber_;
 };
 
 } // namespace node

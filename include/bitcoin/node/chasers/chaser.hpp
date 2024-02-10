@@ -28,49 +28,34 @@ namespace node {
 class full_node;
 
 /// Abstract base chaser.
+
+/// Chasers impose order on blockchain/pool construction as necessary.
+
 /// Each chaser operates on its own strand, implemented here, allowing
 /// concurrent chaser operations to the extent that threads are available.
+
+/// Events are passed between chasers using the full_node shared notifier.
+/// Notifications are bounced from sink (e.g. chaser) to its strand, and
+/// full_node::notify bounces from source (e.g. chaser) to network strand.
+
 class BCN_API chaser
   : public network::enable_shared_from_base<chaser>,
     public network::reporter
 {
 public:
-    typedef uint64_t object_key;
-    typedef network::desubscriber<object_key> subscriber;
-    typedef subscriber::handler notifier;
     DELETE_COPY_MOVE(chaser);
 
-    /// Start/stop.
-    /// -----------------------------------------------------------------------
-    void start(network::result_handler&& handler) NOEXCEPT;
-    void stop() NOEXCEPT;
-
-    /// Subscriptions.
-    /// -----------------------------------------------------------------------
-    object_key subscribe(notifier&& handler) NOEXCEPT;
-    bool notify(object_key key) NOEXCEPT;
-
-    /// Properties.
-    /// -----------------------------------------------------------------------
-    bool stopped() const NOEXCEPT;
-    bool stranded() const NOEXCEPT;
+    /// True if the current thread is on the chaser strand.
+    virtual bool stranded() const NOEXCEPT;
 
 protected:
     chaser(full_node& node) NOEXCEPT;
     virtual ~chaser() NOEXCEPT;
 
 private:
-    object_key create_key() NOEXCEPT;
-    void do_stop() NOEXCEPT;
-
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
-    std::atomic_bool stopped_{ true };
-
-    // These are protected by the strand.
-    object_key keys_{};
-    subscriber subscriber_;
 };
 
 } // namespace node
