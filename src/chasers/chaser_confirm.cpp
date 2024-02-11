@@ -18,12 +18,16 @@
  */
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 
+#include <functional>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 
 namespace libbitcoin {
 namespace node {
+
+using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
@@ -31,6 +35,34 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     tracker<chaser_confirm>(node.log)
 {
+    subscribe(std::bind(&chaser_confirm::handle_event, this, _1, _2));
+}
+
+void chaser_confirm::handle_event(const code& ec, chase value) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&chaser_confirm::do_handle_event, this, ec, value));
+}
+
+void chaser_confirm::do_handle_event(const code& ec, chase value) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_confirm");
+
+    // The code should be error::service_stopped when error::stop is set.
+    if (ec)
+        return;
+
+    switch (value)
+    {
+        case chase::start:
+            // TODO: initialize.
+            break;
+        case chase::connected:
+            // TODO: handle new strong connected branch (may issue 'confirmed').
+            break;
+        default:
+            return;
+    }
 }
 
 BC_POP_WARNING()

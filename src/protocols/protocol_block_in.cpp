@@ -54,7 +54,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(!stranded(), "expected channel strand");
+    BC_ASSERT_MSG(stranded(), "expected channel strand");
 
     if (stopped() || ec == network::error::operation_canceled)
         return;
@@ -76,12 +76,18 @@ void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
     start_ = now;
     log.fire(event_block, rate);
 
+    // Bounces to network strand, performs work, then calls handler.
     // Channel will continue to process blocks while this call excecutes on the
     // network strand. Timer will not be restarted until this call completes.
     performance(identifier(), rate, BIND1(handle_performance, ec));
 }
 
 void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
+{
+    POST1(do_handle_performance, ec);
+}
+
+void protocol_block_in::do_handle_performance(const code& ec) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "expected network strand");
 

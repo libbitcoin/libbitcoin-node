@@ -29,14 +29,17 @@ namespace node {
 class full_node;
 
 /// Chase down blocks in the the candidate header chain for validation.
-/// Notify subscribers with the "block connected" event.
 class BCN_API chaser_connect
   : public chaser, protected network::tracker<chaser_connect>
 {
 public:
-    typedef std::unique_ptr<chaser_connect> ptr;
+    typedef std::unique_ptr<chaser_connect> uptr;
 
     chaser_connect(full_node& node) NOEXCEPT;
+
+private:
+    void handle_event(const code& ec, chase value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node

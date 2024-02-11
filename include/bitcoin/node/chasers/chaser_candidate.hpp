@@ -29,14 +29,17 @@ namespace node {
 class full_node;
 
 /// Construct candidate blocks upon modification of the transaction DAG.
-/// Notify subscribers with "candidate" event.
 class BCN_API chaser_candidate
   : public chaser, protected network::tracker<chaser_candidate>
 {
 public:
-    typedef std::unique_ptr<chaser_candidate> ptr;
+    typedef std::unique_ptr<chaser_candidate> uptr;
 
     chaser_candidate(full_node& node) NOEXCEPT;
+
+private:
+    void handle_event(const code& ec, chase value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node

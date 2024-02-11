@@ -40,6 +40,12 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 
 void chaser_check::handle_event(const code& ec, chase value) NOEXCEPT
 {
+    boost::asio::post(strand(),
+        std::bind(&chaser_check::do_handle_event, this, ec, value));
+}
+
+void chaser_check::do_handle_event(const code& ec, chase value) NOEXCEPT
+{
     BC_ASSERT_MSG(stranded(), "chaser_check");
 
     // The code should be error::service_stopped when error::stop is set.

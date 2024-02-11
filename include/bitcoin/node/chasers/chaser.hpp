@@ -85,10 +85,13 @@ protected:
     /// Close the node.
     void close(const code& ec) NOEXCEPT;
 
+    /// The chaser's strand.
+    network::asio::strand& strand() NOEXCEPT;
+
     /// True if the current thread is on the chaser strand.
     bool stranded() const NOEXCEPT;
 
-    /// Subscribe to chaser events.
+    /// Subscribe to chaser events (must be non-virtual).
     code subscribe(event_handler&& handler) NOEXCEPT;
 
     /// Set chaser event (does not require network strand).

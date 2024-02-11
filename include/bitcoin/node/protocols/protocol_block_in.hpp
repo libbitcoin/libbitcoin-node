@@ -92,6 +92,9 @@ private:
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
 
+
+    void do_handle_performance(const code& ec) NOEXCEPT;
+
     // Thread safe.
     const bool report_performance_;
     const network::messages::inventory::type_id block_type_;

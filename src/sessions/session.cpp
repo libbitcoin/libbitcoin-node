@@ -39,7 +39,8 @@ session::~session() NOEXCEPT
 void session::performance(uint64_t, uint64_t,
     network::result_handler&& handler) NOEXCEPT
 {
-    handler(error::unknown);
+    // TODO: do work on network strand and then invoke handler.
+    boost::asio::post(node_.strand(), std::bind(handler, error::unknown));
 }
 
 const configuration& session::config() const NOEXCEPT
