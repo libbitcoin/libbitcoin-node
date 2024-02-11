@@ -33,7 +33,7 @@ class BCN_API chaser_transaction
   : public chaser, protected network::tracker<chaser_transaction>
 {
 public:
-    typedef std::unique_ptr<chaser_transaction> ptr;
+    typedef std::unique_ptr<chaser_transaction> uptr;
 
     chaser_transaction(full_node& node) NOEXCEPT;
 };

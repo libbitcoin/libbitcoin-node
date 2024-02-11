@@ -34,7 +34,7 @@ class BCN_API chaser_candidate
   : public chaser, protected network::tracker<chaser_candidate>
 {
 public:
-    typedef std::unique_ptr<chaser_candidate> ptr;
+    typedef std::unique_ptr<chaser_candidate> uptr;
 
     chaser_candidate(full_node& node) NOEXCEPT;
 };

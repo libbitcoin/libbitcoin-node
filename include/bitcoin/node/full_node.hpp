@@ -71,6 +71,7 @@ public:
 protected:
     virtual code create_chasers() NOEXCEPT;
     virtual void stop_chasers() NOEXCEPT;
+    virtual void delete_chasers() NOEXCEPT;
 
     /// Session attachments.
     /// -----------------------------------------------------------------------
@@ -89,12 +90,12 @@ private:
 
     // These are protected by strand.
     chaser::event_subscriber event_subscriber_;
-    chaser_header::ptr chaser_header_{};
-    chaser_check::ptr chaser_check_{};
-    chaser_connect::ptr chaser_connect_{};
-    chaser_confirm::ptr chaser_confirm_{};
-    chaser_transaction::ptr chaser_transaction_{};
-    chaser_candidate::ptr chaser_candidate_{};
+    chaser_header::uptr chaser_header_{};
+    chaser_check::uptr chaser_check_{};
+    chaser_connect::uptr chaser_connect_{};
+    chaser_confirm::uptr chaser_confirm_{};
+    chaser_transaction::uptr chaser_transaction_{};
+    chaser_candidate::uptr chaser_candidate_{};
 };
 
 } // namespace node
