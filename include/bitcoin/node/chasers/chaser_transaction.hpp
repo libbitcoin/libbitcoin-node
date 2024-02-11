@@ -36,6 +36,10 @@ public:
     typedef std::unique_ptr<chaser_transaction> uptr;
 
     chaser_transaction(full_node& node) NOEXCEPT;
+
+private:
+    void handle_event(const code& ec, chase value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node

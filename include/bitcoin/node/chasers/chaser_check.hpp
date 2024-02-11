@@ -29,7 +29,6 @@ namespace node {
 class full_node;
 
 /// Chase down blocks for the candidate header chain.
-/// Notify subscribers with "block checked" event.
 class BCN_API chaser_check
   : public chaser, protected network::tracker<chaser_check>
 {

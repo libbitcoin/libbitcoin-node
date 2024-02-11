@@ -29,7 +29,6 @@ namespace node {
 class full_node;
 
 /// Chase down valid blocks for confirmation.
-/// Notify subscribers with "block confirmed" event.
 class BCN_API chaser_confirm
   : public chaser, protected network::tracker<chaser_confirm>
 {
@@ -37,6 +36,10 @@ public:
     typedef std::unique_ptr<chaser_confirm> uptr;
 
     chaser_confirm(full_node& node) NOEXCEPT;
+
+private:
+    void handle_event(const code& ec, chase value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node

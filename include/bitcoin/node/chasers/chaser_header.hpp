@@ -29,7 +29,6 @@ namespace node {
 class full_node;
 
 /// Chase down stronger header branches for the candidate chain.
-/// Notify subscribers with "strong header" event.
 class BCN_API chaser_header
   : public chaser, protected network::tracker<chaser_header>
 {
@@ -37,6 +36,10 @@ public:
     typedef std::unique_ptr<chaser_header> uptr;
 
     chaser_header(full_node& node) NOEXCEPT;
+
+private:
+    void handle_event(const code& ec, chase value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node
