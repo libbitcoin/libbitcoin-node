@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CANDIDATE_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_CANDIDATE_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -28,14 +28,15 @@ namespace node {
 
 class full_node;
 
-/// Chase down unconfirmed transactions.
-class BCN_API chaser_transaction
-  : public chaser, protected network::tracker<chaser_transaction>
+/// Construct candidate blocks upon modification of the transaction DAG.
+/// Notify subscribers with "candidate" event.
+class BCN_API chaser_candidate
+  : public chaser, protected network::tracker<chaser_candidate>
 {
 public:
-    typedef std::unique_ptr<chaser_transaction> ptr;
+    typedef std::unique_ptr<chaser_candidate> ptr;
 
-    chaser_transaction(full_node& node) NOEXCEPT;
+    chaser_candidate(full_node& node) NOEXCEPT;
 };
 
 } // namespace node

@@ -22,6 +22,7 @@
 #include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -35,7 +36,6 @@ public:
     typedef std::shared_ptr<full_node> ptr;
     typedef database::store<database::map> store;
     typedef database::query<store> query;
-    typedef network::subscriber<> event_subscriber;
 
     /// Constructors.
     /// -----------------------------------------------------------------------
@@ -56,11 +56,6 @@ public:
     /// Close the node.
     void close() NOEXCEPT override;
 
-    /// Events.
-    /// -----------------------------------------------------------------------
-
-    // TODO: subscribe/notify.
-
     /// Properties.
     /// -----------------------------------------------------------------------
 
@@ -70,8 +65,15 @@ public:
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
+    /// Obtain reference to the chaser event subscriber.
+    chaser::event_subscriber& event_subscriber() NOEXCEPT;
+
 protected:
+    virtual code create_chasers() NOEXCEPT;
+    virtual void stop_chasers() NOEXCEPT;
+
     /// Session attachments.
+    /// -----------------------------------------------------------------------
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
@@ -85,8 +87,14 @@ private:
     const configuration& config_;
     query& query_;
 
-    // This is protected by strand.
-    event_subscriber event_subscriber_;
+    // These are protected by strand.
+    chaser::event_subscriber event_subscriber_;
+    chaser_header::ptr chaser_header_{};
+    chaser_check::ptr chaser_check_{};
+    chaser_connect::ptr chaser_connect_{};
+    chaser_confirm::ptr chaser_confirm_{};
+    chaser_transaction::ptr chaser_transaction_{};
+    chaser_candidate::ptr chaser_candidate_{};
 };
 
 } // namespace node

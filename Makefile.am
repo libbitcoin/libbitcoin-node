@@ -41,6 +41,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/parser.cpp \
     src/settings.cpp \
     src/chasers/chaser.cpp \
+    src/chasers/chaser_candidate.cpp \
     src/chasers/chaser_check.cpp \
     src/chasers/chaser_confirm.cpp \
     src/chasers/chaser_connect.cpp \
@@ -116,6 +117,7 @@ include_bitcoin_node_HEADERS = \
 include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers
 include_bitcoin_node_chasers_HEADERS = \
     include/bitcoin/node/chasers/chaser.hpp \
+    include/bitcoin/node/chasers/chaser_candidate.hpp \
     include/bitcoin/node/chasers/chaser_check.hpp \
     include/bitcoin/node/chasers/chaser_confirm.hpp \
     include/bitcoin/node/chasers/chaser_connect.hpp \
