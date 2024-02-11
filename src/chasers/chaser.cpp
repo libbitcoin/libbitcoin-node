@@ -27,6 +27,8 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace network;
+
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser::chaser(full_node& node) NOEXCEPT
@@ -46,6 +48,11 @@ void chaser::close(const code& ec) NOEXCEPT
 {
     LOGF("Chaser fault, " << ec.message());
     node_.close();
+}
+
+asio::strand& chaser::strand() NOEXCEPT
+{
+    return strand_;
 }
 
 bool chaser::stranded() const NOEXCEPT

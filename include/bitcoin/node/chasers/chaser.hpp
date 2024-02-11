@@ -85,6 +85,9 @@ protected:
     /// Close the node.
     void close(const code& ec) NOEXCEPT;
 
+    /// The chaser's strand.
+    network::asio::strand& strand() NOEXCEPT;
+
     /// True if the current thread is on the chaser strand.
     bool stranded() const NOEXCEPT;
 

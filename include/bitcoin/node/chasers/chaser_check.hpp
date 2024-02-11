@@ -40,6 +40,7 @@ public:
 
 private:
     void handle_event(const code& ec, chase value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node
