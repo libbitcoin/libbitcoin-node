@@ -29,6 +29,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // general
     { success, "success" },
     { unknown, "unknown error" },
+    { unexpected_event, "unexpected event" },
 
     // database
     { store_uninitialized, "store not initialized" },

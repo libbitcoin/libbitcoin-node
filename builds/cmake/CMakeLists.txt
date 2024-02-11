@@ -251,6 +251,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/parser.cpp"
     "../../src/settings.cpp"
     "../../src/chasers/chaser.cpp"
+    "../../src/chasers/chaser_candidate.cpp"
     "../../src/chasers/chaser_check.cpp"
     "../../src/chasers/chaser_confirm.cpp"
     "../../src/chasers/chaser_connect.cpp"

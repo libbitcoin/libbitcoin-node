@@ -19,7 +19,9 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 
 #include <functional>
+#include <utility>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
@@ -30,55 +32,20 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
-    subscriber_(strand_),
+    subscriber_(node.event_subscriber()),
     reporter(node.log)
 {
 }
 
 chaser::~chaser() NOEXCEPT
 {
-    BC_ASSERT_MSG(stopped(), "The chaser was not stopped.");
-    if (!stopped()) { LOGF("~chaser is not stopped."); }
 }
 
-void chaser::start(network::result_handler&& handler) NOEXCEPT
+
+void chaser::close(const code& ec) NOEXCEPT
 {
-    if (!stopped())
-    {
-        handler(network::error::operation_failed);
-        return;
-    }
-
-    stopped_.store(false);
-    handler(network::error::success);
-}
-
-void chaser::stop() NOEXCEPT
-{
-    stopped_.store(true);
-
-    // The chaser can be deleted once threadpool joins after this call.
-    boost::asio::post(strand_,
-        std::bind(&chaser::do_stop, this));
-}
-
-chaser::object_key chaser::subscribe(notifier&& handler) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "strand");
-    const auto key = create_key();
-    subscriber_.subscribe(std::move(handler), key);
-    return key;
-}
-
-// TODO: closing channel notifies itself to desubscribe.
-bool chaser::notify(object_key key) NOEXCEPT
-{
-    return subscriber_.notify_one(key, network::error::success);
-}
-
-bool chaser::stopped() const NOEXCEPT
-{
-    return stopped_.load();
+    LOGF("Chaser fault, " << ec.message());
+    node_.close();
 }
 
 bool chaser::stranded() const NOEXCEPT
@@ -86,26 +53,26 @@ bool chaser::stranded() const NOEXCEPT
     return strand_.running_in_this_thread();
 }
 
-// private
-chaser::object_key chaser::create_key() NOEXCEPT
+// Must be non-virtual for constructor invoke.
+// Requires network strand (call from node start).
+code chaser::subscribe(event_handler&& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
-
-    if (is_zero(++keys_))
-    {
-        BC_ASSERT_MSG(false, "overflow");
-        LOGF("Chaser object overflow.");
-    }
-
-    return keys_;
+    BC_ASSERT_MSG(node_.stranded(), "chaser");
+    return subscriber_.subscribe(std::move(handler));
 }
 
-// private
-void chaser::do_stop() NOEXCEPT
+// Posts to network strand (call from chaser strands).
+void chaser::notify(const code& ec, chase value) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    boost::asio::post(node_.strand(),
+        std::bind(&chaser::do_notify, this, ec, value));
+}
 
-    subscriber_.stop(network::error::service_stopped);
+// Executed on network strand (handler should bounce to chaser strand).
+void chaser::do_notify(const code& ec, chase value) NOEXCEPT
+{
+    BC_ASSERT_MSG(node_.stranded(), "chaser");
+    subscriber_.notify(ec, value);
 }
 
 BC_POP_WARNING()

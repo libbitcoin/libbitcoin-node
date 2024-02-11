@@ -31,9 +31,11 @@ class full_node;
 /// Chase down blocks in the the candidate header chain for validation.
 /// Notify subscribers with the "block connected" event.
 class BCN_API chaser_connect
-   : public chaser, protected network::tracker<chaser_connect>
+  : public chaser, protected network::tracker<chaser_connect>
 {
 public:
+    typedef std::unique_ptr<chaser_connect> ptr;
+
     chaser_connect(full_node& node) NOEXCEPT;
 };
 

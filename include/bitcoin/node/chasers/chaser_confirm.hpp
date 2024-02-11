@@ -34,6 +34,8 @@ class BCN_API chaser_confirm
   : public chaser, protected network::tracker<chaser_confirm>
 {
 public:
+    typedef std::unique_ptr<chaser_confirm> ptr;
+
     chaser_confirm(full_node& node) NOEXCEPT;
 };
 

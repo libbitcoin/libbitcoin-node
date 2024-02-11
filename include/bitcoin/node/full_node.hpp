@@ -22,6 +22,7 @@
 #include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -52,6 +53,9 @@ public:
     /// Run the node (inbound/outbound services and blockchain chasers).
     void run(network::result_handler&& handler) NOEXCEPT override;
 
+    /// Close the node.
+    void close() NOEXCEPT override;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 
@@ -61,13 +65,20 @@ public:
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
+    /// Obtain reference to the chaser event subscriber.
+    chaser::event_subscriber& event_subscriber() NOEXCEPT;
+
 protected:
+    virtual code create_chasers() NOEXCEPT;
+    virtual void stop_chasers() NOEXCEPT;
+
     /// Session attachments.
+    /// -----------------------------------------------------------------------
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
 
-    /// Override do_close to start/stop poll timer.
+    void do_start(const network::result_handler& handler) NOEXCEPT override;
     void do_run(const network::result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;
 
@@ -75,6 +86,15 @@ private:
     // These are thread safe.
     const configuration& config_;
     query& query_;
+
+    // These are protected by strand.
+    chaser::event_subscriber event_subscriber_;
+    chaser_header::ptr chaser_header_{};
+    chaser_check::ptr chaser_check_{};
+    chaser_connect::ptr chaser_connect_{};
+    chaser_confirm::ptr chaser_confirm_{};
+    chaser_transaction::ptr chaser_transaction_{};
+    chaser_candidate::ptr chaser_candidate_{};
 };
 
 } // namespace node

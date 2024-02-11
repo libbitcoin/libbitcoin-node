@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
 
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/chasers/chaser_candidate.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 #include <bitcoin/node/chasers/chaser_connect.hpp>

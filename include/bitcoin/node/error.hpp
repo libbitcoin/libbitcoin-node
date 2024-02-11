@@ -38,6 +38,7 @@ enum error_t : uint8_t
 {
     success,
     unknown,
+    unexpected_event,
 
     // database
     store_uninitialized,

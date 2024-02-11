@@ -34,7 +34,12 @@ class BCN_API chaser_check
   : public chaser, protected network::tracker<chaser_check>
 {
 public:
+    typedef std::unique_ptr<chaser_check> ptr;
+
     chaser_check(full_node& node) NOEXCEPT;
+
+private:
+    void handle_event(const code& ec, chase value) NOEXCEPT;
 };
 
 } // namespace node
