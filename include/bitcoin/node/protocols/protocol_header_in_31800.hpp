@@ -46,7 +46,7 @@ public:
 
 protected:
     /// Invoked when initial headers sync is current.
-    virtual void current() NOEXCEPT;
+    virtual void complete() NOEXCEPT;
 
     /// Recieved incoming headers message.
     virtual bool handle_receive_headers(const code& ec,

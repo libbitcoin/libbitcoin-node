@@ -30,9 +30,9 @@ using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
-void protocol_header_in_70012::current() NOEXCEPT
+void protocol_header_in_70012::complete() NOEXCEPT
 {
-    protocol_header_in_31800::current();
+    protocol_header_in_31800::complete();
 
     if (!sent_)
     {
