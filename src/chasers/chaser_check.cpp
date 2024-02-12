@@ -26,7 +26,8 @@
 
 namespace libbitcoin {
 namespace node {
-
+    
+using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -63,6 +64,12 @@ void chaser_check::do_handle_event(const code& ec, chase value) NOEXCEPT
         default:
             return;
     }
+}
+
+void chaser_check::archive(const block::cptr& block) NOEXCEPT
+{
+    // Push checked block into store and issue checked event so that connect
+    // can connect the next blocks in order, as applicable.
 }
 
 BC_POP_WARNING()

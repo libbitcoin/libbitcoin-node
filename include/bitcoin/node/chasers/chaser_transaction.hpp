@@ -37,6 +37,8 @@ public:
 
     chaser_transaction(full_node& node) NOEXCEPT;
 
+    void archive(const system::chain::transaction::cptr& block) NOEXCEPT;
+
 private:
     void handle_event(const code& ec, chase value) NOEXCEPT;
     void do_handle_event(const code& ec, chase value) NOEXCEPT;

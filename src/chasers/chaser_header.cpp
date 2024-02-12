@@ -27,6 +27,7 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -62,7 +63,12 @@ void chaser_header::do_handle_event(const code& ec, chase value) NOEXCEPT
     }
 }
 
-// TODO: handle new headers (may issue 'header').
+void chaser_header::archive(const header::cptr& header) NOEXCEPT
+{
+    // Connect and push header on a stack (simulate tree).
+    // When header time is current, reorg into candidate chain and then send
+    // header event so that check can start downloading blocks.
+}
 
 BC_POP_WARNING()
 

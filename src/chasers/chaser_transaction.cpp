@@ -26,7 +26,8 @@
 
 namespace libbitcoin {
 namespace node {
-
+    
+using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -65,7 +66,11 @@ void chaser_transaction::do_handle_event(const code& ec, chase value) NOEXCEPT
     }
 }
 
-// TODO: handle the new unconfirmed transactions (may issue 'transaction').
+void chaser_transaction::archive(const transaction::cptr& tx) NOEXCEPT
+{
+    // Push new checked tx into store and update DAG. Issue transaction event
+    // so that candidate may construct a new template.
+}
 
 BC_POP_WARNING()
 
