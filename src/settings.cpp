@@ -63,7 +63,8 @@ namespace node {
 
 settings::settings() NOEXCEPT
   : allowed_deviation{ 1.0 },
-    sample_period_seconds{ 5 }
+    sample_period_seconds{ 5 },
+    currency_window_minutes{ 60 }
 {
 }
 
@@ -75,6 +76,11 @@ settings::settings(chain::selection) NOEXCEPT
 network::steady_clock::duration settings::sample_period() const NOEXCEPT
 {
     return network::seconds(sample_period_seconds);
+}
+
+network::wall_clock::duration settings::currency_window() const NOEXCEPT
+{
+    return network::seconds(currency_window_minutes);
 }
 
 } // namespace node
