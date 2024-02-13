@@ -19,6 +19,8 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 
+#include <variant>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -71,7 +73,11 @@ public:
         stop
     };
 
-    typedef network::subscriber<chase> event_subscriber;
+    typedef database::store<database::map> store;
+    typedef database::query<store> query;
+
+    typedef std::variant<int32_t, int64_t> link;
+    typedef network::subscriber<chase, link> event_subscriber;
     typedef event_subscriber::handler event_handler;
     DELETE_COPY_MOVE(chaser);
 
@@ -82,8 +88,8 @@ protected:
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
-    /// Close the node.
-    void close(const code& ec) NOEXCEPT;
+    /// Thread safe synchronous archival interface.
+    query& archive() const NOEXCEPT;
 
     /// The chaser's strand.
     network::asio::strand& strand() NOEXCEPT;
@@ -95,10 +101,13 @@ protected:
     code subscribe(event_handler&& handler) NOEXCEPT;
 
     /// Set chaser event (does not require network strand).
-    void notify(const code& ec, chase value) NOEXCEPT;
+    void notify(const code& ec, chase event_, link value) NOEXCEPT;
+
+    /// Close the node.
+    void close(const code& ec) NOEXCEPT;
 
 private:
-    void do_notify(const code& ec, chase value) NOEXCEPT;
+    void do_notify(const code& ec, chase event_, link value) NOEXCEPT;
 
     // These are thread safe (mostly).
     full_node& node_;

@@ -35,16 +35,18 @@ chaser_candidate::chaser_candidate(full_node& node) NOEXCEPT
   : chaser(node),
     tracker<chaser_candidate>(node.log)
 {
-    subscribe(std::bind(&chaser_candidate::handle_event, this, _1, _2));
+    subscribe(std::bind(&chaser_candidate::handle_event, this, _1, _2, _3));
 }
 
-void chaser_candidate::handle_event(const code& ec, chase value) NOEXCEPT
+void chaser_candidate::handle_event(const code& ec, chase event_,
+    link value) NOEXCEPT
 {
     boost::asio::post(strand(),
-        std::bind(&chaser_candidate::do_handle_event, this, ec, value));
+        std::bind(&chaser_candidate::do_handle_event, this, ec, event_, value));
 }
 
-void chaser_candidate::do_handle_event(const code& ec, chase value) NOEXCEPT
+void chaser_candidate::do_handle_event(const code& ec, chase event_,
+    link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_candidate");
 
@@ -52,7 +54,7 @@ void chaser_candidate::do_handle_event(const code& ec, chase value) NOEXCEPT
     if (ec)
         return;
 
-    switch (value)
+    switch (event_)
     {
         case chase::start:
             // TODO: initialize.
