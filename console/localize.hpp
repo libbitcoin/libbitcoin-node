@@ -173,7 +173,6 @@ namespace node {
     "\nVersion Information\n" \
     "----------------------------\n" \
     "libbitcoin-node:       %1%\n" \
-    "libbitcoin-blockchain: %2%\n" \
     "libbitcoin-database:   %3%\n" \
     "libbitcoin-network:    %4%\n" \
     "libbitcoin-system:     %5%"

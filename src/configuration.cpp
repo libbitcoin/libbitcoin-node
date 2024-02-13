@@ -19,7 +19,7 @@
 #include <bitcoin/node/configuration.hpp>
 
 #include <cstddef>
-#include <bitcoin/blockchain.hpp>
+////#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {
@@ -41,7 +41,7 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     write(false),
     log(context),
     node(context),
-    chain(context),
+    ////chain(context),
     database(context),
     network(context),
     bitcoin(context)
