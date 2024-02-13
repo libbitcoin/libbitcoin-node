@@ -37,9 +37,11 @@ public:
 
     chaser_check(full_node& node) NOEXCEPT;
 
+    void store(const system::chain::block::cptr& block) NOEXCEPT;
+
 private:
-    void handle_event(const code& ec, chase value) NOEXCEPT;
-    void do_handle_event(const code& ec, chase value) NOEXCEPT;
+    void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };
 
 } // namespace node

@@ -43,11 +43,9 @@ chaser::~chaser() NOEXCEPT
 {
 }
 
-
-void chaser::close(const code& ec) NOEXCEPT
+chaser::query& chaser::archive() const NOEXCEPT
 {
-    LOGF("Chaser fault, " << ec.message());
-    node_.close();
+    return node_.archive();
 }
 
 asio::strand& chaser::strand() NOEXCEPT
@@ -69,17 +67,23 @@ code chaser::subscribe(event_handler&& handler) NOEXCEPT
 }
 
 // Posts to network strand (call from chaser strands).
-void chaser::notify(const code& ec, chase value) NOEXCEPT
+void chaser::notify(const code& ec, chase event_, link value) NOEXCEPT
 {
     boost::asio::post(node_.strand(),
-        std::bind(&chaser::do_notify, this, ec, value));
+        std::bind(&chaser::do_notify, this, ec, event_, value));
 }
 
 // Executed on network strand (handler should bounce to chaser strand).
-void chaser::do_notify(const code& ec, chase value) NOEXCEPT
+void chaser::do_notify(const code& ec, chase event_, link value) NOEXCEPT
 {
     BC_ASSERT_MSG(node_.stranded(), "chaser");
-    subscriber_.notify(ec, value);
+    subscriber_.notify(ec, event_, value);
+}
+
+void chaser::close(const code& ec) NOEXCEPT
+{
+    LOGF("Chaser fault, " << ec.message());
+    node_.close();
 }
 
 BC_POP_WARNING()

@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include <bitcoin/system.hpp>
-#include <bitcoin/blockchain.hpp>
+////#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/settings.hpp>

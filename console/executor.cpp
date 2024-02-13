@@ -1128,7 +1128,6 @@ bool executor::do_version()
     log_.stop();
     console(format(BN_VERSION_MESSAGE)
         % LIBBITCOIN_NODE_VERSION
-        % LIBBITCOIN_BLOCKCHAIN_VERSION
         % LIBBITCOIN_DATABASE_VERSION
         % LIBBITCOIN_NETWORK_VERSION
         % LIBBITCOIN_SYSTEM_VERSION);

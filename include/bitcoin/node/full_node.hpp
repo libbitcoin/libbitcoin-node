@@ -62,6 +62,9 @@ public:
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
+    /// Node configuration settings.
+    const settings& node_settings() const NOEXCEPT;
+
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
@@ -69,6 +72,9 @@ public:
     chaser::event_subscriber& event_subscriber() NOEXCEPT;
 
 protected:
+
+    /// Chasers configuration.
+    /// -----------------------------------------------------------------------
     virtual code create_chasers() NOEXCEPT;
     virtual void stop_chasers() NOEXCEPT;
     virtual void delete_chasers() NOEXCEPT;
@@ -79,6 +85,8 @@ protected:
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
 
+    /// Virtual handlers.
+    /// -----------------------------------------------------------------------
     void do_start(const network::result_handler& handler) NOEXCEPT override;
     void do_run(const network::result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;

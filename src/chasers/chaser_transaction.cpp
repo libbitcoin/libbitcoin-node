@@ -26,7 +26,8 @@
 
 namespace libbitcoin {
 namespace node {
-
+    
+using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -35,16 +36,18 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node),
     tracker<chaser_transaction>(node.log)
 {
-    subscribe(std::bind(&chaser_transaction::handle_event, this, _1, _2));
+    subscribe(std::bind(&chaser_transaction::handle_event, this, _1, _2, _3));
 }
 
-void chaser_transaction::handle_event(const code& ec, chase value) NOEXCEPT
+void chaser_transaction::handle_event(const code& ec, chase event_,
+    link value) NOEXCEPT
 {
     boost::asio::post(strand(),
-        std::bind(&chaser_transaction::do_handle_event, this, ec, value));
+        std::bind(&chaser_transaction::do_handle_event, this, ec, event_, value));
 }
 
-void chaser_transaction::do_handle_event(const code& ec, chase value) NOEXCEPT
+void chaser_transaction::do_handle_event(const code& ec, chase event_,
+    link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_transaction");
 
@@ -52,7 +55,7 @@ void chaser_transaction::do_handle_event(const code& ec, chase value) NOEXCEPT
     if (ec)
         return;
 
-    switch (value)
+    switch (event_)
     {
         case chase::start:
             // TODO: initialize.
@@ -65,7 +68,11 @@ void chaser_transaction::do_handle_event(const code& ec, chase value) NOEXCEPT
     }
 }
 
-// TODO: handle the new unconfirmed transactions (may issue 'transaction').
+void chaser_transaction::store(const transaction::cptr&) NOEXCEPT
+{
+    // Push new checked tx into store and update DAG. Issue transaction event
+    // so that candidate may construct a new template.
+}
 
 BC_POP_WARNING()
 

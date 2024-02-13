@@ -38,8 +38,8 @@ public:
     chaser_candidate(full_node& node) NOEXCEPT;
 
 private:
-    void handle_event(const code& ec, chase value) NOEXCEPT;
-    void do_handle_event(const code& ec, chase value) NOEXCEPT;
+    void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };
 
 } // namespace node

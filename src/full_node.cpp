@@ -125,7 +125,7 @@ code full_node::create_chasers() NOEXCEPT
     chaser_candidate_ = std::make_unique<chaser_candidate>(*this);
 
     // Post start event to all chasers.
-    event_subscriber_.notify(error::success, chaser::chase::start);
+    event_subscriber_.notify(error::success, chaser::chase::start, {});
     return error::success;
 }
 
@@ -134,7 +134,7 @@ void full_node::stop_chasers() NOEXCEPT
     BC_ASSERT_MSG(stranded(), "full_node");
 
     event_subscriber_.stop(network::error::service_stopped,
-        chaser::chase::stop);
+        chaser::chase::stop, {});
 }
 
 // These should be reset upon destruct, which could only follow close(), which
@@ -153,20 +153,25 @@ void full_node::delete_chasers() NOEXCEPT
 // Properties.
 // ----------------------------------------------------------------------------
 
+const settings& full_node::node_settings() const NOEXCEPT
+{
+    return config().node;
+}
+
 full_node::query& full_node::archive() const NOEXCEPT
 {
     return query_;
 }
 
-const configuration& full_node::config() const NOEXCEPT
-{
-    return config_;
-}
-
-// protected
 chaser::event_subscriber& full_node::event_subscriber() NOEXCEPT
 {
     return event_subscriber_;
+}
+
+// protected
+const configuration& full_node::config() const NOEXCEPT
+{
+    return config_;
 }
 
 // Session attachments.

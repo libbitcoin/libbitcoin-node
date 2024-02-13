@@ -42,8 +42,8 @@ public:
     }
 
 protected:
-    /// Invoked when initial headers sync is current.
-    void current() NOEXCEPT override;
+    /// Invoked when initial headers sync is complete.
+    void complete() NOEXCEPT override;
 
 private:
     bool sent_{};

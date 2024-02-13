@@ -37,9 +37,17 @@ public:
 
     chaser_header(full_node& node) NOEXCEPT;
 
+    void store(const system::chain::header::cptr& header) NOEXCEPT;
+
 private:
-    void handle_event(const code& ec, chase value) NOEXCEPT;
-    void do_handle_event(const code& ec, chase value) NOEXCEPT;
+    bool is_current(const system::chain::header& header) const NOEXCEPT;
+    bool is_strong(const system::chain::header& header) const NOEXCEPT;
+    void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    void do_store(const system::chain::header::cptr& header) NOEXCEPT;
+
+    const network::wall_clock::duration currency_window_;
+    std::vector<system::chain::header::cptr> chain_{};
 };
 
 } // namespace node

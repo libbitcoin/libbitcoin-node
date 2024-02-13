@@ -67,9 +67,11 @@ public:
     /// Properties.
     float allowed_deviation;
     uint16_t sample_period_seconds;
+    uint32_t currency_window_minutes;
 
     /// Helpers.
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
+    virtual network::wall_clock::duration currency_window() const NOEXCEPT;
 };
 
 } // namespace node
