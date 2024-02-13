@@ -42,10 +42,13 @@ public:
 private:
     bool is_current(const system::chain::header& header) const NOEXCEPT;
     bool is_strong(const system::chain::header& header) const NOEXCEPT;
+
+    void handle_start() NOEXCEPT;
     void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_store(const system::chain::header::cptr& header) NOEXCEPT;
 
+    // These are protected by strand.
     const network::wall_clock::duration currency_window_;
     std::vector<system::chain::header::cptr> chain_{};
 };

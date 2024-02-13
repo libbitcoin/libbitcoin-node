@@ -50,27 +50,43 @@ void chaser_check::do_handle_event(const code& ec, chase event_, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 
-    // The code should be error::service_stopped when error::stop is set.
     if (ec)
         return;
 
     switch (event_)
     {
         case chase::start:
-            // TODO: initialize.
+        {
+            handle_start();
             break;
+        }
         case chase::header:
-            // TODO: handle the new strong branch (may issue 'checked').
+        {
+            handle_header();
             break;
+        }
         default:
             return;
     }
 }
 
-void chaser_check::store(const block::cptr&) NOEXCEPT
+// TODO: initialize check state.
+void chaser_check::handle_start() NOEXCEPT
 {
-    // Push checked block into store and issue checked event so that connect
-    // can connect the next blocks in order, as applicable.
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+}
+
+// TODO: handle the new strong branch (may issue 'checked').
+void chaser_check::handle_header() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+}
+
+// TODO: pass link?
+void chaser_check::checked(const block::cptr&) NOEXCEPT
+{
+    // Push checked block into store and issue 'checked' event so that connect
+    // can connect the next blocks in order. Executes in caller thread.
 }
 
 BC_POP_WARNING()

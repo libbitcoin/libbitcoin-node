@@ -50,21 +50,36 @@ void chaser_connect::do_handle_event(const code& ec, chase event_,
 {
     BC_ASSERT_MSG(stranded(), "chaser_connect");
 
-    // The code should be error::service_stopped when error::stop is set.
     if (ec)
         return;
 
     switch (event_)
     {
         case chase::start:
-            // TODO: initialize.
+        {
+            handle_start();
             break;
+        }
         case chase::checked:
-            // TODO: handle the new checked blocks (may issue 'connected').
+        {
+            handle_checked();
             break;
+        }
         default:
             return;
     }
+}
+
+// TODO: initialize connect state.
+void chaser_connect::handle_start() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_connect");
+}
+
+// TODO: handle the new checked blocks (may issue 'connected').
+void chaser_connect::handle_checked() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_connect");
 }
 
 BC_POP_WARNING()

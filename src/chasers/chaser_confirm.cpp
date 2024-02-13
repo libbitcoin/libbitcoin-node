@@ -50,21 +50,36 @@ void chaser_confirm::do_handle_event(const code& ec, chase event_,
 {
     BC_ASSERT_MSG(stranded(), "chaser_confirm");
 
-    // The code should be error::service_stopped when error::stop is set.
     if (ec)
         return;
 
     switch (event_)
     {
         case chase::start:
-            // TODO: initialize.
+        {
+            handle_start();
             break;
+        }
         case chase::connected:
-            // TODO: handle new strong connected branch (may issue 'confirmed').
+        {
+            handle_connected();
             break;
+        }
         default:
             return;
     }
+}
+
+// TODO: initialize confirm state.
+void chaser_confirm::handle_start() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_confirm");
+}
+
+// TODO: handle new strong connected branch (may issue 'confirmed').
+void chaser_confirm::handle_connected() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_confirm");
 }
 
 BC_POP_WARNING()
