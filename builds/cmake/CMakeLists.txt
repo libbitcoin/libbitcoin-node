@@ -108,6 +108,14 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     endif()
 endif()
 
+# Implement -Dwith-consensus and define WITH_CONSENSUS.
+#------------------------------------------------------------------------------
+set( with-consensus "yes" CACHE BOOL "Link libbitcoin-consensus and use for consensus checks." )
+
+if (with-consensus)
+    add_definitions( -DWITH_CONSENSUS )
+endif()
+
 # Implement -Dbash-completiondir and output ${bash-completiondir} and declare bash-completiondir.
 #------------------------------------------------------------------------------
 set( bash-completiondir "no" CACHE BOOL "Install bash completion support, optionally specifying the directory. This option may require elevated permissions." )
@@ -162,9 +170,15 @@ if (bash-completiondir)
     find_package( Bash-Completion 2.0.0 REQUIRED )
 endif()
 
-# Find bitcoin-blockchain
+# Find bitcoin-database
 #------------------------------------------------------------------------------
-find_package( Bitcoin-Blockchain 4.0.0 REQUIRED )
+find_package( Bitcoin-Database 4.0.0 REQUIRED )
+
+# Find bitcoin-consensus
+#------------------------------------------------------------------------------
+if (with-consensus)
+    find_package( Bitcoin-Consensus 4.0.0 REQUIRED )
+endif()
 
 # Find bitcoin-network
 #------------------------------------------------------------------------------
@@ -173,33 +187,39 @@ find_package( Bitcoin-Network 4.0.0 REQUIRED )
 # Define project common includes for build.
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    set( bitcoin_blockchain_FOR_BUILD_INCLUDE_DIRS ${bitcoin_blockchain_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_INCLUDE_DIRS ${bitcoin_database_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_INCLUDE_DIRS ${bitcoin_consensus_INCLUDE_DIRS} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_INCLUDE_DIRS ${bitcoin_network_INCLUDE_DIRS} CACHE STRING "Placeholder" )
 else()
-    set( bitcoin_blockchain_FOR_BUILD_INCLUDE_DIRS ${bitcoin_blockchain_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_INCLUDE_DIRS ${bitcoin_database_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_INCLUDE_DIRS ${bitcoin_consensus_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_INCLUDE_DIRS ${bitcoin_network_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
 endif()
 
 # Define project common includes directories
 #------------------------------------------------------------------------------
 include_directories( SYSTEM
-    ${bitcoin_blockchain_FOR_BUILD_INCLUDE_DIRS}
+    ${bitcoin_database_FOR_BUILD_INCLUDE_DIRS}
+    ${bitcoin_consensus_FOR_BUILD_INCLUDE_DIRS}
     ${bitcoin_network_FOR_BUILD_INCLUDE_DIRS} )
 
 # Define project common library directories for build.
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    set( bitcoin_blockchain_FOR_BUILD_LIBRARY_DIRS ${bitcoin_blockchain_LIBRARY_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_LIBRARY_DIRS ${bitcoin_database_LIBRARY_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_LIBRARY_DIRS ${bitcoin_consensus_LIBRARY_DIRS} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_LIBRARY_DIRS ${bitcoin_network_LIBRARY_DIRS} CACHE STRING "Placeholder" )
 else()
-    set( bitcoin_blockchain_FOR_BUILD_LIBRARY_DIRS ${bitcoin_blockchain_STATIC_LIBRARY_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_LIBRARY_DIRS ${bitcoin_database_STATIC_LIBRARY_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_LIBRARY_DIRS ${bitcoin_consensus_STATIC_LIBRARY_DIRS} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_LIBRARY_DIRS ${bitcoin_network_STATIC_LIBRARY_DIRS} CACHE STRING "Placeholder" )
 endif()
 
 # Define project common library directories
 #------------------------------------------------------------------------------
 link_directories(
-    ${bitcoin_blockchain_FOR_BUILD_LIBRARY_DIRS}
+    ${bitcoin_database_FOR_BUILD_LIBRARY_DIRS}
+    ${bitcoin_consensus_FOR_BUILD_LIBRARY_DIRS}
     ${bitcoin_network_FOR_BUILD_LIBRARY_DIRS} )
 
 # Define project common linker flags.
@@ -226,17 +246,20 @@ endif()
 # Define common library usage for build.
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    set( bitcoin_blockchain_FOR_BUILD_LIBRARIES ${bitcoin_blockchain_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_LIBRARIES ${bitcoin_database_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_LIBRARIES ${bitcoin_consensus_LIBRARIES} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_LIBRARIES ${bitcoin_network_LIBRARIES} CACHE STRING "Placeholder" )
 else()
-    set( bitcoin_blockchain_FOR_BUILD_LIBRARIES ${bitcoin_blockchain_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_LIBRARIES ${bitcoin_database_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_LIBRARIES ${bitcoin_consensus_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_LIBRARIES ${bitcoin_network_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
 endif()
 
 # Define project common libraries.
 #------------------------------------------------------------------------------
 link_libraries(
-    ${bitcoin_blockchain_FOR_BUILD_LIBRARIES}
+    ${bitcoin_database_FOR_BUILD_LIBRARIES}
+    ${bitcoin_consensus_FOR_BUILD_LIBRARIES}
     ${bitcoin_network_FOR_BUILD_LIBRARIES} )
 
 add_definitions(
@@ -274,10 +297,12 @@ add_library( ${CANONICAL_LIB_NAME}
 # ${CANONICAL_LIB_NAME} project specific include directory normalization for build.
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    set( bitcoin_blockchain_FOR_BUILD_INCLUDE_DIRS ${bitcoin_blockchain_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_INCLUDE_DIRS ${bitcoin_database_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_INCLUDE_DIRS ${bitcoin_consensus_INCLUDE_DIRS} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_INCLUDE_DIRS ${bitcoin_network_INCLUDE_DIRS} CACHE STRING "Placeholder" )
 else()
-    set( bitcoin_blockchain_FOR_BUILD_INCLUDE_DIRS ${bitcoin_blockchain_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_INCLUDE_DIRS ${bitcoin_database_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_INCLUDE_DIRS ${bitcoin_consensus_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_INCLUDE_DIRS ${bitcoin_network_STATIC_INCLUDE_DIRS} CACHE STRING "Placeholder" )
 endif()
 
@@ -285,7 +310,8 @@ endif()
 #------------------------------------------------------------------------------
 target_include_directories( ${CANONICAL_LIB_NAME} PRIVATE
     "../../include"
-    ${bitcoin_blockchain_FOR_BUILD_INCLUDE_DIRS}
+    ${bitcoin_database_FOR_BUILD_INCLUDE_DIRS}
+    ${bitcoin_consensus_FOR_BUILD_INCLUDE_DIRS}
     ${bitcoin_network_FOR_BUILD_INCLUDE_DIRS} )
 
 target_include_directories( ${CANONICAL_LIB_NAME} PUBLIC
@@ -294,17 +320,20 @@ target_include_directories( ${CANONICAL_LIB_NAME} PUBLIC
 # ${CANONICAL_LIB_NAME} project specific libraries noramalization for build.
 #------------------------------------------------------------------------------
 if (BUILD_SHARED_LIBS)
-    set( bitcoin_blockchain_FOR_BUILD_LIBRARIES ${bitcoin_blockchain_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_LIBRARIES ${bitcoin_database_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_LIBRARIES ${bitcoin_consensus_LIBRARIES} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_LIBRARIES ${bitcoin_network_LIBRARIES} CACHE STRING "Placeholder" )
 else()
-    set( bitcoin_blockchain_FOR_BUILD_LIBRARIES ${bitcoin_blockchain_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_database_FOR_BUILD_LIBRARIES ${bitcoin_database_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
+    set( bitcoin_consensus_FOR_BUILD_LIBRARIES ${bitcoin_consensus_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
     set( bitcoin_network_FOR_BUILD_LIBRARIES ${bitcoin_network_STATIC_LIBRARIES} CACHE STRING "Placeholder" )
 endif()
 
 # ${CANONICAL_LIB_NAME} project specific libraries/linker flags.
 #------------------------------------------------------------------------------
 target_link_libraries( ${CANONICAL_LIB_NAME}
-    ${bitcoin_blockchain_FOR_BUILD_LIBRARIES}
+    ${bitcoin_database_FOR_BUILD_LIBRARIES}
+    ${bitcoin_consensus_FOR_BUILD_LIBRARIES}
     ${bitcoin_network_FOR_BUILD_LIBRARIES} )
 
 # Define libbitcoin-node-test project.

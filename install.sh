@@ -793,8 +793,6 @@ build_all()
     build_from_github libbitcoin-database "$PARALLEL" false "yes" "${BITCOIN_DATABASE_OPTIONS[@]}" "$@"
     create_from_github libbitcoin libbitcoin-consensus master "$WITH_BITCOIN_CONSENSUS"
     build_from_github libbitcoin-consensus "$PARALLEL" false "$WITH_BITCOIN_CONSENSUS" "${BITCOIN_CONSENSUS_OPTIONS[@]}" "$@"
-    create_from_github libbitcoin libbitcoin-blockchain master "yes"
-    build_from_github libbitcoin-blockchain "$PARALLEL" false "yes" "${BITCOIN_BLOCKCHAIN_OPTIONS[@]}" "$@"
     if [[ ! ($CI == true) ]]; then
         create_from_github libbitcoin libbitcoin-node master "yes"
         build_from_github libbitcoin-node "$PARALLEL" true "yes" "${BITCOIN_NODE_OPTIONS[@]}" "$@"
@@ -888,14 +886,6 @@ BITCOIN_DATABASE_OPTIONS=(
 #------------------------------------------------------------------------------
 BITCOIN_CONSENSUS_OPTIONS=(
 "--without-tests" \
-"${with_boost}" \
-"${with_pkgconfigdir}")
-
-# Define bitcoin-blockchain options.
-#------------------------------------------------------------------------------
-BITCOIN_BLOCKCHAIN_OPTIONS=(
-"--without-tests" \
-"--without-tools" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 

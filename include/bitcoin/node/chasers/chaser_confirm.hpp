@@ -38,6 +38,8 @@ public:
     chaser_confirm(full_node& node) NOEXCEPT;
 
 private:
+    void handle_start() NOEXCEPT;
+    void handle_connected() NOEXCEPT;
     void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };

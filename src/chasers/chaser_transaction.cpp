@@ -51,27 +51,50 @@ void chaser_transaction::do_handle_event(const code& ec, chase event_,
 {
     BC_ASSERT_MSG(stranded(), "chaser_transaction");
 
-    // The code should be error::service_stopped when error::stop is set.
     if (ec)
         return;
 
     switch (event_)
     {
         case chase::start:
-            // TODO: initialize.
+        {
+            handle_start();
             break;
+        }
         case chase::confirmed:
-            // TODO: handle the new confirmed blocks (may issue 'transaction').
+        {
+            handle_confirmed();
             break;
+        }
         default:
             return;
     }
+}
+
+// TODO: initialize tx graph from store, log and stop on error.
+void chaser_transaction::handle_start() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_transaction");
+}
+
+// TODO: handle the new confirmed blocks (may issue 'transaction').
+void chaser_transaction::handle_confirmed() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_transaction");
 }
 
 void chaser_transaction::store(const transaction::cptr&) NOEXCEPT
 {
     // Push new checked tx into store and update DAG. Issue transaction event
     // so that candidate may construct a new template.
+}
+
+// private
+void chaser_transaction::do_store(const transaction::cptr&) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_transaction");
+
+    // TODO: validate and store transaction.
 }
 
 BC_POP_WARNING()

@@ -50,21 +50,36 @@ void chaser_candidate::do_handle_event(const code& ec, chase event_,
 {
     BC_ASSERT_MSG(stranded(), "chaser_candidate");
 
-    // The code should be error::service_stopped when error::stop is set.
     if (ec)
         return;
 
     switch (event_)
     {
         case chase::start:
-            // TODO: initialize.
+        {
+            handle_start();
             break;
+        }
         case chase::transaction:
-            // TODO: handle transaction graph change (may issue 'candidate').
+        {
+            handle_transaction();
             break;
+        }
         default:
             return;
     }
+}
+
+// TODO: initialize candidate state.
+void chaser_candidate::handle_start() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_candidate");
+}
+
+// TODO: handle transaction graph change (may issue 'candidate').
+void chaser_candidate::handle_transaction() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_candidate");
 }
 
 BC_POP_WARNING()

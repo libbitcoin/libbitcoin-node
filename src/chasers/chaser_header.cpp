@@ -60,11 +60,19 @@ void chaser_header::do_handle_event(const code& ec, chase event_, link) NOEXCEPT
     switch (event_)
     {
         case chase::start:
-            // TODO: initialize header tree from store.
+        {
+            handle_start();
             break;
+        }
         default:
             return;
     }
+}
+
+// TODO: initialize header tree from store, log and stop on error.
+void chaser_header::handle_start() NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_header");
 }
 
 // private
