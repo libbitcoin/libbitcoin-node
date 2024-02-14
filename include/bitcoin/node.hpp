@@ -14,7 +14,12 @@
  * Maintainers: Do not include this header internal to this library.
  */
 
-////#include <bitcoin/blockchain.hpp>
+#include <bitcoin/database.hpp>
+
+#ifdef WITH_CONSENSUS
+#include <bitcoin/consensus.hpp>
+#endif
+
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
