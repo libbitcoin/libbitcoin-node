@@ -194,8 +194,9 @@ void chaser_header::do_organize(const chain::header::cptr& header,
 
     // ------------------------------------------------------------------------
 
-    // Notify with top candidate link.
-    notify(error::success, chase::header, { link.value });
+    // Notify of candidate reorganization with branch point.
+    notify(error::success, chase::header,
+        { possible_narrow_cast<height_t>(point) });
 }
 
 // protected
