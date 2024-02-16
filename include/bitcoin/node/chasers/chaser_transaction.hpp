@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_TRANSACTION_HPP
 
+#include <functional>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -30,19 +31,20 @@ class full_node;
 
 /// Chase down unconfirmed transactions.
 class BCN_API chaser_transaction
-  : public chaser, protected network::tracker<chaser_transaction>
+  : public chaser
 {
 public:
-    typedef std::unique_ptr<chaser_transaction> uptr;
-
     chaser_transaction(full_node& node) NOEXCEPT;
 
-    void store(const system::chain::transaction::cptr& block) NOEXCEPT;
+    virtual bool start() NOEXCEPT;
+    virtual void store(const system::chain::transaction::cptr& block) NOEXCEPT;
+
+protected:
+    virtual void handle_confirmed() NOEXCEPT;
+    virtual void handle_event(const code& ec, chase event_,
+        link value) NOEXCEPT;
 
 private:
-    void handle_start() NOEXCEPT;
-    void handle_confirmed() NOEXCEPT;
-    void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_store(const system::chain::transaction::cptr& header) NOEXCEPT;
 };

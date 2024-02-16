@@ -40,7 +40,17 @@ full_node::full_node(query& query, const configuration& configuration,
   : p2p(configuration.network, log),
     config_(configuration),
     query_(query),
-    event_subscriber_(strand())
+    event_subscriber_(strand()),
+    chaser_header_(*this),
+    chaser_check_(*this),
+    chaser_connect_(*this),
+    chaser_confirm_(*this),
+    chaser_transaction_(*this),
+    chaser_candidate_(*this)
+{
+}
+
+full_node::~full_node() NOEXCEPT
 {
 }
 
@@ -63,11 +73,14 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "full_node");
 
-    const auto ec = create_chasers();
-
-    if (ec)
+    if (!chaser_header_.start() ||
+        !chaser_check_.start() ||
+        !chaser_connect_.start() ||
+        !chaser_confirm_.start() ||
+        !chaser_transaction_.start() ||
+        !chaser_candidate_.start())
     {
-        handler(ec);
+        handler(error::unknown);
         return;
     }
 
@@ -105,57 +118,19 @@ void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "full_node");
 
-    stop_chasers();
+    event_subscriber_.stop(network::error::service_stopped,
+        chaser::chase::stop, {});
+
     p2p::do_close();
-    delete_chasers();
 }
 
 // Chasers.
 // ----------------------------------------------------------------------------
 
-code full_node::create_chasers() NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "full_node");
-
-    // Create and subscribe all chasers.
-    chaser_header_ = std::make_unique<chaser_header>(*this);
-    chaser_check_ = std::make_unique<chaser_check>(*this);
-    chaser_connect_ = std::make_unique<chaser_connect>(*this);
-    chaser_confirm_ = std::make_unique<chaser_confirm>(*this);
-    chaser_transaction_ = std::make_unique<chaser_transaction>(*this);
-    chaser_candidate_ = std::make_unique<chaser_candidate>(*this);
-
-    // Post start event to all chasers.
-    event_subscriber_.notify(error::success, chaser::chase::start, {});
-    return error::success;
-}
-
-void full_node::stop_chasers() NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "full_node");
-
-    event_subscriber_.stop(network::error::service_stopped,
-        chaser::chase::stop, {});
-}
-
-// These should be reset upon destruct, which could only follow close(), which
-// ensures that the threadpool is coalesced. Yet without explicit delete, msvc
-// asserts on process termination.
-void full_node::delete_chasers() NOEXCEPT
-{
-    chaser_header_.reset();
-    chaser_check_.reset();
-    chaser_connect_.reset();
-    chaser_confirm_.reset();
-    chaser_transaction_.reset();
-    chaser_candidate_.reset();
-}
-
 void full_node::organize(const system::chain::header::cptr& header,
     system::chain::context&& context) NOEXCEPT
 {
-    // TODO: guard against nullptr (or don't use pointers).
-    chaser_header_->organize(header, std::move(context));
+    chaser_header_.organize(header, std::move(context));
 }
 
 // Properties.

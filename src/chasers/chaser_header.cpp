@@ -34,14 +34,12 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
     currency_window_(node.node_settings().currency_window()),
-    use_currency_window_(currency_window_ != wall_clock::duration::zero()),
-    tracker<chaser_header>(node.log)
+    use_currency_window_(currency_window_ != wall_clock::duration::zero())
 {
-    subscribe(std::bind(&chaser_header::handle_event,
-        this, _1, _2, _3));
 }
 
 // protected
@@ -54,29 +52,16 @@ void chaser_header::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_header::do_handle_event(const code& ec, chase event_, link) NOEXCEPT
+void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
-
-    if (ec)
-        return;
-
-    switch (event_)
-    {
-        case chase::start:
-        {
-            handle_start();
-            break;
-        }
-        default:
-            return;
-    }
 }
 
 // protected
-void chaser_header::handle_start() NOEXCEPT
+bool chaser_header::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_header");
+    return subscribe(std::bind(&chaser_header::handle_event,
+        this, _1, _2, _3));
 }
 
 void chaser_header::organize(const chain::header::cptr& header,

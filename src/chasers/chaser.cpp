@@ -58,12 +58,18 @@ bool chaser::stranded() const NOEXCEPT
     return strand_.running_in_this_thread();
 }
 
-// Must be non-virtual for constructor invoke.
-// Requires network strand (call from node start).
-code chaser::subscribe(event_handler&& handler) NOEXCEPT
+bool chaser::subscribe(event_handler&& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(node_.stranded(), "chaser");
-    return subscriber_.subscribe(std::move(handler));
+    const auto ec = subscriber_.subscribe(std::move(handler));
+
+    if (ec)
+    {
+        LOGF("Chaser subscribe fault, " << ec.message());
+        return false;
+    }
+
+    return true;
 }
 
 // Posts to network strand (call from chaser strands).

@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CONNECT_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CONNECT_HPP
 
+#include <functional>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -30,17 +31,19 @@ class full_node;
 
 /// Chase down blocks in the the candidate header chain for validation.
 class BCN_API chaser_connect
-  : public chaser, protected network::tracker<chaser_connect>
+  : public chaser
 {
 public:
-    typedef std::unique_ptr<chaser_connect> uptr;
-
     chaser_connect(full_node& node) NOEXCEPT;
 
+    virtual bool start() NOEXCEPT;
+
+protected:
+    virtual void handle_checked(header_t block) NOEXCEPT;
+    virtual void handle_event(const code& ec, chase event_,
+        link value) NOEXCEPT;
+
 private:
-    void handle_start() NOEXCEPT;
-    void handle_checked() NOEXCEPT;
-    void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };
 

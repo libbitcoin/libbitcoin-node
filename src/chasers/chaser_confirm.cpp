@@ -31,11 +31,10 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
-  : chaser(node),
-    tracker<chaser_confirm>(node.log)
+  : chaser(node)
 {
-    subscribe(std::bind(&chaser_confirm::handle_event, this, _1, _2, _3));
 }
 
 void chaser_confirm::handle_event(const code& ec, chase event_,
@@ -46,7 +45,7 @@ void chaser_confirm::handle_event(const code& ec, chase event_,
 }
 
 void chaser_confirm::do_handle_event(const code& ec, chase event_,
-    link) NOEXCEPT
+    link value) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_confirm");
 
@@ -55,14 +54,10 @@ void chaser_confirm::do_handle_event(const code& ec, chase event_,
 
     switch (event_)
     {
-        case chase::start:
-        {
-            handle_start();
-            break;
-        }
         case chase::connected:
         {
-            handle_connected();
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            handle_connected(std::get<header_t>(value));
             break;
         }
         default:
@@ -71,15 +66,17 @@ void chaser_confirm::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: initialize confirm state.
-void chaser_confirm::handle_start() NOEXCEPT
+bool chaser_confirm::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_confirm");
+    return subscribe(std::bind(&chaser_confirm::handle_event,
+        this, _1, _2, _3));
 }
 
 // TODO: handle new strong connected branch (may issue 'confirmed').
-void chaser_confirm::handle_connected() NOEXCEPT
+void chaser_confirm::handle_connected(header_t block) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_confirm");
+    LOGN("Handle connected block (" << block << ").");
 }
 
 BC_POP_WARNING()
