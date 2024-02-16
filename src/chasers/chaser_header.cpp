@@ -78,6 +78,9 @@ void chaser_header::do_organize(const chain::header::cptr& header,
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
 
+    // Determine if work should be computed.
+    // ------------------------------------------------------------------------
+
     auto& query = archive();
     const auto hash = header->hash();
     if (tree_.contains(hash) || query.is_header(hash))
@@ -100,6 +103,9 @@ void chaser_header::do_organize(const chain::header::cptr& header,
         save(header, context);
         return;
     }
+
+    // Compute relative work.
+    // ------------------------------------------------------------------------
 
     size_t point{};
     uint256_t work{};
@@ -125,7 +131,7 @@ void chaser_header::do_organize(const chain::header::cptr& header,
         return;
     }
 
-    // Candidate chain reorganization
+    // Reorganize candidate chain.
     // ------------------------------------------------------------------------
 
     // Obtain the top height.
@@ -174,9 +180,9 @@ void chaser_header::do_organize(const chain::header::cptr& header,
         return;
     }
 
+    // Notify reorganization with branch point.
     // ------------------------------------------------------------------------
 
-    // Notify of candidate reorganization with branch point.
     notify(error::success, chase::header,
         { possible_narrow_cast<height_t>(point) });
 }

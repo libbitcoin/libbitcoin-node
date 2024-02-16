@@ -29,7 +29,7 @@ namespace node {
 
 class full_node;
 
-/// Abstract base chaser.
+/// Abstract base chaser for thread safe chain state management classes.
 /// Chasers impose order on blockchain/pool construction as necessary.
 /// Each chaser operates on its own strand, implemented here, allowing
 /// concurrent chaser operations to the extent that threads are available.
