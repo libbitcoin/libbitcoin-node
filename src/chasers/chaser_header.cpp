@@ -32,9 +32,6 @@ using namespace network;
 using namespace system;
 using namespace std::placeholders;
 
-using flags_t = database::context::flag::integer;
-using height_t = database::context::block::integer;
-
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_header::chaser_header(full_node& node) NOEXCEPT

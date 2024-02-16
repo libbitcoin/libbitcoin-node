@@ -42,30 +42,30 @@ class BCN_API chaser
 public:
     enum class chase
     {
-        /// Initialize chaser state (no data).
+        /// Initialize chaser state ({}).
         start,
 
-        /// A new strong branch exists (strong header link).
+        /// A new strong branch exists (strong height_t).
         /// Issued by 'header' and handled by 'check'.
         header,
 
-        /// A block has been downloaded, checked and stored (header link).
+        /// A block has been downloaded, checked and stored (header_t).
         /// Issued by 'check' and handled by 'connect'.
         checked,
 
-        /// A branch has been connected (header link).
+        /// A branch has been connected (header_t|height_t).
         /// Issued by 'connect' and handled by 'confirm'.
         connected,
 
-        /// A branch has been confirmed (top header link).
+        /// A branch has been confirmed (fork header_t|height_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
 
-        /// A new transaction has been added to the pool (tx link).
+        /// A new transaction has been added to the pool (transaction_t).
         /// Issued by 'transaction' and handled by 'candidate'.
         transaction,
 
-        /// A new candidate block has been created (data?).
+        /// A new candidate block has been created (?).
         /// Issued by 'candidate' and handled by miners.
         candidate,
 
@@ -73,12 +73,17 @@ public:
         stop
     };
 
-    typedef database::store<database::map> store;
-    typedef database::query<store> query;
+    using height_t = database::height_link::integer;
+    using header_t = database::header_link::integer;
+    using transaction_t = database::tx_link::integer;
+    using flags_t = database::context::flag::integer;
 
-    typedef std::variant<int32_t, int64_t> link;
+    typedef std::variant<uint32_t, uint64_t> link;
     typedef network::subscriber<chase, link> event_subscriber;
     typedef event_subscriber::handler event_handler;
+
+    typedef database::store<database::map> store;
+    typedef database::query<store> query;
     DELETE_COPY_MOVE(chaser);
 
     // TODO: public method to check/store a block.

@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <functional>
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -46,7 +47,8 @@ void chaser_check::handle_event(const code& ec, chase event_,
         std::bind(&chaser_check::do_handle_event, this, ec, event_, value));
 }
 
-void chaser_check::do_handle_event(const code& ec, chase event_, link) NOEXCEPT
+void chaser_check::do_handle_event(const code& ec, chase event_,
+    link value) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 
@@ -62,7 +64,8 @@ void chaser_check::do_handle_event(const code& ec, chase event_, link) NOEXCEPT
         }
         case chase::header:
         {
-            handle_header();
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            handle_header(std::get<height_t>(value));
             break;
         }
         default:
@@ -74,15 +77,17 @@ void chaser_check::do_handle_event(const code& ec, chase event_, link) NOEXCEPT
 void chaser_check::handle_start() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
+    // get_all_unassociated_above(0)
 }
 
 // TODO: handle the new strong branch (may issue 'checked').
-void chaser_check::handle_header() NOEXCEPT
+void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
+    LOGN("Candidate organization above height (" << branch_point << ").");
+    // get_all_unassociated_above(branch_point)
 }
 
-// TODO: pass link?
 void chaser_check::checked(const block::cptr&) NOEXCEPT
 {
     // Push checked block into store and issue 'checked' event so that connect
