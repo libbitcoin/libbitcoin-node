@@ -33,11 +33,10 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_check::chaser_check(full_node& node) NOEXCEPT
-  : chaser(node),
-    tracker<chaser_check>(node.log)
+  : chaser(node)
 {
-    subscribe(std::bind(&chaser_check::handle_event, this, _1, _2, _3));
 }
 
 void chaser_check::handle_event(const code& ec, chase event_,
@@ -57,11 +56,6 @@ void chaser_check::do_handle_event(const code& ec, chase event_,
 
     switch (event_)
     {
-        case chase::start:
-        {
-            handle_start();
-            break;
-        }
         case chase::header:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
@@ -74,17 +68,17 @@ void chaser_check::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: initialize check state.
-void chaser_check::handle_start() NOEXCEPT
+bool chaser_check::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_check");
     // get_all_unassociated_above(0)
+    return subscribe(std::bind(&chaser_check::handle_event,
+        this, _1, _2, _3));
 }
 
 // TODO: handle the new strong branch (may issue 'checked').
 void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-    LOGN("Candidate organization above height (" << branch_point << ").");
+    LOGN("Handle candidate organization above height (" << branch_point << ").");
     // get_all_unassociated_above(branch_point)
 }
 

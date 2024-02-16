@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_candidate.hpp>
 
 #include <functional>
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -31,11 +32,10 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_candidate::chaser_candidate(full_node& node) NOEXCEPT
-  : chaser(node),
-    tracker<chaser_candidate>(node.log)
+  : chaser(node)
 {
-    subscribe(std::bind(&chaser_candidate::handle_event, this, _1, _2, _3));
 }
 
 void chaser_candidate::handle_event(const code& ec, chase event_,
@@ -46,7 +46,7 @@ void chaser_candidate::handle_event(const code& ec, chase event_,
 }
 
 void chaser_candidate::do_handle_event(const code& ec, chase event_,
-    link) NOEXCEPT
+    link value) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_candidate");
 
@@ -55,14 +55,10 @@ void chaser_candidate::do_handle_event(const code& ec, chase event_,
 
     switch (event_)
     {
-        case chase::start:
-        {
-            handle_start();
-            break;
-        }
         case chase::transaction:
         {
-            handle_transaction();
+            BC_ASSERT(std::holds_alternative<transaction_t>(value));
+            handle_transaction(std::get<transaction_t>(value));
             break;
         }
         default:
@@ -71,15 +67,17 @@ void chaser_candidate::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: initialize candidate state.
-void chaser_candidate::handle_start() NOEXCEPT
+bool chaser_candidate::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_candidate");
+    return subscribe(std::bind(&chaser_candidate::handle_event,
+        this, _1, _2, _3));
 }
 
 // TODO: handle transaction graph change (may issue 'candidate').
-void chaser_candidate::handle_transaction() NOEXCEPT
+void chaser_candidate::handle_transaction(transaction_t tx) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_candidate");
+    LOGN("Handle transaction pool updated (" << tx << ").");
 }
 
 BC_POP_WARNING()

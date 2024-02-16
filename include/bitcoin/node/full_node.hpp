@@ -44,6 +44,8 @@ public:
     full_node(query& query, const configuration& configuration,
         const network::logger& log) NOEXCEPT;
 
+    ~full_node() NOEXCEPT;
+
     /// Sequences.
     /// -----------------------------------------------------------------------
 
@@ -79,13 +81,6 @@ public:
     chaser::event_subscriber& event_subscriber() NOEXCEPT;
 
 protected:
-
-    /// Chasers configuration.
-    /// -----------------------------------------------------------------------
-    virtual code create_chasers() NOEXCEPT;
-    virtual void stop_chasers() NOEXCEPT;
-    virtual void delete_chasers() NOEXCEPT;
-
     /// Session attachments.
     /// -----------------------------------------------------------------------
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
@@ -105,12 +100,12 @@ private:
 
     // These are protected by strand.
     chaser::event_subscriber event_subscriber_;
-    chaser_header::uptr chaser_header_{};
-    chaser_check::uptr chaser_check_{};
-    chaser_connect::uptr chaser_connect_{};
-    chaser_confirm::uptr chaser_confirm_{};
-    chaser_transaction::uptr chaser_transaction_{};
-    chaser_candidate::uptr chaser_candidate_{};
+    chaser_header chaser_header_;
+    chaser_check chaser_check_;
+    chaser_connect chaser_connect_;
+    chaser_confirm chaser_confirm_;
+    chaser_transaction chaser_transaction_;
+    chaser_candidate chaser_candidate_;
 };
 
 } // namespace node

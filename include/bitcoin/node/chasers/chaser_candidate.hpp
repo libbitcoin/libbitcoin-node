@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CANDIDATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CANDIDATE_HPP
 
+#include <functional>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -30,17 +31,19 @@ class full_node;
 
 /// Construct candidate blocks upon modification of the transaction DAG.
 class BCN_API chaser_candidate
-  : public chaser, protected network::tracker<chaser_candidate>
+  : public chaser
 {
 public:
-    typedef std::unique_ptr<chaser_candidate> uptr;
-
     chaser_candidate(full_node& node) NOEXCEPT;
 
+    virtual bool start() NOEXCEPT;
+
+protected:
+    virtual void handle_transaction(transaction_t value) NOEXCEPT;
+    virtual void handle_event(const code& ec, chase event_,
+        link value) NOEXCEPT;
+
 private:
-    void handle_start() NOEXCEPT;
-    void handle_transaction() NOEXCEPT;
-    void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };
 

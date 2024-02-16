@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 
+#include <functional>
 #include <unordered_map>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -34,24 +35,23 @@ class full_node;
 /// Weak branches are retained in a hash table unless already store populated.
 /// Strong branches reorganize the candidate chain and fire the 'header' event.
 class BCN_API chaser_header
-  : public chaser, protected network::tracker<chaser_header>
+  : public chaser
 {
 public:
-    typedef std::unique_ptr<chaser_header> uptr;
-
     chaser_header(full_node& node) NOEXCEPT;
+
+    virtual bool start() NOEXCEPT;
 
     /// Organize the next header in sequence, relative to caller's peer.
     /// Causes a fault/stop if preceding headers have not been stored.
     /// Caller must validate the header and provide context.
-    void organize(const system::chain::header::cptr& header,
+    virtual void organize(const system::chain::header::cptr& header,
         system::chain::context&& context) NOEXCEPT;
 
 protected:
     typedef std::vector<database::header_link> header_links;
 
     /// Handlers.
-    virtual void handle_start() NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 

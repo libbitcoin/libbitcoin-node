@@ -42,9 +42,6 @@ class BCN_API chaser
 public:
     enum class chase
     {
-        /// Initialize chaser state ({}).
-        start,
-
         /// A new strong branch exists (strong height_t).
         /// Issued by 'header' and handled by 'check'.
         header,
@@ -86,8 +83,8 @@ public:
     typedef database::query<store> query;
     DELETE_COPY_MOVE(chaser);
 
-    // TODO: public method to check/store a block.
-    // TODO: not stranded, thread safe, and posts checked event.
+    /// Synchronously subscribe to notify and asynchronously initialize state.
+    virtual bool start() NOEXCEPT = 0;
 
 protected:
     chaser(full_node& node) NOEXCEPT;
@@ -102,8 +99,8 @@ protected:
     /// True if the current thread is on the chaser strand.
     bool stranded() const NOEXCEPT;
 
-    /// Subscribe to chaser events (must be non-virtual).
-    code subscribe(event_handler&& handler) NOEXCEPT;
+    /// Subscribe to chaser events.
+    bool subscribe(event_handler&& handler) NOEXCEPT;
 
     /// Set chaser event (does not require network strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
