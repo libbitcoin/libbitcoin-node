@@ -39,6 +39,16 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 {
 }
 
+// TODO: initialize check state.
+code chaser_check::start() NOEXCEPT
+{
+    BC_ASSERT_MSG(node_stranded(), "chaser_check");
+
+    // get_all_unassociated_above(0)
+    return subscribe(std::bind(&chaser_check::handle_event,
+        this, _1, _2, _3));
+}
+
 void chaser_check::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
@@ -65,14 +75,6 @@ void chaser_check::do_handle_event(const code& ec, chase event_,
         default:
             return;
     }
-}
-
-// TODO: initialize check state.
-bool chaser_check::start() NOEXCEPT
-{
-    // get_all_unassociated_above(0)
-    return subscribe(std::bind(&chaser_check::handle_event,
-        this, _1, _2, _3));
 }
 
 // TODO: handle the new strong branch (may issue 'checked').

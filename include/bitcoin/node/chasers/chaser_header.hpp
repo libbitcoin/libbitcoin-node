@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 
-#include <functional>
 #include <unordered_map>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -32,7 +31,7 @@ namespace node {
 class full_node;
 
 /// Chase down stronger header branches for the candidate chain.
-/// Weak branches are retained in a hash table unless already store populated.
+/// Weak branches are retained in a hash table if not store populated.
 /// Strong branches reorganize the candidate chain and fire the 'header' event.
 class BCN_API chaser_header
   : public chaser
@@ -40,7 +39,7 @@ class BCN_API chaser_header
 public:
     chaser_header(full_node& node) NOEXCEPT;
 
-    virtual bool start() NOEXCEPT;
+    virtual code start() NOEXCEPT;
 
     /// Organize the next header in sequence, relative to caller's peer.
     /// Causes a fault/stop if preceding headers have not been stored.
@@ -49,7 +48,15 @@ public:
         system::chain::context&& context) NOEXCEPT;
 
 protected:
+    struct proposed_header
+    {
+        database::context context;
+        system::chain::header::cptr header;
+    };
     typedef std::vector<database::header_link> header_links;
+
+    // This is protected by strand.
+    std::unordered_map<system::hash_digest, proposed_header> tree_{};
 
     /// Handlers.
     virtual void handle_event(const code& ec, chase event_,
@@ -82,18 +89,11 @@ protected:
     virtual bool push(const system::hash_digest& key) NOEXCEPT;
 
 private:
-    struct proposed_header
-    {
-        database::context context;
-        system::chain::header::cptr header;
-    };
-
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_organize(const system::chain::header::cptr& header,
         const system::chain::context& context) NOEXCEPT;
 
-    // These are protected by strand.
-    std::unordered_map<system::hash_digest, proposed_header> tree_{};
+    // These are thread safe.
     const network::wall_clock::duration currency_window_;
     const bool use_currency_window_;
 };

@@ -37,6 +37,14 @@ chaser_connect::chaser_connect(full_node& node) NOEXCEPT
 {
 }
 
+// TODO: initialize connect state.
+code chaser_connect::start() NOEXCEPT
+{
+    BC_ASSERT_MSG(node_stranded(), "chaser_connect");
+    return subscribe(std::bind(&chaser_connect::handle_event,
+        this, _1, _2, _3));
+}
+
 void chaser_connect::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
@@ -63,13 +71,6 @@ void chaser_connect::do_handle_event(const code& ec, chase event_,
         default:
             return;
     }
-}
-
-// TODO: initialize connect state.
-bool chaser_connect::start() NOEXCEPT
-{
-    return subscribe(std::bind(&chaser_connect::handle_event,
-        this, _1, _2, _3));
 }
 
 // TODO: handle the new checked blocks (may issue 'connected').

@@ -36,7 +36,7 @@ class BCN_API chaser_candidate
 public:
     chaser_candidate(full_node& node) NOEXCEPT;
 
-    virtual bool start() NOEXCEPT;
+    virtual code start() NOEXCEPT;
 
 protected:
     virtual void handle_transaction(transaction_t value) NOEXCEPT;

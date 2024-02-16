@@ -38,6 +38,14 @@ chaser_candidate::chaser_candidate(full_node& node) NOEXCEPT
 {
 }
 
+// TODO: initialize candidate state.
+code chaser_candidate::start() NOEXCEPT
+{
+    BC_ASSERT_MSG(node_stranded(), "chaser_check");
+    return subscribe(std::bind(&chaser_candidate::handle_event,
+        this, _1, _2, _3));
+}
+
 void chaser_candidate::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
@@ -64,13 +72,6 @@ void chaser_candidate::do_handle_event(const code& ec, chase event_,
         default:
             return;
     }
-}
-
-// TODO: initialize candidate state.
-bool chaser_candidate::start() NOEXCEPT
-{
-    return subscribe(std::bind(&chaser_candidate::handle_event,
-        this, _1, _2, _3));
 }
 
 // TODO: handle transaction graph change (may issue 'candidate').

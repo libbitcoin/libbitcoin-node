@@ -16,38 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
+#include "../test.hpp"
 
-#include <functional>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
-#include <bitcoin/node/chasers/chaser.hpp>
+BOOST_AUTO_TEST_SUITE(chaser_connect_tests)
 
-namespace libbitcoin {
-namespace node {
-
-class full_node;
-
-/// Chase down valid blocks for confirmation.
-class BCN_API chaser_confirm
-  : public chaser
+BOOST_AUTO_TEST_CASE(chaser_connect_test)
 {
-public:
-    chaser_confirm(full_node& node) NOEXCEPT;
+    BOOST_REQUIRE(true);
+}
 
-    virtual code start() NOEXCEPT;
-
-protected:
-    virtual void handle_connected(header_t block) NOEXCEPT;
-    virtual void handle_event(const code& ec, chase event_,
-        link value) NOEXCEPT;
-
-private:
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-};
-
-} // namespace node
-} // namespace libbitcoin
-
-#endif
+BOOST_AUTO_TEST_SUITE_END()

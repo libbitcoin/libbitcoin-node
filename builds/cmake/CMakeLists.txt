@@ -346,7 +346,16 @@ if (with-tests)
         "../../test/node.cpp"
         "../../test/settings.cpp"
         "../../test/test.cpp"
-        "../../test/test.hpp" )
+        "../../test/test.hpp"
+        "../../test/chasers/chaser.cpp"
+        "../../test/chasers/chaser_candidate.cpp"
+        "../../test/chasers/chaser_check.cpp"
+        "../../test/chasers/chaser_confirm.cpp"
+        "../../test/chasers/chaser_connect.cpp"
+        "../../test/chasers/chaser_header.cpp"
+        "../../test/chasers/chaser_transaction.cpp"
+        "../../test/protocols/protocol.cpp"
+        "../../test/sessions/session.cpp" )
 
     add_test( NAME libbitcoin-node-test COMMAND libbitcoin-node-test
             --run_test=*

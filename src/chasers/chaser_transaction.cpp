@@ -38,6 +38,14 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 {
 }
 
+// TODO: initialize tx graph from store, log and stop on error.
+code chaser_transaction::start() NOEXCEPT
+{
+    BC_ASSERT_MSG(node_stranded(), "chaser_transaction");
+    return subscribe(std::bind(&chaser_transaction::handle_event,
+        this, _1, _2, _3));
+}
+
 void chaser_transaction::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
@@ -63,13 +71,6 @@ void chaser_transaction::do_handle_event(const code& ec, chase event_,
         default:
             return;
     }
-}
-
-// TODO: initialize tx graph from store, log and stop on error.
-bool chaser_transaction::start() NOEXCEPT
-{
-    return subscribe(std::bind(&chaser_transaction::handle_event,
-        this, _1, _2, _3));
 }
 
 // TODO: handle the new confirmed blocks (may issue 'transaction').

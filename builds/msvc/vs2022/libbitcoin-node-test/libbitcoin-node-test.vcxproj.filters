@@ -10,8 +10,38 @@
     <Filter Include="src">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000000}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\chasers">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\protocols">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000003}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_candidate.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_check.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_connect.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_transaction.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\test\configuration.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -23,6 +53,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\node.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\sessions\session.cpp">
+      <Filter>src\sessions</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\settings.cpp">
       <Filter>src</Filter>

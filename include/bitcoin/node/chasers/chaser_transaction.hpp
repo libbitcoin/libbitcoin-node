@@ -36,7 +36,7 @@ class BCN_API chaser_transaction
 public:
     chaser_transaction(full_node& node) NOEXCEPT;
 
-    virtual bool start() NOEXCEPT;
+    code start() NOEXCEPT override;
     virtual void store(const system::chain::transaction::cptr& block) NOEXCEPT;
 
 protected:

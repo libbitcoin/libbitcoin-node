@@ -29,7 +29,7 @@ namespace node {
 
 class full_node;
 
-/// Abstract base chaser.
+/// Abstract base chaser for thread safe chain state management classes.
 /// Chasers impose order on blockchain/pool construction as necessary.
 /// Each chaser operates on its own strand, implemented here, allowing
 /// concurrent chaser operations to the extent that threads are available.
@@ -84,7 +84,7 @@ public:
     DELETE_COPY_MOVE(chaser);
 
     /// Synchronously subscribe to notify and asynchronously initialize state.
-    virtual bool start() NOEXCEPT = 0;
+    virtual code start() NOEXCEPT = 0;
 
 protected:
     chaser(full_node& node) NOEXCEPT;
@@ -99,13 +99,16 @@ protected:
     /// True if the current thread is on the chaser strand.
     bool stranded() const NOEXCEPT;
 
+    /// True if the current thread is on the node strand.
+    bool node_stranded() const NOEXCEPT;
+
     /// Subscribe to chaser events.
-    bool subscribe(event_handler&& handler) NOEXCEPT;
+    code subscribe(event_handler&& handler) NOEXCEPT;
 
     /// Set chaser event (does not require network strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
-    /// Close the node.
+    /// Close the node in case of failure.
     void stop(const code& ec) NOEXCEPT;
 
 private:
