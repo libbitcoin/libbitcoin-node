@@ -80,9 +80,9 @@ void chaser::do_notify(const code& ec, chase event_, link value) NOEXCEPT
     subscriber_.notify(ec, event_, value);
 }
 
-void chaser::close(const code& ec) NOEXCEPT
+void chaser::stop(const code&) NOEXCEPT
 {
-    LOGF("Chaser fault, " << ec.message());
+    ////LOGF("Chaser fault, " << ec.message());
     node_.close();
 }
 

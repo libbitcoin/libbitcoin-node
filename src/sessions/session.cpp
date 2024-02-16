@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/sessions/session.hpp>
 
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -41,6 +42,12 @@ void session::performance(uint64_t, uint64_t,
 {
     // TODO: do work on network strand and then invoke handler.
     boost::asio::post(node_.strand(), std::bind(handler, error::unknown));
+}
+
+void session::organize(const system::chain::header::cptr& header,
+    system::chain::context&& context) NOEXCEPT
+{
+    node_.organize(header, std::move(context));
 }
 
 const configuration& session::config() const NOEXCEPT

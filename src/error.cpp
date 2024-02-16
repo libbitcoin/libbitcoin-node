@@ -32,6 +32,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { unexpected_event, "unexpected event" },
 
     // database
+    { store_integrity, "store integrity" },
     { store_uninitialized, "store not initialized" },
 
     // network
@@ -39,7 +40,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { stalled_channel, "stalled channel" },
 
     // blockchain
-    { orphan_block, "orphan block" },
+    { orphan_header, "orphan header" },
     { insufficient_work, "insufficient work" },
     { duplicate_block, "duplicate block" }
 };

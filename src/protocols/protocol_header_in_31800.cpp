@@ -76,7 +76,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         return false;
 
     const auto& coin = config().bitcoin;
-    auto& query = archive();
 
     LOGP("Headers (" << message->header_ptrs.size()
         << ") from [" << authority() << "].");
@@ -108,6 +107,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
+        // Checkpoints are considered chain not header validation.
         if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
             add1(state_->height())))
         {
@@ -122,8 +122,11 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         state_.reset(new chain::chain_state(*state_, header, coin));
         BC_POP_WARNING()
 
-        const auto context = state_->context();
+        auto context = state_->context();
+        // TODO: ensure soft forks activated in chain_state.
+        //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
         error = header.accept(context);
+
         if (error)
         {
             LOGR("Invalid header (accept) [" << encode_hash(hash)
@@ -132,30 +135,11 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // TODO: ensure soft forks activated in chain_state.
-        //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
+        // context is moved, so use here first.
+        if (is_zero(context.height % 1'000))
+            reporter::fire(event_header, context.height);
 
-        const auto link = query.set_link(header, context);
-        if (link.is_terminal())
-        {
-            // Should only be from missing parent, and that's guarded above.
-            LOGF("Store header error [" << encode_hash(hash)
-                << "] from [" << authority() << "].");
-            stop(network::error::unknown);
-            return false;
-        }
-
-        // This is the job of the header chaser.
-        if (!query.push_candidate(link))
-        {
-            LOGF("Push candidate error [" << encode_hash(hash)
-                << "] from [" << authority() << "].");
-            stop(network::error::unknown);
-            return false;
-        }
-
-        ////if (is_zero(context.height % 10'000))
-        ////    reporter::fire(event_header, context.height);
+        organize(header_ptr, std::move(context));
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -185,7 +169,9 @@ void protocol_header_in_31800::complete() NOEXCEPT
 // private
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
-    // header sync is always CANDIDATEs.
+    // Header sync is from the archived (strong) candidate chain.
+    // Until the header tree is current the candidate chain remains empty.
+    // So all channels will fully sync from the top candidate at their startup.
     return create_get_headers(archive().get_candidate_hashes(
         get_headers::heights(archive().get_top_candidate())));
 }

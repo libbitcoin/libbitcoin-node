@@ -99,8 +99,21 @@ void session_outbound::attach_protocols(
     network::session_outbound::attach_protocols(channel);
 
     auto& self = *this;
-    constexpr auto performance = true;
-    channel->attach<protocol_block_in>(self, performance)->start();
+    const auto version = channel->negotiated_version();
+
+    if (version >= network::messages::level::bip130)
+    {
+        channel->attach<protocol_header_in_70012>(self)->start();
+        channel->attach<protocol_header_out_70012>(self)->start();
+    }
+    else if (version >= network::messages::level::headers_protocol)
+    {
+        channel->attach<protocol_header_in_31800>(self)->start();
+        channel->attach<protocol_header_out_31800>(self)->start();
+    }
+
+    ////constexpr auto performance = true;
+    ////channel->attach<protocol_block_in>(self, performance)->start();
     ////channel->attach<protocol_block_out>(self)->start();
     ////channel->attach<protocol_transaction_in>(self)->start();
     ////channel->attach<protocol_transaction_out>(self)->start();
