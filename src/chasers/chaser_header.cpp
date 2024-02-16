@@ -34,12 +34,19 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
     currency_window_(node.node_settings().currency_window()),
     use_currency_window_(currency_window_ != wall_clock::duration::zero())
 {
+}
+
+// protected
+code chaser_header::start() NOEXCEPT
+{
+    BC_ASSERT_MSG(node_stranded(), "chaser_header");
+    return subscribe(std::bind(&chaser_header::handle_event,
+        this, _1, _2, _3));
 }
 
 // protected
@@ -55,13 +62,6 @@ void chaser_header::handle_event(const code& ec, chase event_,
 void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
-}
-
-// protected
-bool chaser_header::start() NOEXCEPT
-{
-    return subscribe(std::bind(&chaser_header::handle_event,
-        this, _1, _2, _3));
 }
 
 void chaser_header::organize(const chain::header::cptr& header,
@@ -258,6 +258,7 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
     return true;
 }
 
+// protected
 void chaser_header::save(const chain::header::cptr& header,
     const chain::context& context) NOEXCEPT
 {

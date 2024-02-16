@@ -72,15 +72,16 @@ void full_node::start(result_handler&& handler) NOEXCEPT
 void full_node::do_start(const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "full_node");
-
-    if (!chaser_header_.start() ||
-        !chaser_check_.start() ||
-        !chaser_connect_.start() ||
-        !chaser_confirm_.start() ||
-        !chaser_transaction_.start() ||
-        !chaser_candidate_.start())
+    code ec;
+    
+    if (((ec = chaser_header_.start())) ||
+        ((ec = chaser_check_.start())) ||
+        ((ec = chaser_connect_.start())) ||
+        ((ec = chaser_confirm_.start())) ||
+        ((ec = chaser_transaction_.start())) ||
+        ((ec = chaser_candidate_.start())))
     {
-        handler(error::unknown);
+        handler(ec);
         return;
     }
 

@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 
-#include <functional>
 #include <unordered_map>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -40,7 +39,7 @@ class BCN_API chaser_header
 public:
     chaser_header(full_node& node) NOEXCEPT;
 
-    virtual bool start() NOEXCEPT;
+    virtual code start() NOEXCEPT;
 
     /// Organize the next header in sequence, relative to caller's peer.
     /// Causes a fault/stop if preceding headers have not been stored.

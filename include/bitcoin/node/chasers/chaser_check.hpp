@@ -36,7 +36,7 @@ class BCN_API chaser_check
 public:
     chaser_check(full_node& node) NOEXCEPT;
 
-    virtual bool start() NOEXCEPT;
+    virtual code start() NOEXCEPT;
     virtual void checked(const system::chain::block::cptr& block) NOEXCEPT;
 
 protected:

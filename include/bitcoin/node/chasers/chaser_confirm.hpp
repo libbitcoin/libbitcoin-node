@@ -36,7 +36,7 @@ class BCN_API chaser_confirm
 public:
     chaser_confirm(full_node& node) NOEXCEPT;
 
-    virtual bool start() NOEXCEPT;
+    virtual code start() NOEXCEPT;
 
 protected:
     virtual void handle_connected(header_t block) NOEXCEPT;
