@@ -19,6 +19,7 @@
 #include <bitcoin/node/full_node.hpp>
 
 #include <memory>
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
@@ -148,6 +149,13 @@ void full_node::delete_chasers() NOEXCEPT
     chaser_confirm_.reset();
     chaser_transaction_.reset();
     chaser_candidate_.reset();
+}
+
+void full_node::organize(const system::chain::header::cptr& header,
+    system::chain::context&& context) NOEXCEPT
+{
+    // TODO: guard against nullptr (or don't use pointers).
+    chaser_header_->organize(header, std::move(context));
 }
 
 // Properties.

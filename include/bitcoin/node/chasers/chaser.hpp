@@ -104,7 +104,7 @@ protected:
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
     /// Close the node.
-    void close(const code& ec) NOEXCEPT;
+    void stop(const code& ec) NOEXCEPT;
 
 private:
     void do_notify(const code& ec, chase event_, link value) NOEXCEPT;

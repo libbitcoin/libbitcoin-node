@@ -41,6 +41,7 @@ enum error_t : uint8_t
     unexpected_event,
 
     // database
+    store_integrity,
     store_uninitialized,
 
     // network
@@ -48,7 +49,7 @@ enum error_t : uint8_t
     stalled_channel,
 
     // blockchain
-    orphan_block,
+    orphan_header,
     insufficient_work,
     duplicate_block
 };

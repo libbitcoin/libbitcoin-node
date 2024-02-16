@@ -38,6 +38,12 @@ void protocol::performance(uint64_t channel, uint64_t speed,
     session_.performance(channel, speed, std::move(handler));
 }
 
+void protocol::organize(const system::chain::header::cptr& header,
+    system::chain::context&& context) NOEXCEPT
+{
+    session_.organize(header, std::move(context));
+}
+
 const configuration& protocol::config() const NOEXCEPT
 {
     return session_.config();

@@ -824,6 +824,11 @@ options_metadata parser::load_settings() THROWS
         value<uint16_t>(&configured.node.sample_period_seconds),
         "Performance sampling time period, defaults to 5 (0 disables)."
     )
+    (
+        "node.currency_window_minutes",
+        value<uint32_t>(&configured.node.currency_window_minutes),
+        "Time from present that blocks are considered current, defaults to 60 (0 disables)."
+    )
     ////(
     ////    "node.notify_limit_hours",
     ////    value<uint32_t>(&configured.node.notify_limit_hours),

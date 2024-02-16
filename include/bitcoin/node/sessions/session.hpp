@@ -36,6 +36,10 @@ public:
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT;
 
+    /// Organize a validated header, failures stop the node.
+    virtual void organize(const system::chain::header::cptr& header,
+        system::chain::context&& context) NOEXCEPT;
+
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 

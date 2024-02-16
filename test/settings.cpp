@@ -35,4 +35,14 @@ BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
 
 // [node]
 
+BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
+{
+    node::settings configuration{};
+    BOOST_REQUIRE_EQUAL(configuration.allowed_deviation, 1.0);
+    BOOST_REQUIRE_EQUAL(configuration.sample_period_seconds, 5_u16);
+    BOOST_REQUIRE_EQUAL(configuration.currency_window_minutes, 60_u32);
+    BOOST_REQUIRE(configuration.sample_period() == network::steady_clock::duration(network::seconds(5)));
+    BOOST_REQUIRE(configuration.currency_window() == network::steady_clock::duration(network::minutes(60)));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

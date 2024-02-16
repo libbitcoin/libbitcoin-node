@@ -80,7 +80,7 @@ network::steady_clock::duration settings::sample_period() const NOEXCEPT
 
 network::wall_clock::duration settings::currency_window() const NOEXCEPT
 {
-    return network::seconds(currency_window_minutes);
+    return network::minutes(currency_window_minutes);
 }
 
 } // namespace node

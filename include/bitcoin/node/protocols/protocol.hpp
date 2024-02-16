@@ -49,9 +49,13 @@ protected:
 
     virtual ~protocol() NOEXCEPT;
 
-    /// Report performance, false directs self-terminate.
+    /// Report performance, handler may direct self-terminate.
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) const NOEXCEPT;
+
+    /// Organize a validated header, failures stop the node.
+    virtual void organize(const system::chain::header::cptr& header,
+        system::chain::context&& context) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
