@@ -88,6 +88,10 @@ protected:
     /// Move tree header to database and push to top of candidate chain.
     virtual bool push(const system::hash_digest& key) NOEXCEPT;
 
+    /// Properties.
+    virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
+    virtual bool use_currency_window() const NOEXCEPT;
+
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_organize(const system::chain::header::cptr& header,

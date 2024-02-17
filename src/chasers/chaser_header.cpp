@@ -42,6 +42,18 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 }
 
 // protected
+const network::wall_clock::duration& chaser_header::currency_window() const NOEXCEPT
+{
+    return currency_window_;
+}
+
+// protected
+bool chaser_header::use_currency_window() const NOEXCEPT
+{
+    return use_currency_window_;
+}
+
+// protected
 code chaser_header::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_header");
@@ -190,11 +202,11 @@ void chaser_header::do_organize(const chain::header::cptr& header,
 // protected
 bool chaser_header::is_current(const chain::header& header) const NOEXCEPT
 {
-    if (!use_currency_window_)
+    if (!use_currency_window())
         return true;
 
     const auto time = wall_clock::from_time_t(header.timestamp());
-    const auto current = wall_clock::now() - currency_window_;
+    const auto current = wall_clock::now() - currency_window();
     return time >= current;
 }
 
