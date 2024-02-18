@@ -367,18 +367,18 @@ options_metadata parser::load_settings() THROWS
     )
     // [version properties excluded here]
     (
-        "bitcoin.activation_threshold",
-        value<size_t>(&configured.bitcoin.activation_threshold),
+        "bitcoin.bip34_activation_threshold",
+        value<size_t>(&configured.bitcoin.bip34_activation_threshold),
         "The number of new version blocks required for bip34 style soft fork activation, defaults to 750."
     )
     (
-        "bitcoin.enforcement_threshold",
-        value<size_t>(&configured.bitcoin.enforcement_threshold),
+        "bitcoin.bip34_enforcement_threshold",
+        value<size_t>(&configured.bitcoin.bip34_enforcement_threshold),
         "The number of new version blocks required for bip34 style soft fork enforcement, defaults to 950."
     )
     (
-        "bitcoin.activation_sample",
-        value<size_t>(&configured.bitcoin.activation_sample),
+        "bitcoin.bip34_activation_sample",
+        value<size_t>(&configured.bitcoin.bip34_activation_sample),
         "The number of blocks considered for bip34 style soft fork activation, defaults to 1000."
     )
     (
