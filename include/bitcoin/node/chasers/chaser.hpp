@@ -36,6 +36,7 @@ class full_node;
 /// Events are passed between chasers using the full_node shared notifier.
 /// Notifications are bounced from sink (e.g. chaser) to its strand, and
 /// notify bounces from source (e.g. chaser) to network strand.
+/// Unlike protocols chasers can stop the node.
 class BCN_API chaser
   : public network::reporter
 {
