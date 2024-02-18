@@ -42,7 +42,8 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 }
 
 // protected
-const network::wall_clock::duration& chaser_header::currency_window() const NOEXCEPT
+const network::wall_clock::duration&
+chaser_header::currency_window() const NOEXCEPT
 {
     return currency_window_;
 }
@@ -205,7 +206,7 @@ bool chaser_header::is_current(const chain::header& header) const NOEXCEPT
     if (!use_currency_window())
         return true;
 
-    /// BUGBUG: en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
+    // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
     const auto time = wall_clock::from_time_t(header.timestamp());
     const auto current = wall_clock::now() - currency_window();
     return time >= current;
@@ -224,8 +225,7 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
     const auto& query = archive();
 
     // Sum all branch work from tree.
-    for (auto it = tree_.find(*previous);
-        it != tree_.end();
+    for (auto it = tree_.find(*previous); it != tree_.end();
         it = tree_.find(*previous))
     {
         previous = &it->second.header->previous_block_hash();
@@ -235,8 +235,7 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
 
     // Sum branch work from store.
     database::height_link link{};
-    for (link = query.to_header(*previous);
-        !query.is_candidate_block(link);
+    for (link = query.to_header(*previous); !query.is_candidate_block(link);
         link = query.to_parent(link))
     {
         uint32_t bits{};
@@ -300,8 +299,7 @@ database::header_link chaser_header::push(const chain::header::cptr& header,
     const chain::context& context) const NOEXCEPT
 {
     auto& query = archive();
-    const auto link = query.set_link(*header,
-        database::context
+    const auto link = query.set_link(*header, database::context
         {
             possible_narrow_cast<flags_t>(context.forks),
             possible_narrow_cast<height_t>(context.height),
