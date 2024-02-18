@@ -51,14 +51,8 @@ void protocol_header_in_31800::start() NOEXCEPT
 
     // header sync is always CANDIDATEs.
     state_ = archive().get_candidate_chain_state(config().bitcoin);
+    BC_ASSERT_MSG(state_, "Store not initialized.");
 
-    if (!state_)
-    {
-        LOGF("protocol_header_in_31800, state not initialized.");
-        return;
-    }
-
-    // There is one persistent common headers subscription.
     SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
@@ -74,6 +68,14 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 
     if (stopped(ec))
         return false;
+
+    // This only stops protocol, not node.
+    ////if (state_)
+    ////{
+    ////    // Cannot stop from start, so handle before first use.
+    ////    stop(node::error::store_integrity);
+    ////    return false;
+    ////}
 
     const auto& coin = config().bitcoin;
 
