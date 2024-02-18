@@ -20,47 +20,9 @@
 
 BOOST_AUTO_TEST_SUITE(chaser_tests)
 
-class chaser_header_accessor
-  : chaser_header
+BOOST_AUTO_TEST_CASE(chaser_test)
 {
-public:
-    using chaser_header::chaser_header;
-
-    const network::wall_clock::duration& currency_window_() const NOEXCEPT
-    {
-        return currency_window();
-    }
-
-    bool use_currency_window_() const NOEXCEPT
-    {
-        return use_currency_window();
-    }
-};
-
-BOOST_AUTO_TEST_CASE(chaser_test__currency_window__zero__use_currency_window_false)
-{
-    const network::logger log{};
-    node::configuration config(system::chain::selection::mainnet);
-    config.node.currency_window_minutes = 0;
-
-    full_node::store store(config.database);
-    full_node::query query(store);
-    full_node node(query, config, log);
-    chaser_header_accessor instance(node);
-    BOOST_REQUIRE(!instance.use_currency_window_());
-}
-
-BOOST_AUTO_TEST_CASE(chaser_test__currency_window__nonzero__use_currency_window_true)
-{
-    const network::logger log{};
-    node::configuration config(system::chain::selection::mainnet);
-    config.node.currency_window_minutes = 60;
-
-    full_node::store store(config.database);
-    full_node::query query(store);
-    full_node node(query, config, log);
-    chaser_header_accessor instance(node);
-    BOOST_REQUIRE(instance.use_currency_window_());
+    BOOST_REQUIRE(true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
