@@ -19,7 +19,7 @@
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
 #include <chrono>
-#include <cmath>
+#include <functional>
 #include <utility>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
@@ -116,12 +116,7 @@ void protocol_block_in::start() NOEXCEPT
         return;
 
     state_ = archive().get_confirmed_chain_state(config().bitcoin);
-
-    if (!state_)
-    {
-        LOGF("protocol_block_in, state not initialized.");
-        return;
-    }
+    BC_ASSERT_MSG(state_, "Store not initialized.");
 
     if (report_performance_)
     {
@@ -144,6 +139,15 @@ void protocol_block_in::stopping(const code& ec) NOEXCEPT
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
+
+// Validation is limited to block.check() and block.check(ctx).
+// Context is obtained from stored header state as blocks are out of order.
+// Tx check could be short-circuited against the database but since the checks
+// are fast, it is optimal to wait until block/tx accept to hit the store.
+// So header.state is read and when contextual checks are complete, block is
+// stored. The set of blocks is obtained from the check chaser, and reported
+// against it. Stopping channels return the set. May require height and/or
+// header.fk to be stored with block hash set.
 
 // local
 inline hashes to_hashes(const get_data& getter) NOEXCEPT
