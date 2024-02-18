@@ -37,7 +37,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
     currency_window_(node.node_settings().currency_window()),
-    use_currency_window_(currency_window_ != wall_clock::duration::zero())
+    use_currency_window_(to_bool(node.node_settings().currency_window_minutes))
 {
 }
 

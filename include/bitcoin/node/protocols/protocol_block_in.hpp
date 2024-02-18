@@ -41,7 +41,7 @@ public:
       : node::protocol(session, channel),
         network::tracker<protocol_block_in>(session.log),
         report_performance_(report_performance &&
-            !is_zero(session.config().node.sample_period_seconds)),
+            to_bool(session.config().node.sample_period_seconds)),
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         performance_timer_(std::make_shared<network::deadline>(session.log,
