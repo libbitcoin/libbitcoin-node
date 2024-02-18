@@ -791,10 +791,6 @@ void executor::read_test() const
 ////        state.median_time_past = ctx.mtp;
 ////        state.timestamp = block->header().timestamp();
 ////
-////        // hack in bit0 late and _bit1(segwit) on schedule.
-////        state.forks |= (chain::forks::bip9_bit0_group |
-////            chain::forks::bip9_bit1_group);
-////
 ////        // split from accept.
 ////        if ((ec = block->check(state)))
 ////        {

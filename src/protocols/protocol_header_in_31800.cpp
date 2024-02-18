@@ -117,10 +117,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         BC_POP_WARNING()
 
         auto context = state_->context();
-        // TODO: ensure soft forks activated in chain_state.
-        //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
         error = header.accept(context);
-
         if (error)
         {
             LOGR("Invalid header (accept) [" << encode_hash(hash)
