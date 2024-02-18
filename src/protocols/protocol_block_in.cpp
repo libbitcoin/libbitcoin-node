@@ -269,10 +269,6 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     ////auto& query = archive();
     ////const auto context = state_->context();
-    ////
-    ////// TODO: ensure soft forks activated in chain_state.
-    //////// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
-    ////
     ////const auto link = query.set_link(block, context);
     ////if (link.is_terminal())
     ////{

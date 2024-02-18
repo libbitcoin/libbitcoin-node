@@ -51,14 +51,8 @@ void protocol_header_in_31800::start() NOEXCEPT
 
     // header sync is always CANDIDATEs.
     state_ = archive().get_candidate_chain_state(config().bitcoin);
+    BC_ASSERT_MSG(state_, "Store not initialized.");
 
-    if (!state_)
-    {
-        LOGF("protocol_header_in_31800, state not initialized.");
-        return;
-    }
-
-    // There is one persistent common headers subscription.
     SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
@@ -123,10 +117,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         BC_POP_WARNING()
 
         auto context = state_->context();
-        // TODO: ensure soft forks activated in chain_state.
-        //// context.forks |= (chain::forks::bip9_bit0_group | chain::forks::bip9_bit1_group);
         error = header.accept(context);
-
         if (error)
         {
             LOGR("Invalid header (accept) [" << encode_hash(hash)
