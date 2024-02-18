@@ -69,14 +69,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    // This only stops protocol, not node.
-    ////if (state_)
-    ////{
-    ////    // Cannot stop from start, so handle before first use.
-    ////    stop(node::error::store_integrity);
-    ////    return false;
-    ////}
-
     const auto& coin = config().bitcoin;
 
     LOGP("Headers (" << message->header_ptrs.size()
