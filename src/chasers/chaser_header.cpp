@@ -205,6 +205,7 @@ bool chaser_header::is_current(const chain::header& header) const NOEXCEPT
     if (!use_currency_window())
         return true;
 
+    /// BUGBUG: en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
     const auto time = wall_clock::from_time_t(header.timestamp());
     const auto current = wall_clock::now() - currency_window();
     return time >= current;
