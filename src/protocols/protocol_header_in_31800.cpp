@@ -152,7 +152,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // The distinction is ultimately arbitrary, but this signals peer completeness.
 void protocol_header_in_31800::complete() NOEXCEPT
 {
-    ////reporter::fire(event_current_headers, state_->height());
     LOGN("Headers from [" << authority() << "] complete at ("
         << state_->height() << ").");
 }

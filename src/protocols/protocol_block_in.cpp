@@ -304,7 +304,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     ////    stop(network::error::protocol_violation);
     ////    return false;
     ////}
-
+    ////
     ////// TODO: also requires input metadata population.
     ////error = block.confirm(context);
     ////if (error)
@@ -325,6 +325,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
+    // ------------------------------------------------------------------------
+    // NOTE: this is a naive implementation intended for only one peer and
+    // lacking reorganization support. It provides a fair performance baseline
+    // for a sequential blocks-first design given a trusted peer.
+    //
     const auto link = query.set_link(block, context);
     if (link.is_terminal())
     {
@@ -349,6 +354,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         stop(network::error::unknown);
         return false;
     }
+    //
+    // ------------------------------------------------------------------------
     
     LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] at ("
         << context.height << ") from [" << authority() << "].");
