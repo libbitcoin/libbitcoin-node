@@ -45,9 +45,10 @@ public:
 
     virtual code start() NOEXCEPT;
 
-    /// Validate and organize next header in sequence relative to caller's peer.
+    /// Validate and organize next header in sequence relative to caller peer.
     /// Causes a fault/stop if preceding headers have not been stored.
-    virtual void organize(const system::chain::header::cptr& header) NOEXCEPT;
+    virtual void organize(
+        const system::chain::header::cptr& header_ptr) NOEXCEPT;
 
 protected:
     struct proposed_header

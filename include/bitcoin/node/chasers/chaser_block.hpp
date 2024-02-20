@@ -44,9 +44,10 @@ public:
 
     virtual code start() NOEXCEPT;
 
-    /// Validate and organize next block in sequence relative to caller's peer.
+    /// Validate and organize next block in sequence relative to caller peer.
     /// Causes a fault/stop if preceding blocks have not been stored.
-    virtual void organize(const system::chain::block::cptr& block) NOEXCEPT;
+    virtual void organize(
+        const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 protected:
     struct validated_block
