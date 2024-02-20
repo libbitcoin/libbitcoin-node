@@ -40,12 +40,12 @@ public:
         const channel_ptr& channel, bool report_performance) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_block_in>(session.log),
-        report_performance_(report_performance &&
-            to_bool(session.config().node.sample_period_seconds)),
+        ////report_performance_(report_performance &&
+        ////    to_bool(session.config().node.sample_period_seconds)),
         block_type_(session.config().network.witness_node() ?
-            type_id::witness_block : type_id::block),
-        performance_timer_(std::make_shared<network::deadline>(session.log,
-            channel->strand(), session.config().node.sample_period()))
+            type_id::witness_block : type_id::block)
+        ////performance_timer_(std::make_shared<network::deadline>(session.log,
+        ////    channel->strand(), session.config().node.sample_period()))
     {
     }
     BC_POP_WARNING()
@@ -73,11 +73,11 @@ protected:
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
 
-    /// Handle performance timer event.
-    virtual void handle_performance_timer(const code& ec) NOEXCEPT;
+    /////// Handle performance timer event.
+    ////virtual void handle_performance_timer(const code& ec) NOEXCEPT;
 
-    /// Handle result of performance reporting.
-    virtual void handle_performance(const code& ec) NOEXCEPT;
+    /////// Handle result of performance reporting.
+    ////virtual void handle_performance(const code& ec) NOEXCEPT;
 
     /// Invoked when initial blocks sync is complete.
     virtual void complete() NOEXCEPT;
@@ -96,17 +96,17 @@ private:
         const network::messages::inventory& message) const NOEXCEPT;
 
 
-    void do_handle_performance(const code& ec) NOEXCEPT;
+    ////void do_handle_performance(const code& ec) NOEXCEPT;
 
     // Thread safe.
-    const bool report_performance_;
+    ////const bool report_performance_;
     const network::messages::inventory::type_id block_type_;
 
     // Protected by strand.
-    uint64_t bytes_{ zero };
+    ////uint64_t bytes_{ zero };
     system::chain::checkpoint top_{};
-    network::steady_clock::time_point start_{};
-    network::deadline::ptr performance_timer_;
+    ////network::steady_clock::time_point start_{};
+    ////network::deadline::ptr performance_timer_;
 };
 
 } // namespace node

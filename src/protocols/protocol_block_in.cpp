@@ -49,61 +49,66 @@ BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Performance polling.
-// ----------------------------------------------------------------------------
-
-void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "expected channel strand");
-
-    if (stopped() || ec == network::error::operation_canceled)
-        return;
-
-    if (ec)
-    {
-        LOGF("Performance timer error, " << ec.message());
-        stop(ec);
-        return;
-    }
-
-    // Compute rate in bytes per second.
-    const auto now = steady_clock::now();
-    const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
-    const auto rate = floored_divide(bytes_, to_unsigned(gap));
-
-    // Reset counters and log rate.
-    bytes_ = zero;
-    start_ = now;
-    log.fire(event_block, rate);
-
-    // Bounces to network strand, performs work, then calls handler.
-    // Channel will continue to process blocks while this call excecutes on the
-    // network strand. Timer will not be restarted until this call completes.
-    performance(identifier(), rate, BIND1(handle_performance, ec));
-}
-
-void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
-{
-    POST1(do_handle_performance, ec);
-}
-
-void protocol_block_in::do_handle_performance(const code& ec) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "expected network strand");
-
-    if (stopped())
-        return;
-
-    // stalled_channel or slow_channel
-    if (ec)
-    {
-        LOGF("Performance action, " << ec.message());
-        stop(ec);
-        return;
-    };
-
-    performance_timer_->start(BIND1(handle_performance_timer, _1));
-}
+////// Performance polling.
+////// ----------------------------------------------------------------------------
+////
+////void protocol_block_in::handle_performance_timer(const code& ec) NOEXCEPT
+////{
+////    BC_ASSERT_MSG(stranded(), "expected channel strand");
+////
+////    if (stopped() || ec == network::error::operation_canceled)
+////        return;
+////
+////    if (ec)
+////    {
+////        LOGF("Performance timer error, " << ec.message());
+////        stop(ec);
+////        return;
+////    }
+////
+////    // Compute rate in bytes per second.
+////    const auto now = steady_clock::now();
+////    const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
+////    const auto rate = floored_divide(bytes_, gap);
+////    LOGN("Rate ["
+////        << identifier() << "] ("
+////        << bytes_ << "/"
+////        << gap << " = "
+////        << rate << ").");
+////
+////    // Reset counters and log rate.
+////    bytes_ = zero;
+////    start_ = now;
+////    ////log.fire(event_block, rate);
+////
+////    // Bounces to network strand, performs work, then calls handler.
+////    // Channel will continue to process blocks while this call excecutes on the
+////    // network strand. Timer will not be restarted until this call completes.
+////    performance(identifier(), rate, BIND1(handle_performance, ec));
+////}
+////
+////void protocol_block_in::handle_performance(const code& ec) NOEXCEPT
+////{
+////    POST1(do_handle_performance, ec);
+////}
+////
+////void protocol_block_in::do_handle_performance(const code& ec) NOEXCEPT
+////{
+////    BC_ASSERT_MSG(stranded(), "expected network strand");
+////
+////    if (stopped())
+////        return;
+////
+////    // stalled_channel or slow_channel
+////    if (ec)
+////    {
+////        LOGF("Performance action, " << ec.message());
+////        stop(ec);
+////        return;
+////    };
+////
+////    performance_timer_->start(BIND1(handle_performance_timer, _1));
+////}
 
 // Start/stop.
 // ----------------------------------------------------------------------------
@@ -119,11 +124,11 @@ void protocol_block_in::start() NOEXCEPT
     const auto top = query.get_top_candidate();
     top_ = { query.get_header_key(query.to_candidate(top)), top };
 
-    if (report_performance_)
-    {
-        start_ = steady_clock::now();
-        performance_timer_->start(BIND1(handle_performance_timer, _1));
-    }
+    ////if (report_performance_)
+    ////{
+    ////    start_ = steady_clock::now();
+    ////    performance_timer_->start(BIND1(handle_performance_timer, _1));
+    ////}
 
     // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
@@ -134,7 +139,7 @@ void protocol_block_in::start() NOEXCEPT
 void protocol_block_in::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_block_in");
-    performance_timer_->stop();
+    ////performance_timer_->stop();
     protocol::stopping(ec);
 }
 
@@ -221,8 +226,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
         << top_.height() << ") from [" << authority() << "].");
 
-    // Accumulate byte count.
-    bytes_ += message->cached_size;
+    ////// Accumulate byte count.
+    ////bytes_ += message->cached_size;
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
