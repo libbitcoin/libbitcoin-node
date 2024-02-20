@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 
@@ -37,15 +38,16 @@ class BCN_API chaser_header
   : public chaser
 {
 public:
+    DELETE_COPY_MOVE(chaser_header);
+
     chaser_header(full_node& node) NOEXCEPT;
+    virtual ~chaser_header() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 
-    /// Organize the next header in sequence, relative to caller's peer.
+    /// Validate and organize next header in sequence relative to caller's peer.
     /// Causes a fault/stop if preceding headers have not been stored.
-    /// Caller must validate the header and provide context.
-    virtual void organize(const system::chain::header::cptr& header,
-        system::chain::context&& context) NOEXCEPT;
+    virtual void organize(const system::chain::header::cptr& header) NOEXCEPT;
 
 protected:
     struct proposed_header
@@ -55,7 +57,8 @@ protected:
     };
     typedef std::vector<database::header_link> header_links;
 
-    // This is protected by strand.
+    // These are protected by strand.
+    system::chain::chain_state::ptr state_{};
     std::unordered_map<system::hash_digest, proposed_header> tree_{};
 
     /// Handlers.
@@ -95,8 +98,7 @@ protected:
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-    void do_organize(const system::chain::header::cptr& header,
-        const system::chain::context& context) NOEXCEPT;
+    void do_organize(const system::chain::header::cptr& header) NOEXCEPT;
 
     // These are thread safe.
     const system::chain::checkpoints& checkpoints_;

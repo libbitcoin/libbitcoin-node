@@ -34,7 +34,10 @@ class BCN_API chaser_confirm
   : public chaser
 {
 public:
+    DELETE_COPY_MOVE(chaser_confirm);
+
     chaser_confirm(full_node& node) NOEXCEPT;
+    virtual ~chaser_confirm() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 

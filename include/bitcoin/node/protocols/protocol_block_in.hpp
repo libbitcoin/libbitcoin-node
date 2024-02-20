@@ -83,7 +83,8 @@ protected:
     virtual void complete() NOEXCEPT;
 
 private:
-    static system::hashes to_hashes(const get_data& getter) NOEXCEPT;
+    static system::hashes to_hashes(
+        const network::messages::get_data& getter) NOEXCEPT;
 
     network::messages::get_blocks create_get_inventory() const NOEXCEPT;
     network::messages::get_blocks create_get_inventory(
@@ -103,8 +104,8 @@ private:
 
     // Protected by strand.
     uint64_t bytes_{ zero };
+    system::chain::checkpoint top_{};
     network::steady_clock::time_point start_{};
-    system::chain::chain_state::ptr state_{};
     network::deadline::ptr performance_timer_;
 };
 

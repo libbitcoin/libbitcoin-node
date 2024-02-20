@@ -32,6 +32,7 @@ using namespace network;
 using namespace system;
 using namespace std::placeholders;
 
+BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_block::chaser_block(full_node& node) NOEXCEPT
@@ -39,6 +40,10 @@ chaser_block::chaser_block(full_node& node) NOEXCEPT
     checkpoints_(node.config().bitcoin.checkpoints),
     currency_window_(node.node_settings().currency_window()),
     use_currency_window_(to_bool(node.node_settings().currency_window_minutes))
+{
+}
+
+chaser_block::~chaser_block() NOEXCEPT
 {
 }
 
@@ -59,6 +64,10 @@ bool chaser_block::use_currency_window() const NOEXCEPT
 code chaser_block::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_block");
+
+    state_ = archive().get_candidate_chain_state(config().bitcoin);
+    BC_ASSERT_MSG(state_, "Store not initialized.");
+
     return subscribe(std::bind(&chaser_block::handle_event,
         this, _1, _2, _3));
 }
@@ -78,57 +87,142 @@ void chaser_block::do_handle_event(const code&, chase, link) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "chaser_block");
 }
 
-void chaser_block::organize(const chain::block::cptr& block,
-    chain::context&& context) NOEXCEPT
+void chaser_block::organize(const chain::block::cptr& block) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_block::do_organize,
-            this, block, std::move(context)));
+            this, block));
 }
 
 // private
-void chaser_block::do_organize(const chain::block::cptr& block,
-    const chain::context& context) NOEXCEPT
+void chaser_block::do_organize(const chain::block::cptr& block_ptr) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_block");
 
-    // Determine if work should be computed.
-    // ------------------------------------------------------------------------
-    // This presumes a header is never archived independent of its valid block.
-    // This presumes the block is valid (check/accept/connect) and therefore
-    // all of its prevouts exist, but it is not yet confirmed.
-
     auto& query = archive();
-    const auto hash = block->header().hash();
-    if (tree_.contains(hash) || query.is_block(hash))
-    {
-        // Block (header and txs) already exists.
-        return;
-    }
+    const auto& block = *block_ptr;
+    const auto& header = block.header();
+    const auto& previous = header.previous_block_hash();
+    const auto& coin = config().bitcoin;
+    const auto hash = header.hash();
 
-    auto& previous = block->header().previous_block_hash();
+    // Skip existing, fail orphan.
+    // ------------------------------------------------------------------------
+
+    // Block (header and txs) already exists.
+    if (tree_.contains(hash) || query.is_block(hash))
+        return;
+
+    // Peer processing should have precluded orphan submission.
     if (!tree_.contains(previous) && !query.is_block(previous))
     {
-        // Peer processing should have precluded orphan submission.
         stop(error::orphan_block);
         return;
     }
 
-    if (!is_current(block->header(), context.height))
+    // Validate block.
+    // ------------------------------------------------------------------------
+
+    // Rolling forward chain_state eliminates requery cost.
+    // Do not use block ref here as the block override is for tx pool.
+    state_.reset(new chain::chain_state(*state_, header, coin));
+    const auto context = state_->context();
+
+    // Checkpoints are considered chain not block/header validation.
+    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+        state_->height()))
     {
-        // Block is new top of stale branch (strength not computed).
-        save(block, context);
-        return;
+        ////LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
+        ////    << "] from [" << authority() << "].");
+        ////stop(network::error::protocol_violation);
+        ////return false;
+    };
+
+    // Block validations are bypassed when under checkpoint/milestone.
+    if (!chain::checkpoint::is_under(coin.checkpoints, state_->height()))
+    {
+        auto error = block.check();
+        if (error)
+        {
+            ////LOGR("Invalid block (check) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "] " << error.message());
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
+
+        error = block.check(context);
+        if (error)
+        {
+            ////LOGR("Invalid block (check(context)) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "] " << error.message());
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
+
+        // Populate prevouts only, internal to block.
+        // ********************************************************************
+        // TODO: populate input metadata for block internal.
+        // ********************************************************************
+        ////block.populate();
+
+        // ********************************************************************
+        // TODO: populate prevouts and input metadata for block tree.
+        // ********************************************************************
+
+        // Populate stored missing prevouts only, not input metadata.
+        // ********************************************************************
+        // TODO: populate input metadata for stored blocks.
+        // ********************************************************************
+        ////auto& query = archive();
+        ////if (!query.populate(block))
+        ////{
+        ////    ////LOGR("Invalid block (populate) [" << encode_hash(hash)
+        ////    ////    << "] from [" << authority() << "].");
+        ////    ////stop(network::error::protocol_violation);
+        ////    ////return false;
+        ////}
+
+        ////// TODO: also requires input metadata population.
+        ////error = block.accept(context, coin.subsidy_interval_blocks,
+        ////    coin.initial_subsidy());
+        ////if (error)
+        ////{
+        ////    ////LOGR("Invalid block (accept) [" << encode_hash(hash)
+        ////    ////    << "] from [" << authority() << "] " << error.message());
+        ////    ////stop(network::error::protocol_violation);
+        ////    ////return false;
+        ////}
+
+        ////// Requires only prevout population.
+        ////error = block.connect(context);
+        ////if (error)
+        ////{
+        ////    ////LOGR("Invalid block (connect) [" << encode_hash(hash)
+        ////    ////    << "] from [" << authority() << "] " << error.message());
+        ////    ////stop(network::error::protocol_violation);
+        ////    ////return false;
+        ////}
+
+        // ********************************************************************
+        // TODO: with all metadata populated, block.confirm may be possible.
+        // ********************************************************************
     }
 
     // Compute relative work.
     // ------------------------------------------------------------------------
 
+    // Block is new top of stale branch (strength not computed).
+    if (!is_current(header, context.height))
+    {
+        save(block_ptr, context);
+        return;
+    }
+
     size_t point{};
     uint256_t work{};
     hashes tree_branch{};
     header_links store_branch{};
-    if (!get_branch_work(work, point, tree_branch, store_branch, block->header()))
+    if (!get_branch_work(work, point, tree_branch, store_branch, header))
     {
         stop(error::store_integrity);
         return;
@@ -151,7 +245,7 @@ void chaser_block::do_organize(const chain::block::cptr& block,
     if (!strong)
     {
         // Block is new top of current weak branch.
-        save(block, context);
+        save(block_ptr, context);
         return;
     }
 
@@ -197,12 +291,21 @@ void chaser_block::do_organize(const chain::block::cptr& block,
     }
 
     // Push new block as top of candidate chain.
-    const auto link = push(block, context);
+    const auto link = push(block_ptr, context);
     if (link.is_terminal())
     {
         stop(error::store_integrity);
         return;
     }
+
+    const auto new_top = query.get_top_candidate();
+    BC_ASSERT(!is_zero(new_top));
+
+    const auto candy_fk = query.to_candidate(new_top);
+    BC_ASSERT(!candy_fk.is_terminal());
+
+    const auto is_candy = query.is_candidate_block(candy_fk);
+    BC_ASSERT(is_candy);
 
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
@@ -262,6 +365,8 @@ bool chaser_block::get_branch_work(uint256_t& work, size_t& point,
         work += system::chain::header::proof(bits);
     }
 
+    // TODO: this is always zero at new store.
+    // TODO: this could be the result of is_candidate_block being false.
     // Height of the highest candidate header is the branch point.
     return query.get_height(point, link);
 }
@@ -339,6 +444,7 @@ bool chaser_block::push(const system::hash_digest& key) NOEXCEPT
     return query.push_candidate(query.set_link(*node.item, node.context));
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace database

@@ -130,16 +130,14 @@ void full_node::do_close() NOEXCEPT
 // Chasers.
 // ----------------------------------------------------------------------------
 
-void full_node::organize(const system::chain::header::cptr& header,
-    system::chain::context&& context) NOEXCEPT
+void full_node::organize(const system::chain::header::cptr& header) NOEXCEPT
 {
-    chaser_header_.organize(header, std::move(context));
+    chaser_header_.organize(header);
 }
 
-void full_node::organize(const system::chain::block::cptr& block,
-    system::chain::context&& context) NOEXCEPT
+void full_node::organize(const system::chain::block::cptr& block) NOEXCEPT
 {
-    chaser_block_.organize(block, std::move(context));
+    chaser_block_.organize(block);
 }
 
 // Properties.

@@ -32,13 +32,18 @@ using namespace network;
 using namespace system;
 using namespace std::placeholders;
 
+BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
-    checkpoints_(node.config().bitcoin.checkpoints),
-    currency_window_(node.node_settings().currency_window()),
-    use_currency_window_(to_bool(node.node_settings().currency_window_minutes))
+    checkpoints_(config().bitcoin.checkpoints),
+    currency_window_(config().node.currency_window()),
+    use_currency_window_(to_bool(config().node.currency_window_minutes))
+{
+}
+
+chaser_header::~chaser_header() NOEXCEPT
 {
 }
 
@@ -59,6 +64,10 @@ bool chaser_header::use_currency_window() const NOEXCEPT
 code chaser_header::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_header");
+
+    state_ = archive().get_candidate_chain_state(config().bitcoin);
+    BC_ASSERT_MSG(state_, "Store not initialized.");
+
     return subscribe(std::bind(&chaser_header::handle_event,
         this, _1, _2, _3));
 }
@@ -78,54 +87,91 @@ void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "chaser_header");
 }
 
-void chaser_header::organize(const chain::header::cptr& header,
-    chain::context&& context) NOEXCEPT
+void chaser_header::organize(const chain::header::cptr& header) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_header::do_organize,
-            this, header, std::move(context)));
+            this, header));
 }
 
 // private
-void chaser_header::do_organize(const chain::header::cptr& header,
-    const chain::context& context) NOEXCEPT
+void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
 
-    // Determine if work should be computed.
+    auto& query = archive();
+    const auto& header = *header_ptr;
+    const auto& previous = header.previous_block_hash();
+    const auto& coin = config().bitcoin;
+    const auto hash = header.hash();
+
+    // Skip existing, fail orphan.
     // ------------------------------------------------------------------------
 
-    auto& query = archive();
-    const auto hash = header->hash();
+    // Header already exists.
     if (tree_.contains(hash) || query.is_header(hash))
-    {
-        // Header already exists.
         return;
-    }
 
-    auto& previous = header->previous_block_hash();
+    // Peer processing should have precluded orphan submission.
     if (!tree_.contains(previous) && !query.is_header(previous))
     {
-        // Peer processing should have precluded orphan submission.
         stop(error::orphan_header);
         return;
     }
 
-    if (!is_current(*header, context.height))
+    // Validate header.
+    // ------------------------------------------------------------------------
+
+    // Rolling forward chain_state eliminates requery cost.
+    state_.reset(new chain::chain_state(*state_, header, coin));
+    const auto context = state_->context();
+
+    // Checkpoints are considered chain not block/header validation.
+    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+        state_->height()))
     {
-        // Header is new top of stale branch (strength not computed).
-        save(header, context);
-        return;
+        ////LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
+        ////    << "] from [" << authority() << "].");
+        ////stop(network::error::protocol_violation);
+        ////return false;
+    }
+
+    // Header validations are not bypassed when under checkpoint/milestone.
+
+    auto error = header.check(coin.timestamp_limit_seconds,
+        coin.proof_of_work_limit, coin.scrypt_proof_of_work);
+    if (error)
+    {
+        ////LOGR("Invalid header (check) [" << encode_hash(hash)
+        ////    << "] from [" << authority() << "] " << error.message());
+        ////stop(network::error::protocol_violation);
+        ////return false;
+    }
+
+    error = header.accept(context);
+    if (error)
+    {
+        ////LOGR("Invalid header (accept) [" << encode_hash(hash)
+        ////    << "] from [" << authority() << "] " << error.message());
+        ////stop(network::error::protocol_violation);
+        ////return false;
     }
 
     // Compute relative work.
     // ------------------------------------------------------------------------
 
+    // Header is new top of stale branch (strength not computed).
+    if (!is_current(header, context.height))
+    {
+        save(header_ptr, context);
+        return;
+    }
+
     size_t point{};
     uint256_t work{};
     hashes tree_branch{};
     header_links store_branch{};
-    if (!get_branch_work(work, point, tree_branch, store_branch, *header))
+    if (!get_branch_work(work, point, tree_branch, store_branch, header))
     {
         stop(error::store_integrity);
         return;
@@ -138,10 +184,10 @@ void chaser_header::do_organize(const chain::header::cptr& header,
         return;
     }
 
+    // Header is new top of current weak branch.
     if (!strong)
     {
-        // Header is new top of current weak branch.
-        save(header, context);
+        save(header_ptr, context);
         return;
     }
 
@@ -187,7 +233,7 @@ void chaser_header::do_organize(const chain::header::cptr& header,
     }
 
     // Push new header as top of candidate chain.
-    const auto link = push(header, context);
+    const auto link = push(header_ptr, context);
     if (link.is_terminal())
     {
         stop(error::store_integrity);
@@ -329,6 +375,7 @@ bool chaser_header::push(const system::hash_digest& key) NOEXCEPT
     return query.push_candidate(query.set_link(*node.item, node.context));
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace database

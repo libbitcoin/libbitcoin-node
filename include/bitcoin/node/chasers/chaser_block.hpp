@@ -37,15 +37,16 @@ class BCN_API chaser_block
   : public chaser
 {
 public:
+    DELETE_COPY_MOVE(chaser_block);
+
     chaser_block(full_node& node) NOEXCEPT;
+    virtual ~chaser_block() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 
-    /// Organize the next block in sequence, relative to caller's peer.
+    /// Validate and organize next block in sequence relative to caller's peer.
     /// Causes a fault/stop if preceding blocks have not been stored.
-    /// Caller must validate the block and provide context.
-    virtual void organize(const system::chain::block::cptr& block,
-        system::chain::context&& context) NOEXCEPT;
+    virtual void organize(const system::chain::block::cptr& block) NOEXCEPT;
 
 protected:
     struct validated_block
@@ -56,6 +57,7 @@ protected:
     typedef std::vector<database::header_link> header_links;
 
     // This is protected by strand.
+    system::chain::chain_state::ptr state_{};
     std::unordered_map<system::hash_digest, validated_block> tree_{};
 
     /// Handlers.
@@ -96,8 +98,7 @@ protected:
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-    void do_organize(const system::chain::block::cptr& block,
-        const system::chain::context& context) NOEXCEPT;
+    void do_organize(const system::chain::block::cptr& block) NOEXCEPT;
 
     // These are thread safe.
     const system::chain::checkpoints& checkpoints_;

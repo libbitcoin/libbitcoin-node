@@ -39,6 +39,10 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 {
 }
 
+chaser_check::~chaser_check() NOEXCEPT
+{
+}
+
 // TODO: initialize check state.
 code chaser_check::start() NOEXCEPT
 {

@@ -115,8 +115,9 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    state_ = archive().get_candidate_chain_state(config().bitcoin);
-    BC_ASSERT_MSG(state_, "Store not initialized.");
+    const auto& query = archive();
+    const auto top = query.get_top_candidate();
+    top_ = { query.get_header_key(query.to_candidate(top)), top };
 
     if (report_performance_)
     {
@@ -180,7 +181,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
         to_hashes(getter)
     });
 
-    // TODO: these must be limited for DOS protection.
+    // TODO: these should be limited in quantity for DOS protection.
     // There is one block subscription for each received unexhausted inventory.
     SUBSCRIBE_CHANNEL3(block, handle_receive_block, _1, _2, tracker);
     SEND1(getter, handle_send, _1);
@@ -202,123 +203,23 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    const auto& block = *message->block_ptr;
-    const auto& coin = config().bitcoin;
-    const auto hash = block.hash();
-
-    // May not have been announced (miner broadcast) or different inv.
-    if (tracker->hashes.back() != hash)
+    // Unrequested block, may not have been announced via inventory.
+    if (tracker->hashes.back() != message->block_ptr->hash())
         return true;
 
-    // Out of order (orphan).
-    if (block.header().previous_block_hash() != state_->hash())
+    // Out of order or invalid.
+    if (message->block_ptr->header().previous_block_hash() != top_.hash())
     {
-        // Announcements are assumed to be small in number.
-        if (tracker->announced > maximum_advertisement)
-        {
-            // Treat as invalid inventory.
-            LOGR("Orphan block inventory ["
-                << encode_hash(hash) << "] from ["
-                << authority() << "].");
-            stop(network::error::protocol_violation);
-            return false;
-        }
-        else
-        {
-            // Block announcements may come before caught-up.
-            LOGP("Orphan block announcement ["
-                << encode_hash(hash)
-                << "] from [" << authority() << "].");
-            return false;
-        }
-    }
-
-    // Rolling forward chain_state eliminates database cost.
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    state_.reset(new chain::chain_state(*state_, block.header(), coin));
-    BC_POP_WARNING()
-
-    // Checkpoints are considered chain not block/header validation.
-    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
-        state_->height()))
-    {
-        LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
+        LOGP("Orphan block [" << encode_hash(message->block_ptr->hash())
             << "] from [" << authority() << "].");
-        stop(network::error::protocol_violation);
         return false;
     }
 
-    auto context = state_->context();
+    organize(message->block_ptr);
 
-    // Block validations are bypassed when under checkpoint/milestone.
-    if (!chain::checkpoint::is_under(coin.checkpoints, state_->height()))
-    {
-        auto error = block.check();
-        if (error)
-        {
-            LOGR("Invalid block (check) [" << encode_hash(hash)
-                << "] from [" << authority() << "] " << error.message());
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        error = block.check(context);
-        if (error)
-        {
-            LOGR("Invalid block (check(context)) [" << encode_hash(hash)
-                << "] from [" << authority() << "] " << error.message());
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        // Move populate(block) to chaser.
-        ///////////////////////////////////////////////////////////////////////
-        ////// Populate prevouts only, internal to block.
-        ////block.populate();
-
-        ////// TODO: populate from block tree via chaser.
-
-        ////// Populate stored missing prevouts only, not input metadata.
-        ////auto& query = archive();
-        ////if (!query.populate(block))
-        ////{
-        ////    LOGR("Invalid block (populate) [" << encode_hash(hash)
-        ////        << "] from [" << authority() << "].");
-        ////    stop(network::error::protocol_violation);
-        ////    return false;
-        ////}
-        ///////////////////////////////////////////////////////////////////////
-    
-        ////// TODO: also requires input metadata population.
-        ////error = block.accept(context, coin.subsidy_interval_blocks,
-        ////    coin.initial_subsidy());
-        ////if (error)
-        ////{
-        ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
-        ////        << "] from [" << authority() << "] " << error.message());
-        ////    stop(network::error::protocol_violation);
-        ////    return false;
-        ////}
- 
-        // Requires only prevout population.
-        ////error = block.connect(context);
-        ////if (error)
-        ////{
-        ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
-        ////        << "] from [" << authority() << "] " << error.message());
-        ////    stop(network::error::protocol_violation);
-        ////    return false;
-        ////}
-    }
-
-    // ------------------------------------------------------------------------
-
-    organize(message->block_ptr, std::move(context));
-
-    LOGP("Block [" << encode_hash(hash) << "] at ("
-        << context.height << ") from [" << authority() << "].");
-
-    // ------------------------------------------------------------------------
+    top_ = { message->block_ptr->hash(), add1(top_.height()) };
+    LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
+        << top_.height() << ") from [" << authority() << "].");
 
     // Accumulate byte count.
     bytes_ += message->cached_size;
@@ -353,7 +254,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 void protocol_block_in::complete() NOEXCEPT
 {
     LOGN("Blocks from [" << authority() << "] complete at ("
-        << state_->height() << ").");
+        << top_.height() << ").");
 }
 
 // private

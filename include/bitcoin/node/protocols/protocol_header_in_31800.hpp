@@ -60,7 +60,7 @@ private:
         system::hashes&& start_hashes) const NOEXCEPT;
 
     // Protected by strand.
-    system::chain::chain_state::ptr state_{};
+    system::chain::checkpoint top_{};
 };
 
 } // namespace node

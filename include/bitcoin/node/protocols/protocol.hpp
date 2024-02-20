@@ -54,12 +54,10 @@ protected:
         network::result_handler&& handler) const NOEXCEPT;
 
     /// Organize a validated header, failures stop the node.
-    virtual void organize(const system::chain::header::cptr& header,
-        system::chain::context&& context) NOEXCEPT;
+    virtual void organize(const system::chain::header::cptr& header) NOEXCEPT;
 
     /// Organize a validated block, failures stop the node.
-    virtual void organize(const system::chain::block::cptr& block,
-        system::chain::context&& context) NOEXCEPT;
+    virtual void organize(const system::chain::block::cptr& block) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;

@@ -34,7 +34,10 @@ class BCN_API chaser_check
   : public chaser
 {
 public:
+    DELETE_COPY_MOVE(chaser_check);
+
     chaser_check(full_node& node) NOEXCEPT;
+    virtual ~chaser_check() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
     virtual void checked(const system::chain::block::cptr& block) NOEXCEPT;

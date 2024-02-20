@@ -22,6 +22,7 @@
 #include <variant>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -98,6 +99,9 @@ protected:
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
+    /// Node configuration settings.
+    const node::configuration& config() const NOEXCEPT;
+
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
@@ -124,6 +128,7 @@ private:
 
     // These are thread safe (mostly).
     full_node& node_;
+    const node::configuration& config_;
     network::asio::strand strand_;
 
     // This is protected by the network strand.
