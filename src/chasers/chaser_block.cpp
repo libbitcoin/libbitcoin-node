@@ -298,15 +298,6 @@ void chaser_block::do_organize(const chain::block::cptr& block_ptr) NOEXCEPT
         return;
     }
 
-    const auto new_top = query.get_top_candidate();
-    BC_ASSERT(!is_zero(new_top));
-
-    const auto candy_fk = query.to_candidate(new_top);
-    BC_ASSERT(!candy_fk.is_terminal());
-
-    const auto is_candy = query.is_candidate_block(candy_fk);
-    BC_ASSERT(is_candy);
-
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
 
