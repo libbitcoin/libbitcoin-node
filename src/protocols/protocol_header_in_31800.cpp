@@ -61,6 +61,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 // Inbound (headers).
 // ----------------------------------------------------------------------------
 
+// Send get_headers and process responses in order until peer is exhausted.
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message) NOEXCEPT
 {
@@ -91,6 +92,23 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
+        // Rolling forward chain_state eliminates database cost.
+        BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+        state_.reset(new chain::chain_state(*state_, header, coin));
+        BC_POP_WARNING()
+
+        // Checkpoints are considered chain not block/header validation.
+        if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+            state_->height()))
+        {
+            LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
+                << "] from [" << authority() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        // Header validations are not bypassed when under checkpoint.
+
         auto error = header.check(coin.timestamp_limit_seconds,
             coin.proof_of_work_limit, coin.scrypt_proof_of_work);
         if (error)
@@ -100,21 +118,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             stop(network::error::protocol_violation);
             return false;
         }
-
-        // Checkpoints are considered chain not header validation.
-        if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
-            add1(state_->height())))
-        {
-            LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
-                << "] from [" << authority() << "].");
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        // Rolling forward chain_state eliminates database cost.
-        BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-        state_.reset(new chain::chain_state(*state_, header, coin));
-        BC_POP_WARNING()
 
         auto context = state_->context();
         error = header.accept(context);
@@ -126,17 +129,20 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // context is moved, so use here first.
-        if (is_zero(context.height % 1'000))
-            reporter::fire(event_header, context.height);
+        // --------------------------------------------------------------------
 
         organize(header_ptr, std::move(context));
+
+        LOGP("Header [" << encode_hash(hash) << "] at ("
+            << context.height << ") from [" << authority() << "].");
+
+        // --------------------------------------------------------------------
     }
 
     // Protocol presumes max_get_headers unless complete.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
+        SEND1(create_get_headers(message->header_ptrs.back()->hash()),
             handle_send, _1);
     }
     else
@@ -157,6 +163,8 @@ void protocol_header_in_31800::complete() NOEXCEPT
 }
 
 // private
+// ----------------------------------------------------------------------------
+
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
     // Header sync is from the archived (strong) candidate chain.
@@ -166,9 +174,14 @@ get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
         get_headers::heights(archive().get_top_candidate())));
 }
 
-// private
 get_headers protocol_header_in_31800::create_get_headers(
-    hashes&& hashes) NOEXCEPT
+    const hash_digest& last) const NOEXCEPT
+{
+    return create_get_headers(hashes{ last });
+}
+
+get_headers protocol_header_in_31800::create_get_headers(
+    hashes&& hashes) const NOEXCEPT
 {
     if (!hashes.empty())
     {

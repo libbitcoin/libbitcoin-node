@@ -44,6 +44,12 @@ void protocol::organize(const system::chain::header::cptr& header,
     session_.organize(header, std::move(context));
 }
 
+void protocol::organize(const system::chain::block::cptr& block,
+    system::chain::context&& context) NOEXCEPT
+{
+    session_.organize(block, std::move(context));
+}
+
 const configuration& protocol::config() const NOEXCEPT
 {
     return session_.config();

@@ -49,6 +49,7 @@ enum error_t : uint8_t
     stalled_channel,
 
     // blockchain
+    orphan_block,
     orphan_header,
     insufficient_work,
     duplicate_block

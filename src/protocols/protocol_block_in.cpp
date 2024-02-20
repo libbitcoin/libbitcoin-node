@@ -115,7 +115,7 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    state_ = archive().get_confirmed_chain_state(config().bitcoin);
+    state_ = archive().get_candidate_chain_state(config().bitcoin);
     BC_ASSERT_MSG(state_, "Store not initialized.");
 
     if (report_performance_)
@@ -139,31 +139,6 @@ void protocol_block_in::stopping(const code& ec) NOEXCEPT
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
-
-// Validation is limited to block.check() and block.check(ctx).
-// Context is obtained from stored header state as blocks are out of order.
-// Tx check could be short-circuited against the database but since the checks
-// are fast, it is optimal to wait until block/tx accept to hit the store.
-// So header.state is read and when contextual checks are complete, block is
-// stored. The set of blocks is obtained from the check chaser, and reported
-// against it. Stopping channels return the set. May require height and/or
-// header.fk to be stored with block hash set.
-
-// local
-inline hashes to_hashes(const get_data& getter) NOEXCEPT
-{
-    hashes out{};
-    out.resize(getter.items.size());
-
-    // Order reversed for individual erase performance (using pop_back).
-    std::transform(getter.items.rbegin(), getter.items.rend(), out.begin(),
-        [](const auto& item) NOEXCEPT
-        {
-            return item.hash;
-        });
-
-    return out;
-}
 
 // Receive inventory and send get_data for all blocks that are not found.
 bool protocol_block_in::handle_receive_inventory(const code& ec,
@@ -212,6 +187,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     return true;
 }
 
+// Process block responses in order as dictated by tracker.
 bool protocol_block_in::handle_receive_block(const code& ec,
     const block::cptr& message, const track_ptr& tracker) NOEXCEPT
 {
@@ -242,7 +218,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         {
             // Treat as invalid inventory.
             LOGR("Orphan block inventory ["
-                << encode_hash(message->block_ptr->hash()) << "] from ["
+                << encode_hash(hash) << "] from ["
                 << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
@@ -251,114 +227,98 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         {
             // Block announcements may come before caught-up.
             LOGP("Orphan block announcement ["
-                << encode_hash(message->block_ptr->hash())
+                << encode_hash(hash)
                 << "] from [" << authority() << "].");
             return false;
         }
-    }
-
-    auto error = block.check();
-    if (error)
-    {
-        LOGR("Invalid block (check) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
     }
 
     // Rolling forward chain_state eliminates database cost.
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     state_.reset(new chain::chain_state(*state_, block.header(), coin));
     BC_POP_WARNING()
-        
-    const auto context = state_->context();
-    error = block.check(context);
-    if (error)
-    {
-        LOGR("Invalid block (check(context)) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
-    }
 
-    // Populate prevouts only, internal to block.
-    block.populate();
-
-    // Populate stored missing prevouts only, not input metadata.
-    auto& query = archive();
-    if (!query.populate(block))
+    // Checkpoints are considered chain not block/header validation.
+    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+        state_->height()))
     {
-        LOGR("Invalid block (populate) [" << encode_hash(hash)
+        LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
             << "] from [" << authority() << "].");
         stop(network::error::protocol_violation);
         return false;
     }
+
+    auto context = state_->context();
+
+    // Block validations are bypassed when under checkpoint/milestone.
+    if (!chain::checkpoint::is_under(coin.checkpoints, state_->height()))
+    {
+        auto error = block.check();
+        if (error)
+        {
+            LOGR("Invalid block (check) [" << encode_hash(hash)
+                << "] from [" << authority() << "] " << error.message());
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        error = block.check(context);
+        if (error)
+        {
+            LOGR("Invalid block (check(context)) [" << encode_hash(hash)
+                << "] from [" << authority() << "] " << error.message());
+            stop(network::error::protocol_violation);
+            return false;
+        }
+
+        // Move populate(block) to chaser.
+        ///////////////////////////////////////////////////////////////////////
+        ////// Populate prevouts only, internal to block.
+        ////block.populate();
+
+        ////// TODO: populate from block tree via chaser.
+
+        ////// Populate stored missing prevouts only, not input metadata.
+        ////auto& query = archive();
+        ////if (!query.populate(block))
+        ////{
+        ////    LOGR("Invalid block (populate) [" << encode_hash(hash)
+        ////        << "] from [" << authority() << "].");
+        ////    stop(network::error::protocol_violation);
+        ////    return false;
+        ////}
+        ///////////////////////////////////////////////////////////////////////
     
-    ////// TODO: also requires input metadata population.
-    ////error = block.accept(context, coin.subsidy_interval_blocks,
-    ////    coin.initial_subsidy());
-    ////if (error)
-    ////{
-    ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-    ////
-    ////// TODO: also requires input metadata population.
-    ////error = block.confirm(context);
-    ////if (error)
-    ////{
-    ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
-    ////        << "] from [" << authority() << "] " << error.message());
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
+        ////// TODO: also requires input metadata population.
+        ////error = block.accept(context, coin.subsidy_interval_blocks,
+        ////    coin.initial_subsidy());
+        ////if (error)
+        ////{
+        ////    LOGR("Invalid block (accept) [" << encode_hash(hash)
+        ////        << "] from [" << authority() << "] " << error.message());
+        ////    stop(network::error::protocol_violation);
+        ////    return false;
+        ////}
  
-    // Requires only prevout population.
-    error = block.connect(context);
-    if (error)
-    {
-        LOGR("Invalid block (connect) [" << encode_hash(hash)
-            << "] from [" << authority() << "] " << error.message());
-        stop(network::error::protocol_violation);
-        return false;
+        // Requires only prevout population.
+        ////error = block.connect(context);
+        ////if (error)
+        ////{
+        ////    LOGR("Invalid block (connect) [" << encode_hash(hash)
+        ////        << "] from [" << authority() << "] " << error.message());
+        ////    stop(network::error::protocol_violation);
+        ////    return false;
+        ////}
     }
 
     // ------------------------------------------------------------------------
-    // NOTE: this is a naive implementation intended for only one peer and
-    // lacking reorganization support. It provides a fair performance baseline
-    // for a sequential blocks-first design given a trusted peer.
-    //
-    const auto link = query.set_link(block, context);
-    if (link.is_terminal())
-    {
-        LOGF("Store block error [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::unknown);
-        return false;
-    }
 
-    if (!query.push_candidate(link))
-    {
-        LOGF("Push candidate error [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::unknown);
-        return false;
-    }
+    organize(message->block_ptr, std::move(context));
 
-    if (!query.push_confirmed(link))
-    {
-        LOGF("Push confirmed error [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        stop(network::error::unknown);
-        return false;
-    }
-    //
-    // ------------------------------------------------------------------------
-    
-    LOGP("Block [" << encode_hash(message->block_ptr->hash()) << "] at ("
+    LOGP("Block [" << encode_hash(hash) << "] at ("
         << context.height << ") from [" << authority() << "].");
+
+    // ------------------------------------------------------------------------
 
     // Accumulate byte count.
     bytes_ += message->cached_size;
@@ -369,7 +329,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Handle completion of the inventory block subset.
     if (tracker->hashes.empty())
     {
-        // Implementation presumes max_get_blocks unless complete.
+        // Protocol presumes max_get_blocks unless complete.
         if (tracker->announced == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
@@ -377,9 +337,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         }
         else
         {
-            // Currency stalls if current on 500 as empty message is ambiguous.
-            // This is ok, since currency is not used for anything essential.
-            current();
+            // Completeness stalls if on 500 as empty message is ambiguous.
+            // This is ok, since complete is not used for anything essential.
+            complete();
         }
     }
 
@@ -390,7 +350,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
 // This could be the end of a catch-up sequence, or a singleton announcement.
 // The distinction is ultimately arbitrary, but this signals initial currency.
-void protocol_block_in::current() NOEXCEPT
+void protocol_block_in::complete() NOEXCEPT
 {
     LOGN("Blocks from [" << authority() << "] complete at ("
         << state_->height() << ").");
@@ -401,9 +361,8 @@ void protocol_block_in::current() NOEXCEPT
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
-    // block sync is always CONFIRMEDs.
-    return create_get_inventory(archive().get_confirmed_hashes(
-        get_blocks::heights(archive().get_top_confirmed())));
+    return create_get_inventory(archive().get_candidate_hashes(
+        get_blocks::heights(archive().get_top_candidate())));
 }
 
 get_blocks protocol_block_in::create_get_inventory(
@@ -438,6 +397,22 @@ get_data protocol_block_in::create_get_data(
 
     getter.items.shrink_to_fit();
     return getter;
+}
+
+// static
+hashes protocol_block_in::to_hashes(const get_data& getter) NOEXCEPT
+{
+    hashes out{};
+    out.resize(getter.items.size());
+
+    // Order reversed for individual erase performance (using pop_back).
+    std::transform(getter.items.rbegin(), getter.items.rend(), out.begin(),
+        [](const auto& item) NOEXCEPT
+        {
+            return item.hash;
+        });
+
+    return out;
 }
 
 BC_POP_WARNING()

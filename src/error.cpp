@@ -40,6 +40,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { stalled_channel, "stalled channel" },
 
     // blockchain
+    { orphan_block, "orphan block" },
     { orphan_header, "orphan header" },
     { insufficient_work, "insufficient work" },
     { duplicate_block, "duplicate block" }

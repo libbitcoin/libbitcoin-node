@@ -41,6 +41,7 @@ full_node::full_node(query& query, const configuration& configuration,
     config_(configuration),
     query_(query),
     event_subscriber_(strand()),
+    chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
     chaser_connect_(*this),
@@ -74,7 +75,8 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "full_node");
     code ec;
     
-    if (((ec = chaser_header_.start())) ||
+    if (((ec = chaser_block_.start())) || 
+        ((ec = chaser_header_.start())) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_connect_.start())) ||
         ((ec = chaser_confirm_.start())) ||
@@ -132,6 +134,12 @@ void full_node::organize(const system::chain::header::cptr& header,
     system::chain::context&& context) NOEXCEPT
 {
     chaser_header_.organize(header, std::move(context));
+}
+
+void full_node::organize(const system::chain::block::cptr& block,
+    system::chain::context&& context) NOEXCEPT
+{
+    chaser_block_.organize(block, std::move(context));
 }
 
 // Properties.

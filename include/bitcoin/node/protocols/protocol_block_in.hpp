@@ -79,10 +79,12 @@ protected:
     /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
-    /// Invoked when initial blocks sync is current.
-    virtual void current() NOEXCEPT;
+    /// Invoked when initial blocks sync is complete.
+    virtual void complete() NOEXCEPT;
 
 private:
+    static system::hashes to_hashes(const get_data& getter) NOEXCEPT;
+
     network::messages::get_blocks create_get_inventory() const NOEXCEPT;
     network::messages::get_blocks create_get_inventory(
         const system::hash_digest& last) const NOEXCEPT;

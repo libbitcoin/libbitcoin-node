@@ -45,7 +45,7 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Invoked when initial headers sync is current.
+    /// Invoked when initial headers sync is complete.
     virtual void complete() NOEXCEPT;
 
     /// Recieved incoming headers message.
@@ -55,7 +55,9 @@ protected:
 private:
     network::messages::get_headers create_get_headers() NOEXCEPT;
     network::messages::get_headers create_get_headers(
-        system::hashes&& start_hashes) NOEXCEPT;
+        const system::hash_digest& last) const NOEXCEPT;
+    network::messages::get_headers create_get_headers(
+        system::hashes&& start_hashes) const NOEXCEPT;
 
     // Protected by strand.
     system::chain::chain_state::ptr state_{};

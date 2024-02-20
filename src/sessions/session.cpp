@@ -50,6 +50,12 @@ void session::organize(const system::chain::header::cptr& header,
     node_.organize(header, std::move(context));
 }
 
+void session::organize(const system::chain::block::cptr& block,
+    system::chain::context&& context) NOEXCEPT
+{
+    node_.organize(block, std::move(context));
+}
+
 const configuration& session::config() const NOEXCEPT
 {
     return node_.config();

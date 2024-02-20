@@ -65,6 +65,10 @@ public:
     virtual void organize(const system::chain::header::cptr& header,
         system::chain::context&& context) NOEXCEPT;
 
+    /// Organize a validated block, failures stop the node.
+    virtual void organize(const system::chain::block::cptr& block,
+        system::chain::context&& context) NOEXCEPT;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 
@@ -100,6 +104,7 @@ private:
 
     // These are protected by strand.
     chaser::event_subscriber event_subscriber_;
+    chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
     chaser_connect chaser_connect_;

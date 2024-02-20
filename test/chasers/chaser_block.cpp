@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2024 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,16 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
+#include "../test.hpp"
 
-#include <bitcoin/node/chasers/chaser.hpp>
-#include <bitcoin/node/chasers/chaser_block.hpp>
-#include <bitcoin/node/chasers/chaser_candidate.hpp>
-#include <bitcoin/node/chasers/chaser_check.hpp>
-#include <bitcoin/node/chasers/chaser_confirm.hpp>
-#include <bitcoin/node/chasers/chaser_connect.hpp>
-#include <bitcoin/node/chasers/chaser_header.hpp>
-#include <bitcoin/node/chasers/chaser_transaction.hpp>
+BOOST_AUTO_TEST_SUITE(chaser_blocks_tests)
 
-#endif
+BOOST_AUTO_TEST_CASE(chaser_blocks_test)
+{
+    BOOST_REQUIRE(true);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

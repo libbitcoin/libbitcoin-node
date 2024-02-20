@@ -44,7 +44,14 @@ public:
     enum class chase
     {
         /// A new strong branch exists (strong height_t).
+        /// Issued by 'block' and handled by 'confirm'.
+        /// The block chaser works with the blocks-first protocol.
+        /// Bocks first performs header/checked/connected stages.
+        block,
+
+        /// A new strong branch exists (strong height_t).
         /// Issued by 'header' and handled by 'check'.
+        /// The block chaser works with the header-first protocol.
         header,
 
         /// A block has been downloaded, checked and stored (header_t).
