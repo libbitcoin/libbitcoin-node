@@ -21,6 +21,7 @@
 #include <functional>
 #include <utility>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
 
@@ -33,6 +34,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
+    config_(node.config()),
     strand_(node.service().get_executor()),
     subscriber_(node.event_subscriber()),
     reporter(node.log)
@@ -41,6 +43,11 @@ chaser::chaser(full_node& node) NOEXCEPT
 
 chaser::~chaser() NOEXCEPT
 {
+}
+
+const node::configuration& chaser::config() const NOEXCEPT
+{
+    return config_;
 }
 
 chaser::query& chaser::archive() const NOEXCEPT

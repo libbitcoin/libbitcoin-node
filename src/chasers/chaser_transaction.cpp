@@ -38,6 +38,10 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 {
 }
 
+chaser_transaction::~chaser_transaction() NOEXCEPT
+{
+}
+
 // TODO: initialize tx graph from store, log and stop on error.
 code chaser_transaction::start() NOEXCEPT
 {

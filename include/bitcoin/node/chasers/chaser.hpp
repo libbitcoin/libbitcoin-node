@@ -22,6 +22,7 @@
 #include <variant>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -44,7 +45,14 @@ public:
     enum class chase
     {
         /// A new strong branch exists (strong height_t).
+        /// Issued by 'block' and handled by 'confirm'.
+        /// The block chaser works with the blocks-first protocol.
+        /// Bocks first performs header/checked/connected stages.
+        block,
+
+        /// A new strong branch exists (strong height_t).
         /// Issued by 'header' and handled by 'check'.
+        /// The block chaser works with the header-first protocol.
         header,
 
         /// A block has been downloaded, checked and stored (header_t).
@@ -91,6 +99,9 @@ protected:
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
+    /// Node configuration settings.
+    const node::configuration& config() const NOEXCEPT;
+
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
@@ -117,6 +128,7 @@ private:
 
     // These are thread safe (mostly).
     full_node& node_;
+    const node::configuration& config_;
     network::asio::strand strand_;
 
     // This is protected by the network strand.

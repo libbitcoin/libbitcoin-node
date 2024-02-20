@@ -37,6 +37,10 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 {
 }
 
+chaser_confirm::~chaser_confirm() NOEXCEPT
+{
+}
+
 // TODO: initialize confirm state.
 code chaser_confirm::start() NOEXCEPT
 {

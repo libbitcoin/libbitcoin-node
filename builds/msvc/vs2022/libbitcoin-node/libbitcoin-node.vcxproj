@@ -74,6 +74,7 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_candidate.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
@@ -102,6 +103,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_candidate.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />

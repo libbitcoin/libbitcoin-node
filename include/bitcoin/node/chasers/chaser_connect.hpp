@@ -34,7 +34,10 @@ class BCN_API chaser_connect
   : public chaser
 {
 public:
+    DELETE_COPY_MOVE(chaser_connect);
+
     chaser_connect(full_node& node) NOEXCEPT;
+    virtual ~chaser_connect() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 

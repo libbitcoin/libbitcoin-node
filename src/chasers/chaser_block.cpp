@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/chasers/chaser_header.hpp>
+#include <bitcoin/node/chasers/chaser_block.hpp>
 
 #include <functional>
 #include <utility>
@@ -35,72 +35,73 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-chaser_header::chaser_header(full_node& node) NOEXCEPT
+chaser_block::chaser_block(full_node& node) NOEXCEPT
   : chaser(node),
-    checkpoints_(config().bitcoin.checkpoints),
-    currency_window_(config().node.currency_window()),
-    use_currency_window_(to_bool(config().node.currency_window_minutes))
+    checkpoints_(node.config().bitcoin.checkpoints),
+    currency_window_(node.node_settings().currency_window()),
+    use_currency_window_(to_bool(node.node_settings().currency_window_minutes))
 {
 }
 
-chaser_header::~chaser_header() NOEXCEPT
+chaser_block::~chaser_block() NOEXCEPT
 {
 }
 
 // protected
 const network::wall_clock::duration&
-chaser_header::currency_window() const NOEXCEPT
+chaser_block::currency_window() const NOEXCEPT
 {
     return currency_window_;
 }
 
 // protected
-bool chaser_header::use_currency_window() const NOEXCEPT
+bool chaser_block::use_currency_window() const NOEXCEPT
 {
     return use_currency_window_;
 }
 
 // protected
-code chaser_header::start() NOEXCEPT
+code chaser_block::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_header");
+    BC_ASSERT_MSG(node_stranded(), "chaser_block");
 
     state_ = archive().get_candidate_chain_state(config().bitcoin);
     BC_ASSERT_MSG(state_, "Store not initialized.");
 
-    return subscribe(std::bind(&chaser_header::handle_event,
+    return subscribe(std::bind(&chaser_block::handle_event,
         this, _1, _2, _3));
 }
 
 // protected
-void chaser_header::handle_event(const code& ec, chase event_,
+void chaser_block::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
     boost::asio::post(strand(),
-        std::bind(&chaser_header::do_handle_event,
+        std::bind(&chaser_block::do_handle_event,
             this, ec, event_, value));
 }
 
 // private
-void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
+void chaser_block::do_handle_event(const code&, chase, link) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_header");
+    BC_ASSERT_MSG(stranded(), "chaser_block");
 }
 
-void chaser_header::organize(const chain::header::cptr& header) NOEXCEPT
+void chaser_block::organize(const chain::block::cptr& block) NOEXCEPT
 {
     boost::asio::post(strand(),
-        std::bind(&chaser_header::do_organize,
-            this, header));
+        std::bind(&chaser_block::do_organize,
+            this, block));
 }
 
 // private
-void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
+void chaser_block::do_organize(const chain::block::cptr& block_ptr) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_header");
+    BC_ASSERT_MSG(stranded(), "chaser_block");
 
     auto& query = archive();
-    const auto& header = *header_ptr;
+    const auto& block = *block_ptr;
+    const auto& header = block.header();
     const auto& previous = header.previous_block_hash();
     const auto& coin = config().bitcoin;
     const auto hash = header.hash();
@@ -108,21 +109,22 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     // Skip existing, fail orphan.
     // ------------------------------------------------------------------------
 
-    // Header already exists.
-    if (tree_.contains(hash) || query.is_header(hash))
+    // Block (header and txs) already exists.
+    if (tree_.contains(hash) || query.is_block(hash))
         return;
 
     // Peer processing should have precluded orphan submission.
-    if (!tree_.contains(previous) && !query.is_header(previous))
+    if (!tree_.contains(previous) && !query.is_block(previous))
     {
-        stop(error::orphan_header);
+        stop(error::orphan_block);
         return;
     }
 
-    // Validate header.
+    // Validate block.
     // ------------------------------------------------------------------------
 
     // Rolling forward chain_state eliminates requery cost.
+    // Do not use block ref here as the block override is for tx pool.
     state_.reset(new chain::chain_state(*state_, header, coin));
     const auto context = state_->context();
 
@@ -130,40 +132,89 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
         state_->height()))
     {
-        ////LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
+        ////LOGR("Invalid block (checkpoint) [" << encode_hash(hash)
         ////    << "] from [" << authority() << "].");
         ////stop(network::error::protocol_violation);
         ////return false;
-    }
+    };
 
-    // Header validations are not bypassed when under checkpoint/milestone.
-
-    auto error = header.check(coin.timestamp_limit_seconds,
-        coin.proof_of_work_limit, coin.scrypt_proof_of_work);
-    if (error)
+    // Block validations are bypassed when under checkpoint/milestone.
+    if (!chain::checkpoint::is_under(coin.checkpoints, state_->height()))
     {
-        ////LOGR("Invalid header (check) [" << encode_hash(hash)
-        ////    << "] from [" << authority() << "] " << error.message());
-        ////stop(network::error::protocol_violation);
-        ////return false;
-    }
+        auto error = block.check();
+        if (error)
+        {
+            ////LOGR("Invalid block (check) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "] " << error.message());
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
 
-    error = header.accept(context);
-    if (error)
-    {
-        ////LOGR("Invalid header (accept) [" << encode_hash(hash)
-        ////    << "] from [" << authority() << "] " << error.message());
-        ////stop(network::error::protocol_violation);
-        ////return false;
+        error = block.check(context);
+        if (error)
+        {
+            ////LOGR("Invalid block (check(context)) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "] " << error.message());
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
+
+        // Populate prevouts only, internal to block.
+        // ********************************************************************
+        // TODO: populate input metadata for block internal.
+        // ********************************************************************
+        ////block.populate();
+
+        // ********************************************************************
+        // TODO: populate prevouts and input metadata for block tree.
+        // ********************************************************************
+
+        // Populate stored missing prevouts only, not input metadata.
+        // ********************************************************************
+        // TODO: populate input metadata for stored blocks.
+        // ********************************************************************
+        ////auto& query = archive();
+        ////if (!query.populate(block))
+        ////{
+        ////    ////LOGR("Invalid block (populate) [" << encode_hash(hash)
+        ////    ////    << "] from [" << authority() << "].");
+        ////    ////stop(network::error::protocol_violation);
+        ////    ////return false;
+        ////}
+
+        ////// TODO: also requires input metadata population.
+        ////error = block.accept(context, coin.subsidy_interval_blocks,
+        ////    coin.initial_subsidy());
+        ////if (error)
+        ////{
+        ////    ////LOGR("Invalid block (accept) [" << encode_hash(hash)
+        ////    ////    << "] from [" << authority() << "] " << error.message());
+        ////    ////stop(network::error::protocol_violation);
+        ////    ////return false;
+        ////}
+
+        ////// Requires only prevout population.
+        ////error = block.connect(context);
+        ////if (error)
+        ////{
+        ////    ////LOGR("Invalid block (connect) [" << encode_hash(hash)
+        ////    ////    << "] from [" << authority() << "] " << error.message());
+        ////    ////stop(network::error::protocol_violation);
+        ////    ////return false;
+        ////}
+
+        // ********************************************************************
+        // TODO: with all metadata populated, block.confirm may be possible.
+        // ********************************************************************
     }
 
     // Compute relative work.
     // ------------------------------------------------------------------------
 
-    // Header is new top of stale branch (strength not computed).
+    // Block is new top of stale branch (strength not computed).
     if (!is_current(header, context.height))
     {
-        save(header_ptr, context);
+        save(block_ptr, context);
         return;
     }
 
@@ -184,10 +235,17 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
         return;
     }
 
-    // Header is new top of current weak branch.
+    // If a long candidate chain is first created using headers-first and then
+    // blocks-first is executed (after a restart/config) it can result in up to
+    // the entire blockchain being cached into memory before becoming strong,
+    // which means stronger than the candidate chain. While switching config
+    // between modes by varying network protocol is supported, blocks-first is
+    // inherently inefficient and weak on this aspect of DoS protection. This
+    // is acceptable for its purpose and consistent with early implementations.
     if (!strong)
     {
-        save(header_ptr, context);
+        // Block is new top of current weak branch.
+        save(block_ptr, context);
         return;
     }
 
@@ -212,7 +270,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
         }
     }
 
-    // Push stored strong headers to candidate chain.
+    // Push stored strong block headers to candidate chain.
     for (const auto& link: views_reverse(store_branch))
     {
         if (!query.push_candidate(link))
@@ -222,7 +280,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
         }
     }
 
-    // Store strong tree headers and push to candidate chain.
+    // Store strong tree blocks and push headers to candidate chain.
     for (const auto& key: views_reverse(tree_branch))
     {
         if (!push(key))
@@ -232,8 +290,8 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
         }
     }
 
-    // Push new header as top of candidate chain.
-    const auto link = push(header_ptr, context);
+    // Push new block as top of candidate chain.
+    const auto link = push(block_ptr, context);
     if (link.is_terminal())
     {
         stop(error::store_integrity);
@@ -243,12 +301,12 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
 
-    notify(error::success, chase::header,
+    notify(error::success, chase::block,
         { possible_narrow_cast<height_t>(point) });
 }
 
 // protected
-bool chaser_header::is_current(const chain::header& header,
+bool chaser_block::is_current(const chain::header& header,
     size_t height) const NOEXCEPT
 {
     if (!use_currency_window())
@@ -265,7 +323,7 @@ bool chaser_header::is_current(const chain::header& header,
 }
 
 // protected
-bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
+bool chaser_block::get_branch_work(uint256_t& work, size_t& point,
     system::hashes& tree_branch, header_links& store_branch,
     const chain::header& header) const NOEXCEPT
 {
@@ -280,9 +338,9 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
     for (auto it = tree_.find(*previous); it != tree_.end();
         it = tree_.find(*previous))
     {
-        previous = &it->second.item->previous_block_hash();
-        tree_branch.push_back(it->second.item->hash());
-        work += it->second.item->proof();
+        previous = &it->second.item->header().previous_block_hash();
+        tree_branch.push_back(it->second.item->header().hash());
+        work += it->second.item->header().proof();
     }
 
     // Sum branch work from store.
@@ -298,6 +356,8 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
         work += system::chain::header::proof(bits);
     }
 
+    // TODO: this is always zero at new store.
+    // TODO: this could be the result of is_candidate_block being false.
     // Height of the highest candidate header is the branch point.
     return query.get_height(point, link);
 }
@@ -307,7 +367,7 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
 // CONSENSUS: branch with greater work causes candidate reorganization.
 // Chasers eventually reorganize candidate branch into confirmed if valid.
 // ****************************************************************************
-bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
+bool chaser_block::get_is_strong(bool& strong, const uint256_t& work,
     size_t point) const NOEXCEPT
 {
     strong = false;
@@ -329,29 +389,29 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
 }
 
 // protected
-void chaser_header::save(const chain::header::cptr& header,
+void chaser_block::save(const chain::block::cptr& block,
     const chain::context& context) NOEXCEPT
 {
     tree_.insert(
     {
-        header->hash(),
+        block->hash(),
         {
             {
                 possible_narrow_cast<flags_t>(context.forks),
                 possible_narrow_cast<height_t>(context.height),
                 context.median_time_past,
             },
-            header
+            block
         }
     });
 }
 
 // protected
-database::header_link chaser_header::push(const chain::header::cptr& header,
+database::header_link chaser_block::push(const chain::block::cptr& block,
     const chain::context& context) const NOEXCEPT
 {
     auto& query = archive();
-    const auto link = query.set_link(*header, database::context
+    const auto link = query.set_link(*block, database::context
         {
             possible_narrow_cast<flags_t>(context.forks),
             possible_narrow_cast<height_t>(context.height),
@@ -365,7 +425,7 @@ database::header_link chaser_header::push(const chain::header::cptr& header,
 }
 
 // protected
-bool chaser_header::push(const system::hash_digest& key) NOEXCEPT
+bool chaser_block::push(const system::hash_digest& key) NOEXCEPT
 {
     const auto value = tree_.extract(key);
     BC_ASSERT_MSG(!value.empty(), "missing tree value");

@@ -37,6 +37,10 @@ chaser_connect::chaser_connect(full_node& node) NOEXCEPT
 {
 }
 
+chaser_connect::~chaser_connect() NOEXCEPT
+{
+}
+
 // TODO: initialize connect state.
 code chaser_connect::start() NOEXCEPT
 {

@@ -49,9 +49,9 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    // header sync is always CANDIDATEs.
-    state_ = archive().get_candidate_chain_state(config().bitcoin);
-    BC_ASSERT_MSG(state_, "Store not initialized.");
+    const auto& query = archive();
+    const auto top = query.get_top_candidate();
+    top_ = { query.get_header_key(query.to_candidate(top)), top };
 
     SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
     SEND1(create_get_headers(), handle_send, _1);
@@ -61,6 +61,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 // Inbound (headers).
 // ----------------------------------------------------------------------------
 
+// Send get_headers and process responses in order until peer is exhausted.
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message) NOEXCEPT
 {
@@ -69,10 +70,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    const auto& coin = config().bitcoin;
-
-    LOGP("Headers (" << message->header_ptrs.size()
-        << ") from [" << authority() << "].");
+    LOGP("Headers (" << message->header_ptrs.size() << ") from ["
+        << authority() << "].");
 
     // Store each header, drop channel if invalid.
     for (const auto& header_ptr: message->header_ptrs)
@@ -80,63 +79,26 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         if (stopped())
             return false;
 
-        const auto& header = *header_ptr;
-        const auto hash = header.hash();
-        if (header.previous_block_hash() != state_->hash())
+        if (header_ptr->previous_block_hash() != top_.hash())
         {
             // Out of order or invalid.
-            LOGP("Orphan header [" << encode_hash(hash)
+            LOGP("Orphan header [" << encode_hash(header_ptr->hash())
                 << "] from [" << authority() << "].");
             stop(network::error::protocol_violation);
             return false;
         }
 
-        auto error = header.check(coin.timestamp_limit_seconds,
-            coin.proof_of_work_limit, coin.scrypt_proof_of_work);
-        if (error)
-        {
-            LOGR("Invalid header (check) [" << encode_hash(hash)
-                << "] from [" << authority() << "] " << error.message());
-            stop(network::error::protocol_violation);
-            return false;
-        }
+        organize(header_ptr);
 
-        // Checkpoints are considered chain not header validation.
-        if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
-            add1(state_->height())))
-        {
-            LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
-                << "] from [" << authority() << "].");
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        // Rolling forward chain_state eliminates database cost.
-        BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-        state_.reset(new chain::chain_state(*state_, header, coin));
-        BC_POP_WARNING()
-
-        auto context = state_->context();
-        error = header.accept(context);
-        if (error)
-        {
-            LOGR("Invalid header (accept) [" << encode_hash(hash)
-                << "] from [" << authority() << "] " << error.message());
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        // context is moved, so use here first.
-        if (is_zero(context.height % 1'000))
-            reporter::fire(event_header, context.height);
-
-        organize(header_ptr, std::move(context));
+        top_ = { header_ptr->hash(), add1(top_.height()) };
+        LOGP("Header [" << encode_hash(top_.hash()) << "] at ("
+            << top_.height() << ") from [" << authority() << "].");
     }
 
     // Protocol presumes max_get_headers unless complete.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        SEND1(create_get_headers({ message->header_ptrs.back()->hash() }),
+        SEND1(create_get_headers(message->header_ptrs.back()->hash()),
             handle_send, _1);
     }
     else
@@ -152,12 +114,13 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // The distinction is ultimately arbitrary, but this signals peer completeness.
 void protocol_header_in_31800::complete() NOEXCEPT
 {
-    ////reporter::fire(event_current_headers, state_->height());
     LOGN("Headers from [" << authority() << "] complete at ("
-        << state_->height() << ").");
+        << top_.height() << ").");
 }
 
 // private
+// ----------------------------------------------------------------------------
+
 get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
 {
     // Header sync is from the archived (strong) candidate chain.
@@ -167,9 +130,14 @@ get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
         get_headers::heights(archive().get_top_candidate())));
 }
 
-// private
 get_headers protocol_header_in_31800::create_get_headers(
-    hashes&& hashes) NOEXCEPT
+    const hash_digest& last) const NOEXCEPT
+{
+    return create_get_headers(hashes{ last });
+}
+
+get_headers protocol_header_in_31800::create_get_headers(
+    hashes&& hashes) const NOEXCEPT
 {
     if (!hashes.empty())
     {

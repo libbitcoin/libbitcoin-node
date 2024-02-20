@@ -71,6 +71,7 @@
   </ImportGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\test\chasers\chaser.cpp" />
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_block.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_candidate.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp" />

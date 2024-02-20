@@ -38,6 +38,10 @@ chaser_candidate::chaser_candidate(full_node& node) NOEXCEPT
 {
 }
 
+chaser_candidate::~chaser_candidate() NOEXCEPT
+{
+}
+
 // TODO: initialize candidate state.
 code chaser_candidate::start() NOEXCEPT
 {
