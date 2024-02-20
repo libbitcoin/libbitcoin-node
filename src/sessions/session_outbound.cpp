@@ -112,8 +112,7 @@ void session_outbound::attach_protocols(
     ////    channel->attach<protocol_header_out_31800>(self)->start();
     ////}
 
-    constexpr auto performance = true;
-    channel->attach<protocol_block_in>(self, performance)->start();
+    channel->attach<protocol_block_in>(self)->start();
     ////channel->attach<protocol_block_out>(self)->start();
     ////channel->attach<protocol_transaction_in>(self)->start();
     ////channel->attach<protocol_transaction_out>(self)->start();
