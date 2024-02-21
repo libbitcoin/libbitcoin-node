@@ -54,7 +54,7 @@ protected:
     session(full_node& node) NOEXCEPT;
 
     /// Asserts that session is stopped.
-    virtual ~session() NOEXCEPT;
+    ~session() NOEXCEPT;
 
 private:
     // This is thread safe (mostly).
