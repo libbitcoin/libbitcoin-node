@@ -163,7 +163,7 @@ void chaser_block::do_organize(const chain::block::cptr& block_ptr) NOEXCEPT
         // ********************************************************************
         // TODO: populate input metadata for block internal.
         // ********************************************************************
-        ////block.populate();
+        block.populate();
 
         // ********************************************************************
         // TODO: populate prevouts and input metadata for block tree.
@@ -173,35 +173,34 @@ void chaser_block::do_organize(const chain::block::cptr& block_ptr) NOEXCEPT
         // ********************************************************************
         // TODO: populate input metadata for stored blocks.
         // ********************************************************************
-        ////auto& query = archive();
-        ////if (!query.populate(block))
-        ////{
-        ////    ////LOGR("Invalid block (populate) [" << encode_hash(hash)
-        ////    ////    << "] from [" << authority() << "].");
-        ////    ////stop(network::error::protocol_violation);
-        ////    ////return false;
-        ////}
+        if (!query.populate(block))
+        {
+            ////LOGR("Invalid block (populate) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "].");
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
 
-        ////// TODO: also requires input metadata population.
-        ////error = block.accept(context, coin.subsidy_interval_blocks,
-        ////    coin.initial_subsidy());
-        ////if (error)
-        ////{
-        ////    ////LOGR("Invalid block (accept) [" << encode_hash(hash)
-        ////    ////    << "] from [" << authority() << "] " << error.message());
-        ////    ////stop(network::error::protocol_violation);
-        ////    ////return false;
-        ////}
+        // TODO: also requires input metadata population.
+        error = block.accept(context, coin.subsidy_interval_blocks,
+            coin.initial_subsidy());
+        if (error)
+        {
+            ////LOGR("Invalid block (accept) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "] " << error.message());
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
 
-        ////// Requires only prevout population.
-        ////error = block.connect(context);
-        ////if (error)
-        ////{
-        ////    ////LOGR("Invalid block (connect) [" << encode_hash(hash)
-        ////    ////    << "] from [" << authority() << "] " << error.message());
-        ////    ////stop(network::error::protocol_violation);
-        ////    ////return false;
-        ////}
+        // Requires only prevout population.
+        error = block.connect(context);
+        if (error)
+        {
+            ////LOGR("Invalid block (connect) [" << encode_hash(hash)
+            ////    << "] from [" << authority() << "] " << error.message());
+            ////stop(network::error::protocol_violation);
+            ////return false;
+        }
 
         // ********************************************************************
         // TODO: with all metadata populated, block.confirm may be possible.
