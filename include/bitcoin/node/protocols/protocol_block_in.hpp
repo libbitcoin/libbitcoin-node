@@ -71,6 +71,10 @@ protected:
     /// Invoked when initial blocks sync is complete.
     virtual void complete() NOEXCEPT;
 
+    /// Handle organize result.
+    virtual void handle_organize(const code& ec,
+        const system::chain::block::cptr& block_ptr) NOEXCEPT;
+
 private:
     static system::hashes to_hashes(
         const network::messages::get_data& getter) NOEXCEPT;

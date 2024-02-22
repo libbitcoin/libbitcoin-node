@@ -61,9 +61,6 @@ protected:
     virtual void organize(const system::chain::block::cptr& block,
         network::result_handler&& handler) NOEXCEPT;
 
-    /// Handle organize result.
-    virtual void handle_organize(const code& ec) NOEXCEPT;
-
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 

@@ -52,6 +52,10 @@ protected:
     /// Invoked when initial headers sync is complete.
     virtual void complete() NOEXCEPT;
 
+    /// Handle organize result.
+    virtual void handle_organize(const code& ec,
+        const system::chain::header::cptr& header_ptr) NOEXCEPT;
+
 private:
     network::messages::get_headers create_get_headers() NOEXCEPT;
     network::messages::get_headers create_get_headers(
