@@ -82,9 +82,10 @@ void chaser_check::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: handle the new strong branch (may issue 'checked').
-void chaser_check::handle_header(height_t branch_point) NOEXCEPT
+void chaser_check::handle_header(height_t) NOEXCEPT
 {
-    LOGN("Handle candidate organization above height (" << branch_point << ").");
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+    ////LOGN("Handle candidate organization above height (" << branch_point << ").");
     // get_all_unassociated_above(branch_point)
 }
 

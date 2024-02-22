@@ -127,17 +127,24 @@ void full_node::do_close() NOEXCEPT
     p2p::do_close();
 }
 
+bool full_node::closed() const NOEXCEPT
+{
+    return p2p::closed();
+}
+
 // Chasers.
 // ----------------------------------------------------------------------------
 
-void full_node::organize(const system::chain::header::cptr& header) NOEXCEPT
+void full_node::organize(const system::chain::header::cptr& header,
+    result_handler&& handler) NOEXCEPT
 {
-    chaser_header_.organize(header);
+    chaser_header_.organize(header, std::move(handler));
 }
 
-void full_node::organize(const system::chain::block::cptr& block) NOEXCEPT
+void full_node::organize(const system::chain::block::cptr& block,
+    result_handler&& handler) NOEXCEPT
 {
-    chaser_block_.organize(block);
+    chaser_block_.organize(block, std::move(handler));
 }
 
 // Properties.

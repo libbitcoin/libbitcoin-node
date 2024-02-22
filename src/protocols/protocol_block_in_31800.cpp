@@ -213,7 +213,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
-    organize(message->block_ptr);
+    organize(message->block_ptr, BIND1(handle_organize, _1));
 
     top_ = { message->block_ptr->hash(), add1(top_.height()) };
     LOGP("Block [" << encode_hash(top_.hash()) << "] at ("

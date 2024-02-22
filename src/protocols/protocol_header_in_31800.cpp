@@ -87,7 +87,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        organize(header_ptr);
+        organize(header_ptr, BIND1(handle_organize, _1));
 
         top_ = { header_ptr->hash(), add1(top_.height()) };
         LOGP("Header [" << encode_hash(top_.hash()) << "] at ("

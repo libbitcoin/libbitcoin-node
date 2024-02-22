@@ -47,14 +47,16 @@ void session::performance(uint64_t, uint64_t, result_handler&& handler) NOEXCEPT
     BC_POP_WARNING()
 }
 
-void session::organize(const header::cptr& header) NOEXCEPT
+void session::organize(const header::cptr& header,
+    result_handler&& handler) NOEXCEPT
 {
-    node_.organize(header);
+    node_.organize(header, std::move(handler));
 }
 
-void session::organize(const block::cptr& block) NOEXCEPT
+void session::organize(const block::cptr& block,
+    result_handler&& handler) NOEXCEPT
 {
-    node_.organize(block);
+    node_.organize(block, std::move(handler));
 }
 
 const configuration& session::config() const NOEXCEPT

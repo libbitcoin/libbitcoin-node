@@ -87,15 +87,18 @@ void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "chaser_header");
 }
 
-void chaser_header::organize(const chain::header::cptr& header) NOEXCEPT
+void chaser_header::organize(const chain::header::cptr& header,
+    result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_header::do_organize,
-            this, header));
+            this, header, std::move(handler)));
 }
 
 // private
-void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
+// Caller may capture header_ptr in handler closure for detailed logging.
+void chaser_header::do_organize(const chain::header::cptr& header_ptr,
+    const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
 
@@ -108,14 +111,23 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     // Skip existing, fail orphan.
     // ------------------------------------------------------------------------
 
+    if (closed())
+    {
+        handler(network::error::service_stopped);
+        return;
+    }
+
     // Header already exists.
     if (tree_.contains(hash) || query.is_header(hash))
+    {
+        handler(error::success);
         return;
+    }
 
     // Peer processing should have precluded orphan submission.
     if (!tree_.contains(previous) && !query.is_header(previous))
     {
-        stop(error::orphan_header);
+        handler(error::orphan_header);
         return;
     }
 
@@ -130,10 +142,8 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
         state_->height()))
     {
-        ////LOGR("Invalid header (checkpoint) [" << encode_hash(hash)
-        ////    << "] from [" << authority() << "].");
-        ////stop(network::error::protocol_violation);
-        ////return false;
+        handler(network::error::protocol_violation);
+        return;
     }
 
     // Header validations are not bypassed when under checkpoint/milestone.
@@ -142,19 +152,14 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
         coin.proof_of_work_limit, coin.scrypt_proof_of_work);
     if (error)
     {
-        ////LOGR("Invalid header (check) [" << encode_hash(hash)
-        ////    << "] from [" << authority() << "] " << error.message());
-        ////stop(network::error::protocol_violation);
-        ////return false;
+        handler(network::error::protocol_violation);
+        return;
     }
 
     error = header.accept(context);
     if (error)
     {
-        ////LOGR("Invalid header (accept) [" << encode_hash(hash)
-        ////    << "] from [" << authority() << "] " << error.message());
-        ////stop(network::error::protocol_violation);
-        ////return false;
+        handler(network::error::protocol_violation);
     }
 
     // Compute relative work.
@@ -164,6 +169,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     if (!is_current(header, context.height))
     {
         save(header_ptr, context);
+        handler(error::success);
         return;
     }
 
@@ -173,14 +179,14 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     header_links store_branch{};
     if (!get_branch_work(work, point, tree_branch, store_branch, header))
     {
-        stop(error::store_integrity);
+        handler(error::store_integrity);
         return;
     }
 
     bool strong{};
     if (!get_is_strong(strong, work, point))
     {
-        stop(error::store_integrity);
+        handler(error::store_integrity);
         return;
     }
 
@@ -188,6 +194,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     if (!strong)
     {
         save(header_ptr, context);
+        handler(error::success);
         return;
     }
 
@@ -198,7 +205,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     auto top = query.get_top_candidate();
     if (top < point)
     {
-        stop(error::store_integrity);
+        handler(error::store_integrity);
         return;
     }
 
@@ -207,7 +214,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
-            stop(error::store_integrity);
+            handler(error::store_integrity);
             return;
         }
     }
@@ -217,7 +224,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     {
         if (!query.push_candidate(link))
         {
-            stop(error::store_integrity);
+            handler(error::store_integrity);
             return;
         }
     }
@@ -227,7 +234,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     {
         if (!push(key))
         {
-            stop(error::store_integrity);
+            handler(error::store_integrity);
             return;
         }
     }
@@ -236,7 +243,7 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
     const auto link = push(header_ptr, context);
     if (link.is_terminal())
     {
-        stop(error::store_integrity);
+        handler(error::store_integrity);
         return;
     }
 
@@ -245,6 +252,8 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr) NOEXCEPT
 
     notify(error::success, chase::header,
         { possible_narrow_cast<height_t>(point) });
+
+    handler(error::success);
 }
 
 // protected

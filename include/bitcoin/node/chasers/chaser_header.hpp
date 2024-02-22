@@ -46,9 +46,8 @@ public:
     virtual code start() NOEXCEPT;
 
     /// Validate and organize next header in sequence relative to caller peer.
-    /// Causes a fault/stop if preceding headers have not been stored.
-    virtual void organize(
-        const system::chain::header::cptr& header_ptr) NOEXCEPT;
+    virtual void organize(const system::chain::header::cptr& header_ptr,
+        network::result_handler&& handler) NOEXCEPT;
 
 protected:
     struct proposed_header
@@ -99,7 +98,8 @@ protected:
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-    void do_organize(const system::chain::header::cptr& header) NOEXCEPT;
+    void do_organize(const system::chain::header::cptr& header,
+        const network::result_handler& handler) NOEXCEPT;
 
     // These are thread safe.
     const system::chain::checkpoints& checkpoints_;

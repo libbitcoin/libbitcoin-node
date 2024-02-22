@@ -58,14 +58,19 @@ public:
     /// Close the node.
     void close() NOEXCEPT override;
 
+    /// The node is closed.
+    bool closed() const NOEXCEPT override;
+
     /// Chasers.
     /// -----------------------------------------------------------------------
 
-    /// Organize a validated header, failures stop the node.
-    virtual void organize(const system::chain::header::cptr& header) NOEXCEPT;
+    /// Organize a validated header.
+    virtual void organize(const system::chain::header::cptr& header,
+        network::result_handler&& handler) NOEXCEPT;
 
-    /// Organize a validated block, failures stop the node.
-    virtual void organize(const system::chain::block::cptr& block) NOEXCEPT;
+    /// Organize a validated block.
+    virtual void organize(const system::chain::block::cptr& block,
+        network::result_handler&& handler) NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------

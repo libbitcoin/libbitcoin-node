@@ -145,7 +145,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    organize(message->block_ptr);
+    organize(message->block_ptr, BIND1(handle_organize, _1));
 
     top_ = { message->block_ptr->hash(), add1(top_.height()) };
     LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
@@ -189,6 +189,8 @@ void protocol_block_in::complete() NOEXCEPT
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
+    // This will bypass all blocks with candidate headers, resulting in block
+    // orphans if headers-first is run followed by a restart and blocks-first.
     return create_get_inventory(archive().get_candidate_hashes(
         get_blocks::heights(archive().get_top_candidate())));
 }

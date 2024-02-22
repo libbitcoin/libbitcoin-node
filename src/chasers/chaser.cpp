@@ -34,7 +34,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
-    config_(node.config()),
     strand_(node.service().get_executor()),
     subscriber_(node.event_subscriber()),
     reporter(node.log)
@@ -45,9 +44,14 @@ chaser::~chaser() NOEXCEPT
 {
 }
 
+bool chaser::closed() const NOEXCEPT
+{
+    return node_.closed();
+}
+
 const node::configuration& chaser::config() const NOEXCEPT
 {
-    return config_;
+    return node_.config();
 }
 
 chaser::query& chaser::archive() const NOEXCEPT
@@ -88,12 +92,6 @@ void chaser::do_notify(const code& ec, chase event_, link value) NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser");
     subscriber_.notify(ec, event_, value);
-}
-
-void chaser::stop(const code& ec) NOEXCEPT
-{
-    LOGF("Chaser fault, " << ec.message());
-    node_.close();
 }
 
 BC_POP_WARNING()
