@@ -57,40 +57,36 @@ protected:
     void attach_protocols(
         const network::channel::ptr& channel) NOEXCEPT override
     {
-        // Attach appropriate alert, reject, ping, and/or address protocols.
-        Session::attach_protocols(channel);
-
         auto& self = *this;
         const auto version = channel->negotiated_version();
+        ////constexpr auto performance = false;
+
+        // Attach appropriate alert, reject, ping, and/or address protocols.
+        Session::attach_protocols(channel);
         
         if (version >= network::messages::level::bip130)
         {
+            // Headers-first synchronization (parallel block download).
             channel->attach<protocol_header_in_70012>(self)->start();
             channel->attach<protocol_header_out_70012>(self)->start();
+            ////channel->attach<protocol_block_in_31800>(self, performance)->start();
         }
         else if (version >= network::messages::level::headers_protocol)
         {
+            // Headers-first synchronization (parallel block download).
             channel->attach<protocol_header_in_31800>(self)->start();
             channel->attach<protocol_header_out_31800>(self)->start();
+            ////channel->attach<protocol_block_in_31800>(self, performance)->start();
+        }
+        else
+        {
+            // Blocks-first synchronization (no header protocol).
+            channel->attach<protocol_block_in>(self)->start();
         }
 
-        ////if (version >= network::messages::level::headers_protocol)
-        ////{
-        ////    // Channels only compete for download rate in outbound session.
-        ////    constexpr auto performance = false;
-        ////
-        ////    // Parallel block download (works with header protocol).
-        ////    channel->attach<protocol_block_in_31800>(self, performance)->start();
-        ////}
-        ////else
-        ////{
-        ////    // Blocks-first synchronization (no header protocol).
-        ////    channel->attach<protocol_block_in>(self)->start();
-        ////}
-
-        ////channel->attach<protocol_block_out>(self)->start();
-        ////channel->attach<protocol_transaction_in>(self)->start();
-        ////channel->attach<protocol_transaction_out>(self)->start();
+        channel->attach<protocol_block_out>(self)->start();
+        channel->attach<protocol_transaction_in>(self)->start();
+        channel->attach<protocol_transaction_out>(self)->start();
     }
 };
 
