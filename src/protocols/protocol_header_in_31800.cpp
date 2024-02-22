@@ -87,9 +87,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        // TODO: use BIND2.
-        organize(header_ptr,
-            [=](const code& ec) { handle_organize(ec, header_ptr); });
+        organize(header_ptr, BIND2(handle_organize, _1, header_ptr));
 
         top_ = { header_ptr->hash(), add1(top_.height()) };
         LOGP("Header [" << encode_hash(top_.hash()) << "] at ("

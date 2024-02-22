@@ -148,9 +148,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // TODO: use BIND2.
-    organize(block_ptr,
-        [=](const code& ec) { handle_organize(ec, block_ptr); });
+    organize(block_ptr, BIND2(handle_organize, _1, block_ptr));
 
     top_ = { block_ptr->hash(), add1(top_.height()) };
     LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
