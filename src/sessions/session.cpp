@@ -28,6 +28,9 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace system::chain;
+using namespace network;
+
 session::session(full_node& node) NOEXCEPT
   : node_(node)
 {
@@ -37,21 +40,23 @@ session::~session() NOEXCEPT
 {
 }
 
-void session::performance(uint64_t, uint64_t,
-    network::result_handler&& handler) NOEXCEPT
+void session::performance(uint64_t, uint64_t, result_handler&& handler) NOEXCEPT
 {
-    // TODO: do work on network strand and then invoke handler.
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     boost::asio::post(node_.strand(), std::bind(handler, error::unknown));
+    BC_POP_WARNING()
 }
 
-void session::organize(const system::chain::header::cptr& header) NOEXCEPT
+void session::organize(const header::cptr& header,
+    result_handler&& handler) NOEXCEPT
 {
-    node_.organize(header);
+    node_.organize(header, std::move(handler));
 }
 
-void session::organize(const system::chain::block::cptr& block) NOEXCEPT
+void session::organize(const block::cptr& block,
+    result_handler&& handler) NOEXCEPT
 {
-    node_.organize(block);
+    node_.organize(block, std::move(handler));
 }
 
 const configuration& session::config() const NOEXCEPT

@@ -283,6 +283,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/chasers/chaser_transaction.cpp"
     "../../src/protocols/protocol.cpp"
     "../../src/protocols/protocol_block_in.cpp"
+    "../../src/protocols/protocol_block_in_31800.cpp"
     "../../src/protocols/protocol_block_out.cpp"
     "../../src/protocols/protocol_header_in_31800.cpp"
     "../../src/protocols/protocol_header_in_70012.cpp"

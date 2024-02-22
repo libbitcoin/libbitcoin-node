@@ -401,7 +401,6 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.bitcoin.bip16_activation_time),
         "The activation time for bip16 in unix time, defaults to 1333238400."
     )
-    // [bip34_active_checkpoint excluded here]
     (
         "bitcoin.bip9_bit0_active_checkpoint",
         value<chain::checkpoint>(&configured.bitcoin.bip9_bit0_active_checkpoint),

@@ -28,6 +28,8 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace network;
+
 protocol::~protocol() NOEXCEPT
 {
 }
@@ -38,14 +40,26 @@ void protocol::performance(uint64_t channel, uint64_t speed,
     session_.performance(channel, speed, std::move(handler));
 }
 
-void protocol::organize(const system::chain::header::cptr& header) NOEXCEPT
+
+void protocol::handle_organize(const code& ec) NOEXCEPT
 {
-    session_.organize(header);
+    if (ec)
+    {
+        LOGP("protocol::handle_organize, " << ec.message());
+        stop(ec);
+    }
 }
 
-void protocol::organize(const system::chain::block::cptr& block) NOEXCEPT
+void protocol::organize(const system::chain::header::cptr& header,
+    result_handler&& handler) NOEXCEPT
 {
-    session_.organize(block);
+    session_.organize(header, std::move(handler));
+}
+
+void protocol::organize(const system::chain::block::cptr& block,
+    result_handler&& handler) NOEXCEPT
+{
+    session_.organize(block, std::move(handler));
 }
 
 const configuration& protocol::config() const NOEXCEPT

@@ -99,6 +99,9 @@ protected:
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
+    /// Node threadpool is stopped and may still be joining.
+    bool closed() const NOEXCEPT;
+
     /// Node configuration settings.
     const node::configuration& config() const NOEXCEPT;
 
@@ -120,15 +123,11 @@ protected:
     /// Set chaser event (does not require network strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
-    /// Close the node in case of failure.
-    void stop(const code& ec) NOEXCEPT;
-
 private:
     void do_notify(const code& ec, chase event_, link value) NOEXCEPT;
 
     // These are thread safe (mostly).
     full_node& node_;
-    const node::configuration& config_;
     network::asio::strand strand_;
 
     // This is protected by the network strand.

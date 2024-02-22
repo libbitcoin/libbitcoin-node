@@ -53,11 +53,16 @@ protected:
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) const NOEXCEPT;
 
-    /// Organize a validated header, failures stop the node.
-    virtual void organize(const system::chain::header::cptr& header) NOEXCEPT;
+    /// Organize a validated header.
+    virtual void organize(const system::chain::header::cptr& header,
+        network::result_handler&& handler) NOEXCEPT;
 
-    /// Organize a validated block, failures stop the node.
-    virtual void organize(const system::chain::block::cptr& block) NOEXCEPT;
+    /// Organize a validated block.
+    virtual void organize(const system::chain::block::cptr& block,
+        network::result_handler&& handler) NOEXCEPT;
+
+    /// Handle organize result.
+    virtual void handle_organize(const code& ec) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;

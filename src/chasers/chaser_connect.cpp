@@ -78,10 +78,10 @@ void chaser_connect::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: handle the new checked blocks (may issue 'connected').
-void chaser_connect::handle_checked(header_t block) NOEXCEPT
+void chaser_connect::handle_checked(header_t) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_connect");
-    LOGN("Handle candidate organization above height (" << block << ").");
+    ////LOGN("Handle candidate organization above height (" << block << ").");
 }
 
 BC_POP_WARNING()

@@ -50,6 +50,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_transaction.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_block_in.cpp \
+    src/protocols/protocol_block_in_31800.cpp \
     src/protocols/protocol_block_out.cpp \
     src/protocols/protocol_header_in_31800.cpp \
     src/protocols/protocol_header_in_70012.cpp \
@@ -141,6 +142,7 @@ include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol.hpp \
     include/bitcoin/node/protocols/protocol_block_in.hpp \
+    include/bitcoin/node/protocols/protocol_block_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_block_out.hpp \
     include/bitcoin/node/protocols/protocol_header_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_in_70012.hpp \

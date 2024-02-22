@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
+#include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
 #include <chrono>
 #include <functional>
@@ -27,17 +27,10 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
 
-// The block protocol is partially obsoleted by the headers protocol.
-// Both block and header protocols conflate iterative requests and unsolicited
-// announcements, which introduces several ambiguities. Furthermore inventory
-// messages can contain a mix of types, further increasing complexity. Unlike
-// header protocol, block protocol cannot leave annoucement disabled until
-// caught up and in both cases nodes announce to peers that are not caught up.
-
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_block_in
+#define CLASS protocol_block_in_31800
 
 using namespace system;
 using namespace network;
@@ -48,12 +41,73 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// Performance polling.
+// ----------------------------------------------------------------------------
+
+void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "expected channel strand");
+
+    if (stopped() || ec == network::error::operation_canceled)
+        return;
+
+    if (ec)
+    {
+        LOGF("Performance timer error, " << ec.message());
+        stop(ec);
+        return;
+    }
+
+    // Compute rate in bytes per second.
+    const auto now = steady_clock::now();
+    const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
+    const auto rate = floored_divide(bytes_, gap);
+    LOGN("Rate ["
+        << identifier() << "] ("
+        << bytes_ << "/"
+        << gap << " = "
+        << rate << ").");
+
+    // Reset counters and log rate.
+    bytes_ = zero;
+    start_ = now;
+    ////log.fire(event_block, rate);
+
+    // Bounces to network strand, performs work, then calls handler.
+    // Channel will continue to process blocks while this call excecutes on the
+    // network strand. Timer will not be restarted until this call completes.
+    performance(identifier(), rate, BIND1(handle_performance, ec));
+}
+
+void protocol_block_in_31800::handle_performance(const code& ec) NOEXCEPT
+{
+    POST1(do_handle_performance, ec);
+}
+
+void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "expected network strand");
+
+    if (stopped())
+        return;
+
+    // stalled_channel or slow_channel
+    if (ec)
+    {
+        LOGF("Performance action, " << ec.message());
+        stop(ec);
+        return;
+    };
+
+    performance_timer_->start(BIND1(handle_performance_timer, _1));
+}
+
 // Start/stop.
 // ----------------------------------------------------------------------------
 
-void protocol_block_in::start() NOEXCEPT
+void protocol_block_in_31800::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
 
     if (started())
         return;
@@ -62,19 +116,33 @@ void protocol_block_in::start() NOEXCEPT
     const auto top = query.get_top_candidate();
     top_ = { query.get_header_key(query.to_candidate(top)), top };
 
+    ////if (report_performance_)
+    ////{
+    ////    start_ = steady_clock::now();
+    ////    performance_timer_->start(BIND1(handle_performance_timer, _1));
+    ////}
+
+    // There is one persistent common inventory subscription.
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
     SEND1(create_get_inventory(), handle_send, _1);
     protocol::start();
+}
+
+void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    ////performance_timer_->stop();
+    protocol::stopping(ec);
 }
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
 
 // Receive inventory and send get_data for all blocks that are not found.
-bool protocol_block_in::handle_receive_inventory(const code& ec,
+bool protocol_block_in_31800::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
     constexpr auto block_id = inventory::type_id::block;
 
     if (stopped(ec))
@@ -119,10 +187,10 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 }
 
 // Process block responses in order as dictated by tracker.
-bool protocol_block_in::handle_receive_block(const code& ec,
+bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message, const track_ptr& tracker) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
 
     if (stopped(ec))
         return false;
@@ -151,6 +219,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
         << top_.height() << ") from [" << authority() << "].");
 
+    ////// Accumulate byte count.
+    ////bytes_ += message->cached_size;
+
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
 
@@ -178,7 +249,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
 // This could be the end of a catch-up sequence, or a singleton announcement.
 // The distinction is ultimately arbitrary, but this signals initial currency.
-void protocol_block_in::complete() NOEXCEPT
+void protocol_block_in_31800::complete() NOEXCEPT
 {
     LOGN("Blocks from [" << authority() << "] complete at ("
         << top_.height() << ").");
@@ -187,21 +258,19 @@ void protocol_block_in::complete() NOEXCEPT
 // private
 // ----------------------------------------------------------------------------
 
-get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
+get_blocks protocol_block_in_31800::create_get_inventory() const NOEXCEPT
 {
-    // This will bypass all blocks with candidate headers, resulting in block
-    // orphans if headers-first is run followed by a restart and blocks-first.
     return create_get_inventory(archive().get_candidate_hashes(
         get_blocks::heights(archive().get_top_candidate())));
 }
 
-get_blocks protocol_block_in::create_get_inventory(
+get_blocks protocol_block_in_31800::create_get_inventory(
     const hash_digest& last) const NOEXCEPT
 {
     return create_get_inventory(hashes{ last });
 }
 
-get_blocks protocol_block_in::create_get_inventory(
+get_blocks protocol_block_in_31800::create_get_inventory(
     hashes&& hashes) const NOEXCEPT
 {
     if (!hashes.empty())
@@ -213,7 +282,7 @@ get_blocks protocol_block_in::create_get_inventory(
     return { std::move(hashes) };
 }
 
-get_data protocol_block_in::create_get_data(
+get_data protocol_block_in_31800::create_get_data(
     const inventory& message) const NOEXCEPT
 {
     get_data getter{};
@@ -230,7 +299,7 @@ get_data protocol_block_in::create_get_data(
 }
 
 // static
-hashes protocol_block_in::to_hashes(const get_data& getter) NOEXCEPT
+hashes protocol_block_in_31800::to_hashes(const get_data& getter) NOEXCEPT
 {
     hashes out{};
     out.resize(getter.items.size());
