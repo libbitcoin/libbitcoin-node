@@ -58,9 +58,6 @@ public:
     /// Close the node.
     void close() NOEXCEPT override;
 
-    /// The node is closed.
-    bool closed() const NOEXCEPT override;
-
     /// Chasers.
     /// -----------------------------------------------------------------------
 

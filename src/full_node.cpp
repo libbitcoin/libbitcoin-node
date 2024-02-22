@@ -117,6 +117,7 @@ void full_node::close() NOEXCEPT
     p2p::close();
 }
 
+// Base (p2p) invokes do_close().
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "full_node");
@@ -125,11 +126,6 @@ void full_node::do_close() NOEXCEPT
         chaser::chase::stop, {});
 
     p2p::do_close();
-}
-
-bool full_node::closed() const NOEXCEPT
-{
-    return p2p::closed();
 }
 
 // Chasers.
