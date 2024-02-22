@@ -43,7 +43,11 @@ void protocol::performance(uint64_t channel, uint64_t speed,
 
 void protocol::handle_organize(const code& ec) NOEXCEPT
 {
-    stop(ec);
+    if (ec)
+    {
+        LOGP("protocol::handle_organize, " << ec.message());
+        stop(ec);
+    }
 }
 
 void protocol::organize(const system::chain::header::cptr& header,
