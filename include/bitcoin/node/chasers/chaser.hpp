@@ -99,7 +99,7 @@ protected:
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
-    /// Node is closed.
+    /// Node threadpool is stopped and may still be joining.
     bool closed() const NOEXCEPT;
 
     /// Node configuration settings.
