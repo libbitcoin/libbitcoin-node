@@ -873,7 +873,12 @@ build_from_tarball_boost()
     display_message "BOOST_OPTIONS         : $*"
     display_message "--------------------------------------------------------------------"
 
+    guessed_toolset=`./tools/build/src/engine/build.sh --guess-toolset`
+    CXXFLAGS="-w" ./tools/build/src/engine/build.sh ${guessed_toolset} --cxxflags="-w"
+    cp tools/build/src/engine/b2 .
+
     ./bootstrap.sh \
+        "--with-bjam=./b2" \
         "--prefix=$PREFIX" \
         "--with-icu=$ICU_PREFIX"
 
@@ -891,6 +896,7 @@ build_from_tarball_boost()
         "$BOOST_CXXFLAGS" \
         "$BOOST_LINKFLAGS" \
         "link=$BOOST_LINK" \
+	"warnings=off" \
         "boost.locale.iconv=$BOOST_ICU_ICONV" \
         "boost.locale.posix=$BOOST_ICU_POSIX" \
         "-sNO_BZIP2=1" \
@@ -914,19 +920,42 @@ build_from_tarball_boost()
 build_all()
 {
     unpack_from_tarball "$ICU_ARCHIVE" "$ICU_URL" gzip "$BUILD_ICU"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${ICU_FLAGS[@]}"
     build_from_tarball "$ICU_ARCHIVE" source "$PARALLEL" "$BUILD_ICU" "${ICU_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS
+    export CPPFLAGS=$SAVE_CPPFLAGS
     unpack_from_tarball "$BOOST_ARCHIVE" "$BOOST_URL" bzip2 "$BUILD_BOOST"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${BOOST_FLAGS[@]}"
     build_from_tarball_boost "$BOOST_ARCHIVE" "$PARALLEL" "$BUILD_BOOST" "${BOOST_OPTIONS[@]}"
+    export CPPFLAGS=$SAVE_CPPFLAGS
     create_from_github libbitcoin secp256k1 version8 "yes"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${SECP256K1_FLAGS[@]}"
     build_from_github secp256k1 "$PARALLEL" false "yes" "${SECP256K1_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS
+    export CPPFLAGS=$SAVE_CPPFLAGS
     create_from_github libbitcoin libbitcoin-system master "yes"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${BITCOIN_SYSTEM_FLAGS[@]}"
     build_from_github_cmake libbitcoin-system "$PARALLEL" false "yes" "${BITCOIN_SYSTEM_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
+    export CPPFLAGS=$SAVE_CPPFLAGS
     create_from_github libbitcoin libbitcoin-network master "yes"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${BITCOIN_NETWORK_FLAGS[@]}"
     build_from_github_cmake libbitcoin-network "$PARALLEL" false "yes" "${BITCOIN_NETWORK_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
+    export CPPFLAGS=$SAVE_CPPFLAGS
     create_from_github libbitcoin libbitcoin-database master "yes"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${BITCOIN_DATABASE_FLAGS[@]}"
     build_from_github_cmake libbitcoin-database "$PARALLEL" false "yes" "${BITCOIN_DATABASE_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
+    export CPPFLAGS=$SAVE_CPPFLAGS
     create_from_github libbitcoin libbitcoin-consensus master "$WITH_BITCOIN_CONSENSUS"
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${BITCOIN_CONSENSUS_FLAGS[@]}"
     build_from_github_cmake libbitcoin-consensus "$PARALLEL" false "$WITH_BITCOIN_CONSENSUS" "${BITCOIN_CONSENSUS_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
+    export CPPFLAGS=$SAVE_CPPFLAGS
+    local SAVE_CPPFLAGS="$CPPFLAGS"
+    export CPPFLAGS="$CPPFLAGS ${BITCOIN_NODE_FLAGS[@]}"
     if [[ ! ($CI == true) ]]; then
         create_from_github libbitcoin libbitcoin-node master "yes"
         build_from_github_cmake libbitcoin-node "$PARALLEL" true "yes" "${BITCOIN_NODE_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
@@ -937,6 +966,7 @@ build_all()
         pop_directory
         pop_directory
     fi
+    export CPPFLAGS=$SAVE_CPPFLAGS
 }
 
 
@@ -957,6 +987,19 @@ set_pkgconfigdir
 set_with_boost_prefix
 
 remove_install_options
+
+# Define build flags.
+#==============================================================================
+# Define icu flags.
+#------------------------------------------------------------------------------
+ICU_FLAGS=(
+"-w")
+
+# Define secp256k1 flags.
+#------------------------------------------------------------------------------
+SECP256K1_FLAGS=(
+"-w")
+
 
 # Define build options.
 #==============================================================================
