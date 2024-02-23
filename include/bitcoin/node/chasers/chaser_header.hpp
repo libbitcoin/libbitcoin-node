@@ -53,7 +53,7 @@ protected:
     struct proposed_header
     {
         database::context context;
-        system::chain::header::cptr item;
+        system::chain::header::cptr header;
     };
     typedef std::vector<database::header_link> header_links;
 
@@ -92,14 +92,16 @@ protected:
     /// Move tree header to database and push to top of candidate chain.
     virtual bool push(const system::hash_digest& key) NOEXCEPT;
 
+    /// Validate and organize next header in sequence relative to caller peer.
+    virtual void do_organize(const system::chain::header::cptr& header,
+        const network::result_handler& handler) NOEXCEPT;
+
     /// Properties.
     virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
     virtual bool use_currency_window() const NOEXCEPT;
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-    void do_organize(const system::chain::header::cptr& header,
-        const network::result_handler& handler) NOEXCEPT;
 
     // These are thread safe.
     const system::chain::checkpoints& checkpoints_;
