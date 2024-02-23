@@ -449,6 +449,8 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
                 input.metadata.height = element.second.context.height;
                 input.metadata.median_time_past = element.second.context.mtp;
                 input.metadata.coinbase = tx.is_coinbase();
+
+                // Spentness is not populated, handled in confirmation chaser.
                 input.metadata.spent = false;
                 return;
             }
