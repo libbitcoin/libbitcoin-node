@@ -52,7 +52,7 @@ protected:
     struct validated_block
     {
         database::context context;
-        system::chain::block::cptr item;
+        system::chain::block::cptr block;
     };
     typedef std::vector<database::header_link> header_links;
 
@@ -91,15 +91,21 @@ protected:
     /// Move tree header to database and push to top of candidate chain.
     virtual bool push(const system::hash_digest& key) NOEXCEPT;
 
+    /// Populate block prevouts and metadata from block tree.
+    virtual void populate(const system::chain::block& block) const NOEXCEPT;
+
+    /// Validate and organize next block in sequence relative to caller peer.
+    virtual void do_organize(const system::chain::block::cptr& block,
+        const network::result_handler& handler) NOEXCEPT;
+
     /// Properties.
     /// Given non-current blocks cached in memory, should always be zero/false.
     virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
     virtual bool use_currency_window() const NOEXCEPT;
 
 private:
+    void set_prevout(const system::chain::input& input) const NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-    void do_organize(const system::chain::block::cptr& block,
-        const network::result_handler& handler) NOEXCEPT;
 
     // These are thread safe.
     const system::chain::checkpoints& checkpoints_;

@@ -201,21 +201,24 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
+    // Alias.
+    const auto& block_ptr = message->block_ptr;
+
     // Unrequested block, may not have been announced via inventory.
-    if (tracker->hashes.back() != message->block_ptr->hash())
+    if (tracker->hashes.back() != block_ptr->hash())
         return true;
 
     // Out of order or invalid.
-    if (message->block_ptr->header().previous_block_hash() != top_.hash())
+    if (block_ptr->header().previous_block_hash() != top_.hash())
     {
-        LOGP("Orphan block [" << encode_hash(message->block_ptr->hash())
+        LOGP("Orphan block [" << encode_hash(block_ptr->hash())
             << "] from [" << authority() << "].");
         return false;
     }
 
-    organize(message->block_ptr, BIND1(handle_organize, _1));
+    organize(block_ptr, BIND2(handle_organize, _1, block_ptr));
 
-    top_ = { message->block_ptr->hash(), add1(top_.height()) };
+    top_ = { block_ptr->hash(), add1(top_.height()) };
     LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
         << top_.height() << ") from [" << authority() << "].");
 
@@ -254,6 +257,18 @@ void protocol_block_in_31800::complete() NOEXCEPT
     LOGN("Blocks from [" << authority() << "] complete at ("
         << top_.height() << ").");
 }
+
+void protocol_block_in_31800::handle_organize(const code& ec,
+    const chain::block::cptr& block_ptr) NOEXCEPT
+{
+    if (ec)
+    {
+        LOGR("Error organizing block [" << encode_hash(block_ptr->hash())
+            << "] from [" << authority() << "] " << ec.message());
+        stop(ec);
+    }
+}
+
 
 // private
 // ----------------------------------------------------------------------------

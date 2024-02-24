@@ -35,8 +35,8 @@ using namespace network::messages;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
-////BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
-////BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // Start.
 // ----------------------------------------------------------------------------
@@ -87,7 +87,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        organize(header_ptr, BIND1(handle_organize, _1));
+        organize(header_ptr, BIND2(handle_organize, _1, header_ptr));
 
         top_ = { header_ptr->hash(), add1(top_.height()) };
         LOGP("Header [" << encode_hash(top_.hash()) << "] at ("
@@ -115,6 +115,17 @@ void protocol_header_in_31800::complete() NOEXCEPT
 {
     LOGN("Headers from [" << authority() << "] complete at ("
         << top_.height() << ").");
+}
+
+void protocol_header_in_31800::handle_organize(const code& ec,
+    const chain::header::cptr& header_ptr) NOEXCEPT
+{
+    if (ec)
+    {
+        LOGR("Error organizing header [" << encode_hash(header_ptr ->hash())
+            << "] from [" << authority() << "] " << ec.message());
+        stop(ec);
+    }
 }
 
 // private
@@ -147,8 +158,8 @@ get_headers protocol_header_in_31800::create_get_headers(
     return { std::move(hashes) };
 }
 
-////BC_POP_WARNING()
-////BC_POP_WARNING()
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

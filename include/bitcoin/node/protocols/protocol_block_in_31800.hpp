@@ -26,6 +26,7 @@
 namespace libbitcoin {
 namespace node {
     
+/// This does NOT inhereit from protocol_block_in.
 class BCN_API protocol_block_in_31800
   : public node::protocol,
     protected network::tracker<protocol_block_in_31800>
@@ -81,6 +82,10 @@ protected:
 
     /// Invoked when initial blocks sync is complete.
     virtual void complete() NOEXCEPT;
+
+    /// Handle organize result.
+    virtual void handle_organize(const code& ec,
+        const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:
     static system::hashes to_hashes(

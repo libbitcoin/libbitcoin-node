@@ -95,40 +95,35 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
 void session_outbound::attach_protocols(
     const network::channel::ptr& channel) NOEXCEPT
 {
+    auto& self = *this;
+    ////const auto version = channel->negotiated_version();
+    ////constexpr auto performance = true;
+
     // Attach appropriate alert, reject, ping, and/or address protocols.
     network::session_outbound::attach_protocols(channel);
 
-    auto& self = *this;
-    const auto version = channel->negotiated_version();
-
-    if (version >= network::messages::level::bip130)
-    {
-        channel->attach<protocol_header_in_70012>(self)->start();
-        channel->attach<protocol_header_out_70012>(self)->start();
-    }
-    else if (version >= network::messages::level::headers_protocol)
-    {
-        channel->attach<protocol_header_in_31800>(self)->start();
-        channel->attach<protocol_header_out_31800>(self)->start();
-    }
-
-    ////if (version >= network::messages::level::headers_protocol)
+    // Very hard to find < 31800 peer to connect with.
+    ////if (version >= network::messages::level::bip130)
     ////{
-    ////    // Channels compete for download rate in outbound session.
-    ////    constexpr auto performance = true;
-    ////
-    ////    // Parallel block download (works with header protocol).
-    ////    channel->attach<protocol_block_in_31800>(self, performance)->start();
+    ////    channel->attach<protocol_header_in_70012>(self)->start();
+    ////    channel->attach<protocol_header_out_70012>(self)->start();
+    ////    ////channel->attach<protocol_block_in_31800>(self, performance)->start();
+    ////}
+    ////else if (version >= network::messages::level::headers_protocol)
+    ////{
+    ////    channel->attach<protocol_header_in_31800>(self)->start();
+    ////    channel->attach<protocol_header_out_31800>(self)->start();
+    ////    ////channel->attach<protocol_block_in_31800>(self, performance)->start();
     ////}
     ////else
-    ////{
-    ////    // Blocks-first synchronization (no header protocol).
-    ////    channel->attach<protocol_block_in>(self)->start();
-    ////}
+    {
+        // Blocks-first synchronization (no header protocol).
+        channel->attach<protocol_block_in>(self)->start();
+    }
 
-    ////channel->attach<protocol_block_out>(self)->start();
-    ////channel->attach<protocol_transaction_in>(self)->start();
-    ////channel->attach<protocol_transaction_out>(self)->start();
+    channel->attach<protocol_block_out>(self)->start();
+    channel->attach<protocol_transaction_in>(self)->start();
+    channel->attach<protocol_transaction_out>(self)->start();
 }
 
 BC_POP_WARNING()

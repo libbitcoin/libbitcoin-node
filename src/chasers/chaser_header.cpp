@@ -30,6 +30,7 @@ namespace node {
     
 using namespace network;
 using namespace system;
+using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_NEW_OR_DELETE)
@@ -87,7 +88,7 @@ void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "chaser_header");
 }
 
-void chaser_header::organize(const chain::header::cptr& header,
+void chaser_header::organize(const header::cptr& header,
     result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
@@ -95,9 +96,11 @@ void chaser_header::organize(const chain::header::cptr& header,
             this, header, std::move(handler)));
 }
 
-// private
+// protected
+// ----------------------------------------------------------------------------
+
 // Caller may capture header_ptr in handler closure for detailed logging.
-void chaser_header::do_organize(const chain::header::cptr& header_ptr,
+void chaser_header::do_organize(const header::cptr& header_ptr,
     const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
@@ -135,11 +138,11 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     // Rolling forward chain_state eliminates requery cost.
-    state_.reset(new chain::chain_state(*state_, header, coin));
+    state_.reset(new chain_state(*state_, header, coin));
     const auto context = state_->context();
 
     // Checkpoints are considered chain not block/header validation.
-    if (chain::checkpoint::is_conflict(coin.checkpoints, hash,
+    if (checkpoint::is_conflict(coin.checkpoints, hash,
         state_->height()))
     {
         handler(network::error::protocol_violation);
@@ -256,15 +259,14 @@ void chaser_header::do_organize(const chain::header::cptr& header_ptr,
     handler(error::success);
 }
 
-// protected
-bool chaser_header::is_current(const chain::header& header,
+bool chaser_header::is_current(const header& header,
     size_t height) const NOEXCEPT
 {
     if (!use_currency_window())
         return true;
 
     // Checkpoints are already validated. Current if at a checkpoint height.
-    if (chain::checkpoint::is_at(checkpoints_, height))
+    if (checkpoint::is_at(checkpoints_, height))
         return true;
 
     // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
@@ -275,8 +277,8 @@ bool chaser_header::is_current(const chain::header& header,
 
 // protected
 bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
-    system::hashes& tree_branch, header_links& store_branch,
-    const chain::header& header) const NOEXCEPT
+    hashes& tree_branch, header_links& store_branch,
+    const header& header) const NOEXCEPT
 {
     // Use pointer to avoid const/copy.
     auto previous = &header.previous_block_hash();
@@ -289,9 +291,9 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
     for (auto it = tree_.find(*previous); it != tree_.end();
         it = tree_.find(*previous))
     {
-        previous = &it->second.item->previous_block_hash();
-        tree_branch.push_back(it->second.item->hash());
-        work += it->second.item->proof();
+        previous = &it->second.header->previous_block_hash();
+        tree_branch.push_back(it->second.header->hash());
+        work += it->second.header->proof();
     }
 
     // Sum branch work from store.
@@ -304,14 +306,13 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
             return false;
 
         store_branch.push_back(link);
-        work += system::chain::header::proof(bits);
+        work += chain::header::proof(bits);
     }
 
     // Height of the highest candidate header is the branch point.
     return query.get_height(point, link);
 }
 
-// protected
 // ****************************************************************************
 // CONSENSUS: branch with greater work causes candidate reorganization.
 // Chasers eventually reorganize candidate branch into confirmed if valid.
@@ -328,7 +329,7 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
         if (!query.get_bits(bits, query.to_candidate(height)))
             return false;
 
-        candidate_work += chain::header::proof(bits);
+        candidate_work += header::proof(bits);
         if (!((strong = work > candidate_work)))
             return true;
     }
@@ -337,9 +338,8 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
     return true;
 }
 
-// protected
-void chaser_header::save(const chain::header::cptr& header,
-    const chain::context& context) NOEXCEPT
+void chaser_header::save(const header::cptr& header,
+    const context& context) NOEXCEPT
 {
     tree_.insert(
     {
@@ -355,9 +355,8 @@ void chaser_header::save(const chain::header::cptr& header,
     });
 }
 
-// protected
-database::header_link chaser_header::push(const chain::header::cptr& header,
-    const chain::context& context) const NOEXCEPT
+database::header_link chaser_header::push(const header::cptr& header,
+    const context& context) const NOEXCEPT
 {
     auto& query = archive();
     const auto link = query.set_link(*header, database::context
@@ -373,7 +372,6 @@ database::header_link chaser_header::push(const chain::header::cptr& header,
     return link;
 }
 
-// protected
 bool chaser_header::push(const system::hash_digest& key) NOEXCEPT
 {
     const auto value = tree_.extract(key);
@@ -381,7 +379,7 @@ bool chaser_header::push(const system::hash_digest& key) NOEXCEPT
 
     auto& query = archive();
     const auto& node = value.mapped();
-    return query.push_candidate(query.set_link(*node.item, node.context));
+    return query.push_candidate(query.set_link(*node.header, node.context));
 }
 
 BC_POP_WARNING()

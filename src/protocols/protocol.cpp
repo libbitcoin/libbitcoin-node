@@ -40,16 +40,6 @@ void protocol::performance(uint64_t channel, uint64_t speed,
     session_.performance(channel, speed, std::move(handler));
 }
 
-
-void protocol::handle_organize(const code& ec) NOEXCEPT
-{
-    if (ec)
-    {
-        LOGP("protocol::handle_organize, " << ec.message());
-        stop(ec);
-    }
-}
-
 void protocol::organize(const system::chain::header::cptr& header,
     result_handler&& handler) NOEXCEPT
 {
