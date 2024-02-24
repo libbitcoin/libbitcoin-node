@@ -41,7 +41,9 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 
     // blockchain
     { orphan_block, "orphan block" },
+    { orphan_header, "orphan header" },
     { duplicate_block, "duplicate block" },
+    { duplicate_header, "duplicate header" },
     { insufficient_work, "insufficient work" }
 };
 

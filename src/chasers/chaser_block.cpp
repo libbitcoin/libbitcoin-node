@@ -88,7 +88,6 @@ void chaser_block::organize(const block::cptr& block,
 // protected
 // ----------------------------------------------------------------------------
 
-// Caller may capture block_ptr in handler closure for detailed logging.
 void chaser_block::do_organize(const block::cptr& block_ptr,
     const result_handler& handler) NOEXCEPT
 {

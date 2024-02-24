@@ -61,6 +61,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 // Inbound (headers).
 // ----------------------------------------------------------------------------
 
+// Each channel synchronizes its own header branch from startup to complete.
 // Send get_headers and process responses in order until peer is exhausted.
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message) NOEXCEPT
@@ -92,6 +93,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         const auto height = add1(top_.height());
 
         // Asynchronous organization serves all channels.
+        // A job backlog will occur when organize is slower than download.
+        // This is not a material issue for headers, even with validation.
         organize(header_ptr, BIND3(handle_organize, _1, height, header_ptr));
 
         // Set the new top and continue. Organize error will stop the channel.
@@ -127,7 +130,7 @@ void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
     if (ec == network::error::service_stopped)
         return;
 
-    if (!ec || ec == error::duplicate_block)
+    if (!ec || ec == error::duplicate_header)
     {
         LOGP("Header [" << encode_hash(header_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "

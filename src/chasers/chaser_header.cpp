@@ -102,7 +102,6 @@ void chaser_header::organize(const header::cptr& header,
 // protected
 // ----------------------------------------------------------------------------
 
-// Caller may capture header_ptr in handler closure for detailed logging.
 void chaser_header::do_organize(const header::cptr& header_ptr,
     const result_handler& handler) NOEXCEPT
 {
@@ -126,14 +125,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Header already exists.
     if (tree_.contains(hash) || query.is_header(hash))
     {
-        handler(error::duplicate_block);
+        handler(error::duplicate_header);
         return;
     }
 
     // Peer processing should have precluded orphan submission.
     if (!tree_.contains(previous) && !query.is_header(previous))
     {
-        handler(error::orphan_block);
+        handler(error::orphan_header);
         return;
     }
 

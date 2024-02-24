@@ -152,6 +152,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     const auto height = add1(top_.height());
 
     // Asynchronous organization serves all channels.
+    // A job backlog will occur when organize is slower than download.
+    // This is not a material issue when checkpoints bypass validation.
+    // The backlog may take minutes to clear upon shutdown.
     organize(block_ptr, BIND3(handle_organize, _1, height, block_ptr));
 
     // Set the new top and continue. Organize error will stop the channel.
@@ -217,6 +220,8 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
+    // Block-first sync is from the archived (strong) candidate chain.
+    // All strong block branches are archived, so this will reflect latest.
     // This will bypass all blocks with candidate headers, resulting in block
     // orphans if headers-first is run followed by a restart and blocks-first.
     return create_get_inventory(archive().get_candidate_hashes(
@@ -241,6 +246,8 @@ get_blocks protocol_block_in::create_get_inventory(
     return { std::move(hashes) };
 }
 
+// This will prevent most duplicate block requests despite each channel
+// synchronizing its own inventory branch from startup to complete.
 get_data protocol_block_in::create_get_data(
     const inventory& message) const NOEXCEPT
 {
