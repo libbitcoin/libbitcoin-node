@@ -84,9 +84,12 @@ void chaser_block::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_block::do_handle_event(const code&, chase, link) NOEXCEPT
+void chaser_block::do_handle_event(const code&, chase event_, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_block");
+
+    if (event_ == chase::stop)
+        tree_.clear();
 }
 
 void chaser_block::organize(const block::cptr& block,

@@ -83,9 +83,12 @@ void chaser_header::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
+void chaser_header::do_handle_event(const code&, chase event_, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
+
+    if (event_ == chase::stop)
+        tree_.clear();
 }
 
 void chaser_header::organize(const header::cptr& header,
