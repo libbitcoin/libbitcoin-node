@@ -61,7 +61,7 @@ protected:
     system::chain::chain_state::ptr state_{};
     std::unordered_map<system::hash_digest, proposed_header> tree_{};
 
-    /// Handlers.
+    /// Handle chaser events.
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 
@@ -76,7 +76,8 @@ protected:
     virtual bool get_is_strong(bool& strong, const uint256_t& work,
         size_t point) const NOEXCEPT;
 
-    /// Header timestamp is within configured span from current time.
+    /// Header timestamp is within configured span from current time,
+    /// or current header is a checkpoint or milestone.
     virtual bool is_current(const system::chain::header& header,
         size_t height) const NOEXCEPT;
 
@@ -96,7 +97,7 @@ protected:
     virtual void do_organize(const system::chain::header::cptr& header,
         const network::result_handler& handler) NOEXCEPT;
 
-    /// Properties.
+    /// A strong header branch is committed to store when current.
     virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
     virtual bool use_currency_window() const NOEXCEPT;
 

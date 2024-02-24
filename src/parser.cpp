@@ -365,6 +365,12 @@ options_metadata parser::load_settings() THROWS
         value<config::block>(&configured.bitcoin.genesis_block),
         "The genesis block, defaults to mainnet."
     )
+    // TODO: checkpoint/checkpoints fail to parse.
+    (
+        "bitcoin.checkpoint",
+        value<chain::checkpoints>(&configured.bitcoin.checkpoints),
+        "The blockchain checkpoints, defaults to the consensus set."
+    )
     // [version properties excluded here]
     (
         "bitcoin.bip34_activation_threshold",

@@ -23,6 +23,7 @@
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/error.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -87,11 +88,14 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
             return false;
         }
 
-        organize(header_ptr, BIND2(handle_organize, _1, header_ptr));
+        // Add header at next height.
+        const auto height = add1(top_.height());
 
-        top_ = { header_ptr->hash(), add1(top_.height()) };
-        LOGP("Header [" << encode_hash(top_.hash()) << "] at ("
-            << top_.height() << ") from [" << authority() << "].");
+        // Asynchronous organization serves all channels.
+        organize(header_ptr, BIND3(handle_organize, _1, height, header_ptr));
+
+        // Set the new top and continue. Organize error will stop the channel.
+        top_ = { header_ptr->hash(), height };
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -117,15 +121,26 @@ void protocol_header_in_31800::complete() NOEXCEPT
         << top_.height() << ").");
 }
 
-void protocol_header_in_31800::handle_organize(const code& ec,
+void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
     const chain::header::cptr& header_ptr) NOEXCEPT
 {
-    if (ec)
+    if (ec == network::error::service_stopped)
+        return;
+
+    if (!ec || ec == error::duplicate_block)
     {
-        LOGR("Error organizing header [" << encode_hash(header_ptr ->hash())
-            << "] from [" << authority() << "] " << ec.message());
-        stop(ec);
+        LOGP("Header [" << encode_hash(header_ptr->hash())
+            << "] at (" << height << ") from [" << authority() << "] "
+            << ec.message());
+        return;
     }
+
+    // Assuming no store failure this is a consensus failure.
+    LOGR("Header [" << encode_hash(header_ptr->hash())
+        << "] at (" << height << ") from [" << authority() << "] "
+        << ec.message());
+
+    stop(ec);
 }
 
 // private

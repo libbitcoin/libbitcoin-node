@@ -95,13 +95,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__orphan_block__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "orphan block");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__orphan_header__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__duplicate_block__true_exected_message)
 {
-    constexpr auto value = error::orphan_header;
+    constexpr auto value = error::duplicate_block;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "orphan header");
+    BOOST_REQUIRE_EQUAL(ec.message(), "duplicate block");
 }
 
 BOOST_AUTO_TEST_CASE(error_t__code__insufficient_work__true_exected_message)
@@ -111,15 +111,6 @@ BOOST_AUTO_TEST_CASE(error_t__code__insufficient_work__true_exected_message)
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
     BOOST_REQUIRE_EQUAL(ec.message(), "insufficient work");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__duplicate_block__true_exected_message)
-{
-    constexpr auto value = error::duplicate_block;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "duplicate block");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

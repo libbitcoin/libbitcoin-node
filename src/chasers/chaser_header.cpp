@@ -83,9 +83,12 @@ void chaser_header::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_header::do_handle_event(const code&, chase, link) NOEXCEPT
+void chaser_header::do_handle_event(const code&, chase event_, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
+
+    if (event_ == chase::stop)
+        tree_.clear();
 }
 
 void chaser_header::organize(const header::cptr& header,
@@ -123,14 +126,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Header already exists.
     if (tree_.contains(hash) || query.is_header(hash))
     {
-        handler(error::success);
+        handler(error::duplicate_block);
         return;
     }
 
     // Peer processing should have precluded orphan submission.
     if (!tree_.contains(previous) && !query.is_header(previous))
     {
-        handler(error::orphan_header);
+        handler(error::orphan_block);
         return;
     }
 
@@ -140,12 +143,12 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Rolling forward chain_state eliminates requery cost.
     state_.reset(new chain_state(*state_, header, coin));
     const auto context = state_->context();
+    const auto height = state_->height();
 
     // Checkpoints are considered chain not block/header validation.
-    if (checkpoint::is_conflict(coin.checkpoints, hash,
-        state_->height()))
+    if (checkpoint::is_conflict(coin.checkpoints, hash, height))
     {
-        handler(network::error::protocol_violation);
+        handler(system::error::checkpoint_conflict);
         return;
     }
 
@@ -155,14 +158,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         coin.proof_of_work_limit, coin.scrypt_proof_of_work);
     if (error)
     {
-        handler(network::error::protocol_violation);
+        handler(error);
         return;
     }
 
     error = header.accept(context);
     if (error)
     {
-        handler(network::error::protocol_violation);
+        handler(error);
     }
 
     // Compute relative work.

@@ -39,27 +39,12 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_block::chaser_block(full_node& node) NOEXCEPT
   : chaser(node),
-    checkpoints_(node.config().bitcoin.checkpoints),
-    currency_window_(node.node_settings().currency_window()),
-    use_currency_window_(to_bool(node.node_settings().currency_window_minutes))
+    checkpoints_(node.config().bitcoin.checkpoints)
 {
 }
 
 chaser_block::~chaser_block() NOEXCEPT
 {
-}
-
-// protected
-const network::wall_clock::duration&
-chaser_block::currency_window() const NOEXCEPT
-{
-    return currency_window_;
-}
-
-// protected
-bool chaser_block::use_currency_window() const NOEXCEPT
-{
-    return use_currency_window_;
 }
 
 // protected
@@ -84,9 +69,12 @@ void chaser_block::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_block::do_handle_event(const code&, chase, link) NOEXCEPT
+void chaser_block::do_handle_event(const code&, chase event_, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_block");
+
+    if (event_ == chase::stop)
+        tree_.clear();
 }
 
 void chaser_block::organize(const block::cptr& block,
@@ -125,7 +113,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // Block (header and txs) already exists.
     if (tree_.contains(hash) || query.is_block(hash))
     {
-        handler(error::success);
+        handler(error::duplicate_block);
         return;
     }
 
@@ -133,7 +121,6 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // Results from running headers-first and then restarting to blocks-first.
     if (!tree_.contains(previous) && !query.is_block(previous))
     {
-        LOGR("Orphan header [" << encode_hash(hash) << "].");
         handler(error::orphan_block);
         return;
     }
@@ -150,13 +137,14 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // Checkpoints are considered chain not block/header validation.
     if (checkpoint::is_conflict(coin.checkpoints, hash, height))
     {
-        handler(network::error::protocol_violation);
+        handler(system::error::checkpoint_conflict);
         return;
     };
 
     // Block validations are bypassed when under checkpoint/milestone.
     if (!checkpoint::is_under(coin.checkpoints, height))
     {
+        // Requires no population.
         auto error = block.check();
         if (error)
         {
@@ -164,6 +152,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
             return;
         }
 
+        // Requires no population.
         error = block.check(context);
         if (error)
         {
@@ -204,14 +193,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
 
     // Compute relative work.
     // ------------------------------------------------------------------------
-
-    // Block is new top of stale branch (strength not computed).
-    if (!is_current(header, context.height))
-    {
-        save(block_ptr, context);
-        handler(error::success);
-        return;
-    }
+    // Currency is not used for blocks due to excessive cache requirement.
 
     size_t point{};
     uint256_t work{};
@@ -301,22 +283,6 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
         { possible_narrow_cast<height_t>(point) });
 
     handler(error::success);
-}
-
-bool chaser_block::is_current(const header& header,
-    size_t height) const NOEXCEPT
-{
-    if (!use_currency_window())
-        return true;
-
-    // Checkpoints are already validated. Current if at a checkpoint height.
-    if (checkpoint::is_at(checkpoints_, height))
-        return true;
-
-    // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
-    const auto time = wall_clock::from_time_t(header.timestamp());
-    const auto current = wall_clock::now() - currency_window();
-    return time >= current;
 }
 
 bool chaser_block::get_branch_work(uint256_t& work, size_t& point,
