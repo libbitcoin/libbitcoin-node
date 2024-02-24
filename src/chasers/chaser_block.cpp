@@ -171,20 +171,20 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
             return;
         }
 
-        // Populate prevouts/metadata internal to block.
-        block.populate(height, state_->median_time_past());
+        // Populate prevouts internal to block.
+        block.populate();
 
-        // Populate prevouts/metadata from block tree.
+        // Populate prevouts from block tree.
         populate(block);
 
-        // Populate prevouts/metadata from store.
+        // Populate prevouts from store.
         if (!query.populate(block))
         {
             handler(network::error::protocol_violation);
             return;
         }
 
-        // Requires input metadata population.
+        // Requires only prevout population.
         error = block.accept(context, coin.subsidy_interval_blocks,
             coin.initial_subsidy());
         if (error)
@@ -446,12 +446,6 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
             if (point.index() < outs.size())
             {
                 input.prevout = outs.at(point.index());
-                input.metadata.height = element.second.context.height;
-                input.metadata.median_time_past = element.second.context.mtp;
-                input.metadata.coinbase = tx.is_coinbase();
-
-                // Spentness is not populated, handled in confirmation chaser.
-                input.metadata.spent = false;
                 return;
             }
         }

@@ -105,7 +105,6 @@ protected:
 
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
-
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 
     // These are thread safe.
