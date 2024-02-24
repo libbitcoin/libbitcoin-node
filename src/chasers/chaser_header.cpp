@@ -126,14 +126,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Header already exists.
     if (tree_.contains(hash) || query.is_header(hash))
     {
-        handler(error::success);
+        handler(error::duplicate_block);
         return;
     }
 
     // Peer processing should have precluded orphan submission.
     if (!tree_.contains(previous) && !query.is_header(previous))
     {
-        handler(error::orphan_header);
+        handler(error::orphan_block);
         return;
     }
 
@@ -148,7 +148,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Checkpoints are considered chain not block/header validation.
     if (checkpoint::is_conflict(coin.checkpoints, hash, height))
     {
-        handler(network::error::protocol_violation);
+        handler(system::error::checkpoint_conflict);
         return;
     }
 
@@ -158,14 +158,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         coin.proof_of_work_limit, coin.scrypt_proof_of_work);
     if (error)
     {
-        handler(network::error::protocol_violation);
+        handler(error);
         return;
     }
 
     error = header.accept(context);
     if (error)
     {
-        handler(network::error::protocol_violation);
+        handler(error);
     }
 
     // Compute relative work.
@@ -255,8 +255,6 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
-
-    LOGN("Header [" << encode_hash(hash) << "] at (" << height << ").");
 
     notify(error::success, chase::header,
         { possible_narrow_cast<height_t>(point) });

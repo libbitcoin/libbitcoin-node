@@ -75,10 +75,6 @@ protected:
     virtual bool get_is_strong(bool& strong, const uint256_t& work,
         size_t point) const NOEXCEPT;
 
-    /// Header timestamp is within configured span from current time.
-    virtual bool is_current(const system::chain::header& header,
-        size_t height) const NOEXCEPT;
-
     /// Save block to tree with validation context.
     virtual void save(const system::chain::block::cptr& block,
         const system::chain::context& context) NOEXCEPT;
@@ -98,19 +94,12 @@ protected:
     virtual void do_organize(const system::chain::block::cptr& block,
         const network::result_handler& handler) NOEXCEPT;
 
-    /// Properties.
-    /// Given non-current blocks cached in memory, should always be zero/false.
-    virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
-    virtual bool use_currency_window() const NOEXCEPT;
-
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 
-    // These are thread safe.
+    // This is thread safe.
     const system::chain::checkpoints& checkpoints_;
-    const network::wall_clock::duration currency_window_;
-    const bool use_currency_window_;
 };
 
 } // namespace node

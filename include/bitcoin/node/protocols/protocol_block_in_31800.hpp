@@ -84,7 +84,7 @@ protected:
     virtual void complete() NOEXCEPT;
 
     /// Handle organize result.
-    virtual void handle_organize(const code& ec,
+    virtual void handle_organize(const code& ec, size_t height,
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:

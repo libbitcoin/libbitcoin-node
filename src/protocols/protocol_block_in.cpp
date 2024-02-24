@@ -148,11 +148,14 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    organize(block_ptr, BIND2(handle_organize, _1, block_ptr));
+    // Add block at next height.
+    const auto height = add1(top_.height());
 
-    top_ = { block_ptr->hash(), add1(top_.height()) };
-    ////LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
-    ////    << top_.height() << ") from [" << authority() << "].");
+    // Asynchronous organization serves all channels.
+    organize(block_ptr, BIND3(handle_organize, _1, height, block_ptr));
+
+    // Set the new top and continue. Organize error will stop the channel.
+    top_ = { block_ptr->hash(), height };
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
@@ -187,16 +190,23 @@ void protocol_block_in::complete() NOEXCEPT
         << top_.height() << ").");
 }
 
-void protocol_block_in::handle_organize(const code& ec,
+void protocol_block_in::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
     if (!ec)
+    {
+        LOGP("Block [" << encode_hash(block_ptr->hash())
+            << "] at (" << height << ") from [" << authority() << "] "
+            << ec.message());
         return;
+    }
 
+    // This may be either a remote error or store corruption.
     if (ec != network::error::service_stopped)
     {
         LOGR("Error organizing block [" << encode_hash(block_ptr->hash())
-            << "] from [" << authority() << "] " << ec.message());
+            << "] at (" << height << ") from [" << authority() << "] "
+            << ec.message());
     }
 
     stop(ec);
