@@ -96,26 +96,26 @@ void session_outbound::attach_protocols(
     const network::channel::ptr& channel) NOEXCEPT
 {
     auto& self = *this;
-    ////const auto version = channel->negotiated_version();
+    const auto version = channel->negotiated_version();
     ////constexpr auto performance = true;
 
     // Attach appropriate alert, reject, ping, and/or address protocols.
     network::session_outbound::attach_protocols(channel);
 
     // Very hard to find < 31800 peer to connect with.
-    ////if (version >= network::messages::level::bip130)
-    ////{
-    ////    channel->attach<protocol_header_in_70012>(self)->start();
-    ////    channel->attach<protocol_header_out_70012>(self)->start();
-    ////    ////channel->attach<protocol_block_in_31800>(self, performance)->start();
-    ////}
-    ////else if (version >= network::messages::level::headers_protocol)
-    ////{
-    ////    channel->attach<protocol_header_in_31800>(self)->start();
-    ////    channel->attach<protocol_header_out_31800>(self)->start();
-    ////    ////channel->attach<protocol_block_in_31800>(self, performance)->start();
-    ////}
-    ////else
+    if (version >= network::messages::level::bip130)
+    {
+        channel->attach<protocol_header_in_70012>(self)->start();
+        channel->attach<protocol_header_out_70012>(self)->start();
+        ////channel->attach<protocol_block_in_31800>(self, performance)->start();
+    }
+    else if (version >= network::messages::level::headers_protocol)
+    {
+        channel->attach<protocol_header_in_31800>(self)->start();
+        channel->attach<protocol_header_out_31800>(self)->start();
+        ////channel->attach<protocol_block_in_31800>(self, performance)->start();
+    }
+    else
     {
         // Blocks-first synchronization (no header protocol).
         channel->attach<protocol_block_in>(self)->start();
