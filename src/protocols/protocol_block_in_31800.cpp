@@ -264,7 +264,10 @@ void protocol_block_in_31800::complete() NOEXCEPT
 void protocol_block_in_31800::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
-    if (!ec)
+    if (ec == network::error::service_stopped)
+        return;
+
+    if (!ec || ec == error::duplicate_block)
     {
         LOGP("Block [" << encode_hash(block_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
@@ -272,13 +275,10 @@ void protocol_block_in_31800::handle_organize(const code& ec, size_t height,
         return;
     }
 
-    // This may be either a remote error or store corruption.
-    if (ec != network::error::service_stopped)
-    {
-        LOGR("Error organizing block [" << encode_hash(block_ptr->hash())
-            << "] at (" << height << ") from [" << authority() << "] "
-            << ec.message());
-    }
+    // Assuming no store failure this is a consensus failure.
+    LOGR("Block [" << encode_hash(block_ptr->hash())
+        << "] at (" << height << ") from [" << authority() << "] "
+        << ec.message());
 
     stop(ec);
 }

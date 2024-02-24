@@ -23,6 +23,7 @@
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/error.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -123,7 +124,10 @@ void protocol_header_in_31800::complete() NOEXCEPT
 void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
     const chain::header::cptr& header_ptr) NOEXCEPT
 {
-    if (!ec)
+    if (ec == network::error::service_stopped)
+        return;
+
+    if (!ec || ec == error::duplicate_block)
     {
         LOGP("Header [" << encode_hash(header_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
@@ -131,13 +135,10 @@ void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
         return;
     }
 
-    // This may be either a remote error or store corruption.
-    if (ec != network::error::service_stopped)
-    {
-        LOGR("Error organizing header [" << encode_hash(header_ptr->hash())
-            << "] at (" << height << ") from [" << authority() << "] "
-            << ec.message());
-    }
+    // Assuming no store failure this is a consensus failure.
+    LOGR("Header [" << encode_hash(header_ptr->hash())
+        << "] at (" << height << ") from [" << authority() << "] "
+        << ec.message());
 
     stop(ec);
 }
