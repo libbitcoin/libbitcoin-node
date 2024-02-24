@@ -190,12 +190,16 @@ void protocol_block_in::complete() NOEXCEPT
 void protocol_block_in::handle_organize(const code& ec,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
-    if (ec)
+    if (!ec)
+        return;
+
+    if (ec != network::error::service_stopped)
     {
         LOGR("Error organizing block [" << encode_hash(block_ptr->hash())
             << "] from [" << authority() << "] " << ec.message());
-        stop(ec);
     }
+
+    stop(ec);
 }
 
 // private
