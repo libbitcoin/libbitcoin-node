@@ -217,6 +217,8 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
 {
+    // Block-first sync is from the archived (strong) candidate chain.
+    // All strong block branches are archived, so this will reflect latest.
     // This will bypass all blocks with candidate headers, resulting in block
     // orphans if headers-first is run followed by a restart and blocks-first.
     return create_get_inventory(archive().get_candidate_hashes(

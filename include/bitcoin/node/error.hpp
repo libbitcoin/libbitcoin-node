@@ -50,7 +50,9 @@ enum error_t : uint8_t
 
     // blockchain
     orphan_block,
+    orphan_header,
     duplicate_block,
+    duplicate_header,
     insufficient_work
 };
 

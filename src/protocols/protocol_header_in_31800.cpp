@@ -127,7 +127,7 @@ void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
     if (ec == network::error::service_stopped)
         return;
 
-    if (!ec || ec == error::duplicate_block)
+    if (!ec || ec == error::duplicate_header)
     {
         LOGP("Header [" << encode_hash(header_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
