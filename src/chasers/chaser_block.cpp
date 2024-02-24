@@ -157,6 +157,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // Block validations are bypassed when under checkpoint/milestone.
     if (!checkpoint::is_under(coin.checkpoints, height))
     {
+        // Requires no population.
         auto error = block.check();
         if (error)
         {
@@ -164,6 +165,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
             return;
         }
 
+        // Requires no population.
         error = block.check(context);
         if (error)
         {
