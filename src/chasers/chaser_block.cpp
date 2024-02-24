@@ -302,6 +302,8 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
 
+    LOGN("Block [" << encode_hash(hash) << "] at (" << height << ").");
+
     notify(error::success, chase::block,
         { possible_narrow_cast<height_t>(point) });
 

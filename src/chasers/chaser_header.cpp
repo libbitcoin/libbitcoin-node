@@ -143,10 +143,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Rolling forward chain_state eliminates requery cost.
     state_.reset(new chain_state(*state_, header, coin));
     const auto context = state_->context();
+    const auto height = state_->height();
 
     // Checkpoints are considered chain not block/header validation.
-    if (checkpoint::is_conflict(coin.checkpoints, hash,
-        state_->height()))
+    if (checkpoint::is_conflict(coin.checkpoints, hash, height))
     {
         handler(network::error::protocol_violation);
         return;
@@ -255,6 +255,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
+
+    LOGN("Header [" << encode_hash(hash) << "] at (" << height << ").");
 
     notify(error::success, chase::header,
         { possible_narrow_cast<height_t>(point) });

@@ -151,8 +151,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     organize(block_ptr, BIND2(handle_organize, _1, block_ptr));
 
     top_ = { block_ptr->hash(), add1(top_.height()) };
-    LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
-        << top_.height() << ") from [" << authority() << "].");
+    ////LOGP("Block [" << encode_hash(top_.hash()) << "] at ("
+    ////    << top_.height() << ") from [" << authority() << "].");
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();

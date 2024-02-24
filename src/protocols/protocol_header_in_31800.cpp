@@ -90,8 +90,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         organize(header_ptr, BIND2(handle_organize, _1, header_ptr));
 
         top_ = { header_ptr->hash(), add1(top_.height()) };
-        LOGP("Header [" << encode_hash(top_.hash()) << "] at ("
-            << top_.height() << ") from [" << authority() << "].");
+        ////LOGP("Header [" << encode_hash(top_.hash()) << "] at ("
+        ////    << top_.height() << ") from [" << authority() << "].");
     }
 
     // Protocol presumes max_get_headers unless complete.
