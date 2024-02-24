@@ -220,6 +220,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto height = add1(top_.height());
 
     // Asynchronous organization serves all channels.
+    // A job backlog will occur when organize is slower than download.
+    // This should not be a material issue given lack of validation here.
     organize(block_ptr, BIND3(handle_organize, _1, height, block_ptr));
 
     // Set the new top and continue. Organize error will stop the channel.

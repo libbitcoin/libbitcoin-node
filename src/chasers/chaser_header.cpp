@@ -102,7 +102,6 @@ void chaser_header::organize(const header::cptr& header,
 // protected
 // ----------------------------------------------------------------------------
 
-// Caller may capture header_ptr in handler closure for detailed logging.
 void chaser_header::do_organize(const header::cptr& header_ptr,
     const result_handler& handler) NOEXCEPT
 {
