@@ -50,9 +50,8 @@ enum error_t : uint8_t
 
     // blockchain
     orphan_block,
-    orphan_header,
-    insufficient_work,
-    duplicate_block
+    duplicate_block,
+    insufficient_work
 };
 
 // No current need for error_code equivalence mapping.
