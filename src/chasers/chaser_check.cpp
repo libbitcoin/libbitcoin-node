@@ -77,9 +77,6 @@ void chaser_check::do_handle_event(const code&, chase event_,
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 
-    if (event_ == chase::stop)
-        return;
-
     if (event_ == chase::header)
     {
         BC_ASSERT(std::holds_alternative<height_t>(value));
@@ -87,14 +84,14 @@ void chaser_check::do_handle_event(const code&, chase event_,
     }
 }
 
-void chaser_check::get_hashes(result_handler&& handler) NOEXCEPT
+void chaser_check::get_hashes(handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_get_hashes,
             this, std::move(handler)));
 }
 
-void chaser_check::put_hashes(result_handler&& handler) NOEXCEPT
+void chaser_check::put_hashes(handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_put_hashes,
@@ -104,12 +101,12 @@ void chaser_check::put_hashes(result_handler&& handler) NOEXCEPT
 // protected
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_get_hashes(const result_handler&) NOEXCEPT
+void chaser_check::do_get_hashes(const handler&) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 }
 
-void chaser_check::do_put_hashes(const result_handler&) NOEXCEPT
+void chaser_check::do_put_hashes(const handler&) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 }

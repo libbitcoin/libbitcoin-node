@@ -19,7 +19,10 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 
+#include <functional>
+#include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 
@@ -55,9 +58,9 @@ public:
     void start() NOEXCEPT override;
     void stopping(const code& ec) NOEXCEPT override;
 
-    /// Check and store any registered block in any order of arrival.
-    virtual void check(const system::chain::block::cptr& block_ptr,
-        network::result_handler&& handler) NOEXCEPT;
+    /// Manage download queue.
+    virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
+    virtual void put_hashes(chaser_check::handler&& handler) NOEXCEPT;
 
 protected:
 
@@ -71,12 +74,13 @@ protected:
     /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
-    /// Handle check result.
-    virtual void handle_check(const code& ec) NOEXCEPT;
+    /// Manage download queue.
+    virtual void handle_put_hashes(const code& ec) NOEXCEPT;
+    virtual void handle_get_hashes(const code& ec,
+        const chaser_check::hashmap_ptr& hashes) NOEXCEPT;
 
 private:
-    network::messages::get_data create_get_data(
-        const system::hashes& hashes) const NOEXCEPT;
+    network::messages::get_data create_get_data() const NOEXCEPT;
 
     void do_handle_performance(const code& ec) NOEXCEPT;
 
@@ -86,7 +90,7 @@ private:
 
     // These are protected by strand.
     uint64_t bytes_{ zero };
-    system::chain::checkpoint top_{};
+    chaser_check::hashmap_ptr hashes_{};
     network::steady_clock::time_point start_{};
     network::deadline::ptr performance_timer_;
 };

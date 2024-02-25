@@ -24,6 +24,7 @@
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
 
@@ -111,29 +112,50 @@ void protocol_block_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    const auto& query = archive();
-    const auto top = query.get_top_candidate();
-    top_ = { query.get_header_key(query.to_candidate(top)), top };
-
     if (report_performance_)
     {
         start_ = steady_clock::now();
         performance_timer_->start(BIND1(handle_performance_timer, _1));
     }
 
-    SUBSCRIBE_CHANNEL2(block, handle_receive_block, _1, _2);
+    get_hashes(BIND2(handle_get_hashes, _1, hashes_));
     protocol::start();
 }
 
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+
     performance_timer_->stop();
+    put_hashes(BIND1(handle_put_hashes, _1));
+
     protocol::stopping(ec);
 }
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
+
+void protocol_block_in_31800::handle_get_hashes(const code& ec,
+    const chaser_check::hashmap_ptr&) NOEXCEPT
+{
+    if (ec)
+    {
+        stop(ec);
+        return;
+    }
+
+    SUBSCRIBE_CHANNEL2(block, handle_receive_block, _1, _2);
+
+    // TODO: send if not empty, send when new headers (subscrive to header).
+    SEND1(create_get_data(), handle_send, _1);
+    stop(ec);
+}
+
+void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
+{
+    if (ec)
+        stop(ec);
+}
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
@@ -143,10 +165,20 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
+    const auto hash = message->block_ptr->hash();
+    if (is_zero(hashes_->erase(hash)))
+    {
+        // Zero erased implies not found (not requested of peer).
+        LOGR("Unrequested block [" << encode_hash(hash) << "].");
+        return true;
+    }
+
+    archive().set_link(*message->block_ptr);
+
     // Asynchronous organization serves all channels.
     // A job backlog will occur when organize is slower than download.
     // This should not be a material issue given lack of validation here.
-    check(message->block_ptr, BIND1(handle_check, _1));
+    get_hashes(BIND2(handle_get_hashes, _1, hashes_));
 
     bytes_ += message->cached_size;
 
@@ -154,25 +186,18 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-void protocol_block_in_31800::handle_check(const code& ec) NOEXCEPT
-{
-    if (ec == network::error::service_stopped)
-        return;
-
-    // TODO: log result (LOGR/LOGP).
-
-    stop(ec);
-}
-
 // private
 // ----------------------------------------------------------------------------
 
-get_data protocol_block_in_31800::create_get_data(
-    const hashes&) const NOEXCEPT
+get_data protocol_block_in_31800::create_get_data() const NOEXCEPT
 {
     get_data getter{};
+    getter.items.reserve(hashes_->size());
 
-    // TODO: generate get_data request.
+    // clang emplace_back bug (no matching constructor), using push_back.
+    // bip144: get_data uses witness constant but inventory does not.
+    for (const auto& item: *hashes_)
+        getter.items.push_back({ block_type_, item.first });
 
     return getter;
 }
