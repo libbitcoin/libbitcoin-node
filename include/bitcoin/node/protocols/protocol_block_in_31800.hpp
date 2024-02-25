@@ -55,24 +55,15 @@ public:
     void start() NOEXCEPT override;
     void stopping(const code& ec) NOEXCEPT override;
 
+    /// Check and store any registered block in any order of arrival.
+    virtual void check(const system::chain::block::cptr& block_ptr,
+        network::result_handler&& handler) NOEXCEPT;
+
 protected:
-    struct track
-    {
-        const size_t announced;
-        const system::hash_digest last;
-        system::hashes hashes;
-    };
-
-    typedef std::shared_ptr<track> track_ptr;
-
-    /// Recieved incoming inventory message.
-    virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::inventory::cptr& message) NOEXCEPT;
 
     /// Recieved incoming block message.
     virtual bool handle_receive_block(const code& ec,
-        const network::messages::block::cptr& message,
-        const track_ptr& tracker) NOEXCEPT;
+        const network::messages::block::cptr& message) NOEXCEPT;
 
     /// Handle performance timer event.
     virtual void handle_performance_timer(const code& ec) NOEXCEPT;
@@ -80,33 +71,20 @@ protected:
     /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
-    /// Invoked when initial blocks sync is complete.
-    virtual void complete() NOEXCEPT;
-
-    /// Handle organize result.
-    virtual void handle_organize(const code& ec, size_t height,
-        const system::chain::block::cptr& block_ptr) NOEXCEPT;
+    /// Handle check result.
+    virtual void handle_check(const code& ec) NOEXCEPT;
 
 private:
-    static system::hashes to_hashes(
-        const network::messages::get_data& getter) NOEXCEPT;
-
-    network::messages::get_blocks create_get_inventory() const NOEXCEPT;
-    network::messages::get_blocks create_get_inventory(
-        const system::hash_digest& last) const NOEXCEPT;
-    network::messages::get_blocks create_get_inventory(
-        system::hashes&& start_hashes) const NOEXCEPT;
-
     network::messages::get_data create_get_data(
-        const network::messages::inventory& message) const NOEXCEPT;
+        const system::hashes& hashes) const NOEXCEPT;
 
     void do_handle_performance(const code& ec) NOEXCEPT;
 
-    // Thread safe.
+    // These are thread safe.
     const bool report_performance_;
     const network::messages::inventory::type_id block_type_;
 
-    // Protected by strand.
+    // These are protected by strand.
     uint64_t bytes_{ zero };
     system::chain::checkpoint top_{};
     network::steady_clock::time_point start_{};

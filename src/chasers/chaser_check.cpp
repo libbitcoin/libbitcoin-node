@@ -27,13 +27,21 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
+using namespace network;
+using namespace system;
 using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Requires subscriber_ protection (call from node construct or node.strand).
+/// We need to be able to perform block.check(ctx) while we still have the
+/// deserialized block, because of the witness commitment check (hash).
+/// Requires timestamp (header) height, mtp, flags. These can be cached on the
+/// block hash registry maintained by this chaser or queried from the stored
+/// header. Caching requries rolling forward through all states as the registry
+/// is initialized. Store query is simpler and may be as fast.
+
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node)
 {
@@ -43,56 +51,75 @@ chaser_check::~chaser_check() NOEXCEPT
 {
 }
 
-// TODO: initialize check state.
 code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_check");
 
-    // get_all_unassociated_above(0)
+    // TODO: get_all_unassociated_above(0)
+    BC_ASSERT_MSG(true, "Store not initialized.");
+
     return subscribe(std::bind(&chaser_check::handle_event,
         this, _1, _2, _3));
 }
 
+// protected
 void chaser_check::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
     boost::asio::post(strand(),
-        std::bind(&chaser_check::do_handle_event, this, ec, event_, value));
+        std::bind(&chaser_check::do_handle_event,
+            this, ec, event_, value));
 }
 
-void chaser_check::do_handle_event(const code& ec, chase event_,
+// private
+void chaser_check::do_handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 
-    if (ec)
+    if (event_ == chase::stop)
         return;
 
-    switch (event_)
+    if (event_ == chase::header)
     {
-        case chase::header:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            handle_header(std::get<height_t>(value));
-            break;
-        }
-        default:
-            return;
+        BC_ASSERT(std::holds_alternative<height_t>(value));
+        handle_header(std::get<height_t>(value));
     }
 }
 
-// TODO: handle the new strong branch (may issue 'checked').
+void chaser_check::get_hashes(result_handler&& handler) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&chaser_check::do_get_hashes,
+            this, std::move(handler)));
+}
+
+void chaser_check::put_hashes(result_handler&& handler) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&chaser_check::do_put_hashes,
+            this, std::move(handler)));
+}
+
+// protected
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_get_hashes(const result_handler&) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+}
+
+void chaser_check::do_put_hashes(const result_handler&) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+}
+
+// New branch organized, queue up candidate downloads from branch point.
 void chaser_check::handle_header(height_t) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
-    ////LOGN("Handle candidate organization above height (" << branch_point << ").");
-    // get_all_unassociated_above(branch_point)
-}
 
-void chaser_check::checked(const block::cptr&) NOEXCEPT
-{
-    // Push checked block into store and issue 'checked' event so that connect
-    // can connect the next blocks in order. Executes in caller thread.
+    // TODO: get_all_unassociated_above(branch_point)
 }
 
 BC_POP_WARNING()

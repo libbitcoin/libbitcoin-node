@@ -40,12 +40,18 @@ public:
     virtual ~chaser_check() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
-    virtual void checked(const system::chain::block::cptr& block) NOEXCEPT;
+
+    virtual void get_hashes(network::result_handler&& handler) NOEXCEPT;
+    virtual void put_hashes(network::result_handler&& handler) NOEXCEPT;
 
 protected:
+    /// Handlers.
     virtual void handle_header(height_t branch_point) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
+
+    virtual void do_get_hashes(const network::result_handler& handler) NOEXCEPT;
+    virtual void do_put_hashes(const network::result_handler& handler) NOEXCEPT;
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
