@@ -255,6 +255,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Notify candidate reorganization with branch point.
     // ------------------------------------------------------------------------
 
+    // New branch organized, queue up candidate downloads from branch point.
     notify(error::success, chase::header,
         { possible_narrow_cast<height_t>(point) });
 
