@@ -69,6 +69,11 @@ public:
     virtual void organize(const system::chain::block::cptr& block,
         network::result_handler&& handler) NOEXCEPT;
 
+    /// Manage download queue.
+    virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
+    virtual void put_hashes(const chaser_check::map& map,
+        network::result_handler&& handler) NOEXCEPT;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 

@@ -58,12 +58,7 @@ public:
     void start() NOEXCEPT override;
     void stopping(const code& ec) NOEXCEPT override;
 
-    /// Manage download queue.
-    virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
-    virtual void put_hashes(chaser_check::handler&& handler) NOEXCEPT;
-
 protected:
-
     /// Recieved incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
@@ -77,12 +72,15 @@ protected:
     /// Manage download queue.
     virtual void handle_put_hashes(const code& ec) NOEXCEPT;
     virtual void handle_get_hashes(const code& ec,
-        const chaser_check::hashmap_ptr& hashes) NOEXCEPT;
+        const chaser_check::map& map) NOEXCEPT;
 
 private:
-    network::messages::get_data create_get_data() const NOEXCEPT;
+    network::messages::get_data create_get_data(
+        const chaser_check::map& map) const NOEXCEPT;
 
     void do_handle_performance(const code& ec) NOEXCEPT;
+    void do_handle_get_hashes(const code& ec,
+        const chaser_check::map& map) NOEXCEPT;
 
     // These are thread safe.
     const bool report_performance_;
@@ -90,7 +88,7 @@ private:
 
     // These are protected by strand.
     uint64_t bytes_{ zero };
-    chaser_check::hashmap_ptr hashes_{};
+    chaser_check::map map_{};
     network::steady_clock::time_point start_{};
     network::deadline::ptr performance_timer_;
 };

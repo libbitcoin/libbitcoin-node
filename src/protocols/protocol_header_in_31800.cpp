@@ -102,6 +102,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     }
 
     // Protocol presumes max_get_headers unless complete.
+    // The headers response to get_headers is limited to max_get_headers.
     if (message->header_ptrs.size() == max_get_headers)
     {
         SEND1(create_get_headers(message->header_ptrs.back()->hash()),
@@ -120,6 +121,8 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // The distinction is ultimately arbitrary, but this signals peer completeness.
 void protocol_header_in_31800::complete() NOEXCEPT
 {
+    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
+
     LOGN("Headers from [" << authority() << "] complete at ("
         << top_.height() << ").");
 }
@@ -149,13 +152,14 @@ void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
 // private
 // ----------------------------------------------------------------------------
 
-get_headers protocol_header_in_31800::create_get_headers() NOEXCEPT
+get_headers protocol_header_in_31800::create_get_headers() const NOEXCEPT
 {
     // Header sync is from the archived (strong) candidate chain.
     // Until the header tree is current the candidate chain remains empty.
     // So all channels will fully sync from the top candidate at their startup.
-    return create_get_headers(archive().get_candidate_hashes(
-        get_headers::heights(archive().get_top_candidate())));
+    const auto& query = archive();
+    return create_get_headers(query.get_candidate_hashes(get_headers::heights(
+        query.get_top_candidate())));
 }
 
 get_headers protocol_header_in_31800::create_get_headers(

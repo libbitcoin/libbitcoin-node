@@ -21,6 +21,7 @@
 #include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
@@ -50,6 +51,17 @@ void protocol::organize(const system::chain::block::cptr& block,
     result_handler&& handler) NOEXCEPT
 {
     session_.organize(block, std::move(handler));
+}
+
+void protocol::get_hashes(chaser_check::handler&& handler) NOEXCEPT
+{
+    session_.get_hashes(std::move(handler));
+}
+
+void protocol::put_hashes(const chaser_check::map& map,
+    network::result_handler&& handler) NOEXCEPT
+{
+    session_.put_hashes(map, std::move(handler));
 }
 
 const configuration& protocol::config() const NOEXCEPT

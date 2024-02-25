@@ -55,11 +55,12 @@ code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_check");
 
-    // TODO: get_all_unassociated_above(0)
-    BC_ASSERT_MSG(true, "Store not initialized.");
+    // Initialize from genesis block.
+    handle_header(zero);
 
-    return subscribe(std::bind(&chaser_check::handle_event,
-        this, _1, _2, _3));
+    return subscribe(
+        std::bind(&chaser_check::handle_event,
+            this, _1, _2, _3));
 }
 
 // protected
@@ -91,11 +92,12 @@ void chaser_check::get_hashes(handler&& handler) NOEXCEPT
             this, std::move(handler)));
 }
 
-void chaser_check::put_hashes(handler&& handler) NOEXCEPT
+void chaser_check::put_hashes(const chaser_check::map& map,
+    network::result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_put_hashes,
-            this, std::move(handler)));
+            this, map, std::move(handler)));
 }
 
 // protected
@@ -106,17 +108,25 @@ void chaser_check::do_get_hashes(const handler&) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "chaser_check");
 }
 
-void chaser_check::do_put_hashes(const handler&) NOEXCEPT
+void chaser_check::do_put_hashes(const chaser_check::map&,
+    const network::result_handler&) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 }
 
-// New branch organized, queue up candidate downloads from branch point.
-void chaser_check::handle_header(height_t) NOEXCEPT
+void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
 
-    // TODO: get_all_unassociated_above(branch_point)
+    // Map and peer maps may have newly stale blocks.
+    // All stale branches can just be allowed to complete.
+    // The connect chaser will verify proper advancement.
+
+    // get_all_unassociated_above(branch_point) and add to map.
+    const auto& query = archive();
+    const auto top = query.get_top_candidate();
+    const auto last = query.get_last_associated_from(branch_point);
+    map_.merge(query.get_all_unassociated_above(last));
 }
 
 BC_POP_WARNING()

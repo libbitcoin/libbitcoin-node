@@ -45,8 +45,9 @@ chaser_confirm::~chaser_confirm() NOEXCEPT
 code chaser_confirm::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_confirm");
-    return subscribe(std::bind(&chaser_confirm::handle_event,
-        this, _1, _2, _3));
+    return subscribe(
+        std::bind(&chaser_confirm::handle_event,
+            this, _1, _2, _3));
 }
 
 void chaser_confirm::handle_event(const code& ec, chase event_,

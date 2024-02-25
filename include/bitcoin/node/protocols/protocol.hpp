@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -59,6 +60,11 @@ protected:
 
     /// Organize a validated block.
     virtual void organize(const system::chain::block::cptr& block,
+        network::result_handler&& handler) NOEXCEPT;
+
+    /// Manage download queue.
+    virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
+    virtual void put_hashes(const chaser_check::map& map,
         network::result_handler&& handler) NOEXCEPT;
 
     /// Configuration settings for all libraries.

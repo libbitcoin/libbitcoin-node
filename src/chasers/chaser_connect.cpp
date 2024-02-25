@@ -45,8 +45,9 @@ chaser_connect::~chaser_connect() NOEXCEPT
 code chaser_connect::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_connect");
-    return subscribe(std::bind(&chaser_connect::handle_event,
-        this, _1, _2, _3));
+    return subscribe(
+        std::bind(&chaser_connect::handle_event,
+            this, _1, _2, _3));
 }
 
 void chaser_connect::handle_event(const code& ec, chase event_,

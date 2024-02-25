@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
 #include <functional>
-#include <memory>
-#include <unordered_map>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -36,10 +34,9 @@ class BCN_API chaser_check
   : public chaser
 {
 public:
-    typedef std::unordered_map<system::hash_digest,
-        system::chain::context> hashmap;
-    typedef std::shared_ptr<hashmap> hashmap_ptr;
-    typedef std::function<void(const code&, const hashmap_ptr&)> handler;
+    // context_map casts header_fk into context.minimum_block_version.
+    using map = database::context_map;
+    typedef std::function<void(const code&, const map&)> handler;
 
     DELETE_COPY_MOVE(chaser_check);
 
@@ -49,7 +46,8 @@ public:
     virtual code start() NOEXCEPT;
 
     virtual void get_hashes(handler&& handler) NOEXCEPT;
-    virtual void put_hashes(handler&& handler) NOEXCEPT;
+    virtual void put_hashes(const map& map,
+        network::result_handler&& handler) NOEXCEPT;
 
 protected:
     virtual void handle_header(height_t branch_point) NOEXCEPT;
@@ -57,10 +55,13 @@ protected:
         link value) NOEXCEPT;
 
     virtual void do_get_hashes(const handler& handler) NOEXCEPT;
-    virtual void do_put_hashes(const handler& handler) NOEXCEPT;
+    virtual void do_put_hashes(const map& map,
+        const network::result_handler& handler) NOEXCEPT;
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+
+    map map_{};
 };
 
 } // namespace node

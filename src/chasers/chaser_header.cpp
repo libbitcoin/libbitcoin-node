@@ -69,8 +69,9 @@ code chaser_header::start() NOEXCEPT
     state_ = archive().get_candidate_chain_state(config().bitcoin);
     BC_ASSERT_MSG(state_, "Store not initialized.");
 
-    return subscribe(std::bind(&chaser_header::handle_event,
-        this, _1, _2, _3));
+    return subscribe(
+        std::bind(&chaser_header::handle_event,
+            this, _1, _2, _3));
 }
 
 // protected

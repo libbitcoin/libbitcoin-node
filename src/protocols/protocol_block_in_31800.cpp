@@ -39,6 +39,7 @@ using namespace network::messages;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -118,7 +119,8 @@ void protocol_block_in_31800::start() NOEXCEPT
         performance_timer_->start(BIND1(handle_performance_timer, _1));
     }
 
-    get_hashes(BIND2(handle_get_hashes, _1, hashes_));
+    SUBSCRIBE_CHANNEL2(block, handle_receive_block, _1, _2);
+    get_hashes(BIND2(handle_get_hashes, _1, _2));
     protocol::start();
 }
 
@@ -127,34 +129,52 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
 
     performance_timer_->stop();
-    put_hashes(BIND1(handle_put_hashes, _1));
-
+    put_hashes(map_, BIND1(handle_put_hashes, _1));
     protocol::stopping(ec);
 }
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
+// TODO: need map pointer from chaser to avoid large map copies here.
 
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
-    const chaser_check::hashmap_ptr&) NOEXCEPT
+    const chaser_check::map& map) NOEXCEPT
 {
+    POST2(do_handle_get_hashes, ec, map);
+}
+
+// private
+void protocol_block_in_31800::do_handle_get_hashes(const code& ec,
+    const chaser_check::map& map) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT_MSG(map.size() < max_inventory, "inventory overflow");
+
     if (ec)
     {
+        LOGF("Error getting block hashes for [" << authority() << "] "
+            << ec.message());
         stop(ec);
         return;
     }
 
-    SUBSCRIBE_CHANNEL2(block, handle_receive_block, _1, _2);
+    if (map.empty())
+    {
+        LOGP("Exhausted block hashes at [" << authority() << "] "
+            << ec.message());
+        return;
+    }
 
-    // TODO: send if not empty, send when new headers (subscrive to header).
-    SEND1(create_get_data(), handle_send, _1);
-    stop(ec);
+    SEND1(create_get_data(map), handle_send, _1);
 }
 
 void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
 {
     if (ec)
-        stop(ec);
+    {
+        LOGF("Error putting block hashes for [" << authority() << "] "
+            << ec.message());
+    }
 }
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
@@ -165,43 +185,71 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
-    const auto hash = message->block_ptr->hash();
-    if (is_zero(hashes_->erase(hash)))
+    const auto& block = *message->block_ptr;
+    const auto hash = block.hash();
+    const auto it = map_.find(hash);
+
+    if (it == map_.end())
     {
-        // Zero erased implies not found (not requested of peer).
-        LOGR("Unrequested block [" << encode_hash(hash) << "].");
-        return true;
+        // TODO: store and signal invalid block state (reorgs header chaser).
+        LOGR("Unrequested block [" << encode_hash(hash) << "] from ["
+            << authority() << "].");
+        stop(node::error::unknown);
+        return false;
     }
 
-    archive().set_link(*message->block_ptr);
+    code error{};
+    const auto& ctx = it->second;
+    if (((error = block.check())) || ((error = block.check(ctx))))
+    {
+        // TODO: store and signal invalid block state (reorgs header chaser).
+        LOGR("Invalid block [" << encode_hash(hash) << "] from ["
+            << authority() << "] " << error.message());
+        stop(error);
+        return false;
+    }
 
-    // Asynchronous organization serves all channels.
-    // A job backlog will occur when organize is slower than download.
-    // This should not be a material issue given lack of validation here.
-    get_hashes(BIND2(handle_get_hashes, _1, hashes_));
+    // TODO: optimize using header_fk with txs (or remove header_fk).
+    if (archive().set_link(block).is_terminal())
+    {
+        // TODO: store and signal invalid block state (reorgs header chaser).
+        LOGF("Failure storing block [" << encode_hash(hash) << "].");
+        stop(node::error::store_integrity);
+        return false;
+    }
 
+    // Block check accounted for.
+    map_.erase(it);
     bytes_ += message->cached_size;
 
-    // TODO: return true only if there are more blocks outstanding.
+    // Get some more work from chaser.
+    if (is_zero(map_.size()))
+    {
+        LOGP("Getting more block hashes for [" << authority() << "].");
+        get_hashes(BIND2(handle_get_hashes, _1, _2));
+    }
+
     return true;
 }
 
 // private
 // ----------------------------------------------------------------------------
 
-get_data protocol_block_in_31800::create_get_data() const NOEXCEPT
+get_data protocol_block_in_31800::create_get_data(
+    const chaser_check::map& map) const NOEXCEPT
 {
     get_data getter{};
-    getter.items.reserve(hashes_->size());
+    getter.items.reserve(map.size());
 
     // clang emplace_back bug (no matching constructor), using push_back.
     // bip144: get_data uses witness constant but inventory does not.
-    for (const auto& item: *hashes_)
+    for (const auto& item: map)
         getter.items.push_back({ block_type_, item.first });
 
     return getter;
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 

@@ -57,7 +57,7 @@ protected:
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
 
 private:
-    network::messages::get_headers create_get_headers() NOEXCEPT;
+    network::messages::get_headers create_get_headers() const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         const system::hash_digest& last) const NOEXCEPT;
     network::messages::get_headers create_get_headers(
