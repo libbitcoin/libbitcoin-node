@@ -138,6 +138,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Validate header.
     // ------------------------------------------------------------------------
+    // Header validations are not bypassed when under checkpoint/milestone.
 
     // Rolling forward chain_state eliminates requery cost.
     state_.reset(new chain_state(*state_, header, coin));
@@ -150,8 +151,6 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         handler(system::error::checkpoint_conflict);
         return;
     }
-
-    // Header validations are not bypassed when under checkpoint/milestone.
 
     auto error = header.check(coin.timestamp_limit_seconds,
         coin.proof_of_work_limit, coin.scrypt_proof_of_work);
@@ -170,8 +169,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Compute relative work.
     // ------------------------------------------------------------------------
 
-    // Header is new top of stale branch (strength not computed).
-    if (!is_current(header, context.height))
+    if (!is_current(header, context.height) &&
+        !checkpoint::is_at(checkpoints_, height))
     {
         save(header_ptr, context);
         handler(error::success);
@@ -266,10 +265,6 @@ bool chaser_header::is_current(const header& header,
     size_t height) const NOEXCEPT
 {
     if (!use_currency_window())
-        return true;
-
-    // Checkpoints are already validated. Current if at a checkpoint height.
-    if (checkpoint::is_at(checkpoints_, height))
         return true;
 
     // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
