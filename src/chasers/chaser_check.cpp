@@ -35,13 +35,6 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-/// We need to be able to perform block.check(ctx) while we still have the
-/// deserialized block, because of the witness commitment check (hash).
-/// Requires timestamp (header) height, mtp, flags. These can be cached on the
-/// block hash registry maintained by this chaser or queried from the stored
-/// header. Caching requries rolling forward through all states as the registry
-/// is initialized. Store query is simpler and may be as fast.
-
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node)
 {
@@ -124,7 +117,6 @@ void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 
     // get_all_unassociated_above(branch_point) and add to map.
     const auto& query = archive();
-    const auto top = query.get_top_candidate();
     const auto last = query.get_last_associated_from(branch_point);
     map_.merge(query.get_all_unassociated_above(last));
 }
