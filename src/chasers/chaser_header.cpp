@@ -64,11 +64,10 @@ bool chaser_header::use_currency_window() const NOEXCEPT
 // protected
 code chaser_header::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_header");
-
     state_ = archive().get_candidate_chain_state(config().bitcoin);
     BC_ASSERT_MSG(state_, "Store not initialized.");
 
+    BC_ASSERT_MSG(node_stranded(), "chaser_header");
     return subscribe(
         std::bind(&chaser_header::handle_event,
             this, _1, _2, _3));

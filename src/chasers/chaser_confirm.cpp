@@ -79,10 +79,9 @@ void chaser_confirm::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: handle new strong connected branch (may issue 'confirmed').
-void chaser_confirm::handle_connected(header_t block) NOEXCEPT
+void chaser_confirm::handle_connected(header_t) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_confirm");
-    LOGN("Handle connected block (" << block << ").");
 }
 
 BC_POP_WARNING()

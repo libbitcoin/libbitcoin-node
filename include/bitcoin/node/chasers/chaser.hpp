@@ -38,8 +38,9 @@ class full_node;
 /// Notifications are bounced from sink (e.g. chaser) to its strand, and
 /// notify bounces from source (e.g. chaser) to network strand.
 /// Unlike protocols chasers can stop the node.
+/// Logging is currently disabled so that logging is kept to the protocols.
 class BCN_API chaser
-  : public network::reporter
+////  : public network::reporter
 {
 public:
     enum class chase

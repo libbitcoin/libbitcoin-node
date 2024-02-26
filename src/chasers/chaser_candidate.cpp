@@ -80,10 +80,9 @@ void chaser_candidate::do_handle_event(const code& ec, chase event_,
 }
 
 // TODO: handle transaction graph change (may issue 'candidate').
-void chaser_candidate::handle_transaction(transaction_t tx) NOEXCEPT
+void chaser_candidate::handle_transaction(transaction_t) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_candidate");
-    LOGN("Handle transaction pool updated (" << tx << ").");
 }
 
 BC_POP_WARNING()

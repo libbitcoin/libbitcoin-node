@@ -35,8 +35,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
-    subscriber_(node.event_subscriber()),
-    reporter(node.log)
+    subscriber_(node.event_subscriber())
+    ////reporter(node.log)
 {
 }
 

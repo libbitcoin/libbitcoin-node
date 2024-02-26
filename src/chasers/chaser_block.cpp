@@ -49,11 +49,10 @@ chaser_block::~chaser_block() NOEXCEPT
 
 code chaser_block::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_block");
-
     state_ = archive().get_candidate_chain_state(config().bitcoin);
     BC_ASSERT_MSG(state_, "Store not initialized.");
 
+    BC_ASSERT_MSG(node_stranded(), "chaser_block");
     return subscribe(
         std::bind(&chaser_block::handle_event,
             this, _1, _2, _3));
