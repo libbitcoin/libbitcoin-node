@@ -94,7 +94,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         const auto hash = header_ptr->hash();
         const auto height = add1(top_.height());
 
-        // Avoid queuing up job if already stored.
+        // Redundant query to avoid queuing up excess jobs.
         if (!query.is_header(hash))
         {
             // Asynchronous organization serves all channels.
