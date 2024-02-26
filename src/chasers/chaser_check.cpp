@@ -46,11 +46,10 @@ chaser_check::~chaser_check() NOEXCEPT
 
 code chaser_check::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_check");
-
     // Initialize from genesis block.
     handle_header(zero);
 
+    BC_ASSERT_MSG(node_stranded(), "chaser_check");
     return subscribe(
         std::bind(&chaser_check::handle_event,
             this, _1, _2, _3));
@@ -109,16 +108,12 @@ void chaser_check::do_put_hashes(const chaser_check::map&,
 
 void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-
     // Map and peer maps may have newly stale blocks.
     // All stale branches can just be allowed to complete.
     // The connect chaser will verify proper advancement.
-
-    // get_all_unassociated_above(branch_point) and add to map.
     const auto& query = archive();
-    const auto last = query.get_last_associated_from(branch_point);
-    map_.merge(query.get_all_unassociated_above(last));
+    map_.merge(query.get_all_unassociated_above(
+        query.get_last_associated_from(branch_point)));
 }
 
 BC_POP_WARNING()
