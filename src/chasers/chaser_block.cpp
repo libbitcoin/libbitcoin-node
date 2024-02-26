@@ -47,7 +47,6 @@ chaser_block::~chaser_block() NOEXCEPT
 {
 }
 
-// protected
 code chaser_block::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_block");
@@ -55,8 +54,9 @@ code chaser_block::start() NOEXCEPT
     state_ = archive().get_candidate_chain_state(config().bitcoin);
     BC_ASSERT_MSG(state_, "Store not initialized.");
 
-    return subscribe(std::bind(&chaser_block::handle_event,
-        this, _1, _2, _3));
+    return subscribe(
+        std::bind(&chaser_block::handle_event,
+            this, _1, _2, _3));
 }
 
 // protected
@@ -117,7 +117,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // Peer processing should have precluded orphan submission.
-    // Results from running headers-first and then restarting to blocks-first.
+    // Results from running headers-first and then blocks-first.
     if (!tree_.contains(previous) && !query.is_block(previous))
     {
         handler(error::orphan_block);

@@ -31,19 +31,15 @@ public:
         return tree_;
     }
 
-    const network::wall_clock::duration& currency_window() const NOEXCEPT
-    {
-        return chaser_header::currency_window();
-    }
-
-    bool use_currency_window() const NOEXCEPT
-    {
-        return chaser_header::use_currency_window();
-    }
-
     code start() NOEXCEPT override
     {
         return chaser_header::start();
+    }
+
+    void organize(const system::chain::header::cptr& header_ptr,
+        network::result_handler&& handler) NOEXCEPT override
+    {
+        chaser_header::organize(header_ptr, std::move(handler));
     }
 
     void handle_event(const code& ec, chase event_,
@@ -87,6 +83,22 @@ public:
     bool push(const system::hash_digest& key) NOEXCEPT override
     {
         return chaser_header::push(key);
+    }
+
+    void do_organize(const system::chain::header::cptr& header,
+        const network::result_handler& handler) NOEXCEPT override
+    {
+        return chaser_header::do_organize(header, handler);
+    }
+
+    const network::wall_clock::duration& currency_window() const NOEXCEPT override
+    {
+        return chaser_header::currency_window();
+    }
+
+    bool use_currency_window() const NOEXCEPT override
+    {
+        return chaser_header::use_currency_window();
     }
 };
 

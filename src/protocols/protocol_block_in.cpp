@@ -89,6 +89,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     if (getter.items.empty())
     {
         // If the original request was maximal, we assume there are more.
+        // The inv response to get_blocks is limited to max_get_blocks.
         if (message->items.size() == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (empty maximal).");
@@ -189,6 +190,8 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 // The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_block_in::complete() NOEXCEPT
 {
+    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+
     LOGN("Blocks from [" << authority() << "] complete at ("
         << top_.height() << ").");
 }
@@ -224,8 +227,9 @@ get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
     // All strong block branches are archived, so this will reflect latest.
     // This will bypass all blocks with candidate headers, resulting in block
     // orphans if headers-first is run followed by a restart and blocks-first.
-    return create_get_inventory(archive().get_candidate_hashes(
-        get_blocks::heights(archive().get_top_candidate())));
+    const auto& query = archive();
+    return create_get_inventory(query.get_candidate_hashes(get_blocks::heights(
+        query.get_top_candidate())));
 }
 
 get_blocks protocol_block_in::create_get_inventory(

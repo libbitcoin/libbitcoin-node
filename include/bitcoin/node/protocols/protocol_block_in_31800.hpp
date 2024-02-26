@@ -19,7 +19,10 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 
+#include <functional>
+#include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 
@@ -56,23 +59,9 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    struct track
-    {
-        const size_t announced;
-        const system::hash_digest last;
-        system::hashes hashes;
-    };
-
-    typedef std::shared_ptr<track> track_ptr;
-
-    /// Recieved incoming inventory message.
-    virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::inventory::cptr& message) NOEXCEPT;
-
     /// Recieved incoming block message.
     virtual bool handle_receive_block(const code& ec,
-        const network::messages::block::cptr& message,
-        const track_ptr& tracker) NOEXCEPT;
+        const network::messages::block::cptr& message) NOEXCEPT;
 
     /// Handle performance timer event.
     virtual void handle_performance_timer(const code& ec) NOEXCEPT;
@@ -80,35 +69,26 @@ protected:
     /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
-    /// Invoked when initial blocks sync is complete.
-    virtual void complete() NOEXCEPT;
-
-    /// Handle organize result.
-    virtual void handle_organize(const code& ec, size_t height,
-        const system::chain::block::cptr& block_ptr) NOEXCEPT;
+    /// Manage download queue.
+    virtual void handle_put_hashes(const code& ec) NOEXCEPT;
+    virtual void handle_get_hashes(const code& ec,
+        const chaser_check::map& map) NOEXCEPT;
 
 private:
-    static system::hashes to_hashes(
-        const network::messages::get_data& getter) NOEXCEPT;
-
-    network::messages::get_blocks create_get_inventory() const NOEXCEPT;
-    network::messages::get_blocks create_get_inventory(
-        const system::hash_digest& last) const NOEXCEPT;
-    network::messages::get_blocks create_get_inventory(
-        system::hashes&& start_hashes) const NOEXCEPT;
-
     network::messages::get_data create_get_data(
-        const network::messages::inventory& message) const NOEXCEPT;
+        const chaser_check::map& map) const NOEXCEPT;
 
     void do_handle_performance(const code& ec) NOEXCEPT;
+    void do_handle_get_hashes(const code& ec,
+        const chaser_check::map& map) NOEXCEPT;
 
-    // Thread safe.
+    // These are thread safe.
     const bool report_performance_;
     const network::messages::inventory::type_id block_type_;
 
-    // Protected by strand.
+    // These are protected by strand.
     uint64_t bytes_{ zero };
-    system::chain::checkpoint top_{};
+    chaser_check::map map_{};
     network::steady_clock::time_point start_{};
     network::deadline::ptr performance_timer_;
 };

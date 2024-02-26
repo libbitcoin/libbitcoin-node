@@ -46,8 +46,9 @@ chaser_transaction::~chaser_transaction() NOEXCEPT
 code chaser_transaction::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_transaction");
-    return subscribe(std::bind(&chaser_transaction::handle_event,
-        this, _1, _2, _3));
+    return subscribe(
+        std::bind(&chaser_transaction::handle_event,
+            this, _1, _2, _3));
 }
 
 void chaser_transaction::handle_event(const code& ec, chase event_,
