@@ -18,9 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
-#include <chrono>
 #include <functional>
-#include <utility>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
