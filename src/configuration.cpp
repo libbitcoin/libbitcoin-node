@@ -19,7 +19,6 @@
 #include <bitcoin/node/configuration.hpp>
 
 #include <cstddef>
-////#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {

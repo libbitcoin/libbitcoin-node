@@ -47,7 +47,6 @@
 using namespace bc;
 ////using namespace bc::system;
 ////using namespace bc::network;
-////using namespace bc::blockchain;
 using namespace bc::node;
 
 namespace std {
