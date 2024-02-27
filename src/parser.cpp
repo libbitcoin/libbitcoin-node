@@ -20,7 +20,6 @@
 
 #include <iostream>
 #include <bitcoin/system.hpp>
-////#include <bitcoin/blockchain.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/settings.hpp>
@@ -365,7 +364,6 @@ options_metadata parser::load_settings() THROWS
         value<config::block>(&configured.bitcoin.genesis_block),
         "The genesis block, defaults to mainnet."
     )
-    // TODO: checkpoint/checkpoints fail to parse.
     (
         "bitcoin.checkpoint",
         value<chain::checkpoints>(&configured.bitcoin.checkpoints),
@@ -413,9 +411,14 @@ options_metadata parser::load_settings() THROWS
         "The hash:height checkpoint for bip9 bit0 activation, defaults to 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5:419328."
     )
     (
-        "bitcoin.bip9_bit1_active_checkpoint",
-        value<chain::checkpoint>(&configured.bitcoin.bip9_bit1_active_checkpoint),
-        "The hash:height checkpoint for bip9 bit1 activation, defaults to 0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893:481824."
+        "bitcoin.milestone",
+        value<chain::checkpoint>(&configured.bitcoin.milestone),
+        "A block presumed to be valid but not required to be present, defaults to 00000000000000000001a0a448d6cf2546b06801389cc030b2b18c6491266815:804000."
+    )
+    (
+        "bitcoin.minimum_work",
+        value<config::hash256>(&configured.bitcoin.minimum_work),
+        "The minimum work for any branch to be considered valid, defaults to 000000000000000000000000000000000000000052b2559353df4117b7348b64."
     )
 
     /* [network] */

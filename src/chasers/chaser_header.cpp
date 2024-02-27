@@ -38,6 +38,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
+    minimum_work_(config().bitcoin.minimum_work),
+    milestone_(config().bitcoin.milestone),
     checkpoints_(config().bitcoin.checkpoints),
     currency_window_(config().node.currency_window()),
     use_currency_window_(to_bool(config().node.currency_window_minutes))
@@ -113,7 +115,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     const auto& coin = config().bitcoin;
     const auto hash = header.hash();
 
-    // Skip existing, fail orphan.
+    // Skip existing, orphan.
     // ------------------------------------------------------------------------
 
     if (closed())
@@ -141,7 +143,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Header validations are not bypassed when under checkpoint/milestone.
 
     // Rolling forward chain_state eliminates requery cost.
-    state_.reset(new chain_state(*state_, header, coin));
+    state_.reset(new chain_state{ *state_, header, coin });
     const auto context = state_->context();
     const auto height = state_->height();
 
@@ -169,8 +171,11 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Compute relative work.
     // ------------------------------------------------------------------------
 
-    if (!is_current(header, context.height) &&
-        !checkpoint::is_at(checkpoints_, height))
+    // A checkpointed or milestoned branch always gets disk stored. Otherwise
+    // branch must be both current and of sufficient chain work to be stored.
+    if (!checkpoint::is_at(checkpoints_, height) &&
+        !milestone_.equals(hash, height) &&
+        !(is_current(header) && state_->cumulative_work() >= minimum_work_))
     {
         save(header_ptr, context);
         handler(error::success);
@@ -194,9 +199,9 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    // Header is new top of current weak branch.
     if (!strong)
     {
+        // Header is new top of current weak branch.
         save(header_ptr, context);
         handler(error::success);
         return;
@@ -261,8 +266,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     handler(error::success);
 }
 
-bool chaser_header::is_current(const header& header,
-    size_t height) const NOEXCEPT
+bool chaser_header::is_current(const header& header) const NOEXCEPT
 {
     if (!use_currency_window())
         return true;
