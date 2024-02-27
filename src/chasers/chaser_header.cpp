@@ -154,18 +154,17 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    auto error = header.check(coin.timestamp_limit_seconds,
-        coin.proof_of_work_limit, coin.scrypt_proof_of_work);
-    if (error)
+    if (const auto error = header.check(coin.timestamp_limit_seconds,
+            coin.proof_of_work_limit, coin.scrypt_proof_of_work))
     {
         handler(error);
         return;
     }
 
-    error = header.accept(context);
-    if (error)
+    if (const auto error = header.accept(context))
     {
         handler(error);
+        return;
     }
 
     // Compute relative work.
@@ -249,8 +248,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Push new header as top of candidate chain.
-    const auto link = push(header_ptr, context);
-    if (link.is_terminal())
+    if (push(header_ptr, context).is_terminal())
     {
         handler(error::store_integrity);
         return;

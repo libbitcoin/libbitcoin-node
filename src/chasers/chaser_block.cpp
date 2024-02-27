@@ -143,18 +143,16 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     if (!checkpoint::is_under(coin.checkpoints, height))
     {
         // Requires no population.
-        auto error = block.check();
-        if (error)
+        if (const auto error = block.check())
         {
-            handler(network::error::protocol_violation);
+            handler(error);
             return;
         }
 
         // Requires no population.
-        error = block.check(context);
-        if (error)
+        if (const auto error = block.check(context))
         {
-            handler(network::error::protocol_violation);
+            handler(error);
             return;
         }
 
@@ -172,19 +170,17 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
         }
 
         // Requires only prevout population.
-        error = block.accept(context, coin.subsidy_interval_blocks,
-            coin.initial_subsidy());
-        if (error)
+        if (const auto error = block.accept(context,
+            coin.subsidy_interval_blocks, coin.initial_subsidy()))
         {
-            handler(network::error::protocol_violation);
+            handler(error);
             return;
         }
 
         // Requires only prevout population.
-        error = block.connect(context);
-        if (error)
+        if (const auto error = block.connect(context))
         {
-            handler(network::error::protocol_violation);
+            handler(error);
             return;
         }
     }
@@ -267,8 +263,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // Push new block as top of candidate chain.
-    const auto link = push(block_ptr, context);
-    if (link.is_terminal())
+    if (push(block_ptr, context).is_terminal())
     {
         handler(error::store_integrity);
         return;
@@ -367,11 +362,11 @@ database::header_link chaser_block::push(const block::cptr& block,
 {
     auto& query = archive();
     const auto link = query.set_link(*block, database::context
-        {
-            possible_narrow_cast<flags_t>(context.forks),
-            possible_narrow_cast<height_t>(context.height),
-            context.median_time_past,
-        });
+    {
+        possible_narrow_cast<flags_t>(context.forks),
+        possible_narrow_cast<height_t>(context.height),
+        context.median_time_past,
+    });
 
     if (!query.push_candidate(link))
         return {};
