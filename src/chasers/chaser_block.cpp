@@ -99,7 +99,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     const auto& coin = config().bitcoin;
     const auto hash = header.hash();
 
-    // Skip existing, fail orphan.
+    // Skip existing, orphan.
     // ------------------------------------------------------------------------
 
     if (closed())
@@ -127,8 +127,8 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // ------------------------------------------------------------------------
 
     // Rolling forward chain_state eliminates requery cost.
-    // Do not use block ref here as the block override is for tx pool.
-    state_.reset(new chain_state(*state_, header, coin));
+    // Do not use block parameter here as that override is for tx pool.
+    state_.reset(new chain_state{ *state_, header, coin });
     const auto context = state_->context();
     const auto height = state_->height();
 
