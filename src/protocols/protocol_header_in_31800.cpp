@@ -71,6 +71,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
+    const auto& query = archive();
     LOGP("Headers (" << message->header_ptrs.size() << ") from ["
         << authority() << "].");
 
@@ -90,15 +91,18 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         }
 
         // Add header at next height.
+        const auto hash = header_ptr->hash();
         const auto height = add1(top_.height());
 
-        // Asynchronous organization serves all channels.
-        // A job backlog will occur when organize is slower than download.
-        // This is not a material issue for headers, even with validation.
-        organize(header_ptr, BIND3(handle_organize, _1, height, header_ptr));
+        // Redundant query to avoid queuing up excess jobs.
+        if (!query.is_header(hash))
+        {
+            // Asynchronous organization serves all channels.
+            organize(header_ptr, BIND3(handle_organize, _1, height, header_ptr));
+        }
 
         // Set the new top and continue. Organize error will stop the channel.
-        top_ = { header_ptr->hash(), height };
+        top_ = { hash, height };
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -130,23 +134,22 @@ void protocol_header_in_31800::complete() NOEXCEPT
 void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
     const chain::header::cptr& header_ptr) NOEXCEPT
 {
-    if (ec == network::error::service_stopped)
+    if (ec == network::error::service_stopped || ec == error::duplicate_header)
         return;
 
-    if (!ec || ec == error::duplicate_header)
+    if (ec)
     {
-        LOGP("Header [" << encode_hash(header_ptr->hash())
+        // Assuming no store failure this is a consensus failure.
+        LOGR("Header [" << encode_hash(header_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
             << ec.message());
+        stop(ec);
         return;
     }
 
-    // Assuming no store failure this is a consensus failure.
-    LOGR("Header [" << encode_hash(header_ptr->hash())
+    LOGP("Header [" << encode_hash(header_ptr->hash())
         << "] at (" << height << ") from [" << authority() << "] "
         << ec.message());
-
-    stop(ec);
 }
 
 // private

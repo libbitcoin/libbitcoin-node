@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
 #define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
-////#include <bitcoin/blockchain.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -72,7 +71,6 @@ public:
     /// Settings.
     log::settings log;
     node::settings node;
-    ////blockchain::settings chain;
     database::settings database;
     network::settings network;
     system::settings bitcoin;

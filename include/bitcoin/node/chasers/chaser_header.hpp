@@ -76,10 +76,8 @@ protected:
     virtual bool get_is_strong(bool& strong, const uint256_t& work,
         size_t point) const NOEXCEPT;
 
-    /// Header timestamp is within configured span from current time,
-    /// or current header is a checkpoint or milestone.
-    virtual bool is_current(const system::chain::header& header,
-        size_t height) const NOEXCEPT;
+    /// Header timestamp is within configured span from current time.
+    virtual bool is_current(const system::chain::header& header) const NOEXCEPT;
 
     /// Save header to tree with validation context.
     virtual void save(const system::chain::header::cptr& header,
@@ -105,6 +103,8 @@ private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 
     // These are thread safe.
+    const uint256_t minimum_work_;
+    const system::chain::checkpoint& milestone_;
     const system::chain::checkpoints& checkpoints_;
     const network::wall_clock::duration currency_window_;
     const bool use_currency_window_;

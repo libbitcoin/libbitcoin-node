@@ -136,15 +136,17 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     // Alias.
     const auto& block_ptr = message->block_ptr;
+    const auto& block = *block_ptr;
+    const auto hash = block.hash();
 
     // Unrequested block, may not have been announced via inventory.
-    if (tracker->hashes.back() != block_ptr->hash())
+    if (tracker->hashes.back() != hash)
         return true;
 
     // Out of order or invalid.
-    if (block_ptr->header().previous_block_hash() != top_.hash())
+    if (block.header().previous_block_hash() != top_.hash())
     {
-        LOGP("Orphan block [" << encode_hash(block_ptr->hash())
+        LOGP("Orphan block [" << encode_hash(hash)
             << "] from [" << authority() << "].");
         return false;
     }
@@ -159,7 +161,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     organize(block_ptr, BIND3(handle_organize, _1, height, block_ptr));
 
     // Set the new top and continue. Organize error will stop the channel.
-    top_ = { block_ptr->hash(), height };
+    top_ = { hash, height };
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
@@ -199,23 +201,22 @@ void protocol_block_in::complete() NOEXCEPT
 void protocol_block_in::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
-    if (ec == network::error::service_stopped)
+    if (ec == network::error::service_stopped || ec == error::duplicate_block)
         return;
 
-    if (!ec || ec == error::duplicate_block)
+    if (ec)
     {
-        LOGP("Block [" << encode_hash(block_ptr->hash())
+        // Assuming no store failure this is a consensus failure.
+        LOGR("Block [" << encode_hash(block_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
             << ec.message());
+        stop(ec);
         return;
     }
 
-    // Assuming no store failure this is a consensus failure.
-    LOGR("Block [" << encode_hash(block_ptr->hash())
+    LOGP("Block [" << encode_hash(block_ptr->hash())
         << "] at (" << height << ") from [" << authority() << "] "
         << ec.message());
-
-    stop(ec);
 }
 
 // private
@@ -255,11 +256,11 @@ get_blocks protocol_block_in::create_get_inventory(
 get_data protocol_block_in::create_get_data(
     const inventory& message) const NOEXCEPT
 {
-    get_data getter{};
-    getter.items.reserve(message.count(type_id::block));
-
     // clang emplace_back bug (no matching constructor), using push_back.
     // bip144: get_data uses witness constant but inventory does not.
+
+    get_data getter{};
+    getter.items.reserve(message.count(type_id::block));
     for (const auto& item: message.items)
         if ((item.type == type_id::block) && !archive().is_block(item.hash))
             getter.items.push_back({ block_type_, item.hash });

@@ -18,9 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
-#include <chrono>
 #include <functional>
-#include <utility>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -238,11 +236,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 get_data protocol_block_in_31800::create_get_data(
     const chaser_check::map& map) const NOEXCEPT
 {
-    get_data getter{};
-    getter.items.reserve(map.size());
-
     // clang emplace_back bug (no matching constructor), using push_back.
     // bip144: get_data uses witness constant but inventory does not.
+
+    get_data getter{};
+    getter.items.reserve(map.size());
     for (const auto& item: map)
         getter.items.push_back({ block_type_, item.first });
 

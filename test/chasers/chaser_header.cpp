@@ -62,10 +62,9 @@ public:
         return chaser_header::get_is_strong(strong, work, point);
     }
 
-    bool is_current(const system::chain::header& header,
-        size_t height) const NOEXCEPT override
+    bool is_current(const system::chain::header& header) const NOEXCEPT override
     {
-        return chaser_header::is_current(header, height);
+        return chaser_header::is_current(header);
     }
 
     void save(const system::chain::header::cptr& header,
@@ -139,8 +138,8 @@ BOOST_AUTO_TEST_CASE(chaser_header_test__is_current__zero_currency_window__true)
     full_node node(query, config, log);
     mock_chaser_header instance(node);
 
-    BOOST_REQUIRE(instance.is_current(system::chain::header{ {}, {}, {}, 0, {}, {} }, 0));
-    BOOST_REQUIRE(instance.is_current(system::chain::header{ {}, {}, {}, max_uint32, {}, {} }, 0));
+    BOOST_REQUIRE(instance.is_current(system::chain::header{ {}, {}, {}, 0, {}, {} }));
+    BOOST_REQUIRE(instance.is_current(system::chain::header{ {}, {}, {}, max_uint32, {}, {} }));
 }
 
 BOOST_AUTO_TEST_CASE(chaser_header_test__is_current__one_minute_currency_window__expected)
@@ -154,8 +153,8 @@ BOOST_AUTO_TEST_CASE(chaser_header_test__is_current__one_minute_currency_window_
     full_node node(query, config, log);
     mock_chaser_header instance(node);
 
-    BOOST_REQUIRE(!instance.is_current(system::chain::header{ {}, {}, {}, 0, {}, {} }, 0));
-    BOOST_REQUIRE(instance.is_current(system::chain::header{ {}, {}, {}, max_uint32, {}, {} }, 0));
+    BOOST_REQUIRE(!instance.is_current(system::chain::header{ {}, {}, {}, 0, {}, {} }));
+    BOOST_REQUIRE(instance.is_current(system::chain::header{ {}, {}, {}, max_uint32, {}, {} }));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
