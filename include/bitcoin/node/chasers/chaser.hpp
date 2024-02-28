@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 
+#include <functional>
 #include <variant>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -85,6 +86,7 @@ public:
     using transaction_t = database::tx_link::integer;
     using flags_t = database::context::flag::integer;
 
+    typedef std::function<void(const code&, size_t)> organize_handler;
     typedef std::variant<uint32_t, uint64_t> link;
     typedef network::subscriber<chase, link> event_subscriber;
     typedef event_subscriber::handler event_handler;

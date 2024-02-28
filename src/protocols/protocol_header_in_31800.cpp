@@ -49,10 +49,6 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    const auto& query = archive();
-    const auto top = query.get_top_candidate();
-    top_ = { query.get_header_key(query.to_candidate(top)), top };
-
     SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
     SEND1(create_get_headers(), handle_send, _1);
     protocol::start();
@@ -81,28 +77,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         if (stopped())
             return false;
 
-        if (header_ptr->previous_block_hash() != top_.hash())
-        {
-            // Out of order or invalid.
-            LOGP("Orphan header [" << encode_hash(header_ptr->hash())
-                << "] from [" << authority() << "].");
-            stop(network::error::protocol_violation);
-            return false;
-        }
-
-        // Add header at next height.
-        const auto hash = header_ptr->hash();
-        const auto height = add1(top_.height());
-
         // Redundant query to avoid queuing up excess jobs.
-        if (!query.is_header(hash))
+        if (!query.is_header(header_ptr->hash()))
         {
             // Asynchronous organization serves all channels.
-            organize(header_ptr, BIND3(handle_organize, _1, height, header_ptr));
+            organize(header_ptr, BIND3(handle_organize, _1, _2, header_ptr));
         }
-
-        // Set the new top and continue. Organize error will stop the channel.
-        top_ = { hash, height };
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -126,9 +106,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 void protocol_header_in_31800::complete() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
-
-    LOGN("Headers from [" << authority() << "] complete at ("
-        << top_.height() << ").");
+    LOGN("Headers from [" << authority() << "] exhausted.");
 }
 
 void protocol_header_in_31800::handle_organize(const code& ec, size_t height,

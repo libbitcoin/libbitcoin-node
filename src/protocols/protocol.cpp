@@ -42,13 +42,13 @@ void protocol::performance(uint64_t channel, uint64_t speed,
 }
 
 void protocol::organize(const system::chain::header::cptr& header,
-    result_handler&& handler) NOEXCEPT
+    chaser::organize_handler&& handler) NOEXCEPT
 {
     session_.organize(header, std::move(handler));
 }
 
 void protocol::organize(const system::chain::block::cptr& block,
-    result_handler&& handler) NOEXCEPT
+    chaser::organize_handler&& handler) NOEXCEPT
 {
     session_.organize(block, std::move(handler));
 }

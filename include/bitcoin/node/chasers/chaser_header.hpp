@@ -47,18 +47,17 @@ public:
 
     /// Validate and organize next header in sequence relative to caller peer.
     virtual void organize(const system::chain::header::cptr& header_ptr,
-        network::result_handler&& handler) NOEXCEPT;
+        organize_handler&& handler) NOEXCEPT;
 
 protected:
     struct proposed_header
     {
-        database::context context;
         system::chain::header::cptr header;
+        system::chain::chain_state::ptr state;
     };
     typedef std::vector<database::header_link> header_links;
 
-    // These are protected by strand.
-    system::chain::chain_state::ptr state_{};
+    // This is protected by strand.
     std::unordered_map<system::hash_digest, proposed_header> tree_{};
 
     /// Handle chaser events.
@@ -76,12 +75,16 @@ protected:
     virtual bool get_is_strong(bool& strong, const uint256_t& work,
         size_t point) const NOEXCEPT;
 
+    /// Obtain chain state for the given header hash, nullptr if not found. 
+    virtual system::chain::chain_state::ptr get_state(
+        const system::hash_digest& hash) const NOEXCEPT;
+
     /// Header timestamp is within configured span from current time.
     virtual bool is_current(const system::chain::header& header) const NOEXCEPT;
 
-    /// Save header to tree with validation context.
-    virtual void save(const system::chain::header::cptr& header,
-        const system::chain::context& context) NOEXCEPT;
+    /// Cache header to tree with chain state.
+    virtual void cache(const system::chain::header::cptr& header,
+        const system::chain::chain_state::ptr& state) NOEXCEPT;
 
     /// Store header to database and push to top of candidate chain.
     virtual database::header_link push(
@@ -93,7 +96,7 @@ protected:
 
     /// Validate and organize next header in sequence relative to caller peer.
     virtual void do_organize(const system::chain::header::cptr& header,
-        const network::result_handler& handler) NOEXCEPT;
+        const organize_handler& handler) NOEXCEPT;
 
     /// A strong header branch is committed to store when current.
     virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
@@ -108,6 +111,9 @@ private:
     const system::chain::checkpoints& checkpoints_;
     const network::wall_clock::duration currency_window_;
     const bool use_currency_window_;
+
+    // This is protected by strand.
+    system::chain::chain_state::ptr top_state_{};
 };
 
 } // namespace node

@@ -46,13 +46,13 @@ public:
 
     /// Validate and organize next block in sequence relative to caller peer.
     virtual void organize(const system::chain::block::cptr& block_ptr,
-        network::result_handler&& handler) NOEXCEPT;
+        organize_handler&& handler) NOEXCEPT;
 
 protected:
     struct validated_block
     {
-        database::context context;
         system::chain::block::cptr block;
+        system::chain::chain_state::ptr state;
     };
     typedef std::vector<database::header_link> header_links;
 
@@ -75,9 +75,13 @@ protected:
     virtual bool get_is_strong(bool& strong, const uint256_t& work,
         size_t point) const NOEXCEPT;
 
+    /// Obtain chain state for the given header hash, nullptr if not found. 
+    virtual system::chain::chain_state::ptr get_state(
+        const system::hash_digest& hash) const NOEXCEPT;
+
     /// Save block to tree with validation context.
-    virtual void save(const system::chain::block::cptr& block,
-        const system::chain::context& context) NOEXCEPT;
+    virtual void cache(const system::chain::block::cptr& block,
+        const system::chain::chain_state::ptr& state) NOEXCEPT;
 
     /// Store block to database and push to top of candidate chain.
     virtual database::header_link push(
@@ -92,7 +96,7 @@ protected:
 
     /// Validate and organize next block in sequence relative to caller peer.
     virtual void do_organize(const system::chain::block::cptr& block,
-        const network::result_handler& handler) NOEXCEPT;
+        const organize_handler& handler) NOEXCEPT;
 
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
@@ -100,6 +104,9 @@ private:
 
     // This is thread safe.
     const system::chain::checkpoints& checkpoints_;
+
+    // This is protected by strand.
+    system::chain::chain_state::ptr top_state_{};
 };
 
 } // namespace node

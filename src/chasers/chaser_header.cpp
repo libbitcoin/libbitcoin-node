@@ -66,10 +66,16 @@ bool chaser_header::use_currency_window() const NOEXCEPT
 // protected
 code chaser_header::start() NOEXCEPT
 {
-    state_ = archive().get_candidate_chain_state(config().bitcoin);
-    BC_ASSERT_MSG(state_, "Store not initialized.");
-
     BC_ASSERT_MSG(node_stranded(), "chaser_header");
+
+    // Initialize cache of top candidate chain state.
+    // Spans full chain to obtain cumulative work. This can be optimized by
+    // storing it with each header, though the scan is fast. The same occurs
+    // when a block first branches below the current chain top. Chain work is
+    // a questionable DoS protection scheme only, so could also toss it.
+    top_state_ = archive().get_candidate_chain_state(
+        config().bitcoin, archive().get_top_candidate());
+
     return subscribe(
         std::bind(&chaser_header::handle_event,
             this, _1, _2, _3));
@@ -94,7 +100,7 @@ void chaser_header::do_handle_event(const code&, chase event_, link) NOEXCEPT
 }
 
 void chaser_header::organize(const header::cptr& header,
-    result_handler&& handler) NOEXCEPT
+    organize_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_header::do_organize,
@@ -105,81 +111,78 @@ void chaser_header::organize(const header::cptr& header,
 // ----------------------------------------------------------------------------
 
 void chaser_header::do_organize(const header::cptr& header_ptr,
-    const result_handler& handler) NOEXCEPT
+    const organize_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
 
     auto& query = archive();
     const auto& header = *header_ptr;
-    const auto& previous = header.previous_block_hash();
     const auto& coin = config().bitcoin;
     const auto hash = header.hash();
 
-    // Skip existing, orphan.
+    // Skip existing/orphan, get state.
     // ------------------------------------------------------------------------
 
     if (closed())
     {
-        handler(network::error::service_stopped);
+        handler(network::error::service_stopped, {});
         return;
     }
 
-    // Header already exists.
     if (tree_.contains(hash) || query.is_header(hash))
     {
-        handler(error::duplicate_header);
+        handler(error::duplicate_header, {});
         return;
     }
 
-    // Peer processing should have precluded orphan submission.
-    if (!tree_.contains(previous) && !query.is_header(previous))
+    auto state = get_state(header.previous_block_hash());
+    if (!state)
     {
-        handler(error::orphan_header);
+        handler(error::orphan_header, {});
         return;
     }
+
+    // Roll chain state forward from previous to current header.
+    state.reset(new chain_state{ *state, header, coin });
+    const auto height = state->height();
 
     // Validate header.
     // ------------------------------------------------------------------------
     // Header validations are not bypassed when under checkpoint/milestone.
 
-    // Rolling forward chain_state eliminates requery cost.
-    state_.reset(new chain_state{ *state_, header, coin });
-    const auto context = state_->context();
-    const auto height = state_->height();
-
     // Checkpoints are considered chain not block/header validation.
     if (checkpoint::is_conflict(coin.checkpoints, hash, height))
     {
-        handler(system::error::checkpoint_conflict);
+        handler(system::error::checkpoint_conflict, height);
         return;
     }
 
     if (const auto error = header.check(coin.timestamp_limit_seconds,
-            coin.proof_of_work_limit, coin.scrypt_proof_of_work))
+        coin.proof_of_work_limit, coin.scrypt_proof_of_work))
     {
-        handler(error);
+        handler(error, height);
         return;
     }
 
-    if (const auto error = header.accept(context))
+    if (const auto error = header.accept(state->context()))
     {
-        handler(error);
+        handler(error, height);
         return;
     }
-
-    // Compute relative work.
-    // ------------------------------------------------------------------------
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
     // branch must be both current and of sufficient chain work to be stored.
     if (!checkpoint::is_at(checkpoints_, height) &&
         !milestone_.equals(hash, height) &&
-        !(is_current(header) && state_->cumulative_work() >= minimum_work_))
+        !(is_current(header) && state->cumulative_work() >= minimum_work_))
     {
-        save(header_ptr, context);
-        handler(error::success);
+        cache(header_ptr, state);
+        handler(error::success, height);
         return;
     }
+
+    // Compute relative work.
+    // ------------------------------------------------------------------------
 
     size_t point{};
     uint256_t work{};
@@ -187,42 +190,41 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     header_links store_branch{};
     if (!get_branch_work(work, point, tree_branch, store_branch, header))
     {
-        handler(error::store_integrity);
+        handler(error::store_integrity, height);
         return;
     }
 
     bool strong{};
     if (!get_is_strong(strong, work, point))
     {
-        handler(error::store_integrity);
+        handler(error::store_integrity, height);
         return;
     }
 
     if (!strong)
     {
         // Header is new top of current weak branch.
-        save(header_ptr, context);
-        handler(error::success);
+        cache(header_ptr, state);
+        handler(error::success, height);
         return;
     }
 
     // Reorganize candidate chain.
     // ------------------------------------------------------------------------
 
-    // Obtain the top height.
-    auto top = query.get_top_candidate();
+    auto top = top_state_->height();
     if (top < point)
     {
-        handler(error::store_integrity);
+        handler(error::store_integrity, height);
         return;
     }
 
-    // Pop down to the branch point, underflow guarded above.
+    // Pop down to the branch point.
     while (top-- > point)
     {
         if (!query.pop_candidate())
         {
-            handler(error::store_integrity);
+            handler(error::store_integrity, height);
             return;
         }
     }
@@ -232,7 +234,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     {
         if (!query.push_candidate(link))
         {
-            handler(error::store_integrity);
+            handler(error::store_integrity, height);
             return;
         }
     }
@@ -242,26 +244,44 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     {
         if (!push(key))
         {
-            handler(error::store_integrity);
+            handler(error::store_integrity, height);
             return;
         }
     }
 
     // Push new header as top of candidate chain.
-    if (push(header_ptr, context).is_terminal())
+    if (push(header_ptr, state->context()).is_terminal())
     {
-        handler(error::store_integrity);
+        handler(error::store_integrity, height);
         return;
     }
 
-    // Notify candidate reorganization with branch point.
-    // ------------------------------------------------------------------------
+    top_state_ = state;
+    const auto branch_point = possible_narrow_cast<height_t>(point);
+    notify(error::success, chase::header, { branch_point });
+    handler(error::success, height);
+}
 
-    // New branch organized, queue up candidate downloads from branch point.
-    notify(error::success, chase::header,
-        { possible_narrow_cast<height_t>(point) });
+chain_state::ptr chaser_header::get_state(
+    const hash_digest& hash) const NOEXCEPT
+{
+    if (!top_state_)
+        return {};
 
-    handler(error::success);
+    // Top state is cached because it is by far the most commonly retrieved.
+    if (top_state_->hash() == hash)
+        return top_state_;
+
+    const auto it = tree_.find(hash);
+    if (it != tree_.end())
+        return it->second.state;
+
+    size_t height{};
+    const auto& query = archive();
+    if (query.get_height(height, query.to_header(hash)))
+        return query.get_candidate_chain_state(config().bitcoin, height);
+
+    return {};
 }
 
 bool chaser_header::is_current(const header& header) const NOEXCEPT
@@ -275,17 +295,14 @@ bool chaser_header::is_current(const header& header) const NOEXCEPT
     return time >= current;
 }
 
-// protected
 bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
     hashes& tree_branch, header_links& store_branch,
     const header& header) const NOEXCEPT
 {
     // Use pointer to avoid const/copy.
     auto previous = &header.previous_block_hash();
-    tree_branch.clear();
-    store_branch.clear();
-    work = header.proof();
     const auto& query = archive();
+    work = header.proof();
 
     // Sum all branch work from tree.
     for (auto it = tree_.find(*previous); it != tree_.end();
@@ -323,6 +340,8 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
     strong = false;
     uint256_t candidate_work{};
     const auto& query = archive();
+
+    // Accumulate candidate branch and when exceeds branch return false (weak).
     for (auto height = query.get_top_candidate(); height > point; --height)
     {
         uint32_t bits{};
@@ -330,7 +349,7 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
             return false;
 
         candidate_work += header::proof(bits);
-        if (!((strong = work > candidate_work)))
+        if (candidate_work >= work)
             return true;
     }
 
@@ -338,21 +357,10 @@ bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
     return true;
 }
 
-void chaser_header::save(const header::cptr& header,
-    const context& context) NOEXCEPT
+void chaser_header::cache(const header::cptr& header,
+    const chain_state::ptr& state) NOEXCEPT
 {
-    tree_.insert(
-    {
-        header->hash(),
-        {
-            {
-                possible_narrow_cast<flags_t>(context.forks),
-                possible_narrow_cast<height_t>(context.height),
-                context.median_time_past,
-            },
-            header
-        }
-    });
+    tree_.insert({ header->hash(), { header, state } });
 }
 
 database::header_link chaser_header::push(const header::cptr& header,
@@ -360,26 +368,24 @@ database::header_link chaser_header::push(const header::cptr& header,
 {
     auto& query = archive();
     const auto link = query.set_link(*header, database::context
-        {
-            possible_narrow_cast<flags_t>(context.forks),
-            possible_narrow_cast<height_t>(context.height),
-            context.median_time_past,
-        });
+    {
+        possible_narrow_cast<flags_t>(context.forks),
+        possible_narrow_cast<height_t>(context.height),
+        context.median_time_past,
+    });
 
-    if (!query.push_candidate(link))
-        return {};
-
-    return link;
+    return query.push_candidate(link) ? link : database::header_link{};
 }
 
-bool chaser_header::push(const system::hash_digest& key) NOEXCEPT
+bool chaser_header::push(const hash_digest& key) NOEXCEPT
 {
     const auto value = tree_.extract(key);
     BC_ASSERT_MSG(!value.empty(), "missing tree value");
 
     auto& query = archive();
     const auto& node = value.mapped();
-    return query.push_candidate(query.set_link(*node.header, node.context));
+    const auto link = query.set_link(*node.header, node.state->context());
+    return query.push_candidate(link);
 }
 
 BC_POP_WARNING()
