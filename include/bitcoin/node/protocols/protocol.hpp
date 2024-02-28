@@ -56,11 +56,11 @@ protected:
 
     /// Organize a validated header.
     virtual void organize(const system::chain::header::cptr& header,
-        network::result_handler&& handler) NOEXCEPT;
+        chaser::organize_handler&& handler) NOEXCEPT;
 
     /// Organize a validated block.
     virtual void organize(const system::chain::block::cptr& block,
-        network::result_handler&& handler) NOEXCEPT;
+        chaser::organize_handler&& handler) NOEXCEPT;
 
     /// Manage download queue.
     virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;

@@ -37,7 +37,7 @@ public:
     }
 
     void organize(const system::chain::header::cptr& header_ptr,
-        network::result_handler&& handler) NOEXCEPT override
+        organize_handler&& handler) NOEXCEPT override
     {
         chaser_header::organize(header_ptr, std::move(handler));
     }
@@ -67,10 +67,10 @@ public:
         return chaser_header::is_current(header);
     }
 
-    void save(const system::chain::header::cptr& header,
-        const system::chain::context& context) NOEXCEPT override
+    void cache(const system::chain::header::cptr& header,
+        const system::chain::chain_state::ptr& state) NOEXCEPT override
     {
-        return chaser_header::save(header, context);
+        return chaser_header::cache(header, state);
     }
 
     database::header_link push(const system::chain::header::cptr& header,
@@ -85,7 +85,7 @@ public:
     }
 
     void do_organize(const system::chain::header::cptr& header,
-        const network::result_handler& handler) NOEXCEPT override
+        const organize_handler& handler) NOEXCEPT override
     {
         return chaser_header::do_organize(header, handler);
     }

@@ -132,13 +132,13 @@ void full_node::do_close() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void full_node::organize(const system::chain::header::cptr& header,
-    result_handler&& handler) NOEXCEPT
+    chaser::organize_handler&& handler) NOEXCEPT
 {
     chaser_header_.organize(header, std::move(handler));
 }
 
 void full_node::organize(const system::chain::block::cptr& block,
-    result_handler&& handler) NOEXCEPT
+    chaser::organize_handler&& handler) NOEXCEPT
 {
     chaser_block_.organize(block, std::move(handler));
 }

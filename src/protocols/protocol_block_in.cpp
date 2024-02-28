@@ -45,6 +45,7 @@ using namespace network::messages;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -57,10 +58,6 @@ void protocol_block_in::start() NOEXCEPT
 
     if (started())
         return;
-
-    const auto& query = archive();
-    const auto top = query.get_top_candidate();
-    top_ = { query.get_header_key(query.to_candidate(top)), top };
 
     SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
     SEND1(create_get_inventory(), handle_send, _1);
@@ -103,14 +100,12 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     LOGP("Requesting (" << getter.items.size() << ") blocks from ["
         << authority() << "].");
 
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     const auto tracker = std::make_shared<track>(track
     {
         getter.items.size(),
         getter.items.back().hash,
         to_hashes(getter)
     });
-    BC_POP_WARNING()
 
     // TODO: these should be limited in quantity for DOS protection.
     // There is one block subscription for each received unexhausted inventory.
@@ -134,34 +129,16 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         return false;
     }
 
-    // Alias.
-    const auto& block_ptr = message->block_ptr;
-    const auto& block = *block_ptr;
-    const auto hash = block.hash();
-
     // Unrequested block, may not have been announced via inventory.
-    if (tracker->hashes.back() != hash)
+    const auto& block_ptr = message->block_ptr;
+    if (tracker->hashes.back() != block_ptr->hash())
         return true;
-
-    // Out of order or invalid.
-    if (block.header().previous_block_hash() != top_.hash())
-    {
-        LOGP("Orphan block [" << encode_hash(hash)
-            << "] from [" << authority() << "].");
-        return false;
-    }
-
-    // Add block at next height.
-    const auto height = add1(top_.height());
 
     // Asynchronous organization serves all channels.
     // A job backlog will occur when organize is slower than download.
     // This is not a material issue when checkpoints bypass validation.
     // The backlog may take minutes to clear upon shutdown.
-    organize(block_ptr, BIND3(handle_organize, _1, height, block_ptr));
-
-    // Set the new top and continue. Organize error will stop the channel.
-    top_ = { hash, height };
+    organize(block_ptr, BIND3(handle_organize, _1, _2, block_ptr));
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
@@ -193,9 +170,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 void protocol_block_in::complete() NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_block_in");
-
-    LOGN("Blocks from [" << authority() << "] complete at ("
-        << top_.height() << ").");
+    LOGN("Blocks from [" << authority() << "] exhausted.");
 }
 
 void protocol_block_in::handle_organize(const code& ec, size_t height,
@@ -206,7 +181,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
 
     if (ec)
     {
-        // Assuming no store failure this is a consensus failure.
+        // Assuming no store failure this is an orphan or consensus failure.
         LOGR("Block [" << encode_hash(block_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
             << ec.message());
@@ -285,6 +260,7 @@ hashes protocol_block_in::to_hashes(const get_data& getter) NOEXCEPT
     return out;
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 
