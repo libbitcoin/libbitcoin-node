@@ -117,7 +117,7 @@ void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
 
     if (ec)
     {
-        // Assuming no store failure this is a consensus failure.
+        // Assuming no store failure this is an orphan or consensus failure.
         LOGR("Header [" << encode_hash(header_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
             << ec.message());

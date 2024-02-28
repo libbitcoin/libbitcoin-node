@@ -181,7 +181,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
 
     if (ec)
     {
-        // Assuming no store failure this is a consensus failure.
+        // Assuming no store failure this is an orphan or consensus failure.
         LOGR("Block [" << encode_hash(block_ptr->hash())
             << "] at (" << height << ") from [" << authority() << "] "
             << ec.message());
