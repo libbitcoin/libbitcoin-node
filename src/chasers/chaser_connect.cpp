@@ -82,6 +82,10 @@ void chaser_connect::do_handle_event(const code& ec, chase event_,
 void chaser_connect::handle_checked(header_t) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_connect");
+
+    // TODO: if on this block, advance position until encountering a block that
+    // is not checked. It may not be possible to do this on height alone, since
+    // an asynchronous reorganization may render the height ambiguous.
 }
 
 BC_POP_WARNING()
