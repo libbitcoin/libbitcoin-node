@@ -45,9 +45,6 @@ protected:
     virtual void handle_transaction(transaction_t value) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
-
-private:
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };
 
 } // namespace node

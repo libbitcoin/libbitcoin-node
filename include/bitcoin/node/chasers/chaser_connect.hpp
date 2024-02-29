@@ -45,9 +45,6 @@ protected:
     virtual void handle_checked(header_t block) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
-
-private:
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 };
 
 } // namespace node

@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
 #include <functional>
+#include <variant>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -117,9 +118,28 @@ void protocol_block_in_31800::start() NOEXCEPT
         performance_timer_->start(BIND1(handle_performance_timer, _1));
     }
 
+    // TODO: Subscribe to chaser events through session/full_node.
+    /*subscribe*/(BIND3(handle_event, _1, _2, _3));
+
     SUBSCRIBE_CHANNEL2(block, handle_receive_block, _1, _2);
     get_hashes(BIND2(handle_get_hashes, _1, _2));
     protocol::start();
+}
+
+void protocol_block_in_31800::handle_event(const code&,
+    chaser::chase event_, chaser::link value) NOEXCEPT
+{
+    if (event_ == chaser::chase::unassociated)
+    {
+        BC_ASSERT(std::holds_alternative<chaser::header_t>(value));
+        POST1(handle_unassociated, std::get<chaser::header_t>(value));
+    }
+}
+
+// TODO: handle chaser::chase::unassociated (new downloads).
+void protocol_block_in_31800::handle_unassociated(chaser::header_t) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
 }
 
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
@@ -146,10 +166,6 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
         stop(ec);
         return;
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: subscribe to chaser::chase::unassociated (new downloads)
-    ///////////////////////////////////////////////////////////////////////////
 
     if (map->empty())
     {
@@ -202,7 +218,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
-        // Set header state to 'block_unconfirmable'.
+        // Set stored header state to 'block_unconfirmable'.
         query.set_block_unconfirmable(query.to_header(hash));
 
         // Notify that a candidate is 'unchecked' (candidates reorganize).

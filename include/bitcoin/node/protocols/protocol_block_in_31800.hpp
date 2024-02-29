@@ -74,6 +74,10 @@ protected:
     /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
+    virtual void handle_unassociated(chaser::header_t block) NOEXCEPT;
+    virtual void handle_event(const code& ec,
+        chaser::chase event_, chaser::link value) NOEXCEPT;
+
     /// Manage download queue.
     virtual void handle_put_hashes(const code& ec) NOEXCEPT;
     virtual void handle_get_hashes(const code& ec,

@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <functional>
 #include <utility>
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -28,7 +29,9 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
+#define CLASS chaser_block
+
 using namespace network;
 using namespace system;
 using namespace system::chain;
@@ -47,48 +50,45 @@ chaser_block::~chaser_block() NOEXCEPT
 {
 }
 
+// start
+// ----------------------------------------------------------------------------
+
 code chaser_block::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_block");
 
     // Initialize cache of top candidate chain state.
-    // Spans full chain to obtain cumulative work. This can be optimized by
-    // storing it with each header, though the scan is fast. The same occurs
-    // when a block first branches below the current chain top. Chain work is
-    // a questionable DoS protection scheme only, so could also toss it.
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    return subscribe(
-        std::bind(&chaser_block::handle_event,
-            this, _1, _2, _3));
+    return subscribe(BIND_3(handle_event, _1, _2, _3));
 }
 
-// protected
-void chaser_block::handle_event(const code& ec, chase event_,
+// event handlers
+// ----------------------------------------------------------------------------
+
+void chaser_block::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_block::do_handle_event,
-            this, ec, event_, value));
+    if (event_ == chase::unconnected)
+    {
+        POST_EVENT(handle_unconnected, height_t, value);
+    }
 }
 
-// private
-void chaser_block::do_handle_event(const code&, chase, link) NOEXCEPT
+void chaser_block::handle_unconnected(height_t) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_block");
 }
 
+// methods
+// ----------------------------------------------------------------------------
+
 void chaser_block::organize(const block::cptr& block,
     organize_handler&& handler) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_block::do_organize,
-            this, block, std::move(handler)));
+    POST_2(do_organize, block, std::move(handler));
 }
-
-// protected
-// ----------------------------------------------------------------------------
 
 void chaser_block::do_organize(const block::cptr& block_ptr,
     const organize_handler& handler) NOEXCEPT
@@ -117,10 +117,10 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // If header exists test for prior invalidity as a block.
-    const auto key = query.to_header(hash);
-    if (!key.is_terminal())
+    const auto id = query.to_header(hash);
+    if (!id.is_terminal())
     {
-        const auto ec = query.get_block_state(key);
+        const auto ec = query.get_block_state(id);
         if (ec == database::error::block_unconfirmable)
         {
             handler(ec, {});
@@ -286,6 +286,9 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     notify(error::success, chase::block, { branch_point });
     handler(error::success, height);
 }
+
+// utilities
+// ----------------------------------------------------------------------------
 
 chain_state::ptr chaser_block::get_state(
     const hash_digest& hash) const NOEXCEPT

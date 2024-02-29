@@ -27,11 +27,12 @@
 namespace libbitcoin {
 namespace node {
 
+#define CLASS chaser_confirm
+
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node)
 {
@@ -41,40 +42,25 @@ chaser_confirm::~chaser_confirm() NOEXCEPT
 {
 }
 
+// start
+// ----------------------------------------------------------------------------
+
 // TODO: initialize confirm state.
 code chaser_confirm::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_confirm");
-    return subscribe(
-        std::bind(&chaser_confirm::handle_event,
-            this, _1, _2, _3));
+    return subscribe(BIND_3(handle_event, _1, _2, _3));
 }
+
+// event handlers
+// ----------------------------------------------------------------------------
 
 void chaser_confirm::handle_event(const code& ec, chase event_,
     link value) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_confirm::do_handle_event, this, ec, event_, value));
-}
-
-void chaser_confirm::do_handle_event(const code& ec, chase event_,
-    link value) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "chaser_confirm");
-
-    if (ec)
-        return;
-
-    switch (event_)
+    if (event_ == chase::connected)
     {
-        case chase::connected:
-        {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            handle_connected(std::get<header_t>(value));
-            break;
-        }
-        default:
-            return;
+        POST_EVENT(handle_connected, header_t, value);
     }
 }
 

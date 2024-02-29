@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 
 #include <functional>
+#include <utility>
 #include <variant>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -105,6 +106,18 @@ public:
     virtual code start() NOEXCEPT = 0;
 
 protected:
+    template <typename Method, typename... Args>
+    auto bind(Method&& method, Args&&... args) NOEXCEPT
+    {
+        return BIND(method, args);
+    }
+
+    template <typename Method, typename... Args>
+    auto post(Method&& method, Args&&... args) NOEXCEPT
+    {
+        return boost::asio::post(strand(), BIND(method, args));
+    }
+
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
@@ -142,6 +155,26 @@ private:
     // This is protected by the network strand.
     event_subscriber& subscriber_;
 };
+
+// These are distinct from network binding macros because of binding 'this'.
+
+#define BIND_1(method, p1) \
+    std::bind(&CLASS::method, this, p1)
+#define BIND_2(method, p1, p2) \
+    std::bind(&CLASS::method, this, p1, p2)
+#define BIND_3(method, p1, p2, p3) \
+    std::bind(&CLASS::method, this, p1, p2, p3)
+
+#define POST_1(method, p1) \
+    boost::asio::post(strand(), BIND_1(method, p1));
+#define POST_2(method, p1, p2) \
+    boost::asio::post(strand(), BIND_2(method, p1, p2));
+#define POST_3(method, p1, p2, p3) \
+    boost::asio::post(strand(), BIND_3(method, p1, p2, p3));
+
+#define POST_EVENT(method, type, p1) \
+    BC_ASSERT(std::holds_alternative<type>(p1)); \
+    POST_1(method, std::get<type>(p1));
 
 } // namespace node
 } // namespace libbitcoin

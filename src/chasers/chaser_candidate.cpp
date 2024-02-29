@@ -28,11 +28,12 @@
 namespace libbitcoin {
 namespace node {
 
+#define CLASS chaser_candidate
+
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Requires subscriber_ protection (call from node construct or node.strand).
 chaser_candidate::chaser_candidate(full_node& node) NOEXCEPT
   : chaser(node)
 {
@@ -42,40 +43,25 @@ chaser_candidate::~chaser_candidate() NOEXCEPT
 {
 }
 
+// start
+// ----------------------------------------------------------------------------
+
 // TODO: initialize candidate state.
 code chaser_candidate::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_check");
-    return subscribe(
-        std::bind(&chaser_candidate::handle_event,
-            this, _1, _2, _3));
+    return subscribe(BIND_3(handle_event, _1, _2, _3));
 }
 
-void chaser_candidate::handle_event(const code& ec, chase event_,
+// event handlers
+// ----------------------------------------------------------------------------
+
+void chaser_candidate::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_candidate::do_handle_event, this, ec, event_, value));
-}
-
-void chaser_candidate::do_handle_event(const code& ec, chase event_,
-    link value) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "chaser_candidate");
-
-    if (ec)
-        return;
-
-    switch (event_)
+    if (event_ == chase::transaction)
     {
-        case chase::transaction:
-        {
-            BC_ASSERT(std::holds_alternative<transaction_t>(value));
-            handle_transaction(std::get<transaction_t>(value));
-            break;
-        }
-        default:
-            return;
+        POST_EVENT(handle_transaction, transaction_t, value);
     }
 }
 

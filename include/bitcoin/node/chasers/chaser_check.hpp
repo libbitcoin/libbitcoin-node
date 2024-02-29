@@ -58,9 +58,6 @@ protected:
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
-private:
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-
     // This is protected by strand.
     map_ptr map_{};
 };
