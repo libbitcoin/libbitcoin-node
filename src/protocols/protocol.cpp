@@ -58,10 +58,16 @@ void protocol::get_hashes(chaser_check::handler&& handler) NOEXCEPT
     session_.get_hashes(std::move(handler));
 }
 
-void protocol::put_hashes(const chaser_check::map& map,
+void protocol::put_hashes(const chaser_check::map_ptr& map,
     network::result_handler&& handler) NOEXCEPT
 {
     session_.put_hashes(map, std::move(handler));
+}
+
+void protocol::notify(const code& ec, chaser::chase event_,
+    chaser::link value) NOEXCEPT
+{
+    session_.notify(ec, event_, value);
 }
 
 const configuration& protocol::config() const NOEXCEPT

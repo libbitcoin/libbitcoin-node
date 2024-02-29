@@ -88,11 +88,8 @@ private:
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
 
-    // Thread safe.
+    // This is thread safe.
     const network::messages::inventory::type_id block_type_;
-
-    // Protected by strand.
-    system::chain::checkpoint top_{};
 };
 
 } // namespace node

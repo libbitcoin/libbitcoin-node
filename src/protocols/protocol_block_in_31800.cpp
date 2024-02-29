@@ -133,20 +133,11 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
-// TODO: need map pointer from chaser to avoid large map copies here.
 
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
-    const chaser_check::map& map) NOEXCEPT
+    const map_ptr& map) NOEXCEPT
 {
-    POST2(do_handle_get_hashes, ec, map);
-}
-
-// private
-void protocol_block_in_31800::do_handle_get_hashes(const code& ec,
-    const chaser_check::map& map) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
-    BC_ASSERT_MSG(map.size() < max_inventory, "inventory overflow");
+    BC_ASSERT_MSG(map->size() < max_inventory, "inventory overflow");
 
     if (ec)
     {
@@ -156,13 +147,23 @@ void protocol_block_in_31800::do_handle_get_hashes(const code& ec,
         return;
     }
 
-    if (map.empty())
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: subscribe to chaser::chase::unassociated (new downloads)
+    ///////////////////////////////////////////////////////////////////////////
+
+    if (map->empty())
     {
         LOGP("Exhausted block hashes at [" << authority() << "] "
             << ec.message());
         return;
     }
 
+    POST1(send_get_data, map);
+}
+
+void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
     SEND1(create_get_data(map), handle_send, _1);
 }
 
@@ -183,45 +184,56 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
+    auto& query = archive();
     const auto& block = *message->block_ptr;
     const auto hash = block.hash();
-    const auto it = map_.find(hash);
+    const auto it = map_->find(hash);
 
-    if (it == map_.end())
+    if (it == map_->end())
     {
-        // TODO: store and signal invalid block state (reorgs header chaser).
+        // Allow unrequested block, not counted toward performance.
         LOGR("Unrequested block [" << encode_hash(hash) << "] from ["
             << authority() << "].");
-        stop(node::error::unknown);
         return false;
     }
 
     code error{};
     const auto& ctx = it->second;
+    const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
-        // TODO: store and signal invalid block state (reorgs header chaser).
-        LOGR("Invalid block [" << encode_hash(hash) << "] from ["
-            << authority() << "] " << error.message());
+        // Set header state to 'block_unconfirmable'.
+        query.set_block_unconfirmable(query.to_header(hash));
+
+        // Notify that a candidate is 'unchecked' (candidates reorganize).
+        notify(error::success, chaser::chase::unchecked, { height });
+
+        // TODO: include context in log message.
+        LOGR("Invalid block [" << encode_hash(hash) << "] at ("
+            << ctx.height << ") from [" << authority() << "] "
+            << error.message());
+
         stop(error);
         return false;
     }
 
-    // TODO: optimize using header_fk with txs (or remove header_fk).
-    if (archive().set_link(block).is_terminal())
+    // TODO: optimize using header_fk?
+    // Commit the block (txs) to the store, failure may stall the node.
+    if (query.set_link(block).is_terminal())
     {
-        // TODO: store and signal invalid block state (reorgs header chaser).
-        LOGF("Failure storing block [" << encode_hash(hash) << "].");
+        LOGF("Failure storing block [" << encode_hash(hash) << "] at ("
+            << ctx.height << ") from [" << authority() << "] "
+            << error.message());
         stop(node::error::store_integrity);
         return false;
     }
 
-    // Block check accounted for.
-    map_.erase(it);
+    notify(error::success, chaser::chase::checked, { height });
     bytes_ += message->cached_size;
+    map_->erase(it);
 
     // Get some more work from chaser.
-    if (is_zero(map_.size()))
+    if (map_->empty())
     {
         LOGP("Getting more block hashes for [" << authority() << "].");
         get_hashes(BIND2(handle_get_hashes, _1, _2));
@@ -234,14 +246,14 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 // ----------------------------------------------------------------------------
 
 get_data protocol_block_in_31800::create_get_data(
-    const chaser_check::map& map) const NOEXCEPT
+    const map_ptr& map) const NOEXCEPT
 {
     // clang emplace_back bug (no matching constructor), using push_back.
     // bip144: get_data uses witness constant but inventory does not.
 
     get_data getter{};
-    getter.items.reserve(map.size());
-    for (const auto& item: map)
+    getter.items.reserve(map->size());
+    for (const auto& item: *map)
         getter.items.push_back({ block_type_, item.first });
 
     return getter;

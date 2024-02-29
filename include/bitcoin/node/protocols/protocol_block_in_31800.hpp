@@ -37,6 +37,7 @@ class BCN_API protocol_block_in_31800
 public:
     typedef std::shared_ptr<protocol_block_in_31800> ptr;
     using type_id = network::messages::inventory::type_id;
+    using map_ptr = chaser_check::map_ptr;
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename Session>
@@ -49,7 +50,8 @@ public:
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         performance_timer_(std::make_shared<network::deadline>(session.log,
-            channel->strand(), session.config().node.sample_period()))
+            channel->strand(), session.config().node.sample_period())),
+        map_(std::make_shared<database::context_map>())
     {
     }
     BC_POP_WARNING()
@@ -59,6 +61,9 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    /// Request blocks from peer.
+    virtual void send_get_data(const map_ptr& map) NOEXCEPT;
+
     /// Recieved incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
@@ -72,15 +77,12 @@ protected:
     /// Manage download queue.
     virtual void handle_put_hashes(const code& ec) NOEXCEPT;
     virtual void handle_get_hashes(const code& ec,
-        const chaser_check::map& map) NOEXCEPT;
+        const map_ptr& map) NOEXCEPT;
 
 private:
-    network::messages::get_data create_get_data(
-        const chaser_check::map& map) const NOEXCEPT;
-
     void do_handle_performance(const code& ec) NOEXCEPT;
-    void do_handle_get_hashes(const code& ec,
-        const chaser_check::map& map) NOEXCEPT;
+    network::messages::get_data create_get_data(
+        const map_ptr& map) const NOEXCEPT;
 
     // These are thread safe.
     const bool report_performance_;
@@ -88,9 +90,9 @@ private:
 
     // These are protected by strand.
     uint64_t bytes_{ zero };
-    chaser_check::map map_{};
     network::steady_clock::time_point start_{};
     network::deadline::ptr performance_timer_;
+    map_ptr map_;
 };
 
 } // namespace node

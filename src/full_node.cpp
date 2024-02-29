@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/full_node.hpp>
 
+#include <functional>
 #include <memory>
 #include <utility>
 #include <bitcoin/network.hpp>
@@ -148,10 +149,25 @@ void full_node::get_hashes(chaser_check::handler&& handler) NOEXCEPT
     chaser_check_.get_hashes(std::move(handler));
 }
 
-void full_node::put_hashes(const chaser_check::map& map,
+void full_node::put_hashes(const chaser_check::map_ptr& map,
     network::result_handler&& handler) NOEXCEPT
 {
     chaser_check_.put_hashes(map, std::move(handler));
+}
+
+void full_node::notify(const code& ec, chaser::chase event_,
+    chaser::link value) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&full_node::do_notify,
+            this, ec, event_, value));
+}
+
+void full_node::do_notify(const code& ec, chaser::chase event_,
+    chaser::link value) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "full_node");
+    event_subscriber_.notify(ec, event_, value);
 }
 
 // Properties.

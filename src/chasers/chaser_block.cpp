@@ -74,12 +74,9 @@ void chaser_block::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_block::do_handle_event(const code&, chase event_, link) NOEXCEPT
+void chaser_block::do_handle_event(const code&, chase, link) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_block");
-
-    if (event_ == chase::stop)
-        tree_.clear();
 }
 
 void chaser_block::organize(const block::cptr& block,
@@ -113,10 +110,28 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
         return;
     }
 
-    if (tree_.contains(hash) || query.is_block(hash))
+    if (tree_.contains(hash))
     {
         handler(error::duplicate_block, {});
         return;
+    }
+
+    // If header exists test for prior invalidity as a block.
+    const auto key = query.to_header(hash);
+    if (!key.is_terminal())
+    {
+        const auto ec = query.get_block_state(key);
+        if (ec == database::error::block_unconfirmable)
+        {
+            handler(ec, {});
+            return;
+        }
+
+        if (ec != database::error::unassociated)
+        {
+            handler(error::duplicate_block, {});
+            return;
+        }
     }
 
     // Results from running headers-first and then blocks-first.

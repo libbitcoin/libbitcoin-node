@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <functional>
+#include <memory>
 #include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
@@ -46,8 +47,9 @@ chaser_check::~chaser_check() NOEXCEPT
 
 code chaser_check::start() NOEXCEPT
 {
-    // Initialize from genesis block.
-    handle_header(zero);
+    // Initialize map to all unassociated blocks starting at genesis.
+    map_ = std::make_shared<database::context_map>(
+        archive().get_all_unassociated_above(zero));
 
     BC_ASSERT_MSG(node_stranded(), "chaser_check");
     return subscribe(
@@ -84,7 +86,7 @@ void chaser_check::get_hashes(handler&& handler) NOEXCEPT
             this, std::move(handler)));
 }
 
-void chaser_check::put_hashes(const chaser_check::map& map,
+void chaser_check::put_hashes(const map_ptr& map,
     network::result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
@@ -95,25 +97,40 @@ void chaser_check::put_hashes(const chaser_check::map& map,
 // protected
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_get_hashes(const handler&) NOEXCEPT
+void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
+    BC_ASSERT_MSG(map_, "chaser_check not started");
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: get them!
+    const auto hashes = std::make_shared<database::context_map>();
+    ///////////////////////////////////////////////////////////////////////////
+
+    handler(error::success, hashes);
 }
 
-void chaser_check::do_put_hashes(const chaser_check::map&,
-    const network::result_handler&) NOEXCEPT
+void chaser_check::do_put_hashes(const map_ptr& map,
+    const network::result_handler& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_check");
+    BC_ASSERT_MSG(map_, "chaser_check not started");
+
+    map_->merge(*map);
+    handler(error::success);
 }
 
+// Stale branches are just be allowed to complete (still downloaded).
 void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
-    // Map and peer maps may have newly stale blocks.
-    // All stale branches can just be allowed to complete.
-    // The connect chaser will verify proper advancement.
-    const auto& query = archive();
-    map_.merge(query.get_all_unassociated_above(
-        query.get_last_associated_from(branch_point)));
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+    BC_ASSERT_MSG(map_, "chaser_check not started");
+
+    const auto before = map_->size();
+    map_->merge(archive().get_all_unassociated_above(branch_point));
+    const auto after = map_->size();
+    if (after > before)
+    notify(error::success, chaser::chase::unassociated, {});
 }
 
 BC_POP_WARNING()

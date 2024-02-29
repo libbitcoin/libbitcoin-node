@@ -62,9 +62,6 @@ private:
         const system::hash_digest& last) const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         system::hashes&& start_hashes) const NOEXCEPT;
-
-    // Protected by strand.
-    system::chain::checkpoint top_{};
 };
 
 } // namespace node
