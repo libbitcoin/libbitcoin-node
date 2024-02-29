@@ -58,7 +58,7 @@ code chaser_check::start() NOEXCEPT
     map_ = std::make_shared<database::context_map>(
         archive().get_all_unassociated_above(zero));
 
-    return subscribe(BIND_3(handle_event, _1, _2, _3));
+    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -69,7 +69,7 @@ void chaser_check::handle_event(const code&, chase event_,
 {
     if (event_ == chase::header)
     {
-        POST_EVENT(handle_header, height_t, value);
+        POST(handle_header, std::get<height_t>(value));
     }
 }
 

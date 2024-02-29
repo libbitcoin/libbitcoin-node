@@ -44,7 +44,7 @@ void session_outbound::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
-        BIND3(do_performance, channel, speed, handler));
+        BIND(do_performance, channel, speed, handler));
 }
 
 void session_outbound::do_performance(uint64_t channel, uint64_t speed,

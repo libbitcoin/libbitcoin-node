@@ -59,8 +59,8 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
-    SUBSCRIBE_CHANNEL2(inventory, handle_receive_inventory, _1, _2);
-    SEND1(create_get_inventory(), handle_send, _1);
+    SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
+    SEND(create_get_inventory(), handle_send, _1);
     protocol::start();
 }
 
@@ -90,7 +90,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
         if (message->items.size() == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (empty maximal).");
-            SEND1(create_get_inventory(message->items.back().hash),
+            SEND(create_get_inventory(message->items.back().hash),
                 handle_send, _1);
         }
 
@@ -109,8 +109,8 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 
     // TODO: these should be limited in quantity for DOS protection.
     // There is one block subscription for each received unexhausted inventory.
-    SUBSCRIBE_CHANNEL3(block, handle_receive_block, _1, _2, tracker);
-    SEND1(getter, handle_send, _1);
+    SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2, tracker);
+    SEND(getter, handle_send, _1);
     return true;
 }
 
@@ -138,7 +138,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // A job backlog will occur when organize is slower than download.
     // This is not a material issue when checkpoints bypass validation.
     // The backlog may take minutes to clear upon shutdown.
-    organize(block_ptr, BIND3(handle_organize, _1, _2, block_ptr));
+    organize(block_ptr, BIND(handle_organize, _1, _2, block_ptr));
 
     // Order is reversed, so next is at back.
     tracker->hashes.pop_back();
@@ -150,7 +150,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
         if (tracker->announced == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
-            SEND1(create_get_inventory(tracker->last), handle_send, _1);
+            SEND(create_get_inventory(tracker->last), handle_send, _1);
         }
         else
         {

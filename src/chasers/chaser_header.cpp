@@ -68,7 +68,7 @@ code chaser_header::start() NOEXCEPT
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    return subscribe(BIND_3(handle_event, _1, _2, _3));
+    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -80,7 +80,7 @@ void chaser_header::handle_event(const code&, chase event_,
 {
     if (event_ == chase::unchecked)
     {
-        POST_EVENT(handle_unchecked, height_t, value);
+        POST(handle_unchecked, std::get<height_t>(value));
     }
 }
 
@@ -107,7 +107,7 @@ void chaser_header::handle_unchecked(height_t) NOEXCEPT
 void chaser_header::organize(const header::cptr& header,
     organize_handler&& handler) NOEXCEPT
 {
-    POST_2(do_organize, header, std::move(handler));
+    POST(do_organize, header, std::move(handler));
 }
 
 void chaser_header::do_organize(const header::cptr& header_ptr,

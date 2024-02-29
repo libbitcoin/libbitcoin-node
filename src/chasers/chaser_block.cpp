@@ -61,7 +61,7 @@ code chaser_block::start() NOEXCEPT
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    return subscribe(BIND_3(handle_event, _1, _2, _3));
+    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -72,7 +72,7 @@ void chaser_block::handle_event(const code&, chase event_,
 {
     if (event_ == chase::unconnected)
     {
-        POST_EVENT(handle_unconnected, height_t, value);
+        POST(handle_unconnected, std::get<height_t>(value));
     }
 }
 
@@ -87,7 +87,7 @@ void chaser_block::handle_unconnected(height_t) NOEXCEPT
 void chaser_block::organize(const block::cptr& block,
     organize_handler&& handler) NOEXCEPT
 {
-    POST_2(do_organize, block, std::move(handler));
+    POST(do_organize, block, std::move(handler));
 }
 
 void chaser_block::do_organize(const block::cptr& block_ptr,

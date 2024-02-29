@@ -76,12 +76,12 @@ void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
     // Bounces to network strand, performs work, then calls handler.
     // Channel will continue to process blocks while this call excecutes on the
     // network strand. Timer will not be restarted until this call completes.
-    performance(identifier(), rate, BIND1(handle_performance, ec));
+    performance(identifier(), rate, BIND(handle_performance, ec));
 }
 
 void protocol_block_in_31800::handle_performance(const code& ec) NOEXCEPT
 {
-    POST1(do_handle_performance, ec);
+    POST(do_handle_performance, ec);
 }
 
 void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
@@ -99,7 +99,7 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
         return;
     };
 
-    performance_timer_->start(BIND1(handle_performance_timer, _1));
+    performance_timer_->start(BIND(handle_performance_timer, _1));
 }
 
 // Start/stop.
@@ -115,14 +115,14 @@ void protocol_block_in_31800::start() NOEXCEPT
     if (report_performance_)
     {
         start_ = steady_clock::now();
-        performance_timer_->start(BIND1(handle_performance_timer, _1));
+        performance_timer_->start(BIND(handle_performance_timer, _1));
     }
 
     // TODO: Subscribe to chaser events through session/full_node.
-    /*subscribe*/(BIND3(handle_event, _1, _2, _3));
+    /*subscribe*/(BIND(handle_event, _1, _2, _3));
 
-    SUBSCRIBE_CHANNEL2(block, handle_receive_block, _1, _2);
-    get_hashes(BIND2(handle_get_hashes, _1, _2));
+    SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
+    get_hashes(BIND(handle_get_hashes, _1, _2));
     protocol::start();
 }
 
@@ -132,7 +132,7 @@ void protocol_block_in_31800::handle_event(const code&,
     if (event_ == chaser::chase::unassociated)
     {
         BC_ASSERT(std::holds_alternative<chaser::header_t>(value));
-        POST1(handle_unassociated, std::get<chaser::header_t>(value));
+        POST(handle_unassociated, std::get<chaser::header_t>(value));
     }
 }
 
@@ -147,7 +147,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
 
     performance_timer_->stop();
-    put_hashes(map_, BIND1(handle_put_hashes, _1));
+    put_hashes(map_, BIND(handle_put_hashes, _1));
     protocol::stopping(ec);
 }
 
@@ -174,13 +174,13 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
         return;
     }
 
-    POST1(send_get_data, map);
+    POST(send_get_data, map);
 }
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
-    SEND1(create_get_data(map), handle_send, _1);
+    SEND(create_get_data(map), handle_send, _1);
 }
 
 void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
@@ -252,7 +252,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (map_->empty())
     {
         LOGP("Getting more block hashes for [" << authority() << "].");
-        get_hashes(BIND2(handle_get_hashes, _1, _2));
+        get_hashes(BIND(handle_get_hashes, _1, _2));
     }
 
     return true;

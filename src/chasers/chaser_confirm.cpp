@@ -49,7 +49,7 @@ chaser_confirm::~chaser_confirm() NOEXCEPT
 code chaser_confirm::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_confirm");
-    return subscribe(BIND_3(handle_event, _1, _2, _3));
+    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -60,7 +60,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
 {
     if (event_ == chase::connected)
     {
-        POST_EVENT(handle_connected, header_t, value);
+        POST(handle_connected, std::get<header_t>(value));
     }
 }
 

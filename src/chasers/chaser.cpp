@@ -77,7 +77,7 @@ bool chaser::node_stranded() const NOEXCEPT
     return node_.stranded();
 }
 
-code chaser::subscribe(event_handler&& handler) NOEXCEPT
+code chaser::subscribe_event(event_handler&& handler) NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser");
     return subscriber_.subscribe(std::move(handler));
@@ -86,7 +86,7 @@ code chaser::subscribe(event_handler&& handler) NOEXCEPT
 // Posts to network strand (call from chaser strands).
 void chaser::notify(const code& ec, chase event_, link value) NOEXCEPT
 {
-    POST_3(do_notify, ec, event_, value);
+    POST(do_notify, ec, event_, value);
 }
 
 // Executed on network strand (handler should bounce to chaser strand).

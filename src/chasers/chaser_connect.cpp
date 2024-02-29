@@ -49,7 +49,7 @@ chaser_connect::~chaser_connect() NOEXCEPT
 code chaser_connect::start() NOEXCEPT
 {
     BC_ASSERT_MSG(node_stranded(), "chaser_connect");
-    return subscribe(BIND_3(handle_event, _1, _2, _3));
+    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -60,7 +60,7 @@ void chaser_connect::handle_event(const code&, chase event_,
 {
     if (event_ == chase::connected)
     {
-        POST_EVENT(handle_checked, header_t, value);
+        POST(handle_checked, std::get<header_t>(value));
     }
 }
 
