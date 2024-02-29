@@ -71,8 +71,12 @@ public:
 
     /// Manage download queue.
     virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
-    virtual void put_hashes(const chaser_check::map& map,
+    virtual void put_hashes(const chaser_check::map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
+
+    /// Set chaser event (does not require network strand).
+    virtual void notify(const code& ec, chaser::chase event_,
+        chaser::link value) NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -101,6 +105,8 @@ protected:
     void do_start(const network::result_handler& handler) NOEXCEPT override;
     void do_run(const network::result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;
+    virtual void do_notify(const code& ec, chaser::chase event_,
+        chaser::link value) NOEXCEPT;
 
 private:
     // These are thread safe.
