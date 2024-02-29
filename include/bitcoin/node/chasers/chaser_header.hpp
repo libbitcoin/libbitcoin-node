@@ -64,6 +64,9 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 
+    // Handle events.
+    virtual void handle_unchecked(height_t height) NOEXCEPT;
+
     /// Sum of work from header to branch point (excluded).
     virtual bool get_branch_work(uint256_t& work, size_t& point,
         system::hashes& tree_branch, header_links& store_branch,

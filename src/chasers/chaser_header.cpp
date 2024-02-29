@@ -91,12 +91,34 @@ void chaser_header::handle_event(const code& ec, chase event_,
 }
 
 // private
-void chaser_header::do_handle_event(const code&, chase event_, link) NOEXCEPT
+void chaser_header::do_handle_event(const code&, chase event_,
+    link value) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "chaser_header");
 
-    if (event_ == chase::stop)
-        tree_.clear();
+    if (event_ == chase::unchecked)
+    {
+        BC_ASSERT(std::holds_alternative<height_t>(value));
+        handle_unchecked(std::get<height_t>(value));
+    }
+}
+
+// TODO: chaser_header controls canididate organization for headers first
+// TODO: chaser_block controls canididate organization for blocks first.
+// TODO: mark all headers above as invalid and pop from candidate chain.
+// TODO: if weaker than confirmed chain reorg into confirmed. There may also
+// TODO: be a stronger cached chain but there is no marker for its top.
+// TODO: candidate is weaker than confirmed, since it didn't reorg prior.
+// TODO: so just close conformed to candidate and wait for next block. This
+// TODO: might result in a material delay in the case where there is a strong
+// TODO: but also invalid block (extremely rare) but this is easily recovered.
+// TODO: (1) from invalid key mark all above as invalid and pop.
+// TODO: (2) pop down to current common (fork point) into the header cache.
+// TODO: (3) push confirmed into candidate until equal and notify.
+// TODO: chaser_check must reset header as its top.
+void chaser_header::handle_unchecked(height_t) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_connect");
 }
 
 void chaser_header::organize(const header::cptr& header,
@@ -129,8 +151,23 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    if (tree_.contains(hash) || query.is_header(hash))
+    if (tree_.contains(hash))
     {
+        handler(error::duplicate_header, {});
+        return;
+    }
+
+    // If header exists tests for prior invalidity as a block.
+    const auto fk = query.to_header(hash);
+    if (!fk.is_terminal())
+    {
+        const auto ec = query.get_header_state(fk);
+        if (ec == database::error::block_unconfirmable)
+        {
+            handler(ec, {});
+            return;
+        }
+
         handler(error::duplicate_header, {});
         return;
     }
