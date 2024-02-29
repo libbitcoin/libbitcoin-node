@@ -116,7 +116,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
         return;
     }
 
-    // If header exists tests for prior invalidity as a block.
+    // If header exists test for prior invalidity as a block.
     const auto link = query.to_header(hash);
     if (!link.is_terminal())
     {

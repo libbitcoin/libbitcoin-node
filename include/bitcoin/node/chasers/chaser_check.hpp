@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
 #include <functional>
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -34,9 +35,8 @@ class BCN_API chaser_check
   : public chaser
 {
 public:
-    // context_map casts header_fk into context.minimum_block_version.
-    using map = database::context_map;
-    typedef std::function<void(const code&, const map&)> handler;
+    typedef std::shared_ptr<database::context_map> map_ptr;
+    typedef std::function<void(const code&, const map_ptr&)> handler;
 
     DELETE_COPY_MOVE(chaser_check);
 
@@ -46,7 +46,7 @@ public:
     virtual code start() NOEXCEPT;
 
     virtual void get_hashes(handler&& handler) NOEXCEPT;
-    virtual void put_hashes(const map& map,
+    virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
@@ -55,13 +55,14 @@ protected:
         link value) NOEXCEPT;
 
     virtual void do_get_hashes(const handler& handler) NOEXCEPT;
-    virtual void do_put_hashes(const map& map,
+    virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
 private:
     void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 
-    map map_{};
+    // This is protected by strand.
+    map_ptr map_{};
 };
 
 } // namespace node
