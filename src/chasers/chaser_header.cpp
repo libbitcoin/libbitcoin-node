@@ -158,10 +158,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // If header exists test for prior invalidity as a block.
-    const auto fk = query.to_header(hash);
-    if (!fk.is_terminal())
+    const auto key = query.to_header(hash);
+    if (!key.is_terminal())
     {
-        const auto ec = query.get_header_state(fk);
+        const auto ec = query.get_header_state(key);
         if (ec == database::error::block_unconfirmable)
         {
             handler(ec, {});
