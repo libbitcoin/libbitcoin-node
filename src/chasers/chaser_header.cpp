@@ -75,7 +75,7 @@ code chaser_header::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 // protected
-void chaser_header::handle_event(const code& ec, chase event_,
+void chaser_header::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
     if (event_ == chase::unchecked)

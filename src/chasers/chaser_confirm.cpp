@@ -55,7 +55,7 @@ code chaser_confirm::start() NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-void chaser_confirm::handle_event(const code& ec, chase event_,
+void chaser_confirm::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
     if (event_ == chase::connected)

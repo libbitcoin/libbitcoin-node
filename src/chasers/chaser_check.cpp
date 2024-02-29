@@ -64,7 +64,7 @@ code chaser_check::start() NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-void chaser_check::handle_event(const code& ec, chase event_,
+void chaser_check::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
     if (event_ == chase::header)
