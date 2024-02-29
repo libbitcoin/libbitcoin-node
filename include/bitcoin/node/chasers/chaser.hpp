@@ -57,17 +57,23 @@ public:
         /// The block chaser works with the header-first protocol.
         header,
 
+        /// New unassociated blocks exist in the strong branch.
+        unassociated,
+
         /// A block has been downloaded, checked and stored (header_t).
         /// Issued by 'check' and handled by 'connect'.
         checked,
+        unchecked,
 
         /// A branch has been connected (header_t|height_t).
         /// Issued by 'connect' and handled by 'confirm'.
         connected,
+        unconnected,
 
         /// A branch has been confirmed (fork header_t|height_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
+        unconfirmed,
 
         /// A new transaction has been added to the pool (transaction_t).
         /// Issued by 'transaction' and handled by 'candidate'.
