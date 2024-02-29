@@ -106,18 +106,6 @@ public:
     virtual code start() NOEXCEPT = 0;
 
 protected:
-    template <typename Method, typename... Args>
-    auto bind(Method&& method, Args&&... args) NOEXCEPT
-    {
-        return BIND(method, args);
-    }
-
-    template <typename Method, typename... Args>
-    auto post(Method&& method, Args&&... args) NOEXCEPT
-    {
-        return boost::asio::post(strand(), BIND(method, args));
-    }
-
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
