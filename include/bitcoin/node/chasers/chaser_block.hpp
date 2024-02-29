@@ -64,6 +64,9 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 
+    // Handle events.
+    virtual void handle_unconnected(height_t height) NOEXCEPT;
+
     /// Sum of work from header to fork point (excluded).
     virtual bool get_branch_work(uint256_t& work, size_t& point,
         system::hashes& tree_branch, header_links& store_branch,
@@ -100,7 +103,6 @@ protected:
 
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
 
     // This is thread safe.
     const system::chain::checkpoints& checkpoints_;

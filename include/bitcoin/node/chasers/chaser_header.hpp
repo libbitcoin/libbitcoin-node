@@ -106,8 +106,6 @@ protected:
     virtual bool use_currency_window() const NOEXCEPT;
 
 private:
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-
     // These are thread safe.
     const uint256_t minimum_work_;
     const system::chain::checkpoint& milestone_;

@@ -27,6 +27,8 @@
 
 namespace libbitcoin {
 namespace node {
+
+#define CLASS chaser_header
     
 using namespace network;
 using namespace system;
@@ -50,18 +52,8 @@ chaser_header::~chaser_header() NOEXCEPT
 {
 }
 
-// protected
-const network::wall_clock::duration&
-chaser_header::currency_window() const NOEXCEPT
-{
-    return currency_window_;
-}
-
-// protected
-bool chaser_header::use_currency_window() const NOEXCEPT
-{
-    return use_currency_window_;
-}
+// start
+// ----------------------------------------------------------------------------
 
 // protected
 code chaser_header::start() NOEXCEPT
@@ -76,35 +68,23 @@ code chaser_header::start() NOEXCEPT
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    return subscribe(
-        std::bind(&chaser_header::handle_event,
-            this, _1, _2, _3));
+    return subscribe(BIND_3(handle_event, _1, _2, _3));
 }
+
+// event handlers
+// ----------------------------------------------------------------------------
 
 // protected
-void chaser_header::handle_event(const code& ec, chase event_,
+void chaser_header::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_header::do_handle_event,
-            this, ec, event_, value));
-}
-
-// private
-void chaser_header::do_handle_event(const code&, chase event_,
-    link value) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "chaser_header");
-
     if (event_ == chase::unchecked)
     {
-        BC_ASSERT(std::holds_alternative<height_t>(value));
-        handle_unchecked(std::get<height_t>(value));
+        POST_EVENT(handle_unchecked, height_t, value);
     }
 }
 
 // TODO: chaser_header controls canididate organization for headers first
-// TODO: chaser_block controls canididate organization for blocks first.
 // TODO: mark all headers above as invalid and pop from candidate chain.
 // TODO: if weaker than confirmed chain reorg into confirmed. There may also
 // TODO: be a stronger cached chain but there is no marker for its top.
@@ -118,19 +98,17 @@ void chaser_header::do_handle_event(const code&, chase event_,
 // TODO: chaser_check must reset header as its top.
 void chaser_header::handle_unchecked(height_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_connect");
+    BC_ASSERT_MSG(stranded(), "chaser_header");
 }
+
+// methods
+// ----------------------------------------------------------------------------
 
 void chaser_header::organize(const header::cptr& header,
     organize_handler&& handler) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_header::do_organize,
-            this, header, std::move(handler)));
+    POST_2(do_organize, header, std::move(handler));
 }
-
-// protected
-// ----------------------------------------------------------------------------
 
 void chaser_header::do_organize(const header::cptr& header_ptr,
     const organize_handler& handler) NOEXCEPT
@@ -158,10 +136,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // If header exists test for prior invalidity as a block.
-    const auto key = query.to_header(hash);
-    if (!key.is_terminal())
+    const auto id = query.to_header(hash);
+    if (!id.is_terminal())
     {
-        const auto ec = query.get_header_state(key);
+        const auto ec = query.get_header_state(id);
         if (ec == database::error::block_unconfirmable)
         {
             handler(ec, {});
@@ -299,6 +277,9 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     handler(error::success, height);
 }
 
+// utilities
+// ----------------------------------------------------------------------------
+
 chain_state::ptr chaser_header::get_state(
     const hash_digest& hash) const NOEXCEPT
 {
@@ -423,6 +404,22 @@ bool chaser_header::push(const hash_digest& key) NOEXCEPT
     const auto& node = value.mapped();
     const auto link = query.set_link(*node.header, node.state->context());
     return query.push_candidate(link);
+}
+
+// properties
+// ----------------------------------------------------------------------------
+
+// protected
+const network::wall_clock::duration&
+chaser_header::currency_window() const NOEXCEPT
+{
+    return currency_window_;
+}
+
+// protected
+bool chaser_header::use_currency_window() const NOEXCEPT
+{
+    return use_currency_window_;
 }
 
 BC_POP_WARNING()

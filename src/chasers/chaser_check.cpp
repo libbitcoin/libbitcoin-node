@@ -29,6 +29,8 @@
 namespace libbitcoin {
 namespace node {
 
+#define CLASS chaser_check
+
 using namespace network;
 using namespace system;
 using namespace system::chain;
@@ -45,39 +47,47 @@ chaser_check::~chaser_check() NOEXCEPT
 {
 }
 
+// start
+// ----------------------------------------------------------------------------
+
 code chaser_check::start() NOEXCEPT
 {
+    BC_ASSERT_MSG(node_stranded(), "chaser_check");
+
     // Initialize map to all unassociated blocks starting at genesis.
     map_ = std::make_shared<database::context_map>(
         archive().get_all_unassociated_above(zero));
 
-    BC_ASSERT_MSG(node_stranded(), "chaser_check");
-    return subscribe(
-        std::bind(&chaser_check::handle_event,
-            this, _1, _2, _3));
+    return subscribe(BIND_3(handle_event, _1, _2, _3));
 }
 
-// protected
-void chaser_check::handle_event(const code& ec, chase event_,
+// event handlers
+// ----------------------------------------------------------------------------
+
+void chaser_check::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    boost::asio::post(strand(),
-        std::bind(&chaser_check::do_handle_event,
-            this, ec, event_, value));
-}
-
-// private
-void chaser_check::do_handle_event(const code&, chase event_,
-    link value) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-
     if (event_ == chase::header)
     {
-        BC_ASSERT(std::holds_alternative<height_t>(value));
-        handle_header(std::get<height_t>(value));
+        POST_EVENT(handle_header, height_t, value);
     }
 }
+
+// Stale branches are just be allowed to complete (still downloaded).
+void chaser_check::handle_header(height_t branch_point) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "chaser_check");
+    BC_ASSERT_MSG(map_, "chaser_check not started");
+
+    const auto before = map_->size();
+    map_->merge(archive().get_all_unassociated_above(branch_point));
+    const auto after = map_->size();
+    if (after > before)
+        notify(error::success, chaser::chase::unassociated, {});
+}
+
+// methods
+// ----------------------------------------------------------------------------
 
 void chaser_check::get_hashes(handler&& handler) NOEXCEPT
 {
@@ -93,9 +103,6 @@ void chaser_check::put_hashes(const map_ptr& map,
         std::bind(&chaser_check::do_put_hashes,
             this, map, std::move(handler)));
 }
-
-// protected
-// ----------------------------------------------------------------------------
 
 void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 {
@@ -118,19 +125,6 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 
     map_->merge(*map);
     handler(error::success);
-}
-
-// Stale branches are just be allowed to complete (still downloaded).
-void chaser_check::handle_header(height_t branch_point) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-    BC_ASSERT_MSG(map_, "chaser_check not started");
-
-    const auto before = map_->size();
-    map_->merge(archive().get_all_unassociated_above(branch_point));
-    const auto after = map_->size();
-    if (after > before)
-    notify(error::success, chaser::chase::unassociated, {});
 }
 
 BC_POP_WARNING()

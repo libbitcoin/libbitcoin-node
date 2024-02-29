@@ -28,10 +28,13 @@
 namespace libbitcoin {
 namespace node {
 
+#define CLASS chaser
+
 using namespace network;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// Requires subscriber_ protection (call from node construct or node.strand).
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
@@ -83,8 +86,7 @@ code chaser::subscribe(event_handler&& handler) NOEXCEPT
 // Posts to network strand (call from chaser strands).
 void chaser::notify(const code& ec, chase event_, link value) NOEXCEPT
 {
-    boost::asio::post(node_.strand(),
-        std::bind(&chaser::do_notify, this, ec, event_, value));
+    POST_3(do_notify, ec, event_, value);
 }
 
 // Executed on network strand (handler should bounce to chaser strand).

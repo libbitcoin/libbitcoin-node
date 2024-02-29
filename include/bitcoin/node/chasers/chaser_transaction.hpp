@@ -43,12 +43,11 @@ public:
     virtual void store(const system::chain::transaction::cptr& block) NOEXCEPT;
 
 protected:
-    virtual void handle_confirmed() NOEXCEPT;
+    virtual void handle_confirmed(header_t block) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 
 private:
-    void do_handle_event(const code& ec, chase event_, link value) NOEXCEPT;
     void do_store(const system::chain::transaction::cptr& header) NOEXCEPT;
 };
 
