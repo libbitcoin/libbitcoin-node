@@ -106,6 +106,20 @@ public:
     virtual code start() NOEXCEPT = 0;
 
 protected:
+    /// Bind a method (use BIND).
+    template <class Derived, typename Method, typename... Args>
+    auto bind(Method&& method, Args&&... args) NOEXCEPT
+    {
+        return BIND_THIS(method, args);
+    }
+
+    /// Post a method to channel strand (use POST).
+    template <class Derived, typename Method, typename... Args>
+    auto post(Method&& method, Args&&... args) NOEXCEPT
+    {
+        return boost::asio::post(strand(), BIND_THIS(method, args));
+    }
+
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
 
@@ -128,7 +142,7 @@ protected:
     bool node_stranded() const NOEXCEPT;
 
     /// Subscribe to chaser events.
-    code subscribe(event_handler&& handler) NOEXCEPT;
+    code subscribe_event(event_handler&& handler) NOEXCEPT;
 
     /// Set chaser event (does not require network strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
@@ -144,25 +158,8 @@ private:
     event_subscriber& subscriber_;
 };
 
-// These are distinct from network binding macros because of binding 'this'.
-
-#define BIND_1(method, p1) \
-    std::bind(&CLASS::method, this, p1)
-#define BIND_2(method, p1, p2) \
-    std::bind(&CLASS::method, this, p1, p2)
-#define BIND_3(method, p1, p2, p3) \
-    std::bind(&CLASS::method, this, p1, p2, p3)
-
-#define POST_1(method, p1) \
-    boost::asio::post(strand(), BIND_1(method, p1));
-#define POST_2(method, p1, p2) \
-    boost::asio::post(strand(), BIND_2(method, p1, p2));
-#define POST_3(method, p1, p2, p3) \
-    boost::asio::post(strand(), BIND_3(method, p1, p2, p3));
-
-#define POST_EVENT(method, type, p1) \
-    BC_ASSERT(std::holds_alternative<type>(p1)); \
-    POST_1(method, std::get<type>(p1));
+#define SUBSCRIBE_EVENT(method, ...) \
+    subscribe_event(BIND(method, __VA_ARGS__))
 
 } // namespace node
 } // namespace libbitcoin

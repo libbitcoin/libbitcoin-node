@@ -49,8 +49,8 @@ void protocol_header_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    SUBSCRIBE_CHANNEL2(headers, handle_receive_headers, _1, _2);
-    SEND1(create_get_headers(), handle_send, _1);
+    SUBSCRIBE_CHANNEL(headers, handle_receive_headers, _1, _2);
+    SEND(create_get_headers(), handle_send, _1);
     protocol::start();
 }
 
@@ -81,7 +81,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         if (!query.is_header(header_ptr->hash()))
         {
             // Asynchronous organization serves all channels.
-            organize(header_ptr, BIND3(handle_organize, _1, _2, header_ptr));
+            organize(header_ptr, BIND(handle_organize, _1, _2, header_ptr));
         }
     }
 
@@ -89,7 +89,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // The headers response to get_headers is limited to max_get_headers.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        SEND1(create_get_headers(message->header_ptrs.back()->hash()),
+        SEND(create_get_headers(message->header_ptrs.back()->hash()),
             handle_send, _1);
     }
     else
