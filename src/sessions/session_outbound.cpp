@@ -38,7 +38,7 @@ session_outbound::session_outbound(full_node& node,
   : attach(node, identifier),
     network::tracker<session_outbound>(node.log)
 {
-};
+}
 
 void session_outbound::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
