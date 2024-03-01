@@ -68,7 +68,7 @@ code chaser_header::start() NOEXCEPT
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
 // event handlers

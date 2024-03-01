@@ -58,7 +58,7 @@ code chaser_check::start() NOEXCEPT
     map_ = std::make_shared<database::context_map>(
         archive().get_all_unassociated_above(zero));
 
-    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
 // event handlers

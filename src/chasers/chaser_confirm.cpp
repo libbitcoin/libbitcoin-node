@@ -49,7 +49,7 @@ chaser_confirm::~chaser_confirm() NOEXCEPT
 code chaser_confirm::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
-    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
 // event handlers

@@ -158,7 +158,7 @@ private:
     event_subscriber& subscriber_;
 };
 
-#define SUBSCRIBE_EVENT(method, ...) \
+#define SUBSCRIBE_EVENTS(method, ...) \
     subscribe_events(BIND(method, __VA_ARGS__))
 
 } // namespace node
