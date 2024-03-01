@@ -52,7 +52,7 @@ chaser_check::~chaser_check() NOEXCEPT
 
 code chaser_check::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_check");
+    BC_ASSERT(node_stranded());
 
     // Initialize map to all unassociated blocks starting at genesis.
     map_ = std::make_shared<database::context_map>(
@@ -76,8 +76,8 @@ void chaser_check::handle_event(const code&, chase event_,
 // Stale branches are just be allowed to complete (still downloaded).
 void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-    BC_ASSERT_MSG(map_, "chaser_check not started");
+    BC_ASSERT(stranded());
+    BC_ASSERT_MSG(map_, "not started");
 
     const auto before = map_->size();
     map_->merge(archive().get_all_unassociated_above(branch_point));
@@ -106,8 +106,8 @@ void chaser_check::put_hashes(const map_ptr& map,
 
 void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-    BC_ASSERT_MSG(map_, "chaser_check not started");
+    BC_ASSERT(stranded());
+    BC_ASSERT_MSG(map_, "not started");
 
     ///////////////////////////////////////////////////////////////////////////
     // TODO: get them!
@@ -120,8 +120,8 @@ void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 void chaser_check::do_put_hashes(const map_ptr& map,
     const network::result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_check");
-    BC_ASSERT_MSG(map_, "chaser_check not started");
+    BC_ASSERT(stranded());
+    BC_ASSERT_MSG(map_, "not started");
 
     map_->merge(*map);
     handler(error::success);

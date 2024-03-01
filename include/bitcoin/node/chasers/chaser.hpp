@@ -142,7 +142,7 @@ protected:
     bool node_stranded() const NOEXCEPT;
 
     /// Subscribe to chaser events.
-    code subscribe_event(event_handler&& handler) NOEXCEPT;
+    code subscribe_events(event_handler&& handler) NOEXCEPT;
 
     /// Set chaser event (does not require network strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
@@ -159,7 +159,7 @@ private:
 };
 
 #define SUBSCRIBE_EVENT(method, ...) \
-    subscribe_event(BIND(method, __VA_ARGS__))
+    subscribe_events(BIND(method, __VA_ARGS__))
 
 } // namespace node
 } // namespace libbitcoin

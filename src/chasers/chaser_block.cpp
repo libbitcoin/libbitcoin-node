@@ -55,7 +55,7 @@ chaser_block::~chaser_block() NOEXCEPT
 
 code chaser_block::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_block");
+    BC_ASSERT(node_stranded());
 
     // Initialize cache of top candidate chain state.
     top_state_ = archive().get_candidate_chain_state(
@@ -78,7 +78,7 @@ void chaser_block::handle_event(const code&, chase event_,
 
 void chaser_block::handle_unconnected(height_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_block");
+    BC_ASSERT(stranded());
 }
 
 // methods
@@ -93,7 +93,7 @@ void chaser_block::organize(const block::cptr& block,
 void chaser_block::do_organize(const block::cptr& block_ptr,
     const organize_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_block");
+    BC_ASSERT(stranded());
 
     auto& query = archive();
     const auto& block = *block_ptr;

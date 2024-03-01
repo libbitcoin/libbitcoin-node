@@ -47,7 +47,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "expected channel strand");
+    BC_ASSERT(stranded());
 
     if (stopped() || ec == network::error::operation_canceled)
         return;
@@ -86,7 +86,7 @@ void protocol_block_in_31800::handle_performance(const code& ec) NOEXCEPT
 
 void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "expected network strand");
+    BC_ASSERT(stranded());
 
     if (stopped())
         return;
@@ -107,7 +107,7 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
 
 void protocol_block_in_31800::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 
     if (started())
         return;
@@ -139,12 +139,12 @@ void protocol_block_in_31800::handle_event(const code&,
 // TODO: handle chaser::chase::unassociated (new downloads).
 void protocol_block_in_31800::handle_unassociated(chaser::header_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 }
 
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 
     performance_timer_->stop();
     put_hashes(map_, BIND(handle_put_hashes, _1));
@@ -179,7 +179,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
     SEND(create_get_data(map), handle_send, _1);
 }
 
@@ -195,7 +195,7 @@ void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;

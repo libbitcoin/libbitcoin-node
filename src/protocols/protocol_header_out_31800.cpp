@@ -38,7 +38,7 @@ using namespace std::placeholders;
 
 void protocol_header_out_31800::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_header_out_31800");
+    BC_ASSERT(stranded());
 
     if (started())
         return;

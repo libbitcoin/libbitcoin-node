@@ -50,7 +50,7 @@ void session_outbound::performance(uint64_t channel, uint64_t speed,
 void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "session_outbound");
+    BC_ASSERT(stranded());
 
     // Always remove record on stalled channel (and channel close).
     if (is_zero(speed))

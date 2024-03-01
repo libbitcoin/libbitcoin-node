@@ -50,9 +50,12 @@ public:
     virtual void put_hashes(const chaser_check::map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
-    /// Set chaser event (does not require network strand).
+    /// Set a chaser event.
     virtual void notify(const code& ec, chaser::chase event_,
         chaser::link value) NOEXCEPT;
+
+    /// Subscribe to chaser events (requires network strand).
+    virtual code subscribe_events(chaser::event_handler&& handler) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;

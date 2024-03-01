@@ -78,6 +78,12 @@ void session::notify(const code& ec, chaser::chase event_,
     node_.notify(ec, event_, value);
 }
 
+code session::subscribe_events(chaser::event_handler&& handler) NOEXCEPT
+{
+    BC_ASSERT(node_.stranded());
+    return node_.event_subscriber().subscribe(std::move(handler));
+}
+
 const configuration& session::config() const NOEXCEPT
 {
     return node_.config();

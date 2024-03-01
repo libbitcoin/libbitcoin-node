@@ -32,7 +32,7 @@ using namespace std::placeholders;
 
 void protocol_header_in_70012::complete() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_header_in_70012");
+    BC_ASSERT(stranded());
     protocol_header_in_31800::complete();
 
     if (!sent_)

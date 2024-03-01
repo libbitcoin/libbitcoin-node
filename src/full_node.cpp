@@ -73,7 +73,7 @@ void full_node::start(result_handler&& handler) NOEXCEPT
 
 void full_node::do_start(const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "full_node");
+    BC_ASSERT(stranded());
     code ec;
     
     if (((ec = chaser_block_.start())) || 
@@ -99,7 +99,7 @@ void full_node::run(result_handler&& handler) NOEXCEPT
 
 void full_node::do_run(const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "full_node");
+    BC_ASSERT(stranded());
 
     if (closed())
     {
@@ -121,7 +121,7 @@ void full_node::close() NOEXCEPT
 // Base (p2p) invokes do_close().
 void full_node::do_close() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "full_node");
+    BC_ASSERT(stranded());
 
     event_subscriber_.stop(network::error::service_stopped,
         chaser::chase::stop, {});
@@ -166,7 +166,7 @@ void full_node::notify(const code& ec, chaser::chase event_,
 void full_node::do_notify(const code& ec, chaser::chase event_,
     chaser::link value) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "full_node");
+    BC_ASSERT(stranded());
     event_subscriber_.notify(ec, event_, value);
 }
 
