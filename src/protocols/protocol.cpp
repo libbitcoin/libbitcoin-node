@@ -70,9 +70,9 @@ void protocol::notify(const code& ec, chaser::chase event_,
     session_.notify(ec, event_, value);
 }
 
-code protocol::subscribe_events(chaser::event_handler&& handler) NOEXCEPT
+void protocol::async_subscribe_events(chaser::event_handler&& handler) NOEXCEPT
 {
-    return session_.subscribe_events(std::move(handler));
+    return session_.async_subscribe_events(std::move(handler));
 }
 
 const configuration& protocol::config() const NOEXCEPT

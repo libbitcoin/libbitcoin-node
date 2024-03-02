@@ -142,9 +142,10 @@ protected:
     bool node_stranded() const NOEXCEPT;
 
     /// Subscribe to chaser events.
+    /// Call from chaser start() methods (node strand).
     code subscribe_events(event_handler&& handler) NOEXCEPT;
 
-    /// Set chaser event (does not require network strand).
+    /// Set chaser event (does not require node strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
 private:

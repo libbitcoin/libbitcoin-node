@@ -118,8 +118,9 @@ void protocol_block_in_31800::start() NOEXCEPT
         performance_timer_->start(BIND(handle_performance_timer, _1));
     }
 
-    // TODO: Subscribe to chaser events through session/full_node.
-    /*subscribe*/(BIND(handle_event, _1, _2, _3));
+    // This subscription is asynchronous without completion handler. So there
+    // is no completion time guarantee, best efforts completion only (ok).
+    async_subscribe_events(BIND(handle_event, _1, _2, _3));
 
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     get_hashes(BIND(handle_get_hashes, _1, _2));

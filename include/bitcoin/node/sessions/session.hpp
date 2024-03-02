@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
@@ -27,7 +28,8 @@
 namespace libbitcoin {
 namespace node {
     
-/// Common session context.
+/// Common session context, presumes will be joined with network::session.
+/// This could be templatized on the sibling, but there only one implemented.
 class BCN_API session
 {
 public:
@@ -54,8 +56,9 @@ public:
     virtual void notify(const code& ec, chaser::chase event_,
         chaser::link value) NOEXCEPT;
 
-    /// Subscribe to chaser events (requires network strand).
-    virtual code subscribe_events(chaser::event_handler&& handler) NOEXCEPT;
+    /// Subscribe to chaser events.
+    virtual void async_subscribe_events(
+        chaser::event_handler&& handler) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
@@ -64,14 +67,13 @@ public:
     full_node::query& archive() const NOEXCEPT;
 
 protected:
-
     /// Construct/destruct the session.
     session(full_node& node) NOEXCEPT;
-
-    /// Asserts that session is stopped.
     ~session() NOEXCEPT;
 
 private:
+    void do_subscribe_events(const chaser::event_handler& handler) NOEXCEPT;
+
     // This is thread safe (mostly).
     full_node& node_;
 };

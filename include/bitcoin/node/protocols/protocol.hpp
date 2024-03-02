@@ -73,8 +73,9 @@ protected:
     virtual void notify(const code& ec, chaser::chase event_,
         chaser::link value) NOEXCEPT;
 
-    /// Subscribe to chaser events (requires network strand).
-    virtual code subscribe_events(chaser::event_handler&& handler) NOEXCEPT;
+    /// Subscribe to chaser events.
+    virtual void async_subscribe_events(
+        chaser::event_handler&& handler) NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
