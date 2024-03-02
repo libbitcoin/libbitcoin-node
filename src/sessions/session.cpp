@@ -90,6 +90,7 @@ void session::notify(const code& ec, chaser::chase event_,
 
 void session::async_subscribe_events(chaser::event_handler&& handler) NOEXCEPT
 {
+    // This is necessary because of multiple inheritance (see attach<Session>).
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     const auto self = std::dynamic_pointer_cast<node::session>(
         dynamic_cast<network::session*>(this)->shared_from_this());
