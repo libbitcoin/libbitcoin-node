@@ -51,7 +51,7 @@ public:
             type_id::witness_block : type_id::block),
         performance_timer_(std::make_shared<network::deadline>(session.log,
             channel->strand(), session.config().node.sample_period())),
-        map_(std::make_shared<database::context_map>())
+        map_(std::make_shared<database::associations>())
     {
     }
     BC_POP_WARNING()
@@ -84,6 +84,9 @@ protected:
         const map_ptr& map) NOEXCEPT;
 
 private:
+    void reset_performance() NOEXCEPT;
+    void set_performance(uint64_t rate) NOEXCEPT;
+
     void do_handle_performance(const code& ec) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;

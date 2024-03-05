@@ -42,7 +42,7 @@ class full_node;
 /// Unlike protocols chasers can stop the node.
 /// Logging is currently disabled so that logging is kept to the protocols.
 class BCN_API chaser
-////  : public network::reporter
+  : public network::reporter
 {
 public:
     enum class chase

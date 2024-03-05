@@ -30,13 +30,21 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS session_outbound
-    
+
+constexpr auto to_kilobits_per_second = [](auto value) NOEXCEPT
+{
+    constexpr auto kilo = 1'000;
+    return system::encode_base10(static_cast<uint64_t>(
+        value * byte_bits / kilo));
+};
+
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
   : attach(node, identifier),
-    network::tracker<session_outbound>(node.log)
+    network::tracker<session_outbound>(node.log),
+    allowed_deviation_(node.node_settings().allowed_deviation)
 {
 }
 
@@ -62,14 +70,15 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
 
     speeds_[channel] = static_cast<double>(speed);
 
-    const auto size = speeds_.size();
-    const auto mean = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
+    const auto count = speeds_.size();
+    const auto rate = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
         [](double sum, const auto& element) NOEXCEPT
         {
             return sum + element.second;
-        }) / size;
+        });
 
     // Keep this channel if its performance deviation is at/above average.
+    const auto mean = rate / count;
     if (speed >= mean)
     {
         handler(error::success);
@@ -81,15 +90,26 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
         {
             const auto difference = element.second - mean;
             return sum + (difference * difference);
-        }) / size;
+        }) / count;
 
-    const auto standard_deviation = std::sqrt(variance);
-    const auto allowed_deviation = config().node.allowed_deviation;
+    const auto sdev = std::sqrt(variance);
+    const auto slow = (mean - speed) > (allowed_deviation_ * sdev);
+    
+    LOGS("Block download channels (" << count << ") rate ("
+        << to_kilobits_per_second(rate) << ") mean ("
+        << to_kilobits_per_second(mean) << ") sdev ("
+        << to_kilobits_per_second(sdev) << ") Kbps [" << (slow ? "*" : "")
+        << to_kilobits_per_second(speed) << "].");
 
-    // Drop this channel if the magnitude of its below average performance
-    // deviation exceeds the allowed multiple of standard deviations.
-    const auto slow = (mean - speed) > (allowed_deviation * standard_deviation);
-    handler(slow ? error::slow_channel : error::success);
+    if (slow)
+    {
+        // Drop this channel if the magnitude of its below average performance
+        // deviation exceeds the allowed multiple of standard deviations.
+        handler(error::slow_channel);
+        return;
+    }
+
+    handler(error::success);
 }
 
 void session_outbound::attach_protocols(

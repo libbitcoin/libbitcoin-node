@@ -46,8 +46,11 @@ private:
     void do_performance(uint64_t channel, uint64_t speed,
         const network::result_handler& handler) NOEXCEPT;
 
+    // This is thread safe.
+    const float allowed_deviation_;
+
     // This is protected by strand.
-    std::unordered_map<uint64_t, double> speeds_;
+    std::unordered_map<uint64_t, double> speeds_{};
 };
 
 } // namespace node
