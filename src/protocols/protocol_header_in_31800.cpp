@@ -112,7 +112,7 @@ void protocol_header_in_31800::complete() NOEXCEPT
 void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
     const chain::header::cptr& header_ptr) NOEXCEPT
 {
-    if (ec == network::error::service_stopped || ec == error::duplicate_header)
+    if (stopped() || ec == error::duplicate_header)
         return;
 
     if (ec)
