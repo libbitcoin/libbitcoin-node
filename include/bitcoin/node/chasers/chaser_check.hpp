@@ -35,7 +35,7 @@ class BCN_API chaser_check
   : public chaser
 {
 public:
-    typedef std::shared_ptr<database::context_map> map_ptr;
+    typedef std::shared_ptr<database::associations> map_ptr;
     typedef std::function<void(const code&, const map_ptr&)> handler;
 
     DELETE_COPY_MOVE(chaser_check);
@@ -50,6 +50,7 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
+    virtual void handle_put_hashes(const code&) NOEXCEPT;
     virtual void handle_header(height_t branch_point) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
@@ -58,8 +59,11 @@ protected:
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
+    // This is thread safe.
+    const size_t inventory_;
+
     // This is protected by strand.
-    map_ptr map_{};
+    database::associations map_{};
 };
 
 } // namespace node

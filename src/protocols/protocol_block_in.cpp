@@ -54,7 +54,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 void protocol_block_in::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT(stranded());
 
     if (started())
         return;
@@ -71,7 +71,7 @@ void protocol_block_in::start() NOEXCEPT
 bool protocol_block_in::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT(stranded());
     constexpr auto block_id = inventory::type_id::block;
 
     if (stopped(ec))
@@ -118,7 +118,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 bool protocol_block_in::handle_receive_block(const code& ec,
     const block::cptr& message, const track_ptr& tracker) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
@@ -169,7 +169,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 // The distinction is ultimately arbitrary, but this signals initial currency.
 void protocol_block_in::complete() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in");
+    BC_ASSERT(stranded());
     LOGN("Blocks from [" << authority() << "] exhausted.");
 }
 

@@ -48,8 +48,8 @@ chaser_confirm::~chaser_confirm() NOEXCEPT
 // TODO: initialize confirm state.
 code chaser_confirm::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_confirm");
-    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
+    BC_ASSERT(node_stranded());
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -67,7 +67,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
 // TODO: handle new strong connected branch (may issue 'confirmed').
 void chaser_confirm::handle_connected(header_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_confirm");
+    BC_ASSERT(stranded());
 }
 
 BC_POP_WARNING()

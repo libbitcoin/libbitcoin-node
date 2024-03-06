@@ -48,8 +48,8 @@ chaser_connect::~chaser_connect() NOEXCEPT
 // TODO: initialize connect state.
 code chaser_connect::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_connect");
-    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
+    BC_ASSERT(node_stranded());
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -67,7 +67,7 @@ void chaser_connect::handle_event(const code&, chase event_,
 // TODO: handle the new checked blocks (may issue 'connected').
 void chaser_connect::handle_checked(header_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_connect");
+    BC_ASSERT(stranded());
 
     // TODO: if on this block, advance position until encountering a block that
     // is not checked. It may not be possible to do this on height alone, since

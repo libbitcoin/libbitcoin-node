@@ -828,6 +828,11 @@ options_metadata parser::load_settings() THROWS
         "Allowable underperformance standard deviation, defaults to 1.0."
     )
     (
+        "node.maximum_inventory",
+        value<uint16_t>(&configured.node.maximum_inventory),
+        "Maximum size of block inventory requests, defaults to 500."
+    )
+    (
         "node.sample_period_seconds",
         value<uint16_t>(&configured.node.sample_period_seconds),
         "Performance sampling time period, defaults to 5 (0 disables)."

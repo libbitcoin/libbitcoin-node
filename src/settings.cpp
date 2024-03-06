@@ -63,6 +63,7 @@ namespace node {
 
 settings::settings() NOEXCEPT
   : allowed_deviation{ 1.0 },
+    maximum_inventory{ 500 },
     sample_period_seconds{ 5 },
     currency_window_minutes{ 60 }
 {

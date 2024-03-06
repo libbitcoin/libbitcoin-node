@@ -38,7 +38,7 @@ using namespace std::placeholders;
 
 void protocol_transaction_out::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_transaction_out");
+    BC_ASSERT(stranded());
 
     if (started())
         return;

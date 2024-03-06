@@ -42,7 +42,7 @@ class full_node;
 /// Unlike protocols chasers can stop the node.
 /// Logging is currently disabled so that logging is kept to the protocols.
 class BCN_API chaser
-////  : public network::reporter
+  : public network::reporter
 {
 public:
     enum class chase
@@ -142,9 +142,10 @@ protected:
     bool node_stranded() const NOEXCEPT;
 
     /// Subscribe to chaser events.
-    code subscribe_event(event_handler&& handler) NOEXCEPT;
+    /// Call from chaser start() methods (node strand).
+    code subscribe_events(event_handler&& handler) NOEXCEPT;
 
-    /// Set chaser event (does not require network strand).
+    /// Set chaser event (does not require node strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
 private:
@@ -158,8 +159,8 @@ private:
     event_subscriber& subscriber_;
 };
 
-#define SUBSCRIBE_EVENT(method, ...) \
-    subscribe_event(BIND(method, __VA_ARGS__))
+#define SUBSCRIBE_EVENTS(method, ...) \
+    subscribe_events(BIND(method, __VA_ARGS__))
 
 } // namespace node
 } // namespace libbitcoin

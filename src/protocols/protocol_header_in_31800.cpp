@@ -44,7 +44,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 void protocol_header_in_31800::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
+    BC_ASSERT(stranded());
 
     if (started())
         return;
@@ -62,7 +62,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     const headers::cptr& message) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
+    BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
@@ -105,7 +105,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 // The distinction is ultimately arbitrary, but this signals peer completeness.
 void protocol_header_in_31800::complete() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_header_in_31800");
+    BC_ASSERT(stranded());
     LOGN("Headers from [" << authority() << "] exhausted.");
 }
 

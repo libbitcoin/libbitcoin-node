@@ -58,7 +58,7 @@ chaser_header::~chaser_header() NOEXCEPT
 // protected
 code chaser_header::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(node_stranded(), "chaser_header");
+    BC_ASSERT(node_stranded());
 
     // Initialize cache of top candidate chain state.
     // Spans full chain to obtain cumulative work. This can be optimized by
@@ -68,7 +68,7 @@ code chaser_header::start() NOEXCEPT
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    return SUBSCRIBE_EVENT(handle_event, _1, _2, _3);
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
 // event handlers
@@ -98,7 +98,7 @@ void chaser_header::handle_event(const code&, chase event_,
 // TODO: chaser_check must reset header as its top.
 void chaser_header::handle_unchecked(height_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_header");
+    BC_ASSERT(stranded());
 }
 
 // methods
@@ -113,7 +113,7 @@ void chaser_header::organize(const header::cptr& header,
 void chaser_header::do_organize(const header::cptr& header_ptr,
     const organize_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "chaser_header");
+    BC_ASSERT(stranded());
 
     auto& query = archive();
     const auto& header = *header_ptr;

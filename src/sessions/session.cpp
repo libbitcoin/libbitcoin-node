@@ -19,8 +19,10 @@
 #include <bitcoin/node/sessions/session.hpp>
 
 #include <functional>
+#include <memory>
 #include <utility>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/sessions/attach.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -29,6 +31,8 @@
 
 namespace libbitcoin {
 namespace node {
+
+#define CLASS session
 
 using namespace system::chain;
 using namespace network;
@@ -45,7 +49,13 @@ session::~session() NOEXCEPT
 void session::performance(uint64_t, uint64_t, result_handler&& handler) NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    boost::asio::post(node_.strand(), std::bind(handler, error::unknown));
+
+    // This session type does not implement performance, handler error.
+    // The handler captures the protocol shared pointer for its lifetime.
+    // This session lifetime is not required beyond return from this method.
+    boost::asio::post(node_.strand(),
+        std::bind(handler, system::error::not_implemented));
+
     BC_POP_WARNING()
 }
 
@@ -76,6 +86,27 @@ void session::notify(const code& ec, chaser::chase event_,
     chaser::link value) NOEXCEPT
 {
     node_.notify(ec, event_, value);
+}
+
+void session::async_subscribe_events(chaser::event_handler&& handler) NOEXCEPT
+{
+    // This is necessary because of multiple inheritance (see attach<Session>).
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+    const auto self = std::dynamic_pointer_cast<node::session>(
+        dynamic_cast<network::session*>(this)->shared_from_this());
+    BC_POP_WARNING()
+
+    boost::asio::post(node_.strand(),
+        std::bind(&session::do_subscribe_events,
+            self, std::move(handler)));
+}
+
+// private
+void session::do_subscribe_events(
+    const chaser::event_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(node_.stranded());
+    node_.event_subscriber().subscribe(move_copy(handler));
 }
 
 const configuration& session::config() const NOEXCEPT

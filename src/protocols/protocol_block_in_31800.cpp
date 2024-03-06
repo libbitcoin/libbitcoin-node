@@ -47,7 +47,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "expected channel strand");
+    BC_ASSERT(stranded());
 
     if (stopped() || ec == network::error::operation_canceled)
         return;
@@ -63,20 +63,29 @@ void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
     const auto now = steady_clock::now();
     const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
     const auto rate = floored_divide(bytes_, gap);
-    LOGN("Rate ["
-        << identifier() << "] ("
-        << bytes_ << "/"
-        << gap << " = "
-        << rate << ").");
 
-    // Reset counters and log rate.
+    // Reset counters.
     bytes_ = zero;
     start_ = now;
+    set_performance(rate);
+}
 
-    // Bounces to network strand, performs work, then calls handler.
-    // Channel will continue to process blocks while this call excecutes on the
-    // network strand. Timer will not be restarted until this call completes.
-    performance(identifier(), rate, BIND(handle_performance, ec));
+// private
+// Removes channel from performance tracking.
+void protocol_block_in_31800::reset_performance() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    set_performance(zero);
+}
+
+// private
+// Bounces to network strand, performs computation, then calls handler.
+// Channel will continue to process and count blocks while this call excecutes
+// on the network strand. Timer will not be restarted until cycle completes.
+void protocol_block_in_31800::set_performance(uint64_t rate) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    performance(identifier(), rate, BIND(handle_performance, _1));
 }
 
 void protocol_block_in_31800::handle_performance(const code& ec) NOEXCEPT
@@ -84,9 +93,10 @@ void protocol_block_in_31800::handle_performance(const code& ec) NOEXCEPT
     POST(do_handle_performance, ec);
 }
 
+// private
 void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "expected network strand");
+    BC_ASSERT(stranded());
 
     if (stopped())
         return;
@@ -94,10 +104,16 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
     // stalled_channel or slow_channel
     if (ec)
     {
-        LOGF("Performance action, " << ec.message());
         stop(ec);
         return;
     };
+
+    // Stop performance tracking without channel stop. New work restarts.
+    if (map_->empty())
+    {
+        reset_performance();
+        return;
+    }
 
     performance_timer_->start(BIND(handle_performance_timer, _1));
 }
@@ -107,7 +123,7 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
 
 void protocol_block_in_31800::start() NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 
     if (started())
         return;
@@ -118,8 +134,9 @@ void protocol_block_in_31800::start() NOEXCEPT
         performance_timer_->start(BIND(handle_performance_timer, _1));
     }
 
-    // TODO: Subscribe to chaser events through session/full_node.
-    /*subscribe*/(BIND(handle_event, _1, _2, _3));
+    // This subscription is asynchronous without completion handler. So there
+    // is no completion time guarantee, best efforts completion only (ok).
+    async_subscribe_events(BIND(handle_event, _1, _2, _3));
 
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     get_hashes(BIND(handle_get_hashes, _1, _2));
@@ -139,14 +156,15 @@ void protocol_block_in_31800::handle_event(const code&,
 // TODO: handle chaser::chase::unassociated (new downloads).
 void protocol_block_in_31800::handle_unassociated(chaser::header_t) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 }
 
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 
     performance_timer_->stop();
+    reset_performance();
     put_hashes(map_, BIND(handle_put_hashes, _1));
     protocol::stopping(ec);
 }
@@ -179,8 +197,10 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
-    SEND(create_get_data(map), handle_send, _1);
+    BC_ASSERT(stranded());
+
+    map_ = map;
+    SEND(create_get_data(map_), handle_send, _1);
 }
 
 void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
@@ -195,7 +215,7 @@ void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "protocol_block_in_31800");
+    BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
@@ -210,11 +230,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         // Allow unrequested block, not counted toward performance.
         LOGR("Unrequested block [" << encode_hash(hash) << "] from ["
             << authority() << "].");
-        return false;
+        return true;
     }
 
     code error{};
-    const auto& ctx = it->second;
+    const auto& ctx = it->context;
     const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
@@ -244,6 +264,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
+    LOGP("Downloaded block [" << encode_hash(hash) << "] at ("
+        << ctx.height << ") from [" << authority() << "].");
+
     notify(error::success, chaser::chase::checked, { height });
     bytes_ += message->cached_size;
     map_->erase(it);
@@ -264,13 +287,17 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 get_data protocol_block_in_31800::create_get_data(
     const map_ptr& map) const NOEXCEPT
 {
-    // clang emplace_back bug (no matching constructor), using push_back.
-    // bip144: get_data uses witness constant but inventory does not.
+    BC_ASSERT(stranded());
 
     get_data getter{};
     getter.items.reserve(map->size());
-    for (const auto& item: *map)
-        getter.items.push_back({ block_type_, item.first });
+    std::for_each(map->pos_begin(), map->pos_end(),
+        [&](const auto& item) NOEXCEPT
+        {
+            // clang has emplace_back bug (no matching constructor).
+            // bip144: get_data uses witness constant but inventory does not.
+            getter.items.push_back({ block_type_, item.hash });
+        });
 
     return getter;
 }

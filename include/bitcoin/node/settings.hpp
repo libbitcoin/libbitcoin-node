@@ -66,6 +66,7 @@ public:
 
     /// Properties.
     float allowed_deviation;
+    uint16_t maximum_inventory;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
 
