@@ -101,19 +101,19 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
     if (stopped())
         return;
 
-    // stalled_channel or slow_channel
+    // Stop performance tracking without channel stop. New work restarts.
+    if (ec == error::stalled_channel && map_->empty())
+    {
+        reset_performance();
+        return;
+    }
+
+    // stalled_channel (with work remaining) or slow_channel.
     if (ec)
     {
         stop(ec);
         return;
     };
-
-    // Stop performance tracking without channel stop. New work restarts.
-    if (map_->empty())
-    {
-        reset_performance();
-        return;
-    }
 
     performance_timer_->start(BIND(handle_performance_timer, _1));
 }
