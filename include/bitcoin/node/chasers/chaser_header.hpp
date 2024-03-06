@@ -95,7 +95,7 @@ protected:
         const system::chain::context& context) const NOEXCEPT;
 
     /// Move tree header to database and push to top of candidate chain.
-    virtual bool push(const system::hash_digest& key) NOEXCEPT;
+    virtual bool push_header(const system::hash_digest& key) NOEXCEPT;
 
     /// Validate and organize next header in sequence relative to caller peer.
     virtual void do_organize(const system::chain::header::cptr& header,

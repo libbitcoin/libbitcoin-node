@@ -171,6 +171,15 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     protocol::stopping(ec);
 }
 
+void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
+{
+    if (ec)
+    {
+        LOGF("Error putting block hashes for [" << authority() << "] "
+            << ec.message());
+    }
+}
+
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
 
@@ -204,13 +213,23 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
     SEND(create_get_data(map_), handle_send, _1);
 }
 
-void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
+// private
+get_data protocol_block_in_31800::create_get_data(
+    const map_ptr& map) const NOEXCEPT
 {
-    if (ec)
-    {
-        LOGF("Error putting block hashes for [" << authority() << "] "
-            << ec.message());
-    }
+    BC_ASSERT(stranded());
+
+    get_data getter{};
+    getter.items.reserve(map->size());
+    std::for_each(map->pos_begin(), map->pos_end(),
+        [&](const auto& item) NOEXCEPT
+        {
+            // clang has emplace_back bug (no matching constructor).
+            // bip144: get_data uses witness constant but inventory does not.
+            getter.items.push_back({ block_type_, item.hash });
+        });
+
+    return getter;
 }
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
@@ -234,18 +253,17 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
+    // Check block.
+    // ------------------------------------------------------------------------
+
     code error{};
     const auto& ctx = it->context;
     const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
-        // Set stored header state to 'block_unconfirmable'.
         query.set_block_unconfirmable(query.to_header(hash));
-
-        // Notify that a candidate is 'unchecked' (candidates reorganize).
         notify(error::success, chaser::chase::unchecked, { height });
 
-        // TODO: include context in log message.
         LOGR("Invalid block [" << encode_hash(hash) << "] at ("
             << ctx.height << ") from [" << authority() << "] "
             << error.message());
@@ -254,9 +272,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
-    // TODO: optimize using header_fk?
-    // Commit the block (txs) to the store, failure may stall the node.
-    if (query.set_link(block).is_terminal())
+    // Commit block.txs.
+    // ------------------------------------------------------------------------
+
+    // Commit block.txs to store, failure may stall the node.
+    if (query.set_link(*block.transactions_ptr(), it->link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << "] at ("
             << ctx.height << ") from [" << authority() << "] "
@@ -264,6 +284,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         stop(node::error::store_integrity);
         return false;
     }
+
+    // ------------------------------------------------------------------------
 
     LOGP("Downloaded block [" << encode_hash(hash) << "] at ("
         << ctx.height << ") from [" << authority() << "].");
@@ -280,27 +302,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     }
 
     return true;
-}
-
-// private
-// ----------------------------------------------------------------------------
-
-get_data protocol_block_in_31800::create_get_data(
-    const map_ptr& map) const NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    get_data getter{};
-    getter.items.reserve(map->size());
-    std::for_each(map->pos_begin(), map->pos_end(),
-        [&](const auto& item) NOEXCEPT
-        {
-            // clang has emplace_back bug (no matching constructor).
-            // bip144: get_data uses witness constant but inventory does not.
-            getter.items.push_back({ block_type_, item.hash });
-        });
-
-    return getter;
 }
 
 BC_POP_WARNING()

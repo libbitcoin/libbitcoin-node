@@ -68,6 +68,9 @@ code chaser_header::start() NOEXCEPT
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
+    LOGN("Candidate top ["<< encode_hash(top_state_->hash()) << ":"
+        << top_state_->height() << "].");
+
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -78,6 +81,7 @@ code chaser_header::start() NOEXCEPT
 void chaser_header::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
+    // Posted due to block/header invalidation.
     if (event_ == chase::unchecked)
     {
         POST(handle_unchecked, std::get<height_t>(value));
@@ -136,10 +140,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // If header exists test for prior invalidity as a block.
-    const auto id = query.to_header(hash);
-    if (!id.is_terminal())
+    const auto link = query.to_header(hash);
+    if (!link.is_terminal())
     {
-        const auto ec = query.get_header_state(id);
+        const auto ec = query.get_header_state(link);
         if (ec == database::error::block_unconfirmable)
         {
             handler(ec, {});
@@ -161,29 +165,23 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     state.reset(new chain_state{ *state, header, coin });
     const auto height = state->height();
 
-    // Validate header.
+    // Check/Accept header.
     // ------------------------------------------------------------------------
     // Header validations are not bypassed when under checkpoint/milestone.
-
     // Checkpoints are considered chain not block/header validation.
-    if (checkpoint::is_conflict(coin.checkpoints, hash, height))
-    {
-        handler(system::error::checkpoint_conflict, height);
-        return;
-    }
 
-    if (const auto error = header.check(coin.timestamp_limit_seconds,
-        coin.proof_of_work_limit, coin.scrypt_proof_of_work))
+    code error{ system::error::checkpoint_conflict };
+    if (checkpoint::is_conflict(coin.checkpoints, hash, height) ||
+        ((error = header.check(coin.timestamp_limit_seconds,
+            coin.proof_of_work_limit,coin.scrypt_proof_of_work))) ||
+        ((error = header.accept(state->context()))))
     {
+        // There is no storage or notification of an invalid header.
         handler(error, height);
         return;
     }
 
-    if (const auto error = header.accept(state->context()))
-    {
-        handler(error, height);
-        return;
-    }
+    // ------------------------------------------------------------------------
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
     // branch must be both current and of sufficient chain work to be stored.
@@ -224,7 +222,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    // Reorganize candidate chain.
+    // Reorganize candidate header chain.
     // ------------------------------------------------------------------------
 
     auto top = top_state_->height();
@@ -245,9 +243,9 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Push stored strong headers to candidate chain.
-    for (const auto& link: views_reverse(store_branch))
+    for (const auto& id: views_reverse(store_branch))
     {
-        if (!query.push_candidate(link))
+        if (!query.push_candidate(id))
         {
             handler(error::store_integrity, height);
             return;
@@ -257,7 +255,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Store strong tree headers and push to candidate chain.
     for (const auto& key: views_reverse(tree_branch))
     {
-        if (!push(key))
+        if (!push_header(key))
         {
             handler(error::store_integrity, height);
             return;
@@ -270,6 +268,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         handler(error::store_integrity, height);
         return;
     }
+
+    // ------------------------------------------------------------------------
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
@@ -395,7 +395,7 @@ database::header_link chaser_header::push(const header::cptr& header,
     return query.push_candidate(link) ? link : database::header_link{};
 }
 
-bool chaser_header::push(const hash_digest& key) NOEXCEPT
+bool chaser_header::push_header(const hash_digest& key) NOEXCEPT
 {
     const auto value = tree_.extract(key);
     BC_ASSERT_MSG(!value.empty(), "missing tree value");

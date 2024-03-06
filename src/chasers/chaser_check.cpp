@@ -57,13 +57,13 @@ chaser_check::~chaser_check() NOEXCEPT
 code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
-    LOGN("Candidate fork point (" << archive().get_fork() << ").");
+    LOGN("Candidate fork (" << archive().get_fork() << ").");
 
     // Initialize map to all unassociated candidate blocks.
     map_table_.push_back(std::make_shared<database::associations>(
         archive().get_all_unassociated()));
     
-    LOGN("Unassociated candidates (" << map_table_[0]->size() << ").");
+    LOGN("Unassociated candidates (" << map_table_.at(0)->size() << ").");
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -117,22 +117,22 @@ void chaser_check::put_hashes(const map_ptr& map,
 }
 
 // TODO: post event causing channels to put some?
-// TODO: otherwise channels may ,monopolize work.
+// TODO: otherwise channels may monopolize work.
 void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    auto& index = map_table_[0]->get<database::association::pos>();
+    auto& index = map_table_.at(0)->get<database::association::pos>();
     const auto size = index.size();
     const auto count = std::min(size, inventory_);
     const auto map = std::make_shared<database::associations>();
 
     /// Merge "moves" elements from one table to another.
     map->merge(index, index.begin(), std::next(index.begin(), count));
-    LOGN("Hashes: ("
-        << size << " - "
-        << map->size() << " = "
-        << map_table_[0]->size() << ").");
+    ////LOGN("Hashes: ("
+    ////    << size << " - "
+    ////    << map->size() << " = "
+    ////    << map_table_.at(0)->size() << ").");
 
     handler(error::success, map);
 }
@@ -145,7 +145,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     BC_ASSERT(stranded());
 
     /// Merge "moves" elements from one table to another.
-    map_table_[0]->merge(*map);
+    map_table_.at(0)->merge(*map);
     handler(error::success);
 }
 
