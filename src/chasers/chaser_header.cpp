@@ -90,15 +90,17 @@ void chaser_header::handle_event(const code&, chase event_,
 
 // TODO: chaser_header controls canididate organization for headers first
 // TODO: mark all headers above as invalid and pop from candidate chain.
-// TODO: if weaker than confirmed chain reorg into confirmed. There may also
-// TODO: be a stronger cached chain but there is no marker for its top.
+// TODO: if weaker than confirmed chain reorg from confirmed. There may also
+// TODO: be a stronger cached chain now but there is no marker for its top,
+// TODO: but that self-corrects with the next ancestor announcement, restart.
 // TODO: candidate is weaker than confirmed, since it didn't reorg prior.
-// TODO: so just close conformed to candidate and wait for next block. This
+// TODO: so just clone confirmed to candidate and wait for next block. This
 // TODO: might result in a material delay in the case where there is a strong
 // TODO: but also invalid block (extremely rare) but this is easily recovered.
-// TODO: (1) from invalid key mark all above as invalid and pop.
-// TODO: (2) pop down to current common (fork point) into the header cache.
-// TODO: (3) push confirmed into candidate until equal and notify.
+// TODO: (1) pop down to invalid and mark all as unconfirmable.
+// TODO: (2) pop down to current common (fork point) into the header tree.
+// TODO: (3) push up to top confirmed into candidate and notify (?).
+// TODO: (4) candidate chain is now confirmed so all pending work is void.
 // TODO: chaser_check must reset header as its top.
 void chaser_header::handle_unchecked(height_t) NOEXCEPT
 {
