@@ -153,10 +153,12 @@ void protocol_block_in_31800::handle_event(const code&,
     }
 }
 
-// TODO: handle chaser::chase::unassociated (new downloads).
 void protocol_block_in_31800::handle_unassociated(chaser::header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (map_->empty())
+        get_hashes(BIND(handle_get_hashes, _1, _2));
 }
 
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
@@ -187,8 +189,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
     if (map->empty())
     {
-        LOGP("Exhausted block hashes at [" << authority() << "] "
-            << ec.message());
+        LOGP("Block hashes for [" << authority() << "] exhausted.");
         return;
     }
 
