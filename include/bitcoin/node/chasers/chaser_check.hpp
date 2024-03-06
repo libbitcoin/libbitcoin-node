@@ -63,7 +63,7 @@ protected:
     const size_t inventory_;
 
     // This is protected by strand.
-    database::associations map_{};
+    std::vector<map_ptr> map_table_{};
 };
 
 } // namespace node

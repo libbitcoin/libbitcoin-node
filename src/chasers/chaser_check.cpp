@@ -57,11 +57,13 @@ chaser_check::~chaser_check() NOEXCEPT
 code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
+    LOGN("Candidate fork point (" << archive().get_fork() << ").");
 
-    // Initialize map to all unassociated blocks starting at genesis.
-    map_ = archive().get_all_unassociated_above(zero);
-    LOGN("Unassociated candidates (" << map_.size() << ").");
-
+    // Initialize map to all unassociated candidate blocks.
+    map_table_.push_back(std::make_shared<database::associations>(
+        archive().get_all_unassociated()));
+    
+    LOGN("Unassociated candidates (" << map_table_[0]->size() << ").");
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -119,7 +121,7 @@ void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    auto& index = map_.get<database::association::pos>();
+    auto& index = map_table_[0]->get<database::association::pos>();
     const auto size = index.size();
     const auto count = std::min(size, inventory_);
     const auto map = std::make_shared<database::associations>();
@@ -129,7 +131,7 @@ void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
     LOGN("Hashes: ("
         << size << " - "
         << map->size() << " = "
-        << map_.size() << ").");
+        << map_table_[0]->size() << ").");
 
     handler(error::success, map);
 }
@@ -142,7 +144,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     BC_ASSERT(stranded());
 
     /// Merge "moves" elements from one table to another.
-    map_.merge(*map);
+    map_table_[0]->merge(*map);
     handler(error::success);
 }
 
