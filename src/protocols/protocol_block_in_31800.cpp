@@ -258,12 +258,13 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ------------------------------------------------------------------------
 
     code error{};
+    const auto& link = it->link;
     const auto& ctx = it->context;
     const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
-        query.set_block_unconfirmable(query.to_header(hash));
-        notify(error::success, chaser::chase::unchecked, { height });
+        query.set_block_unconfirmable(link);
+        notify(error::success, chaser::chase::unchecked, link);
 
         LOGR("Invalid block [" << encode_hash(hash) << "] at ("
             << ctx.height << ") from [" << authority() << "] "
@@ -277,7 +278,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ------------------------------------------------------------------------
 
     // Commit block.txs to store, failure may stall the node.
-    if (query.set_link(*block.transactions_ptr(), it->link).is_terminal())
+    if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << "] at ("
             << ctx.height << ") from [" << authority() << "] "
@@ -291,7 +292,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << "] at ("
         << ctx.height << ") from [" << authority() << "].");
 
-    notify(error::success, chaser::chase::checked, { height });
+    notify(error::success, chaser::chase::checked, height);
     bytes_ += message->cached_size;
     map_->erase(it);
 

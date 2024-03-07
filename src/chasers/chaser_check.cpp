@@ -145,7 +145,9 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     /// Merge "moves" elements from one table to another.
     map_table_.at(0)->merge(*map);
 
-    const auto count = map_table_.at(0)->size();
+    const auto count = system::possible_narrow_cast<chaser::count_t>(
+        map_table_.at(0)->size());
+
     if (!is_zero(count))
         notify(error::success, chase::download, count);
 

@@ -42,7 +42,7 @@ public:
     virtual code start() NOEXCEPT;
 
 protected:
-    virtual void handle_connected(header_t block) NOEXCEPT;
+    virtual void handle_connected(height_t block) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 };

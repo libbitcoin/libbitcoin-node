@@ -86,7 +86,7 @@ void chaser_header::handle_event(const code&, chase event_,
         event_ == chase::unconnected ||
         event_ == chase::unconfirmed)
     {
-        POST(handle_unchecked, std::get<height_t>(value));
+        POST(handle_unchecked, std::get<header_t>(value));
     }
 }
 
@@ -104,7 +104,7 @@ void chaser_header::handle_event(const code&, chase event_,
 // TODO: (3) push up to top confirmed into candidate and notify (?).
 // TODO: (4) candidate chain is now confirmed so all pending work is void.
 // TODO: chaser_check must reset header as its top.
-void chaser_header::handle_unchecked(height_t) NOEXCEPT
+void chaser_header::handle_unchecked(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }
@@ -277,7 +277,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::header, { branch_point });
+    notify(error::success, chase::header, branch_point );
     handler(error::success, height);
 }
 

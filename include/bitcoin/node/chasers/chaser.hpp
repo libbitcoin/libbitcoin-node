@@ -47,23 +47,23 @@ class BCN_API chaser
 public:
     enum class chase
     {
-        /// A new candidate branch exists (branch height_t).
+        /// A new candidate branch exists (height_t).
         /// Issued by 'header' and handled by 'check'.
         header,
 
-        /// New candidate headers without txs exist (unassociated count_t).
+        /// New candidate headers without txs exist (count_t).
         /// Issued by 'check' and handled by 'block_in_31800'.
         download,
 
-        /// A block has been downloaded, checked and stored (header_t).
+        /// A block has been downloaded, checked and stored (height_t).
         /// Issued by 'block_in_31800' and handled by 'connect'.
         checked,
 
-        /// A downloaded block has failed check.
+        /// A downloaded block has failed check (header_t).
         /// Issued by 'block_in_31800' and handled by 'header'.
         unchecked,
 
-        /// A branch has been connected (branch height_t).
+        /// A branch has been connected (height_t).
         /// Issued by 'connect' and handled by 'confirm'.
         connected,
 
@@ -71,7 +71,7 @@ public:
         /// Issued by 'connect' and handled by 'header'.
         unconnected,
 
-        /// A branch has been confirmed (fork height_t).
+        /// A branch has been confirmed (height_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
 
@@ -83,7 +83,7 @@ public:
         /// Issued by 'transaction' and handled by 'candidate'.
         transaction,
 
-        /// A new candidate block (template) has been created.
+        /// A new candidate block (template) has been created ().
         /// Issued by 'candidate' and handled by [miners].
         candidate,
 
@@ -91,7 +91,7 @@ public:
         /// Issued by 'block' and handled by 'confirm'.
         block,
 
-        /// Service is stopping (accompanied by error::service_stopped).
+        /// Service is stopping (accompanied by error::service_stopped), ().
         stop
     };
 

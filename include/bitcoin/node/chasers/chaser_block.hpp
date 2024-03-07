@@ -65,7 +65,7 @@ protected:
         link value) NOEXCEPT;
 
     // Handle events.
-    virtual void handle_unconnected(height_t height) NOEXCEPT;
+    virtual void handle_unconnected(header_t height) NOEXCEPT;
 
     /// Sum of work from header to fork point (excluded).
     virtual bool get_branch_work(uint256_t& work, size_t& point,

@@ -72,11 +72,11 @@ void chaser_block::handle_event(const code&, chase event_,
 {
     if (event_ == chase::unconfirmed)
     {
-        POST(handle_unconnected, std::get<height_t>(value));
+        POST(handle_unconnected, std::get<header_t>(value));
     }
 }
 
-void chaser_block::handle_unconnected(height_t) NOEXCEPT
+void chaser_block::handle_unconnected(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }
@@ -285,7 +285,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::block, { branch_point });
+    notify(error::success, chase::block, branch_point);
     handler(error::success, height);
 }
 
