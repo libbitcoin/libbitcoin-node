@@ -146,14 +146,15 @@ void protocol_block_in_31800::start() NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
-    if (event_ == chaser::chase::unassociated)
+    // There are count blocks to download at/above the given header.
+    if (event_ == chaser::chase::header)
     {
-        BC_ASSERT(std::holds_alternative<chaser::header_t>(value));
-        POST(handle_unassociated, std::get<chaser::header_t>(value));
+        BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
+        POST(handle_header, std::get<chaser::count_t>(value));
     }
 }
 
-void protocol_block_in_31800::handle_unassociated(chaser::header_t) NOEXCEPT
+void protocol_block_in_31800::handle_header(chaser::count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

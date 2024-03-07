@@ -82,7 +82,9 @@ void chaser_header::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
     // Posted due to block/header invalidation.
-    if (event_ == chase::unchecked)
+    if (event_ == chase::unchecked || 
+        event_ == chase::unconnected ||
+        event_ == chase::unconfirmed)
     {
         POST(handle_unchecked, std::get<height_t>(value));
     }
@@ -224,7 +226,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    // Reorganize candidate header chain.
+    // Reorganize candidate chain.
     // ------------------------------------------------------------------------
 
     auto top = top_state_->height();
@@ -265,7 +267,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Push new header as top of candidate chain.
-    if (push(header_ptr, state->context()).is_terminal())
+    if (push_header(header_ptr, state->context()).is_terminal())
     {
         handler(error::store_integrity, height);
         return;
@@ -275,7 +277,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::header, { branch_point });
+    notify(error::success, chase::strong, { branch_point });
     handler(error::success, height);
 }
 
@@ -383,7 +385,7 @@ void chaser_header::cache(const header::cptr& header,
     tree_.insert({ header->hash(), { header, state } });
 }
 
-database::header_link chaser_header::push(const header::cptr& header,
+database::header_link chaser_header::push_header(const header::cptr& header,
     const context& context) const NOEXCEPT
 {
     auto& query = archive();

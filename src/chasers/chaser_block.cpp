@@ -70,7 +70,7 @@ code chaser_block::start() NOEXCEPT
 void chaser_block::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    if (event_ == chase::unconnected)
+    if (event_ == chase::unconfirmed)
     {
         POST(handle_unconnected, std::get<height_t>(value));
     }
@@ -117,10 +117,10 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // If header exists test for prior invalidity as a block.
-    const auto id = query.to_header(hash);
-    if (!id.is_terminal())
+    const auto link = query.to_header(hash);
+    if (!link.is_terminal())
     {
-        const auto ec = query.get_block_state(id);
+        const auto ec = query.get_block_state(link);
         if (ec == database::error::block_unconfirmable)
         {
             handler(ec, {});
@@ -255,9 +255,9 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // Push stored strong block headers to candidate chain.
-    for (const auto& link: views_reverse(store_branch))
+    for (const auto& id: views_reverse(store_branch))
     {
-        if (!query.push_candidate(link))
+        if (!query.push_candidate(id))
         {
             handler(error::store_integrity, height);
             return;
@@ -267,7 +267,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // Store strong tree blocks and push headers to candidate chain.
     for (const auto& key: views_reverse(tree_branch))
     {
-        if (!push(key))
+        if (!push_block(key))
         {
             handler(error::store_integrity, height);
             return;
@@ -275,11 +275,13 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // Push new block as top of candidate chain.
-    if (push(block_ptr, state->context()).is_terminal())
+    if (push_block(block_ptr, state->context()).is_terminal())
     {
         handler(error::store_integrity, height);
         return;
     }
+
+    // ------------------------------------------------------------------------
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
@@ -380,7 +382,7 @@ void chaser_block::cache(const block::cptr& block,
     tree_.insert({ block->hash(), { block, state } });
 }
 
-database::header_link chaser_block::push(const block::cptr& block,
+database::header_link chaser_block::push_block(const block::cptr& block,
     const context& context) const NOEXCEPT
 {
     auto& query = archive();
@@ -394,7 +396,7 @@ database::header_link chaser_block::push(const block::cptr& block,
     return query.push_candidate(link) ? link : database::header_link{};
 }
 
-bool chaser_block::push(const hash_digest& key) NOEXCEPT
+bool chaser_block::push_block(const hash_digest& key) NOEXCEPT
 {
     const auto value = tree_.extract(key);
     BC_ASSERT_MSG(!value.empty(), "missing tree value");

@@ -60,6 +60,7 @@ code chaser_candidate::start() NOEXCEPT
 void chaser_candidate::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
+    // TODO: also handle confirmed/unconfirmed.
     if (event_ == chase::transaction)
     {
         POST(handle_transaction, std::get<transaction_t>(value));

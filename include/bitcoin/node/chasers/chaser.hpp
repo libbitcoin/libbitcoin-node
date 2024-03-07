@@ -56,31 +56,38 @@ public:
         /// A new strong branch exists (strong height_t).
         /// Issued by 'header' and handled by 'check'.
         /// The block chaser works with the header-first protocol.
-        header,
+        strong,
 
-        /// New unassociated blocks exist in the strong branch.
-        unassociated,
+        /// New headers without associated txs exist as strong (header_t).
+        /// Issued by 'check' once hashes queued and handled by 'checked'.
+        header,
 
         /// A block has been downloaded, checked and stored (header_t).
         /// Issued by 'check' and handled by 'connect'.
         checked,
+
+        /// A downloaded block has failed check.
         unchecked,
 
         /// A branch has been connected (header_t|height_t).
         /// Issued by 'connect' and handled by 'confirm'.
         connected,
+
+        /// A checked block has failed connect.
         unconnected,
 
         /// A branch has been confirmed (fork header_t|height_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
+
+        /// A connected block has failed confirm.
         unconfirmed,
 
         /// A new transaction has been added to the pool (transaction_t).
         /// Issued by 'transaction' and handled by 'candidate'.
         transaction,
 
-        /// A new candidate block has been created (?).
+        /// A new candidate block (template) has been created.
         /// Issued by 'candidate' and handled by miners.
         candidate,
 
@@ -92,6 +99,7 @@ public:
     using header_t = database::header_link::integer;
     using transaction_t = database::tx_link::integer;
     using flags_t = database::context::flag::integer;
+    using count_t = size_t;
 
     typedef std::function<void(const code&, size_t)> organize_handler;
     typedef std::variant<uint32_t, uint64_t> link;

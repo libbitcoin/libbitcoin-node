@@ -74,7 +74,7 @@ protected:
     /// Handle result of performance reporting.
     virtual void handle_performance(const code& ec) NOEXCEPT;
 
-    virtual void handle_unassociated(chaser::header_t block) NOEXCEPT;
+    virtual void handle_header(chaser::count_t count) NOEXCEPT;
     virtual void handle_event(const code& ec,
         chaser::chase event_, chaser::link value) NOEXCEPT;
 

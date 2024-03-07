@@ -90,7 +90,7 @@ protected:
         const system::chain::chain_state::ptr& state) NOEXCEPT;
 
     /// Store header to database and push to top of candidate chain.
-    virtual database::header_link push(
+    virtual database::header_link push_header(
         const system::chain::header::cptr& header,
         const system::chain::context& context) const NOEXCEPT;
 

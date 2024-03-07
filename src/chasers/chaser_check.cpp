@@ -73,15 +73,15 @@ code chaser_check::start() NOEXCEPT
 void chaser_check::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    if (event_ == chase::header)
+    if (event_ == chase::strong)
     {
         BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        handle_header(std::get<height_t>(value));
+        handle_strong(std::get<height_t>(value));
     }
 }
 
 // Stale branches are just be allowed to complete (still downloaded).
-void chaser_check::handle_header(height_t branch_point) NOEXCEPT
+void chaser_check::handle_strong(height_t branch_point) NOEXCEPT
 {
     const auto map = std::make_shared<database::associations>(
         archive().get_all_unassociated_above(branch_point));
@@ -137,8 +137,6 @@ void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
     handler(error::success, map);
 }
 
-// TODO: post event causing channels to get some?
-// TODO: otherwise completed channels remain idle until header event.
 void chaser_check::do_put_hashes(const map_ptr& map,
     const network::result_handler& handler) NOEXCEPT
 {
@@ -146,6 +144,11 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 
     /// Merge "moves" elements from one table to another.
     map_table_.at(0)->merge(*map);
+
+    const auto count = map_table_.at(0)->size();
+    if (!is_zero(count))
+        notify(error::success, chase::header, count);
+
     handler(error::success);
 }
 
