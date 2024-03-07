@@ -142,14 +142,15 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 {
     BC_ASSERT(stranded());
 
-    /// Merge "moves" elements from one table to another.
-    map_table_.at(0)->merge(*map);
-
     const auto count = system::possible_narrow_cast<chaser::count_t>(
-        map_table_.at(0)->size());
+        map->size());
 
     if (!is_zero(count))
+    {
+        /// Merge "moves" elements from one table to another.
+        map_table_.at(0)->merge(*map);
         notify(error::success, chase::download, count);
+    }
 
     handler(error::success);
 }
