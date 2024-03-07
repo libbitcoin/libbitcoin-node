@@ -73,15 +73,15 @@ code chaser_check::start() NOEXCEPT
 void chaser_check::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    if (event_ == chase::strong)
+    if (event_ == chase::header)
     {
         BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        handle_strong(std::get<height_t>(value));
+        handle_header(std::get<height_t>(value));
     }
 }
 
 // Stale branches are just be allowed to complete (still downloaded).
-void chaser_check::handle_strong(height_t branch_point) NOEXCEPT
+void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
     const auto map = std::make_shared<database::associations>(
         archive().get_all_unassociated_above(branch_point));
@@ -147,7 +147,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 
     const auto count = map_table_.at(0)->size();
     if (!is_zero(count))
-        notify(error::success, chase::header, count);
+        notify(error::success, chase::download, count);
 
     handler(error::success);
 }

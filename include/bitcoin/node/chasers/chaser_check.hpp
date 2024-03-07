@@ -51,7 +51,7 @@ public:
 
 protected:
     virtual void handle_put_hashes(const code&) NOEXCEPT;
-    virtual void handle_strong(height_t branch_point) NOEXCEPT;
+    virtual void handle_header(height_t branch_point) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 

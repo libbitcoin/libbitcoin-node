@@ -147,7 +147,7 @@ void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
     // There are count blocks to download at/above the given header.
-    if (event_ == chaser::chase::header)
+    if (event_ == chaser::chase::download)
     {
         BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
         POST(handle_header, std::get<chaser::count_t>(value));

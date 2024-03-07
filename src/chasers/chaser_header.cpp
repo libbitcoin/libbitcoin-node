@@ -277,7 +277,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::strong, { branch_point });
+    notify(error::success, chase::header, { branch_point });
     handler(error::success, height);
 }
 

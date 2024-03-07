@@ -47,40 +47,36 @@ class BCN_API chaser
 public:
     enum class chase
     {
-        /// A new strong branch exists (strong height_t).
-        /// Issued by 'block' and handled by 'confirm'.
-        /// The block chaser works with the blocks-first protocol.
-        /// Bocks first performs header/checked/connected stages.
-        block,
-
-        /// A new strong branch exists (strong height_t).
+        /// A new candidate branch exists (branch height_t).
         /// Issued by 'header' and handled by 'check'.
-        /// The block chaser works with the header-first protocol.
-        strong,
-
-        /// New headers without associated txs exist as strong (header_t).
-        /// Issued by 'check' once hashes queued and handled by 'checked'.
         header,
 
+        /// New candidate headers without txs exist (unassociated count_t).
+        /// Issued by 'check' and handled by 'block_in_31800'.
+        download,
+
         /// A block has been downloaded, checked and stored (header_t).
-        /// Issued by 'check' and handled by 'connect'.
+        /// Issued by 'block_in_31800' and handled by 'connect'.
         checked,
 
         /// A downloaded block has failed check.
+        /// Issued by 'block_in_31800' and handled by 'header'.
         unchecked,
 
-        /// A branch has been connected (header_t|height_t).
+        /// A branch has been connected (branch height_t).
         /// Issued by 'connect' and handled by 'confirm'.
         connected,
 
-        /// A checked block has failed connect.
+        /// A checked block has failed connect (header_t).
+        /// Issued by 'connect' and handled by 'header'.
         unconnected,
 
-        /// A branch has been confirmed (fork header_t|height_t).
+        /// A branch has been confirmed (fork height_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
 
-        /// A connected block has failed confirm.
+        /// A connected block has failed confirm (header_t).
+        /// Issued by 'confirm' and handled by 'header' (and 'block').
         unconfirmed,
 
         /// A new transaction has been added to the pool (transaction_t).
@@ -88,8 +84,12 @@ public:
         transaction,
 
         /// A new candidate block (template) has been created.
-        /// Issued by 'candidate' and handled by miners.
+        /// Issued by 'candidate' and handled by [miners].
         candidate,
+
+        /// Legacy: A new strong branch exists (branch height_t).
+        /// Issued by 'block' and handled by 'confirm'.
+        block,
 
         /// Service is stopping (accompanied by error::service_stopped).
         stop
@@ -99,7 +99,7 @@ public:
     using header_t = database::header_link::integer;
     using transaction_t = database::tx_link::integer;
     using flags_t = database::context::flag::integer;
-    using count_t = size_t;
+    using count_t = height_t;
 
     typedef std::function<void(const code&, size_t)> organize_handler;
     typedef std::variant<uint32_t, uint64_t> link;
