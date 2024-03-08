@@ -42,8 +42,9 @@ using namespace system;
 using namespace std::placeholders;
 
 // const executor statics
-const std::string executor::quit_{ "q" };
+// "c" avoids conflict with network "quit" messages.
 const std::string executor::name_{ "bn" };
+const std::string executor::close_{ "c" };
 const std::unordered_map<uint8_t, bool> executor::defined_
 {
     { levels::application, true },
@@ -68,7 +69,7 @@ const std::unordered_map<uint8_t, std::string> executor::display_
     { levels::wire,        "toggle Wire shark" }, // not implemented
     { levels::remote,      "toggle Remote fault" },
     { levels::fault,       "toggle internal Fault" },
-    { levels::quit,        "Quit" }
+    { levels::quit,        "toggle Quitting" }
 };
 const std::unordered_map<std::string, uint8_t> executor::keys_
 {
@@ -81,7 +82,7 @@ const std::unordered_map<std::string, uint8_t> executor::keys_
     { "w", levels::wire },
     { "r", levels::remote },
     { "f", levels::fault },
-    { quit_, levels::quit }
+    { "q", levels::quit }
 };
 const std::unordered_map<database::event_t, std::string> executor::events_
 {
@@ -1601,6 +1602,15 @@ void executor::subscribe_capture()
     capture_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto token = system::trim_copy(line);
+
+        // Close (this isn't a toggle).
+        if (token == close_)
+        {
+            logger("CONSOLE: Close");
+            stop(error::success);
+            return false;
+        }
+
         if (!keys_.contains(token))
         {
             logger("CONSOLE: '" + line + "'");
@@ -1608,15 +1618,6 @@ void executor::subscribe_capture()
         }
 
         const auto index = keys_.at(token);
-
-        // Quit (this level isn't a toggle).
-        if (index == levels::quit)
-        {
-            logger("CONSOLE: " + display_.at(index));
-            stop(error::success);
-            return false;
-        }
-
         if (defined_.at(index))
         {
             toggle_.at(index) = !toggle_.at(index);

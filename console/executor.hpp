@@ -83,8 +83,8 @@ private:
     void read_test() const;
     void write_test();
 
-    static const std::string quit_;
     static const std::string name_;
+    static const std::string close_;
     static const std::unordered_map<uint8_t, bool> defined_;
     static const std::unordered_map<uint8_t, std::string> display_;
     static const std::unordered_map<std::string, uint8_t> keys_;
@@ -103,7 +103,7 @@ private:
     std::istream& input_;
     std::ostream& output_;
     network::logger log_{};
-    network::capture capture_{ input_, quit_ };
+    network::capture capture_{ input_, close_ };
     std_array<std::atomic_bool, logs> toggle_
     {
         true,  // application
