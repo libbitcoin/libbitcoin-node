@@ -52,8 +52,6 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual bool handle_close(const code& ec) NOEXCEPT;
-    virtual void handle_subscribed(const code& ec, const key& id) NOEXCEPT;
     virtual void handle_put_hashes(const code&) NOEXCEPT;
     virtual void handle_header(height_t branch_point) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
@@ -64,9 +62,9 @@ protected:
         const network::result_handler& handler) NOEXCEPT;
 
 private:
-    void initialize_map(maps& table) const NOEXCEPT;
+    void update_map(maps& table, size_t start) const NOEXCEPT;
     size_t count_map(const maps& table) const NOEXCEPT;
-    map_ptr make_map(size_t start, size_t count=max_size_t) const NOEXCEPT;
+    map_ptr make_map(size_t start, size_t count) const NOEXCEPT;
     map_ptr get_map(maps& table) NOEXCEPT;
 
     // These are thread safe.

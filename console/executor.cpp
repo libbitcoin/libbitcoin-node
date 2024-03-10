@@ -1753,6 +1753,15 @@ bool executor::do_run()
         return false;
     }
 
+    logger(format(BN_MEASURE_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.spend_buckets() %
+        query_.strong_tx_buckets() %
+        query_.validated_tx_buckets() %
+        query_.validated_bk_buckets());
     logger(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
@@ -1775,15 +1784,14 @@ bool executor::do_run()
         query_.confirmed_records() %
         query_.spend_records() %
         query_.strong_tx_records());
-    logger(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets());
+    logger(format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
+        query_.get_last_associated() %
+        query_.get_unassociated_count());
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -1829,6 +1837,14 @@ bool executor::do_run()
         query_.confirmed_records() %
         query_.spend_records() %
         query_.strong_tx_records());
+    logger(format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
+        query_.get_last_associated() %
+        query_.get_unassociated_count());
 
     // Close store (flush to disk).
     logger(BN_STORE_STOPPING);

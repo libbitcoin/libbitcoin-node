@@ -32,15 +32,15 @@ namespace node {
 
 #define CLASS session_outbound
 
-/// Three required to measure deviation.
-constexpr auto minimum_deviation_set = 3_size;
 constexpr auto to_kilobits_per_second = [](auto value) NOEXCEPT
 {
-    // There are no system wrappers for floating point conversion.
+    // Floating point conversion.
     BC_PUSH_WARNING(NO_STATIC_CAST)
     BC_PUSH_WARNING(NO_CASTS_FOR_ARITHMETIC_CONVERSION)
+
     return system::encode_base10(static_cast<uint64_t>(
         (value * byte_bits) / std::kilo::num));
+
     BC_POP_WARNING()
     BC_POP_WARNING()
 };
@@ -65,6 +65,9 @@ void session_outbound::performance(uint64_t channel, uint64_t speed,
 void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
+    // Three elements are required to measure deviation, don't drop to two.
+    constexpr auto mimimum_for_deviation = 3;
+
     BC_ASSERT(stranded());
 
     if (speed == max_uint64)
@@ -85,7 +88,7 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     speeds_[channel] = static_cast<double>(speed);
 
     const auto count = speeds_.size();
-    if (count <= minimum_deviation_set)
+    if (count <= mimimum_for_deviation)
     {
         handler(error::success);
         return;
@@ -97,15 +100,12 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
             return sum + element.second;
         });
 
-
-    // This bypasses unnecessary computation but prevents consistent logging.
-    // Keep this channel if its performance deviation is at/above average.
     const auto mean = rate / count;
-    ////if (speed >= mean)
-    ////{
-    ////    handler(error::success);
-    ////    return;
-    ////}
+    if (speed >= mean)
+    {
+        handler(error::success);
+        return;
+    }
 
     const auto variance = std::accumulate(speeds_.begin(), speeds_.end(), 0.0,
         [mean](double sum, const auto& element) NOEXCEPT
@@ -116,21 +116,15 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const auto sdev = std::sqrt(variance);
     const auto slow = (mean - speed) > (allowed_deviation_ * sdev);
 
-    ////system::string_list out{};
-    ////for (const auto& value: speeds_)
-    ////    out.push_back(system::serialize(to_kilobits_per_second(value.second)));
-
+    // Only speed < mean channels are logged.
     LOGN("Block download channels (" << count << ") rate ("
         << to_kilobits_per_second(rate) << ") mean ("
         << to_kilobits_per_second(mean) << ") sdev ("
         << to_kilobits_per_second(sdev) << ") Kbps [" << (slow ? "*" : "")
         << to_kilobits_per_second(speed) << "].");
-        ////<< system::join(out));
 
     if (slow)
     {
-        // Drop this channel if the magnitude of its below average performance
-        // deviation exceeds the allowed multiple of standard deviations.
         handler(error::slow_channel);
         return;
     }

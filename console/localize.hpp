@@ -108,6 +108,13 @@ namespace node {
     "   strong_tx:%6%\n" \
     "   valid_tx :%7%\n" \
     "   valid_bk :%8%"
+#define BN_MEASURE_PROGRESS \
+    "Progress...\n" \
+    "   fork pt  :%1%\n" \
+    "   top conf :%2%:%3%\n" \
+    "   top cand :%4%:%5%\n" \
+    "   top assoc:%6%\n" \
+    "   not assoc:%7%"
 
 // --read
 #define BN_READ_ROW \

@@ -116,9 +116,9 @@ public:
 protected:
     ////using channel_notifier = network::p2p::channel_notifier;
     ////using channel_completer = network::p2p::channel_completer;
-    using stop_handler = network::p2p::stop_handler;
-    using stop_completer = network::p2p::stop_completer;
-    using key = network::p2p::object_key;
+    ////using stop_handler = network::p2p::stop_handler;
+    ////using stop_completer = network::p2p::stop_completer;
+    ////using key = network::p2p::object_key;
 
     /// Bind a method (use BIND).
     template <class Derived, typename Method, typename... Args>
@@ -161,16 +161,6 @@ protected:
 
     /// Set chaser event (does not require node strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
-
-    /////// Subscribe to connection creation.
-    /////// A call after close invokes handlers with error::subscriber_stopped.
-    ////void subscribe_connect(channel_notifier&& handler,
-    ////    channel_completer&& complete) NOEXCEPT;
-
-    /// Subscribe to service stop.
-    /// A call after close invokes handlers with error::subscriber_stopped.
-    void subscribe_close(stop_handler&& handler,
-        stop_completer&& complete) NOEXCEPT;
 
 private:
     void do_notify(const code& ec, chase event_, link value) NOEXCEPT;

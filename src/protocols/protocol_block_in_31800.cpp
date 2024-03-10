@@ -36,7 +36,6 @@ using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
-using namespace std::chrono;
 
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -51,7 +50,7 @@ void protocol_block_in_31800::start_performance() NOEXCEPT
     if (stopped())
         return;
 
-    if (report_performance_)
+    if (drop_stalled_)
     {
         bytes_ = zero;
         start_ = steady_clock::now();
@@ -105,10 +104,22 @@ void protocol_block_in_31800::send_performance(uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (report_performance_)
+    if (drop_stalled_)
     {
+        // Must come first as this takes priority as per configuration.
+        // Shared performance manager detects slow and stalled channels.
+        if (use_deviation_)
+        {
+            performance_timer_->stop();
+            performance(identifier(), rate, BIND(handle_send_performance, _1));
+            return;
+        }
+
+        // Internal performance manager detects only stalled channel (not slow).
+        const auto ec = is_zero(rate) ? error::stalled_channel :
+            (rate == max_uint64 ? error::exhausted_channel : error::success);
         performance_timer_->stop();
-        performance(identifier(), rate, BIND(handle_send_performance, _1));
+        do_handle_performance(ec);
     }
 }
 
