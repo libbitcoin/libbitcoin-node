@@ -50,12 +50,9 @@ void protocol_block_in_31800::start_performance() NOEXCEPT
     if (stopped())
         return;
 
-    if (report_performance_)
-    {
-        bytes_ = zero;
-        start_ = steady_clock::now();
-        performance_timer_->start(BIND(handle_performance_timer, _1));
-    }
+    bytes_ = zero;
+    start_ = steady_clock::now();
+    performance_timer_->start(BIND(handle_performance_timer, _1));
 }
 
 void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
@@ -104,11 +101,20 @@ void protocol_block_in_31800::send_performance(uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    performance_timer_->stop();
+
     if (report_performance_)
     {
-        performance_timer_->stop();
         performance(identifier(), rate, BIND(handle_send_performance, _1));
+        return;
     }
+
+    if (stopped())
+        return;
+
+    // Internal performance managemer detects only stalled channel (not slow).
+    do_handle_performance(is_zero(rate) ? error::stalled_channel :
+        error::success);
 }
 
 void protocol_block_in_31800::handle_send_performance(const code& ec) NOEXCEPT
