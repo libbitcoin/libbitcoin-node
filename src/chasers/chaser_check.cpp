@@ -68,9 +68,8 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
         });
 }
 
-void chaser_check::initialize_map(maps& table) const NOEXCEPT
+void chaser_check::update_map(maps& table, size_t start) const NOEXCEPT
 {
-    auto start = archive().get_fork();
     while (true)
     {
         const auto map = make_map(start, inventory_);
@@ -100,7 +99,7 @@ code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
 
-    initialize_map(map_table_);
+    update_map(map_table_, archive().get_fork());
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -124,7 +123,18 @@ void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 
     // This can produce duplicate downloads in relation to those outstanding,
     // which is ok. That implies a rerg and then a reorg back before complete.
-    do_put_hashes(make_map(branch_point), BIND(handle_put_hashes, _1));
+    const auto start = map_table_.size();
+    update_map(map_table_, branch_point);
+    const auto added = map_table_.size() - start;
+    if (!is_zero(added))
+    {
+        // not captured by do_put_hashes logging.
+        ////LOGN("Hashes +" << added << " ("
+        ////    << count_map(map_table_) << ") remain.");
+
+        notify(error::success, chase::download,
+            system::possible_narrow_cast<count_t>(added));
+    }
 }
 
 void chaser_check::handle_put_hashes(const code&) NOEXCEPT

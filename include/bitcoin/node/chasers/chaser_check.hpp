@@ -62,9 +62,9 @@ protected:
         const network::result_handler& handler) NOEXCEPT;
 
 private:
-    void initialize_map(maps& table) const NOEXCEPT;
+    void update_map(maps& table, size_t start) const NOEXCEPT;
     size_t count_map(const maps& table) const NOEXCEPT;
-    map_ptr make_map(size_t start, size_t count=max_size_t) const NOEXCEPT;
+    map_ptr make_map(size_t start, size_t count) const NOEXCEPT;
     map_ptr get_map(maps& table) NOEXCEPT;
 
     // These are thread safe.
