@@ -58,14 +58,14 @@ code chaser_connect::start() NOEXCEPT
 void chaser_connect::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    if (event_ == chase::connected)
+    if (event_ == chase::checked)
     {
-        POST(handle_checked, std::get<header_t>(value));
+        POST(handle_checked, std::get<height_t>(value));
     }
 }
 
-// TODO: handle the new checked blocks (may issue 'connected').
-void chaser_connect::handle_checked(header_t) NOEXCEPT
+// TODO: handle the new checked blocks (may issue 'connected'/'unconnected').
+void chaser_connect::handle_checked(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

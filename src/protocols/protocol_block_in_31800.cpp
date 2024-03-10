@@ -36,6 +36,7 @@ using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
+using namespace std::chrono;
 
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -45,55 +46,77 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 // Performance polling.
 // ----------------------------------------------------------------------------
 
+void protocol_block_in_31800::start_performance() NOEXCEPT
+{
+    if (stopped())
+        return;
+
+    if (report_performance_)
+    {
+        bytes_ = zero;
+        start_ = steady_clock::now();
+        performance_timer_->start(BIND(handle_performance_timer, _1));
+    }
+}
+
 void protocol_block_in_31800::handle_performance_timer(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped() || ec == network::error::operation_canceled)
+    if (ec == network::error::operation_canceled)
+        return;
+
+    if (stopped())
         return;
 
     if (ec)
     {
-        LOGF("Performance timer error, " << ec.message());
+        LOGF("Performance timer failure, " << ec.message());
         stop(ec);
         return;
     }
 
-    // Compute rate in bytes per second.
-    const auto now = steady_clock::now();
-    const auto gap = std::chrono::duration_cast<seconds>(now - start_).count();
-    const auto rate = floored_divide(bytes_, gap);
+    if (map_->empty())
+    {
+        // Channel is exhausted, performance no longer relevant.
+        pause_performance();
+        return;
+    }
 
-    // Reset counters.
-    bytes_ = zero;
-    start_ = now;
-    set_performance(rate);
+    const auto delta = duration_cast<seconds>(steady_clock::now() - start_);
+    const auto unsigned_delta = sign_cast<uint64_t>(delta.count());
+    const auto non_zero_period = system::greater(unsigned_delta, one);
+    const auto rate = floored_divide(bytes_, non_zero_period);
+    send_performance(rate);
 }
 
-// private
-// Removes channel from performance tracking.
-void protocol_block_in_31800::reset_performance() NOEXCEPT
+void protocol_block_in_31800::pause_performance() NOEXCEPT
+{
+    send_performance(max_uint64);
+}
+
+void protocol_block_in_31800::stop_performance() NOEXCEPT
+{
+    send_performance(zero);
+}
+
+// [0...slow...fast] => [stalled_channel...slow_channel...success]
+void protocol_block_in_31800::send_performance(uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    set_performance(zero);
+
+    if (report_performance_)
+    {
+        performance_timer_->stop();
+        performance(identifier(), rate, BIND(handle_send_performance, _1));
+    }
 }
 
-// private
-// Bounces to network strand, performs computation, then calls handler.
-// Channel will continue to process and count blocks while this call excecutes
-// on the network strand. Timer will not be restarted until cycle completes.
-void protocol_block_in_31800::set_performance(uint64_t rate) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    performance(identifier(), rate, BIND(handle_performance, _1));
-}
-
-void protocol_block_in_31800::handle_performance(const code& ec) NOEXCEPT
+void protocol_block_in_31800::handle_send_performance(const code& ec) NOEXCEPT
 {
     POST(do_handle_performance, ec);
 }
 
-// private
 void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -101,21 +124,28 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
     if (stopped())
         return;
 
-    // stalled_channel or slow_channel
-    if (ec)
-    {
-        stop(ec);
+    // Caused only by performance(max) - had no outstanding work.
+    // Timer stopped until chaser::download event restarts it.
+    if (ec == error::exhausted_channel)
         return;
-    };
 
-    // Stop performance tracking without channel stop. New work restarts.
-    if (map_->empty())
+    // Caused only by performance(zero|xxx) - had outstanding work.
+    if (ec == error::stalled_channel || ec == error::slow_channel)
     {
-        reset_performance();
+        LOGP("Performance [" << authority() << "] " << ec.message());
+        stop(ec);
         return;
     }
 
-    performance_timer_->start(BIND(handle_performance_timer, _1));
+    if (ec)
+    {
+        LOGF("Performance failure [" << authority() << "] " << ec.message());
+        stop(ec);
+        return;
+    }
+
+    // Restart performance timing cycle.
+    start_performance();
 }
 
 // Start/stop.
@@ -128,88 +158,106 @@ void protocol_block_in_31800::start() NOEXCEPT
     if (started())
         return;
 
-    if (report_performance_)
-    {
-        start_ = steady_clock::now();
-        performance_timer_->start(BIND(handle_performance_timer, _1));
-    }
-
-    // This subscription is asynchronous without completion handler. So there
-    // is no completion time guarantee, best efforts completion only (ok).
+    // Events subscription is asynchronous.
     async_subscribe_events(BIND(handle_event, _1, _2, _3));
-
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
+
+    // Start performance timing cycle.
+    start_performance();
     get_hashes(BIND(handle_get_hashes, _1, _2));
     protocol::start();
-}
-
-void protocol_block_in_31800::handle_event(const code&,
-    chaser::chase event_, chaser::link value) NOEXCEPT
-{
-    if (event_ == chaser::chase::unassociated)
-    {
-        BC_ASSERT(std::holds_alternative<chaser::header_t>(value));
-        POST(handle_unassociated, std::get<chaser::header_t>(value));
-    }
-}
-
-// TODO: handle chaser::chase::unassociated (new downloads).
-void protocol_block_in_31800::handle_unassociated(chaser::header_t) NOEXCEPT
-{
-    BC_ASSERT(stranded());
 }
 
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    performance_timer_->stop();
-    reset_performance();
-    put_hashes(map_, BIND(handle_put_hashes, _1));
+    restore(map_);
+    map_ = std::make_shared<database::associations>();
+    stop_performance();
+
     protocol::stopping(ec);
+}
+
+// Idempotent cleanup.
+void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!map->empty())
+        put_hashes(map, BIND(handle_put_hashes, _1));
+}
+
+void protocol_block_in_31800::handle_event(const code&,
+    chaser::chase event_, chaser::link value) NOEXCEPT
+{
+    if (stopped())
+        return;
+
+    // There are count blocks to download at/above the given header.
+    if (event_ == chaser::chase::download)
+    {
+        BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
+        POST(handle_download, std::get<chaser::count_t>(value));
+    }
+}
+
+void protocol_block_in_31800::handle_download(chaser::count_t count) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return;
+
+    if (map_->empty() && !is_zero(count))
+    {
+        // Assume performance was stopped due to exhaustion.
+        start_performance();
+        get_hashes(BIND(handle_get_hashes, _1, _2));
+    }
 }
 
 // Inbound (blocks).
 // ----------------------------------------------------------------------------
 
-void protocol_block_in_31800::handle_get_hashes(const code& ec,
-    const map_ptr& map) NOEXCEPT
-{
-    BC_ASSERT_MSG(map->size() < max_inventory, "inventory overflow");
-
-    if (ec)
-    {
-        LOGF("Error getting block hashes for [" << authority() << "] "
-            << ec.message());
-        stop(ec);
-        return;
-    }
-
-    if (map->empty())
-    {
-        LOGP("Exhausted block hashes at [" << authority() << "] "
-            << ec.message());
-        return;
-    }
-
-    POST(send_get_data, map);
-}
-
 void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    map_ = map;
-    SEND(create_get_data(map_), handle_send, _1);
+    if (stopped())
+    {
+        restore(map);
+        return;
+    }
+
+    if (map->empty())
+        return;
+
+    if (map_->empty())
+    {
+        SEND(create_get_data((map_ = map)), handle_send, _1);
+        return;
+    }
+
+    // There are two populated maps, return the new and leave the old alone.
+    restore(map);
 }
 
-void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
+// private
+// clang has emplace_back bug (no matching constructor).
+// bip144: get_data uses witness constant but inventory does not.
+get_data protocol_block_in_31800::create_get_data(
+    const map_ptr& map) const NOEXCEPT
 {
-    if (ec)
-    {
-        LOGF("Error putting block hashes for [" << authority() << "] "
-            << ec.message());
-    }
+    get_data getter{};
+    getter.items.reserve(map->size());
+    std::for_each(map->pos_begin(), map->pos_end(),
+        [&](const auto& item) NOEXCEPT
+        {
+            getter.items.push_back({ block_type_, item.hash });
+        });
+
+    return getter;
 }
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
@@ -233,18 +281,18 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
+    // Check block.
+    // ------------------------------------------------------------------------
+
     code error{};
+    const auto& link = it->link;
     const auto& ctx = it->context;
     const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
-        // Set stored header state to 'block_unconfirmable'.
-        query.set_block_unconfirmable(query.to_header(hash));
+        query.set_block_unconfirmable(link);
+        notify(error::success, chaser::chase::unchecked, link);
 
-        // Notify that a candidate is 'unchecked' (candidates reorganize).
-        notify(error::success, chaser::chase::unchecked, { height });
-
-        // TODO: include context in log message.
         LOGR("Invalid block [" << encode_hash(hash) << "] at ("
             << ctx.height << ") from [" << authority() << "] "
             << error.message());
@@ -253,9 +301,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
-    // TODO: optimize using header_fk?
-    // Commit the block (txs) to the store, failure may stall the node.
-    if (query.set_link(block).is_terminal())
+    // Commit block.txs.
+    // ------------------------------------------------------------------------
+
+    // Commit block.txs to store, failure may stall the node.
+    if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << "] at ("
             << ctx.height << ") from [" << authority() << "] "
@@ -264,10 +314,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
+    // ------------------------------------------------------------------------
+
     LOGP("Downloaded block [" << encode_hash(hash) << "] at ("
         << ctx.height << ") from [" << authority() << "].");
 
-    notify(error::success, chaser::chase::checked, { height });
+    notify(error::success, chaser::chase::checked, height);
     bytes_ += message->cached_size;
     map_->erase(it);
 
@@ -281,25 +333,41 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-// private
-// ----------------------------------------------------------------------------
-
-get_data protocol_block_in_31800::create_get_data(
-    const map_ptr& map) const NOEXCEPT
+void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
 {
-    BC_ASSERT(stranded());
+    if (ec)
+    {
+        LOGF("Error putting block hashes for [" << authority() << "] "
+            << ec.message());
+    }
+}
 
-    get_data getter{};
-    getter.items.reserve(map->size());
-    std::for_each(map->pos_begin(), map->pos_end(),
-        [&](const auto& item) NOEXCEPT
-        {
-            // clang has emplace_back bug (no matching constructor).
-            // bip144: get_data uses witness constant but inventory does not.
-            getter.items.push_back({ block_type_, item.hash });
-        });
+void protocol_block_in_31800::handle_get_hashes(const code& ec,
+    const map_ptr& map) NOEXCEPT
+{
+    BC_ASSERT_MSG(map->size() < max_inventory, "inventory overflow");
 
-    return getter;
+    if (stopped())
+    {
+        restore(map);
+        return;
+    }
+
+    if (ec)
+    {
+        LOGF("Error getting block hashes for [" << authority() << "] "
+            << ec.message());
+        stop(ec);
+        return;
+    }
+
+    if (map->empty())
+    {
+        ////LOGP("Block hashes for [" << authority() << "] exhausted.");
+        return;
+    }
+
+    POST(send_get_data, map);
 }
 
 BC_POP_WARNING()

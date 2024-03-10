@@ -72,13 +72,12 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    constexpr auto block_id = inventory::type_id::block;
 
     if (stopped(ec))
         return false;
 
-    LOGP("Received (" << message->count(block_id) << ") block inventory from ["
-        << authority() << "].");
+    LOGP("Received (" << message->count(inventory::type_id::block)
+        << ") block inventory from [" << authority() << "].");
 
     const auto getter = create_get_data(*message);
 
@@ -170,11 +169,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 void protocol_block_in::complete() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    LOGN("Blocks from [" << authority() << "] exhausted.");
+    LOGP("Blocks from [" << authority() << "] exhausted.");
 }
 
-void protocol_block_in::handle_organize(const code& ec, size_t height,
-    const chain::block::cptr& block_ptr) NOEXCEPT
+void protocol_block_in::handle_organize(const code& ec, size_t LOG_ONLY(height),
+    const chain::block::cptr& LOG_ONLY(block_ptr)) NOEXCEPT
 {
     if (ec == network::error::service_stopped || ec == error::duplicate_block)
         return;

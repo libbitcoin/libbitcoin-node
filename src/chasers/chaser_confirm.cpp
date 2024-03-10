@@ -60,12 +60,12 @@ void chaser_confirm::handle_event(const code&, chase event_,
 {
     if (event_ == chase::connected)
     {
-        POST(handle_connected, std::get<header_t>(value));
+        POST(handle_connected, std::get<height_t>(value));
     }
 }
 
-// TODO: handle new strong connected branch (may issue 'confirmed').
-void chaser_confirm::handle_connected(header_t) NOEXCEPT
+// TODO: handle new strong connected branch (may issue 'confirmed'/'unconfirmed').
+void chaser_confirm::handle_connected(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }

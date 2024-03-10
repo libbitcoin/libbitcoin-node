@@ -47,44 +47,51 @@ class BCN_API chaser
 public:
     enum class chase
     {
-        /// A new strong branch exists (strong height_t).
-        /// Issued by 'block' and handled by 'confirm'.
-        /// The block chaser works with the blocks-first protocol.
-        /// Bocks first performs header/checked/connected stages.
-        block,
-
-        /// A new strong branch exists (strong height_t).
+        /// A new candidate branch exists (height_t).
         /// Issued by 'header' and handled by 'check'.
-        /// The block chaser works with the header-first protocol.
         header,
 
-        /// New unassociated blocks exist in the strong branch.
-        unassociated,
+        /// New candidate headers without txs exist (count_t).
+        /// Issued by 'check' and handled by 'block_in_31800'.
+        download,
 
-        /// A block has been downloaded, checked and stored (header_t).
-        /// Issued by 'check' and handled by 'connect'.
+        /// A block has been downloaded, checked and stored (height_t).
+        /// Issued by 'block_in_31800' and handled by 'connect'.
         checked,
+
+        /// A downloaded block has failed check (header_t).
+        /// Issued by 'block_in_31800' and handled by 'header'.
         unchecked,
 
-        /// A branch has been connected (header_t|height_t).
+        /// A branch has been connected (height_t).
         /// Issued by 'connect' and handled by 'confirm'.
         connected,
+
+        /// A checked block has failed connect (header_t).
+        /// Issued by 'connect' and handled by 'header'.
         unconnected,
 
-        /// A branch has been confirmed (fork header_t|height_t).
+        /// A branch has been confirmed (height_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
+
+        /// A connected block has failed confirm (header_t).
+        /// Issued by 'confirm' and handled by 'header' (and 'block').
         unconfirmed,
 
         /// A new transaction has been added to the pool (transaction_t).
         /// Issued by 'transaction' and handled by 'candidate'.
         transaction,
 
-        /// A new candidate block has been created (?).
-        /// Issued by 'candidate' and handled by miners.
+        /// A new candidate block (template) has been created ().
+        /// Issued by 'candidate' and handled by [miners].
         candidate,
 
-        /// Service is stopping (accompanied by error::service_stopped).
+        /// Legacy: A new strong branch exists (branch height_t).
+        /// Issued by 'block' and handled by 'confirm'.
+        block,
+
+        /// Service is stopping (accompanied by error::service_stopped), ().
         stop
     };
 
@@ -92,6 +99,7 @@ public:
     using header_t = database::header_link::integer;
     using transaction_t = database::tx_link::integer;
     using flags_t = database::context::flag::integer;
+    using count_t = height_t;
 
     typedef std::function<void(const code&, size_t)> organize_handler;
     typedef std::variant<uint32_t, uint64_t> link;
@@ -106,6 +114,12 @@ public:
     virtual code start() NOEXCEPT = 0;
 
 protected:
+    ////using channel_notifier = network::p2p::channel_notifier;
+    ////using channel_completer = network::p2p::channel_completer;
+    using stop_handler = network::p2p::stop_handler;
+    using stop_completer = network::p2p::stop_completer;
+    using key = network::p2p::object_key;
+
     /// Bind a method (use BIND).
     template <class Derived, typename Method, typename... Args>
     auto bind(Method&& method, Args&&... args) NOEXCEPT
@@ -147,6 +161,16 @@ protected:
 
     /// Set chaser event (does not require node strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
+
+    /////// Subscribe to connection creation.
+    /////// A call after close invokes handlers with error::subscriber_stopped.
+    ////void subscribe_connect(channel_notifier&& handler,
+    ////    channel_completer&& complete) NOEXCEPT;
+
+    /// Subscribe to service stop.
+    /// A call after close invokes handlers with error::subscriber_stopped.
+    void subscribe_close(stop_handler&& handler,
+        stop_completer&& complete) NOEXCEPT;
 
 private:
     void do_notify(const code& ec, chase event_, link value) NOEXCEPT;

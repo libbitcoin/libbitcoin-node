@@ -47,6 +47,7 @@ enum error_t : uint8_t
     // network
     slow_channel,
     stalled_channel,
+    exhausted_channel,
 
     // blockchain
     orphan_block,

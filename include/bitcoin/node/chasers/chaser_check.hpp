@@ -21,6 +21,7 @@
 
 #include <functional>
 #include <memory>
+#include <queue>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -37,6 +38,7 @@ class BCN_API chaser_check
 public:
     typedef std::shared_ptr<database::associations> map_ptr;
     typedef std::function<void(const code&, const map_ptr&)> handler;
+    typedef std::list<map_ptr> maps;
 
     DELETE_COPY_MOVE(chaser_check);
 
@@ -50,6 +52,8 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
+    virtual bool handle_close(const code& ec) NOEXCEPT;
+    virtual void handle_subscribed(const code& ec, const key& id) NOEXCEPT;
     virtual void handle_put_hashes(const code&) NOEXCEPT;
     virtual void handle_header(height_t branch_point) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
@@ -59,11 +63,18 @@ protected:
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
-    // This is thread safe.
+private:
+    void initialize_map(maps& table) const NOEXCEPT;
+    size_t count_map(const maps& table) const NOEXCEPT;
+    map_ptr make_map(size_t start, size_t count=max_size_t) const NOEXCEPT;
+    map_ptr get_map(maps& table) NOEXCEPT;
+
+    // These are thread safe.
+    const size_t connections_;
     const size_t inventory_;
 
     // This is protected by strand.
-    database::associations map_{};
+    maps map_table_{};
 };
 
 } // namespace node

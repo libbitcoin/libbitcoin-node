@@ -65,7 +65,7 @@ protected:
         link value) NOEXCEPT;
 
     // Handle events.
-    virtual void handle_unchecked(height_t height) NOEXCEPT;
+    virtual void handle_unchecked(header_t height) NOEXCEPT;
 
     /// Sum of work from header to branch point (excluded).
     virtual bool get_branch_work(uint256_t& work, size_t& point,
@@ -90,12 +90,12 @@ protected:
         const system::chain::chain_state::ptr& state) NOEXCEPT;
 
     /// Store header to database and push to top of candidate chain.
-    virtual database::header_link push(
+    virtual database::header_link push_header(
         const system::chain::header::cptr& header,
         const system::chain::context& context) const NOEXCEPT;
 
     /// Move tree header to database and push to top of candidate chain.
-    virtual bool push(const system::hash_digest& key) NOEXCEPT;
+    virtual bool push_header(const system::hash_digest& key) NOEXCEPT;
 
     /// Validate and organize next header in sequence relative to caller peer.
     virtual void do_organize(const system::chain::header::cptr& header,

@@ -40,7 +40,6 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     write(false),
     log(context),
     node(context),
-    ////chain(context),
     database(context),
     network(context),
     bitcoin(context)
