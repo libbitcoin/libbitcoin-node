@@ -134,7 +134,7 @@ void chaser_check::handle_event(const code&, chase event_,
     if (event_ == chase::header)
     {
         BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        LOGN("get chase::header " << std::get<height_t>(value));
+        ////LOGN("get chase::header " << std::get<height_t>(value));
         POST(handle_header, std::get<height_t>(value));
     }
 }
@@ -178,8 +178,8 @@ void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 
     const auto map = get_map(map_table_);
 
-    LOGN("Hashes -" << map->size() << " ("
-        << count_map(map_table_) << ") remain.");
+    ////LOGN("Hashes -" << map->size() << " ("
+    ////    << count_map(map_table_) << ") remain.");
 
     handler(error::success, map);
 }
@@ -198,8 +198,8 @@ void chaser_check::do_put_hashes(const map_ptr& map,
             system::possible_narrow_cast<count_t>(map->size()));
     }
 
-    LOGN("Hashes +" << map->size() << " ("
-        << count_map(map_table_) << ") remain.");
+    ////LOGN("Hashes +" << map->size() << " ("
+    ////    << count_map(map_table_) << ") remain.");
 
     handler(error::success);
 }

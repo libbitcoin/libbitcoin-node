@@ -106,11 +106,12 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
 void protocol_header_in_31800::complete() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    LOGN("Headers from [" << authority() << "] exhausted.");
+    LOGP("Headers from [" << authority() << "] exhausted.");
 }
 
-void protocol_header_in_31800::handle_organize(const code& ec, size_t height,
-    const chain::header::cptr& header_ptr) NOEXCEPT
+void protocol_header_in_31800::handle_organize(const code& ec,
+    size_t LOG_ONLY(height),
+    const chain::header::cptr& LOG_ONLY(header_ptr)) NOEXCEPT
 {
     if (stopped() || ec == error::duplicate_header)
         return;

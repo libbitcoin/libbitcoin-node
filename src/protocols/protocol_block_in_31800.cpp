@@ -198,7 +198,6 @@ void protocol_block_in_31800::handle_event(const code&,
     if (event_ == chaser::chase::download)
     {
         BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
-        ////LOGN("get chase::download " << std::get<chaser::count_t>(value));
         POST(handle_download, std::get<chaser::count_t>(value));
     }
 }
@@ -245,6 +244,8 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 }
 
 // private
+// clang has emplace_back bug (no matching constructor).
+// bip144: get_data uses witness constant but inventory does not.
 get_data protocol_block_in_31800::create_get_data(
     const map_ptr& map) const NOEXCEPT
 {
@@ -253,8 +254,6 @@ get_data protocol_block_in_31800::create_get_data(
     std::for_each(map->pos_begin(), map->pos_end(),
         [&](const auto& item) NOEXCEPT
         {
-            // clang has emplace_back bug (no matching constructor).
-            // bip144: get_data uses witness constant but inventory does not.
             getter.items.push_back({ block_type_, item.hash });
         });
 
@@ -292,7 +291,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (((error = block.check())) || ((error = block.check(ctx))))
     {
         query.set_block_unconfirmable(link);
-        ////LOGN("set chase::unchecked " << link);
         notify(error::success, chaser::chase::unchecked, link);
 
         LOGR("Invalid block [" << encode_hash(hash) << "] at ("
@@ -321,7 +319,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << "] at ("
         << ctx.height << ") from [" << authority() << "].");
 
-    ////LOGN("set chase::checked " << height);
     notify(error::success, chaser::chase::checked, height);
     bytes_ += message->cached_size;
     map_->erase(it);

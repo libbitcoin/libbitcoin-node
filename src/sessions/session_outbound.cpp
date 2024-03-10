@@ -120,7 +120,7 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     ////for (const auto& value: speeds_)
     ////    out.push_back(system::serialize(to_kilobits_per_second(value.second)));
 
-    LOGS("Block download channels (" << count << ") rate ("
+    LOGN("Block download channels (" << count << ") rate ("
         << to_kilobits_per_second(rate) << ") mean ("
         << to_kilobits_per_second(mean) << ") sdev ("
         << to_kilobits_per_second(sdev) << ") Kbps [" << (slow ? "*" : "")
