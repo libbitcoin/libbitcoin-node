@@ -96,33 +96,12 @@ chaser_check::map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 // start
 // ----------------------------------------------------------------------------
 
-// TODO: node.subscribe_close(handle_close, handle_subscribed);
-// Complete start/stats in handle_subscribed, report stats in handle_close.
-
 code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
 
-    subscribe_close(BIND(handle_close, _1), BIND(handle_subscribed, _1, _2));
-
-    LOGN("Candidate fork (" << archive().get_fork() << ").");
-
     initialize_map(map_table_);
-
-    LOGN("Unassociated candidates (" << count_map(map_table_) << ").");
-
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
-}
-
-bool chaser_check::handle_close(const code&) NOEXCEPT
-{
-    // There may still be channels running, so this isn't exact.
-    LOGN("Top associated (" << archive().get_last_associated() << ").");
-    return false;
-}
-
-void chaser_check::handle_subscribed(const code&, const key&) NOEXCEPT
-{
 }
 
 // event handlers
@@ -134,7 +113,6 @@ void chaser_check::handle_event(const code&, chase event_,
     if (event_ == chase::header)
     {
         BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        ////LOGN("get chase::header " << std::get<height_t>(value));
         POST(handle_header, std::get<height_t>(value));
     }
 }
@@ -192,8 +170,6 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     if (!map->empty())
     {
         map_table_.push_back(map);
-
-        ////LOGN("set chase::download " << map->size());
         notify(error::success, chase::download,
             system::possible_narrow_cast<count_t>(map->size()));
     }

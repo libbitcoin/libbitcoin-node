@@ -52,8 +52,6 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual bool handle_close(const code& ec) NOEXCEPT;
-    virtual void handle_subscribed(const code& ec, const key& id) NOEXCEPT;
     virtual void handle_put_hashes(const code&) NOEXCEPT;
     virtual void handle_header(height_t branch_point) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
