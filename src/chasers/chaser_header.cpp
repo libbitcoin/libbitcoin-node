@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <utility>
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>

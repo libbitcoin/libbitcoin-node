@@ -36,7 +36,6 @@ using namespace system;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
-using namespace std::chrono;
 
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
