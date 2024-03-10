@@ -42,11 +42,11 @@ public:
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename Session>
     protocol_block_in_31800(Session& session,
-        const channel_ptr& channel, bool report_performance) NOEXCEPT
+        const channel_ptr& channel, bool) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_block_in_31800>(session.log),
-        report_performance_(report_performance &&
-            to_bool(session.config().node.sample_period_seconds)),
+        drop_stalled_(to_bool(session.config().node.sample_period_seconds)),
+        use_deviation_(session.config().node.allowed_deviation > 0.0),
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         performance_timer_(std::make_shared<network::deadline>(session.log,
@@ -87,7 +87,8 @@ private:
         const map_ptr& map) const NOEXCEPT;
 
     // These are thread safe.
-    const bool report_performance_;
+    const bool drop_stalled_;
+    const bool use_deviation_;
     const network::messages::inventory::type_id block_type_;
 
     // These are protected by strand.
