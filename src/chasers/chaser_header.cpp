@@ -86,6 +86,7 @@ void chaser_header::handle_event(const code&, chase event_,
         event_ == chase::unconnected ||
         event_ == chase::unconfirmed)
     {
+        LOGN("get chase::invalid " << std::get<header_t>(value));
         POST(handle_unchecked, std::get<header_t>(value));
     }
 }
@@ -277,6 +278,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     top_state_ = state;
     const auto branch_point = possible_narrow_cast<height_t>(point);
+    LOGN("set chase::header " << branch_point);
     notify(error::success, chase::header, branch_point );
     handler(error::success, height);
 }

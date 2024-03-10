@@ -38,6 +38,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // network
     { slow_channel, "slow channel" },
     { stalled_channel, "stalled channel" },
+    { exhausted_channel, "exhausted channel" },
 
     // blockchain
     { orphan_block, "orphan block" },

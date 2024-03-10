@@ -62,7 +62,7 @@ std::filesystem::path settings::events_file() NOEXCEPT
 namespace node {
 
 settings::settings() NOEXCEPT
-  : allowed_deviation{ 1.0 },
+  : allowed_deviation{ 1.5 },
     maximum_inventory{ 500 },
     sample_period_seconds{ 5 },
     currency_window_minutes{ 60 }

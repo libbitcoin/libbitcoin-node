@@ -61,32 +61,27 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Request blocks from peer.
+    /// Methods.
+    virtual void restore(const map_ptr& map) NOEXCEPT;
+    virtual void start_performance() NOEXCEPT;
+    virtual void pause_performance() NOEXCEPT;
+    virtual void stop_performance() NOEXCEPT;
+    virtual void send_performance(uint64_t rate) NOEXCEPT;
     virtual void send_get_data(const map_ptr& map) NOEXCEPT;
 
-    /// Recieved incoming block message.
+    /// Handlers.
+    virtual void handle_performance_timer(const code& ec) NOEXCEPT;
+    virtual void handle_send_performance(const code& ec) NOEXCEPT;
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
-
-    /// Handle performance timer event.
-    virtual void handle_performance_timer(const code& ec) NOEXCEPT;
-
-    /// Handle result of performance reporting.
-    virtual void handle_performance(const code& ec) NOEXCEPT;
-
-    virtual void handle_header(chaser::count_t count) NOEXCEPT;
+    virtual void handle_download(chaser::count_t count) NOEXCEPT;
     virtual void handle_event(const code& ec,
         chaser::chase event_, chaser::link value) NOEXCEPT;
-
-    /// Manage download queue.
     virtual void handle_put_hashes(const code& ec) NOEXCEPT;
     virtual void handle_get_hashes(const code& ec,
         const map_ptr& map) NOEXCEPT;
 
 private:
-    void reset_performance() NOEXCEPT;
-    void set_performance(uint64_t rate) NOEXCEPT;
-
     void do_handle_performance(const code& ec) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;

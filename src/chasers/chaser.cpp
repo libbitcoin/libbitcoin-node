@@ -100,6 +100,18 @@ void chaser::do_notify(const code& ec, chase event_, link value) NOEXCEPT
     subscriber_.notify(ec, event_, value);
 }
 
+////void chaser::subscribe_connect(channel_notifier&& handler,
+////    channel_completer&& complete) NOEXCEPT
+////{
+////    node_.subscribe_connect(std::move(handler), std::move(complete));
+////}
+
+void chaser::subscribe_close(stop_handler&& handler,
+    stop_completer&& complete) NOEXCEPT
+{
+    node_.subscribe_close(std::move(handler), std::move(complete));
+}
+
 BC_POP_WARNING()
 
 } // namespace database

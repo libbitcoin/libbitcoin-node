@@ -86,6 +86,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__stalled_channel__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "stalled channel");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__exhausted_channel__true_exected_message)
+{
+    constexpr auto value = error::exhausted_channel;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "exhausted channel");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__orphan_block__true_exected_message)
 {
     constexpr auto value = error::orphan_block;

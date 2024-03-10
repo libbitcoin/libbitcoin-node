@@ -38,10 +38,14 @@ using namespace system;
 using namespace system::chain;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
+    connections_(node.network_settings().outbound_connections),
     inventory_(system::lesser(node.node_settings().maximum_inventory,
         network::messages::max_inventory))
 {
@@ -51,20 +55,74 @@ chaser_check::~chaser_check() NOEXCEPT
 {
 }
 
+// utility
+// ----------------------------------------------------------------------------
+// private
+
+size_t chaser_check::count_map(const maps& table) const NOEXCEPT
+{
+    return std::accumulate(table.begin(), table.end(), zero,
+        [](size_t sum, const map_ptr& map) NOEXCEPT
+        {
+            return sum + map->size();
+        });
+}
+
+void chaser_check::initialize_map(maps& table) const NOEXCEPT
+{
+    auto start = archive().get_fork();
+    while (true)
+    {
+        const auto map = make_map(start, inventory_);
+        if (map->empty()) break;
+        table.push_front(map);
+        start = map->top().height;
+    }
+}
+
+chaser_check::map_ptr chaser_check::make_map(size_t start,
+    size_t count) const NOEXCEPT
+{
+    return std::make_shared<database::associations>(
+        archive().get_unassociated_above(start, count));
+}
+
+chaser_check::map_ptr chaser_check::get_map(maps& table) NOEXCEPT
+{
+    return table.empty() ? std::make_shared<database::associations>() :
+        pop(table);
+}
+
 // start
 // ----------------------------------------------------------------------------
+
+// TODO: node.subscribe_close(handle_close, handle_subscribed);
+// Complete start/stats in handle_subscribed, report stats in handle_close.
 
 code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
+
+    subscribe_close(BIND(handle_close, _1), BIND(handle_subscribed, _1, _2));
+
     LOGN("Candidate fork (" << archive().get_fork() << ").");
 
-    // Initialize map to all unassociated candidate blocks.
-    map_table_.push_back(std::make_shared<database::associations>(
-        archive().get_all_unassociated()));
-    
-    LOGN("Unassociated candidates (" << map_table_.at(0)->size() << ").");
+    initialize_map(map_table_);
+
+    LOGN("Unassociated candidates (" << count_map(map_table_) << ").");
+
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+}
+
+bool chaser_check::handle_close(const code&) NOEXCEPT
+{
+    // There may still be channels running, so this isn't exact.
+    LOGN("Top associated (" << archive().get_last_associated() << ").");
+    return false;
+}
+
+void chaser_check::handle_subscribed(const code&, const key&) NOEXCEPT
+{
 }
 
 // event handlers
@@ -76,21 +134,19 @@ void chaser_check::handle_event(const code&, chase event_,
     if (event_ == chase::header)
     {
         BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        handle_header(std::get<height_t>(value));
+        LOGN("get chase::header " << std::get<height_t>(value));
+        POST(handle_header, std::get<height_t>(value));
     }
 }
 
 // Stale branches are just be allowed to complete (still downloaded).
 void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
-    const auto map = std::make_shared<database::associations>(
-        archive().get_all_unassociated_above(branch_point));
+    BC_ASSERT(stranded());
 
-    if (map->empty())
-        return;
-
-    network::result_handler handler = BIND(handle_put_hashes, _1);
-    POST(do_put_hashes, map, std::move(handler));
+    // This can produce duplicate downloads in relation to those outstanding,
+    // which is ok. That implies a rerg and then a reorg back before complete.
+    do_put_hashes(make_map(branch_point), BIND(handle_put_hashes, _1));
 }
 
 void chaser_check::handle_put_hashes(const code&) NOEXCEPT
@@ -116,23 +172,14 @@ void chaser_check::put_hashes(const map_ptr& map,
             this, map, std::move(handler)));
 }
 
-// TODO: post event causing channels to put some?
-// TODO: otherwise channels may monopolize work.
 void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    auto& index = map_table_.at(0)->get<database::association::pos>();
-    const auto size = index.size();
-    const auto count = std::min(size, inventory_);
-    const auto map = std::make_shared<database::associations>();
+    const auto map = get_map(map_table_);
 
-    /// Merge "moves" elements from one table to another.
-    map->merge(index, index.begin(), std::next(index.begin(), count));
-    ////LOGN("Hashes: ("
-    ////    << size << " - "
-    ////    << map->size() << " = "
-    ////    << map_table_.at(0)->size() << ").");
+    LOGN("Hashes -" << map->size() << " ("
+        << count_map(map_table_) << ") remain.");
 
     handler(error::success, map);
 }
@@ -142,19 +189,23 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 {
     BC_ASSERT(stranded());
 
-    const auto count = system::possible_narrow_cast<chaser::count_t>(
-        map->size());
-
-    if (!is_zero(count))
+    if (!map->empty())
     {
-        /// Merge "moves" elements from one table to another.
-        map_table_.at(0)->merge(*map);
-        notify(error::success, chase::download, count);
+        map_table_.push_back(map);
+
+        ////LOGN("set chase::download " << map->size());
+        notify(error::success, chase::download,
+            system::possible_narrow_cast<count_t>(map->size()));
     }
+
+    LOGN("Hashes +" << map->size() << " ("
+        << count_map(map_table_) << ") remain.");
 
     handler(error::success);
 }
 
+BC_POP_WARNING()
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace database
