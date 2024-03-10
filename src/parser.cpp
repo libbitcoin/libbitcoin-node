@@ -813,6 +813,27 @@ options_metadata parser::load_settings() THROWS
 
     /* [node] */
     (
+        "node.allowed_deviation",
+        value<float>(&configured.node.allowed_deviation),
+        "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
+    )
+    (
+        "node.sample_period_seconds",
+        value<uint16_t>(&configured.node.sample_period_seconds),
+        "Sampling period for drop of stalled channels, defaults to 10 (0 disables)."
+    )
+    (
+        "node.currency_window_minutes",
+        value<uint32_t>(&configured.node.currency_window_minutes),
+        "Time from present that blocks are considered current, defaults to 60 (0 disables)."
+    )
+    (
+        "node.maximum_inventory",
+        value<uint16_t>(&configured.node.maximum_inventory),
+        "Maximum size of block inventory requests, defaults to 5000."
+    )
+    // ### temporary hacks ###
+    (
         "node.target",
         value<uint16_t>(&configured.node.target),
         "Channel count that triggers node stop, defaults to 0 (0 disables)."
@@ -821,26 +842,6 @@ options_metadata parser::load_settings() THROWS
         "node.interval",
         value<uint16_t>(&configured.node.interval),
         "Channel count reporting interval, defaults to 0 (0 disables)."
-    )
-    (
-        "node.allowed_deviation",
-        value<float>(&configured.node.allowed_deviation),
-        "Allowable underperformance standard deviation, defaults to 1.0."
-    )
-    (
-        "node.maximum_inventory",
-        value<uint16_t>(&configured.node.maximum_inventory),
-        "Maximum size of block inventory requests, defaults to 500."
-    )
-    (
-        "node.sample_period_seconds",
-        value<uint16_t>(&configured.node.sample_period_seconds),
-        "Performance sampling time period, defaults to 5 (0 disables)."
-    )
-    (
-        "node.currency_window_minutes",
-        value<uint32_t>(&configured.node.currency_window_minutes),
-        "Time from present that blocks are considered current, defaults to 60 (0 disables)."
     )
     ////(
     ////    "node.notify_limit_hours",
