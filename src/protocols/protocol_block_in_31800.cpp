@@ -294,6 +294,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ------------------------------------------------------------------------
 
+    // Could check for parent invalidation and propagate here, but blocks are
+    // not checked in order, so there would remain no guarantee.
+
     code error{};
     const auto& link = it->link;
     const auto& ctx = it->context;
