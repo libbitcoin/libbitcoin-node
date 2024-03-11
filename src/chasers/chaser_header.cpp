@@ -44,9 +44,7 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
     minimum_work_(config().bitcoin.minimum_work),
     milestone_(config().bitcoin.milestone),
-    checkpoints_(config().bitcoin.checkpoints),
-    currency_window_(config().node.currency_window()),
-    use_currency_window_(to_bool(config().node.currency_window_minutes))
+    checkpoints_(config().bitcoin.checkpoints)
 {
 }
 
@@ -461,17 +459,6 @@ chain_state::ptr chaser_header::get_chain_state(
         return query.get_candidate_chain_state(config().bitcoin, height);
 
     return {};
-}
-
-bool chaser_header::is_current(const header& header) const NOEXCEPT
-{
-    if (!use_currency_window_)
-        return true;
-
-    // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
-    const auto time = wall_clock::from_time_t(header.timestamp());
-    const auto current = wall_clock::now() - currency_window_;
-    return time >= current;
 }
 
 bool chaser_header::get_branch_work(uint256_t& work, size_t& point,

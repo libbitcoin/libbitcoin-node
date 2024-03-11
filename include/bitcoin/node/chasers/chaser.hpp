@@ -158,12 +158,17 @@ protected:
     /// Set chaser event (does not require node strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
+    /// Header timestamp is within configured span from current time.
+    virtual bool is_current(const system::chain::header& header) const NOEXCEPT;
+
 private:
     void do_notify(const code& ec, chase event_, link value) NOEXCEPT;
 
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
+    const network::wall_clock::duration currency_window_;
+    const bool use_currency_window_;
 
     // This is protected by the network strand.
     event_subscriber& subscriber_;
