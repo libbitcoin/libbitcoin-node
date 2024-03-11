@@ -269,6 +269,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
+    // Cache header that is not yet in a storable branch.
     // ------------------------------------------------------------------------
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
