@@ -124,13 +124,20 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     // Unconfirmability isn't necessary for validation but adds query context.
     for (auto index = query.get_top_candidate(); index > height; --index)
     {
-        if (!query.set_block_unconfirmable(query.to_candidate(index)) ||
-            !query.pop_candidate())
+        const auto link = query.to_candidate(index);
+
+        LOGN("Invalidating candidate [" << index << ":"
+            << encode_hash(query.get_header_key(link)) << "].");
+
+        if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
         {
             close(error::store_integrity);
             return;
         }
     }
+
+    LOGN("Invalidating candidate [" << height << ":"
+        << encode_hash(query.get_header_key(header)) << "].");
 
     // Candidate at height is already marked as unconfirmable by notifier.
     if (!query.pop_candidate())
@@ -186,6 +193,8 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     // ------------------------------------------------------------------------
     for (auto index = top_candidate; index > fork_point; --index)
     {
+        LOGN("Deorganizing candidate [" << index << "].");
+
         if (!query.pop_candidate())
         {
             close(error::store_integrity);
@@ -315,11 +324,11 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Compute relative work.
     // ------------------------------------------------------------------------
 
-    size_t point{};
     uint256_t work{};
     hashes tree_branch{};
+    size_t branch_point{};
     header_links store_branch{};
-    if (!get_branch_work(work, point, tree_branch, store_branch, header))
+    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
         handler(error::store_integrity, height);
         close(error::store_integrity);
@@ -327,7 +336,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     bool strong{};
-    if (!get_is_strong(strong, work, point))
+    if (!get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
         close(error::store_integrity);
@@ -346,7 +355,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     auto top = top_state_->height();
-    if (top < point)
+    if (top < branch_point)
     {
         handler(error::store_integrity, height);
         close(error::store_integrity);
@@ -354,8 +363,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Pop down to the branch point.
-    while (top-- > point)
+    while (top-- > branch_point)
     {
+        LOGN("Reorganizing candidate [" << add1(top) << "].");
+
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
@@ -398,8 +409,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     top_state_ = state;
-    const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::header, branch_point );
+    const auto point = possible_narrow_cast<height_t>(branch_point);
+    notify(error::success, chase::header, point);
     handler(error::success, height);
 }
 
