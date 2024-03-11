@@ -28,7 +28,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 {
     // general
     { success, "success" },
-    { unknown, "unknown error" },
+    { internal_error, "internal error" },
     { unexpected_event, "unexpected event" },
 
     // database

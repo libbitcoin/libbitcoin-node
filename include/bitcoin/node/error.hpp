@@ -37,7 +37,7 @@ namespace error {
 enum error_t : uint8_t
 {
     success,
-    unknown,
+    internal_error,
     unexpected_event,
 
     // database
