@@ -124,13 +124,20 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     // Unconfirmability isn't necessary for validation but adds query context.
     for (auto index = query.get_top_candidate(); index > height; --index)
     {
-        if (!query.set_block_unconfirmable(query.to_candidate(index)) ||
-            !query.pop_candidate())
+        const auto link = query.to_candidate(index);
+
+        LOGN("Invalidating candidate [" << index << ":"
+            << encode_hash(query.get_header_key(link)) << "].");
+
+        if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
         {
             close(error::store_integrity);
             return;
         }
     }
+
+    LOGN("Invalidating candidate [" << height << ":"
+        << encode_hash(query.get_header_key(header)) << "].");
 
     // Candidate at height is already marked as unconfirmable by notifier.
     if (!query.pop_candidate())
@@ -144,7 +151,8 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
 
     const auto& coin = config().bitcoin;
     const auto top_candidate = top_state_->height();
-    const auto top_forks = top_state_->forks();
+    const auto prev_forks = top_state_->forks();
+    const auto prev_version = top_state_->minimum_block_version();
     top_state_ = query.get_candidate_chain_state(coin, fork_point);
     if (!top_state_)
     {
@@ -153,15 +161,26 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     }
 
     // TODO: this could be moved to deconfirmation.
-    const auto fork_forks = top_state_->forks();
-    if (top_forks != fork_forks)
+    const auto next_forks = top_state_->forks();
+    if (prev_forks != next_forks)
     {
-        const binary prev{ to_bits(sizeof(forks)), to_big_endian(top_forks) };
-        const binary next{ to_bits(sizeof(forks)), to_big_endian(fork_forks) };
-        LOGN("Rules unforked from ["
-            << prev << "] at candidate height ("
+        const binary prev{ to_bits(sizeof(forks)), to_big_endian(prev_forks) };
+        const binary next{ to_bits(sizeof(forks)), to_big_endian(next_forks) };
+        LOGN("Forks reverted from ["
+            << prev << "] at candidate ("
             << top_candidate << ") to ["
-            << next << "] at confirmed block ["
+            << next << "] at confirmed ["
+            << fork_point << ":" << encode_hash(top_state_->hash()) << "].");
+    }
+
+    // TODO: this could be moved to deconfirmation.
+    const auto next_version = top_state_->minimum_block_version();
+    if (prev_version != next_version)
+    {
+        LOGN("Minimum block version reverted ["
+            << prev_version << "] at candidate ("
+            << top_candidate << ") to ["
+            << next_version << "] at confirmed ["
             << fork_point << ":" << encode_hash(top_state_->hash()) << "].");
     }
 
@@ -186,6 +205,8 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     // ------------------------------------------------------------------------
     for (auto index = top_candidate; index > fork_point; --index)
     {
+        LOGN("Deorganizing candidate [" << index << "].");
+
         if (!query.pop_candidate())
         {
             close(error::store_integrity);
@@ -267,18 +288,29 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     const auto prev_forks = state->forks();
+    const auto prev_version = state->minimum_block_version();
     state.reset(new chain_state{ *state, header, coin });
-    const auto next_forks = state->forks();
     const auto height = state->height();
 
     // TODO: this could be moved to confirmation.
+    const auto next_forks = state->forks();
     if (prev_forks != next_forks)
     {
         const binary prev{ to_bits(sizeof(forks)), to_big_endian(prev_forks) };
         const binary next{ to_bits(sizeof(forks)), to_big_endian(next_forks) };
-        LOGN("Rules forked from ["
+        LOGN("Forked from ["
             << prev << "] to ["
-            << next << "] at candidate block ["
+            << next << "] at ["
+            << height << ":" << encode_hash(hash) << "].");
+    }
+
+    // TODO: this could be moved to confirmation.
+    const auto next_version = state->minimum_block_version();
+    if (prev_version != next_version)
+    {
+        LOGN("Minimum block version ["
+            << prev_version << "] changed to ["
+            << next_version << "] at ["
             << height << ":" << encode_hash(hash) << "].");
     }
 
@@ -315,11 +347,11 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Compute relative work.
     // ------------------------------------------------------------------------
 
-    size_t point{};
     uint256_t work{};
     hashes tree_branch{};
+    size_t branch_point{};
     header_links store_branch{};
-    if (!get_branch_work(work, point, tree_branch, store_branch, header))
+    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
         handler(error::store_integrity, height);
         close(error::store_integrity);
@@ -327,7 +359,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     bool strong{};
-    if (!get_is_strong(strong, work, point))
+    if (!get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
         close(error::store_integrity);
@@ -346,7 +378,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     auto top = top_state_->height();
-    if (top < point)
+    if (top < branch_point)
     {
         handler(error::store_integrity, height);
         close(error::store_integrity);
@@ -354,8 +386,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Pop down to the branch point.
-    while (top-- > point)
+    while (top-- > branch_point)
     {
+        LOGN("Reorganizing candidate [" << add1(top) << "].");
+
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
@@ -398,8 +432,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     top_state_ = state;
-    const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::header, branch_point );
+    const auto point = possible_narrow_cast<height_t>(branch_point);
+    notify(error::success, chase::header, point);
     handler(error::success, height);
 }
 
@@ -538,3 +572,22 @@ BC_POP_WARNING()
 
 } // namespace database
 } // namespace libbitcoin
+
+// bip90 prevents bip34/65/66 activation oscillations
+
+// Forks (default configuration).
+// Forked from [00000000000000100000000010001011] to [00000000000000100000000010000011] at [ 91842:00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec]
+// Forked from [00000000000000100000000010000011] to [00000000000000100000000010001011] at [ 91843:0000000000016ca756e810d44aee6be7eabad75d2209d7f4542d1fd53bafc984]
+// Forked from [00000000000000100000000010001011] to [00000000000000100000000010000011] at [ 91880:00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721]
+// Forked from [00000000000000100000000010000011] to [00000000000000100000000010001011] at [ 91881:00000000000cf6204ce82deed75b050014dc57d7bb462d7214fcc4e59c48d66d]
+// Forked from [00000000000000100000000010001011] to [00000000000000100000000010001111] at [173805:00000000000000ce80a7e057163a4db1d5ad7b20fb6f598c9597b9665c8fb0d4]
+// Forked from [00000000000000100000000010001111] to [00000000000000100000000010010111] at [227931:000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8]
+// Forked from [00000000000000100000000010010111] to [00000000000000100000000010110111] at [363725:00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931]
+// Forked from [00000000000000100000000010110111] to [00000000000000100000000011110111] at [388381:000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0]
+// Forked from [00000000000000100000000011110111] to [00000000000000100000011111110111] at [419328:000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5]
+// Forked from [00000000000000100000011111110111] to [00000000000000100011111111110111] at [481824:0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893]
+
+// Minimum block versions (bip90 disabled).
+// Minimum block version [1] changed to [2] at [227931:000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8]
+// Minimum block version [2] changed to [3] at [363725:00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931]
+// Minimum block version [3] changed to [4] at [388381:000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0]
