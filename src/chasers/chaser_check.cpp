@@ -51,10 +51,6 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 {
 }
 
-chaser_check::~chaser_check() NOEXCEPT
-{
-}
-
 // utility
 // ----------------------------------------------------------------------------
 // private

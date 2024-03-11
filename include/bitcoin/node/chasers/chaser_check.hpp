@@ -40,10 +40,9 @@ public:
     typedef std::function<void(const code&, const map_ptr&)> handler;
     typedef std::list<map_ptr> maps;
 
-    DELETE_COPY_MOVE(chaser_check);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_check);
 
     chaser_check(full_node& node) NOEXCEPT;
-    virtual ~chaser_check() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 

@@ -39,10 +39,6 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 {
 }
 
-chaser_transaction::~chaser_transaction() NOEXCEPT
-{
-}
-
 // start
 // ----------------------------------------------------------------------------
 

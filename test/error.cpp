@@ -32,13 +32,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__success__false_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "success");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__unknown__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__internal_error__true_exected_message)
 {
-    constexpr auto value = error::unknown;
+    constexpr auto value = error::internal_error;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "unknown error");
+    BOOST_REQUIRE_EQUAL(ec.message(), "internal error");
 }
 
 BOOST_AUTO_TEST_CASE(error_t__code__unexpected_event__true_exected_message)

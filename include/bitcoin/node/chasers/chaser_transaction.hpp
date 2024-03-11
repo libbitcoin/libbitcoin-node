@@ -34,10 +34,9 @@ class BCN_API chaser_transaction
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE(chaser_transaction);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_transaction);
 
     chaser_transaction(full_node& node) NOEXCEPT;
-    virtual ~chaser_transaction() NOEXCEPT;
 
     code start() NOEXCEPT override;
     virtual void store(const system::chain::transaction::cptr& block) NOEXCEPT;

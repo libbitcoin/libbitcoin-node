@@ -66,7 +66,7 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
     // Three elements are required to measure deviation, don't drop to two.
-    constexpr auto mimimum_for_deviation = 3;
+    constexpr auto mimimum_for_deviation = 3_size;
 
     BC_ASSERT(stranded());
 

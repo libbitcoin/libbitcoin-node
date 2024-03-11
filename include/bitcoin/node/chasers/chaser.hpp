@@ -108,7 +108,7 @@ public:
 
     typedef database::store<database::map> store;
     typedef database::query<store> query;
-    DELETE_COPY_MOVE(chaser);
+    DELETE_COPY_MOVE_DESTRUCT(chaser);
 
     /// Synchronously subscribe to notify and asynchronously initialize state.
     virtual code start() NOEXCEPT = 0;
@@ -129,7 +129,6 @@ protected:
     }
 
     chaser(full_node& node) NOEXCEPT;
-    ~chaser() NOEXCEPT;
 
     /// Close the node after logging the code.
     void close(const code& ec) const NOEXCEPT;

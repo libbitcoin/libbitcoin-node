@@ -38,10 +38,9 @@ class BCN_API chaser_header
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE(chaser_header);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_header);
 
     chaser_header(full_node& node) NOEXCEPT;
-    virtual ~chaser_header() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 
@@ -60,12 +59,25 @@ protected:
     // This is protected by strand.
     std::unordered_map<system::hash_digest, proposed_header> tree_{};
 
+    /// Disorganize unconfirmable candidate header.
+    /// -----------------------------------------------------------------------
+
     /// Handle chaser events.
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
 
-    // Handle events.
-    virtual void handle_unchecked(header_t height) NOEXCEPT;
+    // Reorganize the candidate chain due to block invalidity.
+    virtual void do_disorganize(header_t height) NOEXCEPT;
+
+    /// Organize next candidate header.
+    /// -----------------------------------------------------------------------
+
+    /// Validate and organize next header in sequence relative to caller peer.
+    virtual void do_organize(const system::chain::header::cptr& header,
+        const organize_handler& handler) NOEXCEPT;
+
+    /// Utilities.
+    /// -----------------------------------------------------------------------
 
     /// Sum of work from header to branch point (excluded).
     virtual bool get_branch_work(uint256_t& work, size_t& point,
@@ -79,7 +91,7 @@ protected:
         size_t point) const NOEXCEPT;
 
     /// Obtain chain state for the given header hash, nullptr if not found. 
-    virtual system::chain::chain_state::ptr get_state(
+    virtual system::chain::chain_state::ptr get_chain_state(
         const system::hash_digest& hash) const NOEXCEPT;
 
     /// Header timestamp is within configured span from current time.
@@ -96,14 +108,6 @@ protected:
 
     /// Move tree header to database and push to top of candidate chain.
     virtual bool push_header(const system::hash_digest& key) NOEXCEPT;
-
-    /// Validate and organize next header in sequence relative to caller peer.
-    virtual void do_organize(const system::chain::header::cptr& header,
-        const organize_handler& handler) NOEXCEPT;
-
-    /// A strong header branch is committed to store when current.
-    virtual const network::wall_clock::duration& currency_window() const NOEXCEPT;
-    virtual bool use_currency_window() const NOEXCEPT;
 
 private:
     // These are thread safe.

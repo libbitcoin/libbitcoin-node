@@ -34,10 +34,9 @@ class BCN_API chaser_candidate
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE(chaser_candidate);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_candidate);
 
     chaser_candidate(full_node& node) NOEXCEPT;
-    virtual ~chaser_candidate() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 

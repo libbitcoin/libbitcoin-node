@@ -50,25 +50,18 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 {
 }
 
-chaser_header::~chaser_header() NOEXCEPT
-{
-}
-
 // start
 // ----------------------------------------------------------------------------
 
-// protected
 code chaser_header::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
 
-    // Initialize cache of top candidate chain state.
-    // ########################################################################
+    // Initialize cache of top candidate chain state (expensive).
     // Spans full chain to obtain cumulative work. This can be optimized by
     // storing it with each header, though the scan is fast. The same occurs
     // when a block first branches below the current chain top. Chain work is
     // a questionable DoS protection scheme only, so could also toss it.
-    // ########################################################################
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
@@ -78,10 +71,9 @@ code chaser_header::start() NOEXCEPT
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
-// event handlers
+// disorganize
 // ----------------------------------------------------------------------------
 
-// protected
 void chaser_header::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
@@ -90,16 +82,23 @@ void chaser_header::handle_event(const code&, chase event_,
         event_ == chase::unconnected ||
         event_ == chase::unconfirmed)
     {
-        POST(handle_unchecked, std::get<header_t>(value));
+        POST(do_disorganize, std::get<header_t>(value));
     }
 }
 
-// TODO: notify reorg?
-void chaser_header::handle_unchecked(header_t header) NOEXCEPT
+void chaser_header::do_disorganize(header_t header) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    // Skip already reorganized out, get height.
+    // ------------------------------------------------------------------------
+
+    // Upon restart candidate chain validation will hit unconfirmable block.
+    if (closed())
+        return;
+
     // If header is not a current candidate it has been reorganized out.
+    // If header becomes candidate again its unconfirmable state is handled.
     auto& query = archive();
     if (!query.is_candidate_block(header))
         return;
@@ -107,12 +106,23 @@ void chaser_header::handle_unchecked(header_t header) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, header) || is_zero(height))
     {
-        close(error::store_integrity);
+        close(error::internal_error);
         return;
     }
 
+    const auto fork_point = query.get_fork();
+    if (height <= fork_point)
+    {
+        close(error::internal_error);
+        return;
+    }
+
+    // Mark candidates above and pop at/above height.
+    // ------------------------------------------------------------------------
+
     // Pop from top down to and including header marking each as unconfirmable.
-    for (auto index = query.get_top_candidate(); index >= height; --index)
+    // Unconfirmability isn't necessary for validation but adds query context.
+    for (auto index = query.get_top_candidate(); index > height; --index)
     {
         if (!query.set_block_unconfirmable(query.to_candidate(index)) ||
             !query.pop_candidate())
@@ -122,23 +132,30 @@ void chaser_header::handle_unchecked(header_t header) NOEXCEPT
         }
     }
 
-    // There may not be (valid) blocks between fork point and invalid block.
-    const auto fork_point = query.get_fork();
-    const auto top = query.get_top_candidate();
-    if (top == fork_point)
-        return;
-
-    // Header tree requires chain state, initialize at fork point.
-    const auto& coin = config().bitcoin;
-    auto state = query.get_candidate_chain_state(coin, fork_point);
-    if (!state)
+    // Candidate at height is already marked as unconfirmable by notifier.
+    if (!query.pop_candidate())
     {
         close(error::store_integrity);
         return;
     }
 
-    // Copy candidates from above fork point into header tree.
-    for (auto index = add1(fork_point); index <= top; ++index)
+    // Reset top chain state cache to fork point.
+    // ------------------------------------------------------------------------
+
+    const auto& coin = config().bitcoin;
+    const auto top_candidate = top_state_->height();
+    top_state_ = query.get_candidate_chain_state(coin, fork_point);
+    if (!top_state_)
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // Copy candidates from above fork point to top into header tree.
+    // ------------------------------------------------------------------------
+
+    auto state = top_state_;
+    for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
         const auto save = query.get_header(query.to_candidate(index));
         if (!save)
@@ -151,8 +168,9 @@ void chaser_header::handle_unchecked(header_t header) NOEXCEPT
         cache(save, state);
     }
 
-    // Pop cached candidates from top down to and excluding fork point.
-    for (auto index = query.get_top_candidate(); index > fork_point; --index)
+    // Pop candidates from top to above fork point.
+    // ------------------------------------------------------------------------
+    for (auto index = top_candidate; index > fork_point; --index)
     {
         if (!query.pop_candidate())
         {
@@ -161,9 +179,10 @@ void chaser_header::handle_unchecked(header_t header) NOEXCEPT
         }
     }
 
-    // Push all confirmed headers above fork point onto candidate chain.
-    const auto strong = query.get_top_confirmed();
-    for (auto index = add1(fork_point); index <= strong; ++index)
+    // Push confirmed headers from above fork point onto candidate chain.
+    // ------------------------------------------------------------------------
+    const auto top_confirmed = query.get_top_confirmed();
+    for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
@@ -173,7 +192,7 @@ void chaser_header::handle_unchecked(header_t header) NOEXCEPT
     }
 }
 
-// methods
+// organize
 // ----------------------------------------------------------------------------
 
 void chaser_header::organize(const header::cptr& header,
@@ -222,7 +241,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    auto state = get_state(header.previous_block_hash());
+    // Obtains from top_state_, tree, or store as applicable.
+    auto state = get_chain_state(header.previous_block_hash());
     if (!state)
     {
         handler(error::orphan_header, {});
@@ -344,6 +364,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
+    // Reset top chain state cache.
     // ------------------------------------------------------------------------
 
     top_state_ = state;
@@ -355,7 +376,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 // utilities
 // ----------------------------------------------------------------------------
 
-chain_state::ptr chaser_header::get_state(
+chain_state::ptr chaser_header::get_chain_state(
     const hash_digest& hash) const NOEXCEPT
 {
     if (!top_state_)
@@ -369,6 +390,7 @@ chain_state::ptr chaser_header::get_state(
     if (it != tree_.end())
         return it->second.state;
 
+    // Branch forms from a candidate block below top candidate (expensive).
     size_t height{};
     const auto& query = archive();
     if (query.get_height(height, query.to_header(hash)))
@@ -379,12 +401,12 @@ chain_state::ptr chaser_header::get_state(
 
 bool chaser_header::is_current(const header& header) const NOEXCEPT
 {
-    if (!use_currency_window())
+    if (!use_currency_window_)
         return true;
 
     // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
     const auto time = wall_clock::from_time_t(header.timestamp());
-    const auto current = wall_clock::now() - currency_window();
+    const auto current = wall_clock::now() - currency_window_;
     return time >= current;
 }
 
@@ -479,22 +501,6 @@ bool chaser_header::push_header(const hash_digest& key) NOEXCEPT
     const auto& node = value.mapped();
     const auto link = query.set_link(*node.header, node.state->context());
     return query.push_candidate(link);
-}
-
-// properties
-// ----------------------------------------------------------------------------
-
-// protected
-const network::wall_clock::duration&
-chaser_header::currency_window() const NOEXCEPT
-{
-    return currency_window_;
-}
-
-// protected
-bool chaser_header::use_currency_window() const NOEXCEPT
-{
-    return use_currency_window_;
 }
 
 BC_POP_WARNING()

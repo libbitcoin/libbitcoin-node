@@ -46,10 +46,6 @@ chaser_block::chaser_block(full_node& node) NOEXCEPT
 {
 }
 
-chaser_block::~chaser_block() NOEXCEPT
-{
-}
-
 // start
 // ----------------------------------------------------------------------------
 
