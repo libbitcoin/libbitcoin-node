@@ -113,7 +113,9 @@ void protocol_header_in_31800::handle_organize(const code& ec,
     size_t LOG_ONLY(height),
     const chain::header::cptr& LOG_ONLY(header_ptr)) NOEXCEPT
 {
-    if (stopped() || ec == error::duplicate_header)
+    // Chaser may be stopped before protocol.
+    if (stopped() || ec == network::error::service_stopped ||
+        ec == error::duplicate_header)
         return;
 
     if (ec)
