@@ -334,7 +334,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     bytes_ += message->cached_size;
     map_->erase(it);
 
-    // Get some more work from chaser.
     if (map_->empty())
     {
         LOGP("Getting more block hashes for [" << authority() << "].");
@@ -373,10 +372,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
     }
 
     if (map->empty())
-    {
-        ////LOGP("Block hashes for [" << authority() << "] exhausted.");
         return;
-    }
 
     POST(send_get_data, map);
 }
