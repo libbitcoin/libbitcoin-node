@@ -99,7 +99,6 @@ void protocol_block_in_31800::stop_performance() NOEXCEPT
     send_performance(zero);
 }
 
-// [0...slow...fast] => [stalled_channel...slow_channel...success]
 void protocol_block_in_31800::send_performance(uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -295,6 +294,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ------------------------------------------------------------------------
 
+    // Could check for parent invalidation and propagate here, but blocks are
+    // not checked in order, so there would remain no guarantee.
+
     code error{};
     const auto& link = it->link;
     const auto& ctx = it->context;
@@ -334,7 +336,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     bytes_ += message->cached_size;
     map_->erase(it);
 
-    // Get some more work from chaser.
     if (map_->empty())
     {
         LOGP("Getting more block hashes for [" << authority() << "].");
@@ -373,10 +374,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
     }
 
     if (map->empty())
-    {
-        ////LOGP("Block hashes for [" << authority() << "] exhausted.");
         return;
-    }
 
     POST(send_get_data, map);
 }

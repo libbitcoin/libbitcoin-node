@@ -59,6 +59,21 @@ chaser_check::~chaser_check() NOEXCEPT
 // ----------------------------------------------------------------------------
 // private
 
+size_t chaser_check::update_table(maps& table, size_t start) const NOEXCEPT
+{
+    size_t added{};
+    while (true)
+    {
+        const auto map = make_map(start, inventory_);
+        if (map->empty()) break;
+        table.push_back(map);
+        start = map->top().height;
+        added += map->size();
+    }
+
+    return added;
+}
+
 size_t chaser_check::count_map(const maps& table) const NOEXCEPT
 {
     return std::accumulate(table.begin(), table.end(), zero,
@@ -66,17 +81,6 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
         {
             return sum + map->size();
         });
-}
-
-void chaser_check::update_map(maps& table, size_t start) const NOEXCEPT
-{
-    while (true)
-    {
-        const auto map = make_map(start, inventory_);
-        if (map->empty()) break;
-        table.push_front(map);
-        start = map->top().height;
-    }
 }
 
 chaser_check::map_ptr chaser_check::make_map(size_t start,
@@ -89,7 +93,7 @@ chaser_check::map_ptr chaser_check::make_map(size_t start,
 chaser_check::map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
     return table.empty() ? std::make_shared<database::associations>() :
-        pop(table);
+        pop_front(table);
 }
 
 // start
@@ -99,7 +103,10 @@ code chaser_check::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
 
-    update_map(map_table_, archive().get_fork());
+    const auto fork_point = archive().get_fork();
+    const auto added = update_table(map_table_, fork_point);
+    LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
+
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -116,25 +123,19 @@ void chaser_check::handle_event(const code&, chase event_,
     }
 }
 
-// Stale branches are just be allowed to complete (still downloaded).
+// This can produce duplicate downloads in relation to those outstanding,
+// which is ok. That implies a rerg and then a reorg back before complete.
 void chaser_check::handle_header(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // This can produce duplicate downloads in relation to those outstanding,
-    // which is ok. That implies a rerg and then a reorg back before complete.
-    const auto start = map_table_.size();
-    update_map(map_table_, branch_point);
-    const auto added = map_table_.size() - start;
-    if (!is_zero(added))
-    {
-        // not captured by do_put_hashes logging.
-        ////LOGN("Hashes +" << added << " ("
-        ////    << count_map(map_table_) << ") remain.");
+    const auto added = update_table(map_table_, branch_point);
+    LOGN("Branch point (" << branch_point << ") unassociated ("
+        << added << ").");
 
+    if (!is_zero(added))
         notify(error::success, chase::download,
             system::possible_narrow_cast<count_t>(added));
-    }
 }
 
 void chaser_check::handle_put_hashes(const code&) NOEXCEPT

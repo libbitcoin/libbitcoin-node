@@ -114,12 +114,6 @@ public:
     virtual code start() NOEXCEPT = 0;
 
 protected:
-    ////using channel_notifier = network::p2p::channel_notifier;
-    ////using channel_completer = network::p2p::channel_completer;
-    ////using stop_handler = network::p2p::stop_handler;
-    ////using stop_completer = network::p2p::stop_completer;
-    ////using key = network::p2p::object_key;
-
     /// Bind a method (use BIND).
     template <class Derived, typename Method, typename... Args>
     auto bind(Method&& method, Args&&... args) NOEXCEPT
@@ -136,6 +130,9 @@ protected:
 
     chaser(full_node& node) NOEXCEPT;
     ~chaser() NOEXCEPT;
+
+    /// Close the node after logging the code.
+    void close(const code& ec) const NOEXCEPT;
 
     /// Node threadpool is stopped and may still be joining.
     bool closed() const NOEXCEPT;

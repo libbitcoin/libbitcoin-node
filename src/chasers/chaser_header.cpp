@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_header.hpp>
 
 #include <functional>
+#include <memory>
 #include <utility>
 #include <variant>
 #include <bitcoin/network.hpp>
@@ -62,10 +63,12 @@ code chaser_header::start() NOEXCEPT
     BC_ASSERT(node_stranded());
 
     // Initialize cache of top candidate chain state.
+    // ########################################################################
     // Spans full chain to obtain cumulative work. This can be optimized by
     // storing it with each header, though the scan is fast. The same occurs
     // when a block first branches below the current chain top. Chain work is
     // a questionable DoS protection scheme only, so could also toss it.
+    // ########################################################################
     top_state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
@@ -87,28 +90,87 @@ void chaser_header::handle_event(const code&, chase event_,
         event_ == chase::unconnected ||
         event_ == chase::unconfirmed)
     {
-        ////LOGN("get chase::invalid " << std::get<header_t>(value));
         POST(handle_unchecked, std::get<header_t>(value));
     }
 }
 
-// TODO: chaser_header controls canididate organization for headers first
-// TODO: mark all headers above as invalid and pop from candidate chain.
-// TODO: if weaker than confirmed chain reorg from confirmed. There may also
-// TODO: be a stronger cached chain now but there is no marker for its top,
-// TODO: but that self-corrects with the next ancestor announcement, restart.
-// TODO: candidate is weaker than confirmed, since it didn't reorg prior.
-// TODO: so just clone confirmed to candidate and wait for next block. This
-// TODO: might result in a material delay in the case where there is a strong
-// TODO: but also invalid block (extremely rare) but this is easily recovered.
-// TODO: (1) pop down to invalid and mark all as unconfirmable.
-// TODO: (2) pop down to current common (fork point) into the header tree.
-// TODO: (3) push up to top confirmed into candidate and notify (?).
-// TODO: (4) candidate chain is now confirmed so all pending work is void.
-// TODO: chaser_check must reset header as its top.
-void chaser_header::handle_unchecked(header_t) NOEXCEPT
+// TODO: notify reorg?
+void chaser_header::handle_unchecked(header_t header) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // If header is not a current candidate it has been reorganized out.
+    auto& query = archive();
+    if (!query.is_candidate_block(header))
+        return;
+
+    size_t height{};
+    if (!query.get_height(height, header) || is_zero(height))
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // Pop from top down to and including header marking each as unconfirmable.
+    for (auto index = query.get_top_candidate(); index >= height; --index)
+    {
+        if (!query.set_block_unconfirmable(query.to_candidate(index)) ||
+            !query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // There may not be (valid) blocks between fork point and invalid block.
+    const auto fork_point = query.get_fork();
+    const auto top = query.get_top_candidate();
+    if (top == fork_point)
+        return;
+
+    // Header tree requires chain state, initialize at fork point.
+    const auto& coin = config().bitcoin;
+    auto state = query.get_candidate_chain_state(coin, fork_point);
+    if (!state)
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // Copy candidates from above fork point into header tree.
+    for (auto index = add1(fork_point); index <= top; ++index)
+    {
+        const auto save = query.get_header(query.to_candidate(index));
+        if (!save)
+        {
+            close(error::store_integrity);
+            return;
+        }
+
+        state.reset(new chain_state{ *state, *save, coin });
+        cache(save, state);
+    }
+
+    // Pop cached candidates from top down to and excluding fork point.
+    for (auto index = query.get_top_candidate(); index > fork_point; --index)
+    {
+        if (!query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Push all confirmed headers above fork point onto candidate chain.
+    const auto strong = query.get_top_confirmed();
+    for (auto index = add1(fork_point); index <= strong; ++index)
+    {
+        if (!query.push_candidate(query.to_confirmed(index)))
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
 }
 
 // methods
@@ -210,6 +272,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     if (!get_branch_work(work, point, tree_branch, store_branch, header))
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
@@ -217,6 +280,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     if (!get_is_strong(strong, work, point))
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
@@ -235,6 +299,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     if (top < point)
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
@@ -244,6 +309,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
+            close(error::store_integrity);
             return;
         }
     }
@@ -254,6 +320,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         if (!query.push_candidate(id))
         {
             handler(error::store_integrity, height);
+            close(error::store_integrity);
             return;
         }
     }
@@ -264,6 +331,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         if (!push_header(key))
         {
             handler(error::store_integrity, height);
+            close(error::store_integrity);
             return;
         }
     }
@@ -272,6 +340,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     if (push_header(header_ptr, state->context()).is_terminal())
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
