@@ -144,11 +144,25 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
 
     const auto& coin = config().bitcoin;
     const auto top_candidate = top_state_->height();
+    const auto top_forks = top_state_->forks();
     top_state_ = query.get_candidate_chain_state(coin, fork_point);
     if (!top_state_)
     {
         close(error::store_integrity);
         return;
+    }
+
+    // TODO: this could be moved to deconfirmation.
+    const auto fork_forks = top_state_->forks();
+    if (top_forks != fork_forks)
+    {
+        const binary prev{ to_bits(sizeof(forks)), to_big_endian(top_forks) };
+        const binary next{ to_bits(sizeof(forks)), to_big_endian(fork_forks) };
+        LOGN("Rules unforked from ["
+            << prev << "] at candidate height ("
+            << top_candidate << ") to ["
+            << next << "] at confirmed block ["
+            << fork_point << ":" << encode_hash(top_state_->hash()) << "].");
     }
 
     // Copy candidates from above fork point to top into header tree.
@@ -250,8 +264,23 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Roll chain state forward from previous to current header.
+    // ------------------------------------------------------------------------
+
+    const auto prev_forks = state->forks();
     state.reset(new chain_state{ *state, header, coin });
+    const auto next_forks = state->forks();
     const auto height = state->height();
+
+    // TODO: this could be moved to confirmation.
+    if (prev_forks != next_forks)
+    {
+        const binary prev{ to_bits(sizeof(forks)), to_big_endian(prev_forks) };
+        const binary next{ to_bits(sizeof(forks)), to_big_endian(next_forks) };
+        LOGN("Rules forked from ["
+            << prev << "] to ["
+            << next << "] at candidate block ["
+            << height << ":" << encode_hash(hash) << "].");
+    }
 
     // Check/Accept header.
     // ------------------------------------------------------------------------
@@ -269,6 +298,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
+    // Cache header that is not yet in a storable branch.
     // ------------------------------------------------------------------------
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
