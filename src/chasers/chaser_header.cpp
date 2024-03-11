@@ -106,7 +106,14 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, header) || is_zero(height))
     {
-        close(error::store_integrity);
+        close(error::internal_error);
+        return;
+    }
+
+    const auto fork_point = query.get_fork();
+    if (height <= fork_point)
+    {
+        close(error::internal_error);
         return;
     }
 
@@ -132,23 +139,23 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
         return;
     }
 
-    // Copy candidates from above fork point to top into header tree.
+    // Reset top chain state cache to fork point.
     // ------------------------------------------------------------------------
 
-    // There may not be (valid) blocks between fork point and invalid block,
-    // but top_state_ must be recomputed and if there are blocks then header
-    // tree also requires chain state, so initialize at fork point (expensive).
     const auto& coin = config().bitcoin;
-    const auto fork_point = query.get_fork();
-    auto state = query.get_candidate_chain_state(coin, fork_point);
-    if (!state)
+    const auto top_candidate = top_state_->height();
+    top_state_ = query.get_candidate_chain_state(coin, fork_point);
+    if (!top_state_)
     {
         close(error::store_integrity);
         return;
     }
 
-    const auto top = top_state_->height();
-    for (auto index = add1(fork_point); index <= top; ++index)
+    // Copy candidates from above fork point to top into header tree.
+    // ------------------------------------------------------------------------
+
+    auto state = top_state_;
+    for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
         const auto save = query.get_header(query.to_candidate(index));
         if (!save)
@@ -163,7 +170,7 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
 
     // Pop candidates from top to above fork point.
     // ------------------------------------------------------------------------
-    for (auto index = top; index > fork_point; --index)
+    for (auto index = top_candidate; index > fork_point; --index)
     {
         if (!query.pop_candidate())
         {
@@ -174,8 +181,8 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
 
     // Push confirmed headers from above fork point onto candidate chain.
     // ------------------------------------------------------------------------
-    const auto strong = query.get_top_confirmed();
-    for (auto index = add1(fork_point); index <= strong; ++index)
+    const auto top_confirmed = query.get_top_confirmed();
+    for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
@@ -183,12 +190,6 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
             return;
         }
     }
-
-    // Reset top chain state cache.
-    // ------------------------------------------------------------------------
-
-    // TODO: No new headers but might need to notify of disorganization.
-    top_state_ = state;
 }
 
 // organize
