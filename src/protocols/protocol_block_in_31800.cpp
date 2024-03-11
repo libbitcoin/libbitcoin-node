@@ -99,7 +99,6 @@ void protocol_block_in_31800::stop_performance() NOEXCEPT
     send_performance(zero);
 }
 
-// [0...slow...fast] => [stalled_channel...slow_channel...success]
 void protocol_block_in_31800::send_performance(uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
