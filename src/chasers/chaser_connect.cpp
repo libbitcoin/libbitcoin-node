@@ -38,10 +38,6 @@ chaser_connect::chaser_connect(full_node& node) NOEXCEPT
 {
 }
 
-chaser_connect::~chaser_connect() NOEXCEPT
-{
-}
-
 // start
 // ----------------------------------------------------------------------------
 

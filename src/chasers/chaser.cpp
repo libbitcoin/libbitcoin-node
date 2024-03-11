@@ -43,10 +43,6 @@ chaser::chaser(full_node& node) NOEXCEPT
 {
 }
 
-chaser::~chaser() NOEXCEPT
-{
-}
-
 void chaser::close(const code& ec) const NOEXCEPT
 {
     LOGF("Chaser failed, " << ec.message());

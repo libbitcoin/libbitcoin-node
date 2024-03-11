@@ -50,10 +50,6 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 {
 }
 
-chaser_header::~chaser_header() NOEXCEPT
-{
-}
-
 // start
 // ----------------------------------------------------------------------------
 

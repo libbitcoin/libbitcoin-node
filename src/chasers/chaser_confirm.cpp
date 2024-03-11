@@ -38,10 +38,6 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 {
 }
 
-chaser_confirm::~chaser_confirm() NOEXCEPT
-{
-}
-
 // start
 // ----------------------------------------------------------------------------
 

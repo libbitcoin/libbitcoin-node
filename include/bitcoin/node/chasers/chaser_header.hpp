@@ -38,10 +38,9 @@ class BCN_API chaser_header
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE(chaser_header);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_header);
 
     chaser_header(full_node& node) NOEXCEPT;
-    virtual ~chaser_header() NOEXCEPT;
 
     virtual code start() NOEXCEPT;
 
