@@ -46,7 +46,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
     connections_(node.network_settings().outbound_connections),
-    inventory_(system::lesser(node.node_settings().maximum_inventory,
+    inventory_(system::lesser(node.config().node.maximum_inventory,
         network::messages::max_inventory))
 {
 }

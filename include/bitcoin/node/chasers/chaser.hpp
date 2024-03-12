@@ -158,6 +158,9 @@ protected:
     /// Set chaser event (does not require node strand).
     void notify(const code& ec, chase event_, link value) NOEXCEPT;
 
+    /// Header timestamp is within configured span from current time.
+    virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
+
 private:
     void do_notify(const code& ec, chase event_, link value) NOEXCEPT;
 

@@ -94,9 +94,6 @@ protected:
     virtual system::chain::chain_state::ptr get_chain_state(
         const system::hash_digest& hash) const NOEXCEPT;
 
-    /// Header timestamp is within configured span from current time.
-    virtual bool is_current(const system::chain::header& header) const NOEXCEPT;
-
     /// Cache header to tree with chain state.
     virtual void cache(const system::chain::header::cptr& header,
         const system::chain::chain_state::ptr& state) NOEXCEPT;
@@ -114,8 +111,6 @@ private:
     const uint256_t minimum_work_;
     const system::chain::checkpoint& milestone_;
     const system::chain::checkpoints& checkpoints_;
-    const network::wall_clock::duration currency_window_;
-    const bool use_currency_window_;
 
     // This is protected by strand.
     system::chain::chain_state::ptr top_state_{};

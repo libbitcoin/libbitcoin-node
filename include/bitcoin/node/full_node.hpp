@@ -78,20 +78,26 @@ public:
     virtual void notify(const code& ec, chaser::chase event_,
         chaser::link value) NOEXCEPT;
 
+    /// Methods.
+    /// -----------------------------------------------------------------------
+
+    /// The candidate chain is current.
+    virtual bool is_current() const NOEXCEPT;
+
+    /// The specified timestamp is current.
+    virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 
     /// Configuration settings for all libraries.
-    const configuration& config() const NOEXCEPT;
-
-    /// Node configuration settings.
-    const settings& node_settings() const NOEXCEPT;
+    virtual const configuration& config() const NOEXCEPT;
 
     /// Thread safe synchronous archival interface.
-    query& archive() const NOEXCEPT;
+    virtual query& archive() const NOEXCEPT;
 
     /// Obtain reference to the chaser event subscriber.
-    chaser::event_subscriber& event_subscriber() NOEXCEPT;
+    virtual chaser::event_subscriber& event_subscriber() NOEXCEPT;
 
 protected:
     /// Session attachments.

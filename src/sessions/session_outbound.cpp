@@ -51,7 +51,7 @@ session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
   : attach(node, identifier),
     network::tracker<session_outbound>(node.log),
-    allowed_deviation_(node.node_settings().allowed_deviation)
+    allowed_deviation_(node.config().node.allowed_deviation)
 {
 }
 

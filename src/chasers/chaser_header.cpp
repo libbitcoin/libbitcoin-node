@@ -44,9 +44,7 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
     minimum_work_(config().bitcoin.minimum_work),
     milestone_(config().bitcoin.milestone),
-    checkpoints_(config().bitcoin.checkpoints),
-    currency_window_(config().node.currency_window()),
-    use_currency_window_(to_bool(config().node.currency_window_minutes))
+    checkpoints_(config().bitcoin.checkpoints)
 {
 }
 
@@ -332,12 +330,13 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Cache header that is not yet in a storable branch.
     // ------------------------------------------------------------------------
+    const auto current = is_current(header.timestamp());
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
     // branch must be both current and of sufficient chain work to be stored.
     if (!checkpoint::is_at(checkpoints_, height) &&
         !milestone_.equals(hash, height) &&
-        !(is_current(header) && state->cumulative_work() >= minimum_work_))
+        !(current && state->cumulative_work() >= minimum_work_))
     {
         cache(header_ptr, state);
         handler(error::success, height);
@@ -428,12 +427,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    // Reset top chain state cache.
+    // Reset top chain state cache and notify if current.
     // ------------------------------------------------------------------------
 
+    if (current)
+        notify(error::success, chase::header,
+            possible_narrow_cast<height_t>(branch_point));
+
     top_state_ = state;
-    const auto point = possible_narrow_cast<height_t>(branch_point);
-    notify(error::success, chase::header, point);
     handler(error::success, height);
 }
 
@@ -461,17 +462,6 @@ chain_state::ptr chaser_header::get_chain_state(
         return query.get_candidate_chain_state(config().bitcoin, height);
 
     return {};
-}
-
-bool chaser_header::is_current(const header& header) const NOEXCEPT
-{
-    if (!use_currency_window_)
-        return true;
-
-    // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
-    const auto time = wall_clock::from_time_t(header.timestamp());
-    const auto current = wall_clock::now() - currency_window_;
-    return time >= current;
 }
 
 bool chaser_header::get_branch_work(uint256_t& work, size_t& point,

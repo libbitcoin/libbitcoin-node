@@ -170,13 +170,32 @@ void full_node::do_notify(const code& ec, chaser::chase event_,
     event_subscriber_.notify(ec, event_, value);
 }
 
-// Properties.
+// Methods.
 // ----------------------------------------------------------------------------
 
-const settings& full_node::node_settings() const NOEXCEPT
+bool full_node::is_current() const NOEXCEPT
 {
-    return config().node;
+    if (is_zero(config_.node.currency_window_minutes))
+        return true;
+
+    uint32_t timestamp{};
+    const auto top = query_.to_candidate(query_.get_top_candidate());
+    return query_.get_timestamp(timestamp, top) && is_current(timestamp);
 }
+
+// en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
+bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
+{
+    if (is_zero(config_.node.currency_window_minutes))
+        return true;
+
+    const auto time = wall_clock::from_time_t(timestamp);
+    const auto current = wall_clock::now() - config_.node.currency_window();
+    return time >= current;
+}
+
+// Properties.
+// ----------------------------------------------------------------------------
 
 full_node::query& full_node::archive() const NOEXCEPT
 {

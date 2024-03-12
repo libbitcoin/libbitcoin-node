@@ -31,6 +31,7 @@ namespace node {
 #define CLASS chaser
 
 using namespace network;
+using namespace system::chain;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
@@ -100,6 +101,11 @@ void chaser::do_notify(const code& ec, chase event_, link value) NOEXCEPT
 {
     BC_ASSERT(node_stranded());
     subscriber_.notify(ec, event_, value);
+}
+
+bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
+{
+    return node_.is_current(timestamp);
 }
 
 BC_POP_WARNING()

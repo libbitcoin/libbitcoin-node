@@ -172,9 +172,14 @@ void protocol_block_in_31800::start() NOEXCEPT
     async_subscribe_events(BIND(handle_event, _1, _2, _3));
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
 
-    // Start performance timing cycle.
-    start_performance();
-    get_hashes(BIND(handle_get_hashes, _1, _2));
+    // Start performance timing and download cycles if candidates are current.
+    // This prevents a startup delay in which the node waits on a header.
+    if (is_current())
+    {
+        start_performance();
+        get_hashes(BIND(handle_get_hashes, _1, _2));
+    }
+
     protocol::start();
 }
 
@@ -201,7 +206,7 @@ void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
-    if (stopped())
+    if (stopped() || !is_current())
         return;
 
     // There are count blocks to download at/above the given header.
@@ -216,10 +221,10 @@ void protocol_block_in_31800::handle_download(chaser::count_t count) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped())
+    if (stopped() || is_zero(count))
         return;
 
-    if (map_->empty() && !is_zero(count))
+    if (map_->empty())
     {
         // Assume performance was stopped due to exhaustion.
         start_performance();

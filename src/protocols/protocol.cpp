@@ -75,6 +75,11 @@ void protocol::async_subscribe_events(chaser::event_handler&& handler) NOEXCEPT
     return session_.async_subscribe_events(std::move(handler));
 }
 
+bool protocol::is_current() const NOEXCEPT
+{
+    return session_.is_current();
+}
+
 const configuration& protocol::config() const NOEXCEPT
 {
     return session_.config();

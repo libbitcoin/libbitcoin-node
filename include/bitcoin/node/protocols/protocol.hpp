@@ -77,6 +77,9 @@ protected:
     virtual void async_subscribe_events(
         chaser::event_handler&& handler) NOEXCEPT;
 
+    /// The candidate chain is current.
+    virtual bool is_current() const NOEXCEPT;
+
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
