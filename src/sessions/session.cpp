@@ -109,6 +109,11 @@ void session::do_subscribe_events(
     node_.event_subscriber().subscribe(move_copy(handler));
 }
 
+bool session::is_current() const NOEXCEPT
+{
+    return node_.is_current();
+}
+
 const configuration& session::config() const NOEXCEPT
 {
     return node_.config();

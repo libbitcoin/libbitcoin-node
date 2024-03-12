@@ -40,8 +40,6 @@ chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
     subscriber_(node.event_subscriber()),
-    currency_window_(node.config().node.currency_window()),
-    use_currency_window_(to_bool(node.config().node.currency_window_minutes)),
     reporter(node.log)
 {
 }
@@ -105,15 +103,9 @@ void chaser::do_notify(const code& ec, chase event_, link value) NOEXCEPT
     subscriber_.notify(ec, event_, value);
 }
 
-bool chaser::is_current(const header& header) const NOEXCEPT
+bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 {
-    if (!use_currency_window_)
-        return true;
-
-    // en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
-    const auto time = wall_clock::from_time_t(header.timestamp());
-    const auto current = wall_clock::now() - currency_window_;
-    return time >= current;
+    return node_.is_current(timestamp);
 }
 
 BC_POP_WARNING()
