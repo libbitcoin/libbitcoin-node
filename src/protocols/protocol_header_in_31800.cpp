@@ -77,6 +77,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         if (stopped())
             return false;
 
+        // HEAT: this is_header() call amounts to 22% of total time!
         // Redundant query to avoid queuing up excess jobs.
         if (!query.is_header(header_ptr->hash()))
         {
@@ -133,7 +134,7 @@ void protocol_header_in_31800::handle_organize(const code& ec,
         << ec.message());
 }
 
-// private
+// utilities
 // ----------------------------------------------------------------------------
 
 get_headers protocol_header_in_31800::create_get_headers() const NOEXCEPT

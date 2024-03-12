@@ -33,15 +33,15 @@ namespace node {
 
 #define CLASS chaser_check
 
-using namespace network;
 using namespace system;
 using namespace system::chain;
+using namespace network;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
-BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
@@ -51,9 +51,99 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 {
 }
 
-// utility
+// start
 // ----------------------------------------------------------------------------
-// private
+
+code chaser_check::start() NOEXCEPT
+{
+    BC_ASSERT(node_stranded());
+
+    const auto fork_point = archive().get_fork();
+    const auto added = update_table(maps_, fork_point);
+    LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
+
+    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+}
+
+// add headers
+// ----------------------------------------------------------------------------
+
+void chaser_check::handle_event(const code&, chase event_,
+    link value) NOEXCEPT
+{
+    if (event_ == chase::header)
+    {
+        BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
+        POST(do_add_headers, std::get<height_t>(value));
+    }
+}
+
+void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // This can produce duplicate downloads in relation to those outstanding,
+    // which is ok. That implies a rerg and then a reorg back before complete.
+    const auto added = update_table(maps_, branch_point);
+
+    LOGN("Branch point (" << branch_point << ") unassociated ("
+        << added << ").");
+
+    if (!is_zero(added))
+        notify(error::success, chase::download,
+            system::possible_narrow_cast<count_t>(added));
+}
+
+// get/put hashes
+// ----------------------------------------------------------------------------
+
+void chaser_check::get_hashes(handler&& handler) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&chaser_check::do_get_hashes,
+            this, std::move(handler)));
+}
+
+void chaser_check::put_hashes(const map_ptr& map,
+    network::result_handler&& handler) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&chaser_check::do_put_hashes,
+            this, map, std::move(handler)));
+}
+
+void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    const auto map = get_map(maps_);
+
+    ////LOGN("Hashes -" << map->size() << " ("
+    ////    << count_map(maps_) << ") remain.");
+
+    handler(error::success, map);
+}
+
+void chaser_check::do_put_hashes(const map_ptr& map,
+    const network::result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!map->empty())
+    {
+        maps_.push_back(map);
+        notify(error::success, chase::download,
+            system::possible_narrow_cast<count_t>(map->size()));
+    }
+
+    ////LOGN("Hashes +" << map->size() << " ("
+    ////    << count_map(maps_) << ") remain.");
+
+    handler(error::success);
+}
+
+// utilities
+// ----------------------------------------------------------------------------
 
 size_t chaser_check::update_table(maps& table, size_t start) const NOEXCEPT
 {
@@ -90,101 +180,6 @@ chaser_check::map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
     return table.empty() ? std::make_shared<database::associations>() :
         pop_front(table);
-}
-
-// start
-// ----------------------------------------------------------------------------
-
-code chaser_check::start() NOEXCEPT
-{
-    BC_ASSERT(node_stranded());
-
-    const auto fork_point = archive().get_fork();
-    const auto added = update_table(map_table_, fork_point);
-    LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
-
-    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
-}
-
-// event handlers
-// ----------------------------------------------------------------------------
-
-void chaser_check::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
-{
-    if (event_ == chase::header)
-    {
-        BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        POST(handle_header, std::get<height_t>(value));
-    }
-}
-
-// This can produce duplicate downloads in relation to those outstanding,
-// which is ok. That implies a rerg and then a reorg back before complete.
-void chaser_check::handle_header(height_t branch_point) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    const auto added = update_table(map_table_, branch_point);
-    LOGN("Branch point (" << branch_point << ") unassociated ("
-        << added << ").");
-
-    if (!is_zero(added))
-        notify(error::success, chase::download,
-            system::possible_narrow_cast<count_t>(added));
-}
-
-void chaser_check::handle_put_hashes(const code&) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-}
-
-// methods
-// ----------------------------------------------------------------------------
-
-void chaser_check::get_hashes(handler&& handler) NOEXCEPT
-{
-    boost::asio::post(strand(),
-        std::bind(&chaser_check::do_get_hashes,
-            this, std::move(handler)));
-}
-
-void chaser_check::put_hashes(const map_ptr& map,
-    network::result_handler&& handler) NOEXCEPT
-{
-    boost::asio::post(strand(),
-        std::bind(&chaser_check::do_put_hashes,
-            this, map, std::move(handler)));
-}
-
-void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    const auto map = get_map(map_table_);
-
-    ////LOGN("Hashes -" << map->size() << " ("
-    ////    << count_map(map_table_) << ") remain.");
-
-    handler(error::success, map);
-}
-
-void chaser_check::do_put_hashes(const map_ptr& map,
-    const network::result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (!map->empty())
-    {
-        map_table_.push_back(map);
-        notify(error::success, chase::download,
-            system::possible_narrow_cast<count_t>(map->size()));
-    }
-
-    ////LOGN("Hashes +" << map->size() << " ("
-    ////    << count_map(map_table_) << ") remain.");
-
-    handler(error::success);
 }
 
 BC_POP_WARNING()

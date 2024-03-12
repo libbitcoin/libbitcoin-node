@@ -19,43 +19,43 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
+#include <deque>
 #include <functional>
 #include <memory>
-#include <queue>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class full_node;
 
-/// Chase down blocks for the candidate header chain.
+/// Maintain set of pending downloads identifiers for candidate header chain.
 class BCN_API chaser_check
   : public chaser
 {
 public:
     typedef std::shared_ptr<database::associations> map_ptr;
     typedef std::function<void(const code&, const map_ptr&)> handler;
-    typedef std::list<map_ptr> maps;
+    typedef std::deque<map_ptr> maps;
 
     DELETE_COPY_MOVE_DESTRUCT(chaser_check);
 
     chaser_check(full_node& node) NOEXCEPT;
 
+    /// Initialize chaser state.
     virtual code start() NOEXCEPT;
 
+    /// Interface for protocols to obtain/return pending download identifiers.
+    /// Identifiers not downloaded must be returned or chain will remain gapped.
     virtual void get_hashes(handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual void handle_put_hashes(const code&) NOEXCEPT;
-    virtual void handle_header(height_t branch_point) NOEXCEPT;
-    virtual void handle_event(const code& ec, chase event_,
-        link value) NOEXCEPT;
-
+    virtual void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    virtual void do_add_headers(height_t branch_point) NOEXCEPT;
     virtual void do_get_hashes(const handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
@@ -71,7 +71,7 @@ private:
     const size_t inventory_;
 
     // This is protected by strand.
-    maps map_table_{};
+    maps maps_{};
 };
 
 } // namespace node
