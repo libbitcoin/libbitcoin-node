@@ -330,12 +330,13 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // Cache header that is not yet in a storable branch.
     // ------------------------------------------------------------------------
+    const auto current = is_current(header.timestamp());
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
     // branch must be both current and of sufficient chain work to be stored.
     if (!checkpoint::is_at(checkpoints_, height) &&
         !milestone_.equals(hash, height) &&
-        !(is_current(header) && state->cumulative_work() >= minimum_work_))
+        !(current && state->cumulative_work() >= minimum_work_))
     {
         cache(header_ptr, state);
         handler(error::success, height);
@@ -426,12 +427,14 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    // Reset top chain state cache.
+    // Reset top chain state cache and notify if current.
     // ------------------------------------------------------------------------
 
+    if (current)
+        notify(error::success, chase::header,
+            possible_narrow_cast<height_t>(branch_point));
+
     top_state_ = state;
-    const auto point = possible_narrow_cast<height_t>(branch_point);
-    notify(error::success, chase::header, point);
     handler(error::success, height);
 }
 
