@@ -59,19 +59,15 @@ protected:
 
     typedef std::shared_ptr<track> track_ptr;
 
-    /// Recieved incoming inventory message.
+    /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::inventory::cptr& message) NOEXCEPT;
 
-    /// Recieved incoming block message.
+    /// Accept incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message,
         const track_ptr& tracker) NOEXCEPT;
-
-    /// Invoked when initial blocks sync is complete.
     virtual void complete() NOEXCEPT;
-
-    /// Handle organize result.
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 

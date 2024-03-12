@@ -61,30 +61,34 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Methods.
-    virtual void restore(const map_ptr& map) NOEXCEPT;
+    /// Performance polling.
     virtual void start_performance() NOEXCEPT;
     virtual void pause_performance() NOEXCEPT;
     virtual void stop_performance() NOEXCEPT;
-    virtual void send_performance(uint64_t rate) NOEXCEPT;
-    virtual void send_get_data(const map_ptr& map) NOEXCEPT;
 
-    /// Handlers.
-    virtual void handle_performance_timer(const code& ec) NOEXCEPT;
-    virtual void handle_send_performance(const code& ec) NOEXCEPT;
-    virtual bool handle_receive_block(const code& ec,
-        const network::messages::block::cptr& message) NOEXCEPT;
-    virtual void handle_download(chaser::count_t count) NOEXCEPT;
+    /// Get published download identifiers.
     virtual void handle_event(const code& ec,
         chaser::chase event_, chaser::link value) NOEXCEPT;
-    virtual void handle_put_hashes(const code& ec) NOEXCEPT;
-    virtual void handle_get_hashes(const code& ec,
-        const map_ptr& map) NOEXCEPT;
+    virtual void do_get_downloads(chaser::count_t count) NOEXCEPT;
+
+    /// Accept incoming block message.
+    virtual bool handle_receive_block(const code& ec,
+        const network::messages::block::cptr& message) NOEXCEPT;
 
 private:
+    void handle_performance_timer(const code& ec) NOEXCEPT;
+    void handle_send_performance(const code& ec) NOEXCEPT;
     void do_handle_performance(const code& ec) NOEXCEPT;
+
+    void send_get_data(const map_ptr& map) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
+
+    void restore(const map_ptr& map) NOEXCEPT;
+    void handle_put_hashes(const code& ec) NOEXCEPT;
+    void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
+
+    void send_performance(uint64_t rate) NOEXCEPT;
 
     // These are thread safe.
     const bool drop_stalled_;

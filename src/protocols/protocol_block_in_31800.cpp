@@ -42,7 +42,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Performance polling.
+// performance polling
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::start_performance() NOEXCEPT
@@ -158,7 +158,7 @@ void protocol_block_in_31800::do_handle_performance(const code& ec) NOEXCEPT
     start_performance();
 }
 
-// Start/stop.
+// start/stop
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::start() NOEXCEPT
@@ -194,14 +194,8 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     protocol::stopping(ec);
 }
 
-// Idempotent cleanup.
-void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (!map->empty())
-        put_hashes(map, BIND(handle_put_hashes, _1));
-}
+// get published download identifiers
+// ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
@@ -213,11 +207,11 @@ void protocol_block_in_31800::handle_event(const code&,
     if (event_ == chaser::chase::download)
     {
         BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
-        POST(handle_download, std::get<chaser::count_t>(value));
+        POST(do_get_downloads, std::get<chaser::count_t>(value));
     }
 }
 
-void protocol_block_in_31800::handle_download(chaser::count_t count) NOEXCEPT
+void protocol_block_in_31800::do_get_downloads(chaser::count_t count) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -232,7 +226,7 @@ void protocol_block_in_31800::handle_download(chaser::count_t count) NOEXCEPT
     }
 }
 
-// Inbound (blocks).
+// request hashes
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
@@ -274,6 +268,9 @@ get_data protocol_block_in_31800::create_get_data(
 
     return getter;
 }
+
+// accept block
+// ----------------------------------------------------------------------------
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
@@ -348,6 +345,18 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     }
 
     return true;
+}
+
+// get/put hashes
+// ----------------------------------------------------------------------------
+
+// Idempotent cleanup.
+void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!map->empty())
+        put_hashes(map, BIND(handle_put_hashes, _1));
 }
 
 void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT

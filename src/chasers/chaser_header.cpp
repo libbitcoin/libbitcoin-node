@@ -19,7 +19,6 @@
 #include <bitcoin/node/chasers/chaser_header.hpp>
 
 #include <functional>
-#include <memory>
 #include <utility>
 #include <variant>
 #include <bitcoin/network.hpp>
@@ -60,11 +59,11 @@ code chaser_header::start() NOEXCEPT
     // storing it with each header, though the scan is fast. The same occurs
     // when a block first branches below the current chain top. Chain work is
     // a questionable DoS protection scheme only, so could also toss it.
-    top_state_ = archive().get_candidate_chain_state(
+    state_ = archive().get_candidate_chain_state(
         config().bitcoin, archive().get_top_candidate());
 
-    LOGN("Candidate top ["<< encode_hash(top_state_->hash()) << ":"
-        << top_state_->height() << "].");
+    LOGN("Candidate top ["<< encode_hash(state_->hash()) << ":"
+        << state_->height() << "].");
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -148,18 +147,18 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     // ------------------------------------------------------------------------
 
     const auto& coin = config().bitcoin;
-    const auto top_candidate = top_state_->height();
-    const auto prev_forks = top_state_->forks();
-    const auto prev_version = top_state_->minimum_block_version();
-    top_state_ = query.get_candidate_chain_state(coin, fork_point);
-    if (!top_state_)
+    const auto top_candidate = state_->height();
+    const auto prev_forks = state_->forks();
+    const auto prev_version = state_->minimum_block_version();
+    state_ = query.get_candidate_chain_state(coin, fork_point);
+    if (!state_)
     {
         close(error::store_integrity);
         return;
     }
 
     // TODO: this could be moved to deconfirmation.
-    const auto next_forks = top_state_->forks();
+    const auto next_forks = state_->forks();
     if (prev_forks != next_forks)
     {
         const binary prev{ to_bits(sizeof(forks)), to_big_endian(prev_forks) };
@@ -168,24 +167,24 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
             << prev << "] at candidate ("
             << top_candidate << ") to ["
             << next << "] at confirmed ["
-            << fork_point << ":" << encode_hash(top_state_->hash()) << "].");
+            << fork_point << ":" << encode_hash(state_->hash()) << "].");
     }
 
     // TODO: this could be moved to deconfirmation.
-    const auto next_version = top_state_->minimum_block_version();
+    const auto next_version = state_->minimum_block_version();
     if (prev_version != next_version)
     {
         LOGN("Minimum block version reverted ["
             << prev_version << "] at candidate ("
             << top_candidate << ") to ["
             << next_version << "] at confirmed ["
-            << fork_point << ":" << encode_hash(top_state_->hash()) << "].");
+            << fork_point << ":" << encode_hash(state_->hash()) << "].");
     }
 
     // Copy candidates from above fork point to top into header tree.
     // ------------------------------------------------------------------------
 
-    auto state = top_state_;
+    auto state = state_;
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
         const auto save = query.get_header(query.to_candidate(index));
@@ -274,7 +273,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         return;
     }
 
-    // Obtains from top_state_, tree, or store as applicable.
+    // Obtains from state_, tree, or store as applicable.
     auto state = get_chain_state(header.previous_block_hash());
     if (!state)
     {
@@ -376,7 +375,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Reorganize candidate chain.
     // ------------------------------------------------------------------------
 
-    auto top = top_state_->height();
+    auto top = state_->height();
     if (top < branch_point)
     {
         handler(error::store_integrity, height);
@@ -434,22 +433,23 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
         notify(error::success, chase::header,
             possible_narrow_cast<height_t>(branch_point));
 
-    top_state_ = state;
+    state_ = state;
     handler(error::success, height);
 }
 
 // utilities
 // ----------------------------------------------------------------------------
 
+// Obtain chain state for the given header hash, nullptr if not found. 
 chain_state::ptr chaser_header::get_chain_state(
     const hash_digest& hash) const NOEXCEPT
 {
-    if (!top_state_)
+    if (!state_)
         return {};
 
     // Top state is cached because it is by far the most commonly retrieved.
-    if (top_state_->hash() == hash)
-        return top_state_;
+    if (state_->hash() == hash)
+        return state_;
 
     const auto it = tree_.find(hash);
     if (it != tree_.end())
@@ -464,7 +464,10 @@ chain_state::ptr chaser_header::get_chain_state(
     return {};
 }
 
-bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
+// Sum of work from header to branch point (excluded).
+// Also obtains branch point for work summation termination.
+// Also obtains ordered branch identifiers for subsequent reorg.
+bool chaser_header::get_branch_work(uint256_t& work, size_t& branch_point,
     hashes& tree_branch, header_links& store_branch,
     const header& header) const NOEXCEPT
 {
@@ -496,7 +499,7 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
     }
 
     // Height of the highest candidate header is the branch point.
-    return query.get_height(point, link);
+    return query.get_height(branch_point, link);
 }
 
 // ****************************************************************************
@@ -504,19 +507,20 @@ bool chaser_header::get_branch_work(uint256_t& work, size_t& point,
 // Chasers eventually reorganize candidate branch into confirmed if valid.
 // ****************************************************************************
 bool chaser_header::get_is_strong(bool& strong, const uint256_t& work,
-    size_t point) const NOEXCEPT
+    size_t branch_point) const NOEXCEPT
 {
     strong = false;
     uint256_t candidate_work{};
     const auto& query = archive();
+    const auto top = query.get_top_candidate();
 
-    // Accumulate candidate branch and when exceeds branch return false (weak).
-    for (auto height = query.get_top_candidate(); height > point; --height)
+    for (auto height = top; height > branch_point; --height)
     {
         uint32_t bits{};
         if (!query.get_bits(bits, query.to_candidate(height)))
             return false;
 
+        // Not strong is candidate work equals or exceeds new work.
         candidate_work += header::proof(bits);
         if (candidate_work >= work)
             return true;
@@ -532,6 +536,7 @@ void chaser_header::cache(const header::cptr& header,
     tree_.insert({ header->hash(), { header, state } });
 }
 
+// Store header to database and push to top of candidate chain.
 database::header_link chaser_header::push_header(const header::cptr& header,
     const context& context) const NOEXCEPT
 {
@@ -546,6 +551,7 @@ database::header_link chaser_header::push_header(const header::cptr& header,
     return query.push_candidate(link) ? link : database::header_link{};
 }
 
+// Move tree header to database and push to top of candidate chain.
 bool chaser_header::push_header(const hash_digest& key) NOEXCEPT
 {
     const auto value = tree_.extract(key);

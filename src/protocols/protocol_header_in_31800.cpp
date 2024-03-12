@@ -67,7 +67,6 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
     LOGP("Headers (" << message->header_ptrs.size() << ") from ["
         << authority() << "].");
 
@@ -77,12 +76,11 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         if (stopped())
             return false;
 
-        // Redundant query to avoid queuing up excess jobs.
-        if (!query.is_header(header_ptr->hash()))
-        {
-            // Asynchronous organization serves all channels.
-            organize(header_ptr, BIND(handle_organize, _1, _2, header_ptr));
-        }
+        // This is unnecessary and a hugely costly call in relative terms.
+        ////if (!archive().is_header(header_ptr->hash()))...
+
+        // Asynchronous organization serves all channels.
+        organize(header_ptr, BIND(handle_organize, _1, _2, header_ptr));
     }
 
     // Protocol presumes max_get_headers unless complete.
@@ -133,7 +131,7 @@ void protocol_header_in_31800::handle_organize(const code& ec,
         << ec.message());
 }
 
-// private
+// utilities
 // ----------------------------------------------------------------------------
 
 get_headers protocol_header_in_31800::create_get_headers() const NOEXCEPT

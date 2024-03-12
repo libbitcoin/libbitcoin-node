@@ -49,7 +49,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Start/stop.
+// start/stop
 // ----------------------------------------------------------------------------
 
 void protocol_block_in::start() NOEXCEPT
@@ -64,7 +64,7 @@ void protocol_block_in::start() NOEXCEPT
     protocol::start();
 }
 
-// Inbound (blocks).
+// accept inventory
 // ----------------------------------------------------------------------------
 
 // Receive inventory and send get_data for all blocks that are not found.
@@ -112,6 +112,9 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     SEND(getter, handle_send, _1);
     return true;
 }
+
+// accept block
+// ----------------------------------------------------------------------------
 
 // Process block responses in order as dictated by tracker.
 bool protocol_block_in::handle_receive_block(const code& ec,
@@ -193,7 +196,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t LOG_ONLY(height),
         << ec.message());
 }
 
-// private
+// utilities
 // ----------------------------------------------------------------------------
 
 get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT

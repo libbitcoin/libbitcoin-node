@@ -45,14 +45,9 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Recieved incoming headers message.
     virtual bool handle_receive_headers(const code& ec,
         const network::messages::headers::cptr& message) NOEXCEPT;
-
-    /// Invoked when initial headers sync is complete.
     virtual void complete() NOEXCEPT;
-
-    /// Handle organize result.
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
 
