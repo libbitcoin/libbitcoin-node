@@ -70,6 +70,7 @@ protected:
     virtual void handle_event(const code& ec,
         chaser::chase event_, chaser::link value) NOEXCEPT;
     virtual void do_get_downloads(chaser::count_t count) NOEXCEPT;
+    virtual void do_split(chaser::channel_t channel) NOEXCEPT;
 
     /// Accept incoming block message.
     virtual bool handle_receive_block(const code& ec,
@@ -84,6 +85,7 @@ private:
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
 
+    map_ptr split(const map_ptr& map) NOEXCEPT;
     void restore(const map_ptr& map) NOEXCEPT;
     void handle_put_hashes(const code& ec) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;

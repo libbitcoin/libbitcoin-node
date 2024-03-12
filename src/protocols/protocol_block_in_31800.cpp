@@ -194,7 +194,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     protocol::stopping(ec);
 }
 
-// get published download identifiers
+// handle events (download, split)
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::handle_event(const code&,
@@ -208,6 +208,13 @@ void protocol_block_in_31800::handle_event(const code&,
     {
         BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
         POST(do_get_downloads, std::get<chaser::count_t>(value));
+    }
+
+    // If value identifies this channel, split work and stop.
+    else if (event_ == chaser::chase::split)
+    {
+        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+        POST(do_split, std::get<chaser::channel_t>(value));
     }
 }
 
@@ -224,6 +231,40 @@ void protocol_block_in_31800::do_get_downloads(chaser::count_t count) NOEXCEPT
         start_performance();
         get_hashes(BIND(handle_get_hashes, _1, _2));
     }
+}
+
+void protocol_block_in_31800::do_split(chaser::channel_t channel) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return;
+
+    if (channel == identifier())
+    {
+        restore(split(map_));
+        restore(map_);
+        map_ = std::make_shared<database::associations>();
+        stop(error::slow_channel);
+    }
+}
+
+protocol_block_in_31800::map_ptr protocol_block_in_31800::split(
+    const map_ptr& map) NOEXCEPT
+{
+    // Merge half of map into new half.
+    const auto count = map->size();
+    const auto half = std::make_shared<database::associations>();
+    auto& index = map->get<database::association::pos>();
+    const auto end = std::next(index.begin(), to_half(count));
+    half->merge(index, index.begin(), end);
+
+    LOGN("SPLIT FROM ("
+        << count << ") TO ("
+        << half ->size() << ") AND ("
+        << map->size() << ").");
+
+    return half;
 }
 
 // request hashes
@@ -350,11 +391,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 // get/put hashes
 // ----------------------------------------------------------------------------
 
-// Idempotent cleanup.
 void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (!map->empty())
         put_hashes(map, BIND(handle_put_hashes, _1));
 }
@@ -388,7 +426,10 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
     }
 
     if (map->empty())
+    {
+        notify(error::success, chaser::chase::starved, identifier());
         return;
+    }
 
     POST(send_get_data, map);
 }
