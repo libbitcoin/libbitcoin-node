@@ -74,9 +74,11 @@ protected:
     session(full_node& node) NOEXCEPT;
     ~session() NOEXCEPT;
 
-private:
-    void do_subscribe_events(const chaser::event_handler& handler) NOEXCEPT;
+    /// Subscribe to chaser events (requires strand).
+    virtual void subscribe_events(
+        const chaser::event_handler& handler) NOEXCEPT;
 
+private:
     // This is thread safe (mostly).
     full_node& node_;
 };
