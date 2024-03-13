@@ -104,8 +104,6 @@ void session_outbound::split(chaser::channel_t) NOEXCEPT
     if (slowest != speeds_.end())
     {
         // Erase entry so less likely to be claimed again before stopping.
-        // If it is reinstated and then claimed, it will be stopped already
-        // which just delays the necessary split of another channel.
         const auto channel = slowest->first;
         speeds_.erase(slowest);
         node::session::notify(error::success, chaser::chase::split, channel);
