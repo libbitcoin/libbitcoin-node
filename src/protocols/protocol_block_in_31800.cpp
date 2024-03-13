@@ -371,7 +371,7 @@ void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
     const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT_MSG(map->size() < max_inventory, "inventory overflow");
+    BC_ASSERT_MSG(map->size() <= max_inventory, "inventory overflow");
 
     if (stopped())
     {
