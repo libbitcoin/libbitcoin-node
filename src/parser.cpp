@@ -872,11 +872,11 @@ options_metadata parser::load_settings() THROWS
         "Path to windows debug build symbols file (.pdb)."
     )
 #endif
-    (
-        "log.verbose",
-        value<bool>(&configured.log.verbose),
-        "Enable verbose logging, defaults to false."
-    )
+    ////(
+    ////    "log.verbose",
+    ////    value<bool>(&configured.log.verbose),
+    ////    "Enable verbose logging, defaults to false."
+    ////)
     (
         "log.maximum_size",
         value<uint32_t>(&configured.log.maximum_size),

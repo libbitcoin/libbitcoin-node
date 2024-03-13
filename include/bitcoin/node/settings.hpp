@@ -35,7 +35,7 @@ public:
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
-    bool verbose;
+    ////bool verbose;
     uint32_t maximum_size;
     std::filesystem::path path;
 #if defined (HAVE_MSC)

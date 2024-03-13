@@ -26,7 +26,7 @@ namespace libbitcoin {
 namespace log {
 
 settings::settings() NOEXCEPT
-  : verbose(false),
+  : ////verbose(false),
     maximum_size(1'000'000_u32)
 {
 }
