@@ -200,29 +200,37 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
-    if (stopped() || !is_current())
+    if (stopped())
         return;
 
     // There are count blocks to download at/above the given header.
     if (event_ == chaser::chase::download)
     {
-        BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
-        POST(do_get_downloads, std::get<chaser::count_t>(value));
+        if (is_current())
+        {
+            BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
+            POST(do_get_downloads, std::get<chaser::count_t>(value));
+        }
     }
 
     // If value identifies this channel, split work and stop.
     else if (event_ == chaser::chase::split)
     {
         BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
-        POST(do_split, std::get<chaser::channel_t>(value));
+        const auto channel = std::get<chaser::channel_t>(value);
+
+        if (channel == identifier())
+        {
+            POST(do_split, channel);
+        }
     }
 }
 
-void protocol_block_in_31800::do_get_downloads(chaser::count_t count) NOEXCEPT
+void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped() || is_zero(count))
+    if (stopped())
         return;
 
     if (map_->empty())
@@ -233,20 +241,19 @@ void protocol_block_in_31800::do_get_downloads(chaser::count_t count) NOEXCEPT
     }
 }
 
-void protocol_block_in_31800::do_split(chaser::channel_t channel) NOEXCEPT
+void protocol_block_in_31800::do_split(chaser::channel_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped())
         return;
 
-    if (channel == identifier())
-    {
-        restore(split(map_));
-        restore(map_);
-        map_ = std::make_shared<database::associations>();
-        stop(error::slow_channel);
-    }
+    LOGN("Divide work (" << map_->size() << ") from [" << authority() << "].");
+
+    restore(split(map_));
+    restore(map_);
+    map_ = std::make_shared<database::associations>();
+    stop(error::sacrificed_channel);
 }
 
 protocol_block_in_31800::map_ptr protocol_block_in_31800::split(
@@ -258,12 +265,6 @@ protocol_block_in_31800::map_ptr protocol_block_in_31800::split(
     auto& index = map->get<database::association::pos>();
     const auto end = std::next(index.begin(), to_half(count));
     half->merge(index, index.begin(), end);
-
-    LOGN("SPLIT FROM ("
-        << count << ") TO ("
-        << half ->size() << ") AND ("
-        << map->size() << ").");
-
     return half;
 }
 
