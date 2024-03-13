@@ -97,13 +97,11 @@ void session::async_subscribe_events(chaser::event_handler&& handler) NOEXCEPT
     BC_POP_WARNING()
 
     boost::asio::post(node_.strand(),
-        std::bind(&session::do_subscribe_events,
+        std::bind(&session::subscribe_events,
             self, std::move(handler)));
 }
 
-// private
-void session::do_subscribe_events(
-    const chaser::event_handler& handler) NOEXCEPT
+void session::subscribe_events(const chaser::event_handler& handler) NOEXCEPT
 {
     BC_ASSERT(node_.stranded());
     node_.event_subscriber().subscribe(move_copy(handler));

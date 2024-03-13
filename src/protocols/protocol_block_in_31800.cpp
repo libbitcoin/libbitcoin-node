@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
 #include <functional>
+#include <memory>
 #include <variant>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
@@ -194,28 +195,43 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     protocol::stopping(ec);
 }
 
-// get published download identifiers
+// handle events (download, split)
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
-    if (stopped() || !is_current())
+    if (stopped())
         return;
 
     // There are count blocks to download at/above the given header.
     if (event_ == chaser::chase::download)
     {
-        BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
-        POST(do_get_downloads, std::get<chaser::count_t>(value));
+        if (is_current())
+        {
+            BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
+            POST(do_get_downloads, std::get<chaser::count_t>(value));
+        }
+    }
+
+    // If value identifies this channel, split work and stop.
+    else if (event_ == chaser::chase::split)
+    {
+        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+        const auto channel = std::get<chaser::channel_t>(value);
+
+        if (channel == identifier())
+        {
+            POST(do_split, channel);
+        }
     }
 }
 
-void protocol_block_in_31800::do_get_downloads(chaser::count_t count) NOEXCEPT
+void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped() || is_zero(count))
+    if (stopped())
         return;
 
     if (map_->empty())
@@ -224,6 +240,33 @@ void protocol_block_in_31800::do_get_downloads(chaser::count_t count) NOEXCEPT
         start_performance();
         get_hashes(BIND(handle_get_hashes, _1, _2));
     }
+}
+
+void protocol_block_in_31800::do_split(chaser::channel_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return;
+
+    LOGN("Divide work (" << map_->size() << ") from [" << authority() << "].");
+
+    restore(split(map_));
+    restore(map_);
+    map_ = std::make_shared<database::associations>();
+    stop(error::sacrificed_channel);
+}
+
+protocol_block_in_31800::map_ptr protocol_block_in_31800::split(
+    const map_ptr& map) NOEXCEPT
+{
+    // Merge half of map into new half.
+    const auto count = map->size();
+    const auto half = std::make_shared<database::associations>();
+    auto& index = map->get<database::association::pos>();
+    const auto end = std::next(index.begin(), to_half(count));
+    half->merge(index, index.begin(), end);
+    return half;
 }
 
 // request hashes
@@ -350,11 +393,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 // get/put hashes
 // ----------------------------------------------------------------------------
 
-// Idempotent cleanup.
 void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (!map->empty())
         put_hashes(map, BIND(handle_put_hashes, _1));
 }
@@ -371,7 +411,7 @@ void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
     const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT_MSG(map->size() < max_inventory, "inventory overflow");
+    BC_ASSERT_MSG(map->size() <= max_inventory, "inventory overflow");
 
     if (stopped())
     {
@@ -388,7 +428,10 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
     }
 
     if (map->empty())
+    {
+        notify(error::success, chaser::chase::starved, identifier());
         return;
+    }
 
     POST(send_get_data, map);
 }

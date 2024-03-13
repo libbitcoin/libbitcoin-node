@@ -89,9 +89,11 @@ void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
     LOGN("Branch point (" << branch_point << ") unassociated ("
         << added << ").");
 
-    if (!is_zero(added))
-        notify(error::success, chase::download,
-            system::possible_narrow_cast<count_t>(added));
+    if (is_zero(added))
+        return;
+
+    const auto count = system::possible_narrow_cast<count_t>(added);
+    notify(error::success, chase::download, count);
 }
 
 // get/put hashes

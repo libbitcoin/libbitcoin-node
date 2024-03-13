@@ -55,6 +55,14 @@ public:
         /// Issued by 'check' and handled by 'block_in_31800'.
         download,
 
+        /// Channel is starved for block download identifiers (channel_t).
+        /// Issued by 'block_in_31800' and handled by 'session_outbound'.
+        starved,
+
+        /// Channel is directed to split its work and stop (channel_t).
+        /// Issued by 'session_outbound' and handled by 'block_in_31800'.
+        split,
+
         /// A block has been downloaded, checked and stored (height_t).
         /// Issued by 'block_in_31800' and handled by 'connect'.
         checked,
@@ -99,6 +107,7 @@ public:
     using header_t = database::header_link::integer;
     using transaction_t = database::tx_link::integer;
     using flags_t = database::context::flag::integer;
+    using channel_t = uint64_t;
     using count_t = height_t;
 
     typedef std::function<void(const code&, size_t)> organize_handler;

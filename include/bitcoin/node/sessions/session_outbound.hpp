@@ -21,6 +21,7 @@
 
 #include <unordered_map>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/sessions/attach.hpp>
@@ -35,10 +36,16 @@ class BCN_API session_outbound
 public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
+    void start(network::result_handler&& handler) NOEXCEPT override;
+
     virtual void performance(uint64_t channel, uint64_t speed,
-        network::result_handler&& handler) NOEXCEPT override;
+        network::result_handler&& handler) NOEXCEPT;
 
 protected:
+    virtual void handle_event(const code& ec,
+        chaser::chase event_, chaser::link value) NOEXCEPT;
+    virtual void split(chaser::channel_t channel) NOEXCEPT;
+
     void attach_protocols(
         const network::channel::ptr& channel) NOEXCEPT override;
 
