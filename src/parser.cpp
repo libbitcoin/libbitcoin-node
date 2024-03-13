@@ -48,17 +48,17 @@ parser::parser(system::chain::selection context) NOEXCEPT
 {
     using level = network::messages::level;
     using service = network::messages::service;
-    constexpr auto witness_node =
-        service::node_network |
-        service::node_witness;
 
+    configured.network.threads = 16;
     configured.network.enable_address = true;
     configured.network.enable_transaction = true;
     configured.network.host_pool_capacity = 10000;
-    configured.network.protocol_maximum = level::bip133;
+    configured.network.outbound_connections = 100;
     configured.network.protocol_minimum = level::minimum_protocol;
-    configured.network.services_minimum = witness_node;
-    configured.network.services_maximum = witness_node;
+    configured.network.protocol_maximum = level::bip133;
+    configured.network.services_minimum = service::node_network;
+    configured.network.services_maximum = service::node_network | 
+        service::node_witness;
 
     // archive
 
@@ -425,7 +425,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.threads",
         value<uint32_t>(&configured.network.threads),
-        "The minimum number of threads in the network threadpool, defaults to 1."
+        "The minimum number of threads in the network threadpool, defaults to 16."
     )
     (
         "network.address_upper",
@@ -510,7 +510,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.outbound_connections",
         value<uint16_t>(&configured.network.outbound_connections),
-        "The target number of outgoing network connections, defaults to 10."
+        "The target number of outgoing network connections, defaults to 100."
     )
     (
         "network.connect_batch_size",
