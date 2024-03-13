@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
 #include <functional>
+#include <memory>
 #include <variant>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
