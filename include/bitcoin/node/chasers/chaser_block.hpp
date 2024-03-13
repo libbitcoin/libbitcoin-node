@@ -65,11 +65,11 @@ private:
 
     system::chain::chain_state::ptr get_chain_state(
         const system::hash_digest& hash) const NOEXCEPT;
-    bool get_branch_work(uint256_t& work, size_t& point,
+    bool get_branch_work(uint256_t& work, size_t& branch_point,
         system::hashes& tree_branch, header_links& store_branch,
         const system::chain::header& header) const NOEXCEPT;
     bool get_is_strong(bool& strong, const uint256_t& work,
-        size_t point) const NOEXCEPT;
+        size_t branch_point) const NOEXCEPT;
     void cache(const system::chain::block::cptr& block,
         const system::chain::chain_state::ptr& state) NOEXCEPT;
     database::header_link push_block(
@@ -80,7 +80,7 @@ private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
 
     // This is thread safe.
-    const system::chain::checkpoints& checkpoints_;
+    const system::settings& settings_;
 
     // This is protected by strand.
     system::chain::chain_state::ptr state_{};

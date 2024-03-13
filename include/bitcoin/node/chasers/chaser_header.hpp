@@ -78,10 +78,8 @@ private:
         const system::chain::context& context) const NOEXCEPT;
     bool push_header(const system::hash_digest& key) NOEXCEPT;
 
-    // These are thread safe.
-    const uint256_t minimum_work_;
-    const system::chain::checkpoint& milestone_;
-    const system::chain::checkpoints& checkpoints_;
+    // This is thread safe.
+    const system::settings& settings_;
 
     // These are protected by strand.
     system::chain::chain_state::ptr state_{};
