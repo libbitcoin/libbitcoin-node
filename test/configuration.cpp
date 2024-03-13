@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.read);
     BOOST_REQUIRE(!instance.write);
 
-    BOOST_REQUIRE_EQUAL(instance.log.verbose, false);
+    ////BOOST_REQUIRE_EQUAL(instance.log.verbose, false);
     BOOST_REQUIRE_EQUAL(instance.log.maximum_size, 1'000'000_u32);
     BOOST_REQUIRE_EQUAL(instance.log.path, "");
 #if defined(HAVE_MSC)

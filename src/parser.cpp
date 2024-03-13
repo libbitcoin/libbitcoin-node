@@ -54,8 +54,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.enable_transaction = true;
     configured.network.host_pool_capacity = 10000;
     configured.network.outbound_connections = 100;
-    configured.network.protocol_minimum = level::minimum_protocol;
-    configured.network.protocol_maximum = level::bip133;
+    configured.network.protocol_minimum = level::headers_protocol;
+    configured.network.protocol_maximum = level::bip130;
     configured.network.services_minimum = service::node_network;
     configured.network.services_maximum = service::node_network | 
         service::node_witness;
@@ -440,12 +440,12 @@ options_metadata parser::load_settings() THROWS
     (
         "network.protocol_maximum",
         value<uint32_t>(&configured.network.protocol_maximum),
-        "The maximum network protocol version, defaults to 70013."
+        "The maximum network protocol version, defaults to 70012."
     )
     (
         "network.protocol_minimum",
         value<uint32_t>(&configured.network.protocol_minimum),
-        "The minimum network protocol version, defaults to 31402."
+        "The minimum network protocol version, defaults to 31800."
     )
     (
         "network.services_maximum",
@@ -872,11 +872,11 @@ options_metadata parser::load_settings() THROWS
         "Path to windows debug build symbols file (.pdb)."
     )
 #endif
-    (
-        "log.verbose",
-        value<bool>(&configured.log.verbose),
-        "Enable verbose logging, defaults to false."
-    )
+    ////(
+    ////    "log.verbose",
+    ////    value<bool>(&configured.log.verbose),
+    ////    "Enable verbose logging, defaults to false."
+    ////)
     (
         "log.maximum_size",
         value<uint32_t>(&configured.log.maximum_size),
