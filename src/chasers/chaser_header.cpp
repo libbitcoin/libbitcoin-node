@@ -41,9 +41,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
-    minimum_work_(config().bitcoin.minimum_work),
-    milestone_(config().bitcoin.milestone),
-    checkpoints_(config().bitcoin.checkpoints)
+    settings_(config().bitcoin)
 {
 }
 
@@ -59,8 +57,8 @@ code chaser_header::start() NOEXCEPT
     // storing it with each header, though the scan is fast. The same occurs
     // when a block first branches below the current chain top. Chain work is
     // a questionable DoS protection scheme only, so could also toss it.
-    state_ = archive().get_candidate_chain_state(
-        config().bitcoin, archive().get_top_candidate());
+    state_ = archive().get_candidate_chain_state(settings_,
+        archive().get_top_candidate());
 
     LOGN("Candidate top ["<< encode_hash(state_->hash()) << ":"
         << state_->height() << "].");
@@ -71,8 +69,7 @@ code chaser_header::start() NOEXCEPT
 // disorganize
 // ----------------------------------------------------------------------------
 
-void chaser_header::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+void chaser_header::handle_event(const code&, chase event_, link value) NOEXCEPT
 {
     // Posted due to block/header invalidation.
     if (event_ == chase::unchecked || 
@@ -146,11 +143,10 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
     // Reset top chain state cache to fork point.
     // ------------------------------------------------------------------------
 
-    const auto& coin = config().bitcoin;
     const auto top_candidate = state_->height();
     const auto prev_forks = state_->forks();
     const auto prev_version = state_->minimum_block_version();
-    state_ = query.get_candidate_chain_state(coin, fork_point);
+    state_ = query.get_candidate_chain_state(settings_, fork_point);
     if (!state_)
     {
         close(error::store_integrity);
@@ -194,7 +190,7 @@ void chaser_header::do_disorganize(header_t header) NOEXCEPT
             return;
         }
 
-        state.reset(new chain_state{ *state, *save, coin });
+        state.reset(new chain_state{ *state, *save, settings_ });
         cache(save, state);
     }
 
@@ -240,7 +236,6 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     auto& query = archive();
     const auto& header = *header_ptr;
-    const auto& coin = config().bitcoin;
     const auto hash = header.hash();
 
     // Skip existing/orphan, get state.
@@ -286,7 +281,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     const auto prev_forks = state->forks();
     const auto prev_version = state->minimum_block_version();
-    state.reset(new chain_state{ *state, header, coin });
+    state.reset(new chain_state{ *state, header, settings_ });
     const auto height = state->height();
 
     // TODO: this could be moved to confirmation.
@@ -317,9 +312,9 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // Checkpoints are considered chain not block/header validation.
 
     code error{ system::error::checkpoint_conflict };
-    if (checkpoint::is_conflict(coin.checkpoints, hash, height) ||
-        ((error = header.check(coin.timestamp_limit_seconds,
-            coin.proof_of_work_limit,coin.scrypt_proof_of_work))) ||
+    if (checkpoint::is_conflict(settings_.checkpoints, hash, height) ||
+        ((error = header.check(settings_.timestamp_limit_seconds,
+            settings_.proof_of_work_limit, settings_.scrypt_proof_of_work))) ||
         ((error = header.accept(state->context()))))
     {
         // There is no storage or notification of an invalid header.
@@ -333,9 +328,9 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
 
     // A checkpointed or milestoned branch always gets disk stored. Otherwise
     // branch must be both current and of sufficient chain work to be stored.
-    if (!checkpoint::is_at(checkpoints_, height) &&
-        !milestone_.equals(hash, height) &&
-        !(current && state->cumulative_work() >= minimum_work_))
+    if (!checkpoint::is_at(settings_.checkpoints, height) &&
+        !settings_.milestone.equals(hash, height) &&
+        !(current && state->cumulative_work() >= settings_.minimum_work))
     {
         cache(header_ptr, state);
         handler(error::success, height);
@@ -430,8 +425,10 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     // ------------------------------------------------------------------------
 
     if (current)
-        notify(error::success, chase::header,
-            possible_narrow_cast<height_t>(branch_point));
+    {
+        const auto point = possible_narrow_cast<height_t>(branch_point);
+        notify(error::success, chase::header, point);
+    }
 
     state_ = state;
     handler(error::success, height);
@@ -459,7 +456,7 @@ chain_state::ptr chaser_header::get_chain_state(
     size_t height{};
     const auto& query = archive();
     if (query.get_height(height, query.to_header(hash)))
-        return query.get_candidate_chain_state(config().bitcoin, height);
+        return query.get_candidate_chain_state(settings_, height);
 
     return {};
 }

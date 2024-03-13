@@ -42,7 +42,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_block::chaser_block(full_node& node) NOEXCEPT
   : chaser(node),
-    checkpoints_(node.config().bitcoin.checkpoints)
+    settings_(config().bitcoin)
 {
 }
 
@@ -54,8 +54,8 @@ code chaser_block::start() NOEXCEPT
     BC_ASSERT(node_stranded());
 
     // Initialize cache of top candidate chain state.
-    state_ = archive().get_candidate_chain_state(
-        config().bitcoin, archive().get_top_candidate());
+    state_ = archive().get_candidate_chain_state(settings_,
+        archive().get_top_candidate());
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -63,8 +63,7 @@ code chaser_block::start() NOEXCEPT
 // disorganize
 // ----------------------------------------------------------------------------
 
-void chaser_block::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+void chaser_block::handle_event(const code&, chase event_, link value) NOEXCEPT
 {
     if (event_ == chase::unconfirmed)
     {
@@ -73,9 +72,144 @@ void chaser_block::handle_event(const code&, chase event_,
 }
 
 // TODO: see chaser_header::do_disorganize
-void chaser_block::do_disorganize(header_t) NOEXCEPT
+void chaser_block::do_disorganize(header_t header) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // Skip already reorganized out, get height.
+    // ------------------------------------------------------------------------
+
+    // Upon restart candidate chain validation will hit unconfirmable block.
+    if (closed())
+        return;
+
+    // If header is not a current candidate it has been reorganized out.
+    // If header becomes candidate again its unconfirmable state is handled.
+    auto& query = archive();
+    if (!query.is_candidate_block(header))
+        return;
+
+    size_t height{};
+    if (!query.get_height(height, header) || is_zero(height))
+    {
+        close(error::internal_error);
+        return;
+    }
+
+    const auto fork_point = query.get_fork();
+    if (height <= fork_point)
+    {
+        close(error::internal_error);
+        return;
+    }
+
+    // Mark candidates above and pop at/above height.
+    // ------------------------------------------------------------------------
+
+    // Pop from top down to and including header marking each as unconfirmable.
+    // Unconfirmability isn't necessary for validation but adds query context.
+    for (auto index = query.get_top_candidate(); index > height; --index)
+    {
+        const auto link = query.to_candidate(index);
+
+        LOGN("Invalidating candidate [" << index << ":"
+            << encode_hash(query.get_header_key(link)) << "].");
+
+        if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    LOGN("Invalidating candidate [" << height << ":"
+        << encode_hash(query.get_header_key(header)) << "].");
+
+    // Candidate at height is already marked as unconfirmable by notifier.
+    if (!query.pop_candidate())
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // Reset top chain state cache to fork point.
+    // ------------------------------------------------------------------------
+
+    const auto top_candidate = state_->height();
+    const auto prev_forks = state_->forks();
+    const auto prev_version = state_->minimum_block_version();
+    state_ = query.get_candidate_chain_state(settings_, fork_point);
+    if (!state_)
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // TODO: this could be moved to deconfirmation.
+    const auto next_forks = state_->forks();
+    if (prev_forks != next_forks)
+    {
+        const binary prev{ to_bits(sizeof(forks)), to_big_endian(prev_forks) };
+        const binary next{ to_bits(sizeof(forks)), to_big_endian(next_forks) };
+        LOGN("Forks reverted from ["
+            << prev << "] at candidate ("
+            << top_candidate << ") to ["
+            << next << "] at confirmed ["
+            << fork_point << ":" << encode_hash(state_->hash()) << "].");
+    }
+
+    // TODO: this could be moved to deconfirmation.
+    const auto next_version = state_->minimum_block_version();
+    if (prev_version != next_version)
+    {
+        LOGN("Minimum block version reverted ["
+            << prev_version << "] at candidate ("
+            << top_candidate << ") to ["
+            << next_version << "] at confirmed ["
+            << fork_point << ":" << encode_hash(state_->hash()) << "].");
+    }
+
+    // Copy candidates from above fork point to top into block tree.
+    // ------------------------------------------------------------------------
+
+    auto state = state_;
+    for (auto index = add1(fork_point); index <= top_candidate; ++index)
+    {
+        const auto save = query.get_block(query.to_candidate(index));
+        if (!save)
+        {
+            close(error::store_integrity);
+            return;
+        }
+
+        state.reset(new chain_state{ *state, *save, settings_ });
+        cache(save, state);
+    }
+
+    // Pop candidates from top to above fork point.
+    // ------------------------------------------------------------------------
+    for (auto index = top_candidate; index > fork_point; --index)
+    {
+        LOGN("Deorganizing candidate [" << index << "].");
+
+        if (!query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Push confirmed headers from above fork point onto candidate chain.
+    // ------------------------------------------------------------------------
+    const auto top_confirmed = query.get_top_confirmed();
+    for (auto index = add1(fork_point); index <= top_confirmed; ++index)
+    {
+        if (!query.push_candidate(query.to_confirmed(index)))
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
 }
 
 // organize
@@ -95,7 +229,6 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     auto& query = archive();
     const auto& block = *block_ptr;
     const auto& header = block.header();
-    const auto& coin = config().bitcoin;
     const auto hash = header.hash();
 
     // Skip existing/orphan, get state.
@@ -140,22 +273,50 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     }
 
     // Roll chain state forward from previous to current header.
-    // Do not use block parameter here as that override is for tx pool.
-    state.reset(new chain_state{ *state, header, coin });
-    const auto height = state->height();
-
-    // Validate block.
     // ------------------------------------------------------------------------
 
+    const auto prev_forks = state->forks();
+    const auto prev_version = state->minimum_block_version();
+
+    // Do not use block parameter here as that override is for tx pool.
+    state.reset(new chain_state{ *state, header, settings_ });
+    const auto height = state->height();
+
+    // TODO: this could be moved to confirmation.
+    const auto next_forks = state->forks();
+    if (prev_forks != next_forks)
+    {
+        const binary prev{ to_bits(sizeof(forks)), to_big_endian(prev_forks) };
+        const binary next{ to_bits(sizeof(forks)), to_big_endian(next_forks) };
+        LOGN("Forked from ["
+            << prev << "] to ["
+            << next << "] at ["
+            << height << ":" << encode_hash(hash) << "].");
+    }
+
+    // TODO: this could be moved to confirmation.
+    const auto next_version = state->minimum_block_version();
+    if (prev_version != next_version)
+    {
+        LOGN("Minimum block version ["
+            << prev_version << "] changed to ["
+            << next_version << "] at ["
+            << height << ":" << encode_hash(hash) << "].");
+    }
+
+    // Check/Accept/Connect block.
+    // ------------------------------------------------------------------------
+    // Blocks are accumulated following genesis, not cached until current.
+
     // Checkpoints are considered chain not block/header validation.
-    if (checkpoint::is_conflict(coin.checkpoints, hash, height))
+    if (checkpoint::is_conflict(settings_.checkpoints, hash, height))
     {
         handler(system::error::checkpoint_conflict, height);
         return;
     };
 
     // Block validations are bypassed when under checkpoint/milestone.
-    if (!checkpoint::is_under(coin.checkpoints, height))
+    if (!checkpoint::is_under(settings_.checkpoints, height))
     {
         // Requires no population.
         if (const auto error = block.check())
@@ -181,7 +342,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
 
         // Requires only prevout population.
         if (const auto error = block.accept(state->context(),
-            coin.subsidy_interval_blocks, coin.initial_subsidy()))
+            settings_.subsidy_interval_blocks, settings_.initial_subsidy()))
         {
             handler(error, height);
             return;
@@ -199,20 +360,22 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // ------------------------------------------------------------------------
     // Current is not used for blocks due to excessive cache requirement.
 
-    size_t point{};
     uint256_t work{};
     hashes tree_branch{};
+    size_t branch_point{};
     header_links store_branch{};
-    if (!get_branch_work(work, point, tree_branch, store_branch, header))
+    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
     bool strong{};
-    if (!get_is_strong(strong, work, point))
+    if (!get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
@@ -235,18 +398,20 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     // ------------------------------------------------------------------------
 
     auto top = state_->height();
-    if (top < point)
+    if (top < branch_point)
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
     // Pop down to the branch point.
-    while (top-- > point)
+    while (top-- > branch_point)
     {
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
+            close(error::store_integrity);
             return;
         }
     }
@@ -257,6 +422,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
         if (!query.push_candidate(id))
         {
             handler(error::store_integrity, height);
+            close(error::store_integrity);
             return;
         }
     }
@@ -267,6 +433,7 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
         if (!push_block(key))
         {
             handler(error::store_integrity, height);
+            close(error::store_integrity);
             return;
         }
     }
@@ -275,14 +442,16 @@ void chaser_block::do_organize(const block::cptr& block_ptr,
     if (push_block(block_ptr, state->context()).is_terminal())
     {
         handler(error::store_integrity, height);
+        close(error::store_integrity);
         return;
     }
 
     // ------------------------------------------------------------------------
 
+    const auto point = possible_narrow_cast<height_t>(branch_point);
+    notify(error::success, chase::block, point);
+
     state_ = state;
-    const auto branch_point = possible_narrow_cast<height_t>(point);
-    notify(error::success, chase::block, branch_point);
     handler(error::success, height);
 }
 
@@ -306,7 +475,7 @@ chain_state::ptr chaser_block::get_chain_state(
     size_t height{};
     const auto& query = archive();
     if (query.get_height(height, query.to_header(hash)))
-        return query.get_candidate_chain_state(config().bitcoin, height);
+        return query.get_candidate_chain_state(settings_, height);
 
     return {};
 }
@@ -314,7 +483,7 @@ chain_state::ptr chaser_block::get_chain_state(
 // Sum of work from header to branch point (excluded).
 // Also obtains branch point for work summation termination.
 // Also obtains ordered branch identifiers for subsequent reorg.
-bool chaser_block::get_branch_work(uint256_t& work, size_t& point,
+bool chaser_block::get_branch_work(uint256_t& work, size_t& branch_point,
     hashes& tree_branch, header_links& store_branch,
     const header& header) const NOEXCEPT
 {
@@ -346,7 +515,7 @@ bool chaser_block::get_branch_work(uint256_t& work, size_t& point,
     }
 
     // Height of the highest candidate header is the branch point.
-    return query.get_height(point, link);
+    return query.get_height(branch_point, link);
 }
 
 // ****************************************************************************
