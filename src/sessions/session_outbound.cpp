@@ -20,7 +20,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <algorithm>
 #include <ratio>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
@@ -31,6 +33,9 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS session_outbound
+
+using namespace network;
+using namespace std::placeholders;
 
 constexpr auto to_kilobits_per_second = [](auto value) NOEXCEPT
 {
@@ -55,6 +60,57 @@ session_outbound::session_outbound(full_node& node,
 {
 }
 
+// start
+// ----------------------------------------------------------------------------
+
+void session_outbound::start(result_handler&& handler) NOEXCEPT
+{
+    // Events subscription is synchronous (session).
+    subscribe_events(BIND(handle_event, _1, _2, _3));
+
+    network::session_outbound::start(std::move(handler));
+}
+
+// split
+// ----------------------------------------------------------------------------
+
+// Event subscriber operates on the network strand (session).
+void session_outbound::handle_event(const code&,
+    chaser::chase event_, chaser::link value) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return;
+
+    if (event_ == chaser::chase::starved)
+    {
+        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+        split(std::get<chaser::channel_t>(value));
+    }
+}
+
+void session_outbound::split(chaser::channel_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    const auto slowest = std::min_element(speeds_.begin(), speeds_.end(),
+        [](const auto& left, const auto& right) NOEXCEPT
+        {
+            return left.second < right.second;
+        });
+
+    // Direct the slowest channel to split work and stop.
+    if (slowest != speeds_.end())
+    {
+        const auto channel = slowest->first;
+        node::session::notify(error::success, chaser::chase::split, channel);
+    }
+}
+
+// performance
+// ----------------------------------------------------------------------------
+
 void session_outbound::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
 {
@@ -65,10 +121,10 @@ void session_outbound::performance(uint64_t channel, uint64_t speed,
 void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     // Three elements are required to measure deviation, don't drop to two.
     constexpr auto mimimum_for_deviation = 3_size;
-
-    BC_ASSERT(stranded());
 
     if (speed == max_uint64)
     {
@@ -131,6 +187,9 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
 
     handler(error::success);
 }
+
+// attach
+// ----------------------------------------------------------------------------
 
 void session_outbound::attach_protocols(
     const network::channel::ptr& channel) NOEXCEPT
