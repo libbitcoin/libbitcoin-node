@@ -67,7 +67,6 @@ protected:
     /// Accept incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
-    virtual void complete() NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 

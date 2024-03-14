@@ -110,6 +110,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 
         // A non-maximal inventory has no new blocks, assume complete.
         // Inventory completeness assumes empty response if caught up at 500.
+        LOGP("Complete inventory [" << authority() << "].");
         return true;
     }
 
@@ -140,7 +141,11 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 
     // Unrequested block, may not have been announced via inventory.
     if (tracker_.ids.find(block_ptr->hash()) == tracker_.ids.end())
+    {
+        LOGP("Received unrequested block [" << encode_hash(block_ptr->hash())
+            << "] from [" << authority() << "].");
         return true;
+    }
 
     // Inventory backlog is limited to 500 per channel.
     organize(block_ptr, BIND(handle_organize, _1, _2, block_ptr));
@@ -196,17 +201,9 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
         {
             // Completeness stalls if on 500 as empty message is ambiguous.
             // This is ok, since complete is not used for anything essential.
-            complete();
+            LOGP("Complete blocks [" << authority() << "].");
         }
     }
-}
-
-// This could be the end of a catch-up sequence, or a singleton announcement.
-// The distinction is ultimately arbitrary, but this signals initial currency.
-void protocol_block_in::complete() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    LOGP("Blocks from [" << authority() << "] exhausted.");
 }
 
 // utilities
