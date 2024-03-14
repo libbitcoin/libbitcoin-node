@@ -29,6 +29,8 @@
 namespace libbitcoin {
 namespace node {
 
+class session_outbound;
+
 /// Session base class template for protocol attachment.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
@@ -58,26 +60,34 @@ protected:
         const network::channel::ptr& channel) NOEXCEPT override
     {
         auto& self = *this;
+        const auto headers_first = config().node.headers_first;
         const auto version = channel->negotiated_version();
-        ////constexpr auto performance = false;
+
+        // Only session_outbound channels compete on performance.
+        auto performance = false;
+        if constexpr (is_same_type<Session, node::session_outbound>)
+        {
+            performance = true;
+        }
 
         // Attach appropriate alert, reject, ping, and/or address protocols.
         Session::attach_protocols(channel);
         
         // Very hard to find < 31800 peer to connect with.
-        if (version >= network::messages::level::bip130)
+        if (headers_first && version >= network::messages::level::bip130)
         {
             // Headers-first synchronization (parallel block download).
             channel->attach<protocol_header_in_70012>(self)->start();
             channel->attach<protocol_header_out_70012>(self)->start();
-            ////channel->attach<protocol_block_in_31800>(self, performance)->start();
+            channel->attach<protocol_block_in_31800>(self, performance)->start();
         }
-        else if (version >= network::messages::level::headers_protocol)
+        else if (headers_first && 
+            version >= network::messages::level::headers_protocol)
         {
             // Headers-first synchronization (parallel block download).
             channel->attach<protocol_header_in_31800>(self)->start();
             channel->attach<protocol_header_out_31800>(self)->start();
-            ////channel->attach<protocol_block_in_31800>(self, performance)->start();
+            channel->attach<protocol_block_in_31800>(self, performance)->start();
         }
         else
         {

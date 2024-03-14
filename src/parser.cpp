@@ -813,6 +813,11 @@ options_metadata parser::load_settings() THROWS
 
     /* [node] */
     (
+        "node.headers_first",
+        value<bool>(&configured.node.headers_first),
+        "Obtain current header chain before obtaining associated blocks, defaults to true."
+    )
+    (
         "node.allowed_deviation",
         value<float>(&configured.node.allowed_deviation),
         "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."

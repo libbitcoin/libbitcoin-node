@@ -42,10 +42,11 @@ public:
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename Session>
     protocol_block_in_31800(Session& session,
-        const channel_ptr& channel, bool) NOEXCEPT
+        const channel_ptr& channel, bool performance) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_block_in_31800>(session.log),
-        drop_stalled_(to_bool(session.config().node.sample_period_seconds)),
+        drop_stalled_(performance && 
+            to_bool(session.config().node.sample_period_seconds)),
         use_deviation_(session.config().node.allowed_deviation > 0.0),
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),

@@ -46,9 +46,6 @@ protected:
         chaser::chase event_, chaser::link value) NOEXCEPT;
     virtual void split(chaser::channel_t channel) NOEXCEPT;
 
-    void attach_protocols(
-        const network::channel::ptr& channel) NOEXCEPT override;
-
 private:
     void do_performance(uint64_t channel, uint64_t speed,
         const network::result_handler& handler) NOEXCEPT;
