@@ -108,27 +108,33 @@ void protocol_header_in_31800::complete() NOEXCEPT
 }
 
 void protocol_header_in_31800::handle_organize(const code& ec,
-    size_t LOG_ONLY(height),
-    const chain::header::cptr& LOG_ONLY(header_ptr)) NOEXCEPT
+    size_t height, const chain::header::cptr& LOG_ONLY(header_ptr)) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped ||
         ec == error::duplicate_header)
         return;
 
+    // Assuming no store failure this is an orphan or consensus failure.
     if (ec)
     {
-        // Assuming no store failure this is an orphan or consensus failure.
-        LOGR("Header [" << encode_hash(header_ptr->hash())
-            << "] at (" << height << ") from [" << authority() << "] "
-            << ec.message());
+        if (is_zero(height))
+        {
+            LOGP("Header [" << encode_hash(header_ptr->hash()) << "] from ["
+                << authority() << "] " << ec.message());
+        }
+        else
+        {
+            LOGR("Header [" << encode_hash(header_ptr->hash()) << ":" << height
+                << "] from [" << authority() << "] " << ec.message());
+        }
+
         stop(ec);
         return;
     }
 
-    LOGP("Header [" << encode_hash(header_ptr->hash())
-        << "] at (" << height << ") from [" << authority() << "] "
-        << ec.message());
+    LOGP("Header [" << encode_hash(header_ptr->hash()) << ":" << height
+        << "] from [" << authority() << "] " << ec.message());
 }
 
 // utilities

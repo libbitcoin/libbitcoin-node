@@ -249,7 +249,7 @@ void protocol_block_in_31800::do_split(chaser::channel_t) NOEXCEPT
     if (stopped())
         return;
 
-    LOGN("Divide work (" << map_->size() << ") from [" << authority() << "].");
+    LOGP("Divide work (" << map_->size() << ") from [" << authority() << "].");
 
     restore(split(map_));
     restore(map_);
@@ -351,9 +351,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         query.set_block_unconfirmable(link);
         notify(error::success, chaser::chase::unchecked, link);
 
-        LOGR("Invalid block [" << encode_hash(hash) << "] at ("
-            << ctx.height << ") from [" << authority() << "] "
-            << error.message());
+        LOGR("Invalid block [" << encode_hash(hash) << ":" << ctx.height
+            << "] from [" << authority() << "] " << error.message());
 
         stop(error);
         return false;
@@ -365,17 +364,16 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs to store, failure may stall the node.
     if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
-        LOGF("Failure storing block [" << encode_hash(hash) << "] at ("
-            << ctx.height << ") from [" << authority() << "] "
-            << error.message());
+        LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height
+            << "] from [" << authority() << "] " << error.message());
         stop(node::error::store_integrity);
         return false;
     }
 
     // ------------------------------------------------------------------------
 
-    LOGP("Downloaded block [" << encode_hash(hash) << "] at ("
-        << ctx.height << ") from [" << authority() << "].");
+    LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
+        << "] from [" << authority() << "].");
 
     notify(error::success, chaser::chase::checked, height);
     bytes_ += message->cached_size;

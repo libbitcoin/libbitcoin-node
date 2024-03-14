@@ -175,25 +175,35 @@ void protocol_block_in::complete() NOEXCEPT
     LOGP("Blocks from [" << authority() << "] exhausted.");
 }
 
-void protocol_block_in::handle_organize(const code& ec, size_t LOG_ONLY(height),
+void protocol_block_in::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& LOG_ONLY(block_ptr)) NOEXCEPT
 {
-    if (ec == network::error::service_stopped || ec == error::duplicate_block)
+    if (stopped() ||
+        ec == network::error::service_stopped || ec == error::duplicate_block)
         return;
 
+    // Assuming no store failure this is an orphan or consensus failure.
     if (ec)
     {
-        // Assuming no store failure this is an orphan or consensus failure.
-        LOGR("Block [" << encode_hash(block_ptr->hash())
-            << "] at (" << height << ") from [" << authority() << "] "
-            << ec.message());
+        if (is_zero(height))
+        {
+            // Many peers blindly broadcast blocks even at/above 31800, ugh.
+            // If we are not caught up on headers this is useless information.
+            LOGP("Block [" << encode_hash(block_ptr->hash()) << "] from ["
+                << authority() << "] " << ec.message());
+        }
+        else
+        {
+            LOGR("Block [" << encode_hash(block_ptr->hash()) << ":" << height
+                << "] from [" << authority() << "] " << ec.message());
+        }
+
         stop(ec);
         return;
     }
 
-    LOGP("Block [" << encode_hash(block_ptr->hash())
-        << "] at (" << height << ") from [" << authority() << "] "
-        << ec.message());
+    LOGP("Block [" << encode_hash(block_ptr->hash()) << ":" << height
+        << "] from [" << authority() << "] " << ec.message());
 }
 
 // utilities
