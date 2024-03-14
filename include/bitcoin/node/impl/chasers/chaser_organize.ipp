@@ -93,7 +93,6 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 TEMPLATE
 void CLASS::handle_event(const code&, chase event_, link value) NOEXCEPT
 {
-    // Posted due to block/header invalidation.
     // Block chaser doesn't need to capture unchecked/unconnected (but okay).
     if (event_ == chase::unchecked ||
         event_ == chase::unconnected ||
@@ -268,38 +267,49 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        if (tree_.contains(hash))
+        const auto it = tree_.find(hash);
+        if (it != tree_.end())
         {
+            const auto height = it->second.state->height();
             if constexpr (is_same_type<Block, chain::block>)
-                handler(error::duplicate_block, {});
+                handler(error::duplicate_block, height);
             else
-                handler(error::duplicate_header, {});
+                handler(error::duplicate_header, height);
 
             return;
         }
 
-        // If header exists test for prior invalidity.
+        // If exists test for prior invalidity.
         const auto link = query.to_header(hash);
         if (!link.is_terminal())
         {
+            size_t height{};
+            if (!query.get_height(height, link))
+            {
+                handler(error::store_integrity, {});
+                close(error::store_integrity);
+                return;
+            }
+
             const auto ec = query.get_header_state(link);
             if (ec == database::error::block_unconfirmable)
             {
-                handler(ec, {});
+                handler(ec, height);
                 return;
             }
 
             if constexpr (is_same_type<Block, chain::block>)
             {
+                // Blocks are only duplicates if txs are associated.
                 if (ec != database::error::unassociated)
                 {
-                    handler(error::duplicate_block, {});
+                    handler(error::duplicate_block, height);
                     return;
                 }
             }
             else
             {
-                handler(error::duplicate_header, {});
+                handler(error::duplicate_header, height);
                 return;
             }
         }
