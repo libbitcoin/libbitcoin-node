@@ -60,15 +60,16 @@ public:
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
-    // TODO: these aren't actually node settings.
-    uint16_t target{ 0 };
-    uint16_t interval{ 0 };
-
     /// Properties.
+    bool headers_first;
     float allowed_deviation;
     uint16_t maximum_inventory;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
+
+    // TODO: these aren't actually node settings.
+    uint16_t target{ 0 };
+    uint16_t interval{ 0 };
 
     /// Helpers.
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
