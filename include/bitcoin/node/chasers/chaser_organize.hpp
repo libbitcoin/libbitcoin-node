@@ -72,8 +72,7 @@ protected:
         const chain_state& state) const NOEXCEPT = 0;
 
     /// Determine if Block is top of a storable branch.
-    virtual bool is_storable(const Block& block, size_t height,
-        const system::hash_digest& hash,
+    virtual bool is_storable(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
 
     /// Constant access to Block tree.

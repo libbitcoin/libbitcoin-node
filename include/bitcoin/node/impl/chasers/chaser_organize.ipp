@@ -374,7 +374,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        if (!is_storable(block, height, hash, *state))
+        if (!is_storable(block, *state))
         {
             cache(block_ptr, state);
             handler(error::success, height);
