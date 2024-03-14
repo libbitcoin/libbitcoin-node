@@ -19,72 +19,45 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_BLOCK_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_BLOCK_HPP
 
-#include <unordered_map>
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
+#include <bitcoin/system.hpp>
+#include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/chasers/chaser.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-class full_node;
 
 /// Chase down stronger block branches for the confirmed chain.
 /// Weak branches are retained in a hash table if not store populated.
 /// Strong branches reorganize the candidate chain and fire the 'connect' event.
 class BCN_API chaser_block
-  : public chaser
+  : public chaser_organize<system::chain::block>
 {
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_block);
 
     chaser_block(full_node& node) NOEXCEPT;
 
-    /// Initialize chaser state.
-    virtual code start() NOEXCEPT;
-
-    /// Validate and organize next block in sequence relative to caller peer.
-    virtual void organize(const system::chain::block::cptr& block_ptr,
-        organize_handler&& handler) NOEXCEPT;
-
 protected:
-    virtual void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
-    virtual void do_disorganize(header_t height) NOEXCEPT;
-    virtual void do_organize(const system::chain::block::cptr& block,
-        const organize_handler& handler) NOEXCEPT;
+    /// Get header from Block instance.
+    virtual const system::chain::header& get_header(
+        const system::chain::block& block) const NOEXCEPT;
+
+    /// Query store for const pointer to Block instance.
+    virtual bool get_block(system::chain::block::cptr& out,
+        size_t index) const NOEXCEPT;
+
+    /// Determine if Block is valid.
+    virtual code validate(const system::chain::block& block,
+        const system::chain::chain_state& state) const NOEXCEPT;
+
+    /// Determine if Block is top of a storable branch.
+    virtual bool is_storable(const system::chain::block& block,
+        size_t height, const system::hash_digest& hash,
+        const system::chain::chain_state& state) const NOEXCEPT;
 
 private:
-    struct block_state
-    {
-        system::chain::block::cptr block;
-        system::chain::chain_state::ptr state;
-    };
-    using block_tree = std::unordered_map<system::hash_digest, block_state>;
-    using header_links = std::vector<database::header_link>;
-
-    system::chain::chain_state::ptr get_chain_state(
-        const system::hash_digest& hash) const NOEXCEPT;
-    bool get_branch_work(uint256_t& work, size_t& branch_point,
-        system::hashes& tree_branch, header_links& store_branch,
-        const system::chain::header& header) const NOEXCEPT;
-    bool get_is_strong(bool& strong, const uint256_t& work,
-        size_t branch_point) const NOEXCEPT;
-    void cache(const system::chain::block::cptr& block,
-        const system::chain::chain_state::ptr& state) NOEXCEPT;
-    database::header_link push_block(
-        const system::chain::block::cptr& block,
-        const system::chain::context& context) const NOEXCEPT;
-    bool push_block(const system::hash_digest& key) NOEXCEPT;
-    void populate(const system::chain::block& block) const NOEXCEPT;
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
-
-    // This is thread safe.
-    const system::settings& settings_;
-
-    // This is protected by strand.
-    system::chain::chain_state::ptr state_{};
-    block_tree tree_{};
+    void populate(const system::chain::block& block) const NOEXCEPT;
 };
 
 } // namespace node
