@@ -135,8 +135,13 @@ include_bitcoin_node_chasers_HEADERS = \
     include/bitcoin/node/chasers/chaser_confirm.hpp \
     include/bitcoin/node/chasers/chaser_connect.hpp \
     include/bitcoin/node/chasers/chaser_header.hpp \
+    include/bitcoin/node/chasers/chaser_organize.hpp \
     include/bitcoin/node/chasers/chaser_transaction.hpp \
     include/bitcoin/node/chasers/chasers.hpp
+
+include_bitcoin_node_impl_chasersdir = ${includedir}/bitcoin/node/impl/chasers
+include_bitcoin_node_impl_chasers_HEADERS = \
+    include/bitcoin/node/impl/chasers/chaser_organize.ipp
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \

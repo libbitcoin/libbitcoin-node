@@ -110,6 +110,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_connect.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_organize.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_transaction.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chasers.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
@@ -139,6 +140,7 @@
     <ClInclude Include="..\..\resource.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\include\bitcoin\node\impl\chasers\chaser_organize.ipp" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

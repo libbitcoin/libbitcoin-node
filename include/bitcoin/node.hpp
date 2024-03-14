@@ -35,6 +35,7 @@
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 #include <bitcoin/node/chasers/chaser_connect.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
+#include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>

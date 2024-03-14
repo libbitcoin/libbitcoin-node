@@ -19,14 +19,20 @@
     <Filter Include="include\bitcoin\node\chasers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000007}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\protocols">
+    <Filter Include="include\bitcoin\node\impl">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000008}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\sessions">
+    <Filter Include="include\bitcoin\node\impl\chasers">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000009}</UniqueIdentifier>
     </Filter>
-    <Filter Include="resource">
+    <Filter Include="include\bitcoin\node\sessions">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resource">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000C}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000000}</UniqueIdentifier>
@@ -149,6 +155,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_organize.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_transaction.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
@@ -232,6 +241,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\include\bitcoin\node\impl\chasers\chaser_organize.ipp">
+      <Filter>include\bitcoin\node\impl\chasers</Filter>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
