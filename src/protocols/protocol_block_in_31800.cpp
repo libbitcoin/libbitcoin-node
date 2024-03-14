@@ -295,16 +295,16 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
     restore(map);
 }
 
-// private
-// clang has emplace_back bug (no matching constructor).
-// bip144: get_data uses witness constant but inventory does not.
 get_data protocol_block_in_31800::create_get_data(
     const map_ptr& map) const NOEXCEPT
 {
+    // clang has emplace_back bug (no matching constructor).
+    // bip144: get_data uses witness constant but inventory does not.
+
     get_data getter{};
     getter.items.reserve(map->size());
     std::for_each(map->pos_begin(), map->pos_end(),
-        [&](const auto& item) NOEXCEPT
+        [&](const database::association& item) NOEXCEPT
         {
             getter.items.push_back({ block_type_, item.hash });
         });

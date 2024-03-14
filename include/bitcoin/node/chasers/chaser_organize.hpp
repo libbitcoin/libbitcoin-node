@@ -94,7 +94,7 @@ protected:
 
 private:
     // Store Block into logical tree cache.
-    void cache(const typename Block::cptr& block,
+    void cache(const typename Block::cptr& block_ptr,
         const chain_state::ptr& state) NOEXCEPT;
 
     // Obtain chain state for given header hash, nullptr if not found. 

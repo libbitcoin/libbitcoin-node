@@ -145,8 +145,8 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     {
         const auto link = query.to_candidate(index);
 
-        LOGN("Invalidating candidate [" << index << ":"
-            << encode_hash(query.get_header_key(link)) << "].");
+        LOGN("Invalidating candidate ["
+            << encode_hash(query.get_header_key(link))<< ":" << index << "].");
 
         if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
         {
@@ -155,8 +155,8 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
         }
     }
 
-    LOGN("Invalidating candidate [" << height << ":"
-        << encode_hash(query.get_header_key(header)) << "].");
+    LOGN("Invalidating candidate ["
+        << encode_hash(query.get_header_key(header)) << ":" << height << "].");
 
     // Candidate at height is already marked as unconfirmable by notifier.
     if (!query.pop_candidate())
@@ -403,13 +403,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        // If a long candidate chain is first created using headers-first and then
-        // blocks-first is executed (after a restart/config) it can result in up to
-        // the entire blockchain being cached into memory before becoming strong,
-        // which means stronger than the candidate chain. While switching config
-        // between modes by varying network protocol is supported, blocks-first is
-        // inherently inefficient and weak on this aspect of DoS protection. This
-        // is acceptable for its purpose and consistent with early implementations.
         if (!strong)
         {
             // New top of current weak branch.
@@ -496,10 +489,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-void CLASS::cache(const typename Block::cptr& block,
+void CLASS::cache(const typename Block::cptr& block_ptr,
     const system::chain::chain_state::ptr& state) NOEXCEPT
 {
-    tree_.insert({ block->hash(), { block, state } });
+    tree_.insert({ block_ptr->hash(), { block_ptr, state } });
 }
 
 TEMPLATE

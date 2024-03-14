@@ -76,14 +76,11 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         if (stopped())
             return false;
 
-        // This is unnecessary and a hugely costly call in relative terms.
-        ////if (!archive().is_header(header_ptr->hash()))...
-
-        // Asynchronous organization serves all channels.
+        // A job backlog will occur when organize is slower than download.
+        // This is not likely with headers-first even for high channel count.
         organize(header_ptr, BIND(handle_organize, _1, _2, header_ptr));
     }
 
-    // Protocol presumes max_get_headers unless complete.
     // The headers response to get_headers is limited to max_get_headers.
     if (message->header_ptrs.size() == max_get_headers)
     {
@@ -92,6 +89,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     }
     else
     {
+        // Protocol presumes max_get_headers unless complete.
         // Completeness assumes empty response from peer if caught up at 2000.
         complete();
     }
