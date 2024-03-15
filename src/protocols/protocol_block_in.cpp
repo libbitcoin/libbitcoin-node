@@ -234,13 +234,14 @@ get_blocks protocol_block_in::create_get_inventory(
 
     if (hashes.size() == one)
     {
-        LOGP("Request block inventory after [" << encode_hash(hashes.back())
+        LOGP("Request block inventory after [" << encode_hash(hashes.front())
             << "] from [" << authority() << "].");
     }
     else
     {
         LOGP("Request block inventory (" << hashes.size() << ") after ["
-            << encode_hash(hashes.back()) << "] from [" << authority() << "].");
+            << encode_hash(hashes.front()) << "] from ["
+            << authority() << "].");
     }
 
     return { std::move(hashes) };

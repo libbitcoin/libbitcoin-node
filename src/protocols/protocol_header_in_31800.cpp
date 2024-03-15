@@ -162,13 +162,14 @@ get_headers protocol_header_in_31800::create_get_headers(
 
     if (hashes.size() == one)
     {
-        LOGP("Request headers after [" << encode_hash(hashes.back())
+        LOGP("Request headers after [" << encode_hash(hashes.front())
             << "] from [" << authority() << "].");
     }
     else
     {
         LOGP("Request headers (" << hashes.size() << ") after ["
-            << encode_hash(hashes.back()) << "] from [" << authority() << "].");
+            << encode_hash(hashes.front()) << "] from ["
+            << authority() << "].");
     }
 
     return { std::move(hashes) };
