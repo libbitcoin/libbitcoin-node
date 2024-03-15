@@ -84,25 +84,18 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // The headers response to get_headers is limited to max_get_headers.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        SEND(create_get_headers(message->header_ptrs.back()->hash()),
-            handle_send, _1);
+        const auto last = message->header_ptrs.back()->hash();
+        SEND(create_get_headers(last), handle_send, _1);
     }
     else
     {
         // Protocol presumes max_get_headers unless complete.
         // Completeness assumes empty response from peer if caught up at 2000.
+        LOGP("Completed headers from [" << authority() << "].");
         complete();
     }
 
     return true;
-}
-
-// This could be the end of a catch-up sequence, or a singleton announcement.
-// The distinction is ultimately arbitrary, but this signals peer completeness.
-void protocol_header_in_31800::complete() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    LOGP("Headers from [" << authority() << "] exhausted.");
 }
 
 void protocol_header_in_31800::handle_organize(const code& ec,
@@ -135,6 +128,13 @@ void protocol_header_in_31800::handle_organize(const code& ec,
         << "] from [" << authority() << "] " << ec.message());
 }
 
+// This could be the end of a catch-up sequence, or a singleton announcement.
+// The distinction is ultimately arbitrary, but this signals peer completeness.
+void protocol_header_in_31800::complete() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+}
+
 // utilities
 // ----------------------------------------------------------------------------
 
@@ -144,8 +144,8 @@ get_headers protocol_header_in_31800::create_get_headers() const NOEXCEPT
     // Until the header tree is current the candidate chain remains empty.
     // So all channels will fully sync from the top candidate at their startup.
     const auto& query = archive();
-    return create_get_headers(query.get_candidate_hashes(get_headers::heights(
-        query.get_top_candidate())));
+    const auto index = get_headers::heights(query.get_top_candidate());
+    return create_get_headers(query.get_candidate_hashes(index));
 }
 
 get_headers protocol_header_in_31800::create_get_headers(
@@ -157,10 +157,18 @@ get_headers protocol_header_in_31800::create_get_headers(
 get_headers protocol_header_in_31800::create_get_headers(
     hashes&& hashes) const NOEXCEPT
 {
-    if (!hashes.empty())
+    if (hashes.empty())
+        return {};
+
+    if (hashes.size() == one)
     {
-        LOGP("Request headers after [" << encode_hash(hashes.front())
+        LOGP("Request headers after [" << encode_hash(hashes.back())
             << "] from [" << authority() << "].");
+    }
+    else
+    {
+        LOGP("Request headers (" << hashes.size() << ") after ["
+            << encode_hash(hashes.back()) << "] from [" << authority() << "].");
     }
 
     return { std::move(hashes) };

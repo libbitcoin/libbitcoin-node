@@ -71,7 +71,8 @@ code chaser_block::validate(const system::chain::block& block,
         return network::error::protocol_violation;
 
     // Requires only prevout population.
-    if ((ec = block.accept(state.context(), settings().subsidy_interval_blocks,
+    if ((ec = block.accept(state.context(),
+        settings().subsidy_interval_blocks,
         settings().initial_subsidy())))
         return ec;
 
