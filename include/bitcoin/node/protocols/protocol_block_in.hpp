@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
 
+#include <unordered_set>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
@@ -50,14 +51,14 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    using hashmap = std::unordered_set<system::hash_digest>;
+
     struct track
     {
-        const size_t announced;
-        const system::hash_digest last;
-        system::hashes hashes;
+        hashmap ids{};
+        size_t announced{};
+        system::hash_digest last{};
     };
-
-    typedef std::shared_ptr<track> track_ptr;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
@@ -65,14 +66,12 @@ protected:
 
     /// Accept incoming block message.
     virtual bool handle_receive_block(const code& ec,
-        const network::messages::block::cptr& message,
-        const track_ptr& tracker) NOEXCEPT;
-    virtual void complete() NOEXCEPT;
+        const network::messages::block::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:
-    static system::hashes to_hashes(
+    static hashmap to_hashes(
         const network::messages::get_data& getter) NOEXCEPT;
 
     network::messages::get_blocks create_get_inventory() const NOEXCEPT;
@@ -83,6 +82,9 @@ private:
 
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
+
+    // This is protected by strand.
+    track tracker_{};
 
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;

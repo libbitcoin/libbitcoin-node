@@ -49,7 +49,11 @@ bool chaser_block::get_block(system::chain::block::cptr& out,
 code chaser_block::validate(const system::chain::block& block,
     const chain_state& state) const NOEXCEPT
 {
-    code ec{};
+    code ec{ error::success };
+
+    // Matching hash at height is sufficient validation for checkpoints.
+    if (checkpoint::is_under(settings().checkpoints, state.height()))
+        return ec;
 
     // Requires no population.
     if ((ec = block.check()))
@@ -76,8 +80,8 @@ code chaser_block::validate(const system::chain::block& block,
 }
 
 // Blocks are accumulated following genesis, not cached until current.
-bool chaser_block::is_storable(const system::chain::block&, size_t,
-    const system::hash_digest&, const chain_state&) const NOEXCEPT
+bool chaser_block::is_storable(const system::chain::block&,
+    const chain_state&) const NOEXCEPT
 {
     return true;
 }

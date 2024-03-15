@@ -18,7 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
-#include <chrono>
+#include <algorithm>
 #include <functional>
 #include <utility>
 #include <bitcoin/system.hpp>
@@ -59,6 +59,7 @@ void protocol_block_in::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
     SEND(create_get_inventory(), handle_send, _1);
     protocol::start();
@@ -76,39 +77,50 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     if (stopped(ec))
         return false;
 
-    LOGP("Received (" << message->count(inventory::type_id::block)
-        << ") block inventory from [" << authority() << "].");
+    // Ignore non-block inventory.
+    const auto block_count = message->count(inventory::type_id::block);
+    if (is_zero(block_count))
+        return true;
+
+    // Work on only one block inventory at a time.
+    if (!tracker_.ids.empty())
+    {
+        LOGP("Received unrequested (" << block_count
+            << ") block inventory from [" << authority() << "] with ("
+            << tracker_.ids.size() << ") pending.");
+        return true;
+    }
 
     const auto getter = create_get_data(*message);
+    LOGP("Received (" << block_count << ") block inventory from ["
+        << authority() << "] with (" << getter.items.size()
+        << ") new blocks.");
 
-    // If getter is empty it may be only because we have them all, so iterate.
+    // If getter is empty it may be because we have them all.
     if (getter.items.empty())
     {
-        // If the original request was maximal, we assume there are more.
-        // The inv response to get_blocks is limited to max_get_blocks.
-        if (message->items.size() == max_get_blocks)
+        // Send assumes create_get_inventory back item is block hash.
+        // The inventory response to get_blocks is limited to max_get_blocks.
+        if (block_count == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (empty maximal).");
             SEND(create_get_inventory(message->items.back().hash),
                 handle_send, _1);
         }
 
+        // A non-maximal inventory has no new blocks, assume complete.
+        // Inventory completeness assumes empty response if caught up at 500.
+        LOGP("Complete inventory [" << authority() << "].");
         return true;
     }
 
     LOGP("Requesting (" << getter.items.size() << ") blocks from ["
         << authority() << "].");
 
-    const auto tracker = std::make_shared<track>(track
-    {
-        getter.items.size(),
-        getter.items.back().hash,
-        to_hashes(getter)
-    });
-
-    // TODO: these should be limited in quantity for DOS protection.
-    // There is one block subscription for each received unexhausted inventory.
-    SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2, tracker);
+    // Track inventory and request blocks (to_hashes order is reversed).
+    tracker_.announced = block_count;
+    tracker_.last = getter.items.back().hash;
+    tracker_.ids = to_hashes(getter);
     SEND(getter, handle_send, _1);
     return true;
 }
@@ -118,82 +130,86 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 
 // Process block responses in order as dictated by tracker.
 bool protocol_block_in::handle_receive_block(const code& ec,
-    const block::cptr& message, const track_ptr& tracker) NOEXCEPT
+    const block::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
 
-    if (tracker->hashes.empty())
-    {
-        LOGF("Exhausted block tracker.");
-        return false;
-    }
+    const auto& block_ptr = message->block_ptr;
 
     // Unrequested block, may not have been announced via inventory.
-    const auto& block_ptr = message->block_ptr;
-    if (tracker->hashes.back() != block_ptr->hash())
+    if (tracker_.ids.find(block_ptr->hash()) == tracker_.ids.end())
+    {
+        LOGP("Received unrequested block [" << encode_hash(block_ptr->hash())
+            << "] from [" << authority() << "].");
         return true;
+    }
 
-    // Asynchronous organization serves all channels.
-    // A job backlog will occur when organize is slower than download.
-    // This is not a material issue when checkpoints bypass validation.
-    // The backlog may take minutes to clear upon shutdown.
+    // Inventory backlog is limited to 500 per channel.
     organize(block_ptr, BIND(handle_organize, _1, _2, block_ptr));
 
-    // Order is reversed, so next is at back.
-    tracker->hashes.pop_back();
+    return true;
+}
 
-    // Handle completion of the inventory block subset.
-    if (tracker->hashes.empty())
+void protocol_block_in::handle_organize(const code& ec, size_t height,
+    const chain::block::cptr& block_ptr) NOEXCEPT
+{
+    if (stopped() || ec == network::error::service_stopped)
+        return;
+
+    // This ignores order as that is enforced by organize, unordered is faster.
+    if (is_zero(tracker_.ids.erase(block_ptr->hash())))
+    {
+        LOGF("Unexpected block from organizer.");
+        return;
+    }
+
+    // Must erase (above).
+    if (ec == error::duplicate_block)
+        return;
+
+    // Assuming no store failure this is an orphan or consensus failure.
+    if (ec)
+    {
+        if (is_zero(height))
+        {
+            // Many peers blindly broadcast blocks even at/above v31800, ugh.
+            // If we are not caught up on headers this is useless information.
+            LOGP("Block [" << encode_hash(block_ptr->hash()) << "] from ["
+                << authority() << "] " << ec.message());
+        }
+        else
+        {
+            LOGR("Block [" << encode_hash(block_ptr->hash()) << ":" << height
+                << "] from [" << authority() << "] " << ec.message());
+        }
+
+        stop(ec);
+        return;
+    }
+
+    LOGP("Block [" << encode_hash(block_ptr->hash()) << ":" << height
+        << "] from [" << authority() << "] " << ec.message());
+
+    // Completion of tracked inventory.
+    if (tracker_.ids.empty())
     {
         // Protocol presumes max_get_blocks unless complete.
-        if (tracker->announced == max_get_blocks)
+        if (tracker_.announced == max_get_blocks)
         {
             LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
-            SEND(create_get_inventory(tracker->last), handle_send, _1);
+            SEND(create_get_inventory(tracker_.last), handle_send, _1);
         }
         else
         {
             // Completeness stalls if on 500 as empty message is ambiguous.
             // This is ok, since complete is not used for anything essential.
-            complete();
+            LOGP("Complete blocks [" << authority() << "] with ("
+                << tracker_.announced << ") announced.");
         }
     }
-
-    // Release subscription if exhausted.
-    // handle_receive_inventory will restart inventory iteration.
-    return !tracker->hashes.empty();
-}
-
-// This could be the end of a catch-up sequence, or a singleton announcement.
-// The distinction is ultimately arbitrary, but this signals initial currency.
-void protocol_block_in::complete() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    LOGP("Blocks from [" << authority() << "] exhausted.");
-}
-
-void protocol_block_in::handle_organize(const code& ec, size_t LOG_ONLY(height),
-    const chain::block::cptr& LOG_ONLY(block_ptr)) NOEXCEPT
-{
-    if (ec == network::error::service_stopped || ec == error::duplicate_block)
-        return;
-
-    if (ec)
-    {
-        // Assuming no store failure this is an orphan or consensus failure.
-        LOGR("Block [" << encode_hash(block_ptr->hash())
-            << "] at (" << height << ") from [" << authority() << "] "
-            << ec.message());
-        stop(ec);
-        return;
-    }
-
-    LOGP("Block [" << encode_hash(block_ptr->hash())
-        << "] at (" << height << ") from [" << authority() << "] "
-        << ec.message());
 }
 
 // utilities
@@ -238,7 +254,7 @@ get_data protocol_block_in::create_get_data(
 
     get_data getter{};
     getter.items.reserve(message.count(type_id::block));
-    for (const auto& item: message.items)
+    for (const messages::inventory_item& item: message.items)
         if ((item.type == type_id::block) && !archive().is_block(item.hash))
             getter.items.push_back({ block_type_, item.hash });
 
@@ -247,17 +263,12 @@ get_data protocol_block_in::create_get_data(
 }
 
 // static
-hashes protocol_block_in::to_hashes(const get_data& getter) NOEXCEPT
+protocol_block_in::hashmap protocol_block_in::to_hashes(
+    const get_data& getter) NOEXCEPT
 {
-    hashes out{};
-    out.resize(getter.items.size());
-
-    // Order reversed for individual erase performance (using pop_back).
-    std::transform(getter.items.rbegin(), getter.items.rend(), out.begin(),
-        [](const auto& item) NOEXCEPT
-        {
-            return item.hash;
-        });
+    hashmap out{};
+    for (const messages::inventory_item& item: getter.items)
+        out.insert(item.hash);
 
     return out;
 }

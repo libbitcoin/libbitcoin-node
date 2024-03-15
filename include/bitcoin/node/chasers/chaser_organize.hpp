@@ -72,8 +72,7 @@ protected:
         const chain_state& state) const NOEXCEPT = 0;
 
     /// Determine if Block is top of a storable branch.
-    virtual bool is_storable(const Block& block, size_t height,
-        const system::hash_digest& hash,
+    virtual bool is_storable(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
 
     /// Constant access to Block tree.
@@ -94,7 +93,7 @@ protected:
 
 private:
     // Store Block into logical tree cache.
-    void cache(const typename Block::cptr& block,
+    void cache(const typename Block::cptr& block_ptr,
         const chain_state::ptr& state) NOEXCEPT;
 
     // Obtain chain state for given header hash, nullptr if not found. 

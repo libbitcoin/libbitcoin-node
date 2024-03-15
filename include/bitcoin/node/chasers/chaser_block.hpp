@@ -52,7 +52,6 @@ protected:
 
     /// Determine if Block is top of a storable branch.
     virtual bool is_storable(const system::chain::block& block,
-        size_t height, const system::hash_digest& hash,
         const system::chain::chain_state& state) const NOEXCEPT;
 
 private:

@@ -65,12 +65,11 @@ code chaser_header::validate(const system::chain::header& header,
 
 // Cache valid headers until storable.
 bool chaser_header::is_storable(const system::chain::header& header,
-    size_t height, const system::hash_digest& hash,
     const chain_state& state) const NOEXCEPT
 {
     return
-        checkpoint::is_at(settings().checkpoints, height) ||
-        settings().milestone.equals(hash, height) ||
+        checkpoint::is_at(settings().checkpoints, state.height()) ||
+        settings().milestone.equals(state.hash(), state.height()) ||
         (is_current(header.timestamp()) &&
             state.cumulative_work() >= settings().minimum_work);
 }

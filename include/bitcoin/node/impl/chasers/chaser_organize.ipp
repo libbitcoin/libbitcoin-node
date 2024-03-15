@@ -93,7 +93,6 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 TEMPLATE
 void CLASS::handle_event(const code&, chase event_, link value) NOEXCEPT
 {
-    // Posted due to block/header invalidation.
     // Block chaser doesn't need to capture unchecked/unconnected (but okay).
     if (event_ == chase::unchecked ||
         event_ == chase::unconnected ||
@@ -146,8 +145,8 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     {
         const auto link = query.to_candidate(index);
 
-        LOGN("Invalidating candidate [" << index << ":"
-            << encode_hash(query.get_header_key(link)) << "].");
+        LOGN("Invalidating candidate ["
+            << encode_hash(query.get_header_key(link))<< ":" << index << "].");
 
         if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
         {
@@ -156,8 +155,8 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
         }
     }
 
-    LOGN("Invalidating candidate [" << height << ":"
-        << encode_hash(query.get_header_key(header)) << "].");
+    LOGN("Invalidating candidate ["
+        << encode_hash(query.get_header_key(header)) << ":" << height << "].");
 
     // Candidate at height is already marked as unconfirmable by notifier.
     if (!query.pop_candidate())
@@ -268,38 +267,49 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        if (tree_.contains(hash))
+        const auto it = tree_.find(hash);
+        if (it != tree_.end())
         {
+            const auto height = it->second.state->height();
             if constexpr (is_same_type<Block, chain::block>)
-                handler(error::duplicate_block, {});
+                handler(error::duplicate_block, height);
             else
-                handler(error::duplicate_header, {});
+                handler(error::duplicate_header, height);
 
             return;
         }
 
-        // If header exists test for prior invalidity.
+        // If exists test for prior invalidity.
         const auto link = query.to_header(hash);
         if (!link.is_terminal())
         {
+            size_t height{};
+            if (!query.get_height(height, link))
+            {
+                handler(error::store_integrity, {});
+                close(error::store_integrity);
+                return;
+            }
+
             const auto ec = query.get_header_state(link);
             if (ec == database::error::block_unconfirmable)
             {
-                handler(ec, {});
+                handler(ec, height);
                 return;
             }
 
             if constexpr (is_same_type<Block, chain::block>)
             {
+                // Blocks are only duplicates if txs are associated.
                 if (ec != database::error::unassociated)
                 {
-                    handler(error::duplicate_block, {});
+                    handler(error::duplicate_block, height);
                     return;
                 }
             }
             else
             {
-                handler(error::duplicate_header, {});
+                handler(error::duplicate_header, height);
                 return;
             }
         }
@@ -364,7 +374,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        if (!is_storable(block, height, hash, *state))
+        if (!is_storable(block, *state))
         {
             cache(block_ptr, state);
             handler(error::success, height);
@@ -393,13 +403,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        // If a long candidate chain is first created using headers-first and then
-        // blocks-first is executed (after a restart/config) it can result in up to
-        // the entire blockchain being cached into memory before becoming strong,
-        // which means stronger than the candidate chain. While switching config
-        // between modes by varying network protocol is supported, blocks-first is
-        // inherently inefficient and weak on this aspect of DoS protection. This
-        // is acceptable for its purpose and consistent with early implementations.
         if (!strong)
         {
             // New top of current weak branch.
@@ -486,10 +489,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-void CLASS::cache(const typename Block::cptr& block,
+void CLASS::cache(const typename Block::cptr& block_ptr,
     const system::chain::chain_state::ptr& state) NOEXCEPT
 {
-    tree_.insert({ block->hash(), { block, state } });
+    tree_.insert({ block_ptr->hash(), { block_ptr, state } });
 }
 
 TEMPLATE
