@@ -26,13 +26,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define TEMPLATE template <typename Block>
-#define CLASS chaser_organize<Block>
-
-BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-
-// public
+// Public
 // ----------------------------------------------------------------------------
 
 TEMPLATE
@@ -49,17 +43,17 @@ code CLASS::start() NOEXCEPT
 
     using namespace system;
     using namespace std::placeholders;
+    const auto& query = archive();
 
     // Initialize cache of top candidate chain state.
     // Spans full chain to obtain cumulative work. This can be optimized by
     // storing it with each header, though the scan is fast. The same occurs
     // when a block first branches below the current chain top. Chain work
     // is a questionable DoS protection scheme only, so could also toss it.
-    state_ = archive().get_candidate_chain_state(settings_,
-        archive().get_top_candidate());
+    state_ = query.get_candidate_chain_state(settings_,
+        query.get_top_candidate());
 
-    // Avoid double logging.
-    if constexpr (is_same_type<Block, chain::header>)
+    if constexpr (!is_block())
     {
         LOGN("Candidate top [" << encode_hash(state_->hash()) << ":"
             << state_->height() << "].");
@@ -75,7 +69,7 @@ void CLASS::organize(const typename Block::cptr& block_ptr,
     POST(do_organize, block_ptr, std::move(handler));
 }
 
-// protected
+// Properties
 // ----------------------------------------------------------------------------
 
 TEMPLATE
@@ -90,10 +84,12 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
     return tree_;
 }
 
+// Methods
+// ----------------------------------------------------------------------------
+
 TEMPLATE
 void CLASS::handle_event(const code&, chase event_, link value) NOEXCEPT
 {
-    // Block chaser doesn't need to capture unchecked/unconnected (but okay).
     if (event_ == chase::unchecked ||
         event_ == chase::unconnected ||
         event_ == chase::unconfirmed)
@@ -110,7 +106,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     using namespace system;
 
     // Skip already reorganized out, get height.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
     // Upon restart candidate chain validation will hit unconfirmable block.
     if (closed())
@@ -137,7 +133,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     }
 
     // Mark candidates above and pop at/above height.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
     // Pop from top down to and including header marking each as unconfirmable.
     // Unconfirmability isn't necessary for validation but adds query context.
@@ -166,7 +162,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     }
 
     // Reset top chain state cache to fork point.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
     const auto top_candidate = state_->height();
     const auto prev_forks = state_->forks();
@@ -182,7 +178,6 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     const auto next_forks = state_->forks();
     if (prev_forks != next_forks)
     {
-        constexpr auto fork_bits = to_bits(sizeof(chain::forks));
         const binary prev{ fork_bits, to_big_endian(prev_forks) };
         const binary next{ fork_bits, to_big_endian(next_forks) };
         LOGN("Forks reverted from ["
@@ -204,7 +199,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     }
 
     // Copy candidates from above fork point to top into header tree.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
     auto state = state_;
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
@@ -216,12 +211,14 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
             return;
         }
 
+        BC_PUSH_WARNING(NO_NEW_OR_DELETE)
         state.reset(new chain::chain_state{ *state, *save, settings_ });
+        BC_POP_WARNING()
         cache(save, state);
     }
 
     // Pop candidates from top to above fork point.
-    // ------------------------------------------------------------------------
+    // ........................................................................
     for (auto index = top_candidate; index > fork_point; --index)
     {
         LOGN("Deorganizing candidate [" << index << "].");
@@ -234,7 +231,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     }
 
     // Push confirmed headers from above fork point onto candidate chain.
-    // ------------------------------------------------------------------------
+    // ........................................................................
     const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
@@ -250,242 +247,243 @@ TEMPLATE
 void CLASS::do_organize(typename Block::cptr& block_ptr,
     const organize_handler& handler) NOEXCEPT
 {
-        BC_ASSERT(stranded());
+    BC_ASSERT(stranded());
 
-        using namespace system;
-        auto& query = archive();
-        const auto& block = *block_ptr;
-        const auto hash = block.hash();
-        const auto header = get_header(block);
+    using namespace system;
+    const auto& block = *block_ptr;
+    const auto hash = block.hash();
+    const auto header = get_header(block);
+    auto& query = archive();
 
-        // Skip existing/orphan, get state.
-        // ------------------------------------------------------------------------
+    // Skip existing/orphan, get state.
+    // ........................................................................
 
-        if (closed())
+    if (closed())
+    {
+        handler(network::error::service_stopped, {});
+        return;
+    }
+
+    const auto it = tree_.find(hash);
+    if (it != tree_.end())
+    {
+        const auto height = it->second.state->height();
+        if constexpr (is_block())
+            handler(error::duplicate_block, height);
+        else
+            handler(error::duplicate_header, height);
+
+        return;
+    }
+
+    // If exists test for prior invalidity.
+    const auto link = query.to_header(hash);
+    if (!link.is_terminal())
+    {
+        size_t height{};
+        if (!query.get_height(height, link))
         {
-            handler(network::error::service_stopped, {});
+            handler(error::store_integrity, {});
+            close(error::store_integrity);
             return;
         }
 
-        const auto it = tree_.find(hash);
-        if (it != tree_.end())
-        {
-            const auto height = it->second.state->height();
-            if constexpr (is_same_type<Block, chain::block>)
-                handler(error::duplicate_block, height);
-            else
-                handler(error::duplicate_header, height);
-
-            return;
-        }
-
-        // If exists test for prior invalidity.
-        const auto link = query.to_header(hash);
-        if (!link.is_terminal())
-        {
-            size_t height{};
-            if (!query.get_height(height, link))
-            {
-                handler(error::store_integrity, {});
-                close(error::store_integrity);
-                return;
-            }
-
-            const auto ec = query.get_header_state(link);
-            if (ec == database::error::block_unconfirmable)
-            {
-                handler(ec, height);
-                return;
-            }
-
-            if constexpr (is_same_type<Block, chain::block>)
-            {
-                // Blocks are only duplicates if txs are associated.
-                if (ec != database::error::unassociated)
-                {
-                    handler(error::duplicate_block, height);
-                    return;
-                }
-            }
-            else
-            {
-                handler(error::duplicate_header, height);
-                return;
-            }
-        }
-
-        // Obtains from state_, tree, or store as applicable.
-        auto state = get_chain_state(header.previous_block_hash());
-        if (!state)
-        {
-            if constexpr (is_same_type<Block, chain::block>)
-                handler(error::orphan_block, {});
-            else
-                handler(error::orphan_header, {});
-
-            return;
-        }
-
-        // Roll chain state forward from previous to current header.
-        // ------------------------------------------------------------------------
-
-        const auto prev_forks = state->forks();
-        const auto prev_version = state->minimum_block_version();
-
-        // Do not use block parameter here as that override is for tx pool.
-        state.reset(new chain::chain_state{ *state, header, settings_ });
-        const auto height = state->height();
-
-        // TODO: this could be moved to confirmation.
-        const auto next_forks = state->forks();
-        if (prev_forks != next_forks)
-        {
-            constexpr auto fork_bits = to_bits(sizeof(chain::forks));
-            const binary prev{ fork_bits, to_big_endian(prev_forks) };
-            const binary next{ fork_bits, to_big_endian(next_forks) };
-            LOGN("Forked from ["
-                << prev << "] to ["
-                << next << "] at ["
-                << height << ":" << encode_hash(hash) << "].");
-        }
-
-        // TODO: this could be moved to confirmation.
-        const auto next_version = state->minimum_block_version();
-        if (prev_version != next_version)
-        {
-            LOGN("Minimum block version ["
-                << prev_version << "] changed to ["
-                << next_version << "] at ["
-                << height << ":" << encode_hash(hash) << "].");
-        }
-
-        // Validation and currency.
-        // ------------------------------------------------------------------------
-
-        if (chain::checkpoint::is_conflict(settings_.checkpoints, hash, height))
-        {
-            handler(system::error::checkpoint_conflict, height);
-            return;
-        };
-
-        if (const auto ec = validate(block, *state))
+        const auto ec = query.get_header_state(link);
+        if (ec == database::error::block_unconfirmable)
         {
             handler(ec, height);
             return;
         }
 
-        if (!is_storable(block, *state))
+        if constexpr (is_block())
         {
-            cache(block_ptr, state);
-            handler(error::success, height);
-            return;
-        }
-
-        // Compute relative work.
-        // ------------------------------------------------------------------------
-
-        uint256_t work{};
-        hashes tree_branch{};
-        size_t branch_point{};
-        header_links store_branch{};
-        if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
-        {
-            handler(error::store_integrity, height);
-            close(error::store_integrity);
-            return;
-        }
-
-        bool strong{};
-        if (!get_is_strong(strong, work, branch_point))
-        {
-            handler(error::store_integrity, height);
-            close(error::store_integrity);
-            return;
-        }
-
-        if (!strong)
-        {
-            // New top of current weak branch.
-            cache(block_ptr, state);
-            handler(error::success, height);
-            return;
-        }
-
-        // Reorganize candidate chain.
-        // ------------------------------------------------------------------------
-
-        auto top = state_->height();
-        if (top < branch_point)
-        {
-            handler(error::store_integrity, height);
-            close(error::store_integrity);
-            return;
-        }
-
-        // Pop down to the branch point.
-        while (top-- > branch_point)
-        {
-            LOGN("Reorganizing candidate [" << add1(top) << "].");
-
-            if (!query.pop_candidate())
+            // Blocks are only duplicates if txs are associated.
+            if (ec != database::error::unassociated)
             {
-                handler(error::store_integrity, height);
-                close(error::store_integrity);
+                handler(error::duplicate_block, height);
                 return;
             }
-        }
-
-        // Push stored strong headers to candidate chain.
-        for (const auto& id: views_reverse(store_branch))
-        {
-            if (!query.push_candidate(id))
-            {
-                handler(error::store_integrity, height);
-                close(error::store_integrity);
-                return;
-            }
-        }
-
-        // Store strong tree headers and push to candidate chain.
-        for (const auto& key: views_reverse(tree_branch))
-        {
-            if (!push(key))
-            {
-                handler(error::store_integrity, height);
-                close(error::store_integrity);
-                return;
-            }
-        }
-
-        // Push new header as top of candidate chain.
-        if (push(block_ptr, state->context()).is_terminal())
-        {
-            handler(error::store_integrity, height);
-            close(error::store_integrity);
-            return;
-        }
-
-        // Reset top chain state cache and notify.
-        // ------------------------------------------------------------------------
-
-        const auto point = possible_narrow_cast<height_t>(branch_point);
-
-        if constexpr (is_same_type<Block, chain::block>)
-        {
-            notify(error::success, chase::block, point);
         }
         else
         {
-            // Delay so headers can get current before block download starts.
-            if (is_current(header.timestamp()))
-                notify(error::success, chase::header, point);
+            handler(error::duplicate_header, height);
+            return;
         }
-
-        state_ = state;
-        handler(error::success, height);
     }
 
-// private
+    // Obtains from state_, tree, or store as applicable.
+    auto state = get_chain_state(header.previous_block_hash());
+    if (!state)
+    {
+        if constexpr (is_block())
+            handler(error::orphan_block, {});
+        else
+            handler(error::orphan_header, {});
+
+        return;
+    }
+
+    // Roll chain state forward from previous to current header.
+    // ........................................................................
+
+    const auto prev_forks = state->forks();
+    const auto prev_version = state->minimum_block_version();
+
+    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+    // Do not use block parameter here as that override is for tx pool.
+    state.reset(new chain::chain_state{ *state, header, settings_ });
+    BC_POP_WARNING()
+    const auto height = state->height();
+
+    // TODO: this could be moved to confirmation.
+    const auto next_forks = state->forks();
+    if (prev_forks != next_forks)
+    {
+        const binary prev{ fork_bits, to_big_endian(prev_forks) };
+        const binary next{ fork_bits, to_big_endian(next_forks) };
+        LOGN("Forked from ["
+            << prev << "] to ["
+            << next << "] at ["
+            << height << ":" << encode_hash(hash) << "].");
+    }
+
+    // TODO: this could be moved to confirmation.
+    const auto next_version = state->minimum_block_version();
+    if (prev_version != next_version)
+    {
+        LOGN("Minimum block version ["
+            << prev_version << "] changed to ["
+            << next_version << "] at ["
+            << height << ":" << encode_hash(hash) << "].");
+    }
+
+    // Validation and currency.
+    // ........................................................................
+
+    if (chain::checkpoint::is_conflict(settings_.checkpoints, hash, height))
+    {
+        handler(system::error::checkpoint_conflict, height);
+        return;
+    };
+
+    if (const auto ec = validate(block, *state))
+    {
+        handler(ec, height);
+        return;
+    }
+
+    if (!is_storable(block, *state))
+    {
+        cache(block_ptr, state);
+        handler(error::success, height);
+        return;
+    }
+
+    // Compute relative work.
+    // ........................................................................
+
+    uint256_t work{};
+    hashes tree_branch{};
+    size_t branch_point{};
+    header_links store_branch{};
+    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
+    {
+        handler(error::store_integrity, height);
+        close(error::store_integrity);
+        return;
+    }
+
+    bool strong{};
+    if (!get_is_strong(strong, work, branch_point))
+    {
+        handler(error::store_integrity, height);
+        close(error::store_integrity);
+        return;
+    }
+
+    if (!strong)
+    {
+        // New top of current weak branch.
+        cache(block_ptr, state);
+        handler(error::success, height);
+        return;
+    }
+
+    // Reorganize candidate chain.
+    // ........................................................................
+
+    auto top = state_->height();
+    if (top < branch_point)
+    {
+        handler(error::store_integrity, height);
+        close(error::store_integrity);
+        return;
+    }
+
+    // Pop down to the branch point.
+    while (top-- > branch_point)
+    {
+        LOGN("Reorganizing candidate [" << add1(top) << "].");
+
+        if (!query.pop_candidate())
+        {
+            handler(error::store_integrity, height);
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Push stored strong headers to candidate chain.
+    for (const auto& id: views_reverse(store_branch))
+    {
+        if (!query.push_candidate(id))
+        {
+            handler(error::store_integrity, height);
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Store strong tree headers and push to candidate chain.
+    for (const auto& key: views_reverse(tree_branch))
+    {
+        if (!push(key))
+        {
+            handler(error::store_integrity, height);
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Push new header as top of candidate chain.
+    if (push(block_ptr, state->context()).is_terminal())
+    {
+        handler(error::store_integrity, height);
+        close(error::store_integrity);
+        return;
+    }
+
+    // Reset top chain state cache and notify.
+    // ........................................................................
+
+    const auto point = possible_narrow_cast<height_t>(branch_point);
+
+    if constexpr (is_block())
+    {
+        notify(error::success, chase::block, point);
+    }
+    else
+    {
+        // Delay so headers can get current before block download starts.
+        if (is_current(header.timestamp()))
+            notify(error::success, chase::header, point);
+    }
+
+    state_ = state;
+    handler(error::success, height);
+}
+
+// Private
 // ----------------------------------------------------------------------------
 
 TEMPLATE
@@ -613,11 +611,6 @@ bool CLASS::push(const system::hash_digest& key) NOEXCEPT
     const auto link = query.set_link(*it.block, it.state->context());
     return query.push_candidate(link);
 }
-
-#undef CLASS
-
-BC_POP_WARNING()
-BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

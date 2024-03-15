@@ -47,9 +47,9 @@ public:
 protected:
     virtual bool handle_receive_headers(const code& ec,
         const network::messages::headers::cptr& message) NOEXCEPT;
-    virtual void complete() NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
+    virtual void complete() NOEXCEPT;
 
 private:
     network::messages::get_headers create_get_headers() const NOEXCEPT;

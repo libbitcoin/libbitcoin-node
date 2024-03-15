@@ -59,6 +59,9 @@ protected:
     using block_tree = std::unordered_map<system::hash_digest, block_state>;
     using header_links = std::vector<database::header_link>;
 
+    /// Pure Virtual
+    /// -----------------------------------------------------------------------
+
     /// Get header from Block instance.
     virtual const system::chain::header& get_header(
         const Block& block) const NOEXCEPT = 0;
@@ -75,11 +78,17 @@ protected:
     virtual bool is_storable(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
 
+    /// Properties
+    /// -----------------------------------------------------------------------
+
     /// Constant access to Block tree.
     virtual const block_tree& tree() const NOEXCEPT;
 
     /// System configuration settings.
     virtual const system::settings& settings() const NOEXCEPT;
+
+    /// Methods
+    /// -----------------------------------------------------------------------
 
     /// Handle chaser events.
     virtual void handle_event(const code&, chase event_, link value) NOEXCEPT;
@@ -92,6 +101,12 @@ protected:
         const organize_handler& handler) NOEXCEPT;
 
 private:
+    static constexpr size_t fork_bits = to_bits(sizeof(system::chain::forks));
+    static constexpr bool is_block() NOEXCEPT
+    {
+        return is_same_type<Block, system::chain::block>;
+    }
+
     // Store Block into logical tree cache.
     void cache(const typename Block::cptr& block_ptr,
         const chain_state::ptr& state) NOEXCEPT;
@@ -127,6 +142,15 @@ private:
 } // namespace node
 } // namespace libbitcoin
 
+#define TEMPLATE template <typename Block>
+#define CLASS chaser_organize<Block>
+
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
 #include <bitcoin/node/impl/chasers/chaser_organize.ipp>
+
+BC_POP_WARNING()
+
+#undef CLASS
 
 #endif

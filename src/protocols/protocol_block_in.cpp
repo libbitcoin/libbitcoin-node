@@ -85,7 +85,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     // Work on only one block inventory at a time.
     if (!tracker_.ids.empty())
     {
-        LOGP("Received unrequested (" << block_count
+        LOGP("Unrequested (" << block_count
             << ") block inventory from [" << authority() << "] with ("
             << tracker_.ids.size() << ") pending.");
         return true;
@@ -99,22 +99,20 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
     // If getter is empty it may be because we have them all.
     if (getter.items.empty())
     {
-        // Send assumes create_get_inventory back item is block hash.
         // The inventory response to get_blocks is limited to max_get_blocks.
         if (block_count == max_get_blocks)
         {
-            LOGP("Get inventory [" << authority() << "] (empty maximal).");
-            SEND(create_get_inventory(message->items.back().hash),
-                handle_send, _1);
+            const auto& last = message->items.back().hash;
+            SEND(create_get_inventory(last), handle_send, _1);
         }
 
         // A non-maximal inventory has no new blocks, assume complete.
         // Inventory completeness assumes empty response if caught up at 500.
-        LOGP("Complete inventory [" << authority() << "].");
+        LOGP("Completed block inventory from [" << authority() << "].");
         return true;
     }
 
-    LOGP("Requesting (" << getter.items.size() << ") blocks from ["
+    LOGP("Requested (" << getter.items.size() << ") blocks from ["
         << authority() << "].");
 
     // Track inventory and request blocks (to_hashes order is reversed).
@@ -142,7 +140,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     // Unrequested block, may not have been announced via inventory.
     if (tracker_.ids.find(block_ptr->hash()) == tracker_.ids.end())
     {
-        LOGP("Received unrequested block [" << encode_hash(block_ptr->hash())
+        LOGP("Unrequested block [" << encode_hash(block_ptr->hash())
             << "] from [" << authority() << "].");
         return true;
     }
@@ -156,17 +154,14 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 void protocol_block_in::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
+    // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    // This ignores order as that is enforced by organize, unordered is faster.
-    if (is_zero(tracker_.ids.erase(block_ptr->hash())))
-    {
-        LOGF("Unexpected block from organizer.");
-        return;
-    }
+    // Order is enforced by organize.
+    tracker_.ids.erase(block_ptr->hash());
 
-    // Must erase (above).
+    // Must erase duplicates, handled above.
     if (ec == error::duplicate_block)
         return;
 
@@ -191,7 +186,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
     }
 
     LOGP("Block [" << encode_hash(block_ptr->hash()) << ":" << height
-        << "] from [" << authority() << "] " << ec.message());
+        << "] from [" << authority() << "].");
 
     // Completion of tracked inventory.
     if (tracker_.ids.empty())
@@ -199,14 +194,13 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
         // Protocol presumes max_get_blocks unless complete.
         if (tracker_.announced == max_get_blocks)
         {
-            LOGP("Get inventory [" << authority() << "] (exhausted maximal).");
             SEND(create_get_inventory(tracker_.last), handle_send, _1);
         }
         else
         {
             // Completeness stalls if on 500 as empty message is ambiguous.
             // This is ok, since complete is not used for anything essential.
-            LOGP("Complete blocks [" << authority() << "] with ("
+            LOGP("Completed blocks from [" << authority() << "] with ("
                 << tracker_.announced << ") announced.");
         }
     }
@@ -222,8 +216,8 @@ get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
     // This will bypass all blocks with candidate headers, resulting in block
     // orphans if headers-first is run followed by a restart and blocks-first.
     const auto& query = archive();
-    return create_get_inventory(query.get_candidate_hashes(get_blocks::heights(
-        query.get_top_candidate())));
+    const auto index = get_blocks::heights(query.get_top_candidate());
+    return create_get_inventory(query.get_candidate_hashes(index));
 }
 
 get_blocks protocol_block_in::create_get_inventory(
@@ -235,10 +229,19 @@ get_blocks protocol_block_in::create_get_inventory(
 get_blocks protocol_block_in::create_get_inventory(
     hashes&& hashes) const NOEXCEPT
 {
-    if (!hashes.empty())
+    if (hashes.empty())
+        return {};
+
+    if (hashes.size() == one)
     {
-        LOGP("Request blocks after [" << encode_hash(hashes.front())
+        LOGP("Request block inventory after [" << encode_hash(hashes.front())
             << "] from [" << authority() << "].");
+    }
+    else
+    {
+        LOGP("Request block inventory (" << hashes.size() << ") after ["
+            << encode_hash(hashes.front()) << "] from ["
+            << authority() << "].");
     }
 
     return { std::move(hashes) };

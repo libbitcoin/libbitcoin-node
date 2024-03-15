@@ -38,7 +38,7 @@ void protocol_header_in_70012::complete() NOEXCEPT
     if (!sent_)
     {
         SEND(send_headers{}, handle_send, _1);
-        LOGP("Request header announcements from [" << authority() << "].");
+        LOGP("Requested header announcements from [" << authority() << "].");
         sent_ = true;
     }
 }
