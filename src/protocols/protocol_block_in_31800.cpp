@@ -201,6 +201,8 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
+    constexpr auto minimum_for_stall_divide = 2_size;
+
     if (stopped())
         return;
 
@@ -226,10 +228,10 @@ void protocol_block_in_31800::handle_event(const code&,
         }
     }
 
-    // If this channel has work, split it and stop.
+    // If this channel has divisible work, split it and stop.
     else if (event_ == chaser::chase::stall)
     {
-        if (!map_->empty())
+        if (map_->size() >= minimum_for_stall_divide)
         {
             POST(do_split, chaser::count_t{});
         }
