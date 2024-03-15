@@ -65,7 +65,7 @@ protected:
 
         // Only session_outbound channels compete on performance.
         auto performance = false;
-        if constexpr (is_same_type<Session, node::session_outbound>)
+        if constexpr (is_same_type<Session, network::session_outbound>)
         {
             performance = true;
         }
