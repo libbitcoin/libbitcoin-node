@@ -59,9 +59,13 @@ public:
         /// Issued by 'block_in_31800' and handled by 'session_outbound'.
         starved,
 
-        /// Channel is directed to split its work and stop (channel_t).
+        /// Channel (slow) is directed to split its work and stop (channel_t).
         /// Issued by 'session_outbound' and handled by 'block_in_31800'.
         split,
+
+        /// Channels (all with work) are directed to split work and stop (0).
+        /// Issued by 'session_outbound' and handled by 'block_in_31800'.
+        stall,
 
         /// A block has been downloaded, checked and stored (height_t).
         /// Issued by 'block_in_31800' and handled by 'connect'.

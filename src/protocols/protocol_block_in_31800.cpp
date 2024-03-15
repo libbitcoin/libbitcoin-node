@@ -225,6 +225,15 @@ void protocol_block_in_31800::handle_event(const code&,
             POST(do_split, channel);
         }
     }
+
+    // If this channel has work, split it and stop.
+    else if (event_ == chaser::chase::stall)
+    {
+        if (!map_->empty())
+        {
+            POST(do_split, chaser::count_t{});
+        }
+    }
 }
 
 void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT

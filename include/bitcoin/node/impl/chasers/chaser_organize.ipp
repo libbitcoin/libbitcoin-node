@@ -475,6 +475,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     else
     {
         // Delay so headers can get current before block download starts.
+        // Checking currency before notify also avoids excessive work backlog.
         if (is_current(header.timestamp()))
             notify(error::success, chase::header, point);
     }
