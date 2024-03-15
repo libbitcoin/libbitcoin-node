@@ -365,7 +365,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "] " << error.message());
+            << "] from [" << authority() << "].");
         stop(node::error::store_integrity);
         return false;
     }
