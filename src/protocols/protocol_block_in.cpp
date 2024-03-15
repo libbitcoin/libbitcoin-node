@@ -118,7 +118,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
         << authority() << "].");
 
     // Track inventory and request blocks (to_hashes order is reversed).
-    tracker_.announced = getter.items.size();
+    tracker_.announced = block_count;
     tracker_.last = getter.items.back().hash;
     tracker_.ids = to_hashes(getter);
     SEND(getter, handle_send, _1);
@@ -156,13 +156,18 @@ bool protocol_block_in::handle_receive_block(const code& ec,
 void protocol_block_in::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
-    if (stopped() || ec == network::error::service_stopped ||
-        ec == error::duplicate_block)
+    if (stopped() || ec == network::error::service_stopped)
         return;
 
-    // Must not pop with organize() as this removes the backlog constraint.
     // This ignores order as that is enforced by organize, unordered is faster.
     if (is_zero(tracker_.ids.erase(block_ptr->hash())))
+    {
+        LOGF("Unexpected block from organizer.");
+        return;
+    }
+
+    // Must erase (above).
+    if (ec == error::duplicate_block)
         return;
 
     // Assuming no store failure this is an orphan or consensus failure.
@@ -201,7 +206,8 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
         {
             // Completeness stalls if on 500 as empty message is ambiguous.
             // This is ok, since complete is not used for anything essential.
-            LOGP("Complete blocks [" << authority() << "].");
+            LOGP("Complete blocks [" << authority() << "] with ("
+                << tracker_.announced << ") announced.");
         }
     }
 }
