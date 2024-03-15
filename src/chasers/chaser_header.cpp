@@ -74,7 +74,6 @@ bool chaser_header::is_storable(const system::chain::header& header,
             state.cumulative_work() >= settings().minimum_work);
 }
 
-
 } // namespace database
 } // namespace libbitcoin
 
