@@ -107,7 +107,11 @@ void session_outbound::split(chaser::channel_t) NOEXCEPT
         const auto channel = slowest->first;
         speeds_.erase(slowest);
         node::session::notify(error::success, chaser::chase::split, channel);
+        return;
     }
+
+    // With no speeds recorded there may still be channels with work.
+    node::session::notify(error::success, chaser::chase::stall, {});
 }
 
 // performance
