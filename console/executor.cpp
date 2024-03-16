@@ -286,35 +286,30 @@ void executor::measure_size() const
 // fork flag transitions.
 void executor::scan_flags() const
 {
+    constexpr auto fork_bits = to_bits(sizeof(chain::forks));
+    const auto error = code{ error::store_integrity }.message();
     const auto start = unix_time();
+    const auto top = query_.get_top_candidate();
     uint32_t flags{};
-    size_t height{};
 
     console(BN_OPERATION_INTERRUPT);
 
-    // TODO: change this to walk candidate/confirmed index.
-    while (!cancel_ && (++height < query_.header_records()))
+    for (size_t height{}; !cancel_ && height <= top; ++height)
     {
-        // Assumes height is header link.
-        auto link = possible_narrow_cast<database::header_link::integer>(height);
-    
         database::context ctx{};
-        if (!query_.get_context(ctx, link))
+        const auto link = query_.to_candidate(height);
+        if (!query_.get_context(ctx, link) || (ctx.height != height))
         {
-            // total chain cost: 1 sec.
-            cancel_ = true;
-            console("get_context");
+            console(format("Error: %1%") % error);
+            return;
         }
-        else if (ctx.height != height)
-        {
-            cancel_ = true;
-            console("height");
-        }
-    
+
         if (ctx.flags != flags)
         {
-            console(format("height %1% before %2% at %3%") %
-                height % flags % ctx.flags);
+            const binary prev{ fork_bits, to_big_endian(flags) };
+            const binary next{ fork_bits, to_big_endian(ctx.flags) };
+            console(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
+                next % encode_hash(query_.get_header_key(link)) % height);
             flags = ctx.flags;
         }
     }
@@ -322,8 +317,7 @@ void executor::scan_flags() const
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("scan_flags" BN_READ_ROW) %
-        height % (unix_time() - start));
+    console(format("scan_flags" BN_READ_ROW) % top % (unix_time() - start));
 }
 
 // hashmap bucket fill rates.
