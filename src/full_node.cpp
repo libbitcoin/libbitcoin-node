@@ -173,6 +173,16 @@ void full_node::do_notify(const code& ec, chaser::chase event_,
 // Methods.
 // ----------------------------------------------------------------------------
 
+void full_node::pause() NOEXCEPT
+{
+    notify(error::success, chaser::chase::pause, {});
+}
+
+void full_node::resume() NOEXCEPT
+{
+    notify(error::success, chaser::chase::resume, {});
+}
+
 bool full_node::is_current() const NOEXCEPT
 {
     if (is_zero(config_.node.currency_window_minutes))
@@ -207,7 +217,6 @@ chaser::event_subscriber& full_node::event_subscriber() NOEXCEPT
     return event_subscriber_;
 }
 
-// protected
 const configuration& full_node::config() const NOEXCEPT
 {
     return config_;

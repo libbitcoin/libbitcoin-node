@@ -29,6 +29,7 @@
 namespace libbitcoin {
 namespace node {
 
+ // Thread safe.
 class BCN_API full_node
   : public network::p2p
 {
@@ -80,6 +81,12 @@ public:
 
     /// Methods.
     /// -----------------------------------------------------------------------
+
+    /// Pause the node.
+    virtual void pause() NOEXCEPT;
+
+    /// Resume the node.
+    virtual void resume() NOEXCEPT;
 
     /// The candidate chain is current.
     virtual bool is_current() const NOEXCEPT;

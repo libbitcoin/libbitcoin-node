@@ -98,6 +98,7 @@ protected:
         channel->attach<protocol_block_out>(self)->start();
         channel->attach<protocol_transaction_in>(self)->start();
         channel->attach<protocol_transaction_out>(self)->start();
+        channel->attach<protocol_observer>(self)->start();
     }
 };
 

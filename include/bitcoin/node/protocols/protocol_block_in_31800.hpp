@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 
-#include <functional>
 #include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
@@ -72,6 +71,8 @@ protected:
         chaser::chase event_, chaser::link value) NOEXCEPT;
     virtual void do_get_downloads(chaser::count_t count) NOEXCEPT;
     virtual void do_split(chaser::channel_t channel) NOEXCEPT;
+    void do_pause(chaser::channel_t channel) NOEXCEPT;
+    void do_resume(chaser::channel_t channel) NOEXCEPT;
 
     /// Accept incoming block message.
     virtual bool handle_receive_block(const code& ec,

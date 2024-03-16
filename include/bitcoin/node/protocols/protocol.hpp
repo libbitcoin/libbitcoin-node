@@ -32,7 +32,7 @@
 namespace libbitcoin {
 namespace node {
 
-/// Abstract base for node protocols.
+/// Abstract base for node protocols, thread safe.
 class BCN_API protocol
   : public network::protocol
 {

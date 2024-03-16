@@ -67,6 +67,14 @@ public:
         /// Issued by 'session_outbound' and handled by 'block_in_31800'.
         stall,
 
+        /// Channels (all) are directed to pause reading.
+        /// Iissued by 'full_node' and handled by 'protocol'.
+        pause,
+
+        /// Channels (all) are directed to resume reading.
+        /// Iissued by 'full_node' and handled by 'protocol'.
+        resume,
+
         /// A block has been downloaded, checked and stored (height_t).
         /// Issued by 'block_in_31800' and handled by 'connect'.
         checked,

@@ -130,7 +130,7 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     BC_ASSERT(stranded());
 
     // Three elements are required to measure deviation, don't drop to two.
-    constexpr auto mimimum_for_deviation = 3_size;
+    constexpr auto minimum_for_standard_deviation = 3_size;
 
     if (speed == max_uint64)
     {
@@ -150,7 +150,7 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     speeds_[channel] = static_cast<double>(speed);
 
     const auto count = speeds_.size();
-    if (count <= mimimum_for_deviation)
+    if (count <= minimum_for_standard_deviation)
     {
         handler(error::success);
         return;

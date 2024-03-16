@@ -132,6 +132,8 @@ namespace node {
     "open::%1%(%2%)"
 #define BN_CLOSE \
     "close::%1%(%2%)"
+#define BN_BACKUP \
+    "backup::%1%(%2%)"
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
@@ -141,6 +143,12 @@ namespace node {
     "Please wait while the network is starting..."
 #define BN_NODE_START_FAIL \
     "Node failed to start with error, %1%."
+#define BN_NODE_BACKUP_STARTED \
+    "Node backup started."
+#define BN_NODE_BACKUP_FAIL \
+    "Node failed to backup with error, %1%."
+#define BN_NODE_BACKUP_COMPLETE \
+    "Node backup complete."
 #define BN_NODE_STARTED \
     "Node is started."
 #define BN_NODE_RUNNING \
