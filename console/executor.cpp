@@ -100,10 +100,10 @@ const std::unordered_map<database::event_t, std::string> executor::events_
     { database::event_t::flush_body, "flush_body" },
     { database::event_t::backup_table, "backup_table" },
     { database::event_t::copy_header, "copy_header" },
-    { database::event_t::archive_index, "archive_index" },
+    { database::event_t::archive_snapshot, "archive_snapshot" },
 
     { database::event_t::restore_table, "restore_table" },
-    { database::event_t::recover_index, "recover_index" }
+    { database::event_t::recover_snapshot, "recover_snapshot" }
 };
 const std::unordered_map<database::table_t, std::string> executor::tables_
 {
