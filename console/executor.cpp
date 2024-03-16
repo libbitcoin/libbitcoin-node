@@ -1631,6 +1631,8 @@ void executor::subscribe_capture()
             logger(BN_NODE_BACKUP_STARTED);
             node_->pause();
 
+            // TODO: put this on an automated trigger based on store write interval.
+            // TODO: store/query object(s) can retain total data allocated/written.
             const auto error = store_.snapshot([&](auto event, auto table)
             {
                 logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
