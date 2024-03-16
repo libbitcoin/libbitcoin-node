@@ -95,15 +95,20 @@ const std::unordered_map<database::event_t, std::string> executor::events_
     { database::event_t::create_table, "create_table" },
     { database::event_t::verify_table, "verify_table" },
     { database::event_t::close_table, "close_table" },
+
     { database::event_t::wait_lock, "wait_lock" },
-    { database::event_t::flush_table, "flush_table" },
+    { database::event_t::flush_body, "flush_body" },
     { database::event_t::backup_table, "backup_table" },
-    { database::event_t::dump_table, "dump_table" },
-    { database::event_t::restore_table, "restore_table" }
+    { database::event_t::copy_header, "copy_header" },
+    { database::event_t::archive_snapshot, "archive_snapshot" },
+
+    { database::event_t::restore_table, "restore_table" },
+    { database::event_t::recover_snapshot, "recover_snapshot" }
 };
 const std::unordered_map<database::table_t, std::string> executor::tables_
 {
     { database::table_t::store, "store" },
+
     { database::table_t::header_table, "header_table" },
     { database::table_t::header_head, "header_head" },
     { database::table_t::header_body, "header_body" },
@@ -125,6 +130,7 @@ const std::unordered_map<database::table_t, std::string> executor::tables_
     { database::table_t::tx_body, "tx_body" },
     { database::table_t::txs_head, "txs_head" },
     { database::table_t::txs_body, "txs_body" },
+
     { database::table_t::address_table, "address_table" },
     { database::table_t::address_head, "address_head" },
     { database::table_t::address_body, "address_body" },
@@ -140,6 +146,7 @@ const std::unordered_map<database::table_t, std::string> executor::tables_
     { database::table_t::strong_tx_table, "strong_tx_table" },
     { database::table_t::strong_tx_head, "strong_tx_head" },
     { database::table_t::strong_tx_body, "strong_tx_body" },
+
     { database::table_t::bootstrap_table, "bootstrap_table" },
     { database::table_t::bootstrap_head, "bootstrap_head" },
     { database::table_t::bootstrap_body, "bootstrap_body" },
