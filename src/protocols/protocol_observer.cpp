@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_observer.hpp>
 
+#include <functional>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
@@ -27,12 +28,17 @@ namespace node {
 
 #define CLASS protocol_observer
 
+using namespace std::placeholders;
+
 void protocol_observer::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (started())
         return;
+
+    // Events subscription is asynchronous.
+    async_subscribe_events(BIND(handle_event, _1, _2, _3));
 
     protocol::start();
 }
