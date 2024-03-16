@@ -200,9 +200,9 @@ namespace node {
     "\nVersion Information\n" \
     "----------------------------\n" \
     "libbitcoin-node:       %1%\n" \
-    "libbitcoin-database:   %3%\n" \
-    "libbitcoin-network:    %4%\n" \
-    "libbitcoin-system:     %5%"
+    "libbitcoin-database:   %2%\n" \
+    "libbitcoin-network:    %3%\n" \
+    "libbitcoin-system:     %4%"
 #define BN_LOG_HEADER \
     "====================== startup ======================="
 #define BN_NODE_FOOTER \
