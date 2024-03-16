@@ -206,36 +206,55 @@ void protocol_block_in_31800::handle_event(const code&,
     if (stopped())
         return;
 
-    // There are count blocks to download at/above the given header.
     if (event_ == chaser::chase::download)
     {
+        // There are count blocks to download at/above the given header.
         if (is_current())
         {
             BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
             POST(do_get_downloads, std::get<chaser::count_t>(value));
         }
     }
-
-    // If value identifies this channel, split work and stop.
     else if (event_ == chaser::chase::split)
     {
         BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
         const auto channel = std::get<chaser::channel_t>(value);
 
+        // If value identifies this channel, split work and stop.
         if (channel == identifier())
         {
             POST(do_split, channel);
         }
     }
-
-    // If this channel has divisible work, split it and stop.
     else if (event_ == chaser::chase::stall)
     {
+        // If this channel has divisible work, split it and stop.
         if (map_->size() >= minimum_for_stall_divide)
         {
             POST(do_split, chaser::count_t{});
         }
     }
+    else if (event_ == chaser::chase::pause)
+    {
+        // Pause local timers due to channel pause.
+        POST(do_pause, chaser::channel_t{});
+    }
+    else if (event_ == chaser::chase::resume)
+    {
+        // Resume local timers due to channel resume.
+        POST(do_resume, chaser::channel_t{});
+    }
+}
+
+void protocol_block_in_31800::do_pause(chaser::channel_t) NOEXCEPT
+{
+    pause_performance();
+}
+
+void protocol_block_in_31800::do_resume(chaser::channel_t) NOEXCEPT
+{
+    if (!map_->empty())
+        start_performance();
 }
 
 void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT
