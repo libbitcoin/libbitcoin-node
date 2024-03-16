@@ -138,17 +138,12 @@ options_metadata parser::load_options() THROWS
         value<std::filesystem::path>(&configured.file),
         "Specify path to a configuration settings file."
     )
+    // Information.
     (
         BN_HELP_VARIABLE ",h",
         value<bool>(&configured.help)->
             default_value(false)->zero_tokens(),
         "Display command line options."
-    )
-    (
-        BN_INITCHAIN_VARIABLE ",i",
-        value<bool>(&configured.initchain)->
-            default_value(false)->zero_tokens(),
-        "Initialize blockchain in the configured directory."
     )
     (
         BN_SETTINGS_VARIABLE ",s",
@@ -161,6 +156,26 @@ options_metadata parser::load_options() THROWS
         value<bool>(&configured.version)->
             default_value(false)->zero_tokens(),
         "Display version information."
+    )
+    // Actions.
+    (
+        BN_INITCHAIN_VARIABLE ",i",
+        value<bool>(&configured.initchain)->
+            default_value(false)->zero_tokens(),
+        "Initialize store in configured directory."
+    )
+    (
+        BN_RESTORE_VARIABLE ",r",
+        value<bool>(&configured.restore)->
+            default_value(false)->zero_tokens(),
+        "Restore from most recent snapshot."
+    )
+    // Chain scans.
+    (
+        BN_FLAGS_VARIABLE ",f",
+        value<bool>(&configured.flags)->
+            default_value(false)->zero_tokens(),
+        "Compute and display all flag transitions."
     )
     (
         BN_MEASURE_VARIABLE ",m",
@@ -180,14 +195,9 @@ options_metadata parser::load_options() THROWS
             default_value(false)->zero_tokens(),
         "Compute and display hashmap collision stats."
     )
+    // Ad-hoc Testing.
     (
-        BN_FLAGS_VARIABLE ",f",
-        value<bool>(&configured.flags)->
-            default_value(false)->zero_tokens(),
-        "Compute and display all flag transitions."
-    )
-    (
-        BN_READ_VARIABLE ",r",
+        BN_READ_VARIABLE ",x",
         value<bool>(&configured.read)->
             default_value(false)->zero_tokens(),
         "Read test and display performance."

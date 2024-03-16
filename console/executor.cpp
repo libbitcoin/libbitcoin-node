@@ -205,6 +205,43 @@ void executor::stopper(const auto& message)
     stopped_.get_future().wait();
 }
 
+// fork flag transitions (candidate chain).
+void executor::scan_flags() const
+{
+    constexpr auto fork_bits = to_bits(sizeof(chain::forks));
+    const auto error = code{ error::store_integrity }.message();
+    const auto start = unix_time();
+    const auto top = query_.get_top_candidate();
+    uint32_t flags{};
+
+    console(BN_OPERATION_INTERRUPT);
+
+    for (size_t height{}; !cancel_ && height <= top; ++height)
+    {
+        database::context ctx{};
+        const auto link = query_.to_candidate(height);
+        if (!query_.get_context(ctx, link) || (ctx.height != height))
+        {
+            console(format("Error: %1%") % error);
+            return;
+        }
+
+        if (ctx.flags != flags)
+        {
+            const binary prev{ fork_bits, to_big_endian(flags) };
+            const binary next{ fork_bits, to_big_endian(ctx.flags) };
+            console(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
+                next % encode_hash(query_.get_header_key(link)) % height);
+            flags = ctx.flags;
+        }
+    }
+
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    console(format("scan_flags" BN_READ_ROW) % top % (unix_time() - start));
+}
+
 // file and logical sizes.
 void executor::measure_size() const
 {
@@ -281,43 +318,6 @@ void executor::measure_size() const
         query_.strong_tx_buckets() % strong_tx %
         query_.validated_tx_buckets() % validated_tx %
         query_.validated_bk_buckets() % validated_bk);
-}
-
-// fork flag transitions (candidate chain).
-void executor::scan_flags() const
-{
-    constexpr auto fork_bits = to_bits(sizeof(chain::forks));
-    const auto error = code{ error::store_integrity }.message();
-    const auto start = unix_time();
-    const auto top = query_.get_top_candidate();
-    uint32_t flags{};
-
-    console(BN_OPERATION_INTERRUPT);
-
-    for (size_t height{}; !cancel_ && height <= top; ++height)
-    {
-        database::context ctx{};
-        const auto link = query_.to_candidate(height);
-        if (!query_.get_context(ctx, link) || (ctx.height != height))
-        {
-            console(format("Error: %1%") % error);
-            return;
-        }
-
-        if (ctx.flags != flags)
-        {
-            const binary prev{ fork_bits, to_big_endian(flags) };
-            const binary next{ fork_bits, to_big_endian(ctx.flags) };
-            console(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
-                next % encode_hash(query_.get_header_key(link)) % height);
-            flags = ctx.flags;
-        }
-    }
-
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    console(format("scan_flags" BN_READ_ROW) % top % (unix_time() - start));
 }
 
 // hashmap bucket fill rates.
@@ -1080,6 +1080,15 @@ bool executor::menu()
     if (config.version)
         return do_version();
 
+    if (config.initchain)
+        return do_initchain();
+
+    if (config.restore)
+        return do_restore();
+
+    if (config.flags)
+        return do_flags();
+
     if (config.measure)
         return do_measure();
 
@@ -1089,17 +1098,11 @@ bool executor::menu()
     if (config.collisions)
         return do_collisions();
 
-    if (config.flags)
-        return do_flags();
-
     if (config.read)
         return do_read();
 
     if (config.write)
         return do_write();
-
-    if (config.initchain)
-        return do_initchain();
 
     return do_run();
 }
@@ -1168,7 +1171,7 @@ bool executor::do_initchain()
         return false;
     }
 
-    console(BN_STORE_STARTING);
+    console(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto event, auto table)
     {
         console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
@@ -1218,7 +1221,7 @@ bool executor::do_initchain()
         query_.validated_tx_buckets() %
         query_.validated_bk_buckets());
 
-    console(BN_STORE_STOPPING);
+    console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
     {
         console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
@@ -1233,10 +1236,11 @@ bool executor::do_initchain()
     return true;
 }
 
-// --measure
-bool executor::do_measure()
+// --restore
+bool executor::do_restore()
 {
     log_.stop();
+    const auto start = logger::now();
     const auto& configuration = metadata_.configured.file;
     if (configuration.empty())
         console(BN_USING_DEFAULT_CONFIG);
@@ -1244,127 +1248,18 @@ bool executor::do_measure()
         console(format(BN_USING_CONFIG_FILE) % configuration);
 
     const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
+    console(format(BN_RESTORING_CHAIN) % store);
+    if (const auto ec = store_.restore([&](auto event, auto table)
     {
-        console(format(BN_UNINITIALIZED_STORE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        console(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_START_FAIL) % ec.message());
+        console(format(BN_RESTORE_FAILURE) % ec.message());
         return false;
     }
 
-    measure_size();
-
-    // Close store.
-    console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_STORE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_STORE_STOPPED);
-    return true;
-}
-
-// --buckets
-bool executor::do_buckets()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_STORE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_STORE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    scan_buckets();
-
-    // Close store.
-    console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_STORE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_STORE_STOPPED);
-    return true;
-}
-
-// --collisions
-bool executor::do_collisions()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_STORE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_STORE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_STORE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    scan_collisions();
-
-    // Close store.
-    console(BN_STORE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_STORE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_STORE_STOPPED);
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    console(format(BN_RESTORE_COMPLETE) % span.count());
     return true;
 }
 
@@ -1381,39 +1276,174 @@ bool executor::do_flags()
     const auto& store = metadata_.configured.database.path;
     if (!database::file::is_directory(store))
     {
-        console(format(BN_UNINITIALIZED_STORE) % store);
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
         return false;
     }
 
     // Open store.
-    console(BN_STORE_STARTING);
+    console(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto, auto)
     {
         ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_START_FAIL) % ec.message());
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
         return false;
     }
 
     scan_flags();
 
     // Close store.
-    console(BN_STORE_STOPPING);
+    console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto, auto)
     {
         ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
         return false;
     }
 
-    console(BN_STORE_STOPPED);
+    console(BN_DATABASE_STOPPED);
     return true;
 }
 
-// --read
+// --measure
+bool executor::do_measure()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_DATABASE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    measure_size();
+
+    // Close store.
+    console(BN_DATABASE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --buckets
+bool executor::do_buckets()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_DATABASE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    scan_buckets();
+
+    // Close store.
+    console(BN_DATABASE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --collisions[l]
+bool executor::do_collisions()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_DATABASE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    scan_collisions();
+
+    // Close store.
+    console(BN_DATABASE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --read[x]
 bool executor::do_read()
 {
     log_.stop();
@@ -1426,39 +1456,39 @@ bool executor::do_read()
     const auto& store = metadata_.configured.database.path;
     if (!database::file::is_directory(store))
     {
-        console(format(BN_UNINITIALIZED_STORE) % store);
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
         return false;
     }
 
     // Open store.
-    console(BN_STORE_STARTING);
+    console(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto, auto)
     {
         ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_START_FAIL) % ec.message());
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
         return false;
     }
 
     read_test();
 
     // Close store.
-    console(BN_STORE_STOPPING);
+    console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto, auto)
     {
         ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
         return false;
     }
 
-    console(BN_STORE_STOPPED);
+    console(BN_DATABASE_STOPPED);
     return true;
 }
 
-// --write[f]
+// --write
 bool executor::do_write()
 {
     log_.stop();
@@ -1471,35 +1501,35 @@ bool executor::do_write()
     const auto& store = metadata_.configured.database.path;
     if (!database::file::is_directory(store))
     {
-        console(format(BN_UNINITIALIZED_STORE) % store);
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
         return false;
     }
 
     // Open store.
-    console(BN_STORE_STARTING);
+    console(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto, auto)
     {
         ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_START_FAIL) % ec.message());
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
         return false;
     }
 
     write_test();
 
     // Close store.
-    console(BN_STORE_STOPPING);
+    console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto, auto)
     {
         ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_STORE_STOP_FAIL) % ec.message());
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
         return false;
     }
 
-    console(BN_STORE_STOPPED);
+    console(BN_DATABASE_STOPPED);
     return true;
 }
 
@@ -1626,7 +1656,6 @@ void executor::subscribe_capture()
             node_->pause();
 
             // TODO: put this on an automated trigger based on store write interval.
-            // TODO: store/query object(s) can retain total data allocated/written.
             const auto error = store_.snapshot([&](auto event, auto table)
             {
                 logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
@@ -1763,7 +1792,7 @@ bool executor::do_run()
     const auto& store = metadata_.configured.database.path;
     if (!database::file::is_directory(store))
     {
-        logger(format(BN_UNINITIALIZED_STORE) % store);
+        logger(format(BN_UNINITIALIZED_DATABASE) % store);
         stopper(BN_NODE_STOPPED);
         return false;
     }
@@ -1772,13 +1801,13 @@ bool executor::do_run()
     capture_.start();
 
     // Open store.
-    logger(BN_STORE_STARTING);
+    logger(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto event, auto table)
     {
         logger(format(BN_OPEN) % events_.at(event) % tables_.at(table));
     }))
     {
-        logger(format(BN_STORE_START_FAIL) % ec.message());
+        logger(format(BN_DATABASE_START_FAIL) % ec.message());
         stopper(BN_NODE_STOPPED);
         return false;
     }
@@ -1877,13 +1906,13 @@ bool executor::do_run()
         query_.get_unassociated_count());
 
     // Close store (flush to disk).
-    logger(BN_STORE_STOPPING);
+    logger(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
     {
         logger(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
     }))
     {
-        logger(format(BN_STORE_STOP_FAIL) % ec.message());
+        logger(format(BN_DATABASE_STOP_FAIL) % ec.message());
         stopper(BN_NODE_STOPPED);
         return false;
     }
