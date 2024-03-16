@@ -217,7 +217,6 @@ chaser::event_subscriber& full_node::event_subscriber() NOEXCEPT
     return event_subscriber_;
 }
 
-// protected
 const configuration& full_node::config() const NOEXCEPT
 {
     return config_;

@@ -29,6 +29,7 @@
 namespace libbitcoin {
 namespace node {
 
+ // Thread safe.
 class BCN_API full_node
   : public network::p2p
 {
