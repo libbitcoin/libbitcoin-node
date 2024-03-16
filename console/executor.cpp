@@ -283,7 +283,7 @@ void executor::measure_size() const
         query_.validated_bk_buckets() % validated_bk);
 }
 
-// fork flag transitions.
+// fork flag transitions (candidate chain).
 void executor::scan_flags() const
 {
     constexpr auto fork_bits = to_bits(sizeof(chain::forks));
