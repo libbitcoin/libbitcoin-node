@@ -58,6 +58,8 @@ namespace node {
 // --restore
 #define BN_RESTORING_CHAIN \
     "Please wait while restoring %1% from most recent snapshot..."
+#define BN_RESTORE_MISSING_FLUSH_LOCK \
+    "Database is not corrupted, flush lock file is absent."
 #define BN_RESTORE_FAILURE \
     "Database restore failed with error, '%1%'."
 #define BN_RESTORE_COMPLETE \

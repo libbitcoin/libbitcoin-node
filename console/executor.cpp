@@ -1249,12 +1249,16 @@ bool executor::do_restore()
 
     const auto& store = metadata_.configured.database.path;
     console(format(BN_RESTORING_CHAIN) % store);
+
     if (const auto ec = store_.restore([&](auto event, auto table)
     {
         console(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
     }))
     {
-        console(format(BN_RESTORE_FAILURE) % ec.message());
+        if (ec == database::error::flush_lock)
+            console(BN_RESTORE_MISSING_FLUSH_LOCK);
+        else
+            console(format(BN_RESTORE_FAILURE) % ec.message());
         return false;
     }
 
