@@ -24,11 +24,16 @@
 namespace libbitcoin {
 namespace node {
 
+#define BN_OPERATION_INTERRUPT \
+    "Press CTRL-C to cancel operation."
+#define BN_OPERATION_CANCELED \
+    "CTRL-C detected, canceling operation..."
+
 // --settings
 #define BN_SETTINGS_MESSAGE \
     "These are the configuration settings that can be set."
 #define BN_INFORMATION_MESSAGE \
-    "Runs a full bitcoin node with additional client-server query protocol."
+    "Runs a full bitcoin node."
 
 // --initchain
 #define BN_INITIALIZING_CHAIN \
@@ -36,7 +41,7 @@ namespace node {
 #define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_CREATING \
-    "Please wait while creating the store..."
+    "Please wait while creating the database..."
 #define BN_INITCHAIN_COMPLETE \
     "Created and initialized empty chain in %1% ms."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
@@ -46,14 +51,19 @@ namespace node {
 #define BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE \
     "Database failure to store genesis block."
 #define BN_INITCHAIN_DATABASE_OPEN_FAILURE \
-    "Database failure to open, %1%."
+    "Database failed to open, %1%."
 #define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
-    "Database failure to close, %1%."
+    "Database failed to close, %1%."
 
-#define BN_OPERATION_INTERRUPT \
-    "Press CTRL-C to cancel operation."
-#define BN_OPERATION_CANCELED \
-    "CTRL-C detected, canceling operation..."
+// --restore
+#define BN_RESTORING_CHAIN \
+    "Please wait while restoring %1% from most recent snapshot..."
+#define BN_RESTORE_MISSING_FLUSH_LOCK \
+    "Database is not corrupted, flush lock file is absent."
+#define BN_RESTORE_FAILURE \
+    "Database restore failed with error, '%1%'."
+#define BN_RESTORE_COMPLETE \
+    "Restored database in %1% ms."
 
 // --measure
 #define BN_MEASURE_RECORDS \
@@ -134,11 +144,13 @@ namespace node {
     "close::%1%(%2%)"
 #define BN_BACKUP \
     "backup::%1%(%2%)"
+#define BN_RESTORE \
+    "restore::%1%(%2%)"
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
-#define BN_STORE_STARTING \
-    "Please wait while the store is starting..."
+#define BN_DATABASE_STARTING \
+    "Please wait while the database is starting..."
 #define BN_NETWORK_STARTING \
     "Please wait while the network is starting..."
 #define BN_NODE_START_FAIL \
@@ -154,18 +166,18 @@ namespace node {
 #define BN_NODE_RUNNING \
     "Node is running."
 
-#define BN_UNINITIALIZED_STORE \
-    "The %1% store directory does not exist, run: bn --initchain"
+#define BN_UNINITIALIZED_DATABASE \
+    "The %1% database directory does not exist, run: bn --initchain"
 #define BN_UNINITIALIZED_CHAIN \
-    "The %1% store is not initialized, delete and run: bn --initchain"
-#define BN_STORE_START_FAIL \
-    "Store failed to start with error, %1%."
-#define BN_STORE_STOPPING \
-    "Please wait while the store is stopping..."
-#define BN_STORE_STOP_FAIL \
-    "Store failed to stop with error, %1%."
-#define BN_STORE_STOPPED \
-    "Store stopped successfully."
+    "The %1% database is not initialized, delete and run: bn --initchain"
+#define BN_DATABASE_START_FAIL \
+    "Database failed to start with error, %1%."
+#define BN_DATABASE_STOPPING \
+    "Please wait while the database is stopping..."
+#define BN_DATABASE_STOP_FAIL \
+    "Database failed to stop with error, %1%."
+#define BN_DATABASE_STOPPED \
+    "Database stopped successfully."
 
 #define BN_NETWORK_STOPPING \
     "Please wait while the network is stopping..."

@@ -60,10 +60,11 @@ private:
     bool do_settings();
     bool do_version();
     bool do_initchain();
+    bool do_restore();
+    bool do_flags();
     bool do_measure();
     bool do_buckets();
     bool do_collisions();
-    bool do_flags();
     bool do_read();
     bool do_write();
     bool do_run();
@@ -76,8 +77,8 @@ private:
     void subscribe_connect();
     void subscribe_close();
 
-    void measure_size() const;
     void scan_flags() const;
+    void measure_size() const;
     void scan_buckets() const;
     void scan_collisions() const;
     void read_test() const;
