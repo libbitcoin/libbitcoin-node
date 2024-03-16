@@ -94,10 +94,16 @@ const std::unordered_map<database::event_t, std::string> executor::events_
     { database::event_t::close_file, "close_file" },
     { database::event_t::create_table, "create_table" },
     { database::event_t::verify_table, "verify_table" },
-    { database::event_t::close_table, "close_table" }
+    { database::event_t::close_table, "close_table" },
+    { database::event_t::wait_lock, "wait_lock" },
+    { database::event_t::flush_table, "flush_table" },
+    { database::event_t::backup_table, "backup_table" },
+    { database::event_t::dump_table, "dump_table" },
+    { database::event_t::restore_table, "restore_table" }
 };
 const std::unordered_map<database::table_t, std::string> executor::tables_
 {
+    { database::table_t::store, "store" },
     { database::table_t::header_table, "header_table" },
     { database::table_t::header_head, "header_head" },
     { database::table_t::header_body, "header_body" },
@@ -1604,7 +1610,7 @@ void executor::subscribe_capture()
     {
         const auto token = system::trim_copy(line);
 
-        // Close (this isn't a toggle).
+        // Close (not a toggle).
         if (token == close_)
         {
             logger("CONSOLE: Close");
@@ -1612,18 +1618,24 @@ void executor::subscribe_capture()
             return false;
         }
 
-        // Backup (this isn't a toggle).
+        // Backup (not a toggle).
         if (token == backup_)
         {
-            logger("CONSOLE: Backup");
-
+            logger(BN_NODE_BACKUP_STARTED);
             node_->pause();
-            const auto result = !ec && !store_.snapshot([&](auto, auto)
+
+            const auto error = store_.snapshot([&](auto event, auto table)
             {
-                // TODO: for progress reporting, not completion.
+                logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
             });
+
+            if (error)
+                logger(format(BN_NODE_BACKUP_FAIL) % error.message());
+            else
+                logger(format(BN_NODE_BACKUP_COMPLETE));
+
             node_->resume();
-            return result;
+            return !error;
         }
 
         if (!keys_.contains(token))
