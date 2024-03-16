@@ -45,6 +45,7 @@ using namespace std::placeholders;
 // "c" avoids conflict with network "quit" messages.
 const std::string executor::name_{ "bn" };
 const std::string executor::close_{ "c" };
+const std::string executor::backup_{ "b" };
 const std::unordered_map<uint8_t, bool> executor::defined_
 {
     { levels::application, true },
@@ -1609,6 +1610,20 @@ void executor::subscribe_capture()
             logger("CONSOLE: Close");
             stop(error::success);
             return false;
+        }
+
+        // Backup (this isn't a toggle).
+        if (token == backup_)
+        {
+            logger("CONSOLE: Backup");
+
+            node_->pause();
+            const auto result = !ec && !store_.snapshot([&](auto, auto)
+            {
+                // TODO: for progress reporting, not completion.
+            });
+            node_->resume();
+            return result;
         }
 
         if (!keys_.contains(token))
