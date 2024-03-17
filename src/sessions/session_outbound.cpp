@@ -60,7 +60,7 @@ session_outbound::session_outbound(full_node& node,
 {
 }
 
-// start
+// split
 // ----------------------------------------------------------------------------
 
 void session_outbound::start(result_handler&& handler) NOEXCEPT
@@ -71,9 +71,6 @@ void session_outbound::start(result_handler&& handler) NOEXCEPT
     network::session_outbound::start(std::move(handler));
 }
 
-// split
-// ----------------------------------------------------------------------------
-
 // Event subscriber operates on the network strand (session).
 void session_outbound::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
@@ -83,6 +80,7 @@ void session_outbound::handle_event(const code&,
     if (stopped())
         return;
 
+    // When a channel becomes starved notify other(s) to split work.
     if (event_ == chaser::chase::starved)
     {
         BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
@@ -129,9 +127,6 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
 {
     BC_ASSERT(stranded());
 
-    // Three elements are required to measure deviation, don't drop to two.
-    constexpr auto minimum_for_standard_deviation = 3_size;
-
     if (speed == max_uint64)
     {
         speeds_.erase(channel);
@@ -147,8 +142,12 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
         return;
     }
 
+    // Floating point conversion.
+    BC_PUSH_WARNING(NO_STATIC_CAST)
     speeds_[channel] = static_cast<double>(speed);
+    BC_POP_WARNING()
 
+    // Three elements are required to measure deviation, don't drop below.
     const auto count = speeds_.size();
     if (count <= minimum_for_standard_deviation)
     {

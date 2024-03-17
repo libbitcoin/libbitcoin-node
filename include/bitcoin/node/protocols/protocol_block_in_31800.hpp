@@ -61,6 +61,10 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    /// Determine if Block passes check validation.
+    virtual code validate(const system::chain::block& block,
+        const system::chain::context& ctx) const NOEXCEPT;
+
     /// Performance polling.
     virtual void start_performance() NOEXCEPT;
     virtual void pause_performance() NOEXCEPT;
@@ -74,11 +78,13 @@ protected:
     void do_pause(chaser::channel_t channel) NOEXCEPT;
     void do_resume(chaser::channel_t channel) NOEXCEPT;
 
-    /// Accept incoming block message.
+    /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
 
 private:
+    static constexpr size_t minimum_for_stall_divide = 2;
+
     void handle_performance_timer(const code& ec) NOEXCEPT;
     void handle_send_performance(const code& ec) NOEXCEPT;
     void do_handle_performance(const code& ec) NOEXCEPT;

@@ -201,48 +201,61 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chaser::chase event_, chaser::link value) NOEXCEPT
 {
-    constexpr auto minimum_for_stall_divide = 2_size;
-
     if (stopped())
         return;
 
-    if (event_ == chaser::chase::download)
+    switch (event_)
     {
-        // There are count blocks to download at/above the given header.
-        if (is_current())
+        case chaser::chase::download:
         {
-            BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
-            POST(do_get_downloads, std::get<chaser::count_t>(value));
-        }
-    }
-    else if (event_ == chaser::chase::split)
-    {
-        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
-        const auto channel = std::get<chaser::channel_t>(value);
+            // There are count blocks to download at/above given header.
+            // But don't download blocks until candidate chain is current.
+            if (is_current())
+            {
+                BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
+                POST(do_get_downloads, std::get<chaser::count_t>(value));
+            }
 
-        // If value identifies this channel, split work and stop.
-        if (channel == identifier())
-        {
-            POST(do_split, channel);
+            break;
         }
-    }
-    else if (event_ == chaser::chase::stall)
-    {
-        // If this channel has divisible work, split it and stop.
-        if (map_->size() >= minimum_for_stall_divide)
+        case chaser::chase::split:
         {
-            POST(do_split, chaser::count_t{});
+            BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+            const auto channel = std::get<chaser::channel_t>(value);
+
+            // It was determined to be the slowest channel with work.
+            // If value identifies this channel, split work and stop.
+            if (channel == identifier())
+            {
+                POST(do_split, channel);
+            }
+
+            break;
         }
-    }
-    else if (event_ == chaser::chase::pause)
-    {
-        // Pause local timers due to channel pause.
-        POST(do_pause, chaser::channel_t{});
-    }
-    else if (event_ == chaser::chase::resume)
-    {
-        // Resume local timers due to channel resume.
-        POST(do_resume, chaser::channel_t{});
+        case chaser::chase::stall:
+        {
+            // If this channel has divisible work, split it and stop.
+            // There are no channels reporting work, either stalled or done.
+            // This is initiated by any channel notifying chase::starved.
+            if (map_->size() >= minimum_for_stall_divide)
+            {
+                POST(do_split, chaser::count_t{});
+            }
+
+            break;
+        }
+        case chaser::chase::pause:
+        {
+            // Pause local timers due to channel pause (e.g. snapshot pending).
+            POST(do_pause, chaser::channel_t{});
+            break;
+        }
+        case chaser::chase::resume:
+        {
+            // Resume local timers due to channel resume (e.g. snapshot done).
+            POST(do_resume, chaser::channel_t{});
+            break;
+        }
     }
 }
 
@@ -342,8 +355,15 @@ get_data protocol_block_in_31800::create_get_data(
     return getter;
 }
 
-// accept block
+// check block
 // ----------------------------------------------------------------------------
+
+code protocol_block_in_31800::validate(const chain::block& block,
+    const chain::context& ctx) const NOEXCEPT
+{
+    code ec{};
+    return ec = block.check() ? ec : block.check(ctx);
+}
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
@@ -372,11 +392,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Could check for parent invalidation and propagate here, but blocks are
     // not checked in order, so there would remain no guarantee.
 
-    code error{};
     const auto& link = it->link;
     const auto& ctx = it->context;
-    const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
-    if (((error = block.check())) || ((error = block.check(ctx))))
+
+    if (const auto error = validate(block, ctx))
     {
         query.set_block_unconfirmable(link);
         notify(error::success, chaser::chase::unchecked, link);
@@ -405,6 +424,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
 
+    const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
     notify(error::success, chaser::chase::checked, height);
     bytes_ += message->cached_size;
     map_->erase(it);
