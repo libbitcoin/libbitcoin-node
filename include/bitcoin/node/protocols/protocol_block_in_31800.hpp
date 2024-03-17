@@ -23,34 +23,25 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_performer.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-/// This does NOT inhereit from protocol_block_in.
+/// This does NOT inherit from protocol_block_in.
 class BCN_API protocol_block_in_31800
-  : public node::protocol,
-    protected network::tracker<protocol_block_in_31800>
+  : public protocol_performer
 {
 public:
     typedef std::shared_ptr<protocol_block_in_31800> ptr;
-    using type_id = network::messages::inventory::type_id;
-    using map_ptr = chaser_check::map_ptr;
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename Session>
     protocol_block_in_31800(Session& session,
         const channel_ptr& channel, bool performance) NOEXCEPT
-      : node::protocol(session, channel),
-        network::tracker<protocol_block_in_31800>(session.log),
-        drop_stalled_(performance && 
-            to_bool(session.config().node.sample_period_seconds)),
-        use_deviation_(session.config().node.allowed_deviation > 0.0),
+      : protocol_performer(session, channel, performance),
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
-        performance_timer_(std::make_shared<network::deadline>(session.log,
-            channel->strand(), session.config().node.sample_period())),
         map_(std::make_shared<database::associations>())
     {
     }
@@ -61,27 +52,29 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Performance polling.
-    virtual void start_performance() NOEXCEPT;
-    virtual void pause_performance() NOEXCEPT;
-    virtual void stop_performance() NOEXCEPT;
+    /// Determine if block passes check validation.
+    virtual code validate(const system::chain::block& block,
+        const system::chain::context& ctx) const NOEXCEPT;
 
     /// Get published download identifiers.
     virtual void handle_event(const code& ec,
         chaser::chase event_, chaser::link value) NOEXCEPT;
     virtual void do_get_downloads(chaser::count_t count) NOEXCEPT;
-    virtual void do_split(chaser::channel_t channel) NOEXCEPT;
-    void do_pause(chaser::channel_t channel) NOEXCEPT;
-    void do_resume(chaser::channel_t channel) NOEXCEPT;
 
-    /// Accept incoming block message.
+    /// Manage work splitting.
+    virtual bool is_idle() const NOEXCEPT;
+    virtual void do_split(chaser::channel_t channel) NOEXCEPT;
+    virtual void do_pause(chaser::channel_t channel) NOEXCEPT;
+    virtual void do_resume(chaser::channel_t channel) NOEXCEPT;
+
+    /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
 
 private:
-    void handle_performance_timer(const code& ec) NOEXCEPT;
-    void handle_send_performance(const code& ec) NOEXCEPT;
-    void do_handle_performance(const code& ec) NOEXCEPT;
+    using map_ptr = chaser_check::map_ptr;
+    using type_id = network::messages::inventory::type_id;
+    static constexpr size_t minimum_for_stall_divide = 2;
 
     void send_get_data(const map_ptr& map) NOEXCEPT;
     network::messages::get_data create_get_data(
@@ -92,17 +85,10 @@ private:
     void handle_put_hashes(const code& ec) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
 
-    void send_performance(uint64_t rate) NOEXCEPT;
-
-    // These are thread safe.
-    const bool drop_stalled_;
-    const bool use_deviation_;
+    // This is thread safe.
     const network::messages::inventory::type_id block_type_;
 
-    // These are protected by strand.
-    uint64_t bytes_{ zero };
-    network::steady_clock::time_point start_{};
-    network::deadline::ptr performance_timer_;
+    //  This is protected by strand.
     map_ptr map_;
 };
 

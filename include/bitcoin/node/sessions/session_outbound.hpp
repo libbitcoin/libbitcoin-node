@@ -37,7 +37,6 @@ public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
     void start(network::result_handler&& handler) NOEXCEPT override;
-
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT;
 
@@ -45,10 +44,11 @@ protected:
     virtual void handle_event(const code& ec,
         chaser::chase event_, chaser::link value) NOEXCEPT;
     virtual void split(chaser::channel_t channel) NOEXCEPT;
+    virtual void do_performance(uint64_t channel, uint64_t speed,
+        const network::result_handler& handler) NOEXCEPT;
 
 private:
-    void do_performance(uint64_t channel, uint64_t speed,
-        const network::result_handler& handler) NOEXCEPT;
+    static constexpr size_t minimum_for_standard_deviation = 3;
 
     // This is thread safe.
     const float allowed_deviation_;
