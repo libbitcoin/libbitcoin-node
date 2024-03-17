@@ -47,6 +47,7 @@
 #include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
 #include <bitcoin/node/protocols/protocol_observer.hpp>
+#include <bitcoin/node/protocols/protocol_performer.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
