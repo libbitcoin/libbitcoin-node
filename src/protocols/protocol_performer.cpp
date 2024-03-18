@@ -71,11 +71,9 @@ void protocol_performer::handle_performance_timer(const code& ec) NOEXCEPT
         return;
     }
 
-    const auto delta = duration_cast<seconds>(steady_clock::now() - start_);
-    const auto unsigned_delta = sign_cast<uint64_t>(delta.count());
-    const auto non_zero_period = greater(unsigned_delta, one);
-    const auto rate = floored_divide(bytes_, non_zero_period);
-    send_performance(rate);
+    // Submit performance to (outbound session) aggregate monitor in bytes/sec.
+    send_performance(floored_divide(bytes_, greater(sign_cast<uint64_t>(
+        duration_cast<seconds>(steady_clock::now() - start_).count()), one)));
 }
 
 void protocol_performer::pause_performance() NOEXCEPT
