@@ -73,7 +73,7 @@ void chaser_check::handle_event(const code&, chase event_,
 {
     if (event_ == chase::header)
     {
-        BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
+        BC_ASSERT(std::holds_alternative<height_t>(value));
         POST(do_add_headers, std::get<height_t>(value));
     }
 }

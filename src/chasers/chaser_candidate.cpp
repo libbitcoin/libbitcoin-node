@@ -59,6 +59,7 @@ void chaser_candidate::handle_event(const code&, chase event_,
     // TODO: also handle confirmed/unconfirmed.
     if (event_ == chase::transaction)
     {
+        BC_ASSERT(std::holds_alternative<transaction_t>(value));
         POST(handle_transaction, std::get<transaction_t>(value));
     }
 }

@@ -44,6 +44,10 @@ protected:
     virtual void handle_checked(height_t block) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
         link value) NOEXCEPT;
+
+private:
+    // This is protected by strand.
+    size_t last_{};
 };
 
 } // namespace node

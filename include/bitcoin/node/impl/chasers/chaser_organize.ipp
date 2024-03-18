@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -94,6 +95,7 @@ void CLASS::handle_event(const code&, chase event_, link value) NOEXCEPT
         event_ == chase::unconnected ||
         event_ == chase::unconfirmed)
     {
+        BC_ASSERT(std::holds_alternative<header_t>(value));
         POST(do_disorganize, std::get<header_t>(value));
     }
 }

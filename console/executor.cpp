@@ -1853,7 +1853,7 @@ bool executor::do_run()
         encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_last_associated() %
+        query_.get_top_associated() %
         query_.get_unassociated_count());
 
     // Create node.
@@ -1906,7 +1906,7 @@ bool executor::do_run()
         encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_last_associated() %
+        query_.get_top_associated() %
         query_.get_unassociated_count());
 
     // Close store (flush to disk).

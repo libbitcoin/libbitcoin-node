@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 
 #include <functional>
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -57,6 +58,7 @@ void chaser_transaction::handle_event(const code&, chase event_,
 {
     if (event_ == chase::confirmed)
     {
+        BC_ASSERT(std::holds_alternative<height_t>(value));
         POST(handle_confirmed, std::get<height_t>(value));
     }
 }

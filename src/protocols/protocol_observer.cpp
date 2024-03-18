@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_observer.hpp>
 
 #include <functional>
+#include <variant>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
@@ -44,18 +45,20 @@ void protocol_observer::start() NOEXCEPT
 }
 
 void protocol_observer::handle_event(const code&,
-    chaser::chase event_, chaser::link) NOEXCEPT
+    chaser::chase event_, chaser::link value) NOEXCEPT
 {
     if (stopped())
         return;
 
     if (event_ == chaser::chase::pause)
     {
-        POST(do_pause, chaser::channel_t{});
+        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+        POST(do_pause, std::get<chaser::channel_t>(value));
     }
     else if (event_ == chaser::chase::resume)
     {
-        POST(do_resume, chaser::channel_t{});
+        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+        POST(do_resume, std::get<chaser::channel_t>(value));
     }
 }
 
