@@ -91,7 +91,6 @@ code chaser::subscribe_events(event_handler&& handler) NOEXCEPT
 void chaser::notify(const code& ec, chase event_, link value) NOEXCEPT
 {
     // Posting to node strand, not chaser strand.
-    ////POST(do_notify, ec, event_, value);
     boost::asio::post(node_.strand(),
         BIND(do_notify, ec, event_, value));
 }
