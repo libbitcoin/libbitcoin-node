@@ -74,20 +74,43 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::bump:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_checked);
-            return;
+            POST(do_checked, std::get<height_t>(value));
+            break;
         }
         case chase::checked:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(handle_checked, std::get<height_t>(value));
-            return;
+            break;
         }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(handle_disorganized, std::get<height_t>(value));
-            return;
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        ////case chase::bump:
+        ////case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        ////case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
         }
     }
 }
@@ -97,10 +120,10 @@ void chaser_preconfirm::handle_checked(height_t height) NOEXCEPT
     BC_ASSERT(stranded());
 
     if (height == add1(last_))
-        do_checked();
+        do_checked(height);
 }
 
-void chaser_preconfirm::do_checked() NOEXCEPT
+void chaser_preconfirm::do_checked(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

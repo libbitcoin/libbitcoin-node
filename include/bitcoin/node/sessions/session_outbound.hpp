@@ -37,8 +37,8 @@ public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
     void start(network::result_handler&& handler) NOEXCEPT override;
-    virtual void performance(uint64_t channel, uint64_t speed,
-        network::result_handler&& handler) NOEXCEPT;
+    void performance(uint64_t channel, uint64_t speed,
+        network::result_handler&& handler) NOEXCEPT override;
 
 protected:
     virtual void handle_event(const code& ec,

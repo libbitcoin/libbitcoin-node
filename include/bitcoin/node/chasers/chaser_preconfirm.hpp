@@ -49,7 +49,7 @@ protected:
 private:
     using block_ptr = system::chain::block::cptr;
 
-    void do_checked() NOEXCEPT;
+    void do_checked(height_t height) NOEXCEPT;
     bool is_under_milestone(size_t height) const NOEXCEPT;
     code validate(const block_ptr& block,
         const database::context& ctx) const NOEXCEPT;

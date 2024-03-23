@@ -80,11 +80,38 @@ void session_outbound::handle_event(const code&,
     if (stopped())
         return;
 
-    // When a channel becomes starved notify other(s) to split work.
-    if (event_ == chaser::chase::starved)
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
-        split(std::get<chaser::channel_t>(value));
+        case chaser::chase::starved:
+        {
+            // When a channel becomes starved notify other(s) to split work.
+            BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
+            split(std::get<chaser::channel_t>(value));
+            break;
+        }
+        case chaser::chase::header:
+        case chaser::chase::download:
+        ////case chaser::chase::starved:
+        case chaser::chase::split:
+        case chaser::chase::stall:
+        case chaser::chase::purge:
+        case chaser::chase::pause:
+        case chaser::chase::resume:
+        case chaser::chase::bump:
+        case chaser::chase::checked:
+        case chaser::chase::unchecked:
+        case chaser::chase::preconfirmed:
+        case chaser::chase::unpreconfirmed:
+        case chaser::chase::confirmed:
+        case chaser::chase::unconfirmed:
+        case chaser::chase::disorganized:
+        case chaser::chase::transaction:
+        case chaser::chase::candidate:
+        case chaser::chase::block:
+        case chaser::chase::stop:
+        {
+            break;
+        }
     }
 }
 

@@ -68,15 +68,43 @@ code chaser_check::start() NOEXCEPT
 void chaser_check::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    if (event_ == chase::header)
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<height_t>(value));
-        POST(do_add_headers, std::get<height_t>(value));
-    }
-    else if (event_ == chase::disorganized)
-    {
-        BC_ASSERT(std::holds_alternative<height_t>(value));
-        POST(do_purge_headers, std::get<height_t>(value));
+        case chase::header:
+        {
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_add_headers, std::get<height_t>(value));
+            break;
+        }
+        case chase::disorganized:
+        {
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_purge_headers, std::get<height_t>(value));
+            break;
+        }
+        ////case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        ////case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
 

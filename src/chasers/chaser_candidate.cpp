@@ -57,10 +57,37 @@ void chaser_candidate::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
     // TODO: also handle confirmed/unconfirmed.
-    if (event_ == chase::transaction)
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<transaction_t>(value));
-        POST(handle_transaction, std::get<transaction_t>(value));
+        case chase::transaction:
+        {
+            BC_ASSERT(std::holds_alternative<transaction_t>(value));
+            POST(handle_transaction, std::get<transaction_t>(value));
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        case chase::disorganized:
+        ////case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
 

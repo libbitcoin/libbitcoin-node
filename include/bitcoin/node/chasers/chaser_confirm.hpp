@@ -48,7 +48,7 @@ protected:
 
 private:
     // This is protected by strand.
-    size_t top_{};
+    ////size_t top_{};
 };
 
 } // namespace node

@@ -62,7 +62,7 @@ protected:
     virtual void do_get_downloads(chaser::count_t count) NOEXCEPT;
 
     /// Manage work splitting.
-    virtual bool is_idle() const NOEXCEPT;
+    bool is_idle() const NOEXCEPT override;
     virtual void do_split(chaser::channel_t channel) NOEXCEPT;
     virtual void do_pause(chaser::channel_t channel) NOEXCEPT;
     virtual void do_resume(chaser::channel_t channel) NOEXCEPT;

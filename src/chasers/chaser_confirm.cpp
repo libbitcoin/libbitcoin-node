@@ -61,13 +61,36 @@ void chaser_confirm::handle_event(const code&, chase event_,
         {
             BC_ASSERT(std::holds_alternative<header_t>(value));
             POST(handle_preconfirmed, std::get<header_t>(value));
-            return;
+            break;
         }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(handle_disorganized, std::get<height_t>(value));
-            return;
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        ////case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        ////case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
         }
     }
 }
