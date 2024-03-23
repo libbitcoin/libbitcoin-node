@@ -130,6 +130,17 @@ void protocol_block_in_31800::handle_event(const code&,
 
             break;
         }
+        case chaser::chase::purge:
+        {
+            // If this channel has work clear it and stop.
+            // This is initiated by validate/confirm chase::disorganized.
+            if (map_->size() >= minimum_for_stall_divide)
+            {
+                POST(do_purge, chaser::height_t{});
+            }
+
+            break;
+        }
         case chaser::chase::pause:
         {
             // Pause local timers due to channel pause (e.g. snapshot pending).
@@ -154,6 +165,17 @@ void protocol_block_in_31800::do_resume(chaser::channel_t) NOEXCEPT
 {
     if (!is_idle())
         start_performance();
+}
+
+void protocol_block_in_31800::do_purge(chaser::height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!map_->empty())
+    {
+        map_->clear();
+        stop(error::sacrificed_channel);
+    }
 }
 
 void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT

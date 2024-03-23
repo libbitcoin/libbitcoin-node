@@ -46,7 +46,9 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { orphan_header, "orphan header" },
     { duplicate_block, "duplicate block" },
     { duplicate_header, "duplicate header" },
-    { insufficient_work, "insufficient work" }
+    { insufficient_work, "insufficient work" },
+    { milestone_bypass, "milestone bypass" },
+    { checkpoint_bypass, "checkpoint bypass" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

@@ -59,14 +59,11 @@ code chaser_check::start() NOEXCEPT
     BC_ASSERT(node_stranded());
 
     const auto fork_point = archive().get_fork();
-    const auto added = update_table(maps_, fork_point);
+    const auto added = get_unassociated(maps_, fork_point);
     LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
-
-// add headers
-// ----------------------------------------------------------------------------
 
 void chaser_check::handle_event(const code&, chase event_,
     link value) NOEXCEPT
@@ -76,15 +73,21 @@ void chaser_check::handle_event(const code&, chase event_,
         BC_ASSERT(std::holds_alternative<height_t>(value));
         POST(do_add_headers, std::get<height_t>(value));
     }
+    else if (event_ == chase::disorganized)
+    {
+        BC_ASSERT(std::holds_alternative<height_t>(value));
+        POST(do_purge_headers, std::get<height_t>(value));
+    }
 }
+
+// add headers
+// ----------------------------------------------------------------------------
 
 void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // This can produce duplicate downloads in relation to those outstanding,
-    // which is ok. That implies a rerg and then a reorg back before complete.
-    const auto added = update_table(maps_, branch_point);
+    const auto added = get_unassociated(maps_, branch_point);
 
     LOGN("Branch point (" << branch_point << ") unassociated ("
         << added << ").");
@@ -94,6 +97,21 @@ void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 
     const auto count = system::possible_narrow_cast<count_t>(added);
     notify(error::success, chase::download, count);
+}
+
+// purge headers
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_purge_headers(height_t top) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Candidate chain has been reset (from fork point) to confirmed top.
+    // Since all blocks are confirmed through fork point, and all above are to
+    // be purged, it simply means purge all hashes (reset all). All channels
+    // will get the purge notification before any subsequent download notify.
+    maps_.clear();
+    notify(error::success, chase::purge, top);
 }
 
 // get/put hashes
@@ -147,7 +165,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 // utilities
 // ----------------------------------------------------------------------------
 
-size_t chaser_check::update_table(maps& table, size_t start) const NOEXCEPT
+size_t chaser_check::get_unassociated(maps& table, size_t start) const NOEXCEPT
 {
     size_t added{};
     while (true)

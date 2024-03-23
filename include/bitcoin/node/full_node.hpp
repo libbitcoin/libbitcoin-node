@@ -131,7 +131,7 @@ private:
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
-    chaser_connect chaser_connect_;
+    chaser_preconfirm chaser_preconfirm_;
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
     chaser_candidate chaser_candidate_;

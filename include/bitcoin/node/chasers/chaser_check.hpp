@@ -55,13 +55,14 @@ public:
 
 protected:
     virtual void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    virtual void do_purge_headers(height_t fork_point) NOEXCEPT;
     virtual void do_add_headers(height_t branch_point) NOEXCEPT;
     virtual void do_get_hashes(const handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
 private:
-    size_t update_table(maps& table, size_t start) const NOEXCEPT;
+    size_t get_unassociated(maps& table, size_t start) const NOEXCEPT;
     size_t count_map(const maps& table) const NOEXCEPT;
     map_ptr make_map(size_t start, size_t count) const NOEXCEPT;
     map_ptr get_map(maps& table) NOEXCEPT;

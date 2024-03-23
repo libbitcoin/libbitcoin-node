@@ -92,7 +92,7 @@ TEMPLATE
 void CLASS::handle_event(const code&, chase event_, link value) NOEXCEPT
 {
     if (event_ == chase::unchecked ||
-        event_ == chase::unconnected ||
+        event_ == chase::unpreconfirmed ||
         event_ == chase::unconfirmed)
     {
         BC_ASSERT(std::holds_alternative<header_t>(value));
@@ -127,6 +127,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
         return;
     }
 
+    // Must reorganize down to fork point, since entire branch is now weak.
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
@@ -243,6 +244,11 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
             return;
         }
     }
+
+    // Notify check/download/confirmation to reset to top (clear).
+    // As this organizer controls the candidate array, height is definitive.
+    const auto top = possible_narrow_cast<height_t>(top_confirmed);
+    notify(error::success, chase::disorganized, top);
 }
 
 TEMPLATE

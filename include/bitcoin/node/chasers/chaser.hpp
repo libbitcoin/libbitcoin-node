@@ -67,13 +67,21 @@ public:
         /// Issued by 'session_outbound' and handled by 'block_in_31800'.
         stall,
 
+        /// Channels (all with work) are directed to drop work and stop (0).
+        /// Issued by 'check' and handled by 'block_in_31800'.
+        purge,
+
         /// Channels (all) are directed to pause reading.
-        /// Iissued by 'full_node' and handled by 'protocol'.
+        /// Issued by 'full_node' and handled by 'protocol'.
         pause,
 
         /// Channels (all) are directed to resume reading.
-        /// Iissued by 'full_node' and handled by 'protocol'.
+        /// Issued by 'full_node' and handled by 'protocol'.
         resume,
+
+        /// Chaser is directed to start validating (height_t).
+        /// Issued by 'full_node' and handled by 'preconfirm'.
+        bump,
 
         /// A block has been downloaded, checked and stored (height_t).
         /// Issued by 'block_in_31800' and handled by 'connect'.
@@ -83,21 +91,25 @@ public:
         /// Issued by 'block_in_31800' and handled by 'header'.
         unchecked,
 
-        /// A branch has been connected (height_t).
-        /// Issued by 'connect' and handled by 'confirm'.
-        connected,
+        /// A branch has been preconfirmed (header_t).
+        /// Issued by 'preconfirm' and handled by 'confirm'.
+        preconfirmed,
 
-        /// A checked block has failed connect (header_t).
-        /// Issued by 'connect' and handled by 'header'.
-        unconnected,
+        /// A checked block has failed preconfirm (header_t).
+        /// Issued by 'preconfirm' and handled by 'header'.
+        unpreconfirmed,
 
-        /// A branch has been confirmed (height_t).
+        /// A branch has been confirmed (header_t).
         /// Issued by 'confirm' and handled by 'transaction'.
         confirmed,
 
         /// A connected block has failed confirm (header_t).
         /// Issued by 'confirm' and handled by 'header' (and 'block').
         unconfirmed,
+
+        /// unchecked, unpreconfirmed or unconfirmed was handled (height_t).
+        /// Issued by 'organize' and handled by 'preconfirm' and 'confirm'.
+        disorganized,
 
         /// A new transaction has been added to the pool (transaction_t).
         /// Issued by 'transaction' and handled by 'candidate'.

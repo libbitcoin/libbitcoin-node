@@ -58,13 +58,13 @@ void chaser_transaction::handle_event(const code&, chase event_,
 {
     if (event_ == chase::confirmed)
     {
-        BC_ASSERT(std::holds_alternative<height_t>(value));
-        POST(handle_confirmed, std::get<height_t>(value));
+        BC_ASSERT(std::holds_alternative<header_t>(value));
+        POST(handle_confirmed, std::get<header_t>(value));
     }
 }
 
 // TODO: handle the new confirmed blocks (may issue 'transaction').
-void chaser_transaction::handle_confirmed(height_t) NOEXCEPT
+void chaser_transaction::handle_confirmed(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }

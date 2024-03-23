@@ -66,6 +66,7 @@ protected:
     virtual void do_split(chaser::channel_t channel) NOEXCEPT;
     virtual void do_pause(chaser::channel_t channel) NOEXCEPT;
     virtual void do_resume(chaser::channel_t channel) NOEXCEPT;
+    virtual void do_purge(chaser::height_t top) NOEXCEPT;
 
     /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,

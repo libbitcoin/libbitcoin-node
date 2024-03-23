@@ -45,13 +45,13 @@ bool chaser_block::get_block(system::chain::block::cptr& out,
     return !is_null(out);
 }
 
-// Block validations are bypassed when under checkpoint/milestone.
+// Block validations are bypassed when under checkpoint.
 code chaser_block::validate(const system::chain::block& block,
     const chain_state& state) const NOEXCEPT
 {
     code ec{ error::success };
 
-    // Matching hash at height is sufficient validation for checkpoints.
+    // Under height is sufficient validation for checkpoint here.
     if (checkpoint::is_under(settings().checkpoints, state.height()))
         return ec;
 

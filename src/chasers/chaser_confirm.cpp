@@ -44,8 +44,9 @@ code chaser_confirm::start() NOEXCEPT
 {
     BC_ASSERT(node_stranded());
 
-    ////top_ = archive().get_top_confirmable();
-    ////LOGN("Confirmed through block [" << top_ << "].");
+    // When the top preconfirmable block is stronger than the top confirmed
+    // a reorganzation attempt occurs in which confirmability is established.
+    /////top_ = archive().get_top_preconfirmable();
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -53,50 +54,69 @@ code chaser_confirm::start() NOEXCEPT
 void chaser_confirm::handle_event(const code&, chase event_,
     link value) NOEXCEPT
 {
-    if (event_ == chase::connected)
+    // These can come out of order, advance in order synchronously.
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<height_t>(value));
-        POST(handle_connected, std::get<height_t>(value));
+        case chase::preconfirmed:
+        {
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(handle_preconfirmed, std::get<header_t>(value));
+            return;
+        }
+        case chase::disorganized:
+        {
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(handle_disorganized, std::get<height_t>(value));
+            return;
+        }
     }
 }
 
-// TODO: handle new strong connected branch (may issue 'confirmed'/'unconfirmed').
-void chaser_confirm::handle_connected(height_t height) NOEXCEPT
+void chaser_confirm::handle_disorganized(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
+    ////top_ = archive().get_top_preconfirmable_from(fork_point);
 
-    // TODO: It may not be possible to do this on height alone, since an
-    // asynchronous reorganization may render the height ambiguous.
-    // TODO: height <= last_ implies reorganization.
+    ////// TODO: need to deal with this at startup as well.
+    ////// There may be associated above top_preconfirmable resulting in a stall.
+    ////// Process above top_preconfirmable until unassociated.
+    ////handle_preconfirmed(possible_narrow_cast<height_t>(add1(top_)));
+}
 
-    if (add1(top_) == height)
-    {
-        // TODO: determine if stronger (reorg).
-        // TODO: pop/push new strong block and confirm.
-        // TODO: if any fails restore to previous state.
+void chaser_confirm::handle_preconfirmed(header_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    ////auto& query = archive();
 
-        // Associate valid txs with confirmed block.
-        ////if (!query.set_unstrong(link))
-        ////if (!query.set_strong(query.to_candidate(height)))
-        ////{
-        ////    // TODO: error::store_integrity.
-        ////    return;
-        ////}
+    ////// Does the height currently represent a strong branch?
+    ////// In case of stronger branch reorganization the branch may become
+    ////// invalidated during processing (popping). How is safety assured?
+    ////// TODO: obtain link from height, obtain a fork_point, walk candidates from
+    ////// TODO: link to fork point via parents, to top confirmed, comparing work.
+    ////////if (!is_strong_branch(height))
+    ////////    return;
 
-        // Push block to confirmed index.
-        if (!query.push_confirmed(query.to_candidate(top_)))
-        {
-            // TODO: error::store_integrity.
-            return;
-        }
+    ////if (add1(top_) == height)
+    ////{
+    ////    // TODO: determine if stronger (reorg).
+    ////    // TODO: Associate txs with confirmed block.
+    ////    // TODO: pop/push new strong block and confirm.
+    ////    // TODO: if any fails restore to previous state.
+    ////    ///////////////////////////////////////////////////////////////////////
+    ////    const auto valid = true;
 
-        const auto top = possible_narrow_cast<height_t>(++top_);
-        notify(error::success, chase::confirmed, top);
 
-        ////LOGN("Confirmed block [" << top_ << "].");
-        fire(events::event_block, top_);
-    }
+    ////    // Push block to confirmed index.
+    ////    if (!query.push_confirmed(query.to_candidate(height)))
+    ////    {
+    ////        close(error::store_integrity);
+    ////        return;
+    ////    }
+
+    ////    notify(error::success, chase::confirmed, link);
+    ////    fire(events::event_block, ++top_);
+    ////    ///////////////////////////////////////////////////////////////////////
+    ////}
 }
 
 BC_POP_WARNING()

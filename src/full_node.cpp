@@ -32,6 +32,7 @@ namespace node {
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+using namespace system;
 using namespace network;
 using namespace std::placeholders;
 
@@ -45,7 +46,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
-    chaser_connect_(*this),
+    chaser_preconfirm_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
     chaser_candidate_(*this)
@@ -79,7 +80,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     if (((ec = chaser_block_.start())) || 
         ((ec = chaser_header_.start())) ||
         ((ec = chaser_check_.start())) ||
-        ((ec = chaser_connect_.start())) ||
+        ((ec = chaser_preconfirm_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_candidate_.start())))
@@ -107,7 +108,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
         return;
     }
 
-    // Do stuff here.
+    do_notify(error::success, chaser::chase::bump, chaser::height_t{});
 
     p2p::do_run(handler);
 }
