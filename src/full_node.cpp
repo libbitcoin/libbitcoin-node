@@ -176,12 +176,12 @@ void full_node::do_notify(const code& ec, chaser::chase event_,
 
 void full_node::pause() NOEXCEPT
 {
-    notify(error::success, chaser::chase::pause, {});
+    notify(error::success, chaser::chase::pause, chaser::channel_t{});
 }
 
 void full_node::resume() NOEXCEPT
 {
-    notify(error::success, chaser::chase::resume, {});
+    notify(error::success, chaser::chase::resume, chaser::channel_t{});
 }
 
 bool full_node::is_current() const NOEXCEPT
