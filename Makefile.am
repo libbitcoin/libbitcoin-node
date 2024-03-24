@@ -120,9 +120,11 @@ include_bitcoin_HEADERS = \
 
 include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
+    include/bitcoin/node/chase.hpp \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/error.hpp \
+    include/bitcoin/node/events.hpp \
     include/bitcoin/node/full_node.hpp \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \

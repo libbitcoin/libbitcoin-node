@@ -140,6 +140,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
       <Filter>include\bitcoin</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
@@ -177,6 +180,9 @@
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">

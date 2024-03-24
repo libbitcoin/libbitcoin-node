@@ -105,6 +105,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_candidate.hpp" />
@@ -118,6 +119,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
