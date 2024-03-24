@@ -19,10 +19,9 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_PRECONFIRM_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_PRECONFIRM_HPP
 
-#include <functional>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,18 +37,19 @@ public:
 
     chaser_preconfirm(full_node& node) NOEXCEPT;
 
-    virtual code start() NOEXCEPT;
+    code start() NOEXCEPT override;
 
 protected:
-    virtual void handle_disorganized(height_t fork_point) NOEXCEPT;
-    virtual void handle_checked(height_t height) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
-        link value) NOEXCEPT;
+        event_link value) NOEXCEPT;
+
+    virtual void do_disorganized(height_t fork_point) NOEXCEPT;
+    virtual void do_height_checked(height_t height) NOEXCEPT;
+    virtual void do_checked(height_t height) NOEXCEPT;
 
 private:
     using block_ptr = system::chain::block::cptr;
 
-    void do_checked(height_t height) NOEXCEPT;
     bool is_under_milestone(size_t height) const NOEXCEPT;
     code validate(const block_ptr& block,
         const database::context& ctx) const NOEXCEPT;

@@ -16,37 +16,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+#ifndef LIBBITCOIN_NODE_EVENTS_HPP
+#define LIBBITCOIN_NODE_EVENTS_HPP
 
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/system.hpp>
+#include <bitcoin/node/error.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_transaction_out
-
-using namespace system;
-using namespace network;
-using namespace network::messages;
-using namespace std::placeholders;
-
-// Start.
-// ----------------------------------------------------------------------------
-
-void protocol_transaction_out::start() NOEXCEPT
+/// Reporting events.
+enum events : uint8_t
 {
-    BC_ASSERT(stranded());
+    event_archive,
+    event_header,
+    event_block,
+    event_validated,
+    event_confirmed,
+    event_current_headers,
+    event_current_blocks,
+    event_current_validated,
+    event_current_confirmed
+};
 
-    if (started())
-        return;
-
-    protocol::start();
+}
 }
 
-// Outbound.
-// ----------------------------------------------------------------------------
-
-} // namespace node
-} // namespace libbitcoin
+#endif

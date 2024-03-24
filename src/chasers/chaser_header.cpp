@@ -20,6 +20,7 @@
 
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {

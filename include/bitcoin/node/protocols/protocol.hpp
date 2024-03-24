@@ -19,15 +19,10 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
+ // Individual session.hpp inclusion to prevent cycle (can't forward declare).
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/chasers/chasers.hpp>
-#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/full_node.hpp>
-
-// Individual inclusion to prevent cycle (can't forward declare).
 #include <bitcoin/node/sessions/session.hpp>
-////class session;
 
 namespace libbitcoin {
 namespace node {
@@ -36,11 +31,11 @@ namespace node {
 class BCN_API protocol
   : public network::protocol
 {
-public:
-    DELETE_COPY_MOVE(protocol);
-
 protected:
     typedef network::channel::ptr channel_ptr;
+
+    /// Constructors.
+    /// -----------------------------------------------------------------------
 
     template <typename Session>
     protocol(Session& session, const channel_ptr& channel) NOEXCEPT
@@ -50,41 +45,52 @@ protected:
 
     virtual ~protocol() NOEXCEPT;
 
+    /// Organizers.
+    /// -----------------------------------------------------------------------
+
+    /// Organize a validated header.
+    virtual void organize(const system::chain::header::cptr& header,
+        organize_handler&& handler) NOEXCEPT;
+
+    /// Organize a checked block.
+    virtual void organize(const system::chain::block::cptr& block,
+        organize_handler&& handler) NOEXCEPT;
+
+    /// Get block hashes for blocks to download.
+    virtual void get_hashes(map_handler&& handler) NOEXCEPT;
+
+    /// Submit block hashes for blocks not downloaded.
+    virtual void put_hashes(const map_ptr& map,
+        network::result_handler&& handler) NOEXCEPT;
+
+    /// Methods.
+    /// -----------------------------------------------------------------------
+
     /// Report performance, handler may direct self-terminate.
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) const NOEXCEPT;
 
-    /// Organize a validated header.
-    virtual void organize(const system::chain::header::cptr& header,
-        chaser::organize_handler&& handler) NOEXCEPT;
-
-    /// Organize a checked block.
-    virtual void organize(const system::chain::block::cptr& block,
-        chaser::organize_handler&& handler) NOEXCEPT;
-
-    /// Get block hashes for blocks to download.
-    virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
-
-    /// Submit block hashes for blocks not downloaded.
-    virtual void put_hashes(const chaser_check::map_ptr& map,
-        network::result_handler&& handler) NOEXCEPT;
+    /// Events.
+    /// -----------------------------------------------------------------------
 
     /// Set a chaser event.
-    virtual void notify(const code& ec, chaser::chase event_,
-        chaser::link value) NOEXCEPT;
+    virtual void notify(const code& ec, chase event_,
+        event_link value) NOEXCEPT;
 
     /// Subscribe to chaser events.
-    virtual void async_subscribe_events(
-        chaser::event_handler&& handler) NOEXCEPT;
+    virtual void async_subscribe_events(event_handler&& handler) NOEXCEPT;
 
-    /// The candidate chain is current.
-    virtual bool is_current() const NOEXCEPT;
+    /// Properties.
+    /// -----------------------------------------------------------------------
+
+    /// Thread safe synchronous archival interface.
+    query& archive() const NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
-    /// Thread safe synchronous archival interface.
-    full_node::query& archive() const NOEXCEPT;
+    /// The candidate chain is current.
+    virtual bool is_current() const NOEXCEPT;
 
 private:
     session& session_;

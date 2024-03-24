@@ -20,7 +20,7 @@
 #define LIBBITCOIN_NODE_ERROR_HPP
 
 #include <bitcoin/system.hpp>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/version.hpp>
 
 namespace libbitcoin {
 namespace node {

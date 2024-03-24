@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_INBOUND_HPP
 
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/attach.hpp>
 
 namespace libbitcoin {

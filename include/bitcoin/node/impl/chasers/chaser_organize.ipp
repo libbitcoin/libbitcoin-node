@@ -19,10 +19,10 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 
-#include <variant>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -40,8 +40,6 @@ CLASS::chaser_organize(full_node& node) NOEXCEPT
 TEMPLATE
 code CLASS::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
-
     using namespace system;
     using namespace std::placeholders;
     const auto& query = archive();
@@ -89,166 +87,42 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-void CLASS::handle_event(const code&, chase event_, link value) NOEXCEPT
+void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
 {
-    if (event_ == chase::unchecked ||
-        event_ == chase::unpreconfirmed ||
-        event_ == chase::unconfirmed)
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<header_t>(value));
-        POST(do_disorganize, std::get<header_t>(value));
-    }
-}
-
-TEMPLATE
-void CLASS::do_disorganize(header_t header) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    using namespace system;
-
-    // Skip already reorganized out, get height.
-    // ........................................................................
-
-    // Upon restart candidate chain validation will hit unconfirmable block.
-    if (closed())
-        return;
-
-    // If header is not a current candidate it has been reorganized out.
-    // If header becomes candidate again its unconfirmable state is handled.
-    auto& query = archive();
-    if (!query.is_candidate_block(header))
-        return;
-
-    size_t height{};
-    if (!query.get_height(height, header) || is_zero(height))
-    {
-        close(error::internal_error);
-        return;
-    }
-
-    // Must reorganize down to fork point, since entire branch is now weak.
-    const auto fork_point = query.get_fork();
-    if (height <= fork_point)
-    {
-        close(error::internal_error);
-        return;
-    }
-
-    // Mark candidates above and pop at/above height.
-    // ........................................................................
-
-    // Pop from top down to and including header marking each as unconfirmable.
-    // Unconfirmability isn't necessary for validation but adds query context.
-    for (auto index = query.get_top_candidate(); index > height; --index)
-    {
-        const auto link = query.to_candidate(index);
-
-        LOGN("Invalidating candidate ["
-            << encode_hash(query.get_header_key(link))<< ":" << index << "].");
-
-        if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
+        case chase::unchecked:
+        case chase::unpreconfirmed:
+        case chase::unconfirmed:
         {
-            close(error::store_integrity);
-            return;
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_disorganize, std::get<header_t>(value));
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        ////case chase::unchecked:
+        case chase::preconfirmed:
+        ////case chase::unpreconfirmed:
+        case chase::confirmed:
+        ////case chase::unconfirmed:
+        case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
         }
     }
-
-    LOGN("Invalidating candidate ["
-        << encode_hash(query.get_header_key(header)) << ":" << height << "].");
-
-    // Candidate at height is already marked as unconfirmable by notifier.
-    if (!query.pop_candidate())
-    {
-        close(error::store_integrity);
-        return;
-    }
-
-    // Reset top chain state cache to fork point.
-    // ........................................................................
-
-    const auto top_candidate = state_->height();
-    const auto prev_forks = state_->forks();
-    const auto prev_version = state_->minimum_block_version();
-    state_ = query.get_candidate_chain_state(settings_, fork_point);
-    if (!state_)
-    {
-        close(error::store_integrity);
-        return;
-    }
-
-    // TODO: this could be moved to deconfirmation.
-    const auto next_forks = state_->forks();
-    if (prev_forks != next_forks)
-    {
-        const binary prev{ fork_bits, to_big_endian(prev_forks) };
-        const binary next{ fork_bits, to_big_endian(next_forks) };
-        LOGN("Forks reverted from ["
-            << prev << "] at candidate ("
-            << top_candidate << ") to ["
-            << next << "] at confirmed ["
-            << fork_point << ":" << encode_hash(state_->hash()) << "].");
-    }
-
-    // TODO: this could be moved to deconfirmation.
-    const auto next_version = state_->minimum_block_version();
-    if (prev_version != next_version)
-    {
-        LOGN("Minimum block version reverted ["
-            << prev_version << "] at candidate ("
-            << top_candidate << ") to ["
-            << next_version << "] at confirmed ["
-            << fork_point << ":" << encode_hash(state_->hash()) << "].");
-    }
-
-    // Copy candidates from above fork point to top into header tree.
-    // ........................................................................
-
-    auto state = state_;
-    for (auto index = add1(fork_point); index <= top_candidate; ++index)
-    {
-        typename Block::cptr save{};
-        if (!get_block(save, index))
-        {
-            close(error::store_integrity);
-            return;
-        }
-
-        BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-        state.reset(new chain::chain_state{ *state, *save, settings_ });
-        BC_POP_WARNING()
-        cache(save, state);
-    }
-
-    // Pop candidates from top to above fork point.
-    // ........................................................................
-    for (auto index = top_candidate; index > fork_point; --index)
-    {
-        LOGN("Deorganizing candidate [" << index << "].");
-
-        if (!query.pop_candidate())
-        {
-            close(error::store_integrity);
-            return;
-        }
-    }
-
-    // Push confirmed headers from above fork point onto candidate chain.
-    // ........................................................................
-    const auto top_confirmed = query.get_top_confirmed();
-    for (auto index = add1(fork_point); index <= top_confirmed; ++index)
-    {
-        if (!query.push_candidate(query.to_confirmed(index)))
-        {
-            close(error::store_integrity);
-            return;
-        }
-    }
-
-    // Notify check/download/confirmation to reset to top (clear).
-    // As this organizer controls the candidate array, height is definitive.
-    const auto top = possible_narrow_cast<height_t>(top_confirmed);
-    notify(error::success, chase::disorganized, top);
 }
 
 TEMPLATE
@@ -492,6 +366,157 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     handler(error::success, height);
 }
 
+TEMPLATE
+void CLASS::do_disorganize(header_t header) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    using namespace system;
+
+    // Skip already reorganized out, get height.
+    // ........................................................................
+
+    // Upon restart candidate chain validation will hit unconfirmable block.
+    if (closed())
+        return;
+
+    // If header is not a current candidate it has been reorganized out.
+    // If header becomes candidate again its unconfirmable state is handled.
+    auto& query = archive();
+    if (!query.is_candidate_block(header))
+        return;
+
+    size_t height{};
+    if (!query.get_height(height, header) || is_zero(height))
+    {
+        close(error::internal_error);
+        return;
+    }
+
+    // Must reorganize down to fork point, since entire branch is now weak.
+    const auto fork_point = query.get_fork();
+    if (height <= fork_point)
+    {
+        close(error::internal_error);
+        return;
+    }
+
+    // Mark candidates above and pop at/above height.
+    // ........................................................................
+
+    // Pop from top down to and including header marking each as unconfirmable.
+    // Unconfirmability isn't necessary for validation but adds query context.
+    for (auto index = query.get_top_candidate(); index > height; --index)
+    {
+        const auto link = query.to_candidate(index);
+
+        LOGN("Invalidating candidate ["
+            << encode_hash(query.get_header_key(link))<< ":" << index << "].");
+
+        if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    LOGN("Invalidating candidate ["
+        << encode_hash(query.get_header_key(header)) << ":" << height << "].");
+
+    // Candidate at height is already marked as unconfirmable by notifier.
+    if (!query.pop_candidate())
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // Reset top chain state cache to fork point.
+    // ........................................................................
+
+    const auto top_candidate = state_->height();
+    const auto prev_forks = state_->forks();
+    const auto prev_version = state_->minimum_block_version();
+    state_ = query.get_candidate_chain_state(settings_, fork_point);
+    if (!state_)
+    {
+        close(error::store_integrity);
+        return;
+    }
+
+    // TODO: this could be moved to deconfirmation.
+    const auto next_forks = state_->forks();
+    if (prev_forks != next_forks)
+    {
+        const binary prev{ fork_bits, to_big_endian(prev_forks) };
+        const binary next{ fork_bits, to_big_endian(next_forks) };
+        LOGN("Forks reverted from ["
+            << prev << "] at candidate ("
+            << top_candidate << ") to ["
+            << next << "] at confirmed ["
+            << fork_point << ":" << encode_hash(state_->hash()) << "].");
+    }
+
+    // TODO: this could be moved to deconfirmation.
+    const auto next_version = state_->minimum_block_version();
+    if (prev_version != next_version)
+    {
+        LOGN("Minimum block version reverted ["
+            << prev_version << "] at candidate ("
+            << top_candidate << ") to ["
+            << next_version << "] at confirmed ["
+            << fork_point << ":" << encode_hash(state_->hash()) << "].");
+    }
+
+    // Copy candidates from above fork point to top into header tree.
+    // ........................................................................
+
+    auto state = state_;
+    for (auto index = add1(fork_point); index <= top_candidate; ++index)
+    {
+        typename Block::cptr save{};
+        if (!get_block(save, index))
+        {
+            close(error::store_integrity);
+            return;
+        }
+
+        BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+        state.reset(new chain::chain_state{ *state, *save, settings_ });
+        BC_POP_WARNING()
+        cache(save, state);
+    }
+
+    // Pop candidates from top to above fork point.
+    // ........................................................................
+    for (auto index = top_candidate; index > fork_point; --index)
+    {
+        LOGN("Deorganizing candidate [" << index << "].");
+
+        if (!query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Push confirmed headers from above fork point onto candidate chain.
+    // ........................................................................
+    const auto top_confirmed = query.get_top_confirmed();
+    for (auto index = add1(fork_point); index <= top_confirmed; ++index)
+    {
+        if (!query.push_candidate(query.to_confirmed(index)))
+        {
+            close(error::store_integrity);
+            return;
+        }
+    }
+
+    // Notify check/download/confirmation to reset to top (clear).
+    // As this organizer controls the candidate array, height is definitive.
+    const auto top = possible_narrow_cast<height_t>(top_confirmed);
+    notify(error::success, chase::disorganized, top);
+}
+
 // Private
 // ----------------------------------------------------------------------------
 
@@ -598,11 +623,12 @@ TEMPLATE
 database::header_link CLASS::push(const typename Block::cptr& block_ptr,
     const system::chain::context& context) const NOEXCEPT
 {
+    using namespace system;
     auto& query = archive();
     const auto link = query.set_link(*block_ptr, database::context
     {
-        system::possible_narrow_cast<flags_t>(context.forks),
-        system::possible_narrow_cast<height_t>(context.height),
+        possible_narrow_cast<database::context::flag::integer>(context.forks),
+        possible_narrow_cast<database::context::block::integer>(context.height),
         context.median_time_past,
     });
 

@@ -18,12 +18,10 @@
  */
 #include <bitcoin/node/chasers/chaser_preconfirm.hpp>
 
-#include <functional>
-#include <variant>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -47,7 +45,6 @@ chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
 
 code chaser_preconfirm::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
     last_ = archive().get_fork();
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -65,7 +62,7 @@ bool chaser_preconfirm::is_under_milestone(size_t height) const NOEXCEPT
 }
 
 void chaser_preconfirm::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+    event_link value) NOEXCEPT
 {
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
@@ -80,13 +77,13 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::checked:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(handle_checked, std::get<height_t>(value));
+            POST(do_height_checked, std::get<height_t>(value));
             break;
         }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(handle_disorganized, std::get<height_t>(value));
+            POST(do_disorganized, std::get<height_t>(value));
             break;
         }
         case chase::header:
@@ -115,7 +112,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_preconfirm::handle_checked(height_t height) NOEXCEPT
+void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -208,7 +205,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
     }
 }
 
-void chaser_preconfirm::handle_disorganized(height_t fork_point) NOEXCEPT
+void chaser_preconfirm::do_disorganized(height_t fork_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
     last_ = archive().get_top_preconfirmable_from(fork_point);

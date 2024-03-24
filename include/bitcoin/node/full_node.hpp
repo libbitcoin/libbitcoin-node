@@ -19,29 +19,26 @@
 #ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
-#include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
-#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
- // Thread safe.
+/// Thread safe.
 class BCN_API full_node
   : public network::p2p
 {
 public:
+    using store = node::store;
+    using query = node::query;
     typedef std::shared_ptr<full_node> ptr;
-    typedef database::store<database::map> store;
-    typedef database::query<store> query;
 
     /// Constructors.
     /// -----------------------------------------------------------------------
 
-    /// Construct the node.
     full_node(query& query, const configuration& configuration,
         const network::logger& log) NOEXCEPT;
 
@@ -59,25 +56,31 @@ public:
     /// Close the node.
     void close() NOEXCEPT override;
 
-    /// Chasers.
+    /// Organizers.
     /// -----------------------------------------------------------------------
 
     /// Organize a validated header.
     virtual void organize(const system::chain::header::cptr& header,
-        chaser::organize_handler&& handler) NOEXCEPT;
+        organize_handler&& handler) NOEXCEPT;
 
     /// Organize a validated block.
     virtual void organize(const system::chain::block::cptr& block,
-        chaser::organize_handler&& handler) NOEXCEPT;
+        organize_handler&& handler) NOEXCEPT;
 
     /// Manage download queue.
-    virtual void get_hashes(chaser_check::handler&& handler) NOEXCEPT;
-    virtual void put_hashes(const chaser_check::map_ptr& map,
+    virtual void get_hashes(map_handler&& handler) NOEXCEPT;
+    virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
+    /// Events.
+    /// -----------------------------------------------------------------------
+
     /// Set chaser event (does not require network strand).
-    virtual void notify(const code& ec, chaser::chase event_,
-        chaser::link value) NOEXCEPT;
+    virtual void notify(const code& ec, chase event_,
+        event_link value) NOEXCEPT;
+
+    /// Call from chaser start() methods (node strand).
+    virtual code subscribe_events(event_handler&& handler) NOEXCEPT;
 
     /// Methods.
     /// -----------------------------------------------------------------------
@@ -88,23 +91,20 @@ public:
     /// Resume the node.
     virtual void resume() NOEXCEPT;
 
+    /// Properties.
+    /// -----------------------------------------------------------------------
+
+    /// Thread safe synchronous archival interface.
+    virtual query& archive() const NOEXCEPT;
+
+    /// Configuration settings for all libraries.
+    virtual const configuration& config() const NOEXCEPT;
+
     /// The candidate chain is current.
     virtual bool is_current() const NOEXCEPT;
 
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
-
-    /// Properties.
-    /// -----------------------------------------------------------------------
-
-    /// Configuration settings for all libraries.
-    virtual const configuration& config() const NOEXCEPT;
-
-    /// Thread safe synchronous archival interface.
-    virtual query& archive() const NOEXCEPT;
-
-    /// Obtain reference to the chaser event subscriber.
-    virtual chaser::event_subscriber& event_subscriber() NOEXCEPT;
 
 protected:
     /// Session attachments.
@@ -118,16 +118,16 @@ protected:
     void do_start(const network::result_handler& handler) NOEXCEPT override;
     void do_run(const network::result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;
-    virtual void do_notify(const code& ec, chaser::chase event_,
-        chaser::link value) NOEXCEPT;
 
 private:
+    void do_notify(const code& ec, chase event_, event_link value) NOEXCEPT;
+
     // These are thread safe.
     const configuration& config_;
     query& query_;
 
     // These are protected by strand.
-    chaser::event_subscriber event_subscriber_;
+    event_subscriber event_subscriber_;
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;

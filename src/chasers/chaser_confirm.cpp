@@ -18,12 +18,10 @@
  */
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 
-#include <functional>
-#include <variant>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -42,8 +40,6 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 
 code chaser_confirm::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
-
     // When the top preconfirmable block is stronger than the top confirmed
     // a reorganzation attempt occurs in which confirmability is established.
     /////top_ = archive().get_top_preconfirmable();
@@ -52,7 +48,7 @@ code chaser_confirm::start() NOEXCEPT
 }
 
 void chaser_confirm::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+    event_link value) NOEXCEPT
 {
     // These can come out of order, advance in order synchronously.
     switch (event_)
@@ -60,13 +56,13 @@ void chaser_confirm::handle_event(const code&, chase event_,
         case chase::preconfirmed:
         {
             BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(handle_preconfirmed, std::get<header_t>(value));
+            POST(do_preconfirmed, std::get<header_t>(value));
             break;
         }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(handle_disorganized, std::get<height_t>(value));
+            POST(do_disorganized, std::get<height_t>(value));
             break;
         }
         case chase::header:
@@ -95,7 +91,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_confirm::handle_disorganized(height_t) NOEXCEPT
+void chaser_confirm::do_disorganized(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     ////top_ = archive().get_top_preconfirmable_from(fork_point);
@@ -106,7 +102,7 @@ void chaser_confirm::handle_disorganized(height_t) NOEXCEPT
     ////handle_preconfirmed(possible_narrow_cast<height_t>(add1(top_)));
 }
 
-void chaser_confirm::handle_preconfirmed(header_t) NOEXCEPT
+void chaser_confirm::do_preconfirmed(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     ////auto& query = archive();

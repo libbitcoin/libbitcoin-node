@@ -18,13 +18,9 @@
  */
 #include <bitcoin/node/full_node.hpp>
 
-#include <functional>
-#include <memory>
-#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
@@ -34,9 +30,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 using namespace system;
 using namespace network;
-using namespace std::placeholders;
 
-// p2p::strand() as it is non-virtual (safe to call from constructor).
+// p2p::strand() is safe to call from constructor (non-virtual).
 full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
@@ -108,7 +103,9 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
         return;
     }
 
-    do_notify(error::success, chaser::chase::bump, chaser::height_t{});
+    // Bump sequential chasers to their starting heights.
+    // This will kick off lagging validations even if not current.
+    do_notify(error::success, chase::bump, height_t{});
 
     p2p::do_run(handler);
 }
@@ -124,48 +121,57 @@ void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    event_subscriber_.stop(network::error::service_stopped,
-        chaser::chase::stop, {});
+    event_subscriber_.stop(network::error::service_stopped, chase::stop,
+        count_t{});
 
     p2p::do_close();
 }
 
-// Chasers.
+// Organizers.
 // ----------------------------------------------------------------------------
 
 void full_node::organize(const system::chain::header::cptr& header,
-    chaser::organize_handler&& handler) NOEXCEPT
+    organize_handler&& handler) NOEXCEPT
 {
     chaser_header_.organize(header, std::move(handler));
 }
 
 void full_node::organize(const system::chain::block::cptr& block,
-    chaser::organize_handler&& handler) NOEXCEPT
+    organize_handler&& handler) NOEXCEPT
 {
     chaser_block_.organize(block, std::move(handler));
 }
 
-void full_node::get_hashes(chaser_check::handler&& handler) NOEXCEPT
+void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 {
     chaser_check_.get_hashes(std::move(handler));
 }
 
-void full_node::put_hashes(const chaser_check::map_ptr& map,
+void full_node::put_hashes(const map_ptr& map,
     network::result_handler&& handler) NOEXCEPT
 {
     chaser_check_.put_hashes(map, std::move(handler));
 }
 
-void full_node::notify(const code& ec, chaser::chase event_,
-    chaser::link value) NOEXCEPT
+// Events.
+// ----------------------------------------------------------------------------
+
+code full_node::subscribe_events(event_handler&& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    return event_subscriber_.subscribe(std::move(handler));
+}
+
+void full_node::notify(const code& ec, chase event_, event_link value) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&full_node::do_notify,
             this, ec, event_, value));
 }
 
-void full_node::do_notify(const code& ec, chaser::chase event_,
-    chaser::link value) NOEXCEPT
+// private
+void full_node::do_notify(const code& ec, chase event_,
+    event_link value) NOEXCEPT
 {
     BC_ASSERT(stranded());
     event_subscriber_.notify(ec, event_, value);
@@ -176,12 +182,25 @@ void full_node::do_notify(const code& ec, chaser::chase event_,
 
 void full_node::pause() NOEXCEPT
 {
-    notify(error::success, chaser::chase::pause, chaser::channel_t{});
+    notify(error::success, chase::pause, channel_t{});
 }
 
 void full_node::resume() NOEXCEPT
 {
-    notify(error::success, chaser::chase::resume, chaser::channel_t{});
+    notify(error::success, chase::resume, channel_t{});
+}
+
+// Properties.
+// ----------------------------------------------------------------------------
+
+query& full_node::archive() const NOEXCEPT
+{
+    return query_;
+}
+
+const configuration& full_node::config() const NOEXCEPT
+{
+    return config_;
 }
 
 bool full_node::is_current() const NOEXCEPT
@@ -203,24 +222,6 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     const auto time = wall_clock::from_time_t(timestamp);
     const auto current = wall_clock::now() - config_.node.currency_window();
     return time >= current;
-}
-
-// Properties.
-// ----------------------------------------------------------------------------
-
-full_node::query& full_node::archive() const NOEXCEPT
-{
-    return query_;
-}
-
-chaser::event_subscriber& full_node::event_subscriber() NOEXCEPT
-{
-    return event_subscriber_;
-}
-
-const configuration& full_node::config() const NOEXCEPT
-{
-    return config_;
 }
 
 // Session attachments.

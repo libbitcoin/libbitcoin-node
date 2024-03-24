@@ -44,10 +44,10 @@ public:
     void start() NOEXCEPT override;
 
     virtual void handle_event(const code& ec,
-        chaser::chase event_, chaser::link value) NOEXCEPT;
+        chase event_, event_link value) NOEXCEPT;
 
-    void do_pause(chaser::channel_t channel) NOEXCEPT;
-    void do_resume(chaser::channel_t channel) NOEXCEPT;
+    void do_pause(channel_t channel) NOEXCEPT;
+    void do_resume(channel_t channel) NOEXCEPT;
 };
 
 } // namespace node

@@ -21,8 +21,8 @@
 
 #include <ostream>
 #include <bitcoin/system.hpp>
-#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {

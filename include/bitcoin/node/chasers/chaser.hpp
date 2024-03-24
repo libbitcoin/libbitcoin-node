@@ -19,10 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 
-#include <functional>
-#include <utility>
-#include <variant>
-#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -37,116 +33,23 @@ class full_node;
 /// Each chaser operates on its own strand, implemented here, allowing
 /// concurrent chaser operations to the extent that threads are available.
 /// Events are passed between chasers using the full_node shared notifier.
-/// Notifications are bounced from sink (e.g. chaser) to its strand, and
-/// notify bounces from source (e.g. chaser) to network strand.
 /// Unlike protocols chasers can stop the node.
-/// Logging is currently disabled so that logging is kept to the protocols.
 class BCN_API chaser
   : public network::reporter
 {
 public:
-    enum class chase
-    {
-        /// A new candidate branch exists (height_t).
-        /// Issued by 'header' and handled by 'check'.
-        header,
-
-        /// New candidate headers without txs exist (count_t).
-        /// Issued by 'check' and handled by 'block_in_31800'.
-        download,
-
-        /// Channel is starved for block download identifiers (channel_t).
-        /// Issued by 'block_in_31800' and handled by 'session_outbound'.
-        starved,
-
-        /// Channel (slow) is directed to split its work and stop (channel_t).
-        /// Issued by 'session_outbound' and handled by 'block_in_31800'.
-        split,
-
-        /// Channels (all with work) are directed to split work and stop (0).
-        /// Issued by 'session_outbound' and handled by 'block_in_31800'.
-        stall,
-
-        /// Channels (all with work) are directed to drop work and stop (0).
-        /// Issued by 'check' and handled by 'block_in_31800'.
-        purge,
-
-        /// Channels (all) are directed to pause reading.
-        /// Issued by 'full_node' and handled by 'protocol'.
-        pause,
-
-        /// Channels (all) are directed to resume reading.
-        /// Issued by 'full_node' and handled by 'protocol'.
-        resume,
-
-        /// Chaser is directed to start validating (height_t).
-        /// Issued by 'full_node' and handled by 'preconfirm'.
-        bump,
-
-        /// A block has been downloaded, checked and stored (height_t).
-        /// Issued by 'block_in_31800' and handled by 'connect'.
-        checked,
-
-        /// A downloaded block has failed check (header_t).
-        /// Issued by 'block_in_31800' and handled by 'header'.
-        unchecked,
-
-        /// A branch has been preconfirmed (header_t).
-        /// Issued by 'preconfirm' and handled by 'confirm'.
-        preconfirmed,
-
-        /// A checked block has failed preconfirm (header_t).
-        /// Issued by 'preconfirm' and handled by 'header'.
-        unpreconfirmed,
-
-        /// A branch has been confirmed (header_t).
-        /// Issued by 'confirm' and handled by 'transaction'.
-        confirmed,
-
-        /// A connected block has failed confirm (header_t).
-        /// Issued by 'confirm' and handled by 'header' (and 'block').
-        unconfirmed,
-
-        /// unchecked, unpreconfirmed or unconfirmed was handled (height_t).
-        /// Issued by 'organize' and handled by 'preconfirm' and 'confirm'.
-        disorganized,
-
-        /// A new transaction has been added to the pool (transaction_t).
-        /// Issued by 'transaction' and handled by 'candidate'.
-        transaction,
-
-        /// A new candidate block (template) has been created ().
-        /// Issued by 'candidate' and handled by [miners].
-        candidate,
-
-        /// Legacy: A new strong branch exists (branch height_t).
-        /// Issued by 'block' and handled by 'confirm'.
-        block,
-
-        /// Service is stopping (accompanied by error::service_stopped), ().
-        stop
-    };
-
-    using height_t = database::height_link::integer;
-    using header_t = database::header_link::integer;
-    using transaction_t = database::tx_link::integer;
-    using flags_t = database::context::flag::integer;
-    using channel_t = uint64_t;
-    using count_t = height_t;
-
-    typedef std::function<void(const code&, size_t)> organize_handler;
-    typedef std::variant<uint32_t, uint64_t> link;
-    typedef network::subscriber<chase, link> event_subscriber;
-    typedef event_subscriber::handler event_handler;
-
-    typedef database::store<database::map> store;
-    typedef database::query<store> query;
     DELETE_COPY_MOVE_DESTRUCT(chaser);
 
-    /// Synchronously subscribe to notify and asynchronously initialize state.
+    /// Should be called from node strand.
     virtual code start() NOEXCEPT = 0;
 
 protected:
+    /// Abstract base class protected construct.
+    chaser(full_node& node) NOEXCEPT;
+
+    /// Binders.
+    /// -----------------------------------------------------------------------
+
     /// Bind a method (use BIND).
     template <class Derived, typename Method, typename... Args>
     auto bind(Method&& method, Args&&... args) NOEXCEPT
@@ -161,13 +64,26 @@ protected:
         return boost::asio::post(strand(), BIND_THIS(method, args));
     }
 
-    chaser(full_node& node) NOEXCEPT;
+    /// Close.
+    /// -----------------------------------------------------------------------
 
     /// Close the node after logging the code.
     void close(const code& ec) const NOEXCEPT;
 
     /// Node threadpool is stopped and may still be joining.
     bool closed() const NOEXCEPT;
+
+    /// Events.
+    /// -----------------------------------------------------------------------
+
+    /// Call from chaser start methods (requires node strand).
+    code subscribe_events(event_handler&& handler) NOEXCEPT;
+
+    /// Set event (does not require node strand).
+    void notify(const code& ec, chase event_, event_link value) NOEXCEPT;
+
+    /// Properties.
+    /// -----------------------------------------------------------------------
 
     /// Node configuration settings.
     const node::configuration& config() const NOEXCEPT;
@@ -181,28 +97,13 @@ protected:
     /// True if the current thread is on the chaser strand.
     bool stranded() const NOEXCEPT;
 
-    /// True if the current thread is on the node strand.
-    bool node_stranded() const NOEXCEPT;
-
-    /// Subscribe to chaser events.
-    /// Call from chaser start() methods (node strand).
-    code subscribe_events(event_handler&& handler) NOEXCEPT;
-
-    /// Set chaser event (does not require node strand).
-    void notify(const code& ec, chase event_, link value) NOEXCEPT;
-
     /// Header timestamp is within configured span from current time.
-    virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
+    bool is_current(uint32_t timestamp) const NOEXCEPT;
 
 private:
-    void do_notify(const code& ec, chase event_, link value) NOEXCEPT;
-
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
-
-    // This is protected by the network strand.
-    event_subscriber& subscriber_;
 };
 
 #define SUBSCRIBE_EVENTS(method, ...) \

@@ -19,14 +19,10 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <algorithm>
-#include <functional>
-#include <memory>
-#include <utility>
-#include <variant>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
-#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -56,8 +52,6 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 
 code chaser_check::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
-
     const auto fork_point = archive().get_fork();
     const auto added = get_unassociated(maps_, fork_point);
     LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
@@ -66,7 +60,7 @@ code chaser_check::start() NOEXCEPT
 }
 
 void chaser_check::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+    event_link value) NOEXCEPT
 {
     switch (event_)
     {
@@ -145,7 +139,7 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
 // get/put hashes
 // ----------------------------------------------------------------------------
 
-void chaser_check::get_hashes(handler&& handler) NOEXCEPT
+void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_get_hashes,
@@ -160,7 +154,7 @@ void chaser_check::put_hashes(const map_ptr& map,
             this, map, std::move(handler)));
 }
 
-void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
+void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -217,14 +211,14 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
         });
 }
 
-chaser_check::map_ptr chaser_check::make_map(size_t start,
+map_ptr chaser_check::make_map(size_t start,
     size_t count) const NOEXCEPT
 {
     return std::make_shared<database::associations>(
         archive().get_unassociated_above(start, count));
 }
 
-chaser_check::map_ptr chaser_check::get_map(maps& table) NOEXCEPT
+map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
     return table.empty() ? std::make_shared<database::associations>() :
         pop_front(table);

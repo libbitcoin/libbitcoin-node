@@ -19,10 +19,8 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 #define LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 
-#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 

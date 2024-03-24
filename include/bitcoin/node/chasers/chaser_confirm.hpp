@@ -19,10 +19,8 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
 
-#include <functional>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,13 +36,14 @@ public:
 
     chaser_confirm(full_node& node) NOEXCEPT;
 
-    virtual code start() NOEXCEPT;
+    code start() NOEXCEPT override;
 
 protected:
-    virtual void handle_disorganized(height_t fork_point) NOEXCEPT;
-    virtual void handle_preconfirmed(header_t link) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
-        link value) NOEXCEPT;
+        event_link value) NOEXCEPT;
+
+    virtual void do_disorganized(height_t fork_point) NOEXCEPT;
+    virtual void do_preconfirmed(header_t link) NOEXCEPT;
 
 private:
     // This is protected by strand.

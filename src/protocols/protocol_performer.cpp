@@ -18,12 +18,9 @@
  */
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 
-#include <functional>
-#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/error.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -127,7 +124,7 @@ void protocol_performer::do_handle_performance(const code& ec) NOEXCEPT
         return;
 
     // Caused only by performance(max) - had no outstanding work.
-    // Timer stopped until chaser::download event restarts it.
+    // Timer stopped until chase::download event restarts it.
     if (ec == error::exhausted_channel)
         return;
 
