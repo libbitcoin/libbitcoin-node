@@ -19,10 +19,8 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CANDIDATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CANDIDATE_HPP
 
-#include <functional>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -38,12 +36,13 @@ public:
 
     chaser_candidate(full_node& node) NOEXCEPT;
 
-    virtual code start() NOEXCEPT;
+    code start() NOEXCEPT override;
 
 protected:
-    virtual void handle_transaction(transaction_t value) NOEXCEPT;
     virtual void handle_event(const code& ec, chase event_,
-        link value) NOEXCEPT;
+        event_link value) NOEXCEPT;
+
+    virtual void do_transaction(transaction_t value) NOEXCEPT;
 };
 
 } // namespace node

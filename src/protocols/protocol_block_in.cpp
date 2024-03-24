@@ -19,13 +19,9 @@
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
 #include <algorithm>
-#include <functional>
-#include <utility>
-#include <bitcoin/system.hpp>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/error.hpp>
 
 // The block protocol is partially obsoleted by the headers protocol.
 // Both block and header protocols conflate iterative requests and unsolicited

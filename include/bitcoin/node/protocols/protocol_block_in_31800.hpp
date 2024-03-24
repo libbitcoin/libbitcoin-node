@@ -19,9 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 
-#include <memory>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 
@@ -58,21 +56,21 @@ protected:
 
     /// Get published download identifiers.
     virtual void handle_event(const code& ec,
-        chaser::chase event_, chaser::link value) NOEXCEPT;
-    virtual void do_get_downloads(chaser::count_t count) NOEXCEPT;
+        chase event_, event_link value) NOEXCEPT;
+    virtual void do_get_downloads(count_t count) NOEXCEPT;
 
     /// Manage work splitting.
-    virtual bool is_idle() const NOEXCEPT;
-    virtual void do_split(chaser::channel_t channel) NOEXCEPT;
-    virtual void do_pause(chaser::channel_t channel) NOEXCEPT;
-    virtual void do_resume(chaser::channel_t channel) NOEXCEPT;
+    bool is_idle() const NOEXCEPT override;
+    virtual void do_split(channel_t channel) NOEXCEPT;
+    virtual void do_pause(channel_t channel) NOEXCEPT;
+    virtual void do_resume(channel_t channel) NOEXCEPT;
+    virtual void do_purge(height_t top) NOEXCEPT;
 
     /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
         const network::messages::block::cptr& message) NOEXCEPT;
 
 private:
-    using map_ptr = chaser_check::map_ptr;
     using type_id = network::messages::inventory::type_id;
     static constexpr size_t minimum_for_stall_divide = 2;
 

@@ -18,9 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_observer.hpp>
 
-#include <functional>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -43,28 +41,58 @@ void protocol_observer::start() NOEXCEPT
     protocol::start();
 }
 
-void protocol_observer::handle_event(const code&,
-    chaser::chase event_, chaser::link) NOEXCEPT
+void protocol_observer::handle_event(const code&, chase event_,
+    event_link value) NOEXCEPT
 {
     if (stopped())
         return;
 
-    if (event_ == chaser::chase::pause)
+    switch (event_)
     {
-        POST(do_pause, chaser::channel_t{});
-    }
-    else if (event_ == chaser::chase::resume)
-    {
-        POST(do_resume, chaser::channel_t{});
+        case chase::pause:
+        {
+            BC_ASSERT(std::holds_alternative<channel_t>(value));
+            POST(do_pause, std::get<channel_t>(value));
+            break;
+        }
+        case chase::resume:
+        {
+            BC_ASSERT(std::holds_alternative<channel_t>(value));
+            POST(do_resume, std::get<channel_t>(value));
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        ////case chase::pause:
+        ////case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
 
-void protocol_observer::do_pause(chaser::channel_t) NOEXCEPT
+void protocol_observer::do_pause(channel_t) NOEXCEPT
 {
     pause();
 }
 
-void protocol_observer::do_resume(chaser::channel_t) NOEXCEPT
+void protocol_observer::do_resume(channel_t) NOEXCEPT
 {
     resume();
 }

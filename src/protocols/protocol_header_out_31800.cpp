@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 
-#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>

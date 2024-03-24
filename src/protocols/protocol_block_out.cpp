@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_block_out.hpp>
 
-#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>

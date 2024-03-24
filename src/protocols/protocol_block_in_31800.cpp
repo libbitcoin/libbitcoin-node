@@ -19,14 +19,9 @@
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 
 #include <algorithm>
-#include <functional>
-#include <memory>
-#include <variant>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/error.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -85,29 +80,29 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
 }
 
 void protocol_block_in_31800::handle_event(const code&,
-    chaser::chase event_, chaser::link value) NOEXCEPT
+    chase event_, event_link value) NOEXCEPT
 {
     if (stopped())
         return;
 
     switch (event_)
     {
-        case chaser::chase::download:
+        case chase::download:
         {
             // There are count blocks to download at/above given header.
             // But don't download blocks until candidate chain is current.
             if (is_current())
             {
-                BC_ASSERT(std::holds_alternative<chaser::count_t>(value));
-                POST(do_get_downloads, std::get<chaser::count_t>(value));
+                BC_ASSERT(std::holds_alternative<count_t>(value));
+                POST(do_get_downloads, std::get<count_t>(value));
             }
 
             break;
         }
-        case chaser::chase::split:
+        case chase::split:
         {
-            BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
-            const auto channel = std::get<chaser::channel_t>(value);
+            BC_ASSERT(std::holds_alternative<channel_t>(value));
+            const auto channel = std::get<channel_t>(value);
 
             // It was determined to be the slowest channel with work.
             // If value identifies this channel, split work and stop.
@@ -118,45 +113,90 @@ void protocol_block_in_31800::handle_event(const code&,
 
             break;
         }
-        case chaser::chase::stall:
+        case chase::stall:
         {
             // If this channel has divisible work, split it and stop.
             // There are no channels reporting work, either stalled or done.
             // This is initiated by any channel notifying chase::starved.
             if (map_->size() >= minimum_for_stall_divide)
             {
-                POST(do_split, chaser::count_t{});
+                POST(do_split, count_t{});
             }
 
             break;
         }
-        case chaser::chase::pause:
+        case chase::purge:
         {
-            // Pause local timers due to channel pause (e.g. snapshot pending).
-            POST(do_pause, chaser::channel_t{});
+            // If this channel has work clear it and stop.
+            // This is initiated by validate/confirm chase::disorganized.
+            if (map_->size() >= minimum_for_stall_divide)
+            {
+                POST(do_purge, height_t{});
+            }
+
             break;
         }
-        case chaser::chase::resume:
+        case chase::pause:
+        {
+            // Pause local timers due to channel pause (e.g. snapshot pending).
+            POST(do_pause, channel_t{});
+            break;
+        }
+        case chase::resume:
         {
             // Resume local timers due to channel resume (e.g. snapshot done).
-            POST(do_resume, chaser::channel_t{});
+            POST(do_resume, channel_t{});
+            break;
+        }
+        case chase::header:
+        ////case chase::download:
+        case chase::starved:
+        ////case chase::split:
+        ////case chase::stall:
+        ////case chase::purge:
+        ////case chase::pause:
+        ////case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
             break;
         }
     }
 }
 
-void protocol_block_in_31800::do_pause(chaser::channel_t) NOEXCEPT
+void protocol_block_in_31800::do_pause(channel_t) NOEXCEPT
 {
     pause_performance();
 }
 
-void protocol_block_in_31800::do_resume(chaser::channel_t) NOEXCEPT
+void protocol_block_in_31800::do_resume(channel_t) NOEXCEPT
 {
     if (!is_idle())
         start_performance();
 }
 
-void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT
+void protocol_block_in_31800::do_purge(height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!map_->empty())
+    {
+        map_->clear();
+        stop(error::sacrificed_channel);
+    }
+}
+
+void protocol_block_in_31800::do_get_downloads(count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -171,7 +211,7 @@ void protocol_block_in_31800::do_get_downloads(chaser::count_t) NOEXCEPT
     }
 }
 
-void protocol_block_in_31800::do_split(chaser::channel_t) NOEXCEPT
+void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -186,8 +226,7 @@ void protocol_block_in_31800::do_split(chaser::channel_t) NOEXCEPT
     stop(error::sacrificed_channel);
 }
 
-protocol_block_in_31800::map_ptr protocol_block_in_31800::split(
-    const map_ptr& map) NOEXCEPT
+map_ptr protocol_block_in_31800::split(const map_ptr& map) NOEXCEPT
 {
     // Merge half of map into new half.
     const auto count = map->size();
@@ -285,7 +324,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (const auto error = validate(block, ctx))
     {
         query.set_block_unconfirmable(link);
-        notify(error::success, chaser::chase::unchecked, link);
+        notify(error::success, chase::unchecked, link);
 
         LOGR("Invalid block [" << encode_hash(hash) << ":" << ctx.height
             << "] from [" << authority() << "] " << error.message());
@@ -311,8 +350,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
 
-    const auto height = possible_narrow_cast<chaser::height_t>(ctx.height);
-    notify(error::success, chaser::chase::checked, height);
+    const auto height = possible_narrow_cast<height_t>(ctx.height);
+    notify(error::success, chase::checked, height);
     count(message->cached_size);
 
     map_->erase(it);
@@ -364,7 +403,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
     if (map->empty())
     {
-        notify(error::success, chaser::chase::starved, identifier());
+        notify(error::success, chase::starved, identifier());
         return;
     }
 

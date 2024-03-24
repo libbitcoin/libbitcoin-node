@@ -16,37 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_transaction_out.hpp>
+#include "../test.hpp"
 
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
+BOOST_AUTO_TEST_SUITE(chaser_preconfirm_tests)
 
-namespace libbitcoin {
-namespace node {
-
-#define CLASS protocol_transaction_out
-
-using namespace system;
-using namespace network;
-using namespace network::messages;
-using namespace std::placeholders;
-
-// Start.
-// ----------------------------------------------------------------------------
-
-void protocol_transaction_out::start() NOEXCEPT
+BOOST_AUTO_TEST_CASE(chaser_preconfirm_test)
 {
-    BC_ASSERT(stranded());
-
-    if (started())
-        return;
-
-    protocol::start();
+    BOOST_REQUIRE(true);
 }
 
-// Outbound.
-// ----------------------------------------------------------------------------
-
-} // namespace node
-} // namespace libbitcoin
+BOOST_AUTO_TEST_SUITE_END()

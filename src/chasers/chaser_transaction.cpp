@@ -18,11 +18,10 @@
  */
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 
-#include <functional>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -45,7 +44,6 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 // TODO: initialize tx graph from store, log and stop on error.
 code chaser_transaction::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -53,16 +51,44 @@ code chaser_transaction::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void chaser_transaction::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+    event_link value) NOEXCEPT
 {
-    if (event_ == chase::confirmed)
+    switch (event_)
     {
-        POST(handle_confirmed, std::get<height_t>(value));
+        case chase::confirmed:
+        {
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_confirmed, std::get<header_t>(value));
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        ////case chase::confirmed:
+        case chase::unconfirmed:
+        case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
 
 // TODO: handle the new confirmed blocks (may issue 'transaction').
-void chaser_transaction::handle_confirmed(height_t) NOEXCEPT
+void chaser_transaction::do_confirmed(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }

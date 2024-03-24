@@ -20,14 +20,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <algorithm>
 #include <ratio>
-#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/protocols/protocols.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -73,22 +69,49 @@ void session_outbound::start(result_handler&& handler) NOEXCEPT
 
 // Event subscriber operates on the network strand (session).
 void session_outbound::handle_event(const code&,
-    chaser::chase event_, chaser::link value) NOEXCEPT
+    chase event_, event_link value) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped())
         return;
 
-    // When a channel becomes starved notify other(s) to split work.
-    if (event_ == chaser::chase::starved)
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<chaser::channel_t>(value));
-        split(std::get<chaser::channel_t>(value));
+        case chase::starved:
+        {
+            // When a channel becomes starved notify other(s) to split work.
+            BC_ASSERT(std::holds_alternative<channel_t>(value));
+            split(std::get<channel_t>(value));
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        ////case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
 
-void session_outbound::split(chaser::channel_t) NOEXCEPT
+void session_outbound::split(channel_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -104,12 +127,12 @@ void session_outbound::split(chaser::channel_t) NOEXCEPT
         // Erase entry so less likely to be claimed again before stopping.
         const auto channel = slowest->first;
         speeds_.erase(slowest);
-        node::session::notify(error::success, chaser::chase::split, channel);
+        node::session::notify(error::success, chase::split, channel);
         return;
     }
 
     // With no speeds recorded there may still be channels with work.
-    node::session::notify(error::success, chaser::chase::stall, {});
+    node::session::notify(error::success, chase::stall, {});
 }
 
 // performance

@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/settings.hpp>
 
+#include <filesystem>
 #include <bitcoin/network.hpp>
 
 using namespace bc::system;

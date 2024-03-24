@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
 #include <deque>
-#include <functional>
-#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -36,32 +34,33 @@ class BCN_API chaser_check
   : public chaser
 {
 public:
-    typedef std::shared_ptr<database::associations> map_ptr;
-    typedef std::function<void(const code&, const map_ptr&)> handler;
-    typedef std::deque<map_ptr> maps;
-
     DELETE_COPY_MOVE_DESTRUCT(chaser_check);
 
     chaser_check(full_node& node) NOEXCEPT;
 
     /// Initialize chaser state.
-    virtual code start() NOEXCEPT;
+    code start() NOEXCEPT override;
 
     /// Interface for protocols to obtain/return pending download identifiers.
     /// Identifiers not downloaded must be returned or chain will remain gapped.
-    virtual void get_hashes(handler&& handler) NOEXCEPT;
+    virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual void handle_event(const code& ec, chase event_, link value) NOEXCEPT;
+    virtual void handle_event(const code& ec, chase event_,
+        event_link value) NOEXCEPT;
+
+    virtual void do_purge_headers(height_t fork_point) NOEXCEPT;
     virtual void do_add_headers(height_t branch_point) NOEXCEPT;
-    virtual void do_get_hashes(const handler& handler) NOEXCEPT;
+    virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
 private:
-    size_t update_table(maps& table, size_t start) const NOEXCEPT;
+    typedef std::deque<map_ptr> maps;
+
+    size_t get_unassociated(maps& table, size_t start) const NOEXCEPT;
     size_t count_map(const maps& table) const NOEXCEPT;
     map_ptr make_map(size_t start, size_t count) const NOEXCEPT;
     map_ptr get_map(maps& table) NOEXCEPT;

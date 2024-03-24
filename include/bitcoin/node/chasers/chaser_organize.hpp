@@ -21,10 +21,8 @@
 
 #include <unordered_map>
 #include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/define.hpp>
-#include <bitcoin/node/error.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -40,10 +38,8 @@ class chaser_organize
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_organize);
 
-    chaser_organize(full_node& node) NOEXCEPT;
-
     /// Initialize chaser state.
-    virtual code start() NOEXCEPT;
+    code start() NOEXCEPT override;
 
     /// Validate and organize next block in sequence relative to caller peer.
     virtual void organize(const typename Block::cptr& block_ptr,
@@ -58,6 +54,9 @@ protected:
     };
     using block_tree = std::unordered_map<system::hash_digest, block_state>;
     using header_links = std::vector<database::header_link>;
+
+    /// Protected constructor for abstract base.
+    chaser_organize(full_node& node) NOEXCEPT;
 
     /// Pure Virtual
     /// -----------------------------------------------------------------------
@@ -91,7 +90,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Handle chaser events.
-    virtual void handle_event(const code&, chase event_, link value) NOEXCEPT;
+    virtual void handle_event(const code&, chase event_, event_link value) NOEXCEPT;
 
     /// Reorganize following block unconfirmability.
     virtual void do_disorganize(header_t header) NOEXCEPT;

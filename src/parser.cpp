@@ -21,8 +21,7 @@
 #include <iostream>
 #include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/settings.hpp>
+#include <bitcoin/node/configuration.hpp>
 
 std::filesystem::path config_default_path() NOEXCEPT
 {

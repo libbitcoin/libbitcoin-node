@@ -21,9 +21,11 @@
 #endif
 
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chase.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
+#include <bitcoin/node/events.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
@@ -33,9 +35,9 @@
 #include <bitcoin/node/chasers/chaser_candidate.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
-#include <bitcoin/node/chasers/chaser_connect.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
+#include <bitcoin/node/chasers/chaser_preconfirm.hpp>
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>

@@ -20,7 +20,7 @@
 #define LIBBITCOIN_NODE_ERROR_HPP
 
 #include <bitcoin/system.hpp>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/version.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -55,7 +55,9 @@ enum error_t : uint8_t
     orphan_header,
     duplicate_block,
     duplicate_header,
-    insufficient_work
+    insufficient_work,
+    milestone_bypass,
+    checkpoint_bypass
 };
 
 // No current need for error_code equivalence mapping.

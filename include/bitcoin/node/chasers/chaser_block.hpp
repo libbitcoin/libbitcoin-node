@@ -26,6 +26,8 @@
 namespace libbitcoin {
 namespace node {
 
+class full_node;
+
 /// Chase down stronger block branches for the confirmed chain.
 /// Weak branches are retained in a hash table if not store populated.
 /// Strong branches reorganize the candidate chain and fire the 'connect' event.

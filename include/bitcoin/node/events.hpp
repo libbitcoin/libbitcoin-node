@@ -16,13 +16,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../test.hpp"
+#ifndef LIBBITCOIN_NODE_EVENTS_HPP
+#define LIBBITCOIN_NODE_EVENTS_HPP
 
-BOOST_AUTO_TEST_SUITE(chaser_connect_tests)
+#include <bitcoin/system.hpp>
+#include <bitcoin/node/error.hpp>
 
-BOOST_AUTO_TEST_CASE(chaser_connect_test)
+namespace libbitcoin {
+namespace node {
+
+/// Reporting events.
+enum events : uint8_t
 {
-    BOOST_REQUIRE(true);
+    event_archive,
+    event_header,
+    event_block,
+    event_validated,
+    event_confirmed,
+    event_current_headers,
+    event_current_blocks,
+    event_current_validated,
+    event_current_confirmed
+};
+
+}
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+#endif

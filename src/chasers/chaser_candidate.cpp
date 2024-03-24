@@ -18,12 +18,10 @@
  */
 #include <bitcoin/node/chasers/chaser_candidate.hpp>
 
-#include <functional>
-#include <variant>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
-#include <bitcoin/node/full_node.hpp>
+#include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -45,8 +43,6 @@ chaser_candidate::chaser_candidate(full_node& node) NOEXCEPT
 // TODO: initialize candidate state.
 code chaser_candidate::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
-
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -54,17 +50,45 @@ code chaser_candidate::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void chaser_candidate::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+    event_link value) NOEXCEPT
 {
     // TODO: also handle confirmed/unconfirmed.
-    if (event_ == chase::transaction)
+    switch (event_)
     {
-        POST(handle_transaction, std::get<transaction_t>(value));
+        case chase::transaction:
+        {
+            BC_ASSERT(std::holds_alternative<transaction_t>(value));
+            POST(do_transaction, std::get<transaction_t>(value));
+            break;
+        }
+        case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        case chase::disorganized:
+        ////case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
 
 // TODO: handle transaction graph change (may issue 'candidate').
-void chaser_candidate::handle_transaction(transaction_t) NOEXCEPT
+void chaser_candidate::do_transaction(transaction_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }

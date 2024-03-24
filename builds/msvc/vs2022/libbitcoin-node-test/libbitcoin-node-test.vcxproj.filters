@@ -36,10 +36,10 @@
     <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\chasers\chaser_connect.cpp">
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp">
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_preconfirm.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser_transaction.cpp">

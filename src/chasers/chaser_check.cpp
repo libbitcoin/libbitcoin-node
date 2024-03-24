@@ -19,14 +19,10 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <algorithm>
-#include <functional>
-#include <memory>
-#include <utility>
-#include <variant>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/error.hpp>
-#include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -56,35 +52,64 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 
 code chaser_check::start() NOEXCEPT
 {
-    BC_ASSERT(node_stranded());
-
     const auto fork_point = archive().get_fork();
-    const auto added = update_table(maps_, fork_point);
+    const auto added = get_unassociated(maps_, fork_point);
     LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
-// add headers
-// ----------------------------------------------------------------------------
-
 void chaser_check::handle_event(const code&, chase event_,
-    link value) NOEXCEPT
+    event_link value) NOEXCEPT
 {
-    if (event_ == chase::header)
+    switch (event_)
     {
-        BC_ASSERT(std::holds_alternative<chaser::height_t>(value));
-        POST(do_add_headers, std::get<height_t>(value));
+        case chase::header:
+        {
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_add_headers, std::get<height_t>(value));
+            break;
+        }
+        case chase::disorganized:
+        {
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_purge_headers, std::get<height_t>(value));
+            break;
+        }
+        ////case chase::header:
+        case chase::download:
+        case chase::starved:
+        case chase::split:
+        case chase::stall:
+        case chase::purge:
+        case chase::pause:
+        case chase::resume:
+        case chase::bump:
+        case chase::checked:
+        case chase::unchecked:
+        case chase::preconfirmed:
+        case chase::unpreconfirmed:
+        case chase::confirmed:
+        case chase::unconfirmed:
+        ////case chase::disorganized:
+        case chase::transaction:
+        case chase::candidate:
+        case chase::block:
+        case chase::stop:
+        {
+            break;
+        }
     }
 }
+
+// add headers
+// ----------------------------------------------------------------------------
 
 void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // This can produce duplicate downloads in relation to those outstanding,
-    // which is ok. That implies a rerg and then a reorg back before complete.
-    const auto added = update_table(maps_, branch_point);
+    const auto added = get_unassociated(maps_, branch_point);
 
     LOGN("Branch point (" << branch_point << ") unassociated ("
         << added << ").");
@@ -96,10 +121,25 @@ void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
     notify(error::success, chase::download, count);
 }
 
+// purge headers
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_purge_headers(height_t top) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Candidate chain has been reset (from fork point) to confirmed top.
+    // Since all blocks are confirmed through fork point, and all above are to
+    // be purged, it simply means purge all hashes (reset all). All channels
+    // will get the purge notification before any subsequent download notify.
+    maps_.clear();
+    notify(error::success, chase::purge, top);
+}
+
 // get/put hashes
 // ----------------------------------------------------------------------------
 
-void chaser_check::get_hashes(handler&& handler) NOEXCEPT
+void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_get_hashes,
@@ -114,7 +154,7 @@ void chaser_check::put_hashes(const map_ptr& map,
             this, map, std::move(handler)));
 }
 
-void chaser_check::do_get_hashes(const handler& handler) NOEXCEPT
+void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -147,7 +187,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 // utilities
 // ----------------------------------------------------------------------------
 
-size_t chaser_check::update_table(maps& table, size_t start) const NOEXCEPT
+size_t chaser_check::get_unassociated(maps& table, size_t start) const NOEXCEPT
 {
     size_t added{};
     while (true)
@@ -171,14 +211,14 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
         });
 }
 
-chaser_check::map_ptr chaser_check::make_map(size_t start,
+map_ptr chaser_check::make_map(size_t start,
     size_t count) const NOEXCEPT
 {
     return std::make_shared<database::associations>(
         archive().get_unassociated_above(start, count));
 }
 
-chaser_check::map_ptr chaser_check::get_map(maps& table) NOEXCEPT
+map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
     return table.empty() ? std::make_shared<database::associations>() :
         pop_front(table);
