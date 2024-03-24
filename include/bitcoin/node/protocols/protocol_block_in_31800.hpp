@@ -71,7 +71,6 @@ protected:
         const network::messages::block::cptr& message) NOEXCEPT;
 
 private:
-    using map_ptr = map_ptr;
     using type_id = network::messages::inventory::type_id;
     static constexpr size_t minimum_for_stall_divide = 2;
 
