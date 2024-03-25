@@ -112,6 +112,13 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     }
 }
 
+void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    do_checked((last_ = top));
+}
+
 void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -203,17 +210,6 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////LOGN("Preconfirmed [" << height << "] " << ec.message());
         fire(events::event_block, height);
     }
-}
-
-void chaser_preconfirm::do_disorganized(height_t fork_point) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    last_ = archive().get_top_preconfirmable_from(fork_point);
-
-    // TODO: need to deal with this at startup as well.
-    // There may be associated above top_preconfirmable resulting in a stall.
-    // Process above top_preconfirmable until unassociated.
-    ////handle_checked(possible_narrow_cast<height_t>(add1(last_)));
 }
 
 // utility
