@@ -27,9 +27,6 @@
     <ClCompile Include="..\..\..\..\test\chasers\chaser_block.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\chasers\chaser_candidate.cpp">
-      <Filter>src\chasers</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser_check.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
@@ -40,6 +37,9 @@
       <Filter>src\chasers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser_preconfirm.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_template.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser_transaction.cpp">
