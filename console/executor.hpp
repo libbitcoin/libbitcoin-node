@@ -90,6 +90,7 @@ private:
     static const std::unordered_map<uint8_t, bool> defined_;
     static const std::unordered_map<uint8_t, std::string> display_;
     static const std::unordered_map<std::string, uint8_t> keys_;
+    static const std::unordered_map<uint8_t, std::string> fired_;
     static const std::unordered_map<database::event_t, std::string> events_;
     static const std::unordered_map<database::table_t, std::string> tables_;
     static constexpr size_t logs = add1(network::levels::quit);
@@ -117,7 +118,7 @@ private:
         false, //network::levels::wire_defined,
         network::levels::remote_defined,
         network::levels::fault_defined,
-        network::levels::quit_defined
+        false  // network::levels::quit_defined
     };
 };
 

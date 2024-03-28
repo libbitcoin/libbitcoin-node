@@ -66,14 +66,14 @@ void chaser_check::handle_event(const code&, chase event_,
     {
         case chase::header:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_add_headers, std::get<height_t>(value));
+            BC_ASSERT(std::holds_alternative<size_t>(value));
+            POST(do_add_headers, std::get<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_purge_headers, std::get<height_t>(value));
+            BC_ASSERT(std::holds_alternative<size_t>(value));
+            POST(do_purge_headers, std::get<size_t>(value));
             break;
         }
         ////case chase::header:
@@ -93,7 +93,7 @@ void chaser_check::handle_event(const code&, chase event_,
         case chase::unconfirmed:
         ////case chase::disorganized:
         case chase::transaction:
-        case chase::candidate:
+        case chase::template_:
         case chase::block:
         case chase::stop:
         {
@@ -105,26 +105,25 @@ void chaser_check::handle_event(const code&, chase event_,
 // add headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
+void chaser_check::do_add_headers(size_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     const auto added = get_unassociated(maps_, branch_point);
 
-    LOGN("Branch point (" << branch_point << ") unassociated ("
-        << added << ").");
+    ////LOGN("Branch point (" << branch_point << ") unassociated (" << added
+    ////    << ").");
 
     if (is_zero(added))
         return;
 
-    const auto count = system::possible_narrow_cast<count_t>(added);
-    notify(error::success, chase::download, count);
+    notify(error::success, chase::download, added);
 }
 
 // purge headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_purge_headers(height_t top) NOEXCEPT
+void chaser_check::do_purge_headers(size_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -162,7 +161,6 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 
     ////LOGN("Hashes -" << map->size() << " ("
     ////    << count_map(maps_) << ") remain.");
-
     handler(error::success, map);
 }
 
@@ -174,13 +172,11 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     if (!map->empty())
     {
         maps_.push_back(map);
-        notify(error::success, chase::download,
-            system::possible_narrow_cast<count_t>(map->size()));
+        notify(error::success, chase::download, map->size());
     }
 
     ////LOGN("Hashes +" << map->size() << " ("
     ////    << count_map(maps_) << ") remain.");
-
     handler(error::success);
 }
 

@@ -51,33 +51,41 @@ code chaser_block::validate(const system::chain::block& block,
     const chain_state& state) const NOEXCEPT
 {
     code ec{ error::success };
+    const auto& header = block.header();
+
+    // block.check does not roll up to header.check.
+    if ((ec = header.check(
+        settings().timestamp_limit_seconds,
+        settings().proof_of_work_limit,
+        settings().scrypt_proof_of_work)))
+        return ec;
+
+    // block.accept does not roll up to header.accept.
+    if ((ec = header.accept(state.context())))
+        return ec;
 
     // Under height is sufficient validation for checkpoint here.
     if (checkpoint::is_under(settings().checkpoints, state.height()))
         return ec;
 
-    // Requires no population.
     if ((ec = block.check()))
         return ec;
 
-    // Requires no population.
     if ((ec = block.check(state.context())))
         return ec;
 
     // Populate prevouts from self/tree.
+    // Metadata population is only for confirmation, not required.
     populate(block);
 
-    // Populate prevouts (not metadata) from store.
     if (!archive().populate(block))
         return network::error::protocol_violation;
 
-    // Requires only prevout population.
     if ((ec = block.accept(state.context(),
         settings().subsidy_interval_blocks,
         settings().initial_subsidy())))
         return ec;
 
-    // Requires only prevout population.
     return block.connect(state.context());
 }
 

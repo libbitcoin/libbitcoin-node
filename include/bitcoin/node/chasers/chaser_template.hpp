@@ -16,13 +16,36 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../test.hpp"
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_TEMPLATE_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_TEMPLATE_HPP
 
-BOOST_AUTO_TEST_SUITE(chaser_candidate_tests)
+#include <bitcoin/node/chasers/chaser.hpp>
+#include <bitcoin/node/define.hpp>
 
-BOOST_AUTO_TEST_CASE(chaser_candidate_test)
+namespace libbitcoin {
+namespace node {
+
+class full_node;
+
+/// Construct template blocks upon modification of the transaction DAG.
+class BCN_API chaser_template
+  : public chaser
 {
-    BOOST_REQUIRE(true);
-}
+public:
+    DELETE_COPY_MOVE_DESTRUCT(chaser_template);
 
-BOOST_AUTO_TEST_SUITE_END()
+    chaser_template(full_node& node) NOEXCEPT;
+
+    code start() NOEXCEPT override;
+
+protected:
+    virtual void handle_event(const code& ec, chase event_,
+        event_link value) NOEXCEPT;
+
+    virtual void do_transaction(transaction_t value) NOEXCEPT;
+};
+
+} // namespace node
+} // namespace libbitcoin
+
+#endif

@@ -42,12 +42,12 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    virtual void do_disorganized(height_t fork_point) NOEXCEPT;
-    virtual void do_preconfirmed(header_t link) NOEXCEPT;
+    virtual void do_disorganized(size_t top) NOEXCEPT;
+    virtual void do_preconfirmed(size_t height) NOEXCEPT;
 
 private:
     // This is protected by strand.
-    ////size_t top_{};
+    size_t top_{};
 };
 
 } // namespace node

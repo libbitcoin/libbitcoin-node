@@ -105,6 +105,18 @@ private:
     {
         return is_same_type<Block, system::chain::block>;
     }
+    static constexpr auto error_duplicate() NOEXCEPT
+    {
+        return is_block() ? error::duplicate_block : error::duplicate_header;
+    }
+    static constexpr auto error_orphan() NOEXCEPT
+    {
+        return is_block() ? error::orphan_block : error::orphan_header;
+    }
+    static constexpr auto chase_object() NOEXCEPT
+    {
+        return is_block() ? chase::block : chase::header;
+    }
 
     // Store Block into logical tree cache.
     void cache(const typename Block::cptr& block_ptr,

@@ -69,7 +69,7 @@ void session_outbound::start(result_handler&& handler) NOEXCEPT
 
 // Event subscriber operates on the network strand (session).
 void session_outbound::handle_event(const code&,
-    chase event_, event_link value) NOEXCEPT
+    chase event_, event_link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -81,8 +81,7 @@ void session_outbound::handle_event(const code&,
         case chase::starved:
         {
             // When a channel becomes starved notify other(s) to split work.
-            BC_ASSERT(std::holds_alternative<channel_t>(value));
-            split(std::get<channel_t>(value));
+            split(channel_t{});
             break;
         }
         case chase::header:
@@ -102,7 +101,7 @@ void session_outbound::handle_event(const code&,
         case chase::unconfirmed:
         case chase::disorganized:
         case chase::transaction:
-        case chase::candidate:
+        case chase::template_:
         case chase::block:
         case chase::stop:
         {
@@ -132,7 +131,7 @@ void session_outbound::split(channel_t) NOEXCEPT
     }
 
     // With no speeds recorded there may still be channels with work.
-    node::session::notify(error::success, chase::stall, {});
+    node::session::notify(error::success, chase::stall, size_t{});
 }
 
 // performance

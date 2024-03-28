@@ -134,7 +134,7 @@ private:
     chaser_preconfirm chaser_preconfirm_;
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
-    chaser_candidate chaser_candidate_;
+    chaser_template chaser_template_;
 };
 
 } // namespace node

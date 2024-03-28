@@ -70,20 +70,19 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     {
         case chase::bump:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_checked, std::get<height_t>(value));
+            POST(do_checked, size_t{});
             break;
         }
         case chase::checked:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_height_checked, std::get<height_t>(value));
+            BC_ASSERT(std::holds_alternative<size_t>(value));
+            POST(do_height_checked, std::get<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_disorganized, std::get<height_t>(value));
+            BC_ASSERT(std::holds_alternative<size_t>(value));
+            POST(do_disorganized, std::get<size_t>(value));
             break;
         }
         case chase::header:
@@ -103,7 +102,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::unconfirmed:
         ////case chase::disorganized:
         case chase::transaction:
-        case chase::candidate:
+        case chase::template_:
         case chase::block:
         case chase::stop:
         {
@@ -112,14 +111,17 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
+void chaser_preconfirm::do_disorganized(size_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    do_checked((last_ = top));
+    last_ = top;
+
+    // Assure consistency given chance of intervening candidate organization.
+    do_checked(top);
 }
 
-void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
+void chaser_preconfirm::do_height_checked(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -127,7 +129,7 @@ void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
         do_checked(height);
 }
 
-void chaser_preconfirm::do_checked(height_t) NOEXCEPT
+void chaser_preconfirm::do_checked(size_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -141,18 +143,16 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (checkpoint::is_under(checkpoints_, height))
         {
             ++last_;
-            ////notify(error::checkpoint_bypass, chase::preconfirmed, link);
-            ////LOGN("Preconfirmed [" << height << "] checkpoint bypass");
-            fire(events::event_block, height);
+            notify(error::checkpoint_bypass, chase::preconfirmed, height);
+            fire(events::block_bypassed, height);
             continue;
         }
 
         if (is_under_milestone(height))
         {
             ++last_;
-            ////notify(error::milestone_bypass, chase::preconfirmed, link);
-            ////LOGN("Preconfirmed [" << height << "] milestone bypass");
-            fire(events::event_block, height);
+            notify(error::milestone_bypass, chase::preconfirmed, height);
+            fire(events::block_bypassed, height);
             continue;
         }
 
@@ -162,9 +162,9 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////    ec == database::error::block_preconfirmable)
         ////{
         ////    ++last_;
-        ////    notify(ec, chase::preconfirmed, link);
+        ////    notify(ec, chase::preconfirmed, height);
         ////    LOGN("Preconfirmed [" << height << "] " << ec.message());
-        ////    fire(events::event_block, height);
+        ////    fire(events::block_validated, height);
         ////    continue;
         ////}
 
@@ -173,7 +173,6 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////{
         ////    notify(ec, chase::unpreconfirmed, link);
         ////    LOGN("Unpreconfirmed [" << height << "] " << ec.message());
-        ////    fire(events::event_block, height);
         ////    return;
         ////}
 
@@ -206,9 +205,8 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         }
 
         ++last_;
-        notify(ec, chase::preconfirmed, link);
-        ////LOGN("Preconfirmed [" << height << "] " << ec.message());
-        fire(events::event_block, height);
+        notify(ec, chase::preconfirmed, height);
+        fire(events::block_validated, height);
     }
 }
 

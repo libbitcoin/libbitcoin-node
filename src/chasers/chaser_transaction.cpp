@@ -78,7 +78,7 @@ void chaser_transaction::handle_event(const code&, chase event_,
         case chase::unconfirmed:
         case chase::disorganized:
         case chase::transaction:
-        case chase::candidate:
+        case chase::template_:
         case chase::block:
         case chase::stop:
         {
@@ -91,6 +91,8 @@ void chaser_transaction::handle_event(const code&, chase event_,
 void chaser_transaction::do_confirmed(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    notify(error::success, chase::transaction, transaction_t{});
 }
 
 // methods
