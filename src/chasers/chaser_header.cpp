@@ -56,7 +56,7 @@ code chaser_header::validate(const system::chain::header& header,
     if ((ec = header.check(
         settings().timestamp_limit_seconds,
         settings().proof_of_work_limit,
-        settings().scrypt_proof_of_work)))
+        settings().forks.scrypt_proof_of_work)))
         return ec;
 
     if ((ec = header.accept(state.context())))

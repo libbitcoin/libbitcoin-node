@@ -57,7 +57,7 @@ code chaser_block::validate(const system::chain::block& block,
     if ((ec = header.check(
         settings().timestamp_limit_seconds,
         settings().proof_of_work_limit,
-        settings().scrypt_proof_of_work)))
+        settings().forks.scrypt_proof_of_work)))
         return ec;
 
     // block.accept does not roll up to header.accept.

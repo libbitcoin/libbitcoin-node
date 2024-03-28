@@ -187,7 +187,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Roll chain state forward from previous to current header.
     // ........................................................................
 
-    const auto prev_forks = state->forks();
+    const auto prev_flags = state->flags();
     const auto prev_version = state->minimum_block_version();
 
     // Do not use block parameter in chain_state{} as that is for tx pool.
@@ -197,11 +197,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     BC_POP_WARNING()
 
     const auto height = state->height();
-    const auto next_forks = state->forks();
-    if (prev_forks != next_forks)
+    const auto next_flags = state->flags();
+    if (prev_flags != next_flags)
     {
-        const binary prev{ fork_bits, to_big_endian(prev_forks) };
-        const binary next{ fork_bits, to_big_endian(next_forks) };
+        const binary prev{ fork_bits, to_big_endian(prev_flags) };
+        const binary next{ fork_bits, to_big_endian(next_flags) };
         LOGN("Forked from ["
             << prev << "] to ["
             << next << "] at ["
@@ -410,7 +410,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // ........................................................................
 
     const auto top_candidate = state_->height();
-    const auto prev_forks = state_->forks();
+    const auto prev_flags = state_->flags();
     const auto prev_version = state_->minimum_block_version();
     state_ = query.get_candidate_chain_state(settings_, fork_point);
     if (!state_)
@@ -419,11 +419,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
-    const auto next_forks = state_->forks();
-    if (prev_forks != next_forks)
+    const auto next_flags = state_->flags();
+    if (prev_flags != next_flags)
     {
-        const binary prev{ fork_bits, to_big_endian(prev_forks) };
-        const binary next{ fork_bits, to_big_endian(next_forks) };
+        const binary prev{ fork_bits, to_big_endian(prev_flags) };
+        const binary next{ fork_bits, to_big_endian(next_flags) };
         LOGN("Forks reverted from ["
             << prev << "] at candidate ("
             << top_candidate << ") to ["
@@ -604,7 +604,7 @@ database::header_link CLASS::push(const typename Block::cptr& block_ptr,
     auto& query = archive();
     const auto link = query.set_link(*block_ptr, database::context
     {
-        possible_narrow_cast<database::context::flag::integer>(context.forks),
+        possible_narrow_cast<database::context::flag::integer>(context.flags),
         possible_narrow_cast<database::context::block::integer>(context.height),
         context.median_time_past,
     });
