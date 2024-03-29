@@ -86,14 +86,14 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 TEMPLATE
 void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
 {
+    using namespace system;
     switch (event_)
     {
         case chase::unchecked:
         case chase::unpreconfirmed:
         case chase::unconfirmed:
         {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_disorganize, std::get<header_t>(value));
+            POST(do_disorganize, possible_narrow_cast<header_t>(value));
             break;
         }
         case chase::header:

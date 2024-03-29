@@ -66,6 +66,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
 {
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
+    using namespace system;
     switch (event_)
     {
         case chase::bump:
@@ -75,14 +76,12 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         }
         case chase::checked:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_height_checked, std::get<size_t>(value));
+            POST(do_height_checked, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_disorganized, std::get<size_t>(value));
+            POST(do_disorganized, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::header:

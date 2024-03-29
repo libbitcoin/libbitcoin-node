@@ -53,12 +53,12 @@ code chaser_transaction::start() NOEXCEPT
 void chaser_transaction::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
+    using namespace system;
     switch (event_)
     {
         case chase::confirmed:
         {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_confirmed, std::get<header_t>(value));
+            POST(do_confirmed, possible_narrow_cast<header_t>(value));
             break;
         }
         case chase::header:

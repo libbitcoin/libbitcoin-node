@@ -51,24 +51,22 @@ void chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
     // These can come out of order, advance in order synchronously.
+    using namespace system;
     switch (event_)
     {
         case chase::block:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_preconfirmed, std::get<size_t>(value));
+            POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::preconfirmed:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_preconfirmed, std::get<size_t>(value));
+            POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_disorganized, std::get<size_t>(value));
+            POST(do_disorganized, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::header:

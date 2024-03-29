@@ -82,6 +82,7 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chase event_, event_link value) NOEXCEPT
 {
+    using namespace system;
     if (stopped())
         return;
 
@@ -102,8 +103,7 @@ void protocol_block_in_31800::handle_event(const code&,
         {
             // It was determined to be the slowest channel with work.
             // If value identifies this channel, split work and stop.
-            BC_ASSERT(std::holds_alternative<channel_t>(value));
-            if (std::get<channel_t>(value) == identifier())
+            if (possible_narrow_cast<channel_t>(value) == identifier())
             {
                 POST(do_split, size_t{});
             }

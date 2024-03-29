@@ -23,7 +23,6 @@
 #include <functional>
 #include <memory>
 #include <utility>
-#include <variant>
 
 /// Pulls in common /node headers (excluding settings/config/parser/full_node).
 #include <bitcoin/node/chase.hpp>
@@ -64,16 +63,21 @@ typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&)> map_handler;
 
 /// Node events.
-typedef std::variant<uint32_t, uint64_t> event_link;
+typedef uint64_t event_link;
 typedef network::subscriber<chase, event_link> event_subscriber;
 typedef event_subscriber::handler event_handler;
 
-/// Use for event_link variants.
+/// Use for event_link variants (all unsigned integral integers).
+/// std::variant is inconsistent with interpretation of size_t as redundant or
+/// unique with respect to uint32_t and/or uint64_t (specifically macOS). So
+/// instead these are implicitly casted to event_link (uint64_t) and explicitly
+/// casted from event_link using system::possible_narrow_cast. This is no less
+/// type-safe as using std::variant in cases where the types are overloaded.
+using count_t = size_t;
+using height_t = size_t;
 using channel_t = uint64_t;
 using header_t = database::header_link::integer;
 using transaction_t = database::tx_link::integer;
-////using count_t = size_t;  // quantity
-////using header_t = size_t; // height
 
 } // namespace node
 } // namespace libbitcoin

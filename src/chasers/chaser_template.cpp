@@ -53,12 +53,12 @@ void chaser_template::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
     // TODO: also handle confirmed/unconfirmed.
+    using namespace system;
     switch (event_)
     {
         case chase::transaction:
         {
-            BC_ASSERT(std::holds_alternative<transaction_t>(value));
-            POST(do_transaction, std::get<transaction_t>(value));
+            POST(do_transaction, possible_narrow_cast<transaction_t>(value));
             break;
         }
         case chase::header:
