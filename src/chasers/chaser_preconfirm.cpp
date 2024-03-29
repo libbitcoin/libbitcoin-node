@@ -188,14 +188,17 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
         if ((ec = validate(*block, ctx)))
         {
             // Do not set block_unconfirmable if its identifier is malleable.
-            if (!block->is_malleable() && !query.set_block_unconfirmable(link))
+            const auto malleable = block->is_malleable();
+            if (!malleable && !query.set_block_unconfirmable(link))
             {
                 close(error::store_integrity);
                 return;
             }
 
             notify(ec, chase::unpreconfirmed, link);
-            LOGN("Unpreconfirmed [" << height << "] " << ec.message());
+
+            LOGN("Unpreconfirmed [" << height << "] " << ec.message()
+                << (malleable ? " [MALLEABLE]." : ""));
             return;
         }
 
