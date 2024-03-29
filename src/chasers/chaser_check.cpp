@@ -62,18 +62,17 @@ code chaser_check::start() NOEXCEPT
 void chaser_check::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
+    using namespace system;
     switch (event_)
     {
         case chase::header:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_add_headers, std::get<size_t>(value));
+            POST(do_add_headers, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_purge_headers, std::get<size_t>(value));
+            POST(do_purge_headers, possible_narrow_cast<size_t>(value));
             break;
         }
         ////case chase::header:

@@ -51,24 +51,22 @@ void chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
     // These can come out of order, advance in order synchronously.
+    using namespace system;
     switch (event_)
     {
         case chase::block:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_preconfirmed, std::get<size_t>(value));
+            POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::preconfirmed:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_preconfirmed, std::get<size_t>(value));
+            POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_disorganized, std::get<size_t>(value));
+            POST(do_disorganized, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::header:
@@ -116,6 +114,9 @@ void chaser_confirm::do_preconfirmed(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
+
+    // TODO: Do not set block_unconfirmable if its identifier is malleable.
+    ////if (!block->is_malleable() && !query.set_block_unconfirmable(link))...
 
     // Does the height currently represent a strong branch?
     // In case of stronger branch reorganization the branch may become

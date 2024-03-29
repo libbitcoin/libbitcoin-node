@@ -82,6 +82,7 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chase event_, event_link value) NOEXCEPT
 {
+    using namespace system;
     if (stopped())
         return;
 
@@ -102,8 +103,7 @@ void protocol_block_in_31800::handle_event(const code&,
         {
             // It was determined to be the slowest channel with work.
             // If value identifies this channel, split work and stop.
-            BC_ASSERT(std::holds_alternative<channel_t>(value));
-            if (std::get<channel_t>(value) == identifier())
+            if (possible_narrow_cast<channel_t>(value) == identifier())
             {
                 POST(do_split, size_t{});
             }
@@ -320,11 +320,19 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (const auto error = validate(block, ctx))
     {
-        query.set_block_unconfirmable(link);
+        // Do not set block_unconfirmable if its identifier is malleable.
+        const auto malleable = block.is_malleable();
+        if (!malleable && !query.set_block_unconfirmable(link))
+        {
+            stop(node::error::store_integrity);
+            return false;
+        }
+
         notify(error::success, chase::unchecked, link);
 
         LOGR("Invalid block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "] " << error.message());
+            << "] from [" << authority() << "] " << error.message() <<
+            (malleable ? " [MALLEABLE]." : ""));
 
         stop(error);
         return false;

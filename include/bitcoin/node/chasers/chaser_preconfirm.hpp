@@ -48,10 +48,8 @@ protected:
     virtual void do_checked(size_t height) NOEXCEPT;
 
 private:
-    using block_ptr = system::chain::block::cptr;
-
     bool is_under_milestone(size_t height) const NOEXCEPT;
-    code validate(const block_ptr& block,
+    code validate(const system::chain::block& block,
         const database::context& ctx) const NOEXCEPT;
 
     // These are thread safe.

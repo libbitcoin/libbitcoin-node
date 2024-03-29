@@ -66,6 +66,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
 {
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
+    using namespace system;
     switch (event_)
     {
         case chase::bump:
@@ -75,14 +76,12 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         }
         case chase::checked:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_height_checked, std::get<size_t>(value));
+            POST(do_height_checked, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<size_t>(value));
-            POST(do_disorganized, std::get<size_t>(value));
+            POST(do_disorganized, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::header:
@@ -185,16 +184,20 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
         }
 
         code ec{};
-        if ((ec = validate(block, ctx)))
+        if ((ec = validate(*block, ctx)))
         {
-            if (!query.set_block_unconfirmable(link))
+            // Do not set block_unconfirmable if its identifier is malleable.
+            const auto malleable = block->is_malleable();
+            if (!malleable && !query.set_block_unconfirmable(link))
             {
                 close(error::store_integrity);
                 return;
             }
 
             notify(ec, chase::unpreconfirmed, link);
-            LOGN("Unpreconfirmed [" << height << "] " << ec.message());
+
+            LOGN("Unpreconfirmed [" << height << "] " << ec.message()
+                << (malleable ? " [MALLEABLE]." : ""));
             return;
         }
 
@@ -213,7 +216,7 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
 // utility
 // ----------------------------------------------------------------------------
 
-code chaser_preconfirm::validate(const block_ptr& block,
+code chaser_preconfirm::validate(const chain::block& block,
     const database::context& ctx) const NOEXCEPT
 {
     const chain::context context
@@ -228,14 +231,14 @@ code chaser_preconfirm::validate(const block_ptr& block,
 
     // Assumes all preceding candidates are associated.
     code ec{ system::error::missing_previous_output };
-    if (!archive().populate(*block))
+    if (!archive().populate(block))
         return ec;
 
-    if ((ec = block->accept(context, subsidy_interval_blocks_,
+    if ((ec = block.accept(context, subsidy_interval_blocks_,
         initial_subsidy_)))
         return ec;
 
-    return block->connect(context);
+    return block.connect(context);
 }
 
 BC_POP_WARNING()
