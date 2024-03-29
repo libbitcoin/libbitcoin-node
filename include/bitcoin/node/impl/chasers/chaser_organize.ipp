@@ -200,8 +200,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     const auto next_flags = state->flags();
     if (prev_flags != next_flags)
     {
-        const binary prev{ fork_bits, to_big_endian(prev_flags) };
-        const binary next{ fork_bits, to_big_endian(next_flags) };
+        const binary prev{ flag_bits, to_big_endian(prev_flags) };
+        const binary next{ flag_bits, to_big_endian(next_flags) };
         LOGN("Forked from ["
             << prev << "] to ["
             << next << "] at ["
@@ -422,8 +422,8 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto next_flags = state_->flags();
     if (prev_flags != next_flags)
     {
-        const binary prev{ fork_bits, to_big_endian(prev_flags) };
-        const binary next{ fork_bits, to_big_endian(next_flags) };
+        const binary prev{ flag_bits, to_big_endian(prev_flags) };
+        const binary next{ flag_bits, to_big_endian(next_flags) };
         LOGN("Forks reverted from ["
             << prev << "] at candidate ("
             << top_candidate << ") to ["

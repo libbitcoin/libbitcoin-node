@@ -223,7 +223,7 @@ void executor::stopper(const auto& message)
 // fork flag transitions (candidate chain).
 void executor::scan_flags() const
 {
-    constexpr auto fork_bits = to_bits(sizeof(chain::forks));
+    constexpr auto flag_bits = to_bits(sizeof(chain::flags));
     const auto error = code{ error::store_integrity }.message();
     const auto start = unix_time();
     const auto top = query_.get_top_candidate();
@@ -243,8 +243,8 @@ void executor::scan_flags() const
 
         if (ctx.flags != flags)
         {
-            const binary prev{ fork_bits, to_big_endian(flags) };
-            const binary next{ fork_bits, to_big_endian(ctx.flags) };
+            const binary prev{ flag_bits, to_big_endian(flags) };
+            const binary next{ flag_bits, to_big_endian(ctx.flags) };
             console(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
                 next % encode_hash(query_.get_header_key(link)) % height);
             flags = ctx.flags;

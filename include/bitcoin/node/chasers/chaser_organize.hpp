@@ -100,7 +100,7 @@ protected:
         const organize_handler& handler) NOEXCEPT;
 
 private:
-    static constexpr auto fork_bits = to_bits(sizeof(system::chain::forks));
+    static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
     static constexpr bool is_block() NOEXCEPT
     {
         return is_same_type<Block, system::chain::block>;
