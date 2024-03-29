@@ -320,7 +320,13 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (const auto error = validate(block, ctx))
     {
-        query.set_block_unconfirmable(link);
+        // Do not set block_unconfirmable if its identifier is malleable.
+        if (!block.is_malleable() && !query.set_block_unconfirmable(link))
+        {
+            stop(node::error::store_integrity);
+            return false;
+        }
+
         notify(error::success, chase::unchecked, link);
 
         LOGR("Invalid block [" << encode_hash(hash) << ":" << ctx.height

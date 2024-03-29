@@ -117,6 +117,9 @@ void chaser_confirm::do_preconfirmed(size_t height) NOEXCEPT
     BC_ASSERT(stranded());
     auto& query = archive();
 
+    // TODO: Do not set block_unconfirmable if its identifier is malleable.
+    ////if (!block->is_malleable() && !query.set_block_unconfirmable(link))...
+
     // Does the height currently represent a strong branch?
     // In case of stronger branch reorganization the branch may become
     // invalidated during processing (popping). How is safety assured?

@@ -185,9 +185,10 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
         }
 
         code ec{};
-        if ((ec = validate(block, ctx)))
+        if ((ec = validate(*block, ctx)))
         {
-            if (!query.set_block_unconfirmable(link))
+            // Do not set block_unconfirmable if its identifier is malleable.
+            if (!block->is_malleable() && !query.set_block_unconfirmable(link))
             {
                 close(error::store_integrity);
                 return;
@@ -213,7 +214,7 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
 // utility
 // ----------------------------------------------------------------------------
 
-code chaser_preconfirm::validate(const block_ptr& block,
+code chaser_preconfirm::validate(const chain::block& block,
     const database::context& ctx) const NOEXCEPT
 {
     const chain::context context
@@ -228,14 +229,14 @@ code chaser_preconfirm::validate(const block_ptr& block,
 
     // Assumes all preceding candidates are associated.
     code ec{ system::error::missing_previous_output };
-    if (!archive().populate(*block))
+    if (!archive().populate(block))
         return ec;
 
-    if ((ec = block->accept(context, subsidy_interval_blocks_,
+    if ((ec = block.accept(context, subsidy_interval_blocks_,
         initial_subsidy_)))
         return ec;
 
-    return block->connect(context);
+    return block.connect(context);
 }
 
 BC_POP_WARNING()

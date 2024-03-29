@@ -150,7 +150,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
-    // If exists test for prior invalidity.
+    // If exists (by hash) test for prior invalidity.
     const auto link = query.to_header(hash);
     if (!link.is_terminal())
     {
@@ -162,6 +162,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
+        // block_unconfirmable is not set when merkle tree is malleable, in
+        // which case the header may be archived in an undetermined state. Not
+        // setting block_unconfirmable for only delays ineviable invalidity
+        // discovery and consequential deorganization at that block. Though
+        // this may cycle until a strong candidate chain is located.
         const auto ec = query.get_header_state(link);
         if (ec == database::error::block_unconfirmable)
         {
@@ -382,29 +387,21 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Mark candidates above and pop at/above height.
     // ........................................................................
+    // Block (link) may be marked as unconfirmable, but if it is not then none
+    // above can be marked, and none can be marked if malleable, so don't mark.
+    // Stored state of each remains unknown until invalid and not malleable.
 
-    // Pop from top down to and including header marking each as unconfirmable.
-    // Unconfirmability isn't necessary for validation but adds query context.
-    for (auto index = query.get_top_candidate(); index > height; --index)
-    {
-        if (!query.set_block_unconfirmable(query.to_candidate(index)) ||
-            !query.pop_candidate())
-        {
-            close(error::store_integrity);
-            return;
-        }
-    }
-
-    // Candidate at height is already marked as unconfirmable by notifier.
+    // Pop from top down to and including invalidating header.
+    for (auto index = query.get_top_candidate(); index >= height; --index)
     {
         if (!query.pop_candidate())
         {
             close(error::store_integrity);
             return;
         }
-
-        fire(events::block_disorganized, height);
     }
+
+    fire(events::block_disorganized, height);
 
     // Reset top chain state cache to fork point.
     // ........................................................................
