@@ -90,7 +90,8 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Handle chaser events.
-    virtual void handle_event(const code&, chase event_, event_link value) NOEXCEPT;
+    virtual void handle_event(const code&, chase event_,
+        event_link value) NOEXCEPT;
 
     /// Reorganize following block unconfirmability.
     virtual void do_disorganize(header_t header) NOEXCEPT;
@@ -100,10 +101,22 @@ protected:
         const organize_handler& handler) NOEXCEPT;
 
 private:
-    static constexpr auto fork_bits = to_bits(sizeof(system::chain::forks));
+    static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
     static constexpr bool is_block() NOEXCEPT
     {
         return is_same_type<Block, system::chain::block>;
+    }
+    static constexpr auto error_duplicate() NOEXCEPT
+    {
+        return is_block() ? error::duplicate_block : error::duplicate_header;
+    }
+    static constexpr auto error_orphan() NOEXCEPT
+    {
+        return is_block() ? error::orphan_block : error::orphan_header;
+    }
+    static constexpr auto chase_object() NOEXCEPT
+    {
+        return is_block() ? chase::block : chase::header;
     }
 
     // Store Block into logical tree cache.

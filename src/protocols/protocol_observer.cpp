@@ -42,7 +42,7 @@ void protocol_observer::start() NOEXCEPT
 }
 
 void protocol_observer::handle_event(const code&, chase event_,
-    event_link value) NOEXCEPT
+    event_link) NOEXCEPT
 {
     if (stopped())
         return;
@@ -51,14 +51,12 @@ void protocol_observer::handle_event(const code&, chase event_,
     {
         case chase::pause:
         {
-            BC_ASSERT(std::holds_alternative<channel_t>(value));
-            POST(do_pause, std::get<channel_t>(value));
+            POST(do_pause, channel_t{});
             break;
         }
         case chase::resume:
         {
-            BC_ASSERT(std::holds_alternative<channel_t>(value));
-            POST(do_resume, std::get<channel_t>(value));
+            POST(do_resume, channel_t{});
             break;
         }
         case chase::header:
@@ -78,7 +76,7 @@ void protocol_observer::handle_event(const code&, chase event_,
         case chase::unconfirmed:
         case chase::disorganized:
         case chase::transaction:
-        case chase::candidate:
+        case chase::template_:
         case chase::block:
         case chase::stop:
         {

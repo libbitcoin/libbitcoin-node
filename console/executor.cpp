@@ -85,6 +85,21 @@ const std::unordered_map<std::string, uint8_t> executor::keys_
     { "f", levels::fault },
     { "q", levels::quit }
 };
+const std::unordered_map<uint8_t, std::string> executor::fired_
+{
+    { events::header_archived,    "header_archived... " },
+    { events::header_organized,   "header_organized.. " },
+    { events::header_reorganized, "header_reorganized " },
+    { events::block_archived,     "block_archived.... " },
+    { events::block_bypassed,     "block_bypassed.... " },
+    { events::block_validated,    "block_validated... " },
+    { events::block_confirmed,    "block_confirmed... " },
+    { events::block_organized ,   "block_organized... " },
+    { events::block_reorganized , "block_reorganized. " },
+    { events::block_disorganized, "block_disorganized " },
+    { events::tx_archived,        "tx_archived....... " },
+    { events::template_issued,    "template_issued... " },
+};
 const std::unordered_map<database::event_t, std::string> executor::events_
 {
     { database::event_t::create_file, "create_file" },
@@ -208,7 +223,7 @@ void executor::stopper(const auto& message)
 // fork flag transitions (candidate chain).
 void executor::scan_flags() const
 {
-    constexpr auto fork_bits = to_bits(sizeof(chain::forks));
+    constexpr auto flag_bits = to_bits(sizeof(chain::flags));
     const auto error = code{ error::store_integrity }.message();
     const auto start = unix_time();
     const auto top = query_.get_top_candidate();
@@ -228,8 +243,8 @@ void executor::scan_flags() const
 
         if (ctx.flags != flags)
         {
-            const binary prev{ fork_bits, to_big_endian(flags) };
-            const binary next{ fork_bits, to_big_endian(ctx.flags) };
+            const binary prev{ flag_bits, to_big_endian(flags) };
+            const binary next{ flag_bits, to_big_endian(ctx.flags) };
             console(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
                 next % encode_hash(query_.get_header_key(link)) % height);
             flags = ctx.flags;
@@ -1162,9 +1177,9 @@ bool executor::do_initchain()
     }
 
     console(BN_INITCHAIN_CREATING);
-    if (const auto ec = store_.create([&](auto event, auto table)
+    if (const auto ec = store_.create([&](auto event_, auto table)
     {
-        console(format(BN_CREATE) % events_.at(event) % tables_.at(table));
+        console(format(BN_CREATE) % events_.at(event_) % tables_.at(table));
     }))
     {
         console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
@@ -1172,9 +1187,9 @@ bool executor::do_initchain()
     }
 
     console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    if (const auto ec = store_.open([&](auto event_, auto table)
     {
-        console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+        console(format(BN_OPEN) % events_.at(event_) % tables_.at(table));
     }))
     {
         console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
@@ -1592,49 +1607,11 @@ void executor::subscribe_log(std::ostream& sink)
 void executor::subscribe_events(std::ostream& sink)
 {
     log_.subscribe_events([&sink, start = logger::now()](const code& ec,
-        uint8_t event, uint64_t value, const logger::time& point)
+        uint8_t event_, uint64_t value, const logger::time& point)
     {
         if (ec) return false;
-
-        switch (event)
-        {
-            case event_archive:
-            {
-                const auto time = duration_cast<seconds>(point - start).count();
-                sink << "[archive] " << value << " " << time << std::endl;
-                break;
-            }
-            case event_header:
-            {
-                const auto time = duration_cast<seconds>(point - start).count();
-                sink << "[header] " << value << " " << time << std::endl;
-                break;
-            }
-            case event_block:
-            {
-                const auto time = duration_cast<seconds>(point - start).count();
-                sink << "[block] " << value << " " << time << std::endl;
-                break;
-            }
-            case event_current_headers:
-            {
-                const auto time = duration_cast<seconds>(point - start).count();
-                sink << "[headers] " << value << " " << time << std::endl;
-                break;
-            }
-            case event_current_blocks:
-            {
-                const auto time = duration_cast<seconds>(point - start).count();
-                sink << "[blocks] " << value << " " << time << std::endl;
-                break;
-            }
-            case event_validated:
-            case event_confirmed:
-            case event_current_validated:
-            case event_current_confirmed:
-            default: break;
-        }
-
+        const auto time = duration_cast<seconds>(point - start).count();
+        sink << fired_.at(event_) << " " << value << " " << time << std::endl;
         return true;
     });
 }

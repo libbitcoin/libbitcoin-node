@@ -46,16 +46,17 @@ bool chaser_header::get_block(system::chain::header::cptr& out,
 }
 
 // Header check/accept are not bypassed when under checkpoint/milestone.
-// Identity and previous block hash would be sufficient, but it's fast.
+// This is because checkpoint would be reliant on height alone and milestone
+// would have no reliance because its passage is not required.
 code chaser_header::validate(const system::chain::header& header,
     const chain_state& state) const NOEXCEPT
 {
-    code ec{};
+    code ec{ error::success };
 
     if ((ec = header.check(
         settings().timestamp_limit_seconds,
         settings().proof_of_work_limit,
-        settings().scrypt_proof_of_work)))
+        settings().forks.scrypt_proof_of_work)))
         return ec;
 
     if ((ec = header.accept(state.context())))

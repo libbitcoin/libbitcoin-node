@@ -21,12 +21,12 @@
 
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/chasers/chaser_block.hpp>
-#include <bitcoin/node/chasers/chaser_candidate.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/chasers/chaser_preconfirm.hpp>
+#include <bitcoin/node/chasers/chaser_template.hpp>
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 
 #endif

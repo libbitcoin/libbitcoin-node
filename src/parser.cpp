@@ -240,95 +240,95 @@ options_metadata parser::load_settings() THROWS
     options_metadata description("settings");
     description.add_options()
 
-    /* [fork] */
+    /* [forks] */
     (
-        "fork.difficult",
-        value<bool>(&configured.bitcoin.difficult),
+        "forks.difficult",
+        value<bool>(&configured.bitcoin.forks.difficult),
         "Require difficult blocks, defaults to true (use false for testnet)."
     )
     (
-        "fork.retarget",
-        value<bool>(&configured.bitcoin.retarget),
+        "forks.retarget",
+        value<bool>(&configured.bitcoin.forks.retarget),
         "Retarget difficulty, defaults to true."
     )
     (
-        "fork.bip16",
-        value<bool>(&configured.bitcoin.bip16),
+        "forks.bip16",
+        value<bool>(&configured.bitcoin.forks.bip16),
         "Add pay-to-script-hash processing, defaults to true (soft fork)."
     )
     (
-        "fork.bip30",
-        value<bool>(&configured.bitcoin.bip30),
+        "forks.bip30",
+        value<bool>(&configured.bitcoin.forks.bip30),
         "Disallow collision of unspent transaction hashes, defaults to true (soft fork)."
     )
     (
-        "fork.bip34",
-        value<bool>(&configured.bitcoin.bip34),
+        "forks.bip34",
+        value<bool>(&configured.bitcoin.forks.bip34),
         "Require coinbase input includes block height, defaults to true (soft fork)."
     )
     (
-        "fork.bip42",
-        value<bool>(&configured.bitcoin.bip42),
+        "forks.bip42",
+        value<bool>(&configured.bitcoin.forks.bip42),
         "Finite monetary supply, defaults to true (soft fork)."
     )
     (
-        "fork.bip66",
-        value<bool>(&configured.bitcoin.bip66),
+        "forks.bip66",
+        value<bool>(&configured.bitcoin.forks.bip66),
         "Require strict signature encoding, defaults to true (soft fork)."
     )
     (
-        "fork.bip65",
-        value<bool>(&configured.bitcoin.bip65),
+        "forks.bip65",
+        value<bool>(&configured.bitcoin.forks.bip65),
         "Add check-locktime-verify op code, defaults to true (soft fork)."
     )
     (
-        "fork.bip90",
-        value<bool>(&configured.bitcoin.bip90),
+        "forks.bip90",
+        value<bool>(&configured.bitcoin.forks.bip90),
         "Assume bip34, bip65, and bip66 activation if enabled, defaults to true (hard fork)."
     )
     (
-        "fork.bip68",
-        value<bool>(&configured.bitcoin.bip68),
+        "forks.bip68",
+        value<bool>(&configured.bitcoin.forks.bip68),
         "Add relative locktime enforcement, defaults to true (soft fork)."
     )
     (
-        "fork.bip112",
-        value<bool>(&configured.bitcoin.bip112),
+        "forks.bip112",
+        value<bool>(&configured.bitcoin.forks.bip112),
         "Add check-sequence-verify op code, defaults to true (soft fork)."
     )
     (
-        "fork.bip113",
-        value<bool>(&configured.bitcoin.bip113),
+        "forks.bip113",
+        value<bool>(&configured.bitcoin.forks.bip113),
         "Use median time past for locktime, defaults to true (soft fork)."
     )
     (
-        "fork.bip141",
-        value<bool>(&configured.bitcoin.bip141),
+        "forks.bip141",
+        value<bool>(&configured.bitcoin.forks.bip141),
         "Segregated witness consensus layer, defaults to true (soft fork)."
     )
     (
-        "fork.bip143",
-        value<bool>(&configured.bitcoin.bip143),
+        "forks.bip143",
+        value<bool>(&configured.bitcoin.forks.bip143),
         "Version 0 transaction digest, defaults to true (soft fork)."
     )
     (
-        "fork.bip147",
-        value<bool>(&configured.bitcoin.bip147),
+        "forks.bip147",
+        value<bool>(&configured.bitcoin.forks.bip147),
         "Prevent dummy value malleability, defaults to true (soft fork)."
     )
     (
-        "fork.time_warp_patch",
-        value<bool>(&configured.bitcoin.time_warp_patch),
+        "forks.time_warp_patch",
+        value<bool>(&configured.bitcoin.forks.time_warp_patch),
         "Fix time warp bug, defaults to false (hard fork)."
     )
     (
-        "fork.retarget_overflow_patch",
-        value<bool>(&configured.bitcoin.retarget_overflow_patch),
+        "forks.retarget_overflow_patch",
+        value<bool>(&configured.bitcoin.forks.retarget_overflow_patch),
         "Fix target overflow for very low difficulty, defaults to false (hard fork)."
     )
     (
-        "fork.scrypt_proof_of_work",
-        value<bool>(&configured.bitcoin.scrypt_proof_of_work),
+        "forks.scrypt_proof_of_work",
+        value<bool>(&configured.bitcoin.forks.scrypt_proof_of_work),
         "Use scrypt hashing for proof of work, defaults to false (hard fork)."
     )
 
@@ -396,18 +396,18 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "bitcoin.bip65_freeze",
-        value<size_t>(&configured.bitcoin.bip65_freeze),
-        "The block height to freeze the bip65 softfork as in bip90, defaults to 388381."
+        value<size_t>(&configured.bitcoin.bip90_bip65_height),
+        "The block height to freeze the bip65 softfork for bip90, defaults to 388381."
     )
     (
         "bitcoin.bip66_freeze",
-        value<size_t>(&configured.bitcoin.bip66_freeze),
-        "The block height to freeze the bip66 softfork as in bip90, defaults to 363725."
+        value<size_t>(&configured.bitcoin.bip90_bip66_height),
+        "The block height to freeze the bip66 softfork for bip90, defaults to 363725."
     )
     (
         "bitcoin.bip34_freeze",
-        value<size_t>(&configured.bitcoin.bip34_freeze),
-        "The block height to freeze the bip34 softfork as in bip90, defaults to 227931."
+        value<size_t>(&configured.bitcoin.bip90_bip34_height),
+        "The block height to freeze the bip34 softfork for bip90, defaults to 227931."
     )
     (
         "bitcoin.bip16_activation_time",

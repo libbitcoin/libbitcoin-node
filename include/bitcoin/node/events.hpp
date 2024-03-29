@@ -28,18 +28,21 @@ namespace node {
 /// Reporting events.
 enum events : uint8_t
 {
-    event_archive,
-    event_header,
-    event_block,
-    event_validated,
-    event_confirmed,
-    event_current_headers,
-    event_current_blocks,
-    event_current_validated,
-    event_current_confirmed
+    header_archived,    // header checked, accepted
+    header_organized,   // header pushed (previously archived)
+    header_reorganized, // header popped
+    block_archived,     // block checked
+    block_bypassed,     // block checked, accepted, connected [assumed]
+    block_validated,    // block checked, accepted, connected
+    block_confirmed,    // block checked, accepted, connected, confirmed
+    block_organized,    // block pushed (previously confirmed)
+    block_reorganized,  // block popped
+    block_disorganized, // block invalidated (after headers-first archive)
+    tx_archived,        // unconfirmed tx checked, accepted, connected
+    template_issued     // block template issued for mining
 };
 
-}
-}
+} // namespace node
+} // namespace libbitcoin
 
 #endif

@@ -68,15 +68,15 @@ typedef std::variant<uint32_t, uint64_t> event_link;
 typedef network::subscriber<chase, event_link> event_subscriber;
 typedef event_subscriber::handler event_handler;
 
-/// Use only these types for event_link variants.
-using height_t = database::height_link::integer;
+/// Use for event_link variants.
+using channel_t = uint64_t;
 using header_t = database::header_link::integer;
 using transaction_t = database::tx_link::integer;
-using channel_t = uint64_t;
-using count_t = uint64_t;
+////using count_t = size_t;  // quantity
+////using header_t = size_t; // height
 
-}
-}
+} // namespace node
+} // namespace libbitcoin
 
 #endif
 

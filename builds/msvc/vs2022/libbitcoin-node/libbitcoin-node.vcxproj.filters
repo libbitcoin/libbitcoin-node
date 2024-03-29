@@ -54,9 +54,6 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\chasers\chaser_candidate.cpp">
-      <Filter>src\chasers</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
@@ -67,6 +64,9 @@
       <Filter>src\chasers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser_preconfirm.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_template.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction.cpp">
@@ -149,9 +149,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_candidate.hpp">
-      <Filter>include\bitcoin\node\chasers</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
@@ -165,6 +162,9 @@
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_preconfirm.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_template.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_transaction.hpp">

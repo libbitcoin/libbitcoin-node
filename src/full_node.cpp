@@ -44,7 +44,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_preconfirm_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
-    chaser_candidate_(*this)
+    chaser_template_(*this)
 {
 }
 
@@ -71,14 +71,14 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
     code ec;
-    
-    if (((ec = chaser_block_.start())) || 
-        ((ec = chaser_header_.start())) ||
+
+    if (((ec = (config().node.headers_first ? chaser_header_.start() :
+            chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_preconfirm_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
-        ((ec = chaser_candidate_.start())))
+        ((ec = chaser_template_.start())))
     {
         handler(ec);
         return;
@@ -105,7 +105,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
 
     // Bump sequential chasers to their starting heights.
     // This will kick off lagging validations even if not current.
-    do_notify(error::success, chase::bump, height_t{});
+    do_notify(error::success, chase::bump, size_t{});
 
     p2p::do_run(handler);
 }
@@ -120,10 +120,7 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    event_subscriber_.stop(network::error::service_stopped, chase::stop,
-        count_t{});
-
+    event_subscriber_.stop(network::error::service_stopped, chase::stop, zero);
     p2p::do_close();
 }
 
@@ -148,7 +145,7 @@ void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 }
 
 void full_node::put_hashes(const map_ptr& map,
-    network::result_handler&& handler) NOEXCEPT
+    result_handler&& handler) NOEXCEPT
 {
     chaser_check_.put_hashes(map, std::move(handler));
 }

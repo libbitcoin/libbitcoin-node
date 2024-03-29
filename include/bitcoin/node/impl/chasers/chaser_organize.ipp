@@ -52,11 +52,8 @@ code CLASS::start() NOEXCEPT
     state_ = query.get_candidate_chain_state(settings_,
         query.get_top_candidate());
 
-    if constexpr (!is_block())
-    {
-        LOGN("Candidate top [" << encode_hash(state_->hash()) << ":"
-            << state_->height() << "].");
-    }
+    LOGN("Candidate top [" << encode_hash(state_->hash()) << ":"
+        << state_->height() << "].");
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -116,7 +113,7 @@ void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
         ////case chase::unconfirmed:
         case chase::disorganized:
         case chase::transaction:
-        case chase::candidate:
+        case chase::template_:
         case chase::block:
         case chase::stop:
         {
@@ -149,12 +146,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     const auto it = tree_.find(hash);
     if (it != tree_.end())
     {
-        const auto height = it->second.state->height();
-        if constexpr (is_block())
-            handler(error::duplicate_block, height);
-        else
-            handler(error::duplicate_header, height);
-
+        handler(error_duplicate(), it->second.state->height());
         return;
     }
 
@@ -177,18 +169,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        if constexpr (is_block())
+        if (!is_block() || ec != database::error::unassociated)
         {
-            // Blocks are only duplicates if txs are associated.
-            if (ec != database::error::unassociated)
-            {
-                handler(error::duplicate_block, height);
-                return;
-            }
-        }
-        else
-        {
-            handler(error::duplicate_header, height);
+            handler(error_duplicate(), height);
             return;
         }
     }
@@ -197,39 +180,34 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     auto state = get_chain_state(header.previous_block_hash());
     if (!state)
     {
-        if constexpr (is_block())
-            handler(error::orphan_block, {});
-        else
-            handler(error::orphan_header, {});
-
+        handler(error_orphan(), {});
         return;
     }
 
     // Roll chain state forward from previous to current header.
     // ........................................................................
 
-    const auto prev_forks = state->forks();
+    const auto prev_flags = state->flags();
     const auto prev_version = state->minimum_block_version();
 
+    // Do not use block parameter in chain_state{} as that is for tx pool.
+
     BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-    // Do not use block parameter here as that override is for tx pool.
     state.reset(new chain::chain_state{ *state, header, settings_ });
     BC_POP_WARNING()
-    const auto height = state->height();
 
-    // TODO: this could be moved to confirmation.
-    const auto next_forks = state->forks();
-    if (prev_forks != next_forks)
+    const auto height = state->height();
+    const auto next_flags = state->flags();
+    if (prev_flags != next_flags)
     {
-        const binary prev{ fork_bits, to_big_endian(prev_forks) };
-        const binary next{ fork_bits, to_big_endian(next_forks) };
+        const binary prev{ flag_bits, to_big_endian(prev_flags) };
+        const binary next{ flag_bits, to_big_endian(next_flags) };
         LOGN("Forked from ["
             << prev << "] to ["
             << next << "] at ["
             << height << ":" << encode_hash(hash) << "].");
     }
 
-    // TODO: this could be moved to confirmation.
     const auto next_version = state->minimum_block_version();
     if (prev_version != next_version)
     {
@@ -305,14 +283,14 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Pop down to the branch point.
     while (top-- > branch_point)
     {
-        LOGN("Reorganizing candidate [" << add1(top) << "].");
-
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
             close(error::store_integrity);
             return;
         }
+
+        fire(events::header_reorganized, height);
     }
 
     // Push stored strong headers to candidate chain.
@@ -324,6 +302,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             close(error::store_integrity);
             return;
         }
+
+        fire(events::header_organized, height);
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -335,39 +315,38 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             close(error::store_integrity);
             return;
         }
+
+        fire(events::header_archived, height);
+        fire(events::header_organized, height);
     }
 
     // Push new header as top of candidate chain.
-    if (push(block_ptr, state->context()).is_terminal())
     {
-        handler(error::store_integrity, height);
-        close(error::store_integrity);
-        return;
+        if (push(block_ptr, state->context()).is_terminal())
+        {
+            handler(error::store_integrity, height);
+            close(error::store_integrity);
+            return;
+        }
+
+        fire(events::header_archived, height);
+        fire(events::header_organized, height);
     }
 
     // Reset top chain state cache and notify.
     // ........................................................................
 
-    const auto point = possible_narrow_cast<height_t>(branch_point);
-
-    if constexpr (is_block())
-    {
-        notify(error::success, chase::block, point);
-    }
-    else
-    {
-        // Delay so headers can get current before block download starts.
-        // Checking currency before notify also avoids excessive work backlog.
-        if (is_current(header.timestamp()))
-            notify(error::success, chase::header, point);
-    }
+    // Delay headers so can get current before block download starts.
+    // Checking currency before notify also avoids excessive work backlog.
+    if (is_block() || is_current(header.timestamp()))
+        notify(error::success, chase_object(), branch_point);
 
     state_ = state;
     handler(error::success, height);
 }
 
 TEMPLATE
-void CLASS::do_disorganize(header_t header) NOEXCEPT
+void CLASS::do_disorganize(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -383,11 +362,11 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     // If header is not a current candidate it has been reorganized out.
     // If header becomes candidate again its unconfirmable state is handled.
     auto& query = archive();
-    if (!query.is_candidate_block(header))
+    if (!query.is_candidate_block(link))
         return;
 
     size_t height{};
-    if (!query.get_height(height, header) || is_zero(height))
+    if (!query.get_height(height, link) || is_zero(height))
     {
         close(error::internal_error);
         return;
@@ -408,33 +387,30 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     // Unconfirmability isn't necessary for validation but adds query context.
     for (auto index = query.get_top_candidate(); index > height; --index)
     {
-        const auto link = query.to_candidate(index);
-
-        LOGN("Invalidating candidate ["
-            << encode_hash(query.get_header_key(link))<< ":" << index << "].");
-
-        if (!query.set_block_unconfirmable(link) || !query.pop_candidate())
+        if (!query.set_block_unconfirmable(query.to_candidate(index)) ||
+            !query.pop_candidate())
         {
             close(error::store_integrity);
             return;
         }
     }
 
-    LOGN("Invalidating candidate ["
-        << encode_hash(query.get_header_key(header)) << ":" << height << "].");
-
     // Candidate at height is already marked as unconfirmable by notifier.
-    if (!query.pop_candidate())
     {
-        close(error::store_integrity);
-        return;
+        if (!query.pop_candidate())
+        {
+            close(error::store_integrity);
+            return;
+        }
+
+        fire(events::block_disorganized, height);
     }
 
     // Reset top chain state cache to fork point.
     // ........................................................................
 
     const auto top_candidate = state_->height();
-    const auto prev_forks = state_->forks();
+    const auto prev_flags = state_->flags();
     const auto prev_version = state_->minimum_block_version();
     state_ = query.get_candidate_chain_state(settings_, fork_point);
     if (!state_)
@@ -443,12 +419,11 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
         return;
     }
 
-    // TODO: this could be moved to deconfirmation.
-    const auto next_forks = state_->forks();
-    if (prev_forks != next_forks)
+    const auto next_flags = state_->flags();
+    if (prev_flags != next_flags)
     {
-        const binary prev{ fork_bits, to_big_endian(prev_forks) };
-        const binary next{ fork_bits, to_big_endian(next_forks) };
+        const binary prev{ flag_bits, to_big_endian(prev_flags) };
+        const binary next{ flag_bits, to_big_endian(next_flags) };
         LOGN("Forks reverted from ["
             << prev << "] at candidate ("
             << top_candidate << ") to ["
@@ -456,7 +431,6 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
             << fork_point << ":" << encode_hash(state_->hash()) << "].");
     }
 
-    // TODO: this could be moved to deconfirmation.
     const auto next_version = state_->minimum_block_version();
     if (prev_version != next_version)
     {
@@ -473,17 +447,21 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
     auto state = state_;
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
-        typename Block::cptr save{};
-        if (!get_block(save, index))
+        typename Block::cptr block{};
+        if (!get_block(block, index))
         {
             close(error::store_integrity);
             return;
         }
 
+        // Do not use block parameter in chain_state{} as that is for tx pool.
+        const auto& header = get_header(*block);
+
         BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-        state.reset(new chain::chain_state{ *state, *save, settings_ });
+        state.reset(new chain::chain_state{ *state, header, settings_ });
         BC_POP_WARNING()
-        cache(save, state);
+
+        cache(block, state);
     }
 
     // Pop candidates from top to above fork point.
@@ -513,8 +491,7 @@ void CLASS::do_disorganize(header_t header) NOEXCEPT
 
     // Notify check/download/confirmation to reset to top (clear).
     // As this organizer controls the candidate array, height is definitive.
-    const auto top = possible_narrow_cast<height_t>(top_confirmed);
-    notify(error::success, chase::disorganized, top);
+    notify(error::success, chase::disorganized, top_confirmed);
 }
 
 // Private
@@ -627,7 +604,7 @@ database::header_link CLASS::push(const typename Block::cptr& block_ptr,
     auto& query = archive();
     const auto link = query.set_link(*block_ptr, database::context
     {
-        possible_narrow_cast<database::context::flag::integer>(context.forks),
+        possible_narrow_cast<database::context::flag::integer>(context.flags),
         possible_narrow_cast<database::context::block::integer>(context.height),
         context.median_time_past,
     });
