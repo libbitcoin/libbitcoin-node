@@ -64,9 +64,6 @@ typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&)> map_handler;
 
 /// Node events.
-static_assert(
-    is_same_type<size_t, uint32_t> ||
-    is_same_type<size_t, uint64_t>);
 typedef std::variant<uint32_t, uint64_t> event_link;
 typedef network::subscriber<chase, event_link> event_subscriber;
 typedef event_subscriber::handler event_handler;
