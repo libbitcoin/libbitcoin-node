@@ -326,7 +326,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Push new header as top of candidate chain.
     {
-        if (push(block_ptr, state->context()).is_terminal())
+        if (push(block, state->context()).is_terminal())
         {
             handler(error::store_integrity, height);
             close(error::store_integrity);
@@ -594,12 +594,12 @@ bool CLASS::get_is_strong(bool& strong, const uint256_t& work,
 }
 
 TEMPLATE
-database::header_link CLASS::push(const typename Block::cptr& block_ptr,
+database::header_link CLASS::push(const Block& block,
     const system::chain::context& context) const NOEXCEPT
 {
     using namespace system;
     auto& query = archive();
-    const auto link = query.set_link(*block_ptr, database::context
+    const auto link = query.set_link(block, database::context
     {
         possible_narrow_cast<database::context::flag::integer>(context.flags),
         possible_narrow_cast<database::context::block::integer>(context.height),

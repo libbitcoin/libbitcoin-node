@@ -100,6 +100,10 @@ protected:
     virtual void do_organize(typename Block::cptr& block_ptr,
         const organize_handler& handler) NOEXCEPT;
 
+    // Store Block to database and push to top of candidate chain.
+    virtual database::header_link push(const Block& block,
+        const system::chain::context& context) const NOEXCEPT;
+
 private:
     static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
     static constexpr bool is_block() NOEXCEPT
@@ -135,10 +139,6 @@ private:
     // True if work represents a stronger candidate branch.
     bool get_is_strong(bool& strong, const uint256_t& work,
         size_t branch_point) const NOEXCEPT;
-
-    // Store Block to database and push to top of candidate chain.
-    database::header_link push(const typename Block::cptr& block_ptr,
-        const system::chain::context& context) const NOEXCEPT;
 
     // Move tree Block to database and push to top of candidate chain.
     bool push(const system::hash_digest& key) NOEXCEPT;

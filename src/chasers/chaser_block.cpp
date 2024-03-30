@@ -19,7 +19,7 @@
 #include <bitcoin/node/chasers/chaser_block.hpp>
 
 #include <algorithm>
-#include <bitcoin/system.hpp>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -94,11 +94,24 @@ bool chaser_block::is_storable(const block&, const chain_state&) const NOEXCEPT
     return true;
 }
 
+
+// Store Block to database and push to top of candidate chain.
+// Whole blocks pushed here do not require set of tx validation state, but do
+// require set_block_confirmable() as the preconfirm chaser is bypassed.
+database::header_link chaser_block::push(const block& block,
+    const context& context) const NOEXCEPT
+{
+    using namespace system;
+    const auto link = chaser_organize<chain::block>::push(block, context);
+    return archive().set_block_confirmable(link, block.fees()) ? link :
+        database::header_link{};
+}
+
 void chaser_block::set_prevout(const input& input) const NOEXCEPT
 {
     const auto& point = input.point();
 
-    // Scan all blocks for matching tx (linear :/)
+    // Scan all blocks for matching tx (linear :/ but legacy scenario)
     std::for_each(tree().begin(), tree().end(), [&](const auto& item) NOEXCEPT
     {
         const auto& txs = *item.second.block->transactions_ptr();
