@@ -200,8 +200,10 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             return;
         }
 
-        // TODO: Set/unset individual txs connected (validated).
-        if (!query.set_block_confirmable(link, block->fees()))
+        // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
+        // Tx validation/states are independent of block validation.
+        if (!query.set_txs_connected(link) ||
+            !query.set_block_preconfirmable(link))
         {
             close(error::store_integrity);
             return;
