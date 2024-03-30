@@ -195,9 +195,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     const auto prev_flags = state->flags();
     const auto prev_version = state->minimum_block_version();
 
-    // Do not use block parameter in chain_state{} as that is for tx pool.
-
     BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+    // Do not use block parameter in chain_state{} as that is for tx pool.
     state.reset(new chain::chain_state{ *state, header, settings_ });
     BC_POP_WARNING()
 
@@ -341,7 +340,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Reset top chain state cache and notify.
     // ........................................................................
 
-    // Delay headers so can get current before block download starts.
+    // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
     if (is_block() || is_current(header.timestamp()))
         notify(error::success, chase_object(), branch_point);
@@ -451,10 +450,10 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
             return;
         }
 
-        // Do not use block parameter in chain_state{} as that is for tx pool.
         const auto& header = get_header(*block);
 
         BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+        // Do not use block parameter in chain_state{} as that is for tx pool.
         state.reset(new chain::chain_state{ *state, header, settings_ });
         BC_POP_WARNING()
 

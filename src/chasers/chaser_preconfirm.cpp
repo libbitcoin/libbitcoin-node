@@ -156,6 +156,7 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
         }
 
         ////// This optimization is probably not worth the query cost.
+        ////// Maybe in the case of a resart with long candidate branch.
         ////auto ec = query.get_block_state(link);
         ////if (ec == database::error::block_confirmable ||
         ////    ec == database::error::block_preconfirmable)

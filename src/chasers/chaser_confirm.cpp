@@ -40,10 +40,6 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 
 code chaser_confirm::start() NOEXCEPT
 {
-    // When the top preconfirmable block is stronger than the top confirmed
-    // a reorganzation attempt occurs in which confirmability is established.
-    /////top_ = archive().get_top_preconfirmable();
-
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -64,11 +60,6 @@ void chaser_confirm::handle_event(const code&, chase event_,
             POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
             break;
         }
-        case chase::disorganized:
-        {
-            POST(do_disorganized, possible_narrow_cast<size_t>(value));
-            break;
-        }
         case chase::header:
         case chase::download:
         case chase::starved:
@@ -84,7 +75,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
         case chase::unpreconfirmed:
         case chase::confirmed:
         case chase::unconfirmed:
-        ////case chase::disorganized:
+        case chase::disorganized:
         case chase::transaction:
         case chase::template_:
         ////case chase::block:
@@ -95,68 +86,17 @@ void chaser_confirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_confirm::do_disorganized(size_t top) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    top_ = top;
-
-    // Assure consistency given chance of intervening candidate organization.
-    do_preconfirmed(top);
-
-    ////// TODO: need to deal with this at startup as well.
-    ////// There may be associated above top_preconfirmable resulting in a stall.
-    ////// Process above top_preconfirmable until unassociated.
-    ////handle_preconfirmed(add1(top_));
-}
-
 void chaser_confirm::do_preconfirmed(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // TODO: Do not set block_unconfirmable if its identifier is malleable.
-    ////if (!block->is_malleable() && !query.set_block_unconfirmable(link))...
+    // As each new validation arrives the fork point is identified.
+    // Work is compared and if the greater then confirmeds are popped,
+    // candidates are pushed, confirmed/unconfirmed, and so-on. If unconfirmed
+    // revert to original confirmations, otherwise notify subscribers of reorg.
 
-    // Does the height currently represent a strong branch?
-    // In case of stronger branch reorganization the branch may become
-    // invalidated during processing (popping). How is safety assured?
-    // TODO: obtain link from height, obtain a fork_point, walk candidates from
-    // TODO: link to fork point via parents, to top confirmed, comparing work.
-    ////if (!is_strong_branch(height))
-    ////    return;
 
-    if (add1(top_) == height)
-    {
-        // TODO: determine if stronger (reorg).
-        // TODO: Associate txs with confirmed block.
-        // TODO: pop/push new strong block and confirm.
-        // TODO: if any fails restore to previous state.
-        ///////////////////////////////////////////////////////////////////////
-
-        // Push block to confirmed index.
-        const auto link = query.to_candidate(height);
-        if (!query.push_confirmed(link))
-        {
-            close(error::store_integrity);
-            return;
-        }
-
-        // TODO:
-        if (false)
-        {
-            notify(error::success, chase::unconfirmed, link);
-            fire(events::block_disorganized, height);
-            fire(events::block_reorganized, height);
-            fire(events::block_organized, height);
-        }
-
-        ++top_;
-        notify(error::success, chase::confirmed, link);
-        fire(events::block_confirmed, top_);
-        fire(events::block_organized, top_);
-        ///////////////////////////////////////////////////////////////////////
-    }
 }
 
 BC_POP_WARNING()
