@@ -51,8 +51,8 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    virtual void do_purge_headers(size_t top) NOEXCEPT;
-    virtual void do_add_headers(size_t branch_point) NOEXCEPT;
+    virtual void do_purge_headers(height_t top) NOEXCEPT;
+    virtual void do_add_headers(height_t branch_point) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;

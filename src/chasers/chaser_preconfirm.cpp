@@ -71,17 +71,17 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     {
         case chase::bump:
         {
-            POST(do_checked, size_t{});
+            POST(do_checked, height_t{});
             break;
         }
         case chase::checked:
         {
-            POST(do_height_checked, possible_narrow_cast<size_t>(value));
+            POST(do_height_checked, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            POST(do_disorganized, possible_narrow_cast<size_t>(value));
+            POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::header:
@@ -110,17 +110,15 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_preconfirm::do_disorganized(size_t top) NOEXCEPT
+void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     last_ = top;
-
-    // Assure consistency given chance of intervening candidate organization.
     do_checked(top);
 }
 
-void chaser_preconfirm::do_height_checked(size_t height) NOEXCEPT
+void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -128,7 +126,7 @@ void chaser_preconfirm::do_height_checked(size_t height) NOEXCEPT
         do_checked(height);
 }
 
-void chaser_preconfirm::do_checked(size_t) NOEXCEPT
+void chaser_preconfirm::do_checked(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -156,6 +154,7 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
         }
 
         ////// This optimization is probably not worth the query cost.
+        ////// Maybe in the case of a resart with long candidate branch.
         ////auto ec = query.get_block_state(link);
         ////if (ec == database::error::block_confirmable ||
         ////    ec == database::error::block_preconfirmable)
@@ -201,7 +200,10 @@ void chaser_preconfirm::do_checked(size_t) NOEXCEPT
             return;
         }
 
-        if (!query.set_block_confirmable(link, block->fees()))
+        // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
+        // Tx validation/states are independent of block validation.
+        if (!query.set_txs_connected(link) ||
+            !query.set_block_preconfirmable(link))
         {
             close(error::store_integrity);
             return;

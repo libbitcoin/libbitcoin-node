@@ -19,7 +19,7 @@
 #include <bitcoin/node/chasers/chaser_block.hpp>
 
 #include <algorithm>
-#include <bitcoin/system.hpp>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -39,15 +39,14 @@ const header& chaser_block::get_header(const block& block) const NOEXCEPT
     return block.header();
 }
 
-bool chaser_block::get_block(system::chain::block::cptr& out,
-    size_t index) const NOEXCEPT
+bool chaser_block::get_block(block::cptr& out, size_t index) const NOEXCEPT
 {
     out = archive().get_block(archive().to_candidate(index));
     return !is_null(out);
 }
 
 // Block validations are bypassed when under checkpoint.
-code chaser_block::validate(const system::chain::block& block,
+code chaser_block::validate(const block& block,
     const chain_state& state) const NOEXCEPT
 {
     code ec{ error::success };
@@ -90,17 +89,29 @@ code chaser_block::validate(const system::chain::block& block,
 }
 
 // Blocks are accumulated following genesis, not cached until current.
-bool chaser_block::is_storable(const system::chain::block&,
-    const chain_state&) const NOEXCEPT
+bool chaser_block::is_storable(const block&, const chain_state&) const NOEXCEPT
 {
     return true;
+}
+
+// Store block to database and push to top of candidate chain.
+// Whole blocks pushed here do not require set_txs_connected(), since the block
+// is already validated, but do require set_block_confirmable() as the
+// confirmation chaser is bypassed (moves straight to confirmation chaser).
+database::header_link chaser_block::push(const block& block,
+    const context& context) const NOEXCEPT
+{
+    using namespace system;
+    const auto link = chaser_organize<chain::block>::push(block, context);
+    return archive().set_block_confirmable(link, block.fees()) ? link :
+        database::header_link{};
 }
 
 void chaser_block::set_prevout(const input& input) const NOEXCEPT
 {
     const auto& point = input.point();
 
-    // Scan all blocks for matching tx (linear :/)
+    // Scan all blocks for matching tx (linear :/ but legacy scenario)
     std::for_each(tree().begin(), tree().end(), [&](const auto& item) NOEXCEPT
     {
         const auto& txs = *item.second.block->transactions_ptr();

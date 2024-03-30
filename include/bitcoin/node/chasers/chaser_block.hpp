@@ -56,6 +56,10 @@ protected:
     virtual bool is_storable(const system::chain::block& block,
         const system::chain::chain_state& state) const NOEXCEPT;
 
+    // Store Block to database and push to top of candidate chain.
+    virtual database::header_link push(const system::chain::block& block,
+        const system::chain::context& context) const NOEXCEPT;
+
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
     void populate(const system::chain::block& block) const NOEXCEPT;

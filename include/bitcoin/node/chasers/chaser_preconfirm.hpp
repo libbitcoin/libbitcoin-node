@@ -43,9 +43,9 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    virtual void do_disorganized(size_t top) NOEXCEPT;
-    virtual void do_height_checked(size_t height) NOEXCEPT;
-    virtual void do_checked(size_t height) NOEXCEPT;
+    virtual void do_disorganized(height_t top) NOEXCEPT;
+    virtual void do_height_checked(height_t height) NOEXCEPT;
+    virtual void do_checked(height_t height) NOEXCEPT;
 
 private:
     bool is_under_milestone(size_t height) const NOEXCEPT;

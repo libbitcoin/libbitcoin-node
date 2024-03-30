@@ -57,12 +57,12 @@ protected:
     /// Get published download identifiers.
     virtual void handle_event(const code& ec,
         chase event_, event_link value) NOEXCEPT;
-    virtual void do_get_downloads(size_t count) NOEXCEPT;
+    virtual void do_get_downloads(count_t count) NOEXCEPT;
 
     /// Manage work splitting.
     bool is_idle() const NOEXCEPT override;
-    virtual void do_purge(size_t) NOEXCEPT;
-    virtual void do_split(size_t) NOEXCEPT;
+    virtual void do_purge(channel_t) NOEXCEPT;
+    virtual void do_split(channel_t) NOEXCEPT;
     virtual void do_pause(channel_t) NOEXCEPT;
     virtual void do_resume(channel_t) NOEXCEPT;
 

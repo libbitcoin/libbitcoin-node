@@ -105,7 +105,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
 
     // Bump sequential chasers to their starting heights.
     // This will kick off lagging validations even if not current.
-    do_notify(error::success, chase::bump, size_t{});
+    do_notify(error::success, chase::bump, height_t{});
 
     p2p::do_run(handler);
 }
