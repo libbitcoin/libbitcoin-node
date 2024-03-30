@@ -67,12 +67,12 @@ void chaser_check::handle_event(const code&, chase event_,
     {
         case chase::header:
         {
-            POST(do_add_headers, possible_narrow_cast<size_t>(value));
+            POST(do_add_headers, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            POST(do_purge_headers, possible_narrow_cast<size_t>(value));
+            POST(do_purge_headers, possible_narrow_cast<height_t>(value));
             break;
         }
         ////case chase::header:
@@ -104,7 +104,7 @@ void chaser_check::handle_event(const code&, chase event_,
 // add headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_add_headers(size_t branch_point) NOEXCEPT
+void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -122,7 +122,7 @@ void chaser_check::do_add_headers(size_t branch_point) NOEXCEPT
 // purge headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_purge_headers(size_t top) NOEXCEPT
+void chaser_check::do_purge_headers(height_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

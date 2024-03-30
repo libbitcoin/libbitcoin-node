@@ -52,12 +52,12 @@ void chaser_confirm::handle_event(const code&, chase event_,
     {
         case chase::block:
         {
-            POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
+            POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::preconfirmed:
         {
-            POST(do_preconfirmed, possible_narrow_cast<size_t>(value));
+            POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::header:
@@ -86,10 +86,10 @@ void chaser_confirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_confirm::do_preconfirmed(size_t height) NOEXCEPT
+void chaser_confirm::do_preconfirmed(height_t /*height*/) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
+    ////const auto& query = archive();
 
     // As each new validation arrives the fork point is identified.
     // Work is compared and if the greater then confirmeds are popped,

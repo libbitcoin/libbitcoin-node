@@ -42,7 +42,7 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    virtual void do_preconfirmed(size_t height) NOEXCEPT;
+    virtual void do_preconfirmed(height_t height) NOEXCEPT;
 };
 
 } // namespace node
