@@ -94,10 +94,10 @@ bool chaser_block::is_storable(const block&, const chain_state&) const NOEXCEPT
     return true;
 }
 
-
-// Store Block to database and push to top of candidate chain.
-// Whole blocks pushed here do not require set of tx validation state, but do
-// require set_block_confirmable() as the preconfirm chaser is bypassed.
+// Store block to database and push to top of candidate chain.
+// Whole blocks pushed here do not require set_txs_connected(), since the block
+// is already validated, but do require set_block_confirmable() as the
+// confirmation chaser is bypassed (moves straight to confirmation chaser).
 database::header_link chaser_block::push(const block& block,
     const context& context) const NOEXCEPT
 {
