@@ -333,6 +333,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
+        // TODO: getting redundant headers reported here (first batch only).
         fire(events::header_archived, height);
         fire(events::header_organized, height);
     }

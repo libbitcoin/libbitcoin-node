@@ -93,7 +93,7 @@ protected:
     virtual void handle_event(const code&, chase event_,
         event_link value) NOEXCEPT;
 
-    /// Reorganize following block unconfirmability.
+    /// Reorganize following Block unconfirmability.
     virtual void do_disorganize(header_t header) NOEXCEPT;
 
     /// Reorganize following strong branch discovery.

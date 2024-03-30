@@ -355,8 +355,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
 
-    notify(error::success, chase::checked, ctx.height);
+    // TODO: getting redundant downloads reported here (until caught up).
     fire(events::block_archived, ctx.height);
+    notify(error::success, chase::checked, ctx.height);
     count(message->cached_size);
 
     map_->erase(it);

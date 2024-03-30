@@ -39,15 +39,14 @@ const header& chaser_block::get_header(const block& block) const NOEXCEPT
     return block.header();
 }
 
-bool chaser_block::get_block(system::chain::block::cptr& out,
-    size_t index) const NOEXCEPT
+bool chaser_block::get_block(block::cptr& out, size_t index) const NOEXCEPT
 {
     out = archive().get_block(archive().to_candidate(index));
     return !is_null(out);
 }
 
 // Block validations are bypassed when under checkpoint.
-code chaser_block::validate(const system::chain::block& block,
+code chaser_block::validate(const block& block,
     const chain_state& state) const NOEXCEPT
 {
     code ec{ error::success };
@@ -90,8 +89,7 @@ code chaser_block::validate(const system::chain::block& block,
 }
 
 // Blocks are accumulated following genesis, not cached until current.
-bool chaser_block::is_storable(const system::chain::block&,
-    const chain_state&) const NOEXCEPT
+bool chaser_block::is_storable(const block&, const chain_state&) const NOEXCEPT
 {
     return true;
 }

@@ -131,6 +131,18 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
     // be purged, it simply means purge all hashes (reset all). All channels
     // will get the purge notification before any subsequent download notify.
     maps_.clear();
+
+    // It is possible for the previous candidate chain to have been stronger
+    // than confirmed (above fork point), given an unconfirmable block found
+    // more than one block above fork point. Yet this stronger candidate(s)
+    // will be popped, and all channels purged/dropped, once purge is handled.
+    // Subsequently there will be no progress on that stronger chain until a
+    // new stronger block is found upon channel restarts. In other words such a
+    // disorganization accepts a stall, not to exceed a singl block period. As
+    // a disorganization is an extrememly rare event: it requires relay of an
+    // invalid block with valid proof of work, on top of another strong block
+    // that was conicidentally not yet successfully confirmed. This is worth
+    // the higher complexity implementation to avoid.
     notify(error::success, chase::purge, top);
 }
 

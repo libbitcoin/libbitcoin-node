@@ -115,8 +115,6 @@ void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
     BC_ASSERT(stranded());
 
     last_ = top;
-
-    // Assure consistency given chance of intervening candidate organization.
     do_checked(top);
 }
 
@@ -202,6 +200,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             return;
         }
 
+        // TODO: Set/unset individual txs connected (validated).
         if (!query.set_block_confirmable(link, block->fees()))
         {
             close(error::store_integrity);
