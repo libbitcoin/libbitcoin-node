@@ -75,25 +75,27 @@ void chaser_check::handle_event(const code&, chase event_,
             POST(do_purge_headers, possible_narrow_cast<height_t>(value));
             break;
         }
-        ////case chase::header:
-        case chase::download:
+        case chase::start:
+        case chase::pause:
+        case chase::resume:
         case chase::starved:
         case chase::split:
         case chase::stall:
         case chase::purge:
-        case chase::pause:
-        case chase::resume:
-        case chase::bump:
+        case chase::block:
+        ///case chase::header:
+        case chase::download:
         case chase::checked:
         case chase::unchecked:
-        case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
-        ////case chase::disorganized:
+        case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
+        ///case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;
@@ -221,6 +223,16 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
 map_ptr chaser_check::make_map(size_t start,
     size_t count) const NOEXCEPT
 {
+    // TODO: associated queries need to treat any stored-as-malleated block as
+    // not associated and store must accept a distinct block of the same bits
+    // (when that block passes check), which may also be later found invalid.
+    // So the block will show as associated until it is invalidated.
+    // The malleated state is basically the same as not associated (hidden).
+    // So when replacement block arrives, it should reset to explicit unknown
+    // and can then pass through preconfirmable and confirmable. If distinct
+    // are also malleable, this will cycle as long as malleable is invalid in
+    // the strong chain. However, the cheap malleable is caught on check and
+    // the other is rare.
     return std::make_shared<database::associations>(
         archive().get_unassociated_above(start, count));
 }

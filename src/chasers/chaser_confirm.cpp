@@ -18,7 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 
-#include <bitcoin/system.hpp>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -29,6 +29,7 @@ namespace node {
 #define CLASS chaser_confirm
 
 using namespace system;
+using namespace database;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -55,30 +56,32 @@ void chaser_confirm::handle_event(const code&, chase event_,
             POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::preconfirmed:
+        case chase::preconfirmable:
         {
             POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::header:
-        case chase::download:
+        case chase::start:
+        case chase::pause:
+        case chase::resume:
         case chase::starved:
         case chase::split:
         case chase::stall:
         case chase::purge:
-        case chase::pause:
-        case chase::resume:
-        case chase::bump:
+        ////case chase::block:
+        case chase::header:
+        case chase::download:
         case chase::checked:
         case chase::unchecked:
-        ////case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
+        ////case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        ////case chase::block:
         case chase::stop:
         {
             break;
@@ -86,17 +89,194 @@ void chaser_confirm::handle_event(const code&, chase event_,
     }
 }
 
-void chaser_confirm::do_preconfirmed(height_t /*height*/) NOEXCEPT
+// Blocks are either confirmed (blocks first) or preconfirmed/confirmed
+// (headers first) at this point. An unconfirmable block may not land here.
+// Candidate chain reorganizations will result in reported heights moving
+// in any direction. Each is treated as independent and only one representing
+// a stronger chain is considered. Currently total work at a given block is not
+// archived, so this organization (like in the organizer) requires scanning to
+// the fork point from the block and to the top confirmed from the fork point.
+// The scans are extremely fast and tiny in all typical scnearios, so it may
+// not improve performance or be worth spending 32 bytes per header to store
+// work, especially since individual header work is obtained from 4 bytes.
+void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    ////const auto& query = archive();
+    auto& query = archive();
 
-    // As each new validation arrives the fork point is identified.
-    // Work is compared and if the greater then confirmeds are popped,
-    // candidates are pushed, confirmed/unconfirmed, and so-on. If unconfirmed
-    // revert to original confirmations, otherwise notify subscribers of reorg.
+    if (closed())
+        return;
 
+    // Compute relative work.
+    // ........................................................................
 
+    uint256_t work{};
+    header_links fork{};
+    if (!get_fork_work(work, fork, height))
+    {
+        close(error::store_integrity); // <= deadlock
+        return;
+    }
+
+    bool strong{};
+    if (!get_is_strong(strong, work, height))
+    {
+        close(error::store_integrity); // <= deadlock
+        return;
+    }
+
+    // Nothing to do. In this case candidate top is/was above height.
+    if (!strong)
+        return;
+
+    // Reorganize confirmed chain.
+    // ........................................................................
+
+    const auto fork_point = height - fork.size();
+    const auto top = query.get_top_confirmed();
+    if (top < fork_point)
+    {
+        close(error::store_integrity); // <= deadlock
+        return;
+    }
+
+    // Pop down to the fork point.
+    auto index = top;
+    header_links popped{};
+    while (index > fork_point)
+    {
+        const auto link = query.to_confirmed(index);
+        popped.push_back(query.to_confirmed(index));
+
+        if (!query.pop_confirmed() || link.is_terminal())
+        {
+            close(error::store_integrity); // <= deadlock
+            return;
+        }
+
+        fire(events::block_reorganized, index--);
+        notify(error::success, chase::reorganized, link);
+    }
+
+    // fork_point + 1
+    ++index;
+
+    // Push candidate headers to confirmed chain.
+    for (const auto& link: views_reverse(fork))
+    {
+        uint64_t fees{};
+        if (auto ec = query.get_block_state(fees, link))
+        {
+            // There is a possiblity (given all 64 byte transactions only) of
+            // preconfirmable but unconfirmable.
+            if (ec == database::error::block_preconfirmable)
+            {
+                if ((ec = query.block_confirmable(link)))
+                {
+                    const auto block = query.get_block(link);
+                    if (!block)
+                    {
+                        close(error::store_integrity); // <= deadlock
+                        return;
+                    }
+
+                    // TODO: set malleated state (invalid/replaceable with distinct).
+                    // Do not set block_unconfirmable if its id is malleable.
+                    const auto malleable = block->is_malleable();
+                    if (!malleable && !query.set_block_unconfirmable(link))
+                    {
+                        close(error::store_integrity); // <= deadlock
+                        return;
+                    }
+
+                    notify(ec, chase::unconfirmable, link);
+                    fire(events::block_unconfirmable, index);
+
+                    LOGN("Unconfirmable [" << height << "] " << ec.message()
+                        << (malleable ? " [MALLEABLE]." : ""));
+
+                    // TODO: restore_confirmed:
+                    // TODO: unset_strong & pop_confirmed (down to fork_point).
+                    // TODO: set_strong & push_confirmed (views_reverse(popped)).
+                    return;
+                }
+                else if (!query.set_block_confirmable(link, fees))
+                {
+                    close(error::store_integrity); // <= deadlock
+                    return;
+                }
+
+                fire(events::block_confirmable, index);
+            }
+            else if (ec != database::error::block_confirmable)
+            {
+                // TODO: handle checkpoint/milestone exceptions (block state).
+                ////// unknown or unconfirmable (shouldn't be here).
+                ////close(error::internal_error); // <= deadlock
+                ////return;
+            }
+
+            if (!query.set_strong(link) || !query.push_confirmed(link))
+            {
+                close(error::store_integrity); // <= deadlock
+                return;
+            }
+
+            fire(events::block_organized, index++);
+            notify(error::success, chase::organized, link);
+        }
+    }
+}
+
+// Private
+// ----------------------------------------------------------------------------
+
+bool chaser_confirm::get_fork_work(uint256_t& fork_work,
+    header_links& fork, height_t fork_top) const NOEXCEPT
+{
+    const auto& query = archive();
+    for (auto link = query.to_candidate(fork_top);
+        !query.is_confirmed_block(link);
+        link = query.to_candidate(--fork_top))
+    {
+        uint32_t bits{};
+        if (link.is_terminal() || !query.get_bits(bits, link))
+            return false;
+
+        fork.push_back(link);
+        fork_work += system::chain::header::proof(bits);
+    }
+
+    return true;
+}
+
+// ****************************************************************************
+// CONSENSUS: fork with greater work causes confirmed reorganization.
+// ****************************************************************************
+bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
+    size_t fork_point) const NOEXCEPT
+{
+    uint256_t confirmed_work{};
+    const auto& query = archive();
+
+    for (auto height = query.get_top_confirmed(); height > fork_point;
+        --height)
+    {
+        uint32_t bits{};
+        if (!query.get_bits(bits, query.to_confirmed(height)))
+            return false;
+
+        // Not strong when confirmed_work equals or exceeds fork_work.
+        confirmed_work += system::chain::header::proof(bits);
+        if (confirmed_work >= fork_work)
+        {
+            strong = false;
+            return true;
+        }
+    }
+
+    strong = true;
+    return true;
 }
 
 BC_POP_WARNING()

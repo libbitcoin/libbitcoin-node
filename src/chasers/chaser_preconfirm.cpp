@@ -69,7 +69,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     using namespace system;
     switch (event_)
     {
-        case chase::bump:
+        case chase::start:
         {
             POST(do_checked, height_t{});
             break;
@@ -84,25 +84,27 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::header:
-        case chase::download:
+        ////case chase::start:
+        case chase::pause:
+        case chase::resume:
         case chase::starved:
         case chase::split:
         case chase::stall:
         case chase::purge:
-        case chase::pause:
-        case chase::resume:
-        ////case chase::bump:
+        case chase::block:
+        case chase::header:
+        case chase::download:
         ////case chase::checked:
         case chase::unchecked:
-        case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
+        case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         ////case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;
@@ -129,8 +131,11 @@ void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
 void chaser_preconfirm::do_checked(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     auto& query = archive();
+
+    if (closed())
+        return;
+
     for (auto height = add1(last_); !closed(); ++height)
     {
         const auto link = query.to_candidate(height);
@@ -140,7 +145,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (checkpoint::is_under(checkpoints_, height))
         {
             ++last_;
-            notify(error::checkpoint_bypass, chase::preconfirmed, height);
+            notify(error::checkpoint_bypass, chase::preconfirmable, height);
             fire(events::block_bypassed, height);
             continue;
         }
@@ -148,7 +153,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (is_under_milestone(height))
         {
             ++last_;
-            notify(error::milestone_bypass, chase::preconfirmed, height);
+            notify(error::milestone_bypass, chase::preconfirmable, height);
             fire(events::block_bypassed, height);
             continue;
         }
@@ -160,7 +165,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////    ec == database::error::block_preconfirmable)
         ////{
         ////    ++last_;
-        ////    notify(ec, chase::preconfirmed, height);
+        ////    notify(ec, chase::preconfirmable, height);
         ////    LOGN("Preconfirmed [" << height << "] " << ec.message());
         ////    fire(events::block_validated, height);
         ////    continue;
@@ -169,7 +174,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////// This is probably dead code as header chain must catch.
         ////if (ec == database::error::block_unconfirmable)
         ////{
-        ////    notify(ec, chase::unpreconfirmed, link);
+        ////    notify(ec, chase::unpreconfirmable, link);
         ////    LOGN("Unpreconfirmed [" << height << "] " << ec.message());
         ////    return;
         ////}
@@ -178,24 +183,25 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         const auto block = query.get_block(link);
         if (!block || !query.get_context(ctx, link))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
         code ec{};
         if ((ec = validate(*block, ctx)))
         {
+            // TODO: set malleated state (invalid/replaceable with distinct).
             // Do not set block_unconfirmable if its identifier is malleable.
             const auto malleable = block->is_malleable();
             if (!malleable && !query.set_block_unconfirmable(link))
             {
-                close(error::store_integrity);
+                close(error::store_integrity); // <= deadlock
                 return;
             }
 
-            notify(ec, chase::unpreconfirmed, link);
+            notify(ec, chase::unpreconfirmable, link);
 
-            LOGN("Unpreconfirmed [" << height << "] " << ec.message()
+            LOGN("Unpreconfirmable [" << height << "] " << ec.message()
                 << (malleable ? " [MALLEABLE]." : ""));
             return;
         }
@@ -205,12 +211,12 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
         ++last_;
-        notify(ec, chase::preconfirmed, height);
+        notify(ec, chase::preconfirmable, height);
         fire(events::block_validated, height);
     }
 }

@@ -88,15 +88,16 @@ void protocol_block_in_31800::handle_event(const code&,
 
     switch (event_)
     {
-        case chase::download:
+        case chase::pause:
         {
-            // There are count blocks to download at/above given header.
-            // But don't download blocks until candidate chain is current.
-            if (is_current())
-            {
-                POST(do_get_downloads, count_t{});
-            }
-
+            // Pause local timers due to channel pause (e.g. snapshot pending).
+            POST(do_pause, channel_t{});
+            break;
+        }
+        case chase::resume:
+        {
+            // Resume local timers due to channel resume (e.g. snapshot done).
+            POST(do_resume, channel_t{});
             break;
         }
         case chase::split:
@@ -133,37 +134,38 @@ void protocol_block_in_31800::handle_event(const code&,
 
             break;
         }
-        case chase::pause:
+        case chase::download:
         {
-            // Pause local timers due to channel pause (e.g. snapshot pending).
-            POST(do_pause, channel_t{});
+            // There are count blocks to download at/above given header.
+            // But don't download blocks until candidate chain is current.
+            if (is_current())
+            {
+                POST(do_get_downloads, count_t{});
+            }
+
             break;
         }
-        case chase::resume:
-        {
-            // Resume local timers due to channel resume (e.g. snapshot done).
-            POST(do_resume, channel_t{});
-            break;
-        }
-        case chase::header:
-        ////case chase::download:
+        case chase::start:
+        ////case chase::pause:
+        ////case chase::resume:
         case chase::starved:
         ////case chase::split:
         ////case chase::stall:
         ////case chase::purge:
-        ////case chase::pause:
-        ////case chase::resume:
-        case chase::bump:
+        case chase::block:
+        case chase::header:
+        ////case chase::download:
         case chase::checked:
         case chase::unchecked:
-        case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
+        case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;
@@ -320,6 +322,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (const auto error = validate(block, ctx))
     {
+        // TODO: set malleated state (invalid/replaceable with distinct).
         // Do not set block_unconfirmable if its identifier is malleable.
         const auto malleable = block.is_malleable();
         if (!malleable && !query.set_block_unconfirmable(link))
@@ -355,7 +358,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
 
-    // TODO: getting redundant downloads reported here (until caught up).
     fire(events::block_archived, ctx.height);
     notify(error::success, chase::checked, ctx.height);
     count(message->cached_size);

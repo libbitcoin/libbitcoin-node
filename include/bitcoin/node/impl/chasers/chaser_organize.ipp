@@ -90,31 +90,33 @@ void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
     switch (event_)
     {
         case chase::unchecked:
-        case chase::unpreconfirmed:
-        case chase::unconfirmed:
+        case chase::unpreconfirmable:
+        case chase::unconfirmable:
         {
             POST(do_disorganize, possible_narrow_cast<header_t>(value));
             break;
         }
-        case chase::header:
-        case chase::download:
+        case chase::start:
+        case chase::pause:
+        case chase::resume:
         case chase::starved:
         case chase::split:
         case chase::stall:
         case chase::purge:
-        case chase::pause:
-        case chase::resume:
-        case chase::bump:
+        case chase::block:
+        case chase::header:
+        case chase::download:
         case chase::checked:
         ////case chase::unchecked:
-        case chase::preconfirmed:
-        ////case chase::unpreconfirmed:
-        case chase::confirmed:
-        ////case chase::unconfirmed:
+        case chase::preconfirmable:
+        ////case chase::unpreconfirmable:
+        case chase::confirmable:
+        ////case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;
@@ -151,23 +153,23 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     }
 
     // If exists (by hash) test for prior invalidity.
-    const auto link = query.to_header(hash);
-    if (!link.is_terminal())
+    const auto id = query.to_header(hash);
+    if (!id.is_terminal())
     {
         size_t height{};
-        if (!query.get_height(height, link))
+        if (!query.get_height(height, id))
         {
             handler(error::store_integrity, {});
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
         // block_unconfirmable is not set when merkle tree is malleable, in
         // which case the header may be archived in an undetermined state. Not
-        // setting block_unconfirmable for only delays ineviable invalidity
+        // setting block_unconfirmable only delays ineviable invalidity 
         // discovery and consequential deorganization at that block. Though
         // this may cycle until a strong candidate chain is located.
-        const auto ec = query.get_header_state(link);
+        const auto ec = query.get_header_state(id);
         if (ec == database::error::block_unconfirmable)
         {
             handler(ec, height);
@@ -181,16 +183,16 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
     }
 
-    // Obtains from state_, tree, or store as applicable.
+    // Roll chain state forward from previous to current header.
+    // ........................................................................
+
+    // Obtains parent state from state_, tree, or store as applicable.
     auto state = get_chain_state(header.previous_block_hash());
     if (!state)
     {
         handler(error_orphan(), {});
         return;
     }
-
-    // Roll chain state forward from previous to current header.
-    // ........................................................................
 
     const auto prev_flags = state->flags();
     const auto prev_version = state->minimum_block_version();
@@ -253,7 +255,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
         handler(error::store_integrity, height);
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -261,7 +263,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (!get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -276,38 +278,42 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Reorganize candidate chain.
     // ........................................................................
 
-    auto top = state_->height();
+    const auto top = state_->height();
     if (top < branch_point)
     {
         handler(error::store_integrity, height);
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
     // Pop down to the branch point.
-    while (top-- > branch_point)
+    auto index = top;
+    while (index > branch_point)
     {
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
-        fire(events::header_reorganized, height);
+        fire(events::header_reorganized, index--);
     }
 
+    // branch_point + 1
+    ++index;
+
     // Push stored strong headers to candidate chain.
-    for (const auto& id: views_reverse(store_branch))
+    for (const auto& link: views_reverse(store_branch))
     {
-        if (!query.push_candidate(id))
+        if (!query.push_candidate(link))
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
-        fire(events::header_organized, height);
+        fire(events::header_organized, index++);
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -316,12 +322,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (!push(key))
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
-        fire(events::header_archived, height);
-        fire(events::header_organized, height);
+        fire(events::header_archived, index);
+        fire(events::header_organized, index++);
     }
 
     // Push new header as top of candidate chain.
@@ -329,13 +335,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (push(block, state->context()).is_terminal())
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
-
-        // TODO: getting redundant headers reported here (first batch only).
-        fire(events::header_archived, height);
-        fire(events::header_organized, height);
+        
+        fire(events::header_archived, index);
+        fire(events::header_organized, index++);
     }
 
     // Reset top chain state cache and notify.
@@ -373,7 +378,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, link) || is_zero(height))
     {
-        close(error::internal_error);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -381,11 +386,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
-        close(error::internal_error);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
-    // Mark candidates above and pop at/above height.
+    // Pop candidates at/above height.
     // ........................................................................
     // Block (link) may be marked as unconfirmable, but if it is not then none
     // above can be marked, and none can be marked if malleable, so don't mark.
@@ -396,12 +401,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
-    }
 
-    fire(events::block_disorganized, height);
+        fire(events::header_reorganized, index);
+    }
 
     // Reset top chain state cache to fork point.
     // ........................................................................
@@ -412,7 +417,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state_ = query.get_candidate_chain_state(settings_, fork_point);
     if (!state_)
     {
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -440,6 +445,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Copy candidates from above fork point to top into header tree.
     // ........................................................................
+    // Independent loop with forward order is required to roll chain state.
 
     auto state = state_;
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
@@ -447,7 +453,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         typename Block::cptr block{};
         if (!get_block(block, index))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -463,27 +469,33 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Pop candidates from top to above fork point.
     // ........................................................................
+
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        LOGN("Deorganizing candidate [" << index << "].");
+        LOGN("Reorganizing candidate [" << index << "].");
 
         if (!query.pop_candidate())
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
+
+        fire(events::header_reorganized, index);
     }
 
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
+
     const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
+
+        fire(events::header_organized, index);
     }
 
     // Notify check/download/confirmation to reset to top (clear).
@@ -503,23 +515,23 @@ void CLASS::cache(const typename Block::cptr& block_ptr,
 
 TEMPLATE
 system::chain::chain_state::ptr CLASS::get_chain_state(
-    const system::hash_digest& hash) const NOEXCEPT
+    const system::hash_digest& previous_hash) const NOEXCEPT
 {
     if (!state_)
         return {};
 
     // Top state is cached because it is by far the most commonly retrieved.
-    if (state_->hash() == hash)
+    if (state_->hash() == previous_hash)
         return state_;
 
-    const auto it = tree_.find(hash);
+    const auto it = tree_.find(previous_hash);
     if (it != tree_.end())
         return it->second.state;
 
     // Branch forms from a candidate block below top candidate (expensive).
     size_t height{};
     const auto& query = archive();
-    if (query.get_height(height, query.to_header(hash)))
+    if (query.get_height(height, query.to_header(previous_hash)))
         return query.get_candidate_chain_state(settings_, height);
 
     return {};
@@ -566,27 +578,28 @@ bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
 
 // ****************************************************************************
 // CONSENSUS: branch with greater work causes candidate reorganization.
-// Chasers eventually reorganize candidate branch into confirmed if valid.
 // ****************************************************************************
 TEMPLATE
-bool CLASS::get_is_strong(bool& strong, const uint256_t& work,
+bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
     size_t branch_point) const NOEXCEPT
 {
-    strong = false;
     uint256_t candidate_work{};
     const auto& query = archive();
-    const auto top = query.get_top_candidate();
 
-    for (auto height = top; height > branch_point; --height)
+    for (auto height = query.get_top_candidate(); height > branch_point;
+        --height)
     {
         uint32_t bits{};
         if (!query.get_bits(bits, query.to_candidate(height)))
             return false;
 
-        // Not strong is candidate work equals or exceeds new work.
+        // Not strong when candidate_work equals or exceeds branch_work.
         candidate_work += system::chain::header::proof(bits);
-        if (candidate_work >= work)
+        if (candidate_work >= branch_work)
+        {
+            strong = false;
             return true;
+        }
     }
 
     strong = true;

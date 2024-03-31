@@ -127,17 +127,17 @@ private:
     void cache(const typename Block::cptr& block_ptr,
         const chain_state::ptr& state) NOEXCEPT;
 
-    // Obtain chain state for given header hash, nullptr if not found. 
+    // Obtain chain state for given previous hash, nullptr if not found.
     chain_state::ptr get_chain_state(
-        const system::hash_digest& hash) const NOEXCEPT;
+        const system::hash_digest& previous_hash) const NOEXCEPT;
 
     // Sum of work from header to branch point (excluded).
-    bool get_branch_work(uint256_t& work, size_t& branch_point,
+    bool get_branch_work(uint256_t& branch_work, size_t& branch_point,
         system::hashes& tree_branch, header_links& store_branch,
         const system::chain::header& header) const NOEXCEPT;
 
     // True if work represents a stronger candidate branch.
-    bool get_is_strong(bool& strong, const uint256_t& work,
+    bool get_is_strong(bool& strong, const uint256_t& branch_work,
         size_t branch_point) const NOEXCEPT;
 
     // Move tree Block to database and push to top of candidate chain.

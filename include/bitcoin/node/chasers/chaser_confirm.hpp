@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
 
+#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -39,10 +40,20 @@ public:
     code start() NOEXCEPT override;
 
 protected:
+    using header_links = std::vector<database::header_link>;
+
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
     virtual void do_preconfirmed(height_t height) NOEXCEPT;
+
+private:
+    // Sum of work from header to fork point (excluded).
+    bool get_fork_work(uint256_t& fork_work, header_links& fork,
+        height_t fork_top) const NOEXCEPT;
+
+    bool get_is_strong(bool& strong, const uint256_t& fork_work,
+        size_t fork_point) const NOEXCEPT;
 };
 
 } // namespace node
