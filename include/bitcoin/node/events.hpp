@@ -28,18 +28,29 @@ namespace node {
 /// Reporting events.
 enum events : uint8_t
 {
-    header_archived,    // header checked, accepted
-    header_organized,   // header pushed (previously archived)
-    header_reorganized, // header popped
-    block_archived,     // block checked
-    block_bypassed,     // block checked, accepted, connected [assumed]
-    block_validated,    // block checked, accepted, connected
-    block_confirmed,    // block checked, accepted, connected, confirmed
-    block_organized,    // block pushed (previously confirmed)
-    block_reorganized,  // block popped
-    block_disorganized, // block invalidated (after headers-first archive)
-    tx_archived,        // unconfirmed tx checked, accepted, connected
-    template_issued     // block template issued for mining
+    /// Candidate chain.
+    header_archived,     // header checked, accepted
+    header_organized,    // header pushed (previously archived)
+    header_reorganized,  // header popped
+
+    /// Blocks.
+    block_archived,      // block checked
+    block_bypassed,      // block checked, accepted, connected [assumed]
+    block_validated,     // block checked, accepted, connected
+    block_confirmable,   // block checked, accepted, connected, confirmable
+    block_unconfirmable, // block invalid (after headers-first archive)
+
+    /// Transactions.
+    tx_archived,         // unassociated tx checked, accepted, connected
+    tx_validated,        // associated tx checked, accepted, connected
+    tx_invalidated,      // associated tx invalid (after headers-first archive)
+
+    /// Confirmed chain.
+    block_organized,     // block pushed (previously confirmable)
+    block_reorganized,   // block popped
+
+    /// Mining.
+    template_issued      // block template issued for mining
 };
 
 } // namespace node

@@ -156,10 +156,12 @@ void protocol_block_in_31800::handle_event(const code&,
         case chase::bump:
         case chase::checked:
         case chase::unchecked:
-        case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
+        case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
@@ -355,7 +357,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
 
-    // TODO: getting redundant downloads reported here (until caught up).
     fire(events::block_archived, ctx.height);
     notify(error::success, chase::checked, ctx.height);
     count(message->cached_size);

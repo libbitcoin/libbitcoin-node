@@ -70,10 +70,12 @@ void protocol_observer::handle_event(const code&, chase event_,
         case chase::bump:
         case chase::checked:
         case chase::unchecked:
-        case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
+        case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:

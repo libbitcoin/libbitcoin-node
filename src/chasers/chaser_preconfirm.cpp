@@ -95,10 +95,12 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         ////case chase::bump:
         ////case chase::checked:
         case chase::unchecked:
-        case chase::preconfirmed:
-        case chase::unpreconfirmed:
-        case chase::confirmed:
-        case chase::unconfirmed:
+        case chase::preconfirmable:
+        case chase::unpreconfirmable:
+        case chase::confirmable:
+        case chase::unconfirmable:
+        case chase::organized:
+        case chase::reorganized:
         ////case chase::disorganized:
         case chase::transaction:
         case chase::template_:
@@ -140,7 +142,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (checkpoint::is_under(checkpoints_, height))
         {
             ++last_;
-            notify(error::checkpoint_bypass, chase::preconfirmed, height);
+            notify(error::checkpoint_bypass, chase::preconfirmable, height);
             fire(events::block_bypassed, height);
             continue;
         }
@@ -148,7 +150,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (is_under_milestone(height))
         {
             ++last_;
-            notify(error::milestone_bypass, chase::preconfirmed, height);
+            notify(error::milestone_bypass, chase::preconfirmable, height);
             fire(events::block_bypassed, height);
             continue;
         }
@@ -160,7 +162,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////    ec == database::error::block_preconfirmable)
         ////{
         ////    ++last_;
-        ////    notify(ec, chase::preconfirmed, height);
+        ////    notify(ec, chase::preconfirmable, height);
         ////    LOGN("Preconfirmed [" << height << "] " << ec.message());
         ////    fire(events::block_validated, height);
         ////    continue;
@@ -169,7 +171,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////// This is probably dead code as header chain must catch.
         ////if (ec == database::error::block_unconfirmable)
         ////{
-        ////    notify(ec, chase::unpreconfirmed, link);
+        ////    notify(ec, chase::unpreconfirmable, link);
         ////    LOGN("Unpreconfirmed [" << height << "] " << ec.message());
         ////    return;
         ////}
@@ -193,7 +195,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
                 return;
             }
 
-            notify(ec, chase::unpreconfirmed, link);
+            notify(ec, chase::unpreconfirmable, link);
 
             LOGN("Unpreconfirmed [" << height << "] " << ec.message()
                 << (malleable ? " [MALLEABLE]." : ""));
@@ -210,7 +212,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         }
 
         ++last_;
-        notify(ec, chase::preconfirmed, height);
+        notify(ec, chase::preconfirmable, height);
         fire(events::block_validated, height);
     }
 }

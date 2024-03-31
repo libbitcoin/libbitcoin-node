@@ -74,24 +74,32 @@ enum class chase
     /// Issued by 'block_in_31800' and handled by 'header'.
     unchecked,
 
-    /// A branch has been preconfirmed (height_t).
+    /// A branch has become preconfirmable (height_t).
     /// Issued by 'preconfirm' and handled by 'confirm'.
-    preconfirmed,
+    preconfirmable,
 
-    /// A checked block has failed preconfirm (header_t).
+    /// A checked block has failed preconfirmability (header_t).
     /// Issued by 'preconfirm' and handled by 'header'.
-    unpreconfirmed,
+    unpreconfirmable,
 
-    /// A branch has been confirmed (header_t).
+    /// A connected block has become confirmable (header_t).
     /// Issued by 'confirm' and handled by 'transaction'.
-    confirmed,
+    confirmable,
 
-    /// A connected block has failed confirm (header_t).
+    /// A connected block has failed confirmability (header_t).
     /// Issued by 'confirm' and handled by 'header' (and 'block').
-    unconfirmed,
+    unconfirmable,
 
-    /// unchecked, unpreconfirmed or unconfirmed was handled (height_t).
-    /// Issued by 'organize' and handled by 'preconfirm' and 'confirm'.
+    /// A confirmable block has been confirmed (header_t).
+    /// Issued by 'confirm' and handled by 'transaction'.
+    organized,
+
+    /// A previously confirmed block has been unconfirmed (header_t).
+    /// Issued by 'confirm' and handled by 'transaction'.
+    reorganized,
+
+    /// unchecked, unpreconfirmable or unconfirmable was handled (height_t).
+    /// Issued by 'organize' and handled by 'preconfirm'.
     disorganized,
 
     /// A new transaction has been added to the pool (transaction_t).
