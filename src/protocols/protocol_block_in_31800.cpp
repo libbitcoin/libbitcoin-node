@@ -322,6 +322,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (const auto error = validate(block, ctx))
     {
+        // TODO: set malleated state (invalid/replaceable with distinct).
         // Do not set block_unconfirmable if its identifier is malleable.
         const auto malleable = block.is_malleable();
         if (!malleable && !query.set_block_unconfirmable(link))

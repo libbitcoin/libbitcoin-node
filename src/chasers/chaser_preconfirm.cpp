@@ -187,6 +187,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         code ec{};
         if ((ec = validate(*block, ctx)))
         {
+            // TODO: set malleated state (invalid/replaceable with distinct).
             // Do not set block_unconfirmable if its identifier is malleable.
             const auto malleable = block->is_malleable();
             if (!malleable && !query.set_block_unconfirmable(link))
@@ -197,7 +198,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
 
             notify(ec, chase::unpreconfirmable, link);
 
-            LOGN("Unpreconfirmed [" << height << "] " << ec.message()
+            LOGN("Unpreconfirmable [" << height << "] " << ec.message()
                 << (malleable ? " [MALLEABLE]." : ""));
             return;
         }

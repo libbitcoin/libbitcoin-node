@@ -164,19 +164,33 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         uint64_t fees{};
         if (auto ec = query.get_block_state(fees, link))
         {
-            LOGF("Block state: " << ec.message());
+            // There is a possiblity (given all 64 byte transactions only) of
+            // preconfirmable but unconfirmable.
             if (ec == database::error::block_preconfirmable)
             {
                 if ((ec = query.block_confirmable(link)))
                 {
-                    LOGF("Block unconfirmable: " << ec.message());
-                    if (!query.set_block_unconfirmable(link))
+                    const auto block = query.get_block(link);
+                    if (!block)
                     {
                         close(error::store_integrity); // <= deadlock
                         return;
                     }
 
+                    // TODO: set malleated state (invalid/replaceable with distinct).
+                    // Do not set block_unconfirmable if its id is malleable.
+                    const auto malleable = block->is_malleable();
+                    if (!malleable && !query.set_block_unconfirmable(link))
+                    {
+                        close(error::store_integrity); // <= deadlock
+                        return;
+                    }
+
+                    notify(ec, chase::unconfirmable, link);
                     fire(events::block_unconfirmable, index);
+
+                    LOGN("Unconfirmable [" << height << "] " << ec.message()
+                        << (malleable ? " [MALLEABLE]." : ""));
 
                     // TODO: restore_confirmed:
                     // TODO: unset_strong & pop_confirmed (down to fork_point).
@@ -193,9 +207,10 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             }
             else if (ec != database::error::block_confirmable)
             {
-                // unknown_state or block_unconfirmable (shouldn't be here).
-                close(error::internal_error); // <= deadlock
-                return;
+                // TODO: handle checkpoint/milestone exceptions (block state).
+                ////// unknown or unconfirmable (shouldn't be here).
+                ////close(error::internal_error); // <= deadlock
+                ////return;
             }
 
             if (!query.set_strong(link) || !query.push_confirmed(link))

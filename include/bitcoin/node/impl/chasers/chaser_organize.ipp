@@ -166,7 +166,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
         // block_unconfirmable is not set when merkle tree is malleable, in
         // which case the header may be archived in an undetermined state. Not
-        // setting block_unconfirmable for only delays ineviable invalidity
+        // setting block_unconfirmable only delays ineviable invalidity 
         // discovery and consequential deorganization at that block. Though
         // this may cycle until a strong candidate chain is located.
         const auto ec = query.get_header_state(id);
