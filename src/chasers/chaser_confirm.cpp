@@ -111,14 +111,14 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     header_links fork{};
     if (!get_fork_work(work, fork, height))
     {
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
     bool strong{};
     if (!get_is_strong(strong, work, height))
     {
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -140,7 +140,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     auto top = query.get_top_confirmed();
     if (top < fork_point)
     {
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -150,7 +150,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         const auto link = query.to_confirmed(height);
         if (!query.pop_confirmed() || link.is_terminal())
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -163,7 +163,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     {
         if (!query.push_confirmed(link))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 

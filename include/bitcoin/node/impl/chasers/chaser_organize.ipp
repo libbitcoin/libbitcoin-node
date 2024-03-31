@@ -160,7 +160,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (!query.get_height(height, id))
         {
             handler(error::store_integrity, {});
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -256,7 +256,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
         handler(error::store_integrity, height);
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -264,7 +264,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (!get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -283,7 +283,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (top < branch_point)
     {
         handler(error::store_integrity, height);
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -293,7 +293,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (!query.pop_candidate())
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -306,7 +306,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (!query.push_candidate(link))
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -319,7 +319,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (!push(key))
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -332,7 +332,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (push(block, state->context()).is_terminal())
         {
             handler(error::store_integrity, height);
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
         
@@ -375,7 +375,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, link) || is_zero(height))
     {
-        close(error::internal_error);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -383,7 +383,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
-        close(error::internal_error);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -398,7 +398,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -414,7 +414,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state_ = query.get_candidate_chain_state(settings_, fork_point);
     if (!state_)
     {
-        close(error::store_integrity);
+        close(error::store_integrity); // <= deadlock
         return;
     }
 
@@ -450,7 +450,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         typename Block::cptr block{};
         if (!get_block(block, index))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -473,7 +473,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
         if (!query.pop_candidate())
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -488,7 +488,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 

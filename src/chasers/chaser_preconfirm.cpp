@@ -180,7 +180,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         const auto block = query.get_block(link);
         if (!block || !query.get_context(ctx, link))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
@@ -191,7 +191,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             const auto malleable = block->is_malleable();
             if (!malleable && !query.set_block_unconfirmable(link))
             {
-                close(error::store_integrity);
+                close(error::store_integrity); // <= deadlock
                 return;
             }
 
@@ -207,7 +207,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
-            close(error::store_integrity);
+            close(error::store_integrity); // <= deadlock
             return;
         }
 
