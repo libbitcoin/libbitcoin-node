@@ -167,8 +167,6 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         uint64_t fees{};
         if (auto ec = query.get_block_state(fees, link))
         {
-            // There is a possiblity (given all 64 byte transactions only) of
-            // preconfirmable but unconfirmable.
             if (ec == database::error::block_preconfirmable)
             {
                 if ((ec = query.block_confirmable(link)))
