@@ -104,6 +104,9 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     BC_ASSERT(stranded());
     auto& query = archive();
 
+    if (closed())
+        return;
+
     // Compute relative work.
     // ........................................................................
 

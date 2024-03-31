@@ -131,8 +131,11 @@ void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
 void chaser_preconfirm::do_checked(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     auto& query = archive();
+
+    if (closed())
+        return;
+
     for (auto height = add1(last_); !closed(); ++height)
     {
         const auto link = query.to_candidate(height);
