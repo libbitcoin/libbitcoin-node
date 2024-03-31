@@ -26,17 +26,20 @@ namespace node {
 
 enum class chase
 {
-    /// Legacy: A new strong branch exists (height_t).
-    /// Issued by 'block' and handled by 'confirm'.
-    block,
+    /// Work shuffling.
+    /// -----------------------------------------------------------------------
 
-    /// A new candidate branch exists (height_t).
-    /// Issued by 'header' and handled by 'check'.
-    header,
+    /// Chaser is directed to start validating (height_t).
+    /// Issued by 'full_node' and handled by 'preconfirm'.
+    start,
 
-    /// New candidate headers without txs exist (count_t).
-    /// Issued by 'check' and handled by 'block_in_31800'.
-    download,
+    /// Channels (all) are directed to pause reading (channel_t).
+    /// Issued by 'full_node' and handled by 'protocol'.
+    pause,
+
+    /// Channels (all) are directed to resume reading (channel_t).
+    /// Issued by 'full_node' and handled by 'protocol'.
+    resume,
 
     /// Channel starved for block download identifiers (channel_t).
     /// Issued by 'block_in_31800' and handled by 'session_outbound'.
@@ -54,17 +57,23 @@ enum class chase
     /// Issued by 'check' and handled by 'block_in_31800'.
     purge,
 
-    /// Channels (all) are directed to pause reading (channel_t).
-    /// Issued by 'full_node' and handled by 'protocol'.
-    pause,
+    /// Candidate Chain.
+    /// -----------------------------------------------------------------------
 
-    /// Channels (all) are directed to resume reading (channel_t).
-    /// Issued by 'full_node' and handled by 'protocol'.
-    resume,
+    /// Legacy: A new strong branch exists (height_t).
+    /// Issued by 'block' and handled by 'confirm'.
+    block,
 
-    /// Chaser is directed to start validating (height_t).
-    /// Issued by 'full_node' and handled by 'preconfirm'.
-    bump,
+    /// A new candidate branch exists (height_t).
+    /// Issued by 'header' and handled by 'check'.
+    header,
+
+    /// New candidate headers without txs exist (count_t).
+    /// Issued by 'check' and handled by 'block_in_31800'.
+    download,
+
+    /// Validation.
+    /// -----------------------------------------------------------------------
 
     /// A block has been downloaded, checked and stored (height_t).
     /// Issued by 'block_in_31800' and handled by 'connect'.
@@ -82,6 +91,9 @@ enum class chase
     /// Issued by 'preconfirm' and handled by 'header'.
     unpreconfirmable,
 
+    /// Confirmation.
+    /// -----------------------------------------------------------------------
+
     /// A connected block has become confirmable (header_t).
     /// Issued by 'confirm' and handled by 'transaction'.
     confirmable,
@@ -89,6 +101,9 @@ enum class chase
     /// A connected block has failed confirmability (header_t).
     /// Issued by 'confirm' and handled by 'header' (and 'block').
     unconfirmable,
+
+    /// Confirmed Chain.
+    /// -----------------------------------------------------------------------
 
     /// A confirmable block has been confirmed (header_t).
     /// Issued by 'confirm' and handled by 'transaction'.
@@ -99,8 +114,11 @@ enum class chase
     reorganized,
 
     /// unchecked, unpreconfirmable or unconfirmable was handled (height_t).
-    /// Issued by 'organize' and handled by 'preconfirm'.
+    /// Issued by 'organize' and handled by 'preconfirm' (disorgs candidates).
     disorganized,
+
+    /// Mining.
+    /// -----------------------------------------------------------------------
 
     /// A new transaction has been added to the pool (transaction_t).
     /// Issued by 'transaction' and handled by 'template'.
@@ -109,6 +127,9 @@ enum class chase
     /// A new candidate block (template) has been created (height_t).
     /// Issued by 'template' and handled by [miners].
     template_,
+
+    /// Stop.
+    /// -----------------------------------------------------------------------
 
     /// Service is stopping, accompanied by error::service_stopped (count_t).
     stop

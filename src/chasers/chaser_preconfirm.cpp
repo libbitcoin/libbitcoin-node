@@ -69,7 +69,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     using namespace system;
     switch (event_)
     {
-        case chase::bump:
+        case chase::start:
         {
             POST(do_checked, height_t{});
             break;
@@ -84,15 +84,16 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::header:
-        case chase::download:
+        ////case chase::start:
+        case chase::pause:
+        case chase::resume:
         case chase::starved:
         case chase::split:
         case chase::stall:
         case chase::purge:
-        case chase::pause:
-        case chase::resume:
-        ////case chase::bump:
+        case chase::block:
+        case chase::header:
+        case chase::download:
         ////case chase::checked:
         case chase::unchecked:
         case chase::preconfirmable:
@@ -104,7 +105,6 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         ////case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;

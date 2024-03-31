@@ -61,15 +61,16 @@ void chaser_transaction::handle_event(const code&, chase event_,
             POST(do_confirmed, possible_narrow_cast<header_t>(value));
             break;
         }
-        case chase::header:
-        case chase::download:
+        case chase::start:
+        case chase::pause:
+        case chase::resume:
         case chase::starved:
         case chase::split:
         case chase::stall:
         case chase::purge:
-        case chase::pause:
-        case chase::resume:
-        case chase::bump:
+        case chase::block:
+        case chase::header:
+        case chase::download:
         case chase::checked:
         case chase::unchecked:
         case chase::preconfirmable:
@@ -81,7 +82,6 @@ void chaser_transaction::handle_event(const code&, chase event_,
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;

@@ -88,15 +88,16 @@ void protocol_block_in_31800::handle_event(const code&,
 
     switch (event_)
     {
-        case chase::download:
+        case chase::pause:
         {
-            // There are count blocks to download at/above given header.
-            // But don't download blocks until candidate chain is current.
-            if (is_current())
-            {
-                POST(do_get_downloads, count_t{});
-            }
-
+            // Pause local timers due to channel pause (e.g. snapshot pending).
+            POST(do_pause, channel_t{});
+            break;
+        }
+        case chase::resume:
+        {
+            // Resume local timers due to channel resume (e.g. snapshot done).
+            POST(do_resume, channel_t{});
             break;
         }
         case chase::split:
@@ -133,27 +134,27 @@ void protocol_block_in_31800::handle_event(const code&,
 
             break;
         }
-        case chase::pause:
+        case chase::download:
         {
-            // Pause local timers due to channel pause (e.g. snapshot pending).
-            POST(do_pause, channel_t{});
+            // There are count blocks to download at/above given header.
+            // But don't download blocks until candidate chain is current.
+            if (is_current())
+            {
+                POST(do_get_downloads, count_t{});
+            }
+
             break;
         }
-        case chase::resume:
-        {
-            // Resume local timers due to channel resume (e.g. snapshot done).
-            POST(do_resume, channel_t{});
-            break;
-        }
-        case chase::header:
-        ////case chase::download:
+        case chase::start:
+        ////case chase::pause:
+        ////case chase::resume:
         case chase::starved:
         ////case chase::split:
         ////case chase::stall:
         ////case chase::purge:
-        ////case chase::pause:
-        ////case chase::resume:
-        case chase::bump:
+        case chase::block:
+        case chase::header:
+        ////case chase::download:
         case chase::checked:
         case chase::unchecked:
         case chase::preconfirmable:
@@ -165,7 +166,6 @@ void protocol_block_in_31800::handle_event(const code&,
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::block:
         case chase::stop:
         {
             break;
