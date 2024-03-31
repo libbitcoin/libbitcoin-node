@@ -165,64 +165,62 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     for (const auto& link: views_reverse(fork))
     {
         uint64_t fees{};
-        if (auto ec = query.get_block_state(fees, link))
+        auto ec = query.get_block_state(fees, link);
+        if (ec == database::error::block_preconfirmable)
         {
-            if (ec == database::error::block_preconfirmable)
+            if ((ec = query.block_confirmable(link)))
             {
-                if ((ec = query.block_confirmable(link)))
-                {
-                    const auto block = query.get_block(link);
-                    if (!block)
-                    {
-                        close(error::store_integrity); // <= deadlock
-                        return;
-                    }
-
-                    // TODO: set malleated state (invalid/replaceable with distinct).
-                    // Do not set block_unconfirmable if its id is malleable.
-                    const auto malleable = block->is_malleable();
-                    if (!malleable && !query.set_block_unconfirmable(link))
-                    {
-                        close(error::store_integrity); // <= deadlock
-                        return;
-                    }
-
-                    notify(ec, chase::unconfirmable, link);
-                    fire(events::block_unconfirmable, index);
-
-                    LOGN("Unconfirmable [" << height << "] " << ec.message()
-                        << (malleable ? " [MALLEABLE]." : ""));
-
-                    // TODO: restore_confirmed:
-                    // TODO: unset_strong & pop_confirmed (down to fork_point).
-                    // TODO: set_strong & push_confirmed (views_reverse(popped)).
-                    return;
-                }
-                else if (!query.set_block_confirmable(link, fees))
+                const auto block = query.get_block(link);
+                if (!block)
                 {
                     close(error::store_integrity); // <= deadlock
                     return;
                 }
 
-                fire(events::block_confirmable, index);
-            }
-            else if (ec != database::error::block_confirmable)
-            {
-                // TODO: handle checkpoint/milestone exceptions (block state).
-                ////// unknown or unconfirmable (shouldn't be here).
-                ////close(error::internal_error); // <= deadlock
-                ////return;
-            }
+                // TODO: set malleated state (invalid/replaceable with distinct).
+                // Do not set block_unconfirmable if its id is malleable.
+                const auto malleable = block->is_malleable();
+                if (!malleable && !query.set_block_unconfirmable(link))
+                {
+                    close(error::store_integrity); // <= deadlock
+                    return;
+                }
 
-            if (!query.set_strong(link) || !query.push_confirmed(link))
+                notify(ec, chase::unconfirmable, link);
+                fire(events::block_unconfirmable, index);
+
+                LOGN("Unconfirmable [" << height << "] " << ec.message()
+                    << (malleable ? " [MALLEABLE]." : ""));
+
+                // TODO: restore_confirmed:
+                // TODO: unset_strong & pop_confirmed (down to fork_point).
+                // TODO: set_strong & push_confirmed (views_reverse(popped)).
+                return;
+            }
+            else if (!query.set_block_confirmable(link, fees))
             {
                 close(error::store_integrity); // <= deadlock
                 return;
             }
 
-            fire(events::block_organized, index++);
-            notify(error::success, chase::organized, link);
+            fire(events::block_confirmable, index);
         }
+        else if (ec != database::error::block_confirmable)
+        {
+            // TODO: handle checkpoint/milestone/malleated exceptions.
+            ////// unknown or unconfirmable (shouldn't be here).
+            ////close(error::internal_error); // <= deadlock
+            ////return;
+        }
+
+        if (!query.set_strong(link) || !query.push_confirmed(link))
+        {
+            close(error::store_integrity); // <= deadlock
+            return;
+        }
+
+        fire(events::block_organized, index++);
+        notify(error::success, chase::organized, link);
     }
 }
 
