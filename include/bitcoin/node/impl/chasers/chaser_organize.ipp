@@ -201,9 +201,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Do not use block parameter in chain_state{} as that is for tx pool.
     state.reset(new chain::chain_state{ *state, header, settings_ });
     BC_POP_WARNING()
-        
-    auto index = state->height();
-    const auto height = index;
+
+    const auto height = state->height();
     const auto next_flags = state->flags();
     if (prev_flags != next_flags)
     {
@@ -279,7 +278,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Reorganize candidate chain.
     // ........................................................................
 
-    auto top = state_->height();
+    const auto top = state_->height();
     if (top < branch_point)
     {
         handler(error::store_integrity, height);
@@ -288,7 +287,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     }
 
     // Pop down to the branch point.
-    while (top-- > branch_point)
+    auto index = top;
+    while (index > branch_point)
     {
         if (!query.pop_candidate())
         {
@@ -300,6 +300,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         fire(events::header_reorganized, index--);
     }
 
+    // branch_point + 1
+    ++index;
+
     // Push stored strong headers to candidate chain.
     for (const auto& link: views_reverse(store_branch))
     {
@@ -310,7 +313,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        fire(events::header_organized, ++index);
+        fire(events::header_organized, index++);
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -323,8 +326,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        fire(events::header_archived, ++index);
-        fire(events::header_organized, index);
+        fire(events::header_archived, index);
+        fire(events::header_organized, index++);
     }
 
     // Push new header as top of candidate chain.
@@ -336,8 +339,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
         
-        fire(events::header_archived, ++index);
-        fire(events::header_organized, index);
+        fire(events::header_archived, index);
+        fire(events::header_organized, index++);
     }
 
     // Reset top chain state cache and notify.

@@ -126,18 +126,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     if (!strong)
         return;
 
-    // Confirmation and restoration state accumulation.
-    // ........................................................................
-
-    // fire(events::block_confirmable, height);
-    // fire(events::block_unconfirmable, height);
-
     // Reorganize confirmed chain.
     // ........................................................................
 
-    const auto fork_top = height;
-    const auto fork_point = fork_top - fork.size();
-    auto top = query.get_top_confirmed();
+    const auto fork_point = height - fork.size();
+    const auto top = query.get_top_confirmed();
     if (top < fork_point)
     {
         close(error::store_integrity); // <= deadlock
@@ -145,30 +138,75 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     }
 
     // Pop down to the fork point.
-    while (top-- > fork_point)
+    auto index = top;
+    header_links popped{};
+    while (index > fork_point)
     {
-        const auto link = query.to_confirmed(height);
+        const auto link = query.to_confirmed(index);
+        popped.push_back(query.to_confirmed(index));
+
         if (!query.pop_confirmed() || link.is_terminal())
         {
             close(error::store_integrity); // <= deadlock
             return;
         }
 
-        fire(events::block_reorganized, height--);
+        fire(events::block_reorganized, index--);
         notify(error::success, chase::reorganized, link);
     }
+
+    // fork_point + 1
+    ++index;
 
     // Push candidate headers to confirmed chain.
     for (const auto& link: views_reverse(fork))
     {
-        if (!query.push_confirmed(link))
+        uint64_t fees{};
+        if (auto ec = query.get_block_state(fees, link))
         {
-            close(error::store_integrity); // <= deadlock
-            return;
-        }
+            LOGF("Block state: " << ec.message());
+            if (ec == database::error::block_preconfirmable)
+            {
+                if ((ec = query.block_confirmable(link)))
+                {
+                    LOGF("Block unconfirmable: " << ec.message());
+                    if (!query.set_block_unconfirmable(link))
+                    {
+                        close(error::store_integrity); // <= deadlock
+                        return;
+                    }
 
-        fire(events::block_organized, ++height);
-        notify(error::success, chase::organized, link);
+                    fire(events::block_unconfirmable, index);
+
+                    // TODO: restore_confirmed:
+                    // TODO: unset_strong & pop_confirmed (down to fork_point).
+                    // TODO: set_strong & push_confirmed (views_reverse(popped)).
+                    return;
+                }
+                else if (!query.set_block_confirmable(link, fees))
+                {
+                    close(error::store_integrity); // <= deadlock
+                    return;
+                }
+
+                fire(events::block_confirmable, index);
+            }
+            else if (ec != database::error::block_confirmable)
+            {
+                // unknown_state or block_unconfirmable (shouldn't be here).
+                close(error::internal_error); // <= deadlock
+                return;
+            }
+
+            if (!query.set_strong(link) || !query.push_confirmed(link))
+            {
+                close(error::store_integrity); // <= deadlock
+                return;
+            }
+
+            fire(events::block_organized, index++);
+            notify(error::success, chase::organized, link);
+        }
     }
 }
 
@@ -181,7 +219,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     const auto& query = archive();
     for (auto link = query.to_candidate(fork_top);
         !query.is_confirmed_block(link);
-        link = query.to_candidate(++fork_top))
+        link = query.to_candidate(--fork_top))
     {
         uint32_t bits{};
         if (link.is_terminal() || !query.get_bits(bits, link))
