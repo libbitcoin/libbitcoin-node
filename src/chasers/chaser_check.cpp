@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <algorithm>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -75,6 +76,11 @@ void chaser_check::handle_event(const code&, chase event_,
             POST(do_purge_headers, possible_narrow_cast<height_t>(value));
             break;
         }
+        case chase::malleated:
+        {
+            POST(do_malleated, possible_narrow_cast<header_t>(value));
+            break;
+        }
         case chase::start:
         case chase::pause:
         case chase::resume:
@@ -83,7 +89,7 @@ void chaser_check::handle_event(const code&, chase event_,
         case chase::stall:
         case chase::purge:
         case chase::block:
-        ///case chase::header:
+        ////case chase::header:
         case chase::download:
         case chase::checked:
         case chase::unchecked:
@@ -93,7 +99,8 @@ void chaser_check::handle_event(const code&, chase event_,
         case chase::unconfirmable:
         case chase::organized:
         case chase::reorganized:
-        ///case chase::disorganized:
+        ////case chase::disorganized:
+        ////case chase::malleated:
         case chase::transaction:
         case chase::template_:
         case chase::stop:
@@ -193,6 +200,32 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     handler(error::success);
 }
 
+// Handle malleated (invalid but malleable) block.
+// ----------------------------------------------------------------------------
+
+// The archived malleable block instance was found to be invalid (malleated).
+// The block/header hash cannot be marked unconfirmable due to malleability, so
+// disassociate the block and then add the block hash back to the current set.
+// Upon restart/disorg the dissasociation causes the block hash to be mapped
+// despite existing stored block instance(s). Storage can then invalidate found
+// blocks that bitwise match stored-invalid-malleable (i.e. malleated) blocks.
+void chaser_check::do_malleated(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    using namespace database;
+    auto& query = archive();
+
+    association out{};
+    if (!query.dissasociate(link) || !query.get_unassociated(out, link))
+    {
+        close(error::store_integrity); // <= deadlock
+        return;
+    }
+
+    maps_.push_back(std::make_shared<associations>(associations{ out }));
+    notify(error::success, chase::download, one);
+}
+
 // utilities
 // ----------------------------------------------------------------------------
 
@@ -223,16 +256,7 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
 map_ptr chaser_check::make_map(size_t start,
     size_t count) const NOEXCEPT
 {
-    // TODO: associated queries need to treat any stored-as-malleated block as
-    // not associated and store must accept a distinct block of the same bits
-    // (when that block passes check), which may also be later found invalid.
-    // So the block will show as associated until it is invalidated.
-    // The malleated state is basically the same as not associated (hidden).
-    // So when replacement block arrives, it should reset to explicit unknown
-    // and can then pass through preconfirmable and confirmable. If distinct
-    // are also malleable, this will cycle as long as malleable is invalid in
-    // the strong chain. However, the cheap malleable is caught on check and
-    // the other is rare.
+    // Known malleated blocks are disassociated and therefore appear here.
     return std::make_shared<database::associations>(
         archive().get_unassociated_above(start, count));
 }

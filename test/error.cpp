@@ -140,6 +140,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__duplicate_header__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "duplicate header");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__malleated_block__true_exected_message)
+{
+    constexpr auto value = error::malleated_block;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "malleated block");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__insufficient_work__true_exected_message)
 {
     constexpr auto value = error::insufficient_work;
@@ -149,22 +158,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__insufficient_work__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "insufficient work");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__milestone_bypass__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__validation_bypass__true_exected_message)
 {
-    constexpr auto value = error::milestone_bypass;
+    constexpr auto value = error::validation_bypass;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "milestone bypass");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__checkpoint_bypass__true_exected_message)
-{
-    constexpr auto value = error::checkpoint_bypass;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "checkpoint bypass");
+    BOOST_REQUIRE_EQUAL(ec.message(), "validation bypass");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

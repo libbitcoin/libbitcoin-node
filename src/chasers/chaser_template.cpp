@@ -81,6 +81,7 @@ void chaser_template::handle_event(const code&, chase event_,
         case chase::reorganized:
         case chase::disorganized:
         ////case chase::transaction:
+        case chase::malleated:
         case chase::template_:
         case chase::stop:
         {

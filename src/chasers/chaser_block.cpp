@@ -49,7 +49,7 @@ bool chaser_block::get_block(block::cptr& out, size_t index) const NOEXCEPT
 code chaser_block::validate(const block& block,
     const chain_state& state) const NOEXCEPT
 {
-    code ec{ error::success };
+    code ec{};
     const auto& header = block.header();
 
     // block.check does not roll up to header.check.
@@ -63,9 +63,15 @@ code chaser_block::validate(const block& block,
     if ((ec = header.accept(state.context())))
         return ec;
 
-    // Under height is sufficient validation for checkpoint here.
+    // As checkpoints rely on block hash, malleability must be guarded.
     if (checkpoint::is_under(settings().checkpoints, state.height()))
-        return ec;
+    {
+        if (block.has_duplicates())
+            return system::error::block_internal_double_spend;
+
+        if (!block.is_malleable())
+            return system::error::success;
+    }
 
     if ((ec = block.check()))
         return ec;

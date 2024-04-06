@@ -55,9 +55,9 @@ enum error_t : uint8_t
     orphan_header,
     duplicate_block,
     duplicate_header,
+    malleated_block,
     insufficient_work,
-    milestone_bypass,
-    checkpoint_bypass
+    validation_bypass
 };
 
 // No current need for error_code equivalence mapping.

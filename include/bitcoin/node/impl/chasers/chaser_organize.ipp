@@ -115,6 +115,7 @@ void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
         case chase::organized:
         case chase::reorganized:
         case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
         case chase::stop:

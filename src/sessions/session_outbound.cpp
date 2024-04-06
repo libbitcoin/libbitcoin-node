@@ -103,6 +103,7 @@ void session_outbound::handle_event(const code&,
         case chase::organized:
         case chase::reorganized:
         case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
         case chase::stop:

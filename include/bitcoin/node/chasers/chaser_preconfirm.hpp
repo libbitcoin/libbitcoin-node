@@ -48,15 +48,13 @@ protected:
     virtual void do_checked(height_t height) NOEXCEPT;
 
 private:
-    bool is_under_milestone(size_t height) const NOEXCEPT;
     code validate(const system::chain::block& block,
         const database::context& ctx) const NOEXCEPT;
 
     // These are thread safe.
-    const system::chain::checkpoint milestone_;
-    const system::chain::checkpoints checkpoints_;
     const uint64_t initial_subsidy_;
     const uint32_t subsidy_interval_blocks_;
+    const system::chain::checkpoints checkpoints_;
 
     // This is protected by strand.
     size_t last_{};

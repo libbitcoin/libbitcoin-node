@@ -36,10 +36,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
   : chaser(node),
-    milestone_(node.config().bitcoin.milestone),
-    checkpoints_(node.config().bitcoin.checkpoints),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
-    subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks)
+    subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks),
+    checkpoints_(node.config().bitcoin.checkpoints)
 {
 }
 
@@ -47,18 +46,6 @@ code chaser_preconfirm::start() NOEXCEPT
 {
     last_ = archive().get_fork();
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
-}
-
-// TODO: the existence of milestone should be cached/updated.
-bool chaser_preconfirm::is_under_milestone(size_t height) const NOEXCEPT
-{
-    // get_header_key returns null_hash on not found.
-    if (height > milestone_.height() || milestone_.hash() == null_hash)
-        return false;
-
-    const auto& query = archive();
-    const auto link = query.to_candidate(milestone_.height());
-    return query.get_header_key(link) == milestone_.hash();
 }
 
 void chaser_preconfirm::handle_event(const code&, chase event_,
@@ -103,6 +90,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::organized:
         case chase::reorganized:
         ////case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
         case chase::stop:
@@ -142,18 +130,15 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (!query.is_associated(link))
             return;
 
-        if (checkpoint::is_under(checkpoints_, height))
+        // Always validate malleable blocks.
+        // Only coincident malleability is possible here.
+        // TODO: depends on an efficient query.is_malleable.
+        if ((checkpoint::is_under(checkpoints_, height) ||
+            is_under_milestone(height)) &&
+            !query.is_malleable(link))
         {
             ++last_;
-            notify(error::checkpoint_bypass, chase::preconfirmable, height);
-            fire(events::block_bypassed, height);
-            continue;
-        }
-
-        if (is_under_milestone(height))
-        {
-            ++last_;
-            notify(error::milestone_bypass, chase::preconfirmable, height);
+            notify(error::validation_bypass, chase::preconfirmable, height);
             fire(events::block_bypassed, height);
             continue;
         }
@@ -179,32 +164,46 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         ////    return;
         ////}
 
+        // Reconstruct block for accept/connect.
         database::context ctx{};
-        const auto block = query.get_block(link);
-        if (!block || !query.get_context(ctx, link))
+        const auto block_ptr = query.get_block(link);
+        if (!block_ptr || !query.get_context(ctx, link))
         {
             close(error::store_integrity); // <= deadlock
             return;
         }
 
-        code ec{};
-        if ((ec = validate(*block, ctx)))
+        const auto& block = *block_ptr;
+
+        // Accept/Connect block.
+        // --------------------------------------------------------------------
+
+        if (const auto error = validate(block, ctx))
         {
-            // TODO: set malleated state (invalid/replaceable with distinct).
-            // Do not set block_unconfirmable if its identifier is malleable.
-            const auto malleable = block->is_malleable();
-            if (!malleable && !query.set_block_unconfirmable(link))
+            // Only coincident malleability is possible here.
+            if (block.is_malleable())
             {
-                close(error::store_integrity); // <= deadlock
-                return;
+                notify(error, chase::malleated, link);
+            }
+            else
+            {
+                if (!query.set_block_unconfirmable(link))
+                {
+                    close(node::error::store_integrity); // <= deadlock
+                    return;
+                }
+
+                notify(error, chase::unpreconfirmable, link);
+                fire(events::block_unconfirmable, height);
             }
 
-            notify(ec, chase::unpreconfirmable, link);
-
-            LOGN("Unpreconfirmable [" << height << "] " << ec.message()
-                << (malleable ? " [MALLEABLE]." : ""));
+            LOGR("Unpreconfirmed block [" << encode_hash(block.hash()) << ":" 
+                << ctx.height << "] " << error.message());
             return;
         }
+
+        // Commit validation metadata.
+        // --------------------------------------------------------------------
 
         // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
         // Tx validation/states are independent of block validation.
@@ -215,8 +214,10 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             return;
         }
 
+        // --------------------------------------------------------------------
+
         ++last_;
-        notify(ec, chase::preconfirmable, height);
+        notify(error::success, chase::preconfirmable, height);
         fire(events::block_validated, height);
     }
 }

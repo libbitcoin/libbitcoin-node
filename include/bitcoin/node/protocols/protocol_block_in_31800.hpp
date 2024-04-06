@@ -51,7 +51,7 @@ public:
 
 protected:
     /// Determine if block passes check validation.
-    virtual code validate(const system::chain::block& block,
+    virtual code check(const system::chain::block& block,
         const system::chain::context& ctx) const NOEXCEPT;
 
     /// Get published download identifiers.

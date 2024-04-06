@@ -54,6 +54,12 @@ private:
 
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
+
+    code confirm(const database::header_link& link,
+        size_t height) const NOEXCEPT;
+
+    // This is thread safe.
+    const system::chain::checkpoints& checkpoints_;
 };
 
 } // namespace node
