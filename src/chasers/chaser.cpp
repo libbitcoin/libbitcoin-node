@@ -42,9 +42,10 @@ chaser::chaser(full_node& node) NOEXCEPT
 // Close.
 // ----------------------------------------------------------------------------
 
-void chaser::close(const code& ec) const NOEXCEPT
+void chaser::fault(const code& ec) const NOEXCEPT
 {
-    LOGF("Chaser failed, " << ec.message());
+    LOGF("Detected fault: " << ec.message());
+    notify(ec, chase::stop, {});
 }
 
 bool chaser::closed() const NOEXCEPT
@@ -61,7 +62,8 @@ code chaser::subscribe_events(event_handler&& handler) NOEXCEPT
     return node_.subscribe_events(std::move(handler));
 }
 
-void chaser::notify(const code& ec, chase event_, event_link value) NOEXCEPT
+void chaser::notify(const code& ec, chase event_,
+    event_link value) const NOEXCEPT
 {
     // Posts to node strand, not chaser strand.
     node_.notify(ec, event_, value);

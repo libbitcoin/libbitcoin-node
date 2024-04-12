@@ -71,6 +71,11 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         ////case chase::start:
         case chase::pause:
         case chase::resume:
@@ -93,7 +98,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
@@ -167,7 +172,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         const auto block_ptr = query.get_block(link);
         if (!block_ptr || !query.get_context(ctx, link))
         {
-            close(error::store_integrity); // <= deadlock
+            fault(error::store_integrity);
             return;
         }
 
@@ -187,7 +192,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             {
                 if (!query.set_block_unconfirmable(link))
                 {
-                    close(node::error::store_integrity); // <= deadlock
+                    fault(node::error::store_integrity);
                     return;
                 }
 
@@ -208,7 +213,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
-            close(error::store_integrity); // <= deadlock
+            fault(error::store_integrity);
             return;
         }
 

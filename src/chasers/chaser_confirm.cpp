@@ -62,6 +62,11 @@ void chaser_confirm::handle_event(const code&, chase event_,
             POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         case chase::pause:
         case chase::resume:
@@ -84,7 +89,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
         case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
@@ -116,14 +121,14 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     header_links fork{};
     if (!get_fork_work(work, fork, height))
     {
-        close(error::store_integrity); // <= deadlock
+        fault(error::store_integrity);
         return;
     }
 
     bool strong{};
     if (!get_is_strong(strong, work, height))
     {
-        close(error::store_integrity); // <= deadlock
+        fault(error::store_integrity);
         return;
     }
 
@@ -138,7 +143,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     const auto top = query.get_top_confirmed();
     if (top < fork_point)
     {
-        close(error::store_integrity); // <= deadlock
+        fault(error::store_integrity);
         return;
     }
 
@@ -152,7 +157,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 
         if (!query.pop_confirmed() || link.is_terminal())
         {
-            close(error::store_integrity); // <= deadlock
+            fault(error::store_integrity);
             return;
         }
 
@@ -170,7 +175,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         if (query.get_block_state(fees, link) !=
             database::error::block_preconfirmable)
         {
-            close(error::store_integrity); // <= deadlock
+            fault(error::store_integrity);
             return;
         }
 
@@ -188,7 +193,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             {
                 if (!query.set_block_unconfirmable(link))
                 {
-                    close(node::error::store_integrity); // <= deadlock
+                    fault(node::error::store_integrity);
                     return;
                 }
 
@@ -208,7 +213,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             !query.set_strong(link) ||
             !query.push_confirmed(link))
         {
-            close(error::store_integrity); // <= deadlock
+            fault(error::store_integrity);
             return;
         }
 

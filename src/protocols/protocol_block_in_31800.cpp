@@ -145,6 +145,11 @@ void protocol_block_in_31800::handle_event(const code&,
 
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         ////case chase::pause:
         ////case chase::resume:
@@ -167,7 +172,7 @@ void protocol_block_in_31800::handle_event(const code&,
         case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
@@ -315,7 +320,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (query.is_malleated(block))
     {
-        // Disallow known malleated block, drop peer and keep trying.
+        // Disallow known block malleation, drop peer and keep trying.
         LOGR("Malleated block [" << encode_hash(hash) << "] from ["
             << authority() << "].");
         stop(error::malleated_block);
@@ -333,7 +338,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         // Both forms of malleabilty are possible here.
         if (block.is_malleable())
         {
-            // Block has not been associated, so just continue with hashes.
+            // Block has not been associated, so just drop and continue.
         }
         else
         {
@@ -357,7 +362,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ------------------------------------------------------------------------
 
-    // TODO: archive is_malleable for efficient query.is_malleable tests.
     if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height

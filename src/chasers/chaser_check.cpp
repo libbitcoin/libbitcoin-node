@@ -32,6 +32,7 @@ namespace node {
 
 using namespace system;
 using namespace system::chain;
+using namespace database;
 using namespace network;
 using namespace std::placeholders;
 
@@ -44,7 +45,7 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
     connections_(node.network_settings().outbound_connections),
     inventory_(system::lesser(node.config().node.maximum_inventory,
-        network::messages::max_inventory))
+        messages::max_inventory))
 {
 }
 
@@ -81,6 +82,11 @@ void chaser_check::handle_event(const code&, chase event_,
             POST(do_malleated, possible_narrow_cast<header_t>(value));
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         case chase::pause:
         case chase::resume:
@@ -103,7 +109,7 @@ void chaser_check::handle_event(const code&, chase event_,
         ////case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
@@ -140,18 +146,6 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
     // be purged, it simply means purge all hashes (reset all). All channels
     // will get the purge notification before any subsequent download notify.
     maps_.clear();
-
-    // It is possible for the previous candidate chain to have been stronger
-    // than confirmed (above fork point), given an unconfirmable block found
-    // more than one block above fork point. Yet this stronger candidate(s)
-    // will be popped, and all channels purged/dropped, once purge is handled.
-    // Subsequently there will be no progress on that stronger chain until a
-    // new stronger block is found upon channel restarts. In other words such a
-    // disorganization accepts a stall, not to exceed a singl block period. As
-    // a disorganization is an extrememly rare event: it requires relay of an
-    // invalid block with valid proof of work, on top of another strong block
-    // that was conicidentally not yet successfully confirmed. This is worth
-    // the higher complexity implementation to avoid.
     notify(error::success, chase::purge, top);
 }
 
@@ -166,7 +160,7 @@ void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
 }
 
 void chaser_check::put_hashes(const map_ptr& map,
-    network::result_handler&& handler) NOEXCEPT
+    result_handler&& handler) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_put_hashes,
@@ -185,7 +179,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 }
 
 void chaser_check::do_put_hashes(const map_ptr& map,
-    const network::result_handler& handler) NOEXCEPT
+    const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -206,19 +200,15 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 // The archived malleable block instance was found to be invalid (malleated).
 // The block/header hash cannot be marked unconfirmable due to malleability, so
 // disassociate the block and then add the block hash back to the current set.
-// Upon restart/disorg the dissasociation causes the block hash to be mapped
-// despite existing stored block instance(s). Storage can then invalidate found
-// blocks that bitwise match stored-invalid-malleable (i.e. malleated) blocks.
 void chaser_check::do_malleated(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    using namespace database;
     auto& query = archive();
 
     association out{};
     if (!query.dissasociate(link) || !query.get_unassociated(out, link))
     {
-        close(error::store_integrity); // <= deadlock
+        fault(error::store_integrity);
         return;
     }
 
@@ -257,14 +247,13 @@ map_ptr chaser_check::make_map(size_t start,
     size_t count) const NOEXCEPT
 {
     // Known malleated blocks are disassociated and therefore appear here.
-    return std::make_shared<database::associations>(
+    return std::make_shared<associations>(
         archive().get_unassociated_above(start, count));
 }
 
 map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
-    return table.empty() ? std::make_shared<database::associations>() :
-        pop_front(table);
+    return table.empty() ? std::make_shared<associations>() : pop_front(table);
 }
 
 BC_POP_WARNING()

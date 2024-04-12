@@ -67,8 +67,8 @@ protected:
     /// Close.
     /// -----------------------------------------------------------------------
 
-    /// Close the node after logging the code.
-    void close(const code& ec) const NOEXCEPT;
+    /// There was a fault in the node.
+    void fault(const code& ec) const NOEXCEPT;
 
     /// Node threadpool is stopped and may still be joining.
     bool closed() const NOEXCEPT;
@@ -80,7 +80,7 @@ protected:
     code subscribe_events(event_handler&& handler) NOEXCEPT;
 
     /// Set event (does not require node strand).
-    void notify(const code& ec, chase event_, event_link value) NOEXCEPT;
+    void notify(const code& ec, chase event_, event_link value) const NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
