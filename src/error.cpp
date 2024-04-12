@@ -48,7 +48,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { duplicate_header, "duplicate header" },
     { malleated_block, "malleated block" },
     { insufficient_work, "insufficient work" },
-    { validation_bypass, "validation bypass" }
+    { validation_bypass, "validation bypass" },
+    { confirmation_bypass, "confirmation bypass" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

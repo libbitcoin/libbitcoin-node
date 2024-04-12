@@ -57,7 +57,8 @@ enum error_t : uint8_t
     duplicate_header,
     malleated_block,
     insufficient_work,
-    validation_bypass
+    validation_bypass,
+    confirmation_bypass
 };
 
 // No current need for error_code equivalence mapping.

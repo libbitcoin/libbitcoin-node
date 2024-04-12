@@ -167,4 +167,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__validation_bypass__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "validation bypass");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__confirmation_bypass__true_exected_message)
+{
+    constexpr auto value = error::confirmation_bypass;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "confirmation bypass");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
