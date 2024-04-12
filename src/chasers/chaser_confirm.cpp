@@ -35,8 +35,7 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
-  : chaser(node),
-    checkpoints_(node.config().bitcoin.checkpoints)
+  : chaser(node)
 {
 }
 
@@ -153,7 +152,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     while (index > fork_point)
     {
         const auto link = query.to_confirmed(index);
-        popped.push_back(query.to_confirmed(index));
+        popped.push_back(link);
 
         if (!query.pop_confirmed() || link.is_terminal())
         {
@@ -171,58 +170,102 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     // Push candidate headers to confirmed chain.
     for (const auto& link: views_reverse(fork))
     {
-        uint64_t fees{};
-        if (query.get_block_state(fees, link) !=
-            database::error::block_preconfirmable)
-        {
-            fault(error::store_integrity);
-            return;
-        }
+        // Precondition (established by fork construction above).
+        // ....................................................................
 
         // Confirm block.
-        // --------------------------------------------------------------------
+        // ....................................................................
 
-        if (const auto error = confirm(link, index))
+        if (const auto code = confirm(link, index))
         {
-            // Only coincident malleability is possible here.
+            if (code == error::confirmation_bypass ||
+                code == database::error::block_confirmable)
+            {
+                // Advance and confirm.
+                notify(code, chase::confirmable, index);
+                fire(events::confirm_bypassed, index);
+                set_confirmed(link, index++);
+                continue;
+            }
+
+            if (code == error::store_integrity)
+            {
+                fault(error::store_integrity);
+                return;
+            }
+
             if (query.is_malleable(link))
             {
-                notify(error, chase::malleated, link);
+                notify(code, chase::malleated, link);
             }
             else
             {
                 if (!query.set_block_unconfirmable(link))
                 {
-                    fault(node::error::store_integrity);
+                    fault(error::store_integrity);
                     return;
                 }
 
-                notify(error, chase::unconfirmable, link);
+                ///////////////////////////////////////////////////////////////
+                // TODO: pop down to fork point an push popped vector.
+                ///////////////////////////////////////////////////////////////
+
+                notify(code, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, index);
             }
 
-            LOGR("Unconfirmable block [" << index << "] " << error.message());
+            LOGR("Unconfirmable block [" << index << "] " << code.message());
             return;
         }
 
         // Commit confirmation metadata.
-        // --------------------------------------------------------------------
+        // ....................................................................
 
-        // Confirmable is final, strong and confirmed may be reorganized.
-        if (!query.set_block_confirmable(link, fees) ||
-            !query.set_strong(link) ||
-            !query.push_confirmed(link))
+        // TODO: compute fees from validation records (optional metadata).
+        if (!query.set_block_confirmable(link, uint64_t{}))
         {
             fault(error::store_integrity);
             return;
         }
 
-        // --------------------------------------------------------------------
+        // Advance and confirm.
+        // ....................................................................
 
-        notify(error::success, chase::organized, link);
+        notify(error::success, chase::confirmable, index);
         fire(events::block_confirmable, index);
-        fire(events::block_organized, index++);
+        set_confirmed(link, index++);
     }
+}
+
+void chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
+{
+    auto& query = archive();
+    if (!query.set_strong(link) || !query.push_confirmed(link))
+    {
+        fault(error::store_integrity);
+        return;
+    }
+
+    notify(error::success, chase::organized, link);
+    fire(events::block_organized, height);
+}
+
+code chaser_confirm::confirm(const header_link& link,
+    size_t height) const NOEXCEPT
+{
+    const auto& query = archive();
+
+    if (is_under_bypass(height) && !query.is_malleable(link))
+        return error::confirmation_bypass;
+
+    const auto ec = query.get_block_state(link);
+    if (ec == database::error::block_confirmable)
+        return ec;
+
+    if (ec == database::error::block_preconfirmable)
+        return query.block_confirmable(link);
+
+    return error::store_integrity;
 }
 
 // utility
@@ -274,19 +317,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
-}
-
-code chaser_confirm::confirm(const header_link& link,
-    size_t height) const NOEXCEPT
-{
-    const auto& query = archive();
-
-    // Skip if under checkpoint/milestone is not malleable.
-    if ((chain::checkpoint::is_under(checkpoints_, height) ||
-        is_under_milestone(height)) && !query.is_malleable(link))
-        return error::success;
-
-    return query.block_confirmable(link);
 }
 
 BC_POP_WARNING()

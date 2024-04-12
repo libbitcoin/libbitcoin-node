@@ -33,8 +33,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
-    milestone_(node.config().bitcoin.milestone),
     strand_(node.service().get_executor()),
+    milestone_(node.config().bitcoin.milestone),
+    checkpoints_(node.config().bitcoin.checkpoints),
     reporter(node.log)
 {
 }
@@ -110,6 +111,16 @@ bool chaser::is_under_milestone(size_t height) const NOEXCEPT
     const auto& query = archive();
     return query.get_header_key(query.to_candidate(milestone_.height())) ==
         milestone_.hash();
+}
+
+bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
+{
+    return system::chain::checkpoint::is_under(checkpoints_, height);
+}
+
+bool chaser::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return is_under_checkpoint(height) || is_under_milestone(height);
 }
 
 BC_POP_WARNING()

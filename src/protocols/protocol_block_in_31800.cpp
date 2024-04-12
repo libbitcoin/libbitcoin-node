@@ -289,14 +289,6 @@ get_data protocol_block_in_31800::create_get_data(
 // check block
 // ----------------------------------------------------------------------------
 
-// TODO: Reduce to is_malleable_duplicate() under checkpoint/milestone.
-code protocol_block_in_31800::check(const chain::block& block,
-    const chain::context& ctx) const NOEXCEPT
-{
-    code ec{};
-    return ec = block.check() ? ec : block.check(ctx);
-}
-
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
 {
@@ -304,6 +296,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (stopped(ec))
         return false;
+
+    // Preconditions (requested and not malleated).
+    // ........................................................................
 
     auto& query = archive();
     const auto& block = *message->block_ptr;
@@ -331,20 +326,22 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto& ctx = it->context;
 
     // Check block.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
-    if (const auto error = check(block, ctx))
+    if (const auto code = check(block, ctx))
     {
         // Both forms of malleabilty are possible here.
         if (block.is_malleable())
         {
-            // Block has not been associated, so just drop and continue.
+            // Block has not been associated, so just drop peer and continue.
+            // A malleable block with no valid variant (i.e. mined invalid)
+            // will cause a candidate stall until a stronger chain is found.
         }
         else
         {
             if (!query.set_block_unconfirmable(link))
             {
-                stop(node::error::store_integrity);
+                stop(error::store_integrity);
                 return false;
             }
 
@@ -353,24 +350,25 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         }
 
         LOGR("Unchecked block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "] " << error.message());
+            << "] from [" << authority() << "] " << code.message());
 
-        stop(error);
+        stop(code);
         return false;
     }
 
     // Commit block.txs.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
     if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height
             << "] from [" << authority() << "].");
-        stop(node::error::store_integrity);
+        stop(error::store_integrity);
         return false;
     }
 
-    // ------------------------------------------------------------------------
+    // Advance.
+    // ........................................................................
 
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
@@ -387,6 +385,15 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     }
 
     return true;
+}
+
+// Transaction commitments are required under checkpoint/milestone, and other
+// checks are comparable to the bypass condition cost, so just do them.
+code protocol_block_in_31800::check(const chain::block& block,
+    const chain::context& ctx) const NOEXCEPT
+{
+    code ec{};
+    return ec = block.check() ? ec : block.check(ctx);
 }
 
 // get/put hashes

@@ -92,10 +92,11 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
     { events::header_reorganized,  "header_reorganized.." },
 
     { events::block_archived,      "block_archived......" },
-    { events::block_bypassed,      "block_bypassed......" },
     { events::block_validated,     "block_validated....." },
     { events::block_confirmable,   "block_confirmable..." },
     { events::block_unconfirmable, "block_unconfirmable." },
+    { events::validate_bypassed,   "validate_bypassed..." },
+    { events::confirm_bypassed,    "confirm_bypassed...." },
 
     { events::tx_archived,         "tx_archived........." },
     { events::tx_validated,        "tx_validated........" },

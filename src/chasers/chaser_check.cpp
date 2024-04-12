@@ -197,7 +197,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 // Handle malleated (invalid but malleable) block.
 // ----------------------------------------------------------------------------
 
-// The archived malleable block instance was found to be invalid (malleated).
+// The archived malleable block was found to be invalid (treat as malleated).
 // The block/header hash cannot be marked unconfirmable due to malleability, so
 // disassociate the block and then add the block hash back to the current set.
 void chaser_check::do_malleated(header_t link) NOEXCEPT

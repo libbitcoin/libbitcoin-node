@@ -100,14 +100,21 @@ protected:
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
-    /// Given height represents a candidate block covered by milestone.
+    /// Height represents a candidate block covered by milestone.
     bool is_under_milestone(size_t height) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by checkpoint.
+    bool is_under_checkpoint(size_t height) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by checkpoint or milestone.
+    bool is_under_bypass(size_t height) const NOEXCEPT;
 
 private:
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
-    const system::chain::checkpoint milestone_;
+    const system::chain::checkpoint& milestone_;
+    const system::chain::checkpoints& checkpoints_;
 };
 
 #define SUBSCRIBE_EVENTS(method, ...) \

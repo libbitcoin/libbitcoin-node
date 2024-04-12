@@ -62,8 +62,12 @@ code chaser_block::validate(const block& block,
     if ((ec = header.accept(state.context())))
         return ec;
 
+    // Transaction commitments are required under checkpoint/milestone.
+    if ((ec = block.check()))
+        return ec;
+
     // As checkpoints rely on block hash, malleability must be guarded.
-    if (checkpoint::is_under(settings().checkpoints, state.height()))
+    if (is_under_checkpoint(state.height()))
     {
         if (block.is_malleable32())
             return system::error::block_internal_double_spend;
@@ -71,9 +75,6 @@ code chaser_block::validate(const block& block,
         if (!block.is_malleable64())
             return system::error::success;
     }
-
-    if ((ec = block.check()))
-        return ec;
 
     if ((ec = block.check(state.context())))
         return ec;
