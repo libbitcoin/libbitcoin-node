@@ -313,7 +313,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    // TODO: is_malleated depends on an efficient query.is_malleable query.
     if (query.is_malleated(block))
     {
         // Disallow known malleated block, drop peer and keep trying.
@@ -331,8 +330,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (const auto error = check(block, ctx))
     {
-        // Both duplicate and coincident malleability are possible here.
-        if (block.has_duplicates() || block.is_malleable())
+        // Both forms of malleabilty are possible here.
+        if (block.is_malleable())
         {
             // Block has not been associated, so just continue with hashes.
         }

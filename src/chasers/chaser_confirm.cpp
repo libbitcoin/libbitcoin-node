@@ -276,11 +276,9 @@ code chaser_confirm::confirm(const header_link& link,
 {
     const auto& query = archive();
 
-    // TODO: depends on an efficient query.is_malleable.
     // Skip if under checkpoint/milestone is not malleable.
     if ((chain::checkpoint::is_under(checkpoints_, height) ||
-        is_under_milestone(height)) &&
-        !query.is_malleable(link))
+        is_under_milestone(height)) && !query.is_malleable(link))
         return error::success;
 
     return query.block_confirmable(link);

@@ -66,10 +66,10 @@ code chaser_block::validate(const block& block,
     // As checkpoints rely on block hash, malleability must be guarded.
     if (checkpoint::is_under(settings().checkpoints, state.height()))
     {
-        if (block.has_duplicates())
+        if (block.is_malleable32())
             return system::error::block_internal_double_spend;
 
-        if (!block.is_malleable())
+        if (!block.is_malleable64())
             return system::error::success;
     }
 

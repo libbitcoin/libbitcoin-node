@@ -132,10 +132,8 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
 
         // Always validate malleable blocks.
         // Only coincident malleability is possible here.
-        // TODO: depends on an efficient query.is_malleable.
         if ((checkpoint::is_under(checkpoints_, height) ||
-            is_under_milestone(height)) &&
-            !query.is_malleable(link))
+            is_under_milestone(height)) && !query.is_malleable(link))
         {
             ++last_;
             notify(error::validation_bypass, chase::preconfirmable, height);
