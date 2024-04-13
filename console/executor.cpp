@@ -87,24 +87,25 @@ const std::unordered_map<std::string, uint8_t> executor::keys_
 };
 const std::unordered_map<uint8_t, std::string> executor::fired_
 {
-    { events::header_archived,     "header_archived..... " },
-    { events::header_organized,    "header_organized.... " },
-    { events::header_reorganized,  "header_reorganized.. " },
+    { events::header_archived,     "header_archived....." },
+    { events::header_organized,    "header_organized...." },
+    { events::header_reorganized,  "header_reorganized.." },
 
-    { events::block_archived,      "block_archived...... " },
-    { events::block_bypassed,      "block_bypassed...... " },
-    { events::block_validated,     "block_validated..... " },
-    { events::block_confirmable,   "block_confirmable... " },
-    { events::block_unconfirmable, "block_unconfirmable. " },
+    { events::block_archived,      "block_archived......" },
+    { events::block_validated,     "block_validated....." },
+    { events::block_confirmable,   "block_confirmable..." },
+    { events::block_unconfirmable, "block_unconfirmable." },
+    { events::validate_bypassed,   "validate_bypassed..." },
+    { events::confirm_bypassed,    "confirm_bypassed...." },
 
-    { events::tx_archived,         "tx_archived......... " },
-    { events::tx_validated,        "tx_validated........ " },
-    { events::tx_invalidated,      "tx_invalidated...... " },
+    { events::tx_archived,         "tx_archived........." },
+    { events::tx_validated,        "tx_validated........" },
+    { events::tx_invalidated,      "tx_invalidated......" },
 
-    { events::block_organized,     "block_organized..... " },
-    { events::block_reorganized,   "block_reorganized... " },
+    { events::block_organized,     "block_organized....." },
+    { events::block_reorganized,   "block_reorganized..." },
 
-    { events::template_issued,     "template_issued..... " },
+    { events::template_issued,     "template_issued....." },
 };
 const std::unordered_map<database::event_t, std::string> executor::events_
 {

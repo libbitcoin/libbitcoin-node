@@ -84,6 +84,11 @@ void session_outbound::handle_event(const code&,
             split(channel_t{});
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         case chase::pause:
         case chase::resume:
@@ -103,9 +108,10 @@ void session_outbound::handle_event(const code&,
         case chase::organized:
         case chase::reorganized:
         case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }

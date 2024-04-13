@@ -45,38 +45,42 @@ bool chaser_block::get_block(block::cptr& out, size_t index) const NOEXCEPT
     return !is_null(out);
 }
 
-// Block validations are bypassed when under checkpoint.
 code chaser_block::validate(const block& block,
     const chain_state& state) const NOEXCEPT
 {
-    code ec{ error::success };
+    code ec{};
     const auto& header = block.header();
 
-    // block.check does not roll up to header.check.
+    // block.check does not invoke header.check.
     if ((ec = header.check(
         settings().timestamp_limit_seconds,
         settings().proof_of_work_limit,
         settings().forks.scrypt_proof_of_work)))
         return ec;
 
-    // block.accept does not roll up to header.accept.
+    // block.accept does not invoke header.accept.
     if ((ec = header.accept(state.context())))
         return ec;
 
-    // Under height is sufficient validation for checkpoint here.
-    if (checkpoint::is_under(settings().checkpoints, state.height()))
-        return ec;
-
+    // Transaction commitments are required under checkpoint/milestone.
     if ((ec = block.check()))
         return ec;
+
+    // As checkpoints rely on block hash, malleability must be guarded.
+    if (is_under_checkpoint(state.height()))
+    {
+        if (block.is_malleable32())
+            return system::error::block_internal_double_spend;
+
+        if (!block.is_malleable64())
+            return system::error::success;
+    }
 
     if ((ec = block.check(state.context())))
         return ec;
 
-    // Populate prevouts from self/tree.
-    // Metadata population is only for confirmation, not required.
+    // Populate prevouts from self/tree/store (metadata not required).
     populate(block);
-
     if (!archive().populate(block))
         return network::error::protocol_violation;
 

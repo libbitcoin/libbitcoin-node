@@ -59,6 +59,11 @@ void protocol_observer::handle_event(const code&, chase event_,
             POST(do_resume, channel_t{});
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         ////case chase::pause:
         ////case chase::resume:
@@ -78,9 +83,10 @@ void protocol_observer::handle_event(const code&, chase event_,
         case chase::organized:
         case chase::reorganized:
         case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }

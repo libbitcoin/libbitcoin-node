@@ -34,6 +34,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
+    milestone_(node.config().bitcoin.milestone),
+    checkpoints_(node.config().bitcoin.checkpoints),
     reporter(node.log)
 {
 }
@@ -41,9 +43,10 @@ chaser::chaser(full_node& node) NOEXCEPT
 // Close.
 // ----------------------------------------------------------------------------
 
-void chaser::close(const code& ec) const NOEXCEPT
+void chaser::fault(const code& ec) const NOEXCEPT
 {
-    LOGF("Chaser failed, " << ec.message());
+    LOGF("Detected fault: " << ec.message());
+    notify(ec, chase::stop, {});
 }
 
 bool chaser::closed() const NOEXCEPT
@@ -60,7 +63,8 @@ code chaser::subscribe_events(event_handler&& handler) NOEXCEPT
     return node_.subscribe_events(std::move(handler));
 }
 
-void chaser::notify(const code& ec, chase event_, event_link value) NOEXCEPT
+void chaser::notify(const code& ec, chase event_,
+    event_link value) const NOEXCEPT
 {
     // Posts to node strand, not chaser strand.
     node_.notify(ec, event_, value);
@@ -92,6 +96,31 @@ bool chaser::stranded() const NOEXCEPT
 bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 {
     return node_.is_current(timestamp);
+}
+
+// Methods.
+// ----------------------------------------------------------------------------
+
+// TODO: the existence of milestone could be cached/updated.
+bool chaser::is_under_milestone(size_t height) const NOEXCEPT
+{
+    // get_header_key returns null_hash on not found.
+    if (height > milestone_.height() || milestone_.hash() == system::null_hash)
+        return false;
+
+    const auto& query = archive();
+    return query.get_header_key(query.to_candidate(milestone_.height())) ==
+        milestone_.hash();
+}
+
+bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
+{
+    return system::chain::checkpoint::is_under(checkpoints_, height);
+}
+
+bool chaser::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return is_under_checkpoint(height) || is_under_milestone(height);
 }
 
 BC_POP_WARNING()

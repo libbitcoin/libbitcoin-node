@@ -35,10 +35,11 @@ enum events : uint8_t
 
     /// Blocks.
     block_archived,      // block checked
-    block_bypassed,      // block checked, accepted, connected [assumed]
     block_validated,     // block checked, accepted, connected
     block_confirmable,   // block checked, accepted, connected, confirmable
     block_unconfirmable, // block invalid (after headers-first archive)
+    validate_bypassed,   // block checked, accepted [assumed]
+    confirm_bypassed,    // block checked, accepted, connected [assumed]
 
     /// Transactions.
     tx_archived,         // unassociated tx checked, accepted, connected

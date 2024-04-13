@@ -145,6 +145,11 @@ void protocol_block_in_31800::handle_event(const code&,
 
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         ////case chase::pause:
         ////case chase::resume:
@@ -164,9 +169,10 @@ void protocol_block_in_31800::handle_event(const code&,
         case chase::organized:
         case chase::reorganized:
         case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
@@ -283,13 +289,6 @@ get_data protocol_block_in_31800::create_get_data(
 // check block
 // ----------------------------------------------------------------------------
 
-code protocol_block_in_31800::validate(const chain::block& block,
-    const chain::context& ctx) const NOEXCEPT
-{
-    code ec{};
-    return ec = block.check() ? ec : block.check(ctx);
-}
-
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
 {
@@ -297,6 +296,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     if (stopped(ec))
         return false;
+
+    // Preconditions (requested and not malleated).
+    // ........................................................................
 
     auto& query = archive();
     const auto& block = *message->block_ptr;
@@ -311,57 +313,70 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    // Check block.
-    // ------------------------------------------------------------------------
-
-    // Could check for parent invalidation and propagate here, but blocks are
-    // not checked in order, so there would remain no guarantee.
+    if (query.is_malleated(block))
+    {
+        // Disallow known block malleation, drop peer and keep trying.
+        LOGR("Malleated block [" << encode_hash(hash) << "] from ["
+            << authority() << "].");
+        stop(error::malleated_block);
+        return false;
+    }
 
     const auto& link = it->link;
     const auto& ctx = it->context;
 
-    if (const auto error = validate(block, ctx))
+    // Check block.
+    // ........................................................................
+
+    if (const auto code = check(block, ctx))
     {
-        // TODO: set malleated state (invalid/replaceable with distinct).
-        // Do not set block_unconfirmable if its identifier is malleable.
-        const auto malleable = block.is_malleable();
-        if (!malleable && !query.set_block_unconfirmable(link))
+        // Both forms of malleabilty are possible here.
+        if (block.is_malleable())
         {
-            stop(node::error::store_integrity);
-            return false;
+            // Block has not been associated, so just drop peer and continue.
+            // A malleable block with no valid variant (i.e. mined invalid)
+            // will cause a candidate stall until a stronger chain is found.
+        }
+        else
+        {
+            if (!query.set_block_unconfirmable(link))
+            {
+                stop(error::store_integrity);
+                return false;
+            }
+
+            notify(error::success, chase::unchecked, link);
+            fire(events::block_unconfirmable, ctx.height);
         }
 
-        notify(error::success, chase::unchecked, link);
+        LOGR("Unchecked block [" << encode_hash(hash) << ":" << ctx.height
+            << "] from [" << authority() << "] " << code.message());
 
-        LOGR("Invalid block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "] " << error.message() <<
-            (malleable ? " [MALLEABLE]." : ""));
-
-        stop(error);
+        stop(code);
         return false;
     }
 
     // Commit block.txs.
-    // ------------------------------------------------------------------------
+    // ........................................................................
 
-    // Commit block.txs to store, failure may stall the node.
     if (query.set_link(*block.transactions_ptr(), link).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height
             << "] from [" << authority() << "].");
-        stop(node::error::store_integrity);
+        stop(error::store_integrity);
         return false;
     }
 
-    // ------------------------------------------------------------------------
+    // Advance.
+    // ........................................................................
 
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
         << "] from [" << authority() << "].");
 
-    fire(events::block_archived, ctx.height);
     notify(error::success, chase::checked, ctx.height);
-    count(message->cached_size);
+    fire(events::block_archived, ctx.height);
 
+    count(message->cached_size);
     map_->erase(it);
     if (is_idle())
     {
@@ -370,6 +385,15 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     }
 
     return true;
+}
+
+// Transaction commitments are required under checkpoint/milestone, and other
+// checks are comparable to the bypass condition cost, so just do them.
+code protocol_block_in_31800::check(const chain::block& block,
+    const chain::context& ctx) const NOEXCEPT
+{
+    code ec{};
+    return ec = block.check() ? ec : block.check(ctx);
 }
 
 // get/put hashes

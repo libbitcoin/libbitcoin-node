@@ -61,6 +61,11 @@ void chaser_template::handle_event(const code&, chase event_,
             POST(do_transaction, possible_narrow_cast<transaction_t>(value));
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         case chase::start:
         case chase::pause:
         case chase::resume:
@@ -81,8 +86,9 @@ void chaser_template::handle_event(const code&, chase event_,
         case chase::reorganized:
         case chase::disorganized:
         ////case chase::transaction:
+        case chase::malleated:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }

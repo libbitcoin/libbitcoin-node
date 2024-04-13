@@ -30,14 +30,13 @@ namespace node {
 
 using namespace system;
 using namespace system::chain;
+using namespace database;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
   : chaser(node),
-    milestone_(node.config().bitcoin.milestone),
-    checkpoints_(node.config().bitcoin.checkpoints),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks)
 {
@@ -47,18 +46,6 @@ code chaser_preconfirm::start() NOEXCEPT
 {
     last_ = archive().get_fork();
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
-}
-
-// TODO: the existence of milestone should be cached/updated.
-bool chaser_preconfirm::is_under_milestone(size_t height) const NOEXCEPT
-{
-    // get_header_key returns null_hash on not found.
-    if (height > milestone_.height() || milestone_.hash() == null_hash)
-        return false;
-
-    const auto& query = archive();
-    const auto link = query.to_candidate(milestone_.height());
-    return query.get_header_key(link) == milestone_.hash();
 }
 
 void chaser_preconfirm::handle_event(const code&, chase event_,
@@ -84,6 +71,11 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
+        case chase::stop:
+        {
+            // TODO: handle fault.
+            break;
+        }
         ////case chase::start:
         case chase::pause:
         case chase::resume:
@@ -103,9 +95,10 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::organized:
         case chase::reorganized:
         ////case chase::disorganized:
+        case chase::malleated:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
@@ -136,117 +129,114 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
     if (closed())
         return;
 
+    // Validate checked blocks.
     for (auto height = add1(last_); !closed(); ++height)
     {
+        // Precondition (associated).
+        // ....................................................................
+
         const auto link = query.to_candidate(height);
         if (!query.is_associated(link))
             return;
 
-        if (checkpoint::is_under(checkpoints_, height))
+        // Accept/Connect block.
+        // ....................................................................
+
+        if (const auto code = validate(link, height))
         {
-            ++last_;
-            notify(error::checkpoint_bypass, chase::preconfirmable, height);
-            fire(events::block_bypassed, height);
-            continue;
-        }
-
-        if (is_under_milestone(height))
-        {
-            ++last_;
-            notify(error::milestone_bypass, chase::preconfirmable, height);
-            fire(events::block_bypassed, height);
-            continue;
-        }
-
-        ////// This optimization is probably not worth the query cost.
-        ////// Maybe in the case of a resart with long candidate branch.
-        ////auto ec = query.get_block_state(link);
-        ////if (ec == database::error::block_confirmable ||
-        ////    ec == database::error::block_preconfirmable)
-        ////{
-        ////    ++last_;
-        ////    notify(ec, chase::preconfirmable, height);
-        ////    LOGN("Preconfirmed [" << height << "] " << ec.message());
-        ////    fire(events::block_validated, height);
-        ////    continue;
-        ////}
-
-        ////// This is probably dead code as header chain must catch.
-        ////if (ec == database::error::block_unconfirmable)
-        ////{
-        ////    notify(ec, chase::unpreconfirmable, link);
-        ////    LOGN("Unpreconfirmed [" << height << "] " << ec.message());
-        ////    return;
-        ////}
-
-        database::context ctx{};
-        const auto block = query.get_block(link);
-        if (!block || !query.get_context(ctx, link))
-        {
-            close(error::store_integrity); // <= deadlock
-            return;
-        }
-
-        code ec{};
-        if ((ec = validate(*block, ctx)))
-        {
-            // TODO: set malleated state (invalid/replaceable with distinct).
-            // Do not set block_unconfirmable if its identifier is malleable.
-            const auto malleable = block->is_malleable();
-            if (!malleable && !query.set_block_unconfirmable(link))
+            if (code == error::validation_bypass ||
+                code == database::error::block_confirmable ||
+                code == database::error::block_preconfirmable)
             {
-                close(error::store_integrity); // <= deadlock
+                // Advance.
+                ++last_;
+                notify(code, chase::preconfirmable, height);
+                fire(events::validate_bypassed, height);
+                continue;
+            }
+
+            if (code == error::store_integrity)
+            {
+                fault(error::store_integrity);
                 return;
             }
 
-            notify(ec, chase::unpreconfirmable, link);
+            if (query.is_malleable(link))
+            {
+                notify(code, chase::malleated, link);
+            }
+            else
+            {
+                if (!query.set_block_unconfirmable(link))
+                {
+                    fault(error::store_integrity);
+                    return;
+                }
 
-            LOGN("Unpreconfirmable [" << height << "] " << ec.message()
-                << (malleable ? " [MALLEABLE]." : ""));
+                notify(code, chase::unpreconfirmable, link);
+                fire(events::block_unconfirmable, height);
+            }
+
+            LOGR("Unpreconfirmed block [" << height << "] " << code.message());
             return;
         }
+
+        // Commit validation metadata.
+        // ....................................................................
 
         // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
         // Tx validation/states are independent of block validation.
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
-            close(error::store_integrity); // <= deadlock
+            fault(error::store_integrity);
             return;
         }
 
+        // Advance.
+        // ....................................................................
+
         ++last_;
-        notify(ec, chase::preconfirmable, height);
+        notify(error::success, chase::preconfirmable, height);
         fire(events::block_validated, height);
     }
 }
 
-// utility
-// ----------------------------------------------------------------------------
-
-code chaser_preconfirm::validate(const chain::block& block,
-    const database::context& ctx) const NOEXCEPT
+code chaser_preconfirm::validate(const header_link& link,
+    size_t height) const NOEXCEPT
 {
-    const chain::context context
+    const auto& query = archive();
+
+    if (is_under_bypass(height) && !query.is_malleable(link))
+        return error::validation_bypass;
+
+    auto ec = query.get_block_state(link);
+    if (ec == database::error::block_confirmable ||
+        ec == database::error::block_unconfirmable ||
+        ec == database::error::block_preconfirmable)
+        return ec;
+
+    database::context context{};
+    const auto block_ptr = query.get_block(link);
+    if (!block_ptr || !query.get_context(context, link))
+        return error::store_integrity;
+
+    const auto& block = *block_ptr;
+    if (!archive().populate(block))
+        return system::error::missing_previous_output;
+
+    const chain::context ctx
     {
-        ctx.flags,  // [accept & connect]
-        {},         // timestamp
-        {},         // mtp
-        ctx.height, // [accept]
-        {},         // minimum_block_version
-        {}          // work_required
+        context.flags,  // [accept & connect]
+        {},             // timestamp
+        {},             // mtp
+        context.height, // [accept]
+        {},             // minimum_block_version
+        {}              // work_required
     };
 
-    // Assumes all preceding candidates are associated.
-    code ec{ system::error::missing_previous_output };
-    if (!archive().populate(block))
-        return ec;
-
-    if ((ec = block.accept(context, subsidy_interval_blocks_,
-        initial_subsidy_)))
-        return ec;
-
-    return block.connect(context);
+    return ec = block.accept(ctx, subsidy_interval_blocks_, initial_subsidy_) ?
+        ec : block.connect(ctx);
 }
 
 BC_POP_WARNING()

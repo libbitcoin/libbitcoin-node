@@ -113,9 +113,16 @@ enum class chase
     /// Issued by 'confirm' and handled by 'transaction'.
     reorganized,
 
+    /// Late-stage Invalidity.
+    /// -----------------------------------------------------------------------
+
     /// unchecked, unpreconfirmable or unconfirmable was handled (height_t).
     /// Issued by 'organize' and handled by 'preconfirm' (disorgs candidates).
     disorganized,
+
+    /// stored block was determined to be malleated (invalid) (header_t).
+    /// Issued by 'preconfirm' and 'confirm', handled by 'chaser' (redownload).
+    malleated,
 
     /// Mining.
     /// -----------------------------------------------------------------------

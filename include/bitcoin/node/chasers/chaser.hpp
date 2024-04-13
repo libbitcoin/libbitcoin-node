@@ -67,8 +67,8 @@ protected:
     /// Close.
     /// -----------------------------------------------------------------------
 
-    /// Close the node after logging the code.
-    void close(const code& ec) const NOEXCEPT;
+    /// There was a fault in the node.
+    void fault(const code& ec) const NOEXCEPT;
 
     /// Node threadpool is stopped and may still be joining.
     bool closed() const NOEXCEPT;
@@ -80,7 +80,7 @@ protected:
     code subscribe_events(event_handler&& handler) NOEXCEPT;
 
     /// Set event (does not require node strand).
-    void notify(const code& ec, chase event_, event_link value) NOEXCEPT;
+    void notify(const code& ec, chase event_, event_link value) const NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -100,10 +100,21 @@ protected:
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
+    /// Height represents a candidate block covered by milestone.
+    bool is_under_milestone(size_t height) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by checkpoint.
+    bool is_under_checkpoint(size_t height) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by checkpoint or milestone.
+    bool is_under_bypass(size_t height) const NOEXCEPT;
+
 private:
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
+    const system::chain::checkpoint& milestone_;
+    const system::chain::checkpoints& checkpoints_;
 };
 
 #define SUBSCRIBE_EVENTS(method, ...) \

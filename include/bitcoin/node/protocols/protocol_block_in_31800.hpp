@@ -50,10 +50,6 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Determine if block passes check validation.
-    virtual code validate(const system::chain::block& block,
-        const system::chain::context& ctx) const NOEXCEPT;
-
     /// Get published download identifiers.
     virtual void handle_event(const code& ec,
         chase event_, event_link value) NOEXCEPT;
@@ -73,6 +69,9 @@ protected:
 private:
     using type_id = network::messages::inventory::type_id;
     static constexpr size_t minimum_for_stall_divide = 2;
+
+    code check(const system::chain::block& block,
+        const system::chain::context& ctx) const NOEXCEPT;
 
     void send_get_data(const map_ptr& map) NOEXCEPT;
     network::messages::get_data create_get_data(

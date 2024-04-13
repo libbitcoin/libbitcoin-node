@@ -51,14 +51,14 @@ code chaser_transaction::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void chaser_transaction::handle_event(const code&, chase event_,
-    event_link value) NOEXCEPT
+    event_link) NOEXCEPT
 {
     using namespace system;
     switch (event_)
     {
-        case chase::confirmable:
+        case chase::stop:
         {
-            POST(do_confirmed, possible_narrow_cast<header_t>(value));
+            // TODO: handle fault.
             break;
         }
         case chase::start:
@@ -75,14 +75,14 @@ void chaser_transaction::handle_event(const code&, chase event_,
         case chase::unchecked:
         case chase::preconfirmable:
         case chase::unpreconfirmable:
-        ////case chase::confirmable:
+        case chase::confirmable:
         case chase::unconfirmable:
         case chase::organized:
         case chase::reorganized:
         case chase::disorganized:
         case chase::transaction:
         case chase::template_:
-        case chase::stop:
+        ////case chase::stop:
         {
             break;
         }
