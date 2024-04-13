@@ -222,7 +222,7 @@ code chaser_preconfirm::validate(const header_link& link,
         return error::store_integrity;
 
     const auto& block = *block_ptr;
-    if (!archive().populate(block))
+    if (!query.populate(block))
         return system::error::missing_previous_output;
 
     const chain::context ctx
