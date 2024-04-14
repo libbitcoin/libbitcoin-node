@@ -41,7 +41,7 @@ public:
 protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
-    virtual void split(channel_t channel) NOEXCEPT;
+    virtual void split(channel_t self) NOEXCEPT;
     virtual void do_performance(uint64_t channel, uint64_t speed,
         const network::result_handler& handler) NOEXCEPT;
 
