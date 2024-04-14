@@ -182,6 +182,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
+        // With a candidate reorg that drop strong below a valid header chain,
+        // this will cause a sequence of headers to be bypassed, such that a
+        // parent of a block that doesn't exist will not be a candidate, which
+        // result in a failure of get_chain_state below, because it depends on
+        // candidate state. So get_chain_state needs to be chain independent.
         if (!is_block() || ec != database::error::unassociated)
         {
             handler(error_duplicate(), height);
@@ -530,17 +535,13 @@ system::chain::chain_state::ptr CLASS::get_chain_state(
     if (state_->hash() == previous_hash)
         return state_;
 
+    // Previous block may be cached because it is not yet strong.
     const auto it = tree_.find(previous_hash);
     if (it != tree_.end())
         return it->second.state;
 
-    // Branch forms from a candidate block below top candidate (expensive).
-    size_t height{};
-    const auto& query = archive();
-    if (query.get_height(height, query.to_header(previous_hash)))
-        return query.get_candidate_chain_state(settings_, height);
-
-    return {};
+    // previous_hash may or not exist and/or be a candidate.
+    return archive().get_chain_state(settings_, previous_hash);
 }
 
 // Also obtains branch point for work summation termination.
