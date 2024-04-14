@@ -1857,6 +1857,7 @@ bool executor::do_run()
 
     // Wait on signal to stop node (<ctrl-c>).
     stopping_.get_future().wait();
+    toggle_.at(levels::protocol) = false;
     logger(BN_NETWORK_STOPPING);
 
     // Stop network (if not already stopped by self).
