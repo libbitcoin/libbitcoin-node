@@ -115,14 +115,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 
     // Compute relative work.
     // ........................................................................
+    // A reorg race may have resulted in height not now being a candidate.
 
     uint256_t work{};
     header_links fork{};
     if (!get_fork_work(work, fork, height))
-    {
-        fault(error::store_integrity);
         return;
-    }
 
     bool strong{};
     if (!get_is_strong(strong, work, height))
@@ -200,14 +198,15 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             }
             else
             {
-                if (!query.set_block_unconfirmable(link))
+                if (code != database::error::block_unconfirmable &&
+                    !query.set_block_unconfirmable(link))
                 {
                     fault(error::store_integrity);
                     return;
                 }
 
                 ///////////////////////////////////////////////////////////////
-                // TODO: pop down to fork point an push popped vector.
+                // TODO: pop down to fork point and push popped vector.
                 ///////////////////////////////////////////////////////////////
 
                 notify(code, chase::unconfirmable, link);
@@ -259,15 +258,12 @@ code chaser_confirm::confirm(const header_link& link,
         return error::confirmation_bypass;
 
     const auto ec = query.get_block_state(link);
-    if (ec == database::error::block_confirmable)
+    if (ec == database::error::block_confirmable ||
+        ec == database::error::block_unconfirmable)
         return ec;
 
     if (ec == database::error::block_preconfirmable)
         return query.block_confirmable(link);
-
-    // This is the acceptable result of a race with preconfirmation.
-    if (ec == database::error::block_unconfirmable)
-        return ec;
 
     // Should not get here without a known block state.
     return error::store_integrity;

@@ -167,7 +167,8 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             }
             else
             {
-                if (!query.set_block_unconfirmable(link))
+                if (code != database::error::block_unconfirmable &&
+                    !query.set_block_unconfirmable(link))
                 {
                     fault(error::store_integrity);
                     return;
