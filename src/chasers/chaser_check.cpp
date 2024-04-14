@@ -119,14 +119,19 @@ void chaser_check::handle_event(const code&, chase event_,
 // add headers
 // ----------------------------------------------------------------------------
 
+// Due to a race with header organization more current headers and branch
+// points may be created while preceding headers messages are in transit. That
+// can result  in the branch->top scan finding the same unassociated headers
+// multiple times and therefore causing redundant downloads. These are absorbed
+// by unordered_set only if redundant hashes are applied to the same set. But
+// since the sets are distributed there is no way to preclude these duplicates.
 void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     const auto added = get_unassociated(maps_, branch_point);
-
-    ////LOGN("Branch point (" << branch_point << ") unassociated (" << added
-    ////    << ").");
+    LOGN("Branch point (" << branch_point << ") unassociated ("
+        << added << ").");
 
     if (is_zero(added))
         return;
@@ -146,6 +151,7 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
     // be purged, it simply means purge all hashes (reset all). All channels
     // will get the purge notification before any subsequent download notify.
     maps_.clear();
+    ////LOGN("Hashes purged (" << count_map(maps_) << ") remain.");
     notify(error::success, chase::purge, top);
 }
 
@@ -172,9 +178,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
 
     const auto map = get_map(maps_);
-
-    ////LOGN("Hashes -" << map->size() << " ("
-    ////    << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes -" << map->size() << " (" << count_map(maps_) << ") remain.");
     handler(error::success, map);
 }
 
@@ -187,10 +191,9 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     {
         maps_.push_back(map);
         notify(error::success, chase::download, map->size());
+        ////LOGN("Hashes +" << map->size() << " (" << count_map(maps_) << ") remain.");
     }
 
-    ////LOGN("Hashes +" << map->size() << " ("
-    ////    << count_map(maps_) << ") remain.");
     handler(error::success);
 }
 
@@ -213,6 +216,7 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
     }
 
     maps_.push_back(std::make_shared<associations>(associations{ out }));
+    ////LOGN("Hashes +1 malleated (" << count_map(maps_) << ") remain.");
     notify(error::success, chase::download, one);
 }
 
