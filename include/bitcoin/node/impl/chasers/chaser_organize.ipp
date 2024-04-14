@@ -401,37 +401,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
-    // Pop candidates at/above height.
-    // ........................................................................
-    // Block (link) may be marked as unconfirmable, but if it is not then none
-    // above can be marked, and none can be marked if malleable, so don't mark.
-    // Stored state of each remains unknown until invalid and not malleable.
-
-    // Pop from top down to and including invalidating header.
-    for (auto index = query.get_top_candidate(); index >= height; --index)
-    {
-        if (!query.pop_candidate())
-        {
-            fault(error::store_integrity);
-            return;
-        }
-
-        fire(events::header_reorganized, index);
-    }
-
     // Reset top chain state cache to fork point.
     // ........................................................................
 
     const auto top_candidate = state_->height();
     const auto prev_flags = state_->flags();
     const auto prev_version = state_->minimum_block_version();
-    state_ = query.get_candidate_chain_state(settings_, fork_point);
-    if (!state_)
-    {
-        fault(error::store_integrity);
-        return;
-    }
-
     const auto next_flags = state_->flags();
     if (prev_flags != next_flags)
     {
@@ -456,9 +431,15 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Copy candidates from above fork point to top into header tree.
     // ........................................................................
-    // Independent loop with forward order is required to roll chain state.
+    // Forward order is required to advance chain state for tree.
 
-    auto state = state_;
+    auto state = query.get_candidate_chain_state(settings_, fork_point);
+    if (!state)
+    {
+        fault(error::store_integrity);
+        return;
+    }
+
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
         typename Block::cptr block{};
@@ -478,8 +459,9 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         cache(block, state);
     }
 
-    // Pop candidates from top to above fork point.
+    // Pop candidates from top down to above fork point.
     // ........................................................................
+    // Can't pop in previous loop because of forward order.
 
     for (auto index = top_candidate; index > fork_point; --index)
     {
@@ -511,6 +493,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Notify check/download/confirmation to reset to top (clear).
     // As this organizer controls the candidate array, height is definitive.
+    state_ = query.get_candidate_chain_state(settings_, top_confirmed);
     notify(error::success, chase::disorganized, top_confirmed);
 }
 
