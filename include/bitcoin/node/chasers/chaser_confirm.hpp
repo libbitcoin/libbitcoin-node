@@ -48,14 +48,14 @@ protected:
     virtual void do_preconfirmed(height_t height) NOEXCEPT;
 
 private:
-    void set_confirmed(header_t link, height_t height) NOEXCEPT;
     code confirm(const database::header_link& link,
         size_t height) const NOEXCEPT;
-
-    // Sum of work from header to fork point (excluded).
+    bool set_confirmed(header_t link, height_t height) NOEXCEPT;
+    bool set_unconfirmed(header_t link, height_t height) NOEXCEPT;
+    bool roll_back(const header_links& popped,
+        size_t fork_point, size_t top) NOEXCEPT;
     bool get_fork_work(uint256_t& fork_work, header_links& fork,
         height_t fork_top) const NOEXCEPT;
-
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
 };

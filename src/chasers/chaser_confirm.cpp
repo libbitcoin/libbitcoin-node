@@ -158,8 +158,8 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             return;
         }
 
-        fire(events::block_reorganized, index--);
         notify(error::success, chase::reorganized, link);
+        fire(events::block_reorganized, index--);
     }
 
     // fork_point + 1
@@ -182,7 +182,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // Advance and confirm.
                 notify(code, chase::confirmable, index);
                 fire(events::confirm_bypassed, index);
-                set_confirmed(link, index++);
+                if (!set_confirmed(link, index++))
+                {
+                    fault(error::store_integrity);
+                    return;
+                }
                 continue;
             }
 
@@ -205,12 +209,14 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                     return;
                 }
 
-                ///////////////////////////////////////////////////////////////
-                // TODO: pop down to fork point and push popped vector.
-                ///////////////////////////////////////////////////////////////
-
                 notify(code, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, index);
+            }
+
+            if (!roll_back(popped, fork_point, sub1(index)))
+            {
+                fault(error::store_integrity);
+                return;
             }
 
             LOGR("Unconfirmable block [" << index << "] " << code.message());
@@ -232,21 +238,13 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 
         notify(error::success, chase::confirmable, index);
         fire(events::block_confirmable, index);
-        set_confirmed(link, index++);
-    }
-}
 
-void chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
-{
-    auto& query = archive();
-    if (!query.set_strong(link) || !query.push_confirmed(link))
-    {
-        fault(error::store_integrity);
-        return;
+        if (!set_confirmed(link, index++))
+        {
+            fault(error::store_integrity);
+            return;
+        }
     }
-
-    notify(error::success, chase::organized, link);
-    fire(events::block_organized, height);
 }
 
 code chaser_confirm::confirm(const header_link& link,
@@ -271,6 +269,43 @@ code chaser_confirm::confirm(const header_link& link,
 
 // utility
 // ----------------------------------------------------------------------------
+
+bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
+{
+    auto& query = archive();
+    if (!query.push_confirmed(link) || !query.set_strong(link))
+        return false;
+
+    notify(error::success, chase::organized, link);
+    fire(events::block_organized, height);
+    return true;
+}
+
+bool chaser_confirm::set_unconfirmed(header_t link, height_t height) NOEXCEPT
+{
+    auto& query = archive();
+    if (!query.set_unstrong(link) || !query.pop_confirmed())
+        return false;
+
+    notify(error::success, chase::reorganized, link);
+    fire(events::block_reorganized, height);
+    return true;
+}
+
+bool chaser_confirm::roll_back(const header_links& popped,
+    size_t fork_point, size_t top) NOEXCEPT
+{
+    auto& query = archive();
+    for (auto height = add1(fork_point); height <= top; ++height)
+        if (!set_unconfirmed(query.to_candidate(height), height))
+            return false;
+
+    for (const auto& link : views_reverse(popped))
+        if (!set_confirmed(link, ++fork_point))
+            return false;
+
+    return true;
+}
 
 bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     header_links& fork, height_t fork_top) const NOEXCEPT
