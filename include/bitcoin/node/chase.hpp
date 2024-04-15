@@ -29,9 +29,13 @@ enum class chase
     /// Work shuffling.
     /// -----------------------------------------------------------------------
 
-    /// Chaser is directed to start validating (height_t).
+    /// Chasers are directed to start operating (height_t).
     /// Issued by 'full_node' and handled by 'preconfirm'.
     start,
+
+    /// Chaser is directed to start when there are no downloads (height_t).
+    /// Issued by 'organize' and handled by 'preconfirm'.
+    bump,
 
     /// Channels (all) are directed to pause reading (channel_t).
     /// Issued by 'full_node' and handled by 'protocol'.

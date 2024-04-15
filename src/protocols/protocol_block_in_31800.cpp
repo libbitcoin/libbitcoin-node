@@ -147,6 +147,7 @@ void protocol_block_in_31800::handle_event(const code&,
             break;
         }
         case chase::start:
+        case chase::bump:
         ////case chase::pause:
         ////case chase::resume:
         case chase::starved:

@@ -66,6 +66,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
             break;
         }
         case chase::start:
+        case chase::bump:
         case chase::pause:
         case chase::resume:
         case chase::starved:
@@ -179,7 +180,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // Advance and confirm.
                 notify(code, chase::confirmable, index);
                 fire(events::confirm_bypassed, index);
-
+        
                 if (!set_confirmed(link, index++))
                 {
                     fault(error::store_integrity);
@@ -187,13 +188,13 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 }
                 continue;
             }
-
+        
             if (code == error::store_integrity)
             {
                 fault(error::store_integrity);
                 return;
             }
-
+        
             if (query.is_malleable(link))
             {
                 notify(code, chase::malleated, link);
@@ -206,17 +207,17 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                     fault(error::store_integrity);
                     return;
                 }
-
+        
                 notify(code, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, index);
             }
-
+        
             if (!roll_back(popped, fork_point, sub1(index)))
             {
                 fault(error::store_integrity);
                 return;
             }
-
+        
             LOGR("Unconfirmable block [" << index << "] " << code.message());
             return;
         }
@@ -258,11 +259,14 @@ code chaser_confirm::confirm(const header_link& link,
         ec == database::error::block_unconfirmable)
         return ec;
 
-    if (ec == database::error::block_preconfirmable)
-        return query.block_confirmable(link);
+    // TODO: fix block_confirmable.
+    return error::success;
 
-    // Should not get here without a known block state.
-    return error::store_integrity;
+    ////if (ec == database::error::block_preconfirmable)
+    ////    return query.block_confirmable(link);
+    ////
+    ////// Should not get here without a known block state.
+    ////return error::store_integrity;
 }
 
 // utility

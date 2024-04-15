@@ -102,6 +102,7 @@ void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
             break;
         }
         case chase::start:
+        case chase::bump:
         case chase::pause:
         case chase::resume:
         case chase::starved:
@@ -366,12 +367,18 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
-
-    // If all headers are previously associated then no blocks will be fed to
-    // preconfirmation, resulting in a stall...
-
     if (is_block() || is_current(header.timestamp()))
+    {
+        // If at start the fork point is top of both chains, and next candidate
+        // is already downloaded, then new header will arrive and download will
+        // be skipped, resulting in stall until restart at which time the start
+        // event will advance through all downloaded candidates and progress on
+        // arrivals. This bumps preconfirmation for current strong headers.
+        notify(error::success, chase::bump, add1(branch_point));
+
+        // Start block downloads, which upon completion bumps preconfirmation.
         notify(error::success, chase_object(), branch_point);
+    }
 
     state_ = state;
     handler(error::success, height);

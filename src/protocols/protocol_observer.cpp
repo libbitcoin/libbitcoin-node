@@ -65,6 +65,7 @@ void protocol_observer::handle_event(const code&, chase event_,
             break;
         }
         case chase::start:
+        case chase::bump:
         ////case chase::pause:
         ////case chase::resume:
         case chase::starved:
