@@ -236,7 +236,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         // ....................................................................
 
         notify(error::success, chase::confirmable, index);
-        fire(events::block_confirmable, index);
+        fire(events::block_confirmed, index);
 
         if (!set_confirmed(link, index++))
         {
