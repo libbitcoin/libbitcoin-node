@@ -97,6 +97,9 @@ protected:
     /// True if the current thread is on the chaser strand.
     bool stranded() const NOEXCEPT;
 
+    /// Top candidate is within configured span from current time.
+    bool is_current() const NOEXCEPT;
+
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
