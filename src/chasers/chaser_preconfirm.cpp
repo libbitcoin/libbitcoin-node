@@ -61,6 +61,11 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_checked, height_t{});
             break;
         }
+        case chase::header:
+        {
+            POST(do_checked, height_t{});
+            break;
+        }
         case chase::checked:
         {
             POST(do_height_checked, possible_narrow_cast<height_t>(value));
@@ -84,7 +89,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::stall:
         case chase::purge:
         case chase::block:
-        case chase::header:
+        ////case chase::header:
         case chase::download:
         ////case chase::checked:
         case chase::unchecked:

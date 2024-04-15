@@ -182,6 +182,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // Advance and confirm.
                 notify(code, chase::confirmable, index);
                 fire(events::confirm_bypassed, index);
+
                 if (!set_confirmed(link, index++))
                 {
                     fault(error::store_integrity);

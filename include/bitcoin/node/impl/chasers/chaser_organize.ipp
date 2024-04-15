@@ -359,6 +359,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
+
+    // If all headers are previously associated then no blocks will be fed to
+    // preconfirmation, resulting in a stall...
+
     if (is_block() || is_current(header.timestamp()))
         notify(error::success, chase_object(), branch_point);
 
@@ -465,8 +469,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        LOGN("Reorganizing candidate [" << index << "].");
-
         if (!query.pop_candidate())
         {
             fault(error::store_integrity);

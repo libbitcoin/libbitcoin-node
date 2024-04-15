@@ -119,6 +119,7 @@ void chaser_check::handle_event(const code&, chase event_,
 // add headers
 // ----------------------------------------------------------------------------
 
+// TODO: create a tracking map with hashes only?
 // Due to a race with header organization more current headers and branch
 // points may be created while preceding headers messages are in transit. That
 // can result  in the branch->top scan finding the same unassociated headers
