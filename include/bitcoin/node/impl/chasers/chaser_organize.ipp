@@ -178,6 +178,13 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         const auto ec = query.get_header_state(id);
         if (ec == database::error::block_unconfirmable)
         {
+            // This eventually stops the peer, but the full set of headers may
+            // still cycle through to become strong, despite this being stored
+            // as block_unconfirmable from a block validate or confirm failure.
+            // Block preconfirmation will then fail and this cycle will
+            // continue until a strong candidate chain is located. The cycle
+            // occurs because peers continue to send the same headers,which
+            // may indicate an local failure or peer failures.
             handler(ec, height);
             return;
         }
