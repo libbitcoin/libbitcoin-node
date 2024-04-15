@@ -48,7 +48,6 @@ void chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
     // These can come out of order, advance in order synchronously.
-    using namespace system;
     switch (event_)
     {
         case chase::block:
