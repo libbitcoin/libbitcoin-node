@@ -30,6 +30,7 @@ namespace node {
 
 #define CLASS session_outbound
 
+using namespace system;
 using namespace network;
 using namespace std::placeholders;
 
@@ -51,7 +52,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
   : attach(node, identifier),
-    network::tracker<session_outbound>(node.log),
+    tracker<session_outbound>(node.log),
     allowed_deviation_(node.config().node.allowed_deviation)
 {
 }
@@ -69,7 +70,7 @@ void session_outbound::start(result_handler&& handler) NOEXCEPT
 
 // Event subscriber operates on the network strand (session).
 void session_outbound::handle_event(const code&,
-    chase event_, event_link) NOEXCEPT
+    chase event_, event_link value) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -81,7 +82,7 @@ void session_outbound::handle_event(const code&,
         case chase::starved:
         {
             // When a channel becomes starved notify other(s) to split work.
-            split(channel_t{});
+            split(possible_narrow_cast<channel_t>(value));
             break;
         }
         case chase::stop:
@@ -118,10 +119,15 @@ void session_outbound::handle_event(const code&,
     }
 }
 
-void session_outbound::split(channel_t) NOEXCEPT
+void session_outbound::split(channel_t self) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    // Remove the starved channel to prevent self-selection.
+    if (speeds_.find(self) != speeds_.end())
+        speeds_.erase(self);
+
+    // Find the slowest reporting channel.
     const auto slowest = std::min_element(speeds_.begin(), speeds_.end(),
         [](const auto& left, const auto& right) NOEXCEPT
         {

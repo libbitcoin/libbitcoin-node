@@ -61,6 +61,11 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_checked, height_t{});
             break;
         }
+        case chase::header:
+        {
+            POST(do_checked, height_t{});
+            break;
+        }
         case chase::checked:
         {
             POST(do_height_checked, possible_narrow_cast<height_t>(value));
@@ -84,7 +89,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::stall:
         case chase::purge:
         case chase::block:
-        case chase::header:
+        ////case chase::header:
         case chase::download:
         ////case chase::checked:
         case chase::unchecked:
@@ -167,7 +172,8 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             }
             else
             {
-                if (!query.set_block_unconfirmable(link))
+                if (code != database::error::block_unconfirmable &&
+                    !query.set_block_unconfirmable(link))
                 {
                     fault(error::store_integrity);
                     return;
@@ -222,7 +228,7 @@ code chaser_preconfirm::validate(const header_link& link,
         return error::store_integrity;
 
     const auto& block = *block_ptr;
-    if (!archive().populate(block))
+    if (!query.populate(block))
         return system::error::missing_previous_output;
 
     const chain::context ctx

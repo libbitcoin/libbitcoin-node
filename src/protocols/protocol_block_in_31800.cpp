@@ -231,14 +231,15 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
     stop(error::sacrificed_channel);
 }
 
+// static
 map_ptr protocol_block_in_31800::split(const map_ptr& map) NOEXCEPT
 {
-    // Merge half of map into new half.
-    const auto count = map->size();
+    // Move half of map into new half, map is mutable (only pointer is const).
     const auto half = std::make_shared<database::associations>();
     auto& index = map->get<database::association::pos>();
-    const auto end = std::next(index.begin(), to_half(count));
-    half->merge(index, index.begin(), end);
+    const auto begin = index.begin();
+    const auto end = std::next(begin, to_half(map->size()));
+    half->merge(index, begin, end);
     return half;
 }
 

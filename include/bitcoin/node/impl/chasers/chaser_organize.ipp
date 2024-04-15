@@ -182,6 +182,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
+        // With a candidate reorg that drop strong below a valid header chain,
+        // this will cause a sequence of headers to be bypassed, such that a
+        // parent of a block that doesn't exist will not be a candidate, which
+        // result in a failure of get_chain_state below, because it depends on
+        // candidate state. So get_chain_state needs to be chain independent.
         if (!is_block() || ec != database::error::unassociated)
         {
             handler(error_duplicate(), height);
@@ -354,6 +359,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
+
+    // If all headers are previously associated then no blocks will be fed to
+    // preconfirmation, resulting in a stall...
+
     if (is_block() || is_current(header.timestamp()))
         notify(error::success, chase_object(), branch_point);
 
@@ -396,37 +405,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
-    // Pop candidates at/above height.
-    // ........................................................................
-    // Block (link) may be marked as unconfirmable, but if it is not then none
-    // above can be marked, and none can be marked if malleable, so don't mark.
-    // Stored state of each remains unknown until invalid and not malleable.
-
-    // Pop from top down to and including invalidating header.
-    for (auto index = query.get_top_candidate(); index >= height; --index)
-    {
-        if (!query.pop_candidate())
-        {
-            fault(error::store_integrity);
-            return;
-        }
-
-        fire(events::header_reorganized, index);
-    }
-
     // Reset top chain state cache to fork point.
     // ........................................................................
 
     const auto top_candidate = state_->height();
     const auto prev_flags = state_->flags();
     const auto prev_version = state_->minimum_block_version();
-    state_ = query.get_candidate_chain_state(settings_, fork_point);
-    if (!state_)
-    {
-        fault(error::store_integrity);
-        return;
-    }
-
     const auto next_flags = state_->flags();
     if (prev_flags != next_flags)
     {
@@ -451,9 +435,15 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Copy candidates from above fork point to top into header tree.
     // ........................................................................
-    // Independent loop with forward order is required to roll chain state.
+    // Forward order is required to advance chain state for tree.
 
-    auto state = state_;
+    auto state = query.get_candidate_chain_state(settings_, fork_point);
+    if (!state)
+    {
+        fault(error::store_integrity);
+        return;
+    }
+
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
         typename Block::cptr block{};
@@ -473,13 +463,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         cache(block, state);
     }
 
-    // Pop candidates from top to above fork point.
+    // Pop candidates from top down to above fork point.
     // ........................................................................
+    // Can't pop in previous loop because of forward order.
 
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        LOGN("Reorganizing candidate [" << index << "].");
-
         if (!query.pop_candidate())
         {
             fault(error::store_integrity);
@@ -506,6 +495,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Notify check/download/confirmation to reset to top (clear).
     // As this organizer controls the candidate array, height is definitive.
+    state_ = query.get_candidate_chain_state(settings_, top_confirmed);
     notify(error::success, chase::disorganized, top_confirmed);
 }
 
@@ -530,17 +520,13 @@ system::chain::chain_state::ptr CLASS::get_chain_state(
     if (state_->hash() == previous_hash)
         return state_;
 
+    // Previous block may be cached because it is not yet strong.
     const auto it = tree_.find(previous_hash);
     if (it != tree_.end())
         return it->second.state;
 
-    // Branch forms from a candidate block below top candidate (expensive).
-    size_t height{};
-    const auto& query = archive();
-    if (query.get_height(height, query.to_header(previous_hash)))
-        return query.get_candidate_chain_state(settings_, height);
-
-    return {};
+    // previous_hash may or not exist and/or be a candidate.
+    return archive().get_chain_state(settings_, previous_hash);
 }
 
 // Also obtains branch point for work summation termination.
