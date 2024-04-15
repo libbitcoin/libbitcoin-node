@@ -107,7 +107,6 @@ void chaser_confirm::handle_event(const code&, chase event_,
 void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
     if (closed())
         return;
@@ -135,8 +134,9 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     // Reorganize confirmed chain.
     // ........................................................................
 
-    const auto fork_point = height - fork.size();
+    auto& query = archive();
     const auto top = query.get_top_confirmed();
+    const auto fork_point = height - fork.size();
     if (top < fork_point)
     {
         fault(error::store_integrity);
@@ -148,16 +148,14 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     header_links popped{};
     while (index > fork_point)
     {
-        const auto link = query.to_confirmed(index);
-        popped.push_back(link);
-
-        if (!query.pop_confirmed() || link.is_terminal())
+        popped.push_back(query.to_confirmed(index));
+        if (popped.back().is_terminal() || !query.pop_confirmed())
         {
             fault(error::store_integrity);
             return;
         }
 
-        notify(error::success, chase::reorganized, link);
+        notify(error::success, chase::reorganized, popped.back());
         fire(events::block_reorganized, index--);
     }
 
@@ -300,7 +298,7 @@ bool chaser_confirm::roll_back(const header_links& popped,
         if (!set_unconfirmed(query.to_candidate(height), height))
             return false;
 
-    for (const auto& link : views_reverse(popped))
+    for (const auto& link: views_reverse(popped))
         if (!set_confirmed(link, ++fork_point))
             return false;
 
