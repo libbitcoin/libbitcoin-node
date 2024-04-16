@@ -291,6 +291,23 @@ void executor::measure_size() const
         query_.confirmed_records() %
         query_.spend_records() %
         query_.strong_tx_records());
+    console(format(BN_MEASURE_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.spend_buckets() %
+        query_.strong_tx_buckets() %
+        query_.validated_tx_buckets() %
+        query_.validated_bk_buckets());
+    console(format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
+        query_.get_top_associated() %
+        query_.get_unassociated_count());
 
     console(BN_MEASURE_SLABS);
     console(BN_OPERATION_INTERRUPT);
@@ -683,67 +700,134 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-////// arbitrary testing (const).
-////void executor::read_test() const
-////{
-////    console("No read test implemented.");
-////}
-
+// arbitrary testing (const).
 void executor::read_test() const
 {
-    using namespace database;
-    constexpr auto frequency = 100'000u;
-    const auto start = unix_time();
-    auto tx = 664'400'000_size;
-
-    // Read all data except genesis (ie. for validation).
-    while (!cancel_ && (++tx < query_.tx_records()))
-    {
-        const tx_link link{
-            system::possible_narrow_cast<tx_link::integer>(tx) };
-
-        ////const auto ptr = query_.get_header(link);
-        ////if (!ptr)
-        ////{
-        ////    console("Failure: get_header");
-        ////    break;
-        ////}
-        ////else if (is_zero(ptr->bits()))
-        ////{
-        ////    console("Failure: zero bits");
-        ////    break;
-        ////}
-
-        ////const auto txs = query_.to_txs(link);
-        ////if (txs.empty())
-        ////{
-        ////    console("Failure: to_txs");
-        ////    break;
-        ////}
-
-        const auto ptr = query_.get_transaction(link);
-        if (!ptr)
-        {
-            console("Failure: get_transaction");
-            break;
-        }
-        else if (!ptr->is_valid())
-        {
-            console("Failure: is_valid");
-            break;
-        }
-
-        if (is_zero(tx % frequency))
-            console(format("get_transaction" BN_READ_ROW) %
-                tx % (unix_time() - start));
-    }
-
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    console(format("get_transaction" BN_READ_ROW) %
-        tx % (unix_time() - start));
+    console("No read test implemented.");
 }
+
+////void executor::read_test() const
+////{
+////    const auto bk_link = query_.to_candidate(804'001_size);
+////    const auto block = query_.get_block(bk_link);
+////    if (!block)
+////    {
+////        console("!query_.get_block(link)");
+////        return;
+////    }
+////
+////    ////const auto tx = query_.get_transaction({ 980'984'671_u32 });
+////    ////if (!tx)
+////    ////{
+////    ////    console("!query_.get_transaction(tx_link)");
+////    ////    return;
+////    ////}
+////    ////
+////    ////database::context context{};
+////    ////if (!query_.get_context(context, bk_link))
+////    ////{
+////    ////    console("!query_.get_context(context, bk_link)");
+////    ////    return;
+////    ////}
+////    ////
+////    ////const chain::context ctx
+////    ////{
+////    ////    context.flags,
+////    ////    {},
+////    ////    context.mtp,
+////    ////    context.height,
+////    ////    {},
+////    ////    {}
+////    ////};
+////    ////
+////    ////if (!query_.populate_with_metadata(*tx))
+////    ////{
+////    ////    console("!query_.populate_with_metadata(*tx)");
+////    ////    return;
+////    ////}
+////    ////
+////    ////if (const auto ec = tx->confirm(ctx))
+////    ////    console(format("Error confirming tx [980'984'671] %1%") % ec.message());
+////    ////
+////    ////// Does not compute spent metadata, assumes coinbase spent and others not.
+////    ////if (!query_.populate_with_metadata(*block))
+////    ////{
+////    ////    console("!query_.populate_with_metadata(*block)");
+////    ////    return;
+////    ////}
+////    ////
+////    ////const auto& txs = *block->transactions_ptr();
+////    ////if (txs.empty())
+////    ////{
+////    ////    console("txs.empty()");
+////    ////    return;
+////    ////}
+////    ////
+////    ////for (auto index = one; index < txs.size(); ++index)
+////    ////    if (const auto ec = txs.at(index)->confirm(ctx))
+////    ////        console(format("Error confirming tx [%1%] %2%") % index % ec.message());
+////    ////
+////    ////console("Confirm test 1 complete.");
+////
+////    const auto ec = query_.block_confirmable(bk_link);
+////    console(format("Confirm test 2 complete (%1%).") % ec.message());
+////}
+
+////void executor::read_test() const
+////{
+////    using namespace database;
+////    constexpr auto frequency = 100'000u;
+////    const auto start = unix_time();
+////    auto tx = 664'400'000_size;
+////
+////    // Read all data except genesis (ie. for validation).
+////    while (!cancel_ && (++tx < query_.tx_records()))
+////    {
+////        const tx_link link{
+////            system::possible_narrow_cast<tx_link::integer>(tx) };
+////
+////        ////const auto ptr = query_.get_header(link);
+////        ////if (!ptr)
+////        ////{
+////        ////    console("Failure: get_header");
+////        ////    break;
+////        ////}
+////        ////else if (is_zero(ptr->bits()))
+////        ////{
+////        ////    console("Failure: zero bits");
+////        ////    break;
+////        ////}
+////
+////        ////const auto txs = query_.to_txs(link);
+////        ////if (txs.empty())
+////        ////{
+////        ////    console("Failure: to_txs");
+////        ////    break;
+////        ////}
+////
+////        const auto ptr = query_.get_transaction(link);
+////        if (!ptr)
+////        {
+////            console("Failure: get_transaction");
+////            break;
+////        }
+////        else if (!ptr->is_valid())
+////        {
+////            console("Failure: is_valid");
+////            break;
+////        }
+////
+////        if (is_zero(tx % frequency))
+////            console(format("get_transaction" BN_READ_ROW) %
+////                tx % (unix_time() - start));
+////    }
+////
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////
+////    console(format("get_transaction" BN_READ_ROW) %
+////        tx % (unix_time() - start));
+////}
 
 ////void executor::read_test() const
 ////{
@@ -943,11 +1027,11 @@ void executor::read_test() const
 ////}
 ////
 
-////// arbitrary testing (non-const).
-////void executor::write_test()
-////{
-////    console("No write test implemented.");
-////}
+// arbitrary testing (non-const).
+void executor::write_test()
+{
+    console("No write test implemented.");
+}
 
 ////void executor::write_test()
 ////{
@@ -987,72 +1071,72 @@ void executor::read_test() const
 ////        height % (fine_clock::now() - start1).count());
 ////}
 
-void executor::write_test()
-{
-    using namespace database;
-    ////constexpr uint64_t fees = 99;
-    constexpr auto frequency = 10'000;
-    const auto start = unix_time();
-    code ec{};
-
-    console(BN_OPERATION_INTERRUPT);
-
-    auto height = zero;//// query_.get_top_confirmed();
-    const auto records = query_.header_records();
-    while (!cancel_ && (++height < records))
-    {
-        // Assumes height is header link.
-        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
-
-        if (!query_.set_strong(link))
-        {
-            // total sequential chain cost: 18.7 min (now 6.6).
-            console("Failure: set_strong");
-            break;
-        }
-        else if ((ec = query_.block_confirmable(link)))
-        {
-            // must set_strong before each (no push, verifies non-use).
-            console(format("Failure: block_confirmed, %1%") % ec.message());
-            break;
-        }
-        ////if (!query_.set_txs_connected(link))
-        ////{
-        ////    // total sequential chain cost: 21 min.
-        ////    console("Failure: set_txs_connected");
-        ////    break;
-        ////}
-        ////if (!query_.set_block_confirmable(link, fees))
-        ////{
-        ////    // total chain cost: 1 sec.
-        ////    console("Failure: set_block_confirmable");
-        ////    break;
-        ////    break;
-        ////}
-        ////else if (!query_.push_candidate(link))
-        ////{
-        ////    // total chain cost: 1 sec.
-        ////    console("Failure: push_candidate");
-        ////    break;
-        ////}
-        ////else if (!query_.push_confirmed(link))
-        ////{
-        ////    // total chain cost: 1 sec.
-        ////    console("Failure: push_confirmed");
-        ////    break;
-        ////}
-
-        if (is_zero(height % frequency))
-            console(format("block" BN_WRITE_ROW) %
-                height % (unix_time() - start));
-    }
-    
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-    
-    console(format("block" BN_WRITE_ROW) %
-        height % (unix_time() - start));
-}
+////void executor::write_test()
+////{
+////    using namespace database;
+////    ////constexpr uint64_t fees = 99;
+////    constexpr auto frequency = 10'000;
+////    const auto start = unix_time();
+////    code ec{};
+////
+////    console(BN_OPERATION_INTERRUPT);
+////
+////    auto height = zero;//// query_.get_top_confirmed();
+////    const auto records = query_.header_records();
+////    while (!cancel_ && (++height < records))
+////    {
+////        // Assumes height is header link.
+////        const header_link link{ possible_narrow_cast<header_link::integer>(height) };
+////
+////        if (!query_.set_strong(link))
+////        {
+////            // total sequential chain cost: 18.7 min (now 6.6).
+////            console("Failure: set_strong");
+////            break;
+////        }
+////        else if ((ec = query_.block_confirmable(link)))
+////        {
+////            // must set_strong before each (no push, verifies non-use).
+////            console(format("Failure: block_confirmed, %1%") % ec.message());
+////            break;
+////        }
+////        ////if (!query_.set_txs_connected(link))
+////        ////{
+////        ////    // total sequential chain cost: 21 min.
+////        ////    console("Failure: set_txs_connected");
+////        ////    break;
+////        ////}
+////        ////if (!query_.set_block_confirmable(link, fees))
+////        ////{
+////        ////    // total chain cost: 1 sec.
+////        ////    console("Failure: set_block_confirmable");
+////        ////    break;
+////        ////    break;
+////        ////}
+////        ////else if (!query_.push_candidate(link))
+////        ////{
+////        ////    // total chain cost: 1 sec.
+////        ////    console("Failure: push_candidate");
+////        ////    break;
+////        ////}
+////        ////else if (!query_.push_confirmed(link))
+////        ////{
+////        ////    // total chain cost: 1 sec.
+////        ////    console("Failure: push_confirmed");
+////        ////    break;
+////        ////}
+////
+////        if (is_zero(height % frequency))
+////            console(format("block" BN_WRITE_ROW) %
+////                height % (unix_time() - start));
+////    }
+////    
+////    if (cancel_)
+////        console(BN_OPERATION_CANCELED);
+////    
+////    console(format("block" BN_WRITE_ROW) %
+////        height % (unix_time() - start));
+////}
 
 ////void executor::write_test()
 ////{
@@ -1242,6 +1326,14 @@ bool executor::do_initchain()
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
         query_.validated_bk_buckets());
+    console(format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
+        query_.get_top_associated() %
+        query_.get_unassociated_count());
 
     console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
