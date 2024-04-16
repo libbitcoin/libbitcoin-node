@@ -61,6 +61,8 @@ void chaser_transaction::handle_event(const code&, chase event_,
             // TODO: handle fault.
             break;
         }
+        
+        case chase::bump:
         case chase::start:
         case chase::pause:
         case chase::resume:

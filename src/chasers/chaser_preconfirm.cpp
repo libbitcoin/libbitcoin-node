@@ -56,11 +56,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     switch (event_)
     {
         case chase::start:
-        {
-            POST(do_checked, height_t{});
-            break;
-        }
-        case chase::header:
+        case chase::bump:
         {
             POST(do_checked, height_t{});
             break;
@@ -81,6 +77,7 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
             break;
         }
         ////case chase::start:
+        ////case chase::bump:
         case chase::pause:
         case chase::resume:
         case chase::starved:
@@ -240,7 +237,8 @@ code chaser_preconfirm::validate(const header_link& link,
         {}              // work_required
     };
 
-    return ec = block.accept(ctx, subsidy_interval_blocks_, initial_subsidy_) ?
+    return
+        ec = block.accept(ctx, subsidy_interval_blocks_, initial_subsidy_) ?
         ec : block.connect(ctx);
 }
 

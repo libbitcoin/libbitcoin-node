@@ -87,6 +87,7 @@ void chaser_check::handle_event(const code&, chase event_,
             break;
         }
         case chase::start:
+        case chase::bump:
         case chase::pause:
         case chase::resume:
         case chase::starved:
@@ -133,10 +134,8 @@ void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
     LOGN("Branch point (" << branch_point << ") unassociated ("
         << added << ").");
 
-    if (is_zero(added))
-        return;
-
-    notify(error::success, chase::download, added);
+    if (!is_zero(added))
+        notify(error::success, chase::download, added);
 }
 
 // purge headers
@@ -247,8 +246,7 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
         });
 }
 
-map_ptr chaser_check::make_map(size_t start,
-    size_t count) const NOEXCEPT
+map_ptr chaser_check::make_map(size_t start, size_t count) const NOEXCEPT
 {
     // Known malleated blocks are disassociated and therefore appear here.
     return std::make_shared<associations>(

@@ -93,6 +93,11 @@ bool chaser::stranded() const NOEXCEPT
     return strand_.running_in_this_thread();
 }
 
+bool chaser::is_current() const NOEXCEPT
+{
+    return node_.is_current();
+}
+
 bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 {
     return node_.is_current(timestamp);

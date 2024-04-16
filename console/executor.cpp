@@ -93,7 +93,7 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
 
     { events::block_archived,      "block_archived......" },
     { events::block_validated,     "block_validated....." },
-    { events::block_confirmable,   "block_confirmable..." },
+    { events::block_confirmed,     "block_confirmed....." },
     { events::block_unconfirmable, "block_unconfirmable." },
     { events::validate_bypassed,   "validate_bypassed..." },
     { events::confirm_bypassed,    "confirm_bypassed...." },
@@ -1013,7 +1013,7 @@ void executor::write_test()
         else if ((ec = query_.block_confirmable(link)))
         {
             // must set_strong before each (no push, verifies non-use).
-            console(format("Failure: block_confirmable, %1%") % ec.message());
+            console(format("Failure: block_confirmed, %1%") % ec.message());
             break;
         }
         ////if (!query_.set_txs_connected(link))
