@@ -186,6 +186,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                     fault(error::store_integrity);
                     return;
                 }
+
                 continue;
             }
         
@@ -268,6 +269,7 @@ code chaser_confirm::confirm(const header_link& link,
 
 // utility
 // ----------------------------------------------------------------------------
+// TODO: set_strong before check, unset on roll_back, push_confirmed in batch.
 
 bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
 {
