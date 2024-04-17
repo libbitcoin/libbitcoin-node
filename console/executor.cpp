@@ -700,10 +700,28 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-// arbitrary testing (const).
+////// arbitrary testing (const).
+////void executor::read_test() const
+////{
+////    console("No read test implemented.");
+////}
+
+// 804'001_size
 void executor::read_test() const
 {
-    console("No read test implemented.");
+    size_t count{};
+    const auto start = unix_time();
+
+    // Failure should be common due to double spends.
+    for (size_t height = 0_size;
+        !cancel_ && height <= query_.get_top_confirmed();
+        ++height, ++count)
+    {
+        const auto ec = query_.block_confirmable(query_.to_confirmed(height));
+        console(format("Confirm [%1%] test (%2%).") % height % ec.message());
+    }
+
+    console(format("%1% confirmed in %2% secs.") % count % (unix_time() - start));
 }
 
 ////void executor::read_test() const
