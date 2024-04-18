@@ -706,23 +706,199 @@ void executor::scan_collisions() const
 ////    console("No read test implemented.");
 ////}
 
-// 804'001_size
 void executor::read_test() const
 {
+    code ec{};
     size_t count{};
     const auto start = unix_time();
 
-    // Failure should be common due to double spends.
-    for (size_t height = 0_size;
-        !cancel_ && height <= query_.get_top_confirmed();
+    for (size_t height = zero;
+        !cancel_ && !ec && height <= query_.get_top_confirmed();
         ++height, ++count)
     {
-        const auto ec = query_.block_confirmable(query_.to_confirmed(height));
-        console(format("Confirm [%1%] test (%2%).") % height % ec.message());
+        ec = query_.block_confirmable(query_.to_confirmed(height));
+
+        if (is_zero(height % 100_size))
+            console(format("Confirm [%1%] test (%2%).") % height % ec.message());
     }
 
     console(format("%1% confirmed in %2% secs.") % count % (unix_time() - start));
 }
+
+// This was caused by concurrent redundant downloads at tail following restart.
+// The earlier transactions were marked as confirmed and during validation the
+// most recent are found via point.hash association priot to to_block() test.
+////void executor::read_test() const
+////{
+////    const auto height = 839'287_size;
+////    const auto block = query_.to_confirmed(height);
+////    if (block.is_terminal())
+////    {
+////        console("!block");
+////        return;
+////    }
+////
+////    const auto txs = query_.to_txs(block);
+////    if (txs.empty())
+////    {
+////        console("!txs");
+////        return;
+////    }
+////
+////    database::tx_link spender_link{};
+////    const auto hash_spender = system::base16_hash("1ff970ec310c000595929bd290bbc8f4603ee18b2b4e3239dfb072aaca012b28");
+////    for (auto position = zero; !cancel_ && position < txs.size(); ++position)
+////    {
+////        const auto temp = txs.at(position);
+////        if (query_.get_tx_key(temp) == hash_spender)
+////        {
+////            spender_link = temp;
+////            break;
+////        }
+////    }
+////
+////    auto spenders = store_.tx.it(hash_spender);
+////    if (spenders.self().is_terminal())
+////        return;
+////
+////    // ...260, 261
+////    size_t spender_count{};
+////    do
+////    {
+////        const auto foo = spenders.self();
+////        ++spender_count;
+////    } while(spenders.advance());
+////
+////    if (is_zero(spender_count))
+////    {
+////        console("is_zero(spender_count)");
+////        return;
+////    }
+////
+////    // ...260
+////    if (spender_link.is_terminal())
+////    {
+////        console("spender_link.is_terminal()");
+////        return;
+////    }
+////
+////    const auto spender_link1 = query_.to_tx(hash_spender);
+////    if (spender_link != spender_link1)
+////    {
+////        console("spender_link != spender_link1");
+////        ////return;
+////    }
+////
+////    database::tx_link spent_link{};
+////    const auto hash_spent = system::base16_hash("85f65b57b88b74fd945a66a6ba392a5f3c8a7c0f78c8397228dece885d788841");
+////    for (auto position = zero; !cancel_ && position < txs.size(); ++position)
+////    {
+////        const auto temp = txs.at(position);
+////        if (query_.get_tx_key(temp) == hash_spent)
+////        {
+////            spent_link = temp;
+////            break;
+////        }
+////    }
+////
+////    auto spent = store_.tx.it(hash_spent);
+////    if (spent.self().is_terminal())
+////        return;
+////
+////    // ...255, 254
+////    size_t spent_count{};
+////    do
+////    {
+////        const auto bar = spent.self();
+////        ++spent_count;
+////    } while (spent.advance());
+////
+////    if (is_zero(spent_count))
+////    {
+////        console("is_zero(spent_count)");
+////        return;
+////    }
+////
+////    // ...254 (not ...255)
+////    if (spent_link.is_terminal())
+////    {
+////        console("spent_link.is_terminal()");
+////        return;
+////    }
+////
+////    const auto spent_link1 = query_.to_tx(hash_spent);
+////    if (spent_link != spent_link1)
+////    {
+////        console("spent_link != spent_link1");
+////        ////return;
+////    }
+////
+////    const auto tx = query_.to_tx(hash_spender);
+////    if (tx.is_terminal())
+////    {
+////        console("!tx");
+////        return;
+////    }
+////
+////    if (tx != spender_link)
+////    {
+////        console("tx != spender_link");
+////        return;
+////    }
+////
+////    if (spender_link <= spent_link)
+////    {
+////        console("spender_link <= spent_link");
+////        return;
+////    }
+////
+////    // ...254
+////    const auto header1 = query_.to_block(spender_link);
+////    if (header1.is_terminal())
+////    {
+////        console("header1.is_terminal()");
+////        return;
+////    }
+////
+////    // ...255 (the latter instance is not confirmed)
+////    const auto header11 = query_.to_block(add1(spender_link));
+////    if (!header11.is_terminal())
+////    {
+////        console("!header11.is_terminal()");
+////        return;
+////    }
+////
+////    // ...260
+////    const auto header2 = query_.to_block(spent_link);
+////    if (header2.is_terminal())
+////    {
+////        console("auto.is_terminal()");
+////        return;
+////    }
+////
+////    // ...261 (the latter instance is not confirmed)
+////    const auto header22 = query_.to_block(add1(spent_link));
+////    if (!header22.is_terminal())
+////    {
+////        console("!header22.is_terminal()");
+////        return;
+////    }
+////
+////    if (header1 != header2)
+////    {
+////        console("header1 != header2");
+////        return;
+////    }
+////
+////    if (header1 != block)
+////    {
+////        console("header1 != block");
+////        return;
+////    }
+////
+////    const auto ec = query_.block_confirmable(query_.to_confirmed(height));
+////    console(format("Confirm [%1%] test (%2%).") % height % ec.message());
+////}
 
 ////void executor::read_test() const
 ////{
