@@ -50,16 +50,20 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 }
 
 // static
-map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
+map_ptr chaser_check::empty_map() NOEXCEPT
 {
-    const auto half = std::make_shared<database::associations>();
-    auto& index = map->get<database::association::pos>();
-    const auto begin = index.begin();
-    const auto end = std::next(begin, to_half(map->size()));
-    half->merge(index, begin, end);
-    return half;
+    return std::make_shared<associations>();
 }
 
+// static
+map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
+{
+    const auto half = empty_map();
+    auto& index = map->get<association::pos>();
+    const auto end = std::next(index.begin(), to_half(map->size()));
+    half->merge(index, index.begin(), end);
+    return half;
+}
 
 // start
 // ----------------------------------------------------------------------------

@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -65,7 +66,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     BC_ASSERT(stranded());
 
     restore(map_);
-    map_ = std::make_shared<database::associations>();
+    map_ = chaser_check::empty_map();
     stop_performance();
 
     protocol::stopping(ec);
@@ -224,7 +225,7 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
 
     restore(chaser_check::split(map_));
     restore(map_);
-    map_ = std::make_shared<database::associations>();
+    map_ = chaser_check::empty_map();
     stop(error::sacrificed_channel);
 }
 
