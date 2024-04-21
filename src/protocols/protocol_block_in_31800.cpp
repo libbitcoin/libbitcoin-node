@@ -270,7 +270,7 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 get_data protocol_block_in_31800::create_get_data(
     const map_ptr& map) const NOEXCEPT
 {
-    // clang has emplace_back bug (no matching constructor).
+    // clang emplace_back bug (no matching constructor), using push_back.
     // bip144: get_data uses witness constant but inventory does not.
 
     get_data getter{};

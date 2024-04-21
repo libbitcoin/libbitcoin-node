@@ -48,8 +48,7 @@ protected:
     virtual void do_preconfirmed(height_t height) NOEXCEPT;
 
 private:
-    code confirm(const database::header_link& link,
-        size_t height) const NOEXCEPT;
+    code confirm(const database::header_link& link, size_t height) NOEXCEPT;
     bool set_confirmed(header_t link, height_t height) NOEXCEPT;
     bool set_unconfirmed(header_t link, height_t height) NOEXCEPT;
     bool roll_back(const header_links& popped,

@@ -165,6 +165,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             if (query.is_malleable(link))
             {
                 notify(code, chase::malleated, link);
+                fire(events::block_malleated, height);
             }
             else
             {
@@ -208,7 +209,6 @@ code chaser_preconfirm::validate(const header_link& link,
     size_t height) const NOEXCEPT
 {
     const auto& query = archive();
-
     if (is_under_bypass(height) && !query.is_malleable(link))
         return error::validation_bypass;
 

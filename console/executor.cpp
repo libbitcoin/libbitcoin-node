@@ -95,6 +95,7 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
     { events::block_validated,     "block_validated....." },
     { events::block_confirmed,     "block_confirmed....." },
     { events::block_unconfirmable, "block_unconfirmable." },
+    { events::block_malleated,     "block_malleated....." },
     { events::validate_bypassed,   "validate_bypassed..." },
     { events::confirm_bypassed,    "confirm_bypassed...." },
 
@@ -700,29 +701,10 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-////// arbitrary testing (const).
-////void executor::read_test() const
-////{
-////    console("No read test implemented.");
-////}
-
+// arbitrary testing (const).
 void executor::read_test() const
 {
-    code ec{};
-    size_t count{};
-    const auto start = unix_time();
-
-    for (size_t height = zero;
-        !cancel_ && !ec && height <= query_.get_top_confirmed();
-        ++height, ++count)
-    {
-        ec = query_.block_confirmable(query_.to_confirmed(height));
-
-        if (is_zero(height % 100_size))
-            console(format("Confirm [%1%] test (%2%).") % height % ec.message());
-    }
-
-    console(format("%1% confirmed in %2% secs.") % count % (unix_time() - start));
+    console("No read test implemented.");
 }
 
 // This was caused by concurrent redundant downloads at tail following restart.
@@ -1221,10 +1203,63 @@ void executor::read_test() const
 ////}
 ////
 
-// arbitrary testing (non-const).
+////// arbitrary testing (non-const).
+////void executor::write_test()
+////{
+////    console("No write test implemented.");
+////}
+
 void executor::write_test()
 {
-    console("No write test implemented.");
+    code ec{};
+    size_t count{};
+    const auto start = unix_time();
+
+    ////// This tx in block 840161 is not strong by block 840112 (weak prevout).
+    ////const auto tx = "865d721037b0c995822367c41875593d7093d1bae412f3861ce471de3c07e180";
+    ////const auto block = "00000000000000000002504eefed4dc72956aa941aa7b6defe893e261de6a636";
+    ////const auto hash = system::base16_hash(block);
+    ////if (!query_.push_candidate(query_.to_header(hash)))
+    ////{
+    ////    console(format("!query_.push_candidate(query_.to_header(hash))"));
+    ////    return;
+    ////}
+
+    for (size_t height = query_.get_fork();
+        !cancel_ && !ec && height <= query_.get_top_associated_from(height);
+        ++height, ++count)
+    {
+        const auto block = query_.to_candidate(height);
+        if (!query_.set_strong(block))
+        {
+            console(format("set_strong [%1%] fault.") % height);
+            return;
+        }
+
+        ////if (height > 804'000_size)
+        ////if (ec = query_.block_confirmable(block))
+        ////{
+        ////    console(format("block_confirmable [%1%] fault (%2%).") % height % ec.message());
+        ////    return;
+        ////}
+        ////
+        ////if (!query_.set_block_confirmable(block, uint64_t{}))
+        ////{
+        ////    console(format("set_block_confirmable [%1%] fault.") % height);
+        ////    return;
+        ////}
+
+        if (!query_.push_confirmed(block))
+        {
+            console(format("push_confirmed [%1%] fault.") % height);
+            return;
+        }
+
+        if (is_zero(height % 100_size))
+            console(format("write_test [%1%].") % height);
+    }
+
+    console(format("%1% blocks in %2% secs.") % count % (unix_time() - start));
 }
 
 ////void executor::write_test()

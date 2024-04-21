@@ -36,8 +36,9 @@ enum events : uint8_t
     /// Blocks.
     block_archived,      // block checked
     block_validated,     // block checked, accepted, connected
-    block_confirmed,   // block checked, accepted, connected, confirmable
+    block_confirmed,     // block checked, accepted, connected, confirmable
     block_unconfirmable, // block invalid (after headers-first archive)
+    block_malleated,     // block invalid but malleable (after headers-first)
     validate_bypassed,   // block checked, accepted [assumed]
     confirm_bypassed,    // block checked, accepted, connected [assumed]
 

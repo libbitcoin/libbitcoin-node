@@ -62,6 +62,14 @@ code chaser_header::validate(const system::chain::header& header,
     if ((ec = header.accept(state.context())))
         return ec;
 
+    // This prevents a long unconfirmable header chain with an early
+    // unconfirmable from reinitiating a long validation chain before hitting
+    // the invalidation again. This is more likely the case of a bug than IRL.
+    ////const auto& query = archive();
+    ////ec = query.get_header_state(query.to_header(header.hash()));
+    ////if (ec == database::error::block_unconfirmable)
+    ////    return ec;
+
     return system::error::success;
 }
 

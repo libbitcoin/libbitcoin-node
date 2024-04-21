@@ -116,13 +116,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     // ........................................................................
     // A reorg race may have resulted in height not now being a candidate.
 
+    bool strong{};
     uint256_t work{};
     header_links fork{};
-    if (!get_fork_work(work, fork, height))
-        return;
 
-    bool strong{};
-    if (!get_is_strong(strong, work, height))
+    if (!get_fork_work(work, fork, height) ||
+        !get_is_strong(strong, work, height))
     {
         fault(error::store_integrity);
         return;
@@ -180,7 +179,8 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // Advance and confirm.
                 notify(code, chase::confirmable, index);
                 fire(events::confirm_bypassed, index);
-        
+
+                // chase::organized & events::block_organized
                 if (!set_confirmed(link, index++))
                 {
                     fault(error::store_integrity);
@@ -199,6 +199,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             if (query.is_malleable(link))
             {
                 notify(code, chase::malleated, link);
+                fire(events::block_malleated, index);
             }
             else
             {
@@ -212,7 +213,9 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 notify(code, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, index);
             }
-        
+
+            // chase::reorganized & events::block_reorganized
+            // chase::organized & events::block_organized
             if (!roll_back(popped, fork_point, sub1(index)))
             {
                 fault(error::store_integrity);
@@ -239,6 +242,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         notify(error::success, chase::confirmable, index);
         fire(events::block_confirmed, index);
 
+        // chase::organized & events::block_organized
         if (!set_confirmed(link, index++))
         {
             fault(error::store_integrity);
@@ -248,9 +252,13 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 }
 
 code chaser_confirm::confirm(const header_link& link,
-    size_t height) const NOEXCEPT
+    size_t height) NOEXCEPT
 {
-    const auto& query = archive();
+    auto& query = archive();
+
+    // All blocks must be set_strong.
+    if (!query.set_strong(link))
+        return error::store_integrity;
 
     if (is_under_bypass(height) && !query.is_malleable(link))
         return error::confirmation_bypass;
@@ -262,19 +270,18 @@ code chaser_confirm::confirm(const header_link& link,
 
     if (ec == database::error::block_preconfirmable)
         return query.block_confirmable(link);
-    
+
     // Should not get here without a known block state.
     return error::store_integrity;
 }
 
 // utility
 // ----------------------------------------------------------------------------
-// TODO: set_strong before check, unset on roll_back, push_confirmed in batch.
 
 bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
 {
     auto& query = archive();
-    if (!query.push_confirmed(link) || !query.set_strong(link))
+    if (!query.push_confirmed(link))
         return false;
 
     notify(error::success, chase::organized, link);
@@ -302,7 +309,7 @@ bool chaser_confirm::roll_back(const header_links& popped,
             return false;
 
     for (const auto& link: views_reverse(popped))
-        if (!set_confirmed(link, ++fork_point))
+        if (!query.set_strong(link) || !set_confirmed(link, ++fork_point))
             return false;
 
     return true;
