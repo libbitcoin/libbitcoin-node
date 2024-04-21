@@ -179,7 +179,8 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // Advance and confirm.
                 notify(code, chase::confirmable, index);
                 fire(events::confirm_bypassed, index);
-        
+
+                // chase::organized & events::block_organized
                 if (!set_confirmed(link, index++))
                 {
                     fault(error::store_integrity);
@@ -212,7 +213,9 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 notify(code, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, index);
             }
-        
+
+            // chase::reorganized & events::block_reorganized
+            // chase::organized & events::block_organized
             if (!roll_back(popped, fork_point, sub1(index)))
             {
                 fault(error::store_integrity);
@@ -239,6 +242,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         notify(error::success, chase::confirmable, index);
         fire(events::block_confirmed, index);
 
+        // chase::organized & events::block_organized
         if (!set_confirmed(link, index++))
         {
             fault(error::store_integrity);
@@ -273,7 +277,6 @@ code chaser_confirm::confirm(const header_link& link,
 
 // utility
 // ----------------------------------------------------------------------------
-// TODO: set_strong before check, unset on roll_back, push_confirmed in batch.
 
 bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
 {
@@ -300,13 +303,13 @@ bool chaser_confirm::set_unconfirmed(header_t link, height_t height) NOEXCEPT
 bool chaser_confirm::roll_back(const header_links& popped,
     size_t fork_point, size_t top) NOEXCEPT
 {
-    const auto& query = archive();
+    auto& query = archive();
     for (auto height = add1(fork_point); height <= top; ++height)
         if (!set_unconfirmed(query.to_candidate(height), height))
             return false;
 
     for (const auto& link: views_reverse(popped))
-        if (!set_confirmed(link, ++fork_point))
+        if (!query.set_strong(link) || !set_confirmed(link, ++fork_point))
             return false;
 
     return true;
