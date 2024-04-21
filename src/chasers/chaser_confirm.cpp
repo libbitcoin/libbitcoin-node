@@ -248,9 +248,13 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 }
 
 code chaser_confirm::confirm(const header_link& link,
-    size_t height) const NOEXCEPT
+    size_t height) NOEXCEPT
 {
-    const auto& query = archive();
+    auto& query = archive();
+
+    // All blocks must be set_strong.
+    if (!query.set_strong(link))
+        return error::store_integrity;
 
     if (is_under_bypass(height) && !query.is_malleable(link))
         return error::confirmation_bypass;
@@ -262,7 +266,7 @@ code chaser_confirm::confirm(const header_link& link,
 
     if (ec == database::error::block_preconfirmable)
         return query.block_confirmable(link);
-    
+
     // Should not get here without a known block state.
     return error::store_integrity;
 }
@@ -274,7 +278,7 @@ code chaser_confirm::confirm(const header_link& link,
 bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
 {
     auto& query = archive();
-    if (!query.push_confirmed(link) || !query.set_strong(link))
+    if (!query.push_confirmed(link))
         return false;
 
     notify(error::success, chase::organized, link);
@@ -296,7 +300,7 @@ bool chaser_confirm::set_unconfirmed(header_t link, height_t height) NOEXCEPT
 bool chaser_confirm::roll_back(const header_links& popped,
     size_t fork_point, size_t top) NOEXCEPT
 {
-    auto& query = archive();
+    const auto& query = archive();
     for (auto height = add1(fork_point); height <= top; ++height)
         if (!set_unconfirmed(query.to_candidate(height), height))
             return false;
