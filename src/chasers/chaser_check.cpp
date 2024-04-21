@@ -240,17 +240,20 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
 
 size_t chaser_check::get_unassociated(maps& table, size_t start) const NOEXCEPT
 {
+    const auto& query = archive();
     size_t added{};
     while (true)
     {
-        const auto map = make_map(start, inventory_);
-        if (map->empty()) break;
+        const auto map = std::make_shared<associations>(
+            query.get_unassociated_above(start, inventory_));
+
+        if (map->empty())
+            return added;
+
         table.push_back(map);
         start = map->top().height;
         added += map->size();
     }
-
-    return added;
 }
 
 size_t chaser_check::count_map(const maps& table) const NOEXCEPT
@@ -262,16 +265,9 @@ size_t chaser_check::count_map(const maps& table) const NOEXCEPT
         });
 }
 
-map_ptr chaser_check::make_map(size_t start, size_t count) const NOEXCEPT
-{
-    // Known malleated blocks are disassociated and therefore appear here.
-    return std::make_shared<associations>(
-        archive().get_unassociated_above(start, count));
-}
-
 map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
-    return table.empty() ? std::make_shared<associations>() : pop_front(table);
+    return table.empty() ? empty_map() : pop_front(table);
 }
 
 BC_POP_WARNING()
