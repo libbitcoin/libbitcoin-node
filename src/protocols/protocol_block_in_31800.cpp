@@ -329,13 +329,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (const auto code = check(block, ctx))
     {
         // Both forms of malleabilty are possible here.
-        if (block.is_malleable())
-        {
-            // Block has not been associated, so just drop peer and continue.
-            // A malleable block with no valid variant (i.e. mined invalid)
-            // will cause a candidate stall until a stronger chain is found.
-        }
-        else
+        // Malleable has not been associated, so just drop peer and continue.
+        if (!block.is_malleable())
         {
             if (!query.set_block_unconfirmable(link))
             {
