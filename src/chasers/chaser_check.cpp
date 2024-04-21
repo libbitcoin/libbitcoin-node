@@ -166,7 +166,7 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
     // be purged, it simply means purge all hashes (reset all). All channels
     // will get the purge notification before any subsequent download notify.
     maps_.clear();
-    ////LOGN("Hashes purged (" << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes purged (" << count_maps(maps_) << ") remain.");
     notify(error::success, chase::purge, top);
 }
 
@@ -193,7 +193,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
 
     const auto map = get_map(maps_);
-    ////LOGN("Hashes -" << map->size() << " (" << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes -" << map->size() << " (" << count_maps(maps_) << ") remain.");
     handler(error::success, map);
 }
 
@@ -206,7 +206,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     {
         maps_.push_back(map);
         notify(error::success, chase::download, map->size());
-        ////LOGN("Hashes +" << map->size() << " (" << count_map(maps_) << ") remain.");
+        ////LOGN("Hashes +" << map->size() << " (" << count_maps(maps_) << ") remain.");
     }
 
     handler(error::success);
@@ -231,7 +231,7 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
     }
 
     maps_.push_back(std::make_shared<associations>(associations{ out }));
-    ////LOGN("Hashes +1 malleated (" << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes +1 malleated (" << count_maps(maps_) << ") remain.");
     notify(error::success, chase::download, one);
 }
 
@@ -256,19 +256,19 @@ size_t chaser_check::get_unassociated(maps& table, size_t start) const NOEXCEPT
     }
 }
 
-size_t chaser_check::count_map(const maps& table) const NOEXCEPT
-{
-    return std::accumulate(table.begin(), table.end(), zero,
-        [](size_t sum, const map_ptr& map) NOEXCEPT
-        {
-            return sum + map->size();
-        });
-}
-
 map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
     return table.empty() ? empty_map() : pop_front(table);
 }
+
+////size_t chaser_check::count_maps(const maps& table) const NOEXCEPT
+////{
+////    return std::accumulate(table.begin(), table.end(), zero,
+////        [](size_t sum, const map_ptr& map) NOEXCEPT
+////        {
+////            return sum + map->size();
+////        });
+////}
 
 BC_POP_WARNING()
 BC_POP_WARNING()

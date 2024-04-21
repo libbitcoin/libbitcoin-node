@@ -67,8 +67,8 @@ protected:
 private:
     typedef std::deque<map_ptr> maps;
 
+    ////size_t count_maps(const maps& table) const NOEXCEPT;
     size_t get_unassociated(maps& table, size_t start) const NOEXCEPT;
-    size_t count_map(const maps& table) const NOEXCEPT;
     map_ptr get_map(maps& table) NOEXCEPT;
 
     // These are thread safe.
