@@ -222,22 +222,10 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
 
     LOGP("Divide work (" << map_->size() << ") from [" << authority() << "].");
 
-    restore(split(map_));
+    restore(chaser_check::split(map_));
     restore(map_);
     map_ = std::make_shared<database::associations>();
     stop(error::sacrificed_channel);
-}
-
-// static
-map_ptr protocol_block_in_31800::split(const map_ptr& map) NOEXCEPT
-{
-    // Move half of map into new half, map is mutable (only pointer is const).
-    const auto half = std::make_shared<database::associations>();
-    auto& index = map->get<database::association::pos>();
-    const auto begin = index.begin();
-    const auto end = std::next(begin, to_half(map->size()));
-    half->merge(index, begin, end);
-    return half;
 }
 
 // request hashes

@@ -36,6 +36,9 @@ class BCN_API chaser_check
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_check);
 
+    /// Move half of map into returned map.
+    static map_ptr split(const map_ptr& map) NOEXCEPT;
+
     chaser_check(full_node& node) NOEXCEPT;
 
     /// Initialize chaser state.

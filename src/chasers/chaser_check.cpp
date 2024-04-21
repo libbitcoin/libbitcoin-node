@@ -49,6 +49,18 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 {
 }
 
+// static
+map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
+{
+    const auto half = std::make_shared<database::associations>();
+    auto& index = map->get<database::association::pos>();
+    const auto begin = index.begin();
+    const auto end = std::next(begin, to_half(map->size()));
+    half->merge(index, begin, end);
+    return half;
+}
+
+
 // start
 // ----------------------------------------------------------------------------
 
