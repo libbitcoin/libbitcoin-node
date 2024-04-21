@@ -165,6 +165,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
             if (query.is_malleable(link))
             {
                 notify(code, chase::malleated, link);
+                fire(events::block_malleated, height);
             }
             else
             {

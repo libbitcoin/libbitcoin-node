@@ -116,13 +116,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     // ........................................................................
     // A reorg race may have resulted in height not now being a candidate.
 
+    bool strong{};
     uint256_t work{};
     header_links fork{};
-    if (!get_fork_work(work, fork, height))
-        return;
 
-    bool strong{};
-    if (!get_is_strong(strong, work, height))
+    if (!get_fork_work(work, fork, height) ||
+        !get_is_strong(strong, work, height))
     {
         fault(error::store_integrity);
         return;
@@ -199,6 +198,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             if (query.is_malleable(link))
             {
                 notify(code, chase::malleated, link);
+                fire(events::block_malleated, index);
             }
             else
             {
