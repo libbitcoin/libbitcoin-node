@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 
@@ -40,7 +41,7 @@ public:
       : protocol_performer(session, channel, performance),
         block_type_(session.config().network.witness_node() ?
             type_id::witness_block : type_id::block),
-        map_(std::make_shared<database::associations>())
+        map_(chaser_check::empty_map())
     {
     }
     BC_POP_WARNING()
@@ -77,7 +78,6 @@ private:
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
 
-    static map_ptr split(const map_ptr& map) NOEXCEPT;
     void restore(const map_ptr& map) NOEXCEPT;
     void handle_put_hashes(const code& ec) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;

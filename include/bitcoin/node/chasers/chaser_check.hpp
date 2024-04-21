@@ -36,6 +36,12 @@ class BCN_API chaser_check
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_check);
 
+    /// Craete empty shared map.
+    static map_ptr empty_map() NOEXCEPT;
+
+    /// Move half of map into returned map.
+    static map_ptr split(const map_ptr& map) NOEXCEPT;
+
     chaser_check(full_node& node) NOEXCEPT;
 
     /// Initialize chaser state.
@@ -61,9 +67,8 @@ protected:
 private:
     typedef std::deque<map_ptr> maps;
 
+    ////size_t count_maps(const maps& table) const NOEXCEPT;
     size_t get_unassociated(maps& table, size_t start) const NOEXCEPT;
-    size_t count_map(const maps& table) const NOEXCEPT;
-    map_ptr make_map(size_t start, size_t count) const NOEXCEPT;
     map_ptr get_map(maps& table) NOEXCEPT;
 
     // These are thread safe.

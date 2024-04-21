@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -65,7 +66,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     BC_ASSERT(stranded());
 
     restore(map_);
-    map_ = std::make_shared<database::associations>();
+    map_ = chaser_check::empty_map();
     stop_performance();
 
     protocol::stopping(ec);
@@ -222,22 +223,10 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
 
     LOGP("Divide work (" << map_->size() << ") from [" << authority() << "].");
 
-    restore(split(map_));
+    restore(chaser_check::split(map_));
     restore(map_);
-    map_ = std::make_shared<database::associations>();
+    map_ = chaser_check::empty_map();
     stop(error::sacrificed_channel);
-}
-
-// static
-map_ptr protocol_block_in_31800::split(const map_ptr& map) NOEXCEPT
-{
-    // Move half of map into new half, map is mutable (only pointer is const).
-    const auto half = std::make_shared<database::associations>();
-    auto& index = map->get<database::association::pos>();
-    const auto begin = index.begin();
-    const auto end = std::next(begin, to_half(map->size()));
-    half->merge(index, begin, end);
-    return half;
 }
 
 // request hashes
@@ -270,11 +259,11 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map) NOEXCEPT
 get_data protocol_block_in_31800::create_get_data(
     const map_ptr& map) const NOEXCEPT
 {
-    // clang emplace_back bug (no matching constructor), using push_back.
-    // bip144: get_data uses witness constant but inventory does not.
-
     get_data getter{};
     getter.items.reserve(map->size());
+
+    // bip144: get_data uses witness constant but inventory does not.
+    // clang emplace_back bug (no matching constructor), using push_back.
     std::for_each(map->pos_begin(), map->pos_end(),
         [&](const database::association& item) NOEXCEPT
         {
@@ -329,13 +318,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (const auto code = check(block, ctx))
     {
         // Both forms of malleabilty are possible here.
-        if (block.is_malleable())
-        {
-            // Block has not been associated, so just drop peer and continue.
-            // A malleable block with no valid variant (i.e. mined invalid)
-            // will cause a candidate stall until a stronger chain is found.
-        }
-        else
+        // Malleable has not been associated, so just drop peer and continue.
+        if (!block.is_malleable())
         {
             if (!query.set_block_unconfirmable(link))
             {

@@ -49,6 +49,22 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
 {
 }
 
+// static
+map_ptr chaser_check::empty_map() NOEXCEPT
+{
+    return std::make_shared<associations>();
+}
+
+// static
+map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
+{
+    const auto half = empty_map();
+    auto& index = map->get<association::pos>();
+    const auto end = std::next(index.begin(), to_half(map->size()));
+    half->merge(index, index.begin(), end);
+    return half;
+}
+
 // start
 // ----------------------------------------------------------------------------
 
@@ -150,7 +166,7 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
     // be purged, it simply means purge all hashes (reset all). All channels
     // will get the purge notification before any subsequent download notify.
     maps_.clear();
-    ////LOGN("Hashes purged (" << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes purged (" << count_maps(maps_) << ") remain.");
     notify(error::success, chase::purge, top);
 }
 
@@ -177,7 +193,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
 
     const auto map = get_map(maps_);
-    ////LOGN("Hashes -" << map->size() << " (" << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes -" << map->size() << " (" << count_maps(maps_) << ") remain.");
     handler(error::success, map);
 }
 
@@ -190,7 +206,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     {
         maps_.push_back(map);
         notify(error::success, chase::download, map->size());
-        ////LOGN("Hashes +" << map->size() << " (" << count_map(maps_) << ") remain.");
+        ////LOGN("Hashes +" << map->size() << " (" << count_maps(maps_) << ") remain.");
     }
 
     handler(error::success);
@@ -215,7 +231,7 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
     }
 
     maps_.push_back(std::make_shared<associations>(associations{ out }));
-    ////LOGN("Hashes +1 malleated (" << count_map(maps_) << ") remain.");
+    ////LOGN("Hashes +1 malleated (" << count_maps(maps_) << ") remain.");
     notify(error::success, chase::download, one);
 }
 
@@ -224,39 +240,35 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
 
 size_t chaser_check::get_unassociated(maps& table, size_t start) const NOEXCEPT
 {
+    const auto& query = archive();
     size_t added{};
     while (true)
     {
-        const auto map = make_map(start, inventory_);
-        if (map->empty()) break;
+        const auto map = std::make_shared<associations>(
+            query.get_unassociated_above(start, inventory_));
+
+        if (map->empty())
+            return added;
+
         table.push_back(map);
         start = map->top().height;
         added += map->size();
     }
-
-    return added;
-}
-
-size_t chaser_check::count_map(const maps& table) const NOEXCEPT
-{
-    return std::accumulate(table.begin(), table.end(), zero,
-        [](size_t sum, const map_ptr& map) NOEXCEPT
-        {
-            return sum + map->size();
-        });
-}
-
-map_ptr chaser_check::make_map(size_t start, size_t count) const NOEXCEPT
-{
-    // Known malleated blocks are disassociated and therefore appear here.
-    return std::make_shared<associations>(
-        archive().get_unassociated_above(start, count));
 }
 
 map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
-    return table.empty() ? std::make_shared<associations>() : pop_front(table);
+    return table.empty() ? empty_map() : pop_front(table);
 }
+
+////size_t chaser_check::count_maps(const maps& table) const NOEXCEPT
+////{
+////    return std::accumulate(table.begin(), table.end(), zero,
+////        [](size_t sum, const map_ptr& map) NOEXCEPT
+////        {
+////            return sum + map->size();
+////        });
+////}
 
 BC_POP_WARNING()
 BC_POP_WARNING()
