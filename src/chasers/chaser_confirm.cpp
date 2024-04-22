@@ -313,9 +313,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     return true;
 }
 
-// ****************************************************************************
-// CONSENSUS: fork with greater work causes confirmed reorganization.
-// ****************************************************************************
+// A forl with greater work will cause confirmed reorganization.
 bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {

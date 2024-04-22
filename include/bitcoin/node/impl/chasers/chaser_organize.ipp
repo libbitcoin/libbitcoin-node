@@ -559,9 +559,7 @@ bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
     return query.get_height(branch_point, link);
 }
 
-// ****************************************************************************
-// CONSENSUS: branch with greater work causes candidate reorganization.
-// ****************************************************************************
+// A branch with greater work will cause candidate reorganization.
 TEMPLATE
 bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
     size_t branch_point) const NOEXCEPT
