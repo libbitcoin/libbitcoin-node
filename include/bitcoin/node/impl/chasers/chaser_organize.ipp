@@ -193,11 +193,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Roll chain state forward from archived parent to current header.
     const auto state = std::make_shared<chain_state>(*parent, header, settings_);
-    const auto height = state->height();
 
     // Validation and currency.
     // ........................................................................
 
+    const auto height = state->height();
     if (chain::checkpoint::is_conflict(settings_.checkpoints, hash, height))
     {
         handler(system::error::checkpoint_conflict, height);
@@ -210,11 +210,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
+    // Store with checkpoint, milestone, or currency with sufficient work.
     if (!is_storable(block, *state))
     {
-        // Logs from weak block parent to the block (forward sequential).
         log_state_change(*parent, *state);
-
         cache(block_ptr, state);
         handler(error::success, height);
         return;
@@ -223,31 +222,24 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Compute relative work.
     // ........................................................................
 
+    bool strong{};
     uint256_t work{};
     hashes tree_branch{};
     size_t branch_point{};
     header_links store_branch{};
-    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
+
+    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header) ||
+        !get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
         fault(error::store_integrity);
         return;
     }
 
-    bool strong{};
-    if (!get_is_strong(strong, work, branch_point))
-    {
-        handler(error::store_integrity, height);
-        fault(error::store_integrity);
-        return;
-    }
-
+    // New top of current weak branch.
     if (!strong)
     {
-        // Logs from weak block parent to the block (forward sequential).
         log_state_change(*parent, *state);
-
-        // New top of current weak branch.
         cache(block_ptr, state);
         handler(error::success, height);
         return;
