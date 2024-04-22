@@ -61,30 +61,7 @@ void chaser_transaction::handle_event(const code&, chase event_,
             // TODO: handle fault.
             break;
         }
-        
-        case chase::bump:
-        case chase::start:
-        case chase::pause:
-        case chase::resume:
-        case chase::starved:
-        case chase::split:
-        case chase::stall:
-        case chase::purge:
-        case chase::block:
-        case chase::header:
-        case chase::download:
-        case chase::checked:
-        case chase::unchecked:
-        case chase::preconfirmable:
-        case chase::unpreconfirmable:
-        case chase::confirmable:
-        case chase::unconfirmable:
-        case chase::organized:
-        case chase::reorganized:
-        case chase::disorganized:
-        case chase::transaction:
-        case chase::template_:
-        ////case chase::stop:
+        default:
         {
             break;
         }

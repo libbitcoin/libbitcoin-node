@@ -44,6 +44,9 @@ code chaser_confirm::start() NOEXCEPT
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
+// Protected
+// ----------------------------------------------------------------------------
+
 void chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
@@ -65,30 +68,7 @@ void chaser_confirm::handle_event(const code&, chase event_,
             // TODO: handle fault.
             break;
         }
-        case chase::start:
-        case chase::bump:
-        case chase::pause:
-        case chase::resume:
-        case chase::starved:
-        case chase::split:
-        case chase::stall:
-        case chase::purge:
-        ////case chase::block:
-        case chase::header:
-        case chase::download:
-        case chase::checked:
-        case chase::unchecked:
-        ////case chase::preconfirmable:
-        case chase::unpreconfirmable:
-        case chase::confirmable:
-        case chase::unconfirmable:
-        case chase::organized:
-        case chase::reorganized:
-        case chase::disorganized:
-        case chase::malleated:
-        case chase::transaction:
-        case chase::template_:
-        ////case chase::stop:
+        default:
         {
             break;
         }
@@ -198,6 +178,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         
             if (query.is_malleable(link))
             {
+                // Index will be reportd multiple times when 'height' is above.
                 notify(code, chase::malleated, link);
                 fire(events::block_malleated, index);
             }
@@ -209,7 +190,8 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                     fault(error::store_integrity);
                     return;
                 }
-        
+
+                // Index will be reportd multiple times when 'height' us above.
                 notify(code, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, index);
             }
@@ -275,7 +257,7 @@ code chaser_confirm::confirm(const header_link& link,
     return error::store_integrity;
 }
 
-// utility
+// Private
 // ----------------------------------------------------------------------------
 
 bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
@@ -334,9 +316,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     return true;
 }
 
-// ****************************************************************************
-// CONSENSUS: fork with greater work causes confirmed reorganization.
-// ****************************************************************************
+// A forl with greater work will cause confirmed reorganization.
 bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {

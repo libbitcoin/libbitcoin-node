@@ -27,6 +27,8 @@
 namespace libbitcoin {
 namespace node {
 
+BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+
 // Public
 // ----------------------------------------------------------------------------
 
@@ -101,30 +103,7 @@ void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
             // TODO: handle fault.
             break;
         }
-        case chase::start:
-        case chase::bump:
-        case chase::pause:
-        case chase::resume:
-        case chase::starved:
-        case chase::split:
-        case chase::stall:
-        case chase::purge:
-        case chase::block:
-        case chase::header:
-        case chase::download:
-        case chase::checked:
-        ////case chase::unchecked:
-        case chase::preconfirmable:
-        ////case chase::unpreconfirmable:
-        case chase::confirmable:
-        ////case chase::unconfirmable:
-        case chase::organized:
-        case chase::reorganized:
-        case chase::disorganized:
-        case chase::malleated:
-        case chase::transaction:
-        case chase::template_:
-        ////case chase::stop:
+        default:
         {
             break;
         }
@@ -159,7 +138,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
-    // If exists (by hash) test for prior invalidity.
     const auto id = query.to_header(hash);
     if (!id.is_terminal())
     {
@@ -202,45 +180,20 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
     }
 
-    // Roll chain state forward from previous to current header.
+    // Obtain header chain state.
     // ........................................................................
 
-    // Obtains parent state from state_, tree, or store as applicable.
-    auto state = get_chain_state(header.previous_block_hash());
-    if (!state)
+    // Obtain parent state from state_, tree, or store as applicable.
+    const auto parent = get_chain_state(header.previous_block_hash());
+    if (!parent)
     {
         handler(error_orphan(), {});
         return;
     }
 
-    const auto prev_flags = state->flags();
-    const auto prev_version = state->minimum_block_version();
-
-    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-    // Do not use block parameter in chain_state{} as that is for tx pool.
-    state.reset(new chain::chain_state{ *state, header, settings_ });
-    BC_POP_WARNING()
-
+    // Roll chain state forward from archived parent to current header.
+    const auto state = std::make_shared<chain_state>(*parent, header, settings_);
     const auto height = state->height();
-    const auto next_flags = state->flags();
-    if (prev_flags != next_flags)
-    {
-        const binary prev{ flag_bits, to_big_endian(prev_flags) };
-        const binary next{ flag_bits, to_big_endian(next_flags) };
-        LOGN("Forked from ["
-            << prev << "] to ["
-            << next << "] at ["
-            << height << ":" << encode_hash(hash) << "].");
-    }
-
-    const auto next_version = state->minimum_block_version();
-    if (prev_version != next_version)
-    {
-        LOGN("Minimum block version ["
-            << prev_version << "] changed to ["
-            << next_version << "] at ["
-            << height << ":" << encode_hash(hash) << "].");
-    }
 
     // Validation and currency.
     // ........................................................................
@@ -259,6 +212,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     if (!is_storable(block, *state))
     {
+        // Logs from weak block parent to the block (forward sequential).
+        log_state_change(*parent, *state);
+
         cache(block_ptr, state);
         handler(error::success, height);
         return;
@@ -288,6 +244,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     if (!strong)
     {
+        // Logs from weak block parent to the block (forward sequential).
+        log_state_change(*parent, *state);
+
         // New top of current weak branch.
         cache(block_ptr, state);
         handler(error::success, height);
@@ -297,8 +256,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Reorganize candidate chain.
     // ........................................................................
 
-    const auto top = state_->height();
-    if (top < branch_point)
+    const auto top_candidate = state_->height();
+    if (top_candidate < branch_point)
     {
         handler(error::store_integrity, height);
         fault(error::store_integrity);
@@ -306,7 +265,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     }
 
     // Pop down to the branch point.
-    auto index = top;
+    auto index = top_candidate;
     while (index > branch_point)
     {
         if (!query.pop_candidate())
@@ -380,7 +339,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         notify(error::success, chase_object(), branch_point);
     }
 
+    // Logs from candidate block parent to the candidate (forward sequential).
+    log_state_change(*parent, *state);
     state_ = state;
+
     handler(error::success, height);
 }
 
@@ -419,37 +381,8 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
-    // Reset top chain state cache to fork point.
+    // Get fork point chain state.
     // ........................................................................
-
-    const auto top_candidate = state_->height();
-    const auto prev_flags = state_->flags();
-    const auto prev_version = state_->minimum_block_version();
-    const auto next_flags = state_->flags();
-    if (prev_flags != next_flags)
-    {
-        const binary prev{ flag_bits, to_big_endian(prev_flags) };
-        const binary next{ flag_bits, to_big_endian(next_flags) };
-        LOGN("Forks reverted from ["
-            << prev << "] at candidate ("
-            << top_candidate << ") to ["
-            << next << "] at confirmed ["
-            << fork_point << ":" << encode_hash(state_->hash()) << "].");
-    }
-
-    const auto next_version = state_->minimum_block_version();
-    if (prev_version != next_version)
-    {
-        LOGN("Minimum block version reverted ["
-            << prev_version << "] at candidate ("
-            << top_candidate << ") to ["
-            << next_version << "] at confirmed ["
-            << fork_point << ":" << encode_hash(state_->hash()) << "].");
-    }
-
-    // Copy candidates from above fork point to top into header tree.
-    // ........................................................................
-    // Forward order is required to advance chain state for tree.
 
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
@@ -458,6 +391,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
+    // Copy candidates from above fork point to top into header tree.
+    // ........................................................................
+    // Forward order is required to advance chain state for tree.
+
+    const auto top_candidate = state_->height();
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
         typename Block::cptr block{};
@@ -468,18 +406,13 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         }
 
         const auto& header = get_header(*block);
-
-        BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-        // Do not use block parameter in chain_state{} as that is for tx pool.
         state.reset(new chain::chain_state{ *state, header, settings_ });
-        BC_POP_WARNING()
-
         cache(block, state);
     }
 
     // Pop candidates from top down to above fork point.
     // ........................................................................
-    // Can't pop in previous loop because of forward order.
+    // Can't pop in loop above because state chaining requires forward order.
 
     for (auto index = top_candidate; index > fork_point; --index)
     {
@@ -507,9 +440,14 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         fire(events::header_organized, index);
     }
 
+    state = query.get_candidate_chain_state(settings_, top_confirmed);
+
+    // Logs from previous top candidate to previous fork point (jumps back).
+    log_state_change(*state_, *state);
+    state_ = state;
+
     // Notify check/download/confirmation to reset to top (clear).
     // As this organizer controls the candidate array, height is definitive.
-    state_ = query.get_candidate_chain_state(settings_, top_confirmed);
     notify(error::success, chase::disorganized, top_confirmed);
 }
 
@@ -518,13 +456,13 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
 TEMPLATE
 void CLASS::cache(const typename Block::cptr& block_ptr,
-    const system::chain::chain_state::ptr& state) NOEXCEPT
+    const chain_state::ptr& state) NOEXCEPT
 {
     tree_.insert({ block_ptr->hash(), { block_ptr, state } });
 }
 
 TEMPLATE
-system::chain::chain_state::ptr CLASS::get_chain_state(
+CLASS::chain_state::ptr CLASS::get_chain_state(
     const system::hash_digest& previous_hash) const NOEXCEPT
 {
     if (!state_)
@@ -582,9 +520,7 @@ bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
     return query.get_height(branch_point, link);
 }
 
-// ****************************************************************************
-// CONSENSUS: branch with greater work causes candidate reorganization.
-// ****************************************************************************
+// A branch with greater work will cause candidate reorganization.
 TEMPLATE
 bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
     size_t branch_point) const NOEXCEPT
@@ -639,6 +575,37 @@ bool CLASS::push(const system::hash_digest& key) NOEXCEPT
     const auto link = query.set_link(*it.block, it.state->context());
     return query.push_candidate(link);
 }
+
+TEMPLATE
+void CLASS::log_state_change(const chain_state& from,
+    const chain_state& to) const NOEXCEPT
+{
+    if constexpr (network::levels::news_defined)
+    {
+        using namespace system;
+
+        if (from.flags() != to.flags())
+        {
+            const binary prev{ flag_bits, to_big_endian(from.flags()) };
+            const binary next{ flag_bits, to_big_endian(to.flags()) };
+
+            LOGN("Fork flags changed from ["
+                << prev << "] to ["
+                << next << "] at ["
+                << to.height() << ":" << encode_hash(to.hash()) << "].");
+        }
+
+        if (from.minimum_block_version() != to.minimum_block_version())
+        {
+            LOGN("Minimum block version changed from ["
+                << from.minimum_block_version() << "] to ["
+                << to.minimum_block_version()   << "] at ["
+                << to.height() << ":" << encode_hash(to.hash()) << "].");
+        }
+    }
+}
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

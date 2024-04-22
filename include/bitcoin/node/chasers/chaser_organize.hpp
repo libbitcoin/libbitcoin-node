@@ -21,6 +21,7 @@
 
 #include <unordered_map>
 #include <bitcoin/database.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -142,6 +143,10 @@ private:
 
     // Move tree Block to database and push to top of candidate chain.
     bool push(const system::hash_digest& key) NOEXCEPT;
+
+    // Log changes to flags and/or minimum block version in candidate chain.
+    void log_state_change(const chain_state& from,
+        const chain_state& to) const NOEXCEPT;
 
     // This is thread safe.
     const system::settings& settings_;
