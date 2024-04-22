@@ -456,7 +456,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Pop candidates from top down to above fork point.
     // ........................................................................
-    // Can't pop in previous loop because of forward order.
+    // Can't pop in loop above because state chaining requires forward order.
 
     for (auto index = top_candidate; index > fork_point; --index)
     {

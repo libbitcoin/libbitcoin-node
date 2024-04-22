@@ -44,6 +44,9 @@ code chaser_confirm::start() NOEXCEPT
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
+// Protected
+// ----------------------------------------------------------------------------
+
 void chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
@@ -254,7 +257,7 @@ code chaser_confirm::confirm(const header_link& link,
     return error::store_integrity;
 }
 
-// utility
+// Private
 // ----------------------------------------------------------------------------
 
 bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
