@@ -99,8 +99,7 @@ void protocol_block_in_31800::handle_event(const code&,
         }
         case chase::split:
         {
-            // It was determined to be the slowest channel with work.
-            // If value identifies this channel, split work and stop.
+            // If value identifies this channel (slowest), split work and stop.
             if (possible_narrow_cast<channel_t>(value) == identifier())
             {
                 POST(do_split, channel_t{});
@@ -122,8 +121,8 @@ void protocol_block_in_31800::handle_event(const code&,
         }
         case chase::purge:
         {
-            // If this channel has work clear it and stop.
-            // This is initiated by validate/confirm chase::disorganized.
+            // If have work clear it and stop.
+            // This is initiated by chase::regressed/disorganized.
             if (map_->size() >= minimum_for_stall_divide)
             {
                 POST(do_purge, channel_t{});
