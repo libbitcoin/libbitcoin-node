@@ -69,7 +69,7 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 // TODO: this becomes the block object cache size.
-constexpr auto maximum = 1'000_size;
+constexpr auto maximum = max_size_t;
 
 code chaser_check::start() NOEXCEPT
 {
@@ -91,11 +91,11 @@ void chaser_check::handle_event(const code&, chase event_,
             POST(do_add_headers, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::preconfirmable:
-        {
-            POST(do_set_floor, possible_narrow_cast<height_t>(value));
-            break;
-        }
+        ////case chase::preconfirmable:
+        ////{
+        ////    POST(do_set_floor, possible_narrow_cast<height_t>(value));
+        ////    break;
+        ////}
         case chase::disorganized:
         {
             POST(do_purge_headers, possible_narrow_cast<height_t>(value));
@@ -145,7 +145,7 @@ void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 
     const auto last = ceilinged_add(floor_, maximum);
     const auto add = get_unassociated(maps_, branch_point, last);
-    LOGN("Branch point (" << branch_point << ") unassociated (" << add << ").");
+    ////LOGN("Branch point (" << branch_point << ") unassociated (" << add << ").");
 
     if (!is_zero(add))
         notify(error::success, chase::download, add);
