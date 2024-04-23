@@ -68,11 +68,15 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 // start
 // ----------------------------------------------------------------------------
 
+// TODO: this becomes the block object cache size.
+constexpr auto maximum = max_size_t;
+
 code chaser_check::start() NOEXCEPT
 {
-    const auto fork_point = archive().get_fork();
-    const auto added = get_unassociated(maps_, fork_point);
-    LOGN("Fork point (" << fork_point << ") unassociated (" << added << ").");
+    floor_ = archive().get_fork();
+    const auto last = ceilinged_add(floor_, maximum);
+    const auto add = get_unassociated(maps_, floor_, last);
+    LOGN("Fork point (" << floor_ << ") unassociated (" << add << ").");
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -87,6 +91,11 @@ void chaser_check::handle_event(const code&, chase event_,
             POST(do_add_headers, possible_narrow_cast<height_t>(value));
             break;
         }
+        ////case chase::preconfirmable:
+        ////{
+        ////    POST(do_set_floor, possible_narrow_cast<height_t>(value));
+        ////    break;
+        ////}
         case chase::disorganized:
         {
             POST(do_purge_headers, possible_narrow_cast<height_t>(value));
@@ -109,6 +118,17 @@ void chaser_check::handle_event(const code&, chase event_,
     }
 }
 
+// set floor
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_set_floor(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Treats last validation height as the branch_point.
+    do_add_headers((floor_ = height));
+}
+
 // add headers
 // ----------------------------------------------------------------------------
 
@@ -123,12 +143,12 @@ void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto added = get_unassociated(maps_, branch_point);
-    LOGN("Branch point (" << branch_point << ") unassociated ("
-        << added << ").");
+    const auto last = ceilinged_add(floor_, maximum);
+    const auto add = get_unassociated(maps_, branch_point, last);
+    ////LOGN("Branch point (" << branch_point << ") unassociated (" << add << ").");
 
-    if (!is_zero(added))
-        notify(error::success, chase::download, added);
+    if (!is_zero(add))
+        notify(error::success, chase::download, add);
 }
 
 // purge headers
@@ -143,6 +163,7 @@ void chaser_check::do_purge_headers(height_t top) NOEXCEPT
     // be purged, it simply means purge all hashes (reset all). All channels
     // will get the purge notification before any subsequent download notify.
     maps_.clear();
+
     ////LOGN("Hashes purged (" << count_maps(maps_) << ") remain.");
     notify(error::success, chase::purge, top);
 }
@@ -170,6 +191,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
 
     const auto map = get_map(maps_);
+
     ////LOGN("Hashes -" << map->size() << " (" << count_maps(maps_) << ") remain.");
     handler(error::success, map);
 }
@@ -215,27 +237,28 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
 // utilities
 // ----------------------------------------------------------------------------
 
-size_t chaser_check::get_unassociated(maps& table, size_t start) const NOEXCEPT
-{
-    const auto& query = archive();
-    size_t added{};
-    while (true)
-    {
-        const auto map = std::make_shared<associations>(
-            query.get_unassociated_above(start, inventory_));
-
-        if (map->empty())
-            return added;
-
-        table.push_back(map);
-        start = map->top().height;
-        added += map->size();
-    }
-}
-
 map_ptr chaser_check::get_map(maps& table) NOEXCEPT
 {
     return table.empty() ? empty_map() : pop_front(table);
+}
+
+size_t chaser_check::get_unassociated(maps& table, size_t start,
+    size_t last) const NOEXCEPT
+{
+    const auto& query = archive();
+    size_t add{};
+    while (true)
+    {
+        const auto map = std::make_shared<associations>(
+            query.get_unassociated_above(start, inventory_, last));
+
+        if (map->empty())
+            return add;
+
+        table.push_back(map);
+        start = map->top().height;
+        add += map->size();
+    }
 }
 
 ////size_t chaser_check::count_maps(const maps& table) const NOEXCEPT

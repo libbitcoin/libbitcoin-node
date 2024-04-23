@@ -38,16 +38,16 @@ public:
     virtual void count(size_t bytes) NOEXCEPT;
 
 protected:
-    template <typename Session>
-    protocol_performer(Session& session, const channel_ptr& channel,
+    template <typename SessionPtr>
+    protocol_performer(const SessionPtr& session, const channel_ptr& channel,
         bool enable) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_performer>(session.log),
-        use_deviation_(session.config().node.allowed_deviation > 0.0),
+        network::tracker<protocol_performer>(session->log),
+        use_deviation_(session->config().node.allowed_deviation > 0.0),
         drop_stall_(enable &&
-            to_bool(session.config().node.sample_period_seconds)),
-        performance_timer_(std::make_shared<network::deadline>(session.log,
-            channel->strand(), session.config().node.sample_period()))
+            to_bool(session->config().node.sample_period_seconds)),
+        performance_timer_(std::make_shared<network::deadline>(session->log,
+            channel->strand(), session->config().node.sample_period()))
     {
     }
 

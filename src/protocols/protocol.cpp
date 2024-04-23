@@ -37,24 +37,24 @@ protocol::~protocol() NOEXCEPT
 void protocol::organize(const system::chain::header::cptr& header,
     organize_handler&& handler) NOEXCEPT
 {
-    session_.organize(header, std::move(handler));
+    session_->organize(header, std::move(handler));
 }
 
 void protocol::organize(const system::chain::block::cptr& block,
     organize_handler&& handler) NOEXCEPT
 {
-    session_.organize(block, std::move(handler));
+    session_->organize(block, std::move(handler));
 }
 
 void protocol::get_hashes(map_handler&& handler) NOEXCEPT
 {
-    session_.get_hashes(std::move(handler));
+    session_->get_hashes(std::move(handler));
 }
 
 void protocol::put_hashes(const map_ptr& map,
     network::result_handler&& handler) NOEXCEPT
 {
-    session_.put_hashes(map, std::move(handler));
+    session_->put_hashes(map, std::move(handler));
 }
 
 // Events.
@@ -62,12 +62,12 @@ void protocol::put_hashes(const map_ptr& map,
 
 void protocol::notify(const code& ec, chase event_, event_link value) NOEXCEPT
 {
-    session_.notify(ec, event_, value);
+    session_->notify(ec, event_, value);
 }
 
 void protocol::async_subscribe_events(event_handler&& handler) NOEXCEPT
 {
-    return session_.async_subscribe_events(std::move(handler));
+    return session_->async_subscribe_events(std::move(handler));
 }
 
 // Methods.
@@ -76,7 +76,7 @@ void protocol::async_subscribe_events(event_handler&& handler) NOEXCEPT
 void protocol::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) const NOEXCEPT
 {
-    session_.performance(channel, speed, std::move(handler));
+    session_->performance(channel, speed, std::move(handler));
 }
 
 // Properties.
@@ -84,17 +84,17 @@ void protocol::performance(uint64_t channel, uint64_t speed,
 
 query& protocol::archive() const NOEXCEPT
 {
-    return session_.archive();
+    return session_->archive();
 }
 
 const configuration& protocol::config() const NOEXCEPT
 {
-    return session_.config();
+    return session_->config();
 }
 
 bool protocol::is_current() const NOEXCEPT
 {
-    return session_.is_current();
+    return session_->is_current();
 }
 
 } // namespace node

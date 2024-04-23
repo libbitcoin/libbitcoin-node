@@ -26,7 +26,14 @@
 namespace libbitcoin {
 namespace node {
 
-using session_manual = attach<network::session_manual>;
+class session_manual
+  : public attach<network::session_manual>
+{
+public:
+    typedef std::shared_ptr<session_manual> ptr;
+    using base = attach<network::session_manual>;
+    using base::base;
+};
 
 } // namespace node
 } // namespace libbitcoin

@@ -35,11 +35,11 @@ public:
     typedef std::shared_ptr<protocol_block_in_31800> ptr;
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    template <typename Session>
-    protocol_block_in_31800(Session& session,
+    template <typename SessionPtr>
+    protocol_block_in_31800(const SessionPtr& session,
         const channel_ptr& channel, bool performance) NOEXCEPT
       : protocol_performer(session, channel, performance),
-        block_type_(session.config().network.witness_node() ?
+        block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         map_(chaser_check::empty_map())
     {

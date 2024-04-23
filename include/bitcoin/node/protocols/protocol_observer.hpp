@@ -33,11 +33,11 @@ class BCN_API protocol_observer
 public:
     typedef std::shared_ptr<protocol_observer> ptr;
 
-    template <typename Session>
-    protocol_observer(Session& session,
+    template <typename SessionPtr>
+    protocol_observer(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_observer>(session.log)
+        network::tracker<protocol_observer>(session->log)
     {
     }
 

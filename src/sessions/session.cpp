@@ -78,9 +78,8 @@ void session::notify(const code& ec, chase event_, event_link value) NOEXCEPT
 
 void session::async_subscribe_events(event_handler&& handler) NOEXCEPT
 {
-    // This is necessary because of multiple inheritance (see attach<Session>).
-    const auto self = std::dynamic_pointer_cast<node::session>(
-        dynamic_cast<network::session*>(this)->shared_from_this());
+    const auto self = session::shared_from_sibling<session,
+        network::session>();
 
     boost::asio::post(node_.strand(),
         std::bind(&session::subscribe_events,

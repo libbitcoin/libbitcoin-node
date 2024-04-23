@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -31,6 +32,8 @@ namespace node {
 class BCN_API session
 {
 public:
+    typedef std::shared_ptr<session> ptr;
+
     DELETE_COPY_MOVE(session);
 
     /// Organizers.
@@ -79,6 +82,13 @@ public:
     virtual bool is_current() const NOEXCEPT;
 
 protected:
+    template <class Sibling, class Shared>
+    std::shared_ptr<Sibling> shared_from_sibling() NOEXCEPT
+    {
+        return std::dynamic_pointer_cast<Sibling>(
+            dynamic_cast<Shared*>(this)->shared_from_this());
+    }
+
     /// Constructors.
     /// -----------------------------------------------------------------------
 

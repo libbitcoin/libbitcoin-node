@@ -57,9 +57,10 @@ protected:
     void attach_protocols(
         const network::channel::ptr& channel) NOEXCEPT override
     {
-        auto& self = *this;
         const auto headers_first = config().node.headers_first;
         const auto version = channel->negotiated_version();
+        const auto self = session::shared_from_sibling<attach<Session>,
+            network::session>();
 
         // Only session_outbound channels compete on performance.
         auto performance = false;

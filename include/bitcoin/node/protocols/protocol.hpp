@@ -37,8 +37,9 @@ protected:
     /// Constructors.
     /// -----------------------------------------------------------------------
 
-    template <typename Session>
-    protocol(Session& session, const channel_ptr& channel) NOEXCEPT
+    // Need template (see session member)?
+    template <typename SessionPtr>
+    protocol(const SessionPtr& session, const channel_ptr& channel) NOEXCEPT
       : network::protocol(session, channel), session_(session)
     {
     }
@@ -93,7 +94,7 @@ protected:
     virtual bool is_current() const NOEXCEPT;
 
 private:
-    session& session_;
+    const session::ptr session_;
 };
 
 } // namespace node
