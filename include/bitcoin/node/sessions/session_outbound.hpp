@@ -32,6 +32,8 @@ class BCN_API session_outbound
     protected network::tracker<session_outbound>
 {
 public:
+    typedef std::shared_ptr<session_outbound> ptr;
+
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
     void start(network::result_handler&& handler) NOEXCEPT override;

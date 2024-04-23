@@ -36,12 +36,12 @@ public:
     using type_id = network::messages::inventory::type_id;
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    template <typename Session>
-    protocol_block_in(Session& session,
+    template <typename SessionPtr>
+    protocol_block_in(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_block_in>(session.log),
-        block_type_(session.config().network.witness_node() ?
+        network::tracker<protocol_block_in>(session->log),
+        block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block)
     {
     }

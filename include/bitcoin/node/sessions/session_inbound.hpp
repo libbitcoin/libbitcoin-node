@@ -26,7 +26,14 @@
 namespace libbitcoin {
 namespace node {
 
-using session_inbound = attach<network::session_inbound>;
+class session_inbound
+  : public attach<network::session_inbound>
+{
+public:
+    typedef std::shared_ptr<session_inbound> ptr;
+    using base = attach<network::session_inbound>;
+    using base::base;
+};
 
 } // namespace node
 } // namespace libbitcoin

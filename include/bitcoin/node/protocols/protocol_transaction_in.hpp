@@ -33,11 +33,11 @@ class BCN_API protocol_transaction_in
 public:
     typedef std::shared_ptr<protocol_transaction_in> ptr;
 
-    template <typename Session>
-    protocol_transaction_in(Session& session,
+    template <typename SessionPtr>
+    protocol_transaction_in(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_transaction_in>(session.log)
+        network::tracker<protocol_transaction_in>(session->log)
     {
     }
 

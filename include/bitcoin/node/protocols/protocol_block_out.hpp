@@ -33,11 +33,11 @@ class BCN_API protocol_block_out
 public:
     typedef std::shared_ptr<protocol_block_out> ptr;
 
-    template <typename Session>
-    protocol_block_out(Session& session,
+    template <typename SessionPtr>
+    protocol_block_out(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_block_out>(session.log)
+        network::tracker<protocol_block_out>(session->log)
     {
     }
 

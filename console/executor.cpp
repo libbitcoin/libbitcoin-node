@@ -26,7 +26,6 @@
 #include <future>
 #include <iostream>
 #include <map>
-#include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <boost/format.hpp>

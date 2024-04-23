@@ -224,17 +224,17 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
 // Session attachments.
 // ----------------------------------------------------------------------------
 
-session_manual::ptr full_node::attach_manual_session() NOEXCEPT
+network::session_manual::ptr full_node::attach_manual_session() NOEXCEPT
 {
     return p2p::attach<node::session_manual>(*this);
 }
 
-session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
+network::session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 {
     return p2p::attach<node::session_inbound>(*this);
 }
 
-session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
+network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
     return p2p::attach<node::session_outbound>(*this);
 }
