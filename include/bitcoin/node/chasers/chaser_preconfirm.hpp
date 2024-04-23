@@ -43,9 +43,10 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
+    virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_disorganized(height_t top) NOEXCEPT;
-    virtual void do_height_checked(height_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
+    virtual void do_bump(height_t height) NOEXCEPT;
 
 private:
     code validate(const database::header_link& link,
@@ -56,7 +57,7 @@ private:
     const uint32_t subsidy_interval_blocks_;
 
     // This is protected by strand.
-    size_t last_{};
+    size_t validated_{};
 };
 
 } // namespace node

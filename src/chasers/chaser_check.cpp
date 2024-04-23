@@ -36,6 +36,10 @@ using namespace database;
 using namespace network;
 using namespace std::placeholders;
 
+// TODO: this becomes the block object cache size.
+constexpr auto maximum = max_size_t;
+
+
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
@@ -67,16 +71,11 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 
 // start
 // ----------------------------------------------------------------------------
-
-// TODO: this becomes the block object cache size.
-constexpr auto maximum = max_size_t;
-
 code chaser_check::start() NOEXCEPT
 {
-    floor_ = archive().get_fork();
-    const auto last = ceilinged_add(floor_, maximum);
-    const auto add = get_unassociated(maps_, floor_, last);
-    LOGN("Fork point (" << floor_ << ") unassociated (" << add << ").");
+    requested_ = validated_ = archive().get_fork();
+    const auto add = get_unassociated();
+    LOGN("Fork point (" << validated_ << ") unassociated (" << add << ").");
 
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
@@ -88,17 +87,22 @@ void chaser_check::handle_event(const code&, chase event_,
     {
         case chase::header:
         {
-            POST(do_add_headers, possible_narrow_cast<height_t>(value));
+            POST(do_header, possible_narrow_cast<height_t>(value));
             break;
         }
-        ////case chase::preconfirmable:
-        ////{
-        ////    POST(do_set_floor, possible_narrow_cast<height_t>(value));
-        ////    break;
-        ////}
+        case chase::preconfirmable:
+        {
+            POST(do_preconfirmable, possible_narrow_cast<height_t>(value));
+            break;
+        }
+        case chase::regressed:
+        {
+            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::disorganized:
         {
-            POST(do_purge_headers, possible_narrow_cast<height_t>(value));
+            POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::malleated:
@@ -118,54 +122,77 @@ void chaser_check::handle_event(const code&, chase event_,
     }
 }
 
-// set floor
-// ----------------------------------------------------------------------------
-
-void chaser_check::do_set_floor(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Treats last validation height as the branch_point.
-    do_add_headers((floor_ = height));
-}
-
 // add headers
 // ----------------------------------------------------------------------------
 
-// TODO: create a tracking map with hashes only?
-// Due to a race with header organization more current headers and branch
-// points may be created while preceding headers messages are in transit. That
-// can result  in the branch->top scan finding the same unassociated headers
-// multiple times and therefore causing redundant downloads. These are absorbed
-// by unordered_set only if redundant hashes are applied to the same set. But
-// since the sets are distributed there is no way to preclude these duplicates.
-void chaser_check::do_add_headers(height_t branch_point) NOEXCEPT
+void chaser_check::do_header(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto last = ceilinged_add(floor_, maximum);
-    const auto add = get_unassociated(maps_, branch_point, last);
-    ////LOGN("Branch point (" << branch_point << ") unassociated (" << add << ").");
-
+    const auto add = get_unassociated();
     if (!is_zero(add))
         notify(error::success, chase::download, add);
+}
+
+// set floor
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_preconfirmable(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    validated_ = height;
+    do_header(height);
 }
 
 // purge headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_purge_headers(height_t top) NOEXCEPT
+void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
+{
+    // If branch point is at or above last validated there is nothing to do.
+    if (branch_point < validated_)
+        validated_ = branch_point;
+
+    maps_.clear();
+    notify(error::success, chase::purge, branch_point);
+}
+
+// purge headers
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_disorganized(height_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Candidate chain has been reset (from fork point) to confirmed top.
-    // Since all blocks are confirmed through fork point, and all above are to
-    // be purged, it simply means purge all hashes (reset all). All channels
-    // will get the purge notification before any subsequent download notify.
-    maps_.clear();
+    // Revert to confirmed top as the candidate chain is fully reverted.
+    validated_ = top;
 
-    ////LOGN("Hashes purged (" << count_maps(maps_) << ") remain.");
+    maps_.clear();
     notify(error::success, chase::purge, top);
+}
+
+// re-download malleated block (invalid but malleable)
+// ----------------------------------------------------------------------------
+
+// The archived malleable block was found to be invalid (treat as malleated).
+// The block/header hash cannot be marked unconfirmable due to malleability, so
+// disassociate the block and then add the block hash back to the current set.
+void chaser_check::do_malleated(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    association out{};
+    if (!query.dissasociate(link) ||
+        !query.get_unassociated(out, link))
+    {
+        fault(error::store_integrity);
+        return;
+    }
+
+    maps_.push_back(std::make_shared<associations>(associations{ out }));
+    notify(error::success, chase::download, one);
 }
 
 // get/put hashes
@@ -186,16 +213,16 @@ void chaser_check::put_hashes(const map_ptr& map,
             this, map, std::move(handler)));
 }
 
+////LOGN("Hashes -" << map->size() << " (" << count_maps() << ") remain.");
 void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto map = get_map(maps_);
-
-    ////LOGN("Hashes -" << map->size() << " (" << count_maps(maps_) << ") remain.");
+    const auto map = get_map();
     handler(error::success, map);
 }
 
+////LOGN("Hashes +" << map->size() << " (" << count_maps() << ") remain.");
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
@@ -205,65 +232,49 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     {
         maps_.push_back(map);
         notify(error::success, chase::download, map->size());
-        ////LOGN("Hashes +" << map->size() << " (" << count_maps(maps_) << ") remain.");
     }
 
     handler(error::success);
 }
 
-// Handle malleated (invalid but malleable) block.
-// ----------------------------------------------------------------------------
-
-// The archived malleable block was found to be invalid (treat as malleated).
-// The block/header hash cannot be marked unconfirmable due to malleability, so
-// disassociate the block and then add the block hash back to the current set.
-void chaser_check::do_malleated(header_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    auto& query = archive();
-
-    association out{};
-    if (!query.dissasociate(link) || !query.get_unassociated(out, link))
-    {
-        fault(error::store_integrity);
-        return;
-    }
-
-    maps_.push_back(std::make_shared<associations>(associations{ out }));
-    ////LOGN("Hashes +1 malleated (" << count_maps(maps_) << ") remain.");
-    notify(error::success, chase::download, one);
-}
-
 // utilities
 // ----------------------------------------------------------------------------
 
-map_ptr chaser_check::get_map(maps& table) NOEXCEPT
+map_ptr chaser_check::get_map() NOEXCEPT
 {
-    return table.empty() ? empty_map() : pop_front(table);
+    BC_ASSERT(stranded());
+
+    return maps_.empty() ? empty_map() : pop_front(maps_);
 }
 
-size_t chaser_check::get_unassociated(maps& table, size_t start,
-    size_t last) const NOEXCEPT
+// Get all unassociated block records from start to stop heights.
+// Groups records into table sets by inventory_ maximum set size.
+// Return the total number of records obtained and set hi_block_ to last.
+size_t chaser_check::get_unassociated() NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     const auto& query = archive();
-    size_t add{};
+    const auto stop = ceilinged_add(validated_, maximum);
+    size_t count{};
+
     while (true)
     {
         const auto map = std::make_shared<associations>(
-            query.get_unassociated_above(start, inventory_, last));
+            query.get_unassociated_above(requested_, inventory_, stop));
 
         if (map->empty())
-            return add;
+            return count;
 
-        table.push_back(map);
-        start = map->top().height;
-        add += map->size();
+        maps_.push_back(map);
+        requested_ = map->top().height;
+        count += map->size();
     }
 }
 
-////size_t chaser_check::count_maps(const maps& table) const NOEXCEPT
+////size_t chaser_check::count_maps() const NOEXCEPT
 ////{
-////    return std::accumulate(table.begin(), table.end(), zero,
+////    return std::accumulate(maps_.begin(), maps_.end(), zero,
 ////        [](size_t sum, const map_ptr& map) NOEXCEPT
 ////        {
 ////            return sum + map->size();
