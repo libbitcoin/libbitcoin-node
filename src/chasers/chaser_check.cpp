@@ -252,7 +252,8 @@ map_ptr chaser_check::get_map() NOEXCEPT
 // Return the total number of records obtained and set hi_block_ to last.
 size_t chaser_check::get_unassociated() NOEXCEPT
 {
-    BC_ASSERT(stranded());
+    // Called from start.
+    ////BC_ASSERT(stranded());
 
     const auto& query = archive();
     const auto stop = ceilinged_add(validated_, maximum);
