@@ -57,10 +57,11 @@ protected:
     virtual void handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
+    virtual void do_header(height_t branch_point) NOEXCEPT;
+    virtual void do_preconfirmable(height_t height) NOEXCEPT;
+    virtual void do_regressed(height_t branch_point) NOEXCEPT;
+    virtual void do_disorganized(height_t top) NOEXCEPT;
     virtual void do_malleated(header_t link) NOEXCEPT;
-    virtual void do_set_floor(height_t height) NOEXCEPT;
-    virtual void do_purge_headers(height_t top) NOEXCEPT;
-    virtual void do_add_headers(height_t branch_point) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
@@ -68,17 +69,17 @@ protected:
 private:
     typedef std::deque<map_ptr> maps;
 
-    ////size_t count_maps(const maps& table) const NOEXCEPT;
-    map_ptr get_map(maps& table) NOEXCEPT;
-    size_t get_unassociated(maps& table, size_t start,
-        size_t last) const NOEXCEPT;
+    ////size_t count_maps() const NOEXCEPT;
+    map_ptr get_map() NOEXCEPT;
+    size_t get_unassociated() NOEXCEPT;
 
     // These are thread safe.
     const size_t connections_;
     const size_t inventory_;
 
     // These are protected by strand.
-    size_t floor_{};
+    size_t requested_{};
+    size_t validated_{};
     maps maps_{};
 };
 

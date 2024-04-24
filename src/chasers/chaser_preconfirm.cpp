@@ -44,7 +44,7 @@ chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
 
 code chaser_preconfirm::start() NOEXCEPT
 {
-    last_ = archive().get_fork();
+    validated_ = archive().get_fork();
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -58,12 +58,17 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         case chase::start:
         case chase::bump:
         {
-            POST(do_checked, height_t{});
+            POST(do_bump, height_t{});
             break;
         }
         case chase::checked:
         {
-            POST(do_height_checked, possible_narrow_cast<height_t>(value));
+            POST(do_checked, possible_narrow_cast<height_t>(value));
+            break;
+        }
+        case chase::regressed:
+        {
+            POST(do_regressed, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::disorganized:
@@ -83,32 +88,43 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
     }
 }
 
+void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // If branch point is at or above last validated there is nothing to do.
+    if (branch_point < validated_)
+        validated_ = branch_point;
+
+    do_checked(branch_point);
+}
+
 void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    last_ = top;
+    // Revert to confirmed top as the candidate chain is fully reverted.
+    validated_ = top;
+
     do_checked(top);
 }
 
-void chaser_preconfirm::do_height_checked(height_t height) NOEXCEPT
+void chaser_preconfirm::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (height == add1(last_))
-        do_checked(height);
+    // Candidate block was checked and archived at the given height.
+    if (height == add1(validated_))
+        do_bump(height);
 }
 
-void chaser_preconfirm::do_checked(height_t) NOEXCEPT
+void chaser_preconfirm::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    if (closed())
-        return;
-
-    // Validate checked blocks.
-    for (auto height = add1(last_); !closed(); ++height)
+    // Validate checked blocks starting immediately after last validated.
+    for (auto height = add1(validated_); !closed(); ++height)
     {
         // Precondition (associated).
         // ....................................................................
@@ -127,7 +143,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
                 code == database::error::block_preconfirmable)
             {
                 // Advance.
-                ++last_;
+                ++validated_;
                 notify(code, chase::preconfirmable, height);
                 fire(events::validate_bypassed, height);
                 continue;
@@ -176,7 +192,7 @@ void chaser_preconfirm::do_checked(height_t) NOEXCEPT
         // Advance.
         // ....................................................................
 
-        ++last_;
+        ++validated_;
         notify(error::success, chase::preconfirmable, height);
         fire(events::block_validated, height);
     }

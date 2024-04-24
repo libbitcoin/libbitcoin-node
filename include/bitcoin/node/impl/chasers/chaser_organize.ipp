@@ -249,11 +249,17 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // ........................................................................
 
     const auto top_candidate = state_->height();
-    if (top_candidate < branch_point)
+    if (branch_point > top_candidate)
     {
         handler(error::store_integrity, height);
         fault(error::store_integrity);
         return;
+    }
+
+    if (branch_point < top_candidate)
+    {
+        // Implies that all blocks above branch are weak (restart downloads).
+        notify(error::success, chase::regressed, branch_point);
     }
 
     // Pop down to the branch point.

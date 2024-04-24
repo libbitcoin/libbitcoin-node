@@ -76,6 +76,21 @@ enum class chase
     /// Issued by 'check' and handled by 'block_in_31800'.
     download,
 
+    /// The candidate chain has been reorganized (branched below its top).
+    /// Issued by 'organize' and handled by 'check'.
+    regressed,
+
+    /// Late-stage Invalidity.
+    /// -----------------------------------------------------------------------
+
+    /// unchecked, unpreconfirmable or unconfirmable was handled (height_t).
+    /// Issued by 'organize' and handled by 'preconfirm' (disorgs candidates).
+    disorganized,
+
+    /// stored block was determined to be malleated (invalid) (header_t).
+    /// Issued by 'preconfirm' and 'confirm', handled by 'chaser' (redownload).
+    malleated,
+
     /// Validation.
     /// -----------------------------------------------------------------------
 
@@ -116,17 +131,6 @@ enum class chase
     /// A previously confirmed block has been unconfirmed (header_t).
     /// Issued by 'confirm' and handled by 'transaction'.
     reorganized,
-
-    /// Late-stage Invalidity.
-    /// -----------------------------------------------------------------------
-
-    /// unchecked, unpreconfirmable or unconfirmable was handled (height_t).
-    /// Issued by 'organize' and handled by 'preconfirm' (disorgs candidates).
-    disorganized,
-
-    /// stored block was determined to be malleated (invalid) (header_t).
-    /// Issued by 'preconfirm' and 'confirm', handled by 'chaser' (redownload).
-    malleated,
 
     /// Mining.
     /// -----------------------------------------------------------------------
