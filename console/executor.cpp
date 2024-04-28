@@ -310,7 +310,9 @@ void executor::measure_size() const
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     console(BN_MEASURE_SLABS);
     console(BN_OPERATION_INTERRUPT);
@@ -1570,7 +1572,9 @@ bool executor::do_initchain()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
@@ -2170,7 +2174,9 @@ bool executor::do_run()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -2226,7 +2232,9 @@ bool executor::do_run()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     // Close store (flush to disk).
     logger(BN_DATABASE_STOPPING);

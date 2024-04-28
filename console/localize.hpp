@@ -128,7 +128,9 @@ namespace node {
     "   top conf :%2%:%3%\n" \
     "   top cand :%4%:%5%\n" \
     "   top assoc:%6%\n" \
-    "   not assoc:%7%"
+    "   not assoc:%7%\n" \
+    "   wire conf:%8%\n" \
+    "   wire cand:%9%"
 
 // --read
 #define BN_READ_ROW \
