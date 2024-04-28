@@ -317,7 +317,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    if (query.set_link(*block.transactions_ptr(), link).is_terminal())
+    if (query.set_link(*block.transactions_ptr(), link,
+        block.serialized_size(true)).is_terminal())
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height
             << "] from [" << authority() << "].");
