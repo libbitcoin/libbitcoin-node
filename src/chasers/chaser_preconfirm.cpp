@@ -180,6 +180,8 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         // Commit validation metadata.
         // ....................................................................
 
+        // TODO: set fees on preconfirmable because prevout.value() populated.
+        // TODO: in concurrent model sum fees from each validated_tx record.
         // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
         // Tx validation/states are independent of block validation.
         if (!query.set_txs_connected(link) ||
@@ -198,6 +200,9 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
     }
 }
 
+// TODO: compute neutrino filter with prevouts populated.
+// TODO: neutrino filters are blob per block, must store fk somewhere.
+// TODO: neutrino headers are hash per block, must create in order.
 code chaser_preconfirm::validate(const header_link& link,
     size_t height) const NOEXCEPT
 {

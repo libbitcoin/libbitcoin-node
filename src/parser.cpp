@@ -820,6 +820,23 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the validated_bk table body, defaults to '5'."
     )
 
+    /* address */
+    (
+        "database.address_buckets",
+        value<uint32_t>(&configured.database.address_buckets),
+        "The number of buckets in the address table head, defaults to '100'."
+    )
+    (
+        "database.address_size",
+        value<uint64_t>(&configured.database.address_size),
+        "The minimum allocation of the address table body, defaults to '1'."
+    )
+    (
+        "database.address_rate",
+        value<uint16_t>(&configured.database.address_rate),
+        "The percentage expansion of the address table body, defaults to '5'."
+    )
+
     /* [node] */
     (
         "node.headers_first",

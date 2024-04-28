@@ -282,7 +282,8 @@ void executor::measure_size() const
         query_.spend_size() %
         query_.strong_tx_size() %
         query_.validated_tx_size() %
-        query_.validated_bk_size());
+        query_.validated_bk_size() %
+        query_.address_size());
     console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -290,7 +291,8 @@ void executor::measure_size() const
         query_.candidate_records() %
         query_.confirmed_records() %
         query_.spend_records() %
-        query_.strong_tx_records());
+        query_.strong_tx_records() %
+        query_.address_records());
     console(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
@@ -299,7 +301,8 @@ void executor::measure_size() const
         query_.spend_buckets() %
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
-        query_.validated_bk_buckets());
+        query_.validated_bk_buckets() %
+        query_.address_buckets());
     console(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -307,7 +310,9 @@ void executor::measure_size() const
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     console(BN_MEASURE_SLABS);
     console(BN_OPERATION_INTERRUPT);
@@ -348,6 +353,8 @@ void executor::measure_size() const
         query_.validated_tx_buckets();
     const auto validated_bk = (1.0 * query_.header_records()) /
         query_.validated_bk_buckets();
+    const auto address = (1.0 * query_.address_records()) /
+        query_.address_buckets();
     console(format(BN_MEASURE_COLLISION_RATES) %
         query_.header_buckets() % header %
         query_.txs_buckets() % txs %
@@ -356,7 +363,8 @@ void executor::measure_size() const
         query_.spend_buckets() % spend %
         query_.strong_tx_buckets() % strong_tx %
         query_.validated_tx_buckets() % validated_tx %
-        query_.validated_bk_buckets() % validated_bk);
+        query_.validated_bk_buckets() % validated_bk %
+        query_.address_buckets() % address);
 }
 
 // hashmap bucket fill rates.
@@ -1536,7 +1544,8 @@ bool executor::do_initchain()
         query_.spend_size() %
         query_.strong_tx_size() %
         query_.validated_tx_size() %
-        query_.validated_bk_size());
+        query_.validated_bk_size() %
+        query_.address_size());
     console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -1544,7 +1553,8 @@ bool executor::do_initchain()
         query_.candidate_records() %
         query_.confirmed_records() %
         query_.spend_records() %
-        query_.strong_tx_records());
+        query_.strong_tx_records() %
+        query_.address_records());
     console(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
@@ -1553,7 +1563,8 @@ bool executor::do_initchain()
         query_.spend_buckets() %
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
-        query_.validated_bk_buckets());
+        query_.validated_bk_buckets() %
+        query_.address_buckets());
     console(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -1561,7 +1572,9 @@ bool executor::do_initchain()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
@@ -2128,7 +2141,8 @@ bool executor::do_run()
         query_.spend_buckets() %
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
-        query_.validated_bk_buckets());
+        query_.validated_bk_buckets() %
+        query_.address_buckets());
     logger(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
@@ -2142,7 +2156,8 @@ bool executor::do_run()
         query_.spend_size() %
         query_.strong_tx_size() %
         query_.validated_tx_size() %
-        query_.validated_bk_size());
+        query_.validated_bk_size() %
+        query_.address_size());
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -2150,7 +2165,8 @@ bool executor::do_run()
         query_.candidate_records() %
         query_.confirmed_records() %
         query_.spend_records() %
-        query_.strong_tx_records());
+        query_.strong_tx_records() %
+        query_.address_records());
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -2158,7 +2174,9 @@ bool executor::do_run()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -2196,7 +2214,8 @@ bool executor::do_run()
         query_.spend_size() %
         query_.strong_tx_size() %
         query_.validated_tx_size() %
-        query_.validated_bk_size());
+        query_.validated_bk_size() %
+        query_.address_size());
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -2204,7 +2223,8 @@ bool executor::do_run()
         query_.candidate_records() %
         query_.confirmed_records() %
         query_.spend_records() %
-        query_.strong_tx_records());
+        query_.strong_tx_records() %
+        query_.address_records());
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -2212,7 +2232,9 @@ bool executor::do_run()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count());
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
     // Close store (flush to disk).
     logger(BN_DATABASE_STOPPING);
