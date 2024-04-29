@@ -312,6 +312,7 @@ void executor::measure_size() const
         query_.get_unassociated_count() %
         query_.get_confirmed_size() %
         query_.get_candidate_size());
+    // This can take a few seconds on cold iron.
     console(format(BN_MEASURE_COLLISION_RATES) %
         ((1.0 * query_.header_records()) / query_.header_buckets()) %
         ((1.0 * query_.header_records()) / query_.txs_buckets()) %
