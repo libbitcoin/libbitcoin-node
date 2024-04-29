@@ -2023,7 +2023,7 @@ void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        if (to_bool(metadata_.configured.node.interval) &&
+        if (to_bool(one /*metadata_.configured.node.interval*/) &&
             is_zero(node_->channel_count() %
                 metadata_.configured.node.interval))
         {
@@ -2038,16 +2038,16 @@ void executor::subscribe_connect()
                 << std::endl;
         }
 
-        if (to_bool(metadata_.configured.node.target) &&
-            (node_->channel_count() >= metadata_.configured.node.target))
-        {
-            log_.write(levels::application) << "Stopping at channel target ("
-                << metadata_.configured.node.target << ")." << std::endl;
-
-            // Signal stop (simulates <ctrl-c>).
-            stop(error::success);
-            return false;
-        }
+        ////if (to_bool(metadata_.configured.node.target) &&
+        ////    (node_->channel_count() >= metadata_.configured.node.target))
+        ////{
+        ////    log_.write(levels::application) << "Stopping at channel target ("
+        ////        << metadata_.configured.node.target << ")." << std::endl;
+        ////
+        ////    // Signal stop (simulates <ctrl-c>).
+        ////    stop(error::success);
+        ////    return false;
+        ////}
 
         return true;
     },
@@ -2188,8 +2188,8 @@ bool executor::do_run()
     subscribe_connect();
     subscribe_close();
 
-    logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
-    logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
+    ////logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
+    ////logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
 
     // Start network.
     logger(BN_NETWORK_STARTING);
