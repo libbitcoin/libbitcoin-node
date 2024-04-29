@@ -132,6 +132,12 @@ void session_outbound::split(channel_t self) NOEXCEPT
 void session_outbound::performance(uint64_t channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
 {
+    if (stopped())
+    {
+        handler(network::error::service_stopped);
+        return;
+    }
+
     boost::asio::post(strand(),
         BIND(do_performance, channel, speed, handler));
 }

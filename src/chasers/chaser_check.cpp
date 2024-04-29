@@ -83,6 +83,9 @@ code chaser_check::start() NOEXCEPT
 void chaser_check::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
+    if (closed())
+        return;
+
     switch (event_)
     {
         case chase::header:
@@ -128,6 +131,9 @@ void chaser_check::handle_event(const code&, chase event_,
 void chaser_check::do_header(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (closed())
+        return;
 
     const auto add = get_unassociated();
     if (!is_zero(add))
@@ -200,6 +206,9 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
 
 void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
 {
+    if (closed())
+        return;
+
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_get_hashes,
             this, std::move(handler)));
@@ -208,6 +217,9 @@ void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
 void chaser_check::put_hashes(const map_ptr& map,
     result_handler&& handler) NOEXCEPT
 {
+    if (closed())
+        return;
+
     boost::asio::post(strand(),
         std::bind(&chaser_check::do_put_hashes,
             this, map, std::move(handler)));
@@ -218,6 +230,9 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    if (closed())
+        return;
+
     const auto map = get_map();
     handler(error::success, map);
 }
@@ -227,6 +242,9 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (closed())
+        return;
 
     if (!map->empty())
     {

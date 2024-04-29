@@ -50,6 +50,9 @@ code chaser_confirm::start() NOEXCEPT
 void chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
+    if (closed())
+        return;
+
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {

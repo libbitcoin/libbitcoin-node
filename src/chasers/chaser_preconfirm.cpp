@@ -51,6 +51,9 @@ code chaser_preconfirm::start() NOEXCEPT
 void chaser_preconfirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
+    if (closed())
+        return;
+
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
     switch (event_)

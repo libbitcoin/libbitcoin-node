@@ -64,7 +64,10 @@ TEMPLATE
 void CLASS::organize(const typename Block::cptr& block_ptr,
     organize_handler&& handler) NOEXCEPT
 {
-    POST(do_organize, block_ptr, std::move(handler));
+    if (!closed())
+    {
+        POST(do_organize, block_ptr, std::move(handler));
+    }
 }
 
 // Properties
@@ -88,6 +91,9 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 TEMPLATE
 void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
 {
+    if (closed())
+        return;
+
     using namespace system;
     switch (event_)
     {

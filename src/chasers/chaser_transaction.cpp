@@ -53,7 +53,9 @@ code chaser_transaction::start() NOEXCEPT
 void chaser_transaction::handle_event(const code&, chase event_,
     event_link) NOEXCEPT
 {
-    using namespace system;
+    if (closed())
+        return;
+
     switch (event_)
     {
         case chase::stop:

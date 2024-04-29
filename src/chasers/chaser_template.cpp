@@ -52,12 +52,15 @@ code chaser_template::start() NOEXCEPT
 void chaser_template::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
+    if (closed())
+        return;
+
     // TODO: also handle confirmed/unconfirmed.
-    using namespace system;
     switch (event_)
     {
         case chase::transaction:
         {
+            using namespace system;
             POST(do_transaction, possible_narrow_cast<transaction_t>(value));
             break;
         }
