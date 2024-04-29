@@ -101,16 +101,16 @@ namespace node {
     "   output   :%2%\n" \
     "   seconds  :%3%"
 #define BN_MEASURE_COLLISION_RATES \
-    "Head buckets...\n" \
-    "   header   :%1% (%2%)\n" \
-    "   txs      :%3% (%4%)\n" \
-    "   tx       :%5% (%6%)\n" \
-    "   point    :%7% (%8%)\n" \
-    "   spend    :%9% (%10%)\n" \
-    "   strong_tx:%11% (%12%)\n" \
-    "   valid_tx :%13% (%14%)\n" \
-    "   valid_bk :%15% (%16%)\n" \
-    "   address  :%17% (%18%)"
+    "Collision rates...\n" \
+    "   header   :%1%\n" \
+    "   txs      :%2%\n" \
+    "   tx       :%3%\n" \
+    "   point    :%4%\n" \
+    "   spend    :%5%\n" \
+    "   strong_tx:%6%\n" \
+    "   valid_tx :%7%\n" \
+    "   valid_bk :%8%\n" \
+    "   address  :%9%"
 #define BN_MEASURE_BUCKETS \
     "Head buckets...\n" \
     "   header   :%1%\n" \

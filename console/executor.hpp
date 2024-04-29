@@ -74,6 +74,7 @@ private:
     void subscribe_log(std::ostream& sink);
     void subscribe_events(std::ostream& sink);
     void subscribe_capture();
+    void subscribe_events();
     void subscribe_connect();
     void subscribe_close();
 
