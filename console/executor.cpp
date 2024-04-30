@@ -2023,9 +2023,9 @@ void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        if (to_bool(one /*metadata_.configured.node.interval*/) &&
-            is_zero(node_->channel_count() %
-                metadata_.configured.node.interval))
+        ////if (to_bool(metadata_.configured.node.interval) &&
+        ////    is_zero(node_->channel_count() %
+        ////        metadata_.configured.node.interval))
         {
             log_.write(levels::application) <<
                 "{in:" << node_->inbound_channel_count() << "}"
