@@ -27,7 +27,6 @@
 #include <iostream>
 #include <map>
 #include <mutex>
-#include <unordered_map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
@@ -694,25 +693,320 @@ void executor::scan_collisions() const
 // arbitrary testing (const).
 void executor::read_test() const
 {
+    console("No read test implemented.");
+}
+
+#if defined(UNDEFINED)
+
+void executor::read_test() const
+{
     // Binance wallet address with 1,380,169 transaction count.
     // blockstream.info/address/bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h
     const auto data = base16_array("0014dc6bf86354105de2fcd9868a2b0376d6731cb92f");
     const chain::script output_script{ data, false };
     const auto mnemonic = output_script.to_string(chain::flags::all_rules);
     console(format("Getting payments to {%1%}.") % mnemonic);
-
+    
+    const auto start = fine_clock::now();
     database::output_links outputs{};
     if (!query_.to_address_outputs(outputs, output_script.hash()))
-    {
-        console(format("Error finding addresses for {%1%}.") % mnemonic);
         return;
-    }
 
-    console(format("Found [%1%] outputs with {%2%}.") % outputs.size() %
-        mnemonic);
+    const auto end = fine_clock::now();
+    const auto span = (end - start).count() / 1'000'000;
+    
+    console(format("Found [%1%] outputs of {%2%} in [%3%] ms.") %
+        outputs.size() % mnemonic % span);
 }
 
-#if defined(UNDEFINED)
+void executor::read_test() const
+{
+    constexpr auto start_tx = 15'000_u32;
+    constexpr auto ns_to_ms = 1'000'000_i64;
+    constexpr auto target_count = 3000_size;
+
+    // Set ensures unique addresses.
+    std::set<hash_digest> keys{};
+    auto tx = start_tx;
+
+    ////console(format("Getting first [%1%] output address hashes.") %
+    ////    target_count);
+
+    auto start = fine_clock::now();
+    while (!cancel_ && keys.size() < target_count)
+    {
+        const auto outputs = query_.get_outputs(tx++);
+        if (outputs->empty())
+            return;
+
+        for (const auto& put: *outputs)
+        {
+            keys.emplace(put->script().hash());
+            if (cancel_ || keys.size() == target_count)
+                break;
+        }
+    }
+    auto end = fine_clock::now();
+
+    console(format("Got first [%1%] unique addresses above tx [%2%] in [%3%] ms.") %
+        keys.size() % start_tx % ((end - start).count() / ns_to_ms));
+
+    struct out
+    {
+        // Address hash, output link, first spender link.
+        hash_digest address;
+        uint64_t output_fk;
+        uint64_t spend_fk;
+        uint64_t input_fk;
+
+        // Output's tx link, hash, and block position.
+        uint64_t tx_fk;
+        hash_digest tx_hash;
+        uint16_t tx_position;
+
+        // Output tx's block link, hash, and height.
+        uint32_t bk_fk;
+        hash_digest bk_hash;
+        uint32_t bk_height;
+
+        // Spender's tx link, hash, and block position.
+        uint64_t in_tx_fk;
+        hash_digest in_tx_hash;
+        uint16_t in_tx_position;
+
+        // Spender tx's block link, hash, and height.
+        uint32_t in_bk_fk;
+        hash_digest in_bk_hash;
+        uint32_t in_bk_height;
+
+        // Spender (first input) and output.
+        chain::output::cptr output{};
+        chain::input::cptr input{};
+    };
+
+    std::vector<out> outs{};
+    outs.reserve(target_count);
+    using namespace database;
+
+     start = fine_clock::now();
+    for (auto& key: keys)
+    {
+        auto address_it = store_.address.it(key);
+        if (cancel_ || address_it.self().is_terminal())
+            return;
+
+        do
+        {
+            table::address::record address{};
+            if (cancel_ || !store_.address.get(address_it.self(), address))
+                return;
+
+            const auto out_fk = address.output_fk;
+            table::output::get_parent output{};
+            if (!store_.output.get(out_fk, output))
+                return;
+
+            const auto tx_fk = output.parent_fk;
+            const auto block_fk = query_.to_block(tx_fk);
+
+            // Output tx block has height.
+            database::height_link bk_height{};
+            table::header::get_height bk_header{};
+            if (!block_fk.is_terminal())
+                if (!store_.header.get(block_fk, bk_header))
+                    return;
+                else
+                    bk_height = bk_header.height;
+
+            // The block is confirmed by height.
+            table::height::record height_record{};
+            const auto confirmed = store_.confirmed.get(bk_height,
+                height_record) && (height_record.header_fk == block_fk);
+
+            // unconfirmed tx: max height/pos, null hash, terminal/zero links.
+            if (!confirmed)
+            {
+                outs.emplace_back(
+                    key,
+                    out_fk,
+                    max_uint64,  // spend_fk
+                    max_uint64,  // input_fk
+
+                    tx_fk,
+                    null_hash,
+                    max_uint16,  // position
+
+                    block_fk,
+                    null_hash,
+                    max_uint32,  // height
+
+                    // in_tx
+                    max_uint64,
+                    null_hash,
+                    max_uint16,  // position
+
+                    // in_bk_tx
+                    max_uint32,
+                    null_hash,
+                    max_uint32,  // height
+
+                    nullptr,
+                    nullptr);
+                continue;
+            }
+
+            // Get confirmed output tx block position.
+            auto out_position = max_uint16;
+            table::txs::get_position txs{ {}, tx_fk };
+            if (!store_.txs.get(query_.to_txs_link(block_fk), txs))
+                return;
+            else
+                out_position = possible_narrow_cast<uint16_t>(txs.position);
+
+            // Get first spender only (may or may not be confirmed).
+            const auto spenders = query_.to_spenders(out_fk);
+            spend_link sp_fk{};
+            if (!spenders.empty())
+                sp_fk = spenders.front();
+
+            // Get spender input, tx, position, block, height.
+            auto in_position = max_uint16;
+            input_link in_fk{};
+            tx_link in_tx_fk{};
+            header_link in_bk_fk{};
+            height_link in_bk_height{};
+
+            if (!sp_fk.is_terminal())
+            {
+                table::spend::record spend{};
+                if (!store_.spend.get(sp_fk, spend))
+                {
+                    return;
+                }
+                else
+                {
+                    in_fk = spend.input_fk;
+                    in_tx_fk = spend.parent_fk;
+                }
+
+                // Get spender tx block.
+                in_bk_fk = query_.to_block(in_tx_fk);
+
+                // Get in_tx position in the confirmed block.
+                table::txs::get_position in_txs{ {}, in_tx_fk };
+                if (!in_bk_fk.is_terminal())
+                    if (!store_.txs.get(query_.to_txs_link(in_bk_fk), in_txs))
+                        return;
+                    else
+                        in_position = possible_narrow_cast<uint16_t>(in_txs.position);
+
+                // Get spender input tx block height.
+                table::header::get_height in_bk_header{};
+                if (!in_bk_fk.is_terminal())
+                    if (!store_.header.get(in_bk_fk, in_bk_header))
+                        return;
+                    else
+                        in_bk_height = in_bk_header.height;
+            }
+
+            const auto in = query_.get_input(sp_fk);
+            const auto out = query_.get_output(out_fk);
+
+            // confirmed tx has block height and tx position.
+            outs.emplace_back(
+                key,
+                out_fk,
+                sp_fk,
+                in_fk,
+
+                tx_fk,
+                query_.get_tx_key(tx_fk),
+                out_position,
+
+                block_fk,
+                query_.get_header_key(block_fk),
+                bk_height,
+
+                in_tx_fk,
+                query_.get_tx_key(in_tx_fk),
+                in_position,
+
+                in_bk_fk,
+                query_.get_header_key(in_bk_fk),
+                in_bk_height,
+                
+                out,
+                in);
+        }
+        while (address_it.advance());
+    }
+    end = fine_clock::now();
+
+    console(format("Got all [%1%] payments to [%2%] addresses in [%3%] ms.") %
+        outs.size() % keys.size() % ((end - start).count() / ns_to_ms));
+
+    console(
+        "output_script_hash, "
+        "output_fk, "
+        "spend_fk, "
+        "input_fk, "
+
+        "ouput_tx_fk, "
+        "ouput_tx_hash, "
+        "ouput_tx_pos, "
+
+        "ouput_bk_fk, "
+        "ouput_bk_hash, "
+        "ouput_bk_height, "
+
+        "input_tx_fk, "
+        "input_tx_hash, "
+        "input_tx_pos, "
+
+        "input_bk_fk, "
+        "input_bk_hash, "
+        "sinput_bk_height, "
+
+        "output_script "
+        "input_script, "
+    );
+
+    for (const auto& row: outs)
+    {
+        if (cancel_) break;
+
+        const auto input = !row.input ? "{unspent}" :
+            row.input->script().to_string(chain::flags::all_rules);
+
+        const auto output = !row.output ? "{error}" :
+            row.output->script().to_string(chain::flags::all_rules);
+
+        console(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
+            encode_hash(row.address) %
+            row.output_fk %
+            row.spend_fk%
+            row.input_fk%
+
+            row.tx_fk %
+            encode_hash(row.tx_hash) %
+            row.tx_position %
+
+            row.bk_fk %
+            encode_hash(row.bk_hash) %
+            row.bk_height %
+
+            row.in_tx_fk %
+            encode_hash(row.in_tx_hash) %
+            row.in_tx_position %
+
+            row.in_bk_fk %
+            encode_hash(row.in_bk_hash) %
+            row.in_bk_height %
+        
+            output%
+            input);
+    }
+}
 
 // This was caused by concurrent redundant downloads at tail following restart.
 // The earlier transactions were marked as confirmed and during validation the
