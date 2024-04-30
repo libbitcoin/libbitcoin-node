@@ -116,11 +116,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.address_size = 29'390'853'398;
     configured.database.address_rate = 5;
 
-    configured.database.buffer_buckets = 1;
+    configured.database.buffer_buckets = 100;
     configured.database.buffer_size = 1;
     configured.database.buffer_rate = 5;
 
-    configured.database.neutrino_buckets = 1;
+    configured.database.neutrino_buckets = 100;
     configured.database.neutrino_size = 1;
     configured.database.neutrino_rate = 5;
 
@@ -824,7 +824,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.address_buckets",
         value<uint32_t>(&configured.database.address_buckets),
-        "The number of buckets in the address table head, defaults to '1459791875'."
+        "The number of buckets in the address table head, defaults to '1459791875' (1 disables)."
     )
     (
         "database.address_size",
