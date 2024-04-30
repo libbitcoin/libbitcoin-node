@@ -824,7 +824,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.address_buckets",
         value<uint32_t>(&configured.database.address_buckets),
-        "The number of buckets in the address table head, defaults to '1459791875' (1 disables)."
+        "The number of buckets in the address table head, defaults to '1459791875' (0 disables)."
     )
     (
         "database.address_size",

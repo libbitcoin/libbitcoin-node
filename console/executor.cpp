@@ -694,7 +694,22 @@ void executor::scan_collisions() const
 // arbitrary testing (const).
 void executor::read_test() const
 {
-    console("No read test implemented.");
+    // Binance wallet address with 1,380,169 transaction count.
+    // blockstream.info/address/bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h
+    const auto data = base16_array("0014dc6bf86354105de2fcd9868a2b0376d6731cb92f");
+    const chain::script output_script{ data, false };
+    const auto mnemonic = output_script.to_string(chain::flags::all_rules);
+    console(format("Getting payments to {%1%}.") % mnemonic);
+
+    database::output_links outputs{};
+    if (!query_.to_address_outputs(outputs, output_script.hash()))
+    {
+        console(format("Error finding addresses for {%1%}.") % mnemonic);
+        return;
+    }
+
+    console(format("Found [%1%] outputs with {%2%}.") % outputs.size() %
+        mnemonic);
 }
 
 #if defined(UNDEFINED)
