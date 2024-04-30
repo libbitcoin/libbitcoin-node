@@ -48,7 +48,8 @@ void protocol_performer::handle_performance_timer(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (ec == network::error::operation_canceled)
+    if (ec == network::error::operation_canceled ||
+        ec == network::error::service_stopped)
         return;
 
     if (stopped())
@@ -113,6 +114,9 @@ void protocol_performer::send_performance(uint64_t rate) NOEXCEPT
 
 void protocol_performer::handle_send_performance(const code& ec) NOEXCEPT
 {
+    if (stopped())
+        return;
+
     POST(do_handle_performance, ec);
 }
 

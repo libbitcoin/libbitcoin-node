@@ -302,16 +302,7 @@ void executor::measure_size() const
         query_.validated_tx_buckets() %
         query_.validated_bk_buckets() %
         query_.address_buckets());
-    console(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        query_.get_unassociated_count() %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    // This one can take a few seconds on cold iron.
     console(format(BN_MEASURE_COLLISION_RATES) %
         ((1.0 * query_.header_records()) / query_.header_buckets()) %
         ((1.0 * query_.header_records()) / query_.txs_buckets()) %
@@ -322,6 +313,16 @@ void executor::measure_size() const
         ((1.0 * query_.tx_records()) / query_.validated_tx_buckets()) %
         ((1.0 * query_.header_records()) / query_.validated_bk_buckets()) %
         ((1.0 * query_.address_records()) / query_.address_buckets()));
+    console(format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
+        query_.get_top_associated() %
+        query_.get_unassociated_count() %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
 
 #if defined(UNDEFINED)
     console(BN_MEASURE_SLABS);
@@ -2022,9 +2023,9 @@ void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        if (to_bool(metadata_.configured.node.interval) &&
-            is_zero(node_->channel_count() %
-                metadata_.configured.node.interval))
+        ////if (to_bool(metadata_.configured.node.interval) &&
+        ////    is_zero(node_->channel_count() %
+        ////        metadata_.configured.node.interval))
         {
             log_.write(levels::application) <<
                 "{in:" << node_->inbound_channel_count() << "}"
@@ -2037,16 +2038,16 @@ void executor::subscribe_connect()
                 << std::endl;
         }
 
-        if (to_bool(metadata_.configured.node.target) &&
-            (node_->channel_count() >= metadata_.configured.node.target))
-        {
-            log_.write(levels::application) << "Stopping at channel target ("
-                << metadata_.configured.node.target << ")." << std::endl;
-
-            // Signal stop (simulates <ctrl-c>).
-            stop(error::success);
-            return false;
-        }
+        ////if (to_bool(metadata_.configured.node.target) &&
+        ////    (node_->channel_count() >= metadata_.configured.node.target))
+        ////{
+        ////    log_.write(levels::application) << "Stopping at channel target ("
+        ////        << metadata_.configured.node.target << ")." << std::endl;
+        ////
+        ////    // Signal stop (simulates <ctrl-c>).
+        ////    stop(error::success);
+        ////    return false;
+        ////}
 
         return true;
     },
@@ -2187,8 +2188,8 @@ bool executor::do_run()
     subscribe_connect();
     subscribe_close();
 
-    logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
-    logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
+    ////logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
+    ////logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
 
     // Start network.
     logger(BN_NETWORK_STARTING);

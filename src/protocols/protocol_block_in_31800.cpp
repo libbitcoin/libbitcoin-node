@@ -83,6 +83,9 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
 void protocol_block_in_31800::handle_event(const code&,
     chase event_, event_link value) NOEXCEPT
 {
+    if (!stopped())
+        return;
+
     switch (event_)
     {
         case chase::pause:
