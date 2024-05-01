@@ -170,21 +170,21 @@ const std::unordered_map<database::table_t, std::string> executor::tables_
     { database::table_t::strong_tx_head, "strong_tx_head" },
     { database::table_t::strong_tx_body, "strong_tx_body" },
 
-    { database::table_t::bootstrap_table, "bootstrap_table" },
-    { database::table_t::bootstrap_head, "bootstrap_head" },
-    { database::table_t::bootstrap_body, "bootstrap_body" },
-    { database::table_t::buffer_table, "buffer_table" },
-    { database::table_t::buffer_head, "buffer_head" },
-    { database::table_t::buffer_body, "buffer_body" },
-    { database::table_t::neutrino_table, "neutrino_table" },
-    { database::table_t::neutrino_head, "neutrino_head" },
-    { database::table_t::neutrino_body, "neutrino_body" },
     { database::table_t::validated_bk_table, "validated_bk_table" },
     { database::table_t::validated_bk_head, "validated_bk_head" },
     { database::table_t::validated_bk_body, "validated_bk_body" },
     { database::table_t::validated_tx_table, "validated_tx_table" },
     { database::table_t::validated_tx_head, "validated_tx_head" },
-    { database::table_t::validated_tx_body, "validated_tx_body" }
+    { database::table_t::validated_tx_body, "validated_tx_body" },
+    { database::table_t::neutrino_table, "neutrino_table" },
+    { database::table_t::neutrino_head, "neutrino_head" },
+    { database::table_t::neutrino_body, "neutrino_body" }
+    ////{ database::table_t::bootstrap_table, "bootstrap_table" },
+    ////{ database::table_t::bootstrap_head, "bootstrap_head" },
+    ////{ database::table_t::bootstrap_body, "bootstrap_body" },
+    ////{ database::table_t::buffer_table, "buffer_table" },
+    ////{ database::table_t::buffer_head, "buffer_head" },
+    ////{ database::table_t::buffer_body, "buffer_body" }
 };
 
 // non-const member static (global for blocking interrupt handling).
