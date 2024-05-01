@@ -88,6 +88,8 @@ private:
     static const std::string name_;
     static const std::string close_;
     static const std::string backup_;
+    static const std::string measure_;
+    static const std::string test_;
     static const std::unordered_map<uint8_t, bool> defined_;
     static const std::unordered_map<uint8_t, std::string> display_;
     static const std::unordered_map<std::string, uint8_t> keys_;

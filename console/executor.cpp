@@ -44,6 +44,8 @@ using namespace std::placeholders;
 const std::string executor::name_{ "bn" };
 const std::string executor::close_{ "c" };
 const std::string executor::backup_{ "b" };
+const std::string executor::measure_{ "m" };
+const std::string executor::test_{ "t" };
 const std::unordered_map<uint8_t, bool> executor::defined_
 {
     { levels::application, true },
@@ -281,7 +283,8 @@ void executor::measure_size() const
         query_.strong_tx_size() %
         query_.validated_tx_size() %
         query_.validated_bk_size() %
-        query_.address_size());
+        query_.address_size() %
+        query_.neutrino_size());
     console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -300,7 +303,8 @@ void executor::measure_size() const
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
         query_.validated_bk_buckets() %
-        query_.address_buckets());
+        query_.address_buckets() %
+        query_.neutrino_buckets());
     // This one can take a few seconds on cold iron.
     console(format(BN_MEASURE_COLLISION_RATES) %
         ((1.0 * query_.header_records()) / query_.header_buckets()) %
@@ -311,7 +315,8 @@ void executor::measure_size() const
         ((1.0 * query_.strong_tx_records()) / query_.strong_tx_buckets()) %
         ((1.0 * query_.tx_records()) / query_.validated_tx_buckets()) %
         ((1.0 * query_.header_records()) / query_.validated_bk_buckets()) %
-        ((1.0 * query_.address_records()) / query_.address_buckets()));
+        ((1.0 * query_.address_records()) / query_.address_buckets()) %
+        ((1.0 * query_.header_records()) / query_.neutrino_buckets()));
     console(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -690,34 +695,11 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-// arbitrary testing (const).
-void executor::read_test() const
-{
-    console("No read test implemented.");
-}
-
-#if defined(UNDEFINED)
-
-void executor::read_test() const
-{
-    // Binance wallet address with 1,380,169 transaction count.
-    // blockstream.info/address/bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h
-    const auto data = base16_array("0014dc6bf86354105de2fcd9868a2b0376d6731cb92f");
-    const chain::script output_script{ data, false };
-    const auto mnemonic = output_script.to_string(chain::flags::all_rules);
-    console(format("Getting payments to {%1%}.") % mnemonic);
-    
-    const auto start = fine_clock::now();
-    database::output_links outputs{};
-    if (!query_.to_address_outputs(outputs, output_script.hash()))
-        return;
-
-    const auto end = fine_clock::now();
-    const auto span = (end - start).count() / 1'000'000;
-    
-    console(format("Found [%1%] outputs of {%2%} in [%3%] ms.") %
-        outputs.size() % mnemonic % span);
-}
+////// arbitrary testing (const).
+////void executor::read_test() const
+////{
+////    console("No read test implemented.");
+////}
 
 void executor::read_test() const
 {
@@ -729,8 +711,8 @@ void executor::read_test() const
     std::set<hash_digest> keys{};
     auto tx = start_tx;
 
-    ////console(format("Getting first [%1%] output address hashes.") %
-    ////    target_count);
+    console(format("Getting first [%1%] output address hashes.") %
+        target_count);
 
     auto start = fine_clock::now();
     while (!cancel_ && keys.size() < target_count)
@@ -788,7 +770,7 @@ void executor::read_test() const
     outs.reserve(target_count);
     using namespace database;
 
-     start = fine_clock::now();
+    start = fine_clock::now();
     for (auto& key: keys)
     {
         auto address_it = store_.address.it(key);
@@ -945,67 +927,90 @@ void executor::read_test() const
     console(format("Got all [%1%] payments to [%2%] addresses in [%3%] ms.") %
         outs.size() % keys.size() % ((end - start).count() / ns_to_ms));
 
-    console(
-        "output_script_hash, "
-        "output_fk, "
-        "spend_fk, "
-        "input_fk, "
+    ////console(
+    ////    "output_script_hash, "
+    ////    "output_fk, "
+    ////    "spend_fk, "
+    ////    "input_fk, "
+    ////
+    ////    "ouput_tx_fk, "
+    ////    "ouput_tx_hash, "
+    ////    "ouput_tx_pos, "
+    ////
+    ////    "ouput_bk_fk, "
+    ////    "ouput_bk_hash, "
+    ////    "ouput_bk_height, "
+    ////
+    ////    "input_tx_fk, "
+    ////    "input_tx_hash, "
+    ////    "input_tx_pos, "
+    ////
+    ////    "input_bk_fk, "
+    ////    "input_bk_hash, "
+    ////    "sinput_bk_height, "
+    ////
+    ////    "output_script "
+    ////    "input_script, "
+    ////);
+    ////
+    ////for (const auto& row: outs)
+    ////{
+    ////    if (cancel_) break;
+    ////
+    ////    const auto input = !row.input ? "{unspent}" :
+    ////        row.input->script().to_string(chain::flags::all_rules);
+    ////
+    ////    const auto output = !row.output ? "{error}" :
+    ////        row.output->script().to_string(chain::flags::all_rules);
+    ////
+    ////    console(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
+    ////        encode_hash(row.address) %
+    ////        row.output_fk %
+    ////        row.spend_fk%
+    ////        row.input_fk%
+    ////
+    ////        row.tx_fk %
+    ////        encode_hash(row.tx_hash) %
+    ////        row.tx_position %
+    ////
+    ////        row.bk_fk %
+    ////        encode_hash(row.bk_hash) %
+    ////        row.bk_height %
+    ////
+    ////        row.in_tx_fk %
+    ////        encode_hash(row.in_tx_hash) %
+    ////        row.in_tx_position %
+    ////
+    ////        row.in_bk_fk %
+    ////        encode_hash(row.in_bk_hash) %
+    ////        row.in_bk_height %
+    ////    
+    ////        output%
+    ////        input);
+    ////}
+}
 
-        "ouput_tx_fk, "
-        "ouput_tx_hash, "
-        "ouput_tx_pos, "
+#if defined(UNDEFINED)
 
-        "ouput_bk_fk, "
-        "ouput_bk_hash, "
-        "ouput_bk_height, "
+void executor::read_test() const
+{
+    // Binance wallet address with 1,380,169 transaction count.
+    // blockstream.info/address/bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h
+    const auto data = base16_array("0014dc6bf86354105de2fcd9868a2b0376d6731cb92f");
+    const chain::script output_script{ data, false };
+    const auto mnemonic = output_script.to_string(chain::flags::all_rules);
+    console(format("Getting payments to {%1%}.") % mnemonic);
 
-        "input_tx_fk, "
-        "input_tx_hash, "
-        "input_tx_pos, "
+    const auto start = fine_clock::now();
+    database::output_links outputs{};
+    if (!query_.to_address_outputs(outputs, output_script.hash()))
+        return;
 
-        "input_bk_fk, "
-        "input_bk_hash, "
-        "sinput_bk_height, "
+    const auto end = fine_clock::now();
+    const auto span = (end - start).count() / 1'000'000;
 
-        "output_script "
-        "input_script, "
-    );
-
-    for (const auto& row: outs)
-    {
-        if (cancel_) break;
-
-        const auto input = !row.input ? "{unspent}" :
-            row.input->script().to_string(chain::flags::all_rules);
-
-        const auto output = !row.output ? "{error}" :
-            row.output->script().to_string(chain::flags::all_rules);
-
-        console(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
-            encode_hash(row.address) %
-            row.output_fk %
-            row.spend_fk%
-            row.input_fk%
-
-            row.tx_fk %
-            encode_hash(row.tx_hash) %
-            row.tx_position %
-
-            row.bk_fk %
-            encode_hash(row.bk_hash) %
-            row.bk_height %
-
-            row.in_tx_fk %
-            encode_hash(row.in_tx_hash) %
-            row.in_tx_position %
-
-            row.in_bk_fk %
-            encode_hash(row.in_bk_hash) %
-            row.in_bk_height %
-        
-            output%
-            input);
-    }
+    console(format("Found [%1%] outputs of {%2%} in [%3%] ms.") %
+        outputs.size() % mnemonic % span);
 }
 
 // This was caused by concurrent redundant downloads at tail following restart.
@@ -1845,7 +1850,8 @@ bool executor::do_initchain()
         query_.strong_tx_size() %
         query_.validated_tx_size() %
         query_.validated_bk_size() %
-        query_.address_size());
+        query_.address_size() %
+        query_.neutrino_buckets());
     console(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -1864,7 +1870,8 @@ bool executor::do_initchain()
         query_.strong_tx_buckets() %
         query_.validated_tx_buckets() %
         query_.validated_bk_buckets() %
-        query_.address_buckets());
+        query_.address_buckets() %
+        query_.neutrino_buckets());
     console(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -2291,6 +2298,20 @@ void executor::subscribe_capture()
             return !error;
         }
 
+        // Execute measure (not a toggle).
+        if (token == measure_)
+        {
+            measure_size();
+            return !ec;
+        }
+
+        // Execute read test (not a toggle).
+        if (token == test_)
+        {
+            read_test();
+            return !ec;
+        }
+
         if (!keys_.contains(token))
         {
             logger("CONSOLE: '" + line + "'");
@@ -2443,16 +2464,6 @@ bool executor::do_run()
         return false;
     }
 
-    logger(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets() %
-        query_.address_buckets());
     logger(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
@@ -2467,7 +2478,8 @@ bool executor::do_run()
         query_.strong_tx_size() %
         query_.validated_tx_size() %
         query_.validated_bk_size() %
-        query_.address_size());
+        query_.address_size() %
+        query_.neutrino_size());
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
@@ -2477,6 +2489,17 @@ bool executor::do_run()
         query_.spend_records() %
         query_.strong_tx_records() %
         query_.address_records());
+    logger(format(BN_MEASURE_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.spend_buckets() %
+        query_.strong_tx_buckets() %
+        query_.validated_tx_buckets() %
+        query_.validated_bk_buckets() %
+        query_.address_buckets() %
+        query_.neutrino_buckets());
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -2526,7 +2549,8 @@ bool executor::do_run()
         query_.strong_tx_size() %
         query_.validated_tx_size() %
         query_.validated_bk_size() %
-        query_.address_size());
+        query_.address_size() %
+        query_.neutrino_size());
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %

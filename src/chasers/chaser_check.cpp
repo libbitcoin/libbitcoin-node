@@ -39,7 +39,6 @@ using namespace std::placeholders;
 // TODO: this becomes the block object cache size.
 constexpr auto maximum = max_size_t;
 
-
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)

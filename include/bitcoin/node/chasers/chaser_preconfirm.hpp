@@ -49,15 +49,22 @@ protected:
     virtual void do_bump(height_t height) NOEXCEPT;
 
 private:
-    code validate(const database::header_link& link,
-        size_t height) const NOEXCEPT;
+    code validate(const database::header_link& link, size_t height) NOEXCEPT;
+
+    // neutrino
+    system::hash_digest get_neutrino(size_t height) const NOEXCEPT;
+    bool update_neutrino(const database::header_link& link) NOEXCEPT;
+    bool update_neutrino(const database::header_link& link,
+        const system::chain::block& block) NOEXCEPT;
+    void update_cache(size_t height) NOEXCEPT;
 
     // These are thread safe.
     const uint64_t initial_subsidy_;
     const uint32_t subsidy_interval_blocks_;
 
-    // This is protected by strand.
+    // These are protected by strand.
     size_t validated_{};
+    system::hash_digest neutrino_{};
 };
 
 } // namespace node
