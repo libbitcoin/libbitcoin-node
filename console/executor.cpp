@@ -2265,11 +2265,12 @@ void executor::subscribe_events(std::ostream& sink)
 
 void executor::subscribe_capture()
 {
+    // This is not on a network thread, so the node may call close() while this
+    // is running a backup (for example), resulting in a try_lock warning loop.
     capture_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto token = system::trim_copy(line);
 
-        // Close (not a toggle).
         if (token == close_)
         {
             logger("CONSOLE: Close");
@@ -2277,13 +2278,14 @@ void executor::subscribe_capture()
             return false;
         }
 
-        // Backup (not a toggle).
         if (token == backup_)
         {
             logger(BN_NODE_BACKUP_STARTED);
             node_->pause();
 
-            // TODO: put this on an automated trigger based on store write interval.
+            // TODO: put on automated trigger based on store write interval.
+            // This holds a transactor but does not block network close, so
+            // store.close() trys to obtain transactor lock in a forever loop.
             const auto error = store_.snapshot([&](auto event, auto table)
             {
                 logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
@@ -2298,20 +2300,19 @@ void executor::subscribe_capture()
             return !error;
         }
 
-        // Execute measure (not a toggle).
         if (token == measure_)
         {
             measure_size();
             return !ec;
         }
 
-        // Execute read test (not a toggle).
         if (token == test_)
         {
             read_test();
             return !ec;
         }
 
+        // Toggles...
         if (!keys_.contains(token))
         {
             logger("CONSOLE: '" + line + "'");
