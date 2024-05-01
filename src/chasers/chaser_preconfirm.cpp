@@ -30,6 +30,7 @@ namespace node {
 
 using namespace system;
 using namespace system::chain;
+using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
 
@@ -44,7 +45,7 @@ chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
 
 code chaser_preconfirm::start() NOEXCEPT
 {
-    validated_ = archive().get_fork();
+    update_cache(archive().get_fork());
     return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
 }
 
@@ -97,7 +98,7 @@ void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT
 
     // If branch point is at or above last validated there is nothing to do.
     if (branch_point < validated_)
-        validated_ = branch_point;
+        update_cache(branch_point);
 
     do_checked(branch_point);
 }
@@ -107,8 +108,7 @@ void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Revert to confirmed top as the candidate chain is fully reverted.
-    validated_ = top;
-
+    update_cache(top);
     do_checked(top);
 }
 
@@ -139,6 +139,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         // Accept/Connect block.
         // ....................................................................
 
+        // neutrino_ is advanced here.
         if (const auto code = validate(link, height))
         {
             if (code == error::validation_bypass ||
@@ -203,17 +204,16 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
     }
 }
 
-// TODO: compute neutrino filter with prevouts populated.
-// TODO: neutrino filters are blob per block, must store fk somewhere.
-// TODO: neutrino headers are hash per block, must create in order.
 code chaser_preconfirm::validate(const header_link& link,
-    size_t height) const NOEXCEPT
+    size_t height) NOEXCEPT
 {
+    code ec{};
     const auto& query = archive();
     if (is_under_bypass(height) && !query.is_malleable(link))
-        return error::validation_bypass;
+        return update_neutrino(link) ? error::validation_bypass :
+            error::store_integrity;
 
-    auto ec = query.get_block_state(link);
+    ec = query.get_block_state(link);
     if (ec == database::error::block_confirmable ||
         ec == database::error::block_unconfirmable ||
         ec == database::error::block_preconfirmable)
@@ -238,9 +238,62 @@ code chaser_preconfirm::validate(const header_link& link,
         {}              // work_required
     };
 
-    return
-        ec = block.accept(ctx, subsidy_interval_blocks_, initial_subsidy_) ?
-        ec : block.connect(ctx);
+    if ((ec = block.accept(ctx, subsidy_interval_blocks_, initial_subsidy_)))
+        return ec;
+
+    if ((ec = block.connect(ctx)))
+        return ec;
+
+    return update_neutrino(link, block) ? ec : error::store_integrity;
+}
+
+// neutrino
+// ----------------------------------------------------------------------------
+
+void chaser_preconfirm::update_cache(size_t height) NOEXCEPT
+{
+    validated_ = height;
+    neutrino_ = get_neutrino(validated_);
+}
+
+// Returns null_hash if not found.
+hash_digest chaser_preconfirm::get_neutrino(size_t height) const NOEXCEPT
+{
+    hash_digest neutrino{};
+    const auto& query = archive();
+    if (query.neutrino_enabled())
+        query.get_filter_head(neutrino, query.to_candidate(height));
+
+    return neutrino;
+}
+
+bool chaser_preconfirm::update_neutrino(const header_link& link) NOEXCEPT
+{
+    const auto& query = archive();
+    if (!query.neutrino_enabled())
+        return true;
+
+    const auto block_ptr = query.get_block(link);
+    if (!block_ptr)
+        return false;
+
+    const auto& block = *block_ptr;
+    return query.populate(block) && update_neutrino(link, block);
+}
+
+bool chaser_preconfirm::update_neutrino(const header_link& link,
+    const chain::block& block) NOEXCEPT
+{
+    auto& query = archive();
+    if (!query.neutrino_enabled())
+        return true;
+
+    data_chunk filter{};
+    if (!compute_filter(filter, block))
+        return false;
+
+    neutrino_ = compute_filter_header(neutrino_, filter);
+    return query.set_filter(link, neutrino_, filter);
 }
 
 BC_POP_WARNING()
