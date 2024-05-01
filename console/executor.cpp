@@ -2263,7 +2263,6 @@ void executor::subscribe_events(std::ostream& sink)
     });
 }
 
-// Uses node_ so must delay until defined.
 void executor::subscribe_capture()
 {
     // This is not on a network thread, so the node may call close() while this
@@ -2347,7 +2346,6 @@ void executor::subscribe_capture()
     });
 }
 
-// Uses node_ so must delay until defined.
 // TODO: these are not the same as log events, rename one of them.
 void executor::subscribe_events()
 {
@@ -2358,7 +2356,6 @@ void executor::subscribe_events()
     ////});
 }
 
-// Uses node_ so must delay until defined.
 void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
