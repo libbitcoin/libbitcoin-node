@@ -116,13 +116,13 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.address_size = 29'390'853'398;
     configured.database.address_rate = 5;
 
+    configured.database.neutrino_buckets = 524'493;
+    configured.database.neutrino_size = 1'000'000'000;
+    configured.database.neutrino_rate = 5;
+
     configured.database.buffer_buckets = 100;
     configured.database.buffer_size = 1;
     configured.database.buffer_rate = 5;
-
-    configured.database.neutrino_buckets = 100;
-    configured.database.neutrino_size = 1;
-    configured.database.neutrino_rate = 5;
 
     configured.database.bootstrap_size = 1;
     configured.database.bootstrap_rate = 5;
@@ -835,6 +835,23 @@ options_metadata parser::load_settings() THROWS
         "database.address_rate",
         value<uint16_t>(&configured.database.address_rate),
         "The percentage expansion of the address table body, defaults to '5'."
+    )
+
+    /* neutrino */
+    (
+        "database.neutrino_buckets",
+        value<uint32_t>(&configured.database.neutrino_buckets),
+        "The number of buckets in the neutrino table head, defaults to '524493' (0 disables)."
+    )
+    (
+        "database.neutrino_size",
+        value<uint64_t>(&configured.database.neutrino_size),
+        "The minimum allocation of the neutrino table body, defaults to '1000000000'."
+    )
+    (
+        "database.neutrino_rate",
+        value<uint16_t>(&configured.database.neutrino_rate),
+        "The percentage expansion of the neutrino table body, defaults to '5'."
     )
 
     /* [node] */
