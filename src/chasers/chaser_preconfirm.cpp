@@ -139,7 +139,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         // Accept/Connect block.
         // ....................................................................
 
-        // neutrino_ is advanced here.
+        // neutrino_ is advanced here if successful or bypassed.
         if (const auto code = validate(link, height))
         {
             if (code == error::validation_bypass ||
@@ -256,7 +256,7 @@ void chaser_preconfirm::update_cache(size_t height) NOEXCEPT
     neutrino_ = get_neutrino(validated_);
 }
 
-// Returns null_hash if not found.
+// Returns null_hash if not found, intended for genesis block.
 hash_digest chaser_preconfirm::get_neutrino(size_t height) const NOEXCEPT
 {
     hash_digest neutrino{};
