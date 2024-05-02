@@ -67,9 +67,9 @@ public:
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
 
-    // TODO: these aren't actually node settings.
-    uint16_t target{ 0 };
-    uint16_t interval{ 0 };
+    ////// TODO: these aren't actually node settings.
+    ////uint16_t target{ 0 };
+    ////uint16_t interval{ 0 };
 
     /// Helpers.
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;

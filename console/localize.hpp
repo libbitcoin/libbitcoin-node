@@ -164,6 +164,8 @@ namespace node {
     "Please wait while the network is starting..."
 #define BN_NODE_START_FAIL \
     "Node failed to start with error, %1%."
+#define BN_NODE_BACKUP_UNAVAILABLE \
+    "Node backup not available until started."
 #define BN_NODE_BACKUP_STARTED \
     "Node backup started."
 #define BN_NODE_BACKUP_FAIL \

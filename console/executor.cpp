@@ -170,21 +170,21 @@ const std::unordered_map<database::table_t, std::string> executor::tables_
     { database::table_t::strong_tx_head, "strong_tx_head" },
     { database::table_t::strong_tx_body, "strong_tx_body" },
 
-    { database::table_t::bootstrap_table, "bootstrap_table" },
-    { database::table_t::bootstrap_head, "bootstrap_head" },
-    { database::table_t::bootstrap_body, "bootstrap_body" },
-    { database::table_t::buffer_table, "buffer_table" },
-    { database::table_t::buffer_head, "buffer_head" },
-    { database::table_t::buffer_body, "buffer_body" },
-    { database::table_t::neutrino_table, "neutrino_table" },
-    { database::table_t::neutrino_head, "neutrino_head" },
-    { database::table_t::neutrino_body, "neutrino_body" },
     { database::table_t::validated_bk_table, "validated_bk_table" },
     { database::table_t::validated_bk_head, "validated_bk_head" },
     { database::table_t::validated_bk_body, "validated_bk_body" },
     { database::table_t::validated_tx_table, "validated_tx_table" },
     { database::table_t::validated_tx_head, "validated_tx_head" },
-    { database::table_t::validated_tx_body, "validated_tx_body" }
+    { database::table_t::validated_tx_body, "validated_tx_body" },
+    { database::table_t::neutrino_table, "neutrino_table" },
+    { database::table_t::neutrino_head, "neutrino_head" },
+    { database::table_t::neutrino_body, "neutrino_body" }
+    ////{ database::table_t::bootstrap_table, "bootstrap_table" },
+    ////{ database::table_t::bootstrap_head, "bootstrap_head" },
+    ////{ database::table_t::bootstrap_body, "bootstrap_body" },
+    ////{ database::table_t::buffer_table, "buffer_table" },
+    ////{ database::table_t::buffer_head, "buffer_head" },
+    ////{ database::table_t::buffer_body, "buffer_body" }
 };
 
 // non-const member static (global for blocking interrupt handling).
@@ -795,10 +795,12 @@ void executor::read_test() const
             database::height_link bk_height{};
             table::header::get_height bk_header{};
             if (!block_fk.is_terminal())
+            {
                 if (!store_.header.get(block_fk, bk_header))
                     return;
                 else
                     bk_height = bk_header.height;
+            }
 
             // The block is confirmed by height.
             table::height::record height_record{};
@@ -808,7 +810,8 @@ void executor::read_test() const
             // unconfirmed tx: max height/pos, null hash, terminal/zero links.
             if (!confirmed)
             {
-                outs.emplace_back(
+                outs.push_back(out
+                {
                     key,
                     out_fk,
                     max_uint64,  // spend_fk
@@ -833,7 +836,8 @@ void executor::read_test() const
                     max_uint32,  // height
 
                     nullptr,
-                    nullptr);
+                    nullptr
+                });
                 continue;
             }
 
@@ -877,25 +881,27 @@ void executor::read_test() const
                 // Get in_tx position in the confirmed block.
                 table::txs::get_position in_txs{ {}, in_tx_fk };
                 if (!in_bk_fk.is_terminal())
+                {
                     if (!store_.txs.get(query_.to_txs_link(in_bk_fk), in_txs))
                         return;
                     else
                         in_position = possible_narrow_cast<uint16_t>(in_txs.position);
+                }
 
                 // Get spender input tx block height.
                 table::header::get_height in_bk_header{};
                 if (!in_bk_fk.is_terminal())
+                {
                     if (!store_.header.get(in_bk_fk, in_bk_header))
                         return;
                     else
                         in_bk_height = in_bk_header.height;
+                }
             }
 
-            const auto in = query_.get_input(sp_fk);
-            const auto out = query_.get_output(out_fk);
-
             // confirmed tx has block height and tx position.
-            outs.emplace_back(
+            outs.push_back(out
+            {
                 key,
                 out_fk,
                 sp_fk,
@@ -916,9 +922,10 @@ void executor::read_test() const
                 in_bk_fk,
                 query_.get_header_key(in_bk_fk),
                 in_bk_height,
-                
-                out,
-                in);
+
+                query_.get_output(out_fk),
+                query_.get_input(sp_fk)
+            });
         }
         while (address_it.advance());
     }
@@ -2265,11 +2272,12 @@ void executor::subscribe_events(std::ostream& sink)
 
 void executor::subscribe_capture()
 {
+    // This is not on a network thread, so the node may call close() while this
+    // is running a backup (for example), resulting in a try_lock warning loop.
     capture_.subscribe([&](const code& ec, const std::string& line)
     {
         const auto token = system::trim_copy(line);
 
-        // Close (not a toggle).
         if (token == close_)
         {
             logger("CONSOLE: Close");
@@ -2277,13 +2285,20 @@ void executor::subscribe_capture()
             return false;
         }
 
-        // Backup (not a toggle).
         if (token == backup_)
         {
+            if (!node_)
+            {
+                logger(BN_NODE_BACKUP_UNAVAILABLE);
+                return true;
+            }
+
             logger(BN_NODE_BACKUP_STARTED);
             node_->pause();
 
-            // TODO: put this on an automated trigger based on store write interval.
+            // TODO: put on automated trigger based on store write interval.
+            // This holds a transactor but does not block network close, so
+            // store.close() trys to obtain transactor lock in a forever loop.
             const auto error = store_.snapshot([&](auto event, auto table)
             {
                 logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
@@ -2298,20 +2313,19 @@ void executor::subscribe_capture()
             return !error;
         }
 
-        // Execute measure (not a toggle).
         if (token == measure_)
         {
             measure_size();
             return !ec;
         }
 
-        // Execute read test (not a toggle).
         if (token == test_)
         {
             read_test();
             return !ec;
         }
 
+        // Toggles...
         if (!keys_.contains(token))
         {
             logger("CONSOLE: '" + line + "'");
