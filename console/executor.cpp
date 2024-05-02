@@ -795,10 +795,12 @@ void executor::read_test() const
             database::height_link bk_height{};
             table::header::get_height bk_header{};
             if (!block_fk.is_terminal())
+            {
                 if (!store_.header.get(block_fk, bk_header))
                     return;
                 else
                     bk_height = bk_header.height;
+            }
 
             // The block is confirmed by height.
             table::height::record height_record{};
@@ -808,7 +810,8 @@ void executor::read_test() const
             // unconfirmed tx: max height/pos, null hash, terminal/zero links.
             if (!confirmed)
             {
-                outs.emplace_back(
+                outs.push_back(out
+                {
                     key,
                     out_fk,
                     max_uint64,  // spend_fk
@@ -833,7 +836,8 @@ void executor::read_test() const
                     max_uint32,  // height
 
                     nullptr,
-                    nullptr);
+                    nullptr
+                });
                 continue;
             }
 
@@ -877,25 +881,27 @@ void executor::read_test() const
                 // Get in_tx position in the confirmed block.
                 table::txs::get_position in_txs{ {}, in_tx_fk };
                 if (!in_bk_fk.is_terminal())
+                {
                     if (!store_.txs.get(query_.to_txs_link(in_bk_fk), in_txs))
                         return;
                     else
                         in_position = possible_narrow_cast<uint16_t>(in_txs.position);
+                }
 
                 // Get spender input tx block height.
                 table::header::get_height in_bk_header{};
                 if (!in_bk_fk.is_terminal())
+                {
                     if (!store_.header.get(in_bk_fk, in_bk_header))
                         return;
                     else
                         in_bk_height = in_bk_header.height;
+                }
             }
 
-            const auto in = query_.get_input(sp_fk);
-            const auto out = query_.get_output(out_fk);
-
             // confirmed tx has block height and tx position.
-            outs.emplace_back(
+            outs.push_back(out
+            {
                 key,
                 out_fk,
                 sp_fk,
@@ -916,9 +922,10 @@ void executor::read_test() const
                 in_bk_fk,
                 query_.get_header_key(in_bk_fk),
                 in_bk_height,
-                
-                out,
-                in);
+
+                query_.get_output(out_fk),
+                query_.get_input(sp_fk)
+            });
         }
         while (address_it.advance());
     }
