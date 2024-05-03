@@ -45,8 +45,8 @@ chaser::chaser(full_node& node) NOEXCEPT
 
 void chaser::fault(const code& ec) const NOEXCEPT
 {
-    LOGF("Detected fault: " << ec.message());
-    notify(ec, chase::stop, {});
+    LOGF("Fault: " << ec.message());
+    notify(error::success, chase::stop, ec.value());
 }
 
 bool chaser::closed() const NOEXCEPT

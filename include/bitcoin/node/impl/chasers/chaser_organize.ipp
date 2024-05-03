@@ -274,6 +274,13 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.pop_candidate())
         {
+            if (query.is_full())
+            {
+                handler(database::error::disk_full, height);
+                fault(database::error::disk_full);
+                return;
+            }
+
             handler(error::store_integrity, height);
             fault(error::store_integrity);
             return;
@@ -290,6 +297,13 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.push_candidate(link))
         {
+            if (query.is_full())
+            {
+                handler(database::error::disk_full, height);
+                fault(database::error::disk_full);
+                return;
+            }
+
             handler(error::store_integrity, height);
             fault(error::store_integrity);
             return;
@@ -303,6 +317,13 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!push(key))
         {
+            if (query.is_full())
+            {
+                handler(database::error::disk_full, height);
+                fault(database::error::disk_full);
+                return;
+            }
+
             handler(error::store_integrity, height);
             fault(error::store_integrity);
             return;
@@ -316,6 +337,13 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (push(block, state->context()).is_terminal())
         {
+            if (query.is_full())
+            {
+                handler(database::error::disk_full, height);
+                fault(database::error::disk_full);
+                return;
+            }
+
             handler(error::store_integrity, height);
             fault(error::store_integrity);
             return;
@@ -422,6 +450,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
+            if (query.is_full())
+            {
+                fault(database::error::disk_full);
+                return;
+            }
+
             fault(error::store_integrity);
             return;
         }
@@ -437,6 +471,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
+            if (query.is_full())
+            {
+                fault(database::error::disk_full);
+                return;
+            }
+
             fault(error::store_integrity);
             return;
         }

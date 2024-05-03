@@ -120,7 +120,8 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    event_subscriber_.stop(network::error::service_stopped, chase::stop, zero);
+    event_subscriber_.stop(network::error::service_stopped, chase::stop,
+        error::success);
     p2p::do_close();
 }
 
