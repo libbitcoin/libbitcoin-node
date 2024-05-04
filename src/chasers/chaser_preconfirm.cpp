@@ -155,6 +155,12 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
 
             if (code == error::store_integrity)
             {
+                if (query.is_full())
+                {
+                    fault(database::error::disk_full);
+                    return;
+                }
+
                 fault(error::store_integrity);
                 return;
             }
@@ -169,6 +175,12 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                 if (code != database::error::block_unconfirmable &&
                     !query.set_block_unconfirmable(link))
                 {
+                    if (query.is_full())
+                    {
+                        fault(database::error::disk_full);
+                        return;
+                    }
+
                     fault(error::store_integrity);
                     return;
                 }
@@ -191,6 +203,12 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
+            if (query.is_full())
+            {
+                fault(database::error::disk_full);
+                return;
+            }
+
             fault(error::store_integrity);
             return;
         }
@@ -244,6 +262,7 @@ code chaser_preconfirm::validate(const header_link& link,
     if ((ec = block.connect(ctx)))
         return ec;
 
+    // This can only fail if block missing or prevouts are not fully populated.
     return update_neutrino(link, block) ? ec : error::store_integrity;
 }
 
@@ -267,6 +286,7 @@ hash_digest chaser_preconfirm::get_neutrino(size_t height) const NOEXCEPT
     return neutrino;
 }
 
+// This can only fail if block missing or prevouts are not fully populated.
 bool chaser_preconfirm::update_neutrino(const header_link& link) NOEXCEPT
 {
     const auto& query = archive();
@@ -281,6 +301,7 @@ bool chaser_preconfirm::update_neutrino(const header_link& link) NOEXCEPT
     return query.populate(block) && update_neutrino(link, block);
 }
 
+// This can only fail if prevouts are not fully populated.
 bool chaser_preconfirm::update_neutrino(const header_link& link,
     const chain::block& block) NOEXCEPT
 {

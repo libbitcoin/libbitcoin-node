@@ -103,11 +103,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.strong_tx_rate = 5;
 
     configured.database.validated_tx_buckets = 551'320'125;
-    configured.database.validated_tx_size = 27'728'369;
+    configured.database.validated_tx_size = 47'068'879;
     configured.database.validated_tx_rate = 5;
 
     configured.database.validated_bk_buckets = 524'493;
-    configured.database.validated_bk_size = 4'562;
+    configured.database.validated_bk_size = 8'290;
     configured.database.validated_bk_rate = 5;
 
     // optional
@@ -117,15 +117,15 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.address_rate = 5;
 
     configured.database.neutrino_buckets = 524'493;
-    configured.database.neutrino_size = 1'000'000'000;
+    configured.database.neutrino_size =  2'656'071'402;
     configured.database.neutrino_rate = 5;
 
-    configured.database.buffer_buckets = 100;
-    configured.database.buffer_size = 1;
-    configured.database.buffer_rate = 5;
+    ////configured.database.buffer_buckets = 100;
+    ////configured.database.buffer_size = 1;
+    ////configured.database.buffer_rate = 5;
 
-    configured.database.bootstrap_size = 1;
-    configured.database.bootstrap_rate = 5;
+    ////configured.database.bootstrap_size = 1;
+    ////configured.database.bootstrap_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS
@@ -795,7 +795,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_tx_size",
         value<uint64_t>(&configured.database.validated_tx_size),
-        "The minimum allocation of the validated_tx table body, defaults to '27728369'."
+        "The minimum allocation of the validated_tx table body, defaults to '47068879'."
     )
     (
         "database.validated_tx_rate",
@@ -812,7 +812,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_size",
         value<uint64_t>(&configured.database.validated_bk_size),
-        "The minimum allocation of the validated_bk table body, defaults to '4562'."
+        "The minimum allocation of the validated_bk table body, defaults to '8290'."
     )
     (
         "database.validated_bk_rate",
@@ -846,7 +846,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.neutrino_size",
         value<uint64_t>(&configured.database.neutrino_size),
-        "The minimum allocation of the neutrino table body, defaults to '1000000000'."
+        "The minimum allocation of the neutrino table body, defaults to '2656071402'."
     )
     (
         "database.neutrino_rate",

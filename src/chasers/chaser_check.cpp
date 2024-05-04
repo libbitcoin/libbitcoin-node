@@ -189,8 +189,19 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
     auto& query = archive();
 
     association out{};
-    if (!query.dissasociate(link) ||
-        !query.get_unassociated(out, link))
+    if (!query.set_dissasociated(link))
+    {
+        if (query.is_full())
+        {
+            fault(database::error::disk_full);
+            return;
+        }
+
+        fault(error::store_integrity);
+        return;
+    }
+
+    if (!query.get_unassociated(out, link))
     {
         fault(error::store_integrity);
         return;

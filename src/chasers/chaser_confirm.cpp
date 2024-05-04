@@ -132,8 +132,20 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     while (index > fork_point)
     {
         popped.push_back(query.to_confirmed(index));
-        if (popped.back().is_terminal() || !query.pop_confirmed())
+        if (popped.back().is_terminal())
         {
+            fault(error::store_integrity);
+            return;
+        }
+
+        if (!query.pop_confirmed())
+        {
+            if (query.is_full())
+            {
+                fault(database::error::disk_full);
+                return;
+            }
+
             fault(error::store_integrity);
             return;
         }
@@ -166,15 +178,27 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // chase::organized & events::block_organized
                 if (!set_confirmed(link, index++))
                 {
+                    if (query.is_full())
+                    {
+                        fault(database::error::disk_full);
+                        return;
+                    }
+
                     fault(error::store_integrity);
                     return;
                 }
 
                 continue;
             }
-        
+
             if (code == error::store_integrity)
             {
+                if (query.is_full())
+                {
+                    fault(database::error::disk_full);
+                    return;
+                }
+
                 fault(error::store_integrity);
                 return;
             }
@@ -190,6 +214,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 if (code != database::error::block_unconfirmable &&
                     !query.set_block_unconfirmable(link))
                 {
+                    if (query.is_full())
+                    {
+                        fault(database::error::disk_full);
+                        return;
+                    }
+
                     fault(error::store_integrity);
                     return;
                 }
@@ -203,6 +233,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             // chase::organized & events::block_organized
             if (!roll_back(popped, fork_point, sub1(index)))
             {
+                if (query.is_full())
+                {
+                    fault(database::error::disk_full);
+                    return;
+                }
+
                 fault(error::store_integrity);
                 return;
             }
@@ -217,6 +253,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         // TODO: compute fees from validation records (optional metadata).
         if (!query.set_block_confirmable(link, uint64_t{}))
         {
+            if (query.is_full())
+            {
+                fault(database::error::disk_full);
+                return;
+            }
+
             fault(error::store_integrity);
             return;
         }
@@ -230,6 +272,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         // chase::organized & events::block_organized
         if (!set_confirmed(link, index++))
         {
+            if (query.is_full())
+            {
+                fault(database::error::disk_full);
+                return;
+            }
+
             fault(error::store_integrity);
             return;
         }

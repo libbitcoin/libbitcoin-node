@@ -26,7 +26,8 @@
 
 namespace libbitcoin {
 namespace node {
-
+    
+using namespace system;
 using namespace system::chain;
 
 chaser_block::chaser_block(full_node& node) NOEXCEPT
@@ -105,10 +106,12 @@ bool chaser_block::is_storable(const block&, const chain_state&) const NOEXCEPT
 database::header_link chaser_block::push(const block& block,
     const context& context) const NOEXCEPT
 {
-    using namespace system;
+    auto& query = archive();
     const auto link = chaser_organize<chain::block>::push(block, context);
-    return archive().set_block_confirmable(link, block.fees()) ? link :
-        database::header_link{};
+    if (!query.set_block_confirmable(link, block.fees()))
+        return {};
+
+    return link;
 }
 
 void chaser_block::set_prevout(const input& input) const NOEXCEPT

@@ -317,6 +317,7 @@ void executor::measure_size() const
         ((1.0 * query_.header_records()) / query_.validated_bk_buckets()) %
         ((1.0 * query_.address_records()) / query_.address_buckets()) %
         ((1.0 * query_.header_records()) / query_.neutrino_buckets()));
+    console(BN_MEASURE_PROGRESS_START);
     console(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -695,11 +696,13 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-////// arbitrary testing (const).
-////void executor::read_test() const
-////{
-////    console("No read test implemented.");
-////}
+// arbitrary testing (const).
+void executor::read_test() const
+{
+    console("No read test implemented.");
+}
+
+#if defined(UNDEFINED)
 
 void executor::read_test() const
 {
@@ -996,8 +999,6 @@ void executor::read_test() const
     ////        input);
     ////}
 }
-
-#if defined(UNDEFINED)
 
 void executor::read_test() const
 {
@@ -1879,7 +1880,8 @@ bool executor::do_initchain()
         query_.validated_bk_buckets() %
         query_.address_buckets() %
         query_.neutrino_buckets());
-    console(format(BN_MEASURE_PROGRESS) %
+    logger(BN_MEASURE_PROGRESS_START);
+    logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
         encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
@@ -2514,6 +2516,7 @@ bool executor::do_run()
         query_.validated_bk_buckets() %
         query_.address_buckets() %
         query_.neutrino_buckets());
+    logger(BN_MEASURE_PROGRESS_START);
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
@@ -2574,6 +2577,7 @@ bool executor::do_run()
         query_.spend_records() %
         query_.strong_tx_records() %
         query_.address_records());
+    logger(BN_MEASURE_PROGRESS_START);
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %

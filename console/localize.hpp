@@ -125,8 +125,9 @@ namespace node {
     "   valid_bk :%8%\n" \
     "   address  :%9%\n" \
     "   neutrino :%10%"
+#define BN_MEASURE_PROGRESS_START \
+    "Progress..."
 #define BN_MEASURE_PROGRESS \
-    "Progress...\n" \
     "   fork pt  :%1%\n" \
     "   top conf :%2%:%3%\n" \
     "   top cand :%4%:%5%\n" \

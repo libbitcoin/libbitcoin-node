@@ -302,6 +302,14 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         {
             if (!query.set_block_unconfirmable(link))
             {
+                if (query.is_full())
+                {
+                    LOGF("Fault: " << node::code(database::error::disk_full).message());
+                    notify(error::success, chase::stop, database::error::disk_full);
+                    stop(database::error::disk_full);
+                    return false;
+                }
+
                 stop(error::store_integrity);
                 return false;
             }
@@ -323,8 +331,17 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (query.set_link(*block.transactions_ptr(), link,
         block.serialized_size(true)).is_terminal())
     {
-        LOGF("Failure storing block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "].");
+        if (query.is_full())
+        {
+            LOGF("Fault: "  << node::code(database::error::disk_full).message());
+            notify(error::success, chase::stop, database::error::disk_full);
+            stop(database::error::disk_full);
+            return false;
+        }
+
+        LOGF("Failure storing block [" << encode_hash(hash) << ":"
+            << ctx.height << "] from [" << authority() << "].");
+
         stop(error::store_integrity);
         return false;
     }

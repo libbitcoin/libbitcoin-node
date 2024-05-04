@@ -71,6 +71,7 @@ void protocol_observer::handle_event(const code&, chase event_,
     }
 }
 
+// BUGBUG: new channel creation can block backup, which in turn blocks input.
 void protocol_observer::do_pause(channel_t) NOEXCEPT
 {
     pause();
