@@ -696,11 +696,13 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-////// arbitrary testing (const).
-////void executor::read_test() const
-////{
-////    console("No read test implemented.");
-////}
+// arbitrary testing (const).
+void executor::read_test() const
+{
+    console("No read test implemented.");
+}
+
+#if defined(UNDEFINED)
 
 void executor::read_test() const
 {
@@ -997,8 +999,6 @@ void executor::read_test() const
     ////        input);
     ////}
 }
-
-#if defined(UNDEFINED)
 
 void executor::read_test() const
 {
