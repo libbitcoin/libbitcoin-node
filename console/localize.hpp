@@ -126,7 +126,7 @@ namespace node {
     "   address  :%9%\n" \
     "   neutrino :%10%"
 #define BN_MEASURE_PROGRESS_START \
-    "Progress..."
+    "Progress...\n"
 #define BN_MEASURE_PROGRESS \
     "   fork pt  :%1%\n" \
     "   top conf :%2%:%3%\n" \
@@ -156,6 +156,8 @@ namespace node {
     "backup::%1%(%2%)"
 #define BN_RESTORE \
     "restore::%1%(%2%)"
+#define BN_CONDITION \
+    "condition::%1%(%2%)"
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
