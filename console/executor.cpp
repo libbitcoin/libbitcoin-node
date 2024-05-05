@@ -39,13 +39,16 @@ using namespace network;
 using namespace system;
 using namespace std::placeholders;
 
-// const executor statics
-// "c" avoids conflict with network "quit" messages.
+// for --help only
 const std::string executor::name_{ "bn" };
-const std::string executor::close_{ "c" };
+
+// runtime options
 const std::string executor::backup_{ "b" };
+const std::string executor::close_{ "c" };
+const std::string executor::errors_{ "e" };
 const std::string executor::measure_{ "m" };
-const std::string executor::test_{ "t" };
+const std::string executor::explore_{ "x" };
+
 const std::unordered_map<uint8_t, bool> executor::defined_
 {
     { levels::application, true },
@@ -2287,6 +2290,16 @@ void executor::subscribe_capture()
             return false;
         }
 
+        if (token == errors_)
+        {
+            store_.report_errors([&](const auto& ec, auto table)
+            {
+                logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
+            });
+
+            return true;
+        }
+
         if (token == backup_)
         {
             if (!node_)
@@ -2298,12 +2311,14 @@ void executor::subscribe_capture()
             logger(BN_NODE_BACKUP_STARTED);
             node_->pause();
 
-            const auto error = store_.snapshot([&](auto event, auto table)
-            {
-                // Pause channels that may have missed previous pause events.
-                if (event == database::event_t::wait_lock) node_->pause();
-                logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
-            });
+            const auto error = store_.snapshot(
+                [&](auto event, auto table)
+                {
+                    // Pause channels that missed previous pause events.
+                    if (event == database::event_t::wait_lock) node_->pause();
+                    logger(format(BN_BACKUP) % events_.at(event) %
+                        tables_.at(table));
+                });
 
             if (error)
                 logger(format(BN_NODE_BACKUP_FAIL) % error.message());
@@ -2320,7 +2335,7 @@ void executor::subscribe_capture()
             return !ec;
         }
 
-        if (token == test_)
+        if (token == explore_)
         {
             read_test();
             return !ec;
