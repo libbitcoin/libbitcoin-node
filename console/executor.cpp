@@ -2298,11 +2298,10 @@ void executor::subscribe_capture()
             logger(BN_NODE_BACKUP_STARTED);
             node_->pause();
 
-            // TODO: put on automated trigger based on store write interval.
-            // This holds a transactor but does not block network close, so
-            // store.close() trys to obtain transactor lock in a forever loop.
             const auto error = store_.snapshot([&](auto event, auto table)
             {
+                // Pause channels that may have missed previous pause events.
+                if (event == database::event_t::wait_lock) node_->pause();
                 logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
             });
 
