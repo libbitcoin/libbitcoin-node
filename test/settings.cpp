@@ -24,27 +24,29 @@ BOOST_AUTO_TEST_SUITE(settings_tests)
 
 BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
 {
-    log::settings configuration{};
-    ////BOOST_REQUIRE_EQUAL(configuration.verbose, false);
-    BOOST_REQUIRE_EQUAL(configuration.maximum_size, 1'000'000_u32);
-    BOOST_REQUIRE_EQUAL(configuration.path, "");
-    BOOST_REQUIRE_EQUAL(configuration.log_file1(), "bn_end.log");
-    BOOST_REQUIRE_EQUAL(configuration.log_file2(), "bn_begin.log");
-    BOOST_REQUIRE_EQUAL(configuration.events_file(), "events.log");
+    log::settings log{};
+    ////BOOST_REQUIRE_EQUAL(log.verbose, false);
+    BOOST_REQUIRE_EQUAL(log.maximum_size, 1'000'000_u32);
+    BOOST_REQUIRE_EQUAL(log.path, "");
+    BOOST_REQUIRE_EQUAL(log.log_file1(), "bn_end.log");
+    BOOST_REQUIRE_EQUAL(log.log_file2(), "bn_begin.log");
+    BOOST_REQUIRE_EQUAL(log.events_file(), "events.log");
 }
 
 // [node]
 
 BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
 {
-    node::settings configuration{};
-    BOOST_REQUIRE_EQUAL(configuration.headers_first, true);
-    BOOST_REQUIRE_EQUAL(configuration.allowed_deviation, 1.5);
-    BOOST_REQUIRE_EQUAL(configuration.maximum_inventory, 8000);
-    BOOST_REQUIRE_EQUAL(configuration.sample_period_seconds, 10_u16);
-    BOOST_REQUIRE_EQUAL(configuration.currency_window_minutes, 60_u32);
-    BOOST_REQUIRE(configuration.sample_period() == network::steady_clock::duration(network::seconds(10)));
-    BOOST_REQUIRE(configuration.currency_window() == network::steady_clock::duration(network::minutes(60)));
+    node::settings node{};
+    BOOST_REQUIRE_EQUAL(node.headers_first, true);
+    BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
+    BOOST_REQUIRE_EQUAL(node.maximum_inventory, 8000);
+    BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
+    BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
+    BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
+    BOOST_REQUIRE_EQUAL(node.maximum_block(), max_size_t);
+    BOOST_REQUIRE(node.sample_period() == network::steady_clock::duration(network::seconds(10)));
+    BOOST_REQUIRE(node.currency_window() == network::steady_clock::duration(network::minutes(60)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

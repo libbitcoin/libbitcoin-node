@@ -880,6 +880,11 @@ options_metadata parser::load_settings() THROWS
         value<uint16_t>(&configured.node.maximum_inventory),
         "Maximum size of block inventory requests, defaults to 8000."
     )
+    (
+        "node.maximum_height",
+        value<uint32_t>(&configured.node.maximum_height),
+        "The maximum block height to populate, defaults to 0 (unlimited)."
+    )
     // ### temporary hacks ###
     ////(
     ////    "node.target",

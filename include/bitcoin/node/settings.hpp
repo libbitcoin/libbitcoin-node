@@ -66,12 +66,14 @@ public:
     uint16_t maximum_inventory;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
+    uint32_t maximum_height;
 
     ////// TODO: these aren't actually node settings.
     ////uint16_t target{ 0 };
     ////uint16_t interval{ 0 };
 
     /// Helpers.
+    virtual size_t maximum_block() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
 };
