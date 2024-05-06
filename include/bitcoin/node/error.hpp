@@ -43,12 +43,14 @@ enum error_t : uint8_t
     // database
     store_integrity,
     store_uninitialized,
+    store_snapshotting,
 
     // network
     slow_channel,
     stalled_channel,
     exhausted_channel,
     sacrificed_channel,
+    suspended_channel,
 
     // blockchain
     orphan_block,

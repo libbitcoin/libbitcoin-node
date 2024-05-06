@@ -40,18 +40,17 @@ chaser::chaser(full_node& node) NOEXCEPT
 {
 }
 
-// Close.
+// Close/suspend.
 // ----------------------------------------------------------------------------
-
-void chaser::fault(const code& ec) const NOEXCEPT
-{
-    LOGF("Fault: " << ec.message());
-    notify(error::success, chase::stop, ec.value());
-}
 
 bool chaser::closed() const NOEXCEPT
 {
     return node_.closed();
+}
+
+void chaser::suspend(const code& ec) const NOEXCEPT
+{
+    node_.suspend(ec);
 }
 
 // Events.

@@ -34,12 +34,14 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // database
     { store_integrity, "store integrity" },
     { store_uninitialized, "store not initialized" },
+    { store_snapshotting, "store snapshotting" },
 
     // network
     { slow_channel, "slow channel" },
     { stalled_channel, "stalled channel" },
     { exhausted_channel, "exhausted channel" },
     { sacrificed_channel, "sacrificed channel" },
+    { suspended_channel, "sacrificed channel" },
 
     // blockchain
     { orphan_block, "orphan block" },

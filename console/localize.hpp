@@ -60,6 +60,8 @@ namespace node {
     "Please wait while restoring %1% from most recent snapshot..."
 #define BN_RESTORE_MISSING_FLUSH_LOCK \
     "Database is not corrupted, flush lock file is absent."
+#define BN_RESTORE_INVALID \
+    "Database restore disallowed with corruption, '%1%'."
 #define BN_RESTORE_FAILURE \
     "Database restore failed with error, '%1%'."
 #define BN_RESTORE_COMPLETE \
@@ -126,8 +128,9 @@ namespace node {
     "   address  :%9%\n" \
     "   neutrino :%10%"
 #define BN_MEASURE_PROGRESS_START \
-    "Progress..."
+    "Thinking..."
 #define BN_MEASURE_PROGRESS \
+    "Progress...\n" \
     "   fork pt  :%1%\n" \
     "   top conf :%2%:%3%\n" \
     "   top cand :%4%:%5%\n" \
@@ -156,6 +159,8 @@ namespace node {
     "backup::%1%(%2%)"
 #define BN_RESTORE \
     "restore::%1%(%2%)"
+#define BN_CONDITION \
+    "condition::%1%(%2%)"
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
@@ -173,6 +178,12 @@ namespace node {
     "Node failed to backup with error, %1%."
 #define BN_NODE_BACKUP_COMPLETE \
     "Node backup complete."
+#define BN_NODE_DISK_FULL_RESET \
+    "Node reset from disk full condition."
+#define BN_NODE_UNRECOVERABLE \
+    "Node is not in recoverable condition."
+#define BN_NODE_OK \
+    "Node is ok."
 #define BN_NODE_STARTED \
     "Node is started."
 #define BN_NODE_RUNNING \

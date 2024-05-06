@@ -79,6 +79,15 @@ void protocol::performance(uint64_t channel, uint64_t speed,
     session_->performance(channel, speed, std::move(handler));
 }
 
+void protocol::suspend(const code& ec) NOEXCEPT
+{
+    // Short-circuit self stop.
+    stop(ec);
+
+    // Stop all other channels and suspend all connectors/acceptors.
+    session_->suspend(ec);
+}
+
 // Properties.
 // ----------------------------------------------------------------------------
 

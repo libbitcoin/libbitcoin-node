@@ -21,6 +21,8 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
+// TODO: fold into node::protocol now that this is trivial.
+
 namespace libbitcoin {
 namespace node {
 
@@ -49,14 +51,9 @@ void protocol_observer::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        case chase::pause:
+        case chase::suspend:
         {
-            POST(do_pause, channel_t{});
-            break;
-        }
-        case chase::resume:
-        {
-            POST(do_resume, channel_t{});
+            stop(error::suspended_channel);
             break;
         }
         case chase::stop:
@@ -69,17 +66,6 @@ void protocol_observer::handle_event(const code&, chase event_,
             break;
         }
     }
-}
-
-// BUGBUG: new channel creation can block backup, which in turn blocks input.
-void protocol_observer::do_pause(channel_t) NOEXCEPT
-{
-    pause();
-}
-
-void protocol_observer::do_resume(channel_t) NOEXCEPT
-{
-    resume();
 }
 
 } // namespace node

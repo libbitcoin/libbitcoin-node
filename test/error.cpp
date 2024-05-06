@@ -68,6 +68,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__store_integrity__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "store integrity");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__store_snapshotting__true_exected_message)
+{
+    constexpr auto value = error::store_snapshotting;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "store snapshotting");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__slow_channel__true_exected_message)
 {
     constexpr auto value = error::slow_channel;
@@ -98,6 +107,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__exhausted_channel__true_exected_message)
 BOOST_AUTO_TEST_CASE(error_t__code__sacrificed_channel__true_exected_message)
 {
     constexpr auto value = error::sacrificed_channel;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "sacrificed channel");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__suspended_channel__true_exected_message)
+{
+    constexpr auto value = error::suspended_channel;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
