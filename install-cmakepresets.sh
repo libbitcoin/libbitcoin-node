@@ -379,11 +379,16 @@ handle_custom_options()
         display_help
         exit 1
     fi
-
+    
+    BASE_PRESET_ID=${PRESET_ID/%-with*_*/}
+    REPO_PRESET[libbitcoin-node]="$PRESET_ID"
+    display_message "REPO_PRESET[libbitcoin-node]=${REPO_PRESET[libbitcoin-node]}"
     REPO_PRESET[libbitcoin-database]="$BASE_PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-database]=${REPO_PRESET[libbitcoin-database]}"
+    
     REPO_PRESET[libbitcoin-network]="$BASE_PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-network]=${REPO_PRESET[libbitcoin-network]}"
+    
     if [[ $WITH_ICU ]]; then
         REPO_PRESET[libbitcoin-system]="$BASE_PRESET_ID-with_icu"
     else
