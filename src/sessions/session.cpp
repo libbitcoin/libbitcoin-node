@@ -105,6 +105,14 @@ void session::performance(uint64_t, uint64_t, result_handler&& handler) NOEXCEPT
         std::bind(handler, system::error::not_implemented));
 }
 
+// Suspensions.
+// ----------------------------------------------------------------------------
+
+void session::suspend(const code& ec) NOEXCEPT
+{
+    node_.suspend(ec);
+}
+
 // Properties.
 // ----------------------------------------------------------------------------
 

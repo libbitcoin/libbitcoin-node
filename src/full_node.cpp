@@ -175,17 +175,25 @@ void full_node::do_notify(const code& ec, chase event_,
     event_subscriber_.notify(ec, event_, value);
 }
 
-// Methods.
+// Suspensions.
 // ----------------------------------------------------------------------------
 
-void full_node::pause() NOEXCEPT
+// TODO: use timer to check disk space, resume if not full or reissue suspend.
+void full_node::suspend(const code& ec) NOEXCEPT
 {
-    notify(error::success, chase::pause, channel_t{});
+    // A connection may be established and miss notification (race). This can
+    // be managed by reissuing the notification in a wait loop (snapshot), or
+    // by waiting for another error to trigger it (integrity). These are ok
+    // because suspension is best-effort to reduce traffic and wasted storage.
+    LOGS("Suspending network connections: " << ec.message());
+    notify(error::success, chase::suspend, ec.value());
+    p2p::suspend();
 }
 
 void full_node::resume() NOEXCEPT
 {
-    notify(error::success, chase::resume, channel_t{});
+    LOGS("Resuming network connections.");
+    p2p::resume();
 }
 
 // Properties.

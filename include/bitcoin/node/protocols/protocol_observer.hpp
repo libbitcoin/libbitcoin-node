@@ -45,9 +45,6 @@ public:
 
     virtual void handle_event(const code& ec,
         chase event_, event_link value) NOEXCEPT;
-
-    void do_pause(channel_t channel) NOEXCEPT;
-    void do_resume(channel_t channel) NOEXCEPT;
 };
 
 } // namespace node

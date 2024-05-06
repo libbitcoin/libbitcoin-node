@@ -157,11 +157,11 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
             {
                 if (query.is_full())
                 {
-                    fault(database::error::disk_full);
+                    suspend(database::error::disk_full);
                     return;
                 }
 
-                fault(error::store_integrity);
+                suspend(error::store_integrity);
                 return;
             }
 
@@ -177,11 +177,11 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                 {
                     if (query.is_full())
                     {
-                        fault(database::error::disk_full);
+                        suspend(database::error::disk_full);
                         return;
                     }
 
-                    fault(error::store_integrity);
+                    suspend(error::store_integrity);
                     return;
                 }
 
@@ -205,11 +205,11 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         {
             if (query.is_full())
             {
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 

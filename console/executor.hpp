@@ -89,6 +89,7 @@ private:
     static const std::string backup_;
     static const std::string close_;
     static const std::string errors_;
+    static const std::string go_;
     static const std::string measure_;
     static const std::string explore_;
     static const std::unordered_map<uint8_t, bool> defined_;

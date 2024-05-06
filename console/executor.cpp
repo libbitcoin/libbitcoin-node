@@ -46,6 +46,7 @@ const std::string executor::name_{ "bn" };
 const std::string executor::backup_{ "b" };
 const std::string executor::close_{ "c" };
 const std::string executor::errors_{ "e" };
+const std::string executor::go_{ "g" };
 const std::string executor::measure_{ "m" };
 const std::string executor::explore_{ "x" };
 
@@ -308,7 +309,6 @@ void executor::measure_size() const
         query_.validated_bk_buckets() %
         query_.address_buckets() %
         query_.neutrino_buckets());
-    // This one can take a few seconds on cold iron.
     console(format(BN_MEASURE_COLLISION_RATES) %
         ((1.0 * query_.header_records()) / query_.header_buckets()) %
         ((1.0 * query_.header_records()) / query_.txs_buckets()) %
@@ -318,8 +318,11 @@ void executor::measure_size() const
         ((1.0 * query_.strong_tx_records()) / query_.strong_tx_buckets()) %
         ((1.0 * query_.tx_records()) / query_.validated_tx_buckets()) %
         ((1.0 * query_.header_records()) / query_.validated_bk_buckets()) %
-        ((1.0 * query_.address_records()) / query_.address_buckets()) %
-        ((1.0 * query_.header_records()) / query_.neutrino_buckets()));
+        (query_.address_enabled() ? ((1.0 * query_.address_records()) /
+            query_.address_buckets()) : 0) %
+        (query_.neutrino_enabled() ? ((1.0 * query_.header_records()) /
+            query_.neutrino_buckets()) : 0));
+    // This one can take a few seconds on cold iron.
     console(BN_MEASURE_PROGRESS_START);
     console(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
@@ -2290,6 +2293,22 @@ void executor::subscribe_capture()
             return false;
         }
 
+        if (token == go_)
+        {
+            // Any table with error::disk_full code.
+            if (query_.is_full())
+            {
+                logger(BN_NODE_DISK_FULL_RESET);
+                store_.clear_error();
+                node_->resume();
+                return true;
+            }
+
+            // Any table with any error code.
+            logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
+            return true;
+        }
+
         if (token == errors_)
         {
             store_.report_errors([&](const auto& ec, auto table)
@@ -2308,25 +2327,34 @@ void executor::subscribe_capture()
                 return true;
             }
 
-            logger(BN_NODE_BACKUP_STARTED);
-            node_->pause();
+            if (query_.is_fault() && !query_.is_full())
+            {
+                logger(format(BN_RESTORE_INVALID) %
+                    store_.get_first_error().message());
+                return true;
+            }
 
-            const auto error = store_.snapshot(
-                [&](auto event, auto table)
-                {
-                    // Pause channels that missed previous pause events.
-                    if (event == database::event_t::wait_lock) node_->pause();
-                    logger(format(BN_BACKUP) % events_.at(event) %
-                        tables_.at(table));
-                });
+            logger(BN_NODE_BACKUP_STARTED);
+            node_->suspend(error::store_snapshotting);
+
+            const auto error = store_.snapshot([&](auto event, auto table)
+            {
+                // Suspend channels that missed previous suspend events.
+                if (event == database::event_t::wait_lock)
+                    node_->suspend(error::store_snapshotting);
+
+                logger(format(BN_BACKUP) % events_.at(event) %
+                    tables_.at(table));
+            });
 
             if (error)
                 logger(format(BN_NODE_BACKUP_FAIL) % error.message());
             else
                 logger(format(BN_NODE_BACKUP_COMPLETE));
 
-            node_->resume();
-            return !error;
+            // Not from the backup but of previous condition.
+            if (!query_.is_full()) node_->resume();
+            return true;
         }
 
         if (token == measure_)

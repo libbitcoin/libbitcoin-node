@@ -151,7 +151,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         if (!query.get_height(height, id))
         {
             handler(error::store_integrity, {});
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -238,7 +238,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         !get_is_strong(strong, work, branch_point))
     {
         handler(error::store_integrity, height);
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -258,7 +258,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (branch_point > top_candidate)
     {
         handler(error::store_integrity, height);
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -277,12 +277,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             if (query.is_full())
             {
                 handler(database::error::disk_full, height);
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
             handler(error::store_integrity, height);
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -300,12 +300,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             if (query.is_full())
             {
                 handler(database::error::disk_full, height);
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
             handler(error::store_integrity, height);
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -320,12 +320,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             if (query.is_full())
             {
                 handler(database::error::disk_full, height);
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
             handler(error::store_integrity, height);
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -340,12 +340,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             if (query.is_full())
             {
                 handler(database::error::disk_full, height);
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
             handler(error::store_integrity, height);
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
         
@@ -401,7 +401,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, link) || is_zero(height))
     {
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -409,7 +409,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -419,7 +419,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -433,7 +433,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         typename Block::cptr block{};
         if (!get_block(block, index))
         {
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -452,11 +452,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         {
             if (query.is_full())
             {
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -473,11 +473,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         {
             if (query.is_full())
             {
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 

@@ -88,16 +88,9 @@ void protocol_block_in_31800::handle_event(const code&,
 
     switch (event_)
     {
-        case chase::pause:
+        case chase::suspend:
         {
-            // Pause local timers due to channel pause (e.g. snapshot pending).
-            POST(do_pause, channel_t{});
-            break;
-        }
-        case chase::resume:
-        {
-            // Resume local timers due to channel resume (e.g. snapshot done).
-            POST(do_resume, channel_t{});
+            stop(error::suspended_channel);
             break;
         }
         case chase::split:
@@ -169,17 +162,6 @@ void protocol_block_in_31800::do_get_downloads(count_t) NOEXCEPT
         start_performance();
         get_hashes(BIND(handle_get_hashes, _1, _2));
     }
-}
-
-void protocol_block_in_31800::do_pause(channel_t) NOEXCEPT
-{
-    pause_performance();
-}
-
-void protocol_block_in_31800::do_resume(channel_t) NOEXCEPT
-{
-    if (!is_idle())
-        start_performance();
 }
 
 void protocol_block_in_31800::do_purge(channel_t) NOEXCEPT
@@ -304,9 +286,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             {
                 if (query.is_full())
                 {
-                    LOGF("Fault: " << node::code(database::error::disk_full).message());
-                    notify(error::success, chase::stop, database::error::disk_full);
-                    stop(database::error::disk_full);
+                    suspend(database::error::disk_full);
                     return false;
                 }
 
@@ -333,9 +313,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     {
         if (query.is_full())
         {
-            LOGF("Fault: "  << node::code(database::error::disk_full).message());
-            notify(error::success, chase::stop, database::error::disk_full);
-            stop(database::error::disk_full);
+            suspend(database::error::disk_full);
             return false;
         }
 

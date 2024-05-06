@@ -82,14 +82,14 @@ public:
     /// Call from chaser start() methods (node strand).
     virtual code subscribe_events(event_handler&& handler) NOEXCEPT;
 
-    /// Methods.
+    /// Suspensions.
     /// -----------------------------------------------------------------------
 
-    /// Pause the node.
-    virtual void pause() NOEXCEPT;
+    /// Suspend nework connections.
+    virtual void suspend(const code& ec) NOEXCEPT;
 
-    /// Resume the node.
-    virtual void resume() NOEXCEPT;
+    /// Resume nework connections.
+    void resume() NOEXCEPT override;
 
     /// Properties.
     /// -----------------------------------------------------------------------

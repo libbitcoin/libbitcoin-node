@@ -71,6 +71,9 @@ protected:
     virtual void performance(uint64_t channel, uint64_t speed,
         network::result_handler&& handler) const NOEXCEPT;
 
+    /// Suspend all connections.
+    virtual void suspend(const code& ec) NOEXCEPT;
+
     /// Events.
     /// -----------------------------------------------------------------------
 

@@ -67,11 +67,11 @@ protected:
     /// Close.
     /// -----------------------------------------------------------------------
 
-    /// There was a fault in the node.
-    void fault(const code& ec) const NOEXCEPT;
-
     /// Node threadpool is stopped and may still be joining.
     bool closed() const NOEXCEPT;
+
+    /// Suspend all existing and future network connections.
+    void suspend(const code& ec) const NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

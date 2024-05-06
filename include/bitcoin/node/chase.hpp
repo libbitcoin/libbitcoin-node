@@ -37,13 +37,9 @@ enum class chase
     /// Issued by 'organize' and handled by 'preconfirm'.
     bump,
 
-    /// Channels (all) are directed to pause reading (channel_t).
-    /// Issued by 'full_node' and handled by 'protocol'.
-    pause,
-
-    /// Channels (all) are directed to resume reading (channel_t).
-    /// Issued by 'full_node' and handled by 'protocol'.
-    resume,
+    /// Channels (all) are directed to stop (channel_t).
+    /// Issued by 'full_node' and handled by 'observer'.
+    suspend,
 
     /// Channel starved for block download identifiers (channel_t).
     /// Issued by 'block_in_31800' and handled by 'session_outbound'.

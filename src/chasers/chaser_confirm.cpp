@@ -106,7 +106,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     if (!get_fork_work(work, fork, height) ||
         !get_is_strong(strong, work, height))
     {
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -122,7 +122,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     const auto fork_point = height - fork.size();
     if (top < fork_point)
     {
-        fault(error::store_integrity);
+        suspend(error::store_integrity);
         return;
     }
 
@@ -134,7 +134,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         popped.push_back(query.to_confirmed(index));
         if (popped.back().is_terminal())
         {
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -142,11 +142,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         {
             if (query.is_full())
             {
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -180,11 +180,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 {
                     if (query.is_full())
                     {
-                        fault(database::error::disk_full);
+                        suspend(database::error::disk_full);
                         return;
                     }
 
-                    fault(error::store_integrity);
+                    suspend(error::store_integrity);
                     return;
                 }
 
@@ -195,11 +195,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             {
                 if (query.is_full())
                 {
-                    fault(database::error::disk_full);
+                    suspend(database::error::disk_full);
                     return;
                 }
 
-                fault(error::store_integrity);
+                suspend(error::store_integrity);
                 return;
             }
         
@@ -216,11 +216,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 {
                     if (query.is_full())
                     {
-                        fault(database::error::disk_full);
+                        suspend(database::error::disk_full);
                         return;
                     }
 
-                    fault(error::store_integrity);
+                    suspend(error::store_integrity);
                     return;
                 }
 
@@ -235,11 +235,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             {
                 if (query.is_full())
                 {
-                    fault(database::error::disk_full);
+                    suspend(database::error::disk_full);
                     return;
                 }
 
-                fault(error::store_integrity);
+                suspend(error::store_integrity);
                 return;
             }
         
@@ -255,11 +255,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         {
             if (query.is_full())
             {
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
 
@@ -274,11 +274,11 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         {
             if (query.is_full())
             {
-                fault(database::error::disk_full);
+                suspend(database::error::disk_full);
                 return;
             }
 
-            fault(error::store_integrity);
+            suspend(error::store_integrity);
             return;
         }
     }
