@@ -8,9 +8,6 @@
 # Script to build and install libbitcoin-node.
 #
 # Script options:
-# --with-consensus         Compile libbitcoin-consensus for consensus checks.
-# --without-consensus      Compile without libbitcoin-consensus for consensus
-#                            checks.
 # --with-icu               Compile with International Components for Unicode.
 #                            Since the addition of BIP-39 and later BIP-38
 #                            support, libbitcoin conditionally incorporates ICU
@@ -227,9 +224,6 @@ display_help()
     display_message "Usage: ./install.sh [OPTION]..."
     display_message "Manage the installation of libbitcoin-node."
     display_message "Script options:"
-    display_message "  --with-consensus         Compile libbitcoin-consensus for consensus checks."
-    display_message "  --without-consensus      Compile without libbitcoin-consensus for consensus "
-    display_message "                             checks."
     display_message "  --with-icu               Compile with International Components for Unicode."
     display_message "                             Since the addition of BIP-39 and later BIP-38 "
     display_message "                             support, libbitcoin conditionally incorporates ICU "
@@ -256,8 +250,6 @@ display_help()
 #==============================================================================
 parse_command_line_options()
 {
-    WITH_BITCOIN_CONSENSUS="yes"
-
     for OPTION in "$@"; do
         case $OPTION in
             # Standard script options.
@@ -270,8 +262,6 @@ parse_command_line_options()
             (--disable-static)      DISABLE_STATIC="yes";;
 
             # Common project options.
-            (--with-consensus)      WITH_BITCOIN_CONSENSUS="yes";;
-            (--without-consensus)   unset -f WITH_BITCOIN_CONSENSUS;;
             (--with-icu)            WITH_ICU="yes";;
 
             # Custom build options (in the form of --build-<option>).
@@ -389,16 +379,16 @@ handle_custom_options()
         display_help
         exit 1
     fi
-
+    
     BASE_PRESET_ID=${PRESET_ID/%-with*_*/}
     REPO_PRESET[libbitcoin-node]="$PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-node]=${REPO_PRESET[libbitcoin-node]}"
-    REPO_PRESET[libbitcoin-consensus]="$BASE_PRESET_ID"
-    display_message "REPO_PRESET[libbitcoin-consensus]=${REPO_PRESET[libbitcoin-consensus]}"
     REPO_PRESET[libbitcoin-database]="$BASE_PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-database]=${REPO_PRESET[libbitcoin-database]}"
+    
     REPO_PRESET[libbitcoin-network]="$BASE_PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-network]=${REPO_PRESET[libbitcoin-network]}"
+    
     if [[ $WITH_ICU ]]; then
         REPO_PRESET[libbitcoin-system]="$BASE_PRESET_ID-with_icu"
     else
@@ -1003,12 +993,6 @@ build_all()
     display_message "libbitcoin-database PRESET ${REPO_PRESET[libbitcoin-database]}"
     build_from_github_cmake libbitcoin-database ${REPO_PRESET[libbitcoin-database]} "$PARALLEL" false "yes" "${BITCOIN_DATABASE_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
     export CPPFLAGS=$SAVE_CPPFLAGS
-    create_from_github libbitcoin libbitcoin-consensus master "$WITH_BITCOIN_CONSENSUS"
-    local SAVE_CPPFLAGS="$CPPFLAGS"
-    export CPPFLAGS="$CPPFLAGS ${BITCOIN_CONSENSUS_FLAGS[@]}"
-    display_message "libbitcoin-consensus PRESET ${REPO_PRESET[libbitcoin-consensus]}"
-    build_from_github_cmake libbitcoin-consensus ${REPO_PRESET[libbitcoin-consensus]} "$PARALLEL" false "$WITH_BITCOIN_CONSENSUS" "${BITCOIN_CONSENSUS_OPTIONS[@]}" $CUMULATIVE_FILTERED_ARGS_CMAKE "$@"
-    export CPPFLAGS=$SAVE_CPPFLAGS
     local SAVE_CPPFLAGS="$CPPFLAGS"
     export CPPFLAGS="$CPPFLAGS ${BITCOIN_NODE_FLAGS[@]}"
     if [[ ! ($CI == true) ]]; then
@@ -1114,13 +1098,6 @@ BITCOIN_NETWORK_OPTIONS=(
 BITCOIN_DATABASE_OPTIONS=(
 "-Dwith-tests=no" \
 "-Dwith-tools=no" \
-"${with_boost}" \
-"${with_pkgconfigdir}")
-
-# Define bitcoin-consensus options.
-#------------------------------------------------------------------------------
-BITCOIN_CONSENSUS_OPTIONS=(
-"-Dwith-tests=no" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 

@@ -8,9 +8,6 @@
 # Script to build and install libbitcoin-node.
 #
 # Script options:
-# --with-consensus         Compile libbitcoin-consensus for consensus checks.
-# --without-consensus      Compile without libbitcoin-consensus for consensus
-#                            checks.
 # --with-icu               Compile with International Components for Unicode.
 #                            Since the addition of BIP-39 and later BIP-38
 #                            support, libbitcoin conditionally incorporates ICU
@@ -221,9 +218,6 @@ display_help()
     display_message "Usage: ./install.sh [OPTION]..."
     display_message "Manage the installation of libbitcoin-node."
     display_message "Script options:"
-    display_message "  --with-consensus         Compile libbitcoin-consensus for consensus checks."
-    display_message "  --without-consensus      Compile without libbitcoin-consensus for consensus "
-    display_message "                             checks."
     display_message "  --with-icu               Compile with International Components for Unicode."
     display_message "                             Since the addition of BIP-39 and later BIP-38 "
     display_message "                             support, libbitcoin conditionally incorporates ICU "
@@ -249,8 +243,6 @@ display_help()
 #==============================================================================
 parse_command_line_options()
 {
-    WITH_BITCOIN_CONSENSUS="yes"
-
     for OPTION in "$@"; do
         case $OPTION in
             # Standard script options.
@@ -263,8 +255,6 @@ parse_command_line_options()
             (--disable-static)      DISABLE_STATIC="yes";;
 
             # Common project options.
-            (--with-consensus)      WITH_BITCOIN_CONSENSUS="yes";;
-            (--without-consensus)   unset -f WITH_BITCOIN_CONSENSUS;;
             (--with-icu)            WITH_ICU="yes";;
 
             # Custom build options (in the form of --build-<option>).
@@ -815,11 +805,6 @@ build_all()
     export CPPFLAGS="$CPPFLAGS ${BITCOIN_DATABASE_FLAGS[@]}"
     build_from_github libbitcoin-database "$PARALLEL" false "yes" "${BITCOIN_DATABASE_OPTIONS[@]}" "$@"
     export CPPFLAGS=$SAVE_CPPFLAGS
-    create_from_github libbitcoin libbitcoin-consensus master "$WITH_BITCOIN_CONSENSUS"
-    local SAVE_CPPFLAGS="$CPPFLAGS"
-    export CPPFLAGS="$CPPFLAGS ${BITCOIN_CONSENSUS_FLAGS[@]}"
-    build_from_github libbitcoin-consensus "$PARALLEL" false "$WITH_BITCOIN_CONSENSUS" "${BITCOIN_CONSENSUS_OPTIONS[@]}" "$@"
-    export CPPFLAGS=$SAVE_CPPFLAGS
     local SAVE_CPPFLAGS="$CPPFLAGS"
     export CPPFLAGS="$CPPFLAGS ${BITCOIN_NODE_FLAGS[@]}"
     if [[ ! ($CI == true) ]]; then
@@ -922,13 +907,6 @@ BITCOIN_NETWORK_OPTIONS=(
 BITCOIN_DATABASE_OPTIONS=(
 "--without-tests" \
 "--without-tools" \
-"${with_boost}" \
-"${with_pkgconfigdir}")
-
-# Define bitcoin-consensus options.
-#------------------------------------------------------------------------------
-BITCOIN_CONSENSUS_OPTIONS=(
-"--without-tests" \
 "${with_boost}" \
 "${with_pkgconfigdir}")
 

@@ -37,7 +37,7 @@ using namespace network;
 using namespace std::placeholders;
 
 // TODO: this becomes the block object cache size.
-constexpr auto maximum = max_size_t;
+constexpr auto maximum_window = max_size_t;
 
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
@@ -46,7 +46,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
-    connections_(node.network_settings().outbound_connections),
+    maximum_block_(node.config().node.maximum_block()),
+    connections_(node.config().network.outbound_connections),
     inventory_(system::lesser(node.config().node.maximum_inventory,
         messages::max_inventory))
 {
@@ -276,16 +277,17 @@ map_ptr chaser_check::get_map() NOEXCEPT
 }
 
 // Get all unassociated block records from start to stop heights.
-// Groups records into table sets by inventory_ maximum set size.
+// Groups records into table sets by inventory_ maximum_window set size.
 // Return the total number of records obtained and set hi_block_ to last.
 size_t chaser_check::get_unassociated() NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
 
-    const auto& query = archive();
-    const auto stop = ceilinged_add(validated_, maximum);
     size_t count{};
+    const auto& query = archive();
+    const auto stop = std::min(ceilinged_add(validated_, maximum_window),
+        maximum_block_);
 
     while (true)
     {

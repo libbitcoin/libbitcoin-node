@@ -27,8 +27,8 @@ namespace libbitcoin {
 namespace log {
 
 settings::settings() NOEXCEPT
-  : ////verbose(false),
-    maximum_size(1'000'000_u32)
+  : ////verbose{ false },
+    maximum_size{ 1'000'000_u32 }
 {
 }
 
@@ -67,13 +67,19 @@ settings::settings() NOEXCEPT
     allowed_deviation{ 1.5 },
     maximum_inventory{ 8000 },
     sample_period_seconds{ 10 },
-    currency_window_minutes{ 60 }
+    currency_window_minutes{ 60 },
+    maximum_height{ 0 }
 {
 }
 
 settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
+}
+
+size_t settings::maximum_block() const NOEXCEPT
+{
+    return is_zero(maximum_height) ? max_size_t : maximum_height;
 }
 
 network::steady_clock::duration settings::sample_period() const NOEXCEPT
