@@ -187,7 +187,7 @@ void full_node::suspend(const code& ec) NOEXCEPT
     // because suspension is best-effort to reduce traffic and wasted storage.
     LOGS("Suspending network connections: " << ec.message());
     notify(error::success, chase::suspend, ec.value());
-    p2p::suspend();
+    p2p::suspend(ec);
 }
 
 void full_node::resume() NOEXCEPT

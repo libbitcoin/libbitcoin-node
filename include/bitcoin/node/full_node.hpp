@@ -86,7 +86,7 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Suspend nework connections.
-    virtual void suspend(const code& ec) NOEXCEPT;
+    void suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
     void resume() NOEXCEPT override;
