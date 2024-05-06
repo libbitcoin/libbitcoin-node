@@ -21,6 +21,8 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
+// TODO: fold into node::protocol now that this is trivial.
+
 namespace libbitcoin {
 namespace node {
 
