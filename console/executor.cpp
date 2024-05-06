@@ -2293,6 +2293,7 @@ void executor::subscribe_capture()
             return false;
         }
 
+        // TODO: add option to toggle inbound/outbound connections.
         if (token == go_)
         {
             // Any table with error::disk_full code.
