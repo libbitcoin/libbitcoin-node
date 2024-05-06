@@ -24,7 +24,6 @@ jobs:
             assert: "debug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: ""
             cc: "clang-15"
             flags: "-Og -fPIE"
@@ -39,7 +38,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang-15"
             flags: "-Os -fPIE"
@@ -54,7 +52,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--without-consensus"
             icu: ""
             cc: "gcc-11"
             flags: "-Os -fPIE"
@@ -69,7 +66,6 @@ jobs:
             assert: "ndebug"
             coverage: "cov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "gcc-11"
             flags: "-Os -g --coverage -fPIE"
@@ -84,7 +80,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang"
             flags: "-Os -fPIE"
@@ -99,7 +94,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--without-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang"
             flags: "-Os -fvisibility=hidden -fPIE"
@@ -176,7 +170,6 @@ jobs:
           ${{ env.ASSERT_NDEBUG }}
           ${{ matrix.boost }}
           ${{ matrix.icu }}
-          ${{ matrix.consensus }}
 
       - name: Coveralls Calculation
         if: ${{ matrix.coverage == 'cov' }}
@@ -255,7 +248,6 @@ jobs:
             assert: "debug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: ""
             cc: "clang-15"
             flags: "-Og -fPIE"
@@ -270,7 +262,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang-15"
             flags: "-Os -fPIE"
@@ -285,7 +276,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--without-consensus"
             icu: ""
             cc: "gcc-11"
             flags: "-Os -fPIE"
@@ -300,7 +290,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "gcc-11"
             flags: "-Os -fPIE"
@@ -315,7 +304,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang"
             flags: "-Os -fPIE"
@@ -330,7 +318,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--without-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang"
             flags: "-Os -fvisibility=hidden -fPIE"
@@ -410,7 +397,6 @@ jobs:
           ${{ env.ASSERT_NDEBUG }}
           ${{ matrix.boost }}
           ${{ matrix.icu }}
-          ${{ matrix.consensus }}
 
       - name: Coveralls Calculation
         if: ${{ matrix.coverage == 'cov' }}
@@ -500,7 +486,6 @@ jobs:
             assert: "debug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: ""
             cc: "clang-15"
             flags: "-Og -fPIE"
@@ -516,7 +501,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--with-consensus"
             icu: "--build-icu --with-icu"
             cc: "clang-15"
             flags: "-Os -fPIE"
@@ -532,7 +516,6 @@ jobs:
             assert: "ndebug"
             coverage: "nocov"
             boost: "--build-boost"
-            consensus: "--without-consensus"
             icu: ""
             cc: "gcc-11"
             flags: "-Os -fPIE"
@@ -613,7 +596,6 @@ jobs:
           ${{ env.ASSERT_NDEBUG }}
           ${{ matrix.boost }}
           ${{ matrix.icu }}
-          ${{ matrix.consensus }}
 
       - name: Coveralls Calculation
         if: ${{ matrix.coverage == 'cov' }}

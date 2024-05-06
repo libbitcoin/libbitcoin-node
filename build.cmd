@@ -40,11 +40,6 @@ IF %ERRORLEVEL% NEQ 0 (
   call :failure "Initializing repository libbitcoin libbitcoin-database master failed."
   exit /b 1
 )
-call :init libbitcoin libbitcoin-consensus master
-IF %ERRORLEVEL% NEQ 0 (
-  call :failure "Initializing repository libbitcoin libbitcoin-consensus master failed."
-  exit /b 1
-)
 call :bld_repo libbitcoin-node
 IF %ERRORLEVEL% NEQ 0 (
   call :failure "Building libbitcoin-node failed."

@@ -76,17 +76,6 @@ AX_CXX_COMPILE_STDCXX([20], [noext], [mandatory])
 
 # Process options.
 #==============================================================================
-# Implement --with-consensus and define WITH_CONSENSUS.
-#------------------------------------------------------------------------------
-AC_MSG_CHECKING([--with-consensus option])
-AC_ARG_WITH([consensus],
-    AS_HELP_STRING([--with-consensus],
-        [Link libbitcoin-consensus and use for consensus checks. @<:@default=yes@:>@]),
-    [with_consensus=$withval],
-    [with_consensus=yes])
-AC_MSG_RESULT([$with_consensus])
-AS_CASE([${with_consensus}], [yes], AC_DEFINE([WITH_CONSENSUS]))
-
 # Implement --with-bash-completiondir and output ${bash_completiondir} and declare BASH_COMPLETIONDIR.
 #------------------------------------------------------------------------------
 AC_MSG_CHECKING([--with-bash-completiondir option])
@@ -321,31 +310,6 @@ AS_CASE([${enable_isystem}],[yes],
     [AC_SUBST([bitcoin_database_BUILD_CPPFLAGS], [${bitcoin_database_CPPFLAGS}])])
 
 AC_MSG_NOTICE([bitcoin_database_BUILD_CPPFLAGS : ${bitcoin_database_BUILD_CPPFLAGS}])
-
-# Require bitcoin-consensus of at least version 4.0.0 and output ${bitcoin_consensus_CPPFLAGS/LIBS/PKG}.
-#------------------------------------------------------------------------------
-AS_CASE([${with_consensus}], [yes],
-    [PKG_CHECK_MODULES([bitcoin_consensus], [libbitcoin-consensus >= 4.0.0],
-        [bitcoin_consensus_INCLUDEDIR="`$PKG_CONFIG --variable=includedir "libbitcoin-consensus >= 4.0.0" 2>/dev/null`"
-         bitcoin_consensus_OTHER_CFLAGS="`$PKG_CONFIG --cflags-only-other "libbitcoin-consensus >= 4.0.0" 2>/dev/null`"],
-        [AC_MSG_ERROR([--with-consensus specified but libbitcoin-consensus >= 4.0.0 was not found.])])
-     AC_SUBST([bitcoin_consensus_PKG], ['libbitcoin-consensus >= 4.0.0'])
-     AC_SUBST([bitcoin_consensus_CPPFLAGS], [${bitcoin_consensus_CFLAGS}])
-     AS_IF([test x${bitcoin_consensus_INCLUDEDIR} != "x"],
-        [AC_SUBST([bitcoin_consensus_ISYS_CPPFLAGS], ["-isystem${bitcoin_consensus_INCLUDEDIR} ${bitcoin_consensus_OTHER_CFLAGS}"])],
-        [AC_SUBST([bitcoin_consensus_ISYS_CPPFLAGS], [${bitcoin_consensus_OTHER_CFLAGS}])])
-     AC_MSG_NOTICE([bitcoin_consensus_CPPFLAGS : ${bitcoin_consensus_CPPFLAGS}])
-     AC_MSG_NOTICE([bitcoin_consensus_ISYS_CPPFLAGS : ${bitcoin_consensus_ISYS_CPPFLAGS}])
-     AC_MSG_NOTICE([bitcoin_consensus_OTHER_CFLAGS : ${bitcoin_consensus_OTHER_CFLAGS}])
-     AC_MSG_NOTICE([bitcoin_consensus_INCLUDEDIR : ${bitcoin_consensus_INCLUDEDIR}])
-     AC_MSG_NOTICE([bitcoin_consensus_LIBS : ${bitcoin_consensus_LIBS}])],
-    [AC_SUBST([bitcoin_consensus_PKG], [])])
-
-AS_CASE([${enable_isystem}],[yes],
-    [AC_SUBST([bitcoin_consensus_BUILD_CPPFLAGS], [${bitcoin_consensus_ISYS_CPPFLAGS}])],
-    [AC_SUBST([bitcoin_consensus_BUILD_CPPFLAGS], [${bitcoin_consensus_CPPFLAGS}])])
-
-AC_MSG_NOTICE([bitcoin_consensus_BUILD_CPPFLAGS : ${bitcoin_consensus_BUILD_CPPFLAGS}])
 
 # Require bitcoin-network of at least version 4.0.0 and output ${bitcoin_network_CPPFLAGS/LIBS/PKG}.
 #------------------------------------------------------------------------------

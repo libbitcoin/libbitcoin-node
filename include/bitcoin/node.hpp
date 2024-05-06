@@ -15,11 +15,6 @@
  */
 
 #include <bitcoin/database.hpp>
-
-#ifdef WITH_CONSENSUS
-#include <bitcoin/consensus.hpp>
-#endif
-
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chase.hpp>
 #include <bitcoin/node/configuration.hpp>
