@@ -2300,7 +2300,7 @@ void executor::subscribe_capture()
             if (query_.is_full())
             {
                 logger(BN_NODE_DISK_FULL_RESET);
-                store_.clear_error();
+                store_.clear_errors();
                 node_->resume();
                 return true;
             }
@@ -2328,10 +2328,9 @@ void executor::subscribe_capture()
                 return true;
             }
 
-            if (query_.is_fault() && !query_.is_full())
+            if (const auto fault = store_.get_fault())
             {
-                logger(format(BN_RESTORE_INVALID) %
-                    store_.get_first_error().message());
+                logger(format(BN_RESTORE_INVALID) % fault.message());
                 return true;
             }
 
