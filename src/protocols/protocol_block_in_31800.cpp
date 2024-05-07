@@ -46,6 +46,7 @@ void protocol_block_in_31800::start() NOEXCEPT
     if (started())
         return;
 
+    // TODO: need synchronous even subscription.
     // Events subscription is asynchronous.
     async_subscribe_events(BIND(handle_event, _1, _2, _3));
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
@@ -61,6 +62,7 @@ void protocol_block_in_31800::start() NOEXCEPT
     protocol::start();
 }
 
+// TODO: use unsubscriber and unsubscribe (leaking channels).
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -132,9 +134,14 @@ void protocol_block_in_31800::handle_event(const code&,
             // But don't download blocks until candidate chain is current.
             if (is_current())
             {
-                POST(do_get_downloads, count_t{});
+                POST(do_get_downloads, possible_narrow_cast<size_t>(value));
             }
 
+            break;
+        }
+        case chase::report:
+        {
+            POST(do_report, possible_narrow_cast<count_t>(value));
             break;
         }
         case chase::stop:
@@ -170,6 +177,8 @@ void protocol_block_in_31800::do_purge(channel_t) NOEXCEPT
 
     if (!map_->empty())
     {
+        LOGN("Purge work (" << map_->size() << ") from [" << authority() << "].");
+
         map_->clear();
         stop(error::sacrificed_channel);
     }
@@ -182,12 +191,18 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
     if (stopped())
         return;
 
-    LOGP("Divide work (" << map_->size() << ") from [" << authority() << "].");
+    LOGN("Divide work (" << map_->size() << ") from [" << authority() << "].");
 
     restore(chaser_check::split(map_));
     restore(map_);
     map_ = chaser_check::empty_map();
     stop(error::sacrificed_channel);
+}
+
+void protocol_block_in_31800::do_report(count_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    LOGN("Work (" << map_->size() << ") for channel [" << authority() << "].");
 }
 
 // request hashes
@@ -337,7 +352,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     map_->erase(it);
     if (is_idle())
     {
-        LOGP("Getting more block hashes for [" << authority() << "].");
+        LOGN("Getting more block hashes for [" << authority() << "].");
         get_hashes(BIND(handle_get_hashes, _1, _2));
     }
 
@@ -375,6 +390,8 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
     const map_ptr& map) NOEXCEPT
 {
     BC_ASSERT_MSG(map->size() <= max_inventory, "inventory overflow");
+
+    LOGN("Got (" << map->size() << ") block hashes for [" << authority() << "].");
 
     if (stopped())
     {
