@@ -29,7 +29,7 @@ enum class chase
     /// Work shuffling.
     /// -----------------------------------------------------------------------
 
-    /// Chasers are directed to start operating (height_t).
+    /// Chasers directed to start operating (height_t).
     /// Issued by 'full_node' and handled by 'preconfirm'.
     start,
 
@@ -37,7 +37,7 @@ enum class chase
     /// Issued by 'organize' and handled by 'preconfirm'.
     bump,
 
-    /// Channels (all) are directed to stop (channel_t).
+    /// Channels (all) directed to stop (channel_t).
     /// Issued by 'full_node' and handled by 'observer'.
     suspend,
 
@@ -49,13 +49,17 @@ enum class chase
     /// Issued by 'session_outbound' and handled by 'block_in_31800'.
     split,
 
-    /// Channels (all with work) are directed to split work and stop (channel_t).
+    /// Channels (all with work) directed to split work and stop (channel_t).
     /// Issued by 'session_outbound' and handled by 'block_in_31800'.
     stall,
 
-    /// Channels (all with work) are directed to drop work and stop (channel_t).
+    /// Channels (all with work) directed to drop work and stop (channel_t).
     /// Issued by 'check' and handled by 'block_in_31800'.
     purge,
+
+    /// Channels (all) directed to write hash count to the log (count_t).
+    /// Issued by 'executore' and handled by 'block_in_31800'.
+    report,
 
     /// Candidate Chain.
     /// -----------------------------------------------------------------------

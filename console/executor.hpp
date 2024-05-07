@@ -88,6 +88,7 @@ private:
     static const std::string name_;
     static const std::string backup_;
     static const std::string close_;
+    static const std::string distro_;
     static const std::string errors_;
     static const std::string go_;
     static const std::string measure_;
