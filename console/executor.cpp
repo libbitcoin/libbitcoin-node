@@ -45,6 +45,7 @@ const std::string executor::name_{ "bn" };
 // runtime options
 const std::string executor::backup_{ "b" };
 const std::string executor::close_{ "c" };
+const std::string executor::distro_{ "d" };
 const std::string executor::errors_{ "e" };
 const std::string executor::go_{ "g" };
 const std::string executor::measure_{ "m" };
@@ -2291,6 +2292,12 @@ void executor::subscribe_capture()
             logger("CONSOLE: Close");
             stop(error::success);
             return false;
+        }
+
+        if (token == distro_)
+        {
+            node_->notify(error::success, chase::report, {});
+            return true;
         }
 
         // TODO: add option to toggle inbound/outbound connections.
