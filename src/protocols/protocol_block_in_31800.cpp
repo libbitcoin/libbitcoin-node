@@ -177,7 +177,7 @@ void protocol_block_in_31800::do_purge(channel_t) NOEXCEPT
 
     if (!map_->empty())
     {
-        LOGN("Purge work (" << map_->size() << ") from [" << authority() << "].");
+        ////LOGN("Purge work (" << map_->size() << ") from [" << authority() << "].");
 
         map_->clear();
         stop(error::sacrificed_channel);
@@ -191,7 +191,7 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
     if (stopped())
         return;
 
-    LOGN("Divide work (" << map_->size() << ") from [" << authority() << "].");
+    ////LOGN("Divide work (" << map_->size() << ") from [" << authority() << "].");
 
     restore(chaser_check::split(map_));
     restore(map_);
@@ -352,7 +352,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     map_->erase(it);
     if (is_idle())
     {
-        LOGN("Getting more block hashes for [" << authority() << "].");
+        ////LOGN("Getting more block hashes for [" << authority() << "].");
         get_hashes(BIND(handle_get_hashes, _1, _2));
     }
 
@@ -391,7 +391,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 {
     BC_ASSERT_MSG(map->size() <= max_inventory, "inventory overflow");
 
-    LOGN("Got (" << map->size() << ") block hashes for [" << authority() << "].");
+    ////LOGN("Got (" << map->size() << ") block hashes for [" << authority() << "].");
 
     if (stopped())
     {
