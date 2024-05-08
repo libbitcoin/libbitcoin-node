@@ -103,9 +103,6 @@ protected:
 private:
     // This is thread safe.
     const session::ptr session_;
-
-    // This is protected by strand.
-    object_key key_{};
 };
 
 } // namespace node
