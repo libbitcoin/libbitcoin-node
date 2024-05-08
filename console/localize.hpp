@@ -70,74 +70,74 @@ namespace node {
 // --measure
 #define BN_MEASURE_SIZES \
     "Body sizes...\n" \
-    "   header   :%1%\n" \
-    "   txs      :%2%\n" \
-    "   tx       :%3%\n" \
-    "   point    :%4%\n" \
-    "   input    :%5%\n" \
-    "   output   :%6%\n" \
-    "   puts     :%7%\n" \
-    "   candidate:%8%\n" \
-    "   confirmed:%9%\n" \
-    "   spend    :%10%\n" \
-    "   strong_tx:%11%\n" \
-    "   valid_tx :%12%\n" \
-    "   valid_bk :%13%\n" \
-    "   address  :%14%\n" \
-    "   neutrino :%15%"
+    "   header    :%1%\n" \
+    "   txs       :%2%\n" \
+    "   tx        :%3%\n" \
+    "   point     :%4%\n" \
+    "   input     :%5%\n" \
+    "   output    :%6%\n" \
+    "   puts      :%7%\n" \
+    "   candidate :%8%\n" \
+    "   confirmed :%9%\n" \
+    "   spend     :%10%\n" \
+    "   strong_tx :%11%\n" \
+    "   valid_tx  :%12%\n" \
+    "   valid_bk  :%13%\n" \
+    "   address   :%14%\n" \
+    "   neutrino  :%15%"
 #define BN_MEASURE_RECORDS \
     "Table records...\n" \
-    "   header   :%1%\n" \
-    "   tx       :%2%\n" \
-    "   point    :%3%\n" \
-    "   candidate:%4%\n" \
-    "   confirmed:%5%\n" \
-    "   spend    :%6%\n" \
-    "   strong_tx:%7%\n" \
-    "   address  :%8%"
+    "   header    :%1%\n" \
+    "   tx        :%2%\n" \
+    "   point     :%3%\n" \
+    "   candidate :%4%\n" \
+    "   confirmed :%5%\n" \
+    "   spend     :%6%\n" \
+    "   strong_tx :%7%\n" \
+    "   address   :%8%"
 #define BN_MEASURE_SLABS \
     "Table slabs..."
 #define BN_MEASURE_SLABS_ROW \
-    "   @tx      :%1%, inputs:%2%, outputs:%3%"
+    "   @tx       :%1%, inputs:%2%, outputs:%3%"
 #define BN_MEASURE_STOP \
-    "   input    :%1%\n" \
-    "   output   :%2%\n" \
-    "   seconds  :%3%"
+    "   input     :%1%\n" \
+    "   output    :%2%\n" \
+    "   seconds   :%3%"
 #define BN_MEASURE_BUCKETS \
     "Head buckets...\n" \
-    "   header   :%1%\n" \
-    "   txs      :%2%\n" \
-    "   tx       :%3%\n" \
-    "   point    :%4%\n" \
-    "   spend    :%5%\n" \
-    "   strong_tx:%6%\n" \
-    "   valid_tx :%7%\n" \
-    "   valid_bk :%8%\n" \
-    "   address  :%9%\n" \
-    "   neutrino :%10%"
+    "   header    :%1%\n" \
+    "   txs       :%2%\n" \
+    "   tx        :%3%\n" \
+    "   point     :%4%\n" \
+    "   spend     :%5%\n" \
+    "   strong_tx :%6%\n" \
+    "   valid_tx  :%7%\n" \
+    "   valid_bk  :%8%\n" \
+    "   address   :%9%\n" \
+    "   neutrino  :%10%"
 #define BN_MEASURE_COLLISION_RATES \
     "Collision rates...\n" \
-    "   header   :%1%\n" \
-    "   txs      :%2%\n" \
-    "   tx       :%3%\n" \
-    "   point    :%4%\n" \
-    "   spend    :%5%\n" \
-    "   strong_tx:%6%\n" \
-    "   valid_tx :%7%\n" \
-    "   valid_bk :%8%\n" \
-    "   address  :%9%\n" \
-    "   neutrino :%10%"
+    "   header    :%1%\n" \
+    "   txs       :%2%\n" \
+    "   tx        :%3%\n" \
+    "   point     :%4%\n" \
+    "   spend     :%5%\n" \
+    "   strong_tx :%6%\n" \
+    "   valid_tx  :%7%\n" \
+    "   valid_bk  :%8%\n" \
+    "   address   :%9%\n" \
+    "   neutrino  :%10%"
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \
     "Progress...\n" \
-    "   fork pt  :%1%\n" \
-    "   top conf :%2%:%3%\n" \
-    "   top cand :%4%:%5%\n" \
-    "   top assoc:%6%\n" \
-    "   not assoc:%7%\n" \
-    "   wire conf:%8%\n" \
-    "   wire cand:%9%"
+    "   fork pt   :%1%\n" \
+    "   top conf  :%2%:%3%\n" \
+    "   top cand  :%4%:%5%\n" \
+    "   top assoc :%6%\n" \
+    "   associated:%7%\n" \
+    "   wire conf :%8%\n" \
+    "   wire cand :%9%"
 
 // --read
 #define BN_READ_ROW \

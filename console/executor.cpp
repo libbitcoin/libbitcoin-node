@@ -55,40 +55,43 @@ const std::unordered_map<uint8_t, bool> executor::defined_
 {
     { levels::application, true },
     { levels::news,        levels::news_defined },
-    { levels::objects,     levels::objects_defined },
     { levels::session,     levels::session_defined },
     { levels::protocol,    levels::protocol_defined },
     { levels::proxy,       levels::proxy_defined },
     { levels::wire,        levels::wire_defined },
     { levels::remote,      levels::remote_defined },
     { levels::fault,       levels::fault_defined },
-    { levels::quit,        levels::quit_defined }
+    { levels::quit,        levels::quit_defined },
+    { levels::objects,     levels::objects_defined },
+    { levels::verbose,     levels::verbose_defined },
 };
 const std::unordered_map<uint8_t, std::string> executor::display_
 {
     { levels::application, "toggle Application" },
     { levels::news,        "toggle News" },
-    { levels::objects,     "toggle Objects" },
     { levels::session,     "toggle Session" },
     { levels::protocol,    "toggle Protocol" },
     { levels::proxy,       "toggle proXy" },
-    { levels::wire,        "toggle Wire shark" }, // not implemented
-    { levels::remote,      "toggle Remote fault" },
-    { levels::fault,       "toggle internal Fault" },
-    { levels::quit,        "toggle Quitting" }
+    { levels::wire,        "toggle Wire" }, // unused
+    { levels::remote,      "toggle Remote" },
+    { levels::fault,       "toggle Fault" },
+    { levels::quit,        "toggle Quitting" },
+    { levels::objects,     "toggle Objects" },
+    { levels::verbose,     "toggle Verbose" }
 };
 const std::unordered_map<std::string, uint8_t> executor::keys_
 {
     { "a", levels::application },
     { "n", levels::news },
-    { "o", levels::objects },
     { "s", levels::session },
     { "p", levels::protocol },
     { "x", levels::proxy },
     { "w", levels::wire },
     { "r", levels::remote },
     { "f", levels::fault },
-    { "q", levels::quit }
+    { "q", levels::quit },
+    { "o", levels::objects },
+    { "v", levels::verbose }
 };
 const std::unordered_map<uint8_t, std::string> executor::fired_
 {
@@ -332,7 +335,7 @@ void executor::measure_size() const
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count() %
+        (query_.get_top_candidate() - query_.get_unassociated_count()) %
         query_.get_confirmed_size() %
         query_.get_candidate_size());
 
@@ -1895,7 +1898,7 @@ bool executor::do_initchain()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count() %
+        (query_.get_top_candidate() - query_.get_unassociated_count()) %
         query_.get_confirmed_size() %
         query_.get_candidate_size());
 
@@ -2404,16 +2407,6 @@ void executor::subscribe_capture()
     });
 }
 
-// TODO: these are not the same as log events, rename one of them.
-void executor::subscribe_events()
-{
-    // This is synchronous and requires the strand.
-    // TODO: make protected and create public asynchronous subscribe_events.
-    ////node_->subscribe_events([&](const code&, node::chase, node::event_link)
-    ////{
-    ////});
-}
-
 void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
@@ -2573,7 +2566,7 @@ bool executor::do_run()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count() %
+        (query_.get_top_candidate() - query_.get_unassociated_count()) %
         query_.get_confirmed_size() %
         query_.get_candidate_size());
 
@@ -2582,7 +2575,6 @@ bool executor::do_run()
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
 
     // Subscribe node.
-    subscribe_events();
     subscribe_connect();
     subscribe_close();
 
@@ -2634,7 +2626,7 @@ bool executor::do_run()
         query_.get_top_candidate() %
         encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
-        query_.get_unassociated_count() %
+        (query_.get_top_candidate() - query_.get_unassociated_count()) %
         query_.get_confirmed_size() %
         query_.get_candidate_size());
 
