@@ -373,7 +373,8 @@ void executor::scan_flags() const
         console(BN_OPERATION_CANCELED);
 
     const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format("scan_flags" BN_READ_ROW_MS) % top % span.count());
+    console(format("Scanned %1% headers for rule forks in %2% ms.") % top %
+        span.count());
 }
 
 // file and logical sizes.
