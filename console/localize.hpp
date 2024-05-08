@@ -50,14 +50,12 @@ namespace node {
     "Database storing genesis block."
 #define BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE \
     "Database failure to store genesis block."
-#define BN_INITCHAIN_DATABASE_OPEN_FAILURE \
-    "Database failed to open, %1%."
-#define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
-    "Database failed to close, %1%."
 
 // --restore
+#define BN_SNAPSHOT_INVALID \
+    "Database snapshot disallowed due to corruption, '%1%'."
 #define BN_RESTORING_CHAIN \
-    "Please wait while restoring %1% from most recent snapshot..."
+    "Please wait while restoring from most recent snapshot..."
 #define BN_RESTORE_MISSING_FLUSH_LOCK \
     "Database is not corrupted, flush lock file is absent."
 #define BN_RESTORE_INVALID \
@@ -130,7 +128,7 @@ namespace node {
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \
-    "Progress...\n" \
+    "Chain progress...\n" \
     "   fork pt   :%1%\n" \
     "   top conf  :%2%:%3%\n" \
     "   top cand  :%4%:%5%\n" \
@@ -217,6 +215,10 @@ namespace node {
 #define BN_CHANNEL_STOP_TARGET \
     "Stop target: %1%"
 
+#define BN_LOG_TABLE \
+    "compiled:%1% enabled:%2%."
+#define BN_LOG_TABLE_HEADER \
+    "Log system configuration..."
 #define BN_LOG_INITIALIZE_FAILURE \
     "Failed to initialize logging."
 #define BN_USING_CONFIG_FILE \

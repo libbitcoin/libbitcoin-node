@@ -68,6 +68,21 @@ private:
     void handle_running(const system::code& ec);
     bool handle_stopped(const system::code& ec);
 
+    // Store measures.
+    void dump_sizes(auto&& writer) const;
+    void dump_records(auto&& writer) const;
+    void dump_buckets(auto&& writer) const;
+    void dump_progress(auto&& writer) const;
+    void dump_collisions(auto&& writer) const;
+
+    // Store functions.
+    bool check_store_path(bool create = false) const;
+    bool open_store(bool details = false);
+    bool close_store(bool details = false);
+    bool create_store(bool details = false);
+    bool backup_store(bool details = false);
+    bool restore_store(bool details = false);
+
     // Command line options.
     bool do_help();
     bool do_hardware();
@@ -85,19 +100,14 @@ private:
     bool do_run();
 
     // Runtime options.
+    void do_close();
     void do_backup();
     void do_resume();
-    void do_toggle_hold();
-    void do_report_errors() const;
-    void do_report_work() const;
+    void do_toggle_suspend();
     void do_information() const;
-
-    // Store measures.
-    void dump_sizes(auto&& writer) const;
-    void dump_records(auto&& writer) const;
-    void dump_buckets(auto&& writer) const;
-    void dump_progress(auto&& writer) const;
-    void dump_collisions(auto&& writer) const;
+    void do_report_work() const;
+    void do_report_condition() const;
+    void do_test() const;
 
     void scan_flags() const;
     void measure_size() const;
@@ -147,7 +157,7 @@ private:
     network::capture capture_{ input_, close_ };
     std_array<std::atomic_bool, add1(network::levels::verbose)> toggle_
     {
-        true,  // application
+        network::levels::application_defined,
         network::levels::news_defined,
         network::levels::session_defined,
         false, //network::levels::protocol_defined,

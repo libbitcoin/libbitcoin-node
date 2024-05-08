@@ -51,7 +51,7 @@ const std::unordered_map<std::string, uint8_t> executor::options_
     { "b", menu::backup },
     { "c", menu::close },
     { "e", menu::errors },
-    { "e", menu::hold },
+    { "h", menu::hold },
     { "i", menu::info },
     { "t", menu::test },
     { "w", menu::work },
@@ -1793,13 +1793,430 @@ void executor::write_test()
 
 #endif // UNDEFINED
 
-// Menu selection.
+// Store functions.
+// ----------------------------------------------------------------------------
+
+bool executor::check_store_path(bool create) const
+{
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+
+    if (create)
+    {
+        console(format(BN_INITIALIZING_CHAIN) % store);
+        if (!database::file::create_directory(store))
+        {
+            console(format(BN_INITCHAIN_EXISTS) % store);
+            return false;
+        }
+    }
+    else
+    {
+        if (!database::file::is_directory(store))
+        {
+            console(format(BN_UNINITIALIZED_DATABASE) % store);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool executor::create_store(bool details)
+{
+    console(BN_INITCHAIN_CREATING);
+    if (const auto ec = store_.create([&](auto event_, auto table)
+    {
+        if (details)
+            console(format(BN_CREATE) % events_.at(event_) % tables_.at(table));
+    }))
+    {
+        console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
+        return false;
+    }
+
+    return true;
+}
+
+bool executor::open_store(bool details)
+{
+    console(BN_DATABASE_STARTING);
+    if (const auto ec = store_.open([&](auto event_, auto table)
+    {
+        if (details)
+            console(format(BN_OPEN) % events_.at(event_) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    return true;
+}
+
+bool executor::close_store(bool details)
+{
+    console(BN_DATABASE_STOPPING);
+    if (const auto ec = store_.close([&](auto event_, auto table)
+    {
+        if (details)
+            console(format(BN_CLOSE) % events_.at(event_) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    return true;
+}
+
+bool executor::backup_store(bool details)
+{
+    logger(BN_NODE_BACKUP_STARTED);
+    const auto start = logger::now();
+    if (const auto ec = store_.snapshot([&](auto event, auto table)
+    {
+        // Suspend channels that missed previous suspend events.
+        if (node_ && event == database::event_t::wait_lock)
+            node_->suspend(error::store_snapshotting);
+
+        if (details)
+            logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
+        return false;
+    }
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_NODE_BACKUP_COMPLETE) % span.count());
+    return true;
+}
+
+bool executor::restore_store(bool details)
+{
+    console(format(BN_RESTORING_CHAIN));
+    if (const auto ec = store_.restore([&](auto event, auto table)
+    {
+        if (details)
+            console(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        if (ec == database::error::flush_lock)
+            console(BN_RESTORE_MISSING_FLUSH_LOCK);
+        else
+            console(format(BN_RESTORE_FAILURE) % ec.message());
+
+        return false;
+    }
+
+    return true;
+}
+
+// Command line options.
+// ----------------------------------------------------------------------------
+
+// --help[h]
+bool executor::do_help()
+{
+    log_.stop();
+    printer help(metadata_.load_options(), name_, BN_INFORMATION_MESSAGE);
+    help.initialize();
+    help.commandline(output_);
+    return true;
+}
+
+// --hardware[d]
+bool executor::do_hardware()
+{
+    console(format("Coming soon..."));
+    return true;
+}
+
+// --settings[s]
+bool executor::do_settings()
+{
+    log_.stop();
+    printer print(metadata_.load_settings(), name_, BN_SETTINGS_MESSAGE);
+    print.initialize();
+    print.settings(output_);
+    return true;
+}
+
+// --version[v]
+bool executor::do_version()
+{
+    log_.stop();
+    console(format(BN_VERSION_MESSAGE)
+        % LIBBITCOIN_NODE_VERSION
+        % LIBBITCOIN_DATABASE_VERSION
+        % LIBBITCOIN_NETWORK_VERSION
+        % LIBBITCOIN_SYSTEM_VERSION);
+    return true;
+}
+
+// --initchain[i]
+bool executor::do_initchain()
+{
+    log_.stop();
+    const auto start = logger::now();
+
+    if (!check_store_path(true) || !create_store(true) || !open_store())
+        return false;
+
+    // Create and confirm genesis block.
+    console(BN_INITCHAIN_DATABASE_INITIALIZE);
+    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
+    {
+        console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
+        return false;
+    }
+
+    // Records and sizes reflect genesis block only.
+    dump_sizes(output_);
+    dump_records(output_);
+    dump_buckets(output_);
+
+    // This one can take a few seconds on cold iron.
+    console(BN_MEASURE_PROGRESS_START);
+    dump_progress(output_);
+
+    if (!close_store(true)) return false;
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    console(format(BN_INITCHAIN_COMPLETE) % span.count());
+    return true;
+}
+
+// --restore[x]
+bool executor::do_restore()
+{
+    log_.stop();
+    const auto start = logger::now();
+    if (!check_store_path() || !restore_store(true))
+        return false;
+
+    // This one can take a few seconds on cold iron.
+    console(BN_MEASURE_PROGRESS_START);
+    dump_progress(output_);
+
+    if (!close_store(true)) 
+        return false;
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    console(format(BN_RESTORE_COMPLETE) % span.count());
+    return true;
+}
+
+// --flags[f]
+bool executor::do_flags()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    scan_flags();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --measure[m]
+bool executor::do_measure()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    measure_size();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --slabs[a]
+bool executor::do_slabs()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    scan_slabs();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --buckets[b]
+bool executor::do_buckets()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    scan_buckets();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --collisions[l]
+bool executor::do_collisions()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    scan_collisions();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --read[r]
+bool executor::do_read()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    read_test();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --write[w]
+bool executor::do_write()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store())
+        return false;
+
+    write_test();
+    if (!close_store())
+        return false;
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// Runtime options.
+// ----------------------------------------------------------------------------
+
+// [b]ackup
+void executor::do_backup()
+{
+    if (!node_)
+    {
+        logger(BN_NODE_BACKUP_UNAVAILABLE);
+        return;
+    }
+
+    if (const auto ec = store_.get_fault())
+    {
+        logger(format(BN_SNAPSHOT_INVALID) % ec.message());
+        return;
+    }
+
+    node_->suspend(error::store_snapshotting);
+    backup_store();
+    do_toggle_suspend();
+}
+
+// [c]lose
+void executor::do_close()
+{
+    logger("CONSOLE: Close");
+    stop(error::success);
+}
+
+// [e]rrors
+void executor::do_report_condition() const
+{
+    store_.report_errors([&](const auto& ec, auto table)
+    {
+        logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
+    });
+}
+
+// [h]old
+void executor::do_toggle_suspend()
+{
+    if (node_->suspended())
+    {
+        if (query_.is_full())
+            logger(BN_NODE_DISK_FULL);
+        else
+            node_->resume();
+    }
+    else
+    {
+        node_->suspend(error::suspended_service);
+    }
+}
+
+// [i]nformation
+void executor::do_information() const
+{
+    dump_sizes(log_.write(levels::application));
+    dump_records(log_.write(levels::application));
+    dump_buckets(log_.write(levels::application));
+    dump_collisions(log_.write(levels::application));
+    dump_progress(log_.write(levels::application));
+}
+
+// [t]est
+void executor::do_test() const
+{
+    read_test();
+}
+
+// [w]ork
+void executor::do_report_work() const
+{
+    node_->notify(error::success, chase::report, {});
+}
+
+// re[z]ume
+void executor::do_resume()
+{
+    // Any table with error::disk_full code.
+    if (query_.is_full())
+    {
+        logger(BN_NODE_DISK_FULL_RESET);
+        store_.clear_errors();
+        node_->resume();
+        return;
+    }
+
+    // Any table with any error code.
+    logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
+}
+
+// Command line menu selection.
 // ----------------------------------------------------------------------------
 
 bool executor::menu()
 {
     const auto& config = metadata_.configured;
-
     if (config.help)
         return do_help();
 
@@ -1843,555 +2260,6 @@ bool executor::menu()
         return do_restore();
 
     return do_run();
-}
-
-// Command line options.
-// ----------------------------------------------------------------------------
-
-// --help
-bool executor::do_help()
-{
-    log_.stop();
-    printer help(metadata_.load_options(), name_, BN_INFORMATION_MESSAGE);
-    help.initialize();
-    help.commandline(output_);
-    return true;
-}
-
-bool executor::do_hardware()
-{
-    console(format("Coming soon..."));
-    return true;
-}
-
-// --settings
-bool executor::do_settings()
-{
-    log_.stop();
-    printer print(metadata_.load_settings(), name_, BN_SETTINGS_MESSAGE);
-    print.initialize();
-    print.settings(output_);
-    return true;
-}
-
-// --version
-bool executor::do_version()
-{
-    log_.stop();
-    console(format(BN_VERSION_MESSAGE)
-        % LIBBITCOIN_NODE_VERSION
-        % LIBBITCOIN_DATABASE_VERSION
-        % LIBBITCOIN_NETWORK_VERSION
-        % LIBBITCOIN_SYSTEM_VERSION);
-    return true;
-}
-
-// --initchain
-bool executor::do_initchain()
-{
-    log_.stop();
-    const auto start = logger::now();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    console(format(BN_INITIALIZING_CHAIN) % store);
-    if (!database::file::create_directory(store))
-    {
-        console(format(BN_INITCHAIN_EXISTS) % store);
-        return false;
-    }
-
-    console(BN_INITCHAIN_CREATING);
-    if (const auto ec = store_.create([&](auto event_, auto table)
-    {
-        console(format(BN_CREATE) % events_.at(event_) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto event_, auto table)
-    {
-        console(format(BN_OPEN) % events_.at(event_) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
-        return false;
-    }
-
-    console(BN_INITCHAIN_DATABASE_INITIALIZE);
-    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
-    {
-        console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
-        return false;
-    }
-
-    // Records and sizes reflect genesis block only.
-    dump_sizes(output_);
-    dump_records(output_);
-    dump_buckets(output_);
-
-    // This one can take a few seconds on cold iron.
-    console(BN_MEASURE_PROGRESS_START);
-    dump_progress(output_);
-
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
-    {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
-        return false;
-    }
-
-    const auto span = duration_cast<seconds>(logger::now() - start);
-    console(format(BN_INITCHAIN_COMPLETE) % span.count());
-    return true;
-}
-
-// --restore
-bool executor::do_restore()
-{
-    log_.stop();
-    const auto start = logger::now();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    console(format(BN_RESTORING_CHAIN) % store);
-
-    if (const auto ec = store_.restore([&](auto event, auto table)
-    {
-        console(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        if (ec == database::error::flush_lock)
-            console(BN_RESTORE_MISSING_FLUSH_LOCK);
-        else
-            console(format(BN_RESTORE_FAILURE) % ec.message());
-        return false;
-    }
-
-    const auto span = duration_cast<seconds>(logger::now() - start);
-    console(format(BN_RESTORE_COMPLETE) % span.count());
-    return true;
-}
-
-// --flags
-bool executor::do_flags()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    scan_flags();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// --measure
-bool executor::do_measure()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    measure_size();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// --slabs
-bool executor::do_slabs()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    scan_slabs();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// --buckets
-bool executor::do_buckets()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    scan_buckets();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// --collisions[l]
-bool executor::do_collisions()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    scan_collisions();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// --read[x]
-bool executor::do_read()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    read_test();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// --write
-bool executor::do_write()
-{
-    log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
-        return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
-
-    write_test();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
-}
-
-// Runtime options.
-// ----------------------------------------------------------------------------
-
-void executor::do_backup()
-{
-    if (!node_)
-    {
-        logger(BN_NODE_BACKUP_UNAVAILABLE);
-        return;
-    }
-
-    if (const auto fault = store_.get_fault())
-    {
-        logger(format(BN_RESTORE_INVALID) % fault.message());
-        return;
-    }
-
-    logger(BN_NODE_BACKUP_STARTED);
-
-    const auto start = logger::now();
-    node_->suspend(error::store_snapshotting);
-    const auto code = store_.snapshot([&](auto event, auto table)
-    {
-        // Suspend channels that missed previous suspend events.
-        if (event == database::event_t::wait_lock)
-            node_->suspend(error::store_snapshotting);
-
-        logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
-    });
-
-    if (code)
-        logger(format(BN_NODE_BACKUP_FAIL) % code.message());
-    else
-        logger(format(BN_NODE_BACKUP_COMPLETE) %
-            duration_cast<seconds>(logger::now() - start).count());
-
-    // Disk may be full from previous condition.
-    do_toggle_hold();
-}
-
-void executor::do_toggle_hold()
-{
-    if (node_->suspended())
-    {
-        if (query_.is_full())
-            logger(BN_NODE_DISK_FULL);
-        else
-            node_->resume();
-    }
-    else
-    {
-        node_->suspend(error::suspended_service);
-    }
-}
-
-void executor::do_resume()
-{
-    // Any table with error::disk_full code.
-    if (query_.is_full())
-    {
-        logger(BN_NODE_DISK_FULL_RESET);
-        store_.clear_errors();
-        node_->resume();
-        return;
-    }
-
-    // Any table with any error code.
-    logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
-}
-
-void executor::do_report_errors() const
-{
-    store_.report_errors([&](const auto& ec, auto table)
-    {
-        logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
-    });
-}
-
-void executor::do_report_work() const
-{
-    node_->notify(error::success, chase::report, {});
-}
-
-void executor::do_information() const
-{
-    dump_sizes(log_.write(levels::application));
-    dump_records(log_.write(levels::application));
-    dump_buckets(log_.write(levels::application));
-    dump_collisions(log_.write(levels::application));
-    dump_progress(log_.write(levels::application));
 }
 
 // Run.
@@ -2458,6 +2326,7 @@ void executor::subscribe_events(std::ostream& sink)
     });
 }
 
+// Runtime menu selection.
 void executor::subscribe_capture()
 {
     // This is not on a network thread, so the node may call close() while this
@@ -2485,18 +2354,17 @@ void executor::subscribe_capture()
                 }
                 case menu::close:
                 {
-                    logger("CONSOLE: Close");
-                    stop(error::success);
+                    do_close();
                     return false;
                 }
                 case menu::errors:
                 {
-                    do_report_errors();
+                    do_report_condition();
                     return true;
                 }
                 case menu::hold:
                 {
-                    do_toggle_hold();
+                    do_toggle_suspend();
                     return true;
                 }
                 case menu::info:
@@ -2506,7 +2374,7 @@ void executor::subscribe_capture()
                 }
                 case menu::test:
                 {
-                    read_test();
+                    do_test();
                     return true;
                 }
                 case menu::work:
@@ -2558,31 +2426,15 @@ void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        ////if (to_bool(metadata_.configured.node.interval) &&
-        ////    is_zero(node_->channel_count() %
-        ////        metadata_.configured.node.interval))
-        {
-            log_.write(levels::application) <<
-                "{in:" << node_->inbound_channel_count() << "}"
-                "{ch:" << node_->channel_count() << "}"
-                "{rv:" << node_->reserved_count() << "}"
-                "{nc:" << node_->nonces_count() << "}"
-                "{ad:" << node_->address_count() << "}"
-                "{ss:" << node_->stop_subscriber_count() << "}"
-                "{cs:" << node_->connect_subscriber_count() << "}."
-                << std::endl;
-        }
-
-        ////if (to_bool(metadata_.configured.node.target) &&
-        ////    (node_->channel_count() >= metadata_.configured.node.target))
-        ////{
-        ////    log_.write(levels::application) << "Stopping at channel target ("
-        ////        << metadata_.configured.node.target << ")." << std::endl;
-        ////
-        ////    // Signal stop (simulates <ctrl-c>).
-        ////    stop(error::success);
-        ////    return false;
-        ////}
+        log_.write(levels::application) <<
+            "{in:" << node_->inbound_channel_count() << "}"
+            "{ch:" << node_->channel_count() << "}"
+            "{rv:" << node_->reserved_count() << "}"
+            "{nc:" << node_->nonces_count() << "}"
+            "{ad:" << node_->address_count() << "}"
+            "{ss:" << node_->stop_subscriber_count() << "}"
+            "{cs:" << node_->connect_subscriber_count() << "}."
+            << std::endl;
 
         return true;
     },
@@ -2638,6 +2490,19 @@ bool executor::do_run()
     subscribe_events(events);
     subscribe_capture();
     logger(BN_LOG_HEADER);
+
+    logger(BN_LOG_TABLE_HEADER);
+    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
+    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
+    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
+    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
+    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
+    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
+    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
+    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
+    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
+    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
+    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
 
     const auto& file = metadata_.configured.file;
     if (file.empty())
