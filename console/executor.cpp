@@ -1986,7 +1986,8 @@ bool executor::do_initchain()
     console(BN_MEASURE_PROGRESS_START);
     dump_progress(output_);
 
-    if (!close_store(true)) return false;
+    if (!close_store(true))
+        return false;
 
     const auto span = duration_cast<seconds>(logger::now() - start);
     console(format(BN_INITCHAIN_COMPLETE) % span.count());
