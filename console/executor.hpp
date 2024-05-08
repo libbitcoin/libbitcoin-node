@@ -70,6 +70,7 @@ private:
 
     // Command line options.
     bool do_help();
+    bool do_hardware();
     bool do_settings();
     bool do_version();
     bool do_initchain();

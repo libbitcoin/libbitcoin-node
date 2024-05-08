@@ -145,6 +145,12 @@ options_metadata parser::load_options() THROWS
         "Display command line options."
     )
     (
+        BN_HELP_VARIABLE ",d",
+        value<bool>(&configured.hardware)->
+            default_value(false)->zero_tokens(),
+        "Display hardware compatibility."
+    )
+    (
         BN_SETTINGS_VARIABLE ",s",
         value<bool>(&configured.settings)->
             default_value(false)->zero_tokens(),
@@ -891,17 +897,6 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.node.maximum_height),
         "The maximum block height to populate, defaults to 0 (unlimited)."
     )
-    // ### temporary hacks ###
-    ////(
-    ////    "node.target",
-    ////    value<uint16_t>(&configured.node.target),
-    ////    "Channel count that triggers node stop, defaults to 0 (0 disables)."
-    ////)
-    ////(
-    ////    "node.interval",
-    ////    value<uint16_t>(&configured.node.interval),
-    ////    "Channel count reporting interval, defaults to 0 (0 disables)."
-    ////)
     // #######################
     ////(
     ////    "node.notify_limit_hours",

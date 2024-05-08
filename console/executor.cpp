@@ -1803,6 +1803,9 @@ bool executor::menu()
         return do_help();
 
     if (config.settings)
+        return do_hardware();
+
+    if (config.settings)
         return do_settings();
 
     if (config.version)
@@ -1848,6 +1851,12 @@ bool executor::do_help()
     printer help(metadata_.load_options(), name_, BN_INFORMATION_MESSAGE);
     help.initialize();
     help.commandline(output_);
+    return true;
+}
+
+bool executor::do_hardware()
+{
+    console(format("Coming soon..."));
     return true;
 }
 

@@ -27,17 +27,7 @@ using namespace bc::system;
 
 // Construct with defaults derived from given context.
 configuration::configuration(system::chain::selection context) NOEXCEPT
-  : help(false),
-    initchain(false),
-    settings(false),
-    version(false),
-    measure(false),
-    buckets(false),
-    collisions(false),
-    flags(false),
-    read(false),
-    write(false),
-    log(context),
+  : log(context),
     node(context),
     database(context),
     network(context),

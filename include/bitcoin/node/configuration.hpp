@@ -61,24 +61,25 @@ public:
     std::filesystem::path file;
 
     /// Information.
-    bool help;
-    bool settings;
-    bool version;
+    bool help{};
+    bool hardware{};
+    bool settings{};
+    bool version{};
 
     /// Actions.
-    bool initchain;
-    bool restore;
+    bool initchain{};
+    bool restore{};
 
     /// Chain scans.
-    bool flags;
-    bool measure;
-    bool slabs;
-    bool buckets;
-    bool collisions;
+    bool flags{};
+    bool measure{};
+    bool slabs{};
+    bool buckets{};
+    bool collisions{};
 
     /// Ad-hoc Testing.
-    bool read;
-    bool write;
+    bool read{};
+    bool write{};
 
     /// Settings.
     log::settings log;
