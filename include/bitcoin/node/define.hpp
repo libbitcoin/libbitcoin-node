@@ -50,7 +50,6 @@ namespace libbitcoin {
 namespace node {
 
 /// Alias system code.
-/// TODO: std::error_code "node" category holds node::error::error_t.
 typedef std::error_code code;
 
 /// Organization types.
@@ -63,9 +62,11 @@ typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&)> map_handler;
 
 /// Node events.
+typedef uint64_t object_key;
 typedef uint64_t event_link;
-typedef network::subscriber<chase, event_link> event_subscriber;
+typedef network::desubscriber<object_key, chase, event_link> event_subscriber;
 typedef event_subscriber::handler event_handler;
+typedef event_subscriber::completer event_completer;
 
 /// Use for event_link variants (all unsigned integral integers).
 /// std::variant is inconsistent with interpretation of size_t as redundant or

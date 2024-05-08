@@ -71,26 +71,31 @@ void session::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
+object_key session::subscribe_events(event_handler&& handler) NOEXCEPT
+{
+    return node_.subscribe_events(std::move(handler));
+}
+
+void session::subscribe_events(event_handler&& handler,
+    event_completer&& complete) NOEXCEPT
+{
+    node_.subscribe_events(std::move(handler), std::move(complete));
+}
+
 void session::notify(const code& ec, chase event_, event_link value) NOEXCEPT
 {
     node_.notify(ec, event_, value);
 }
 
-void session::async_subscribe_events(event_handler&& handler) NOEXCEPT
+void session::notify_one(object_key key, const code& ec, chase event_,
+    event_link value) NOEXCEPT
 {
-    const auto self = session::shared_from_sibling<session,
-        network::session>();
-
-    boost::asio::post(node_.strand(),
-        std::bind(&session::subscribe_events,
-            self, std::move(handler)));
+    node_.notify_one(key, ec, event_, value);
 }
 
-// protected
-void session::subscribe_events(const event_handler& handler) NOEXCEPT
+void session::unsubscribe_events(object_key key) NOEXCEPT
 {
-    BC_ASSERT(node_.stranded());
-    node_.subscribe_events(move_copy(handler));
+    node_.unsubscribe_events(key);
 }
 
 // Methods.
@@ -116,7 +121,7 @@ void session::suspend(const code& ec) NOEXCEPT
 // Properties.
 // ----------------------------------------------------------------------------
 
-query& session::archive() const NOEXCEPT
+full_node::query& session::archive() const NOEXCEPT
 {
     return node_.archive();
 }

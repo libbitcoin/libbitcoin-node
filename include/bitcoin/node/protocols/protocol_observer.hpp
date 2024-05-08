@@ -41,10 +41,23 @@ public:
     {
     }
 
+    /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
-    virtual void handle_event(const code& ec,
-        chase event_, event_link value) NOEXCEPT;
+protected:
+    /// Handle event subscription completion.
+    virtual void complete_event(const code& ec, object_key key) NOEXCEPT;
+
+    /// Handle chaser events.
+    virtual bool handle_event(const code& ec, chase event_,
+        event_link value) NOEXCEPT;
+
+private:
+    void do_complete_event(const code& ec, object_key key) NOEXCEPT;
+
+    // This is protected by strand.
+    object_key key_{};
 };
 
 } // namespace node

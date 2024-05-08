@@ -37,17 +37,47 @@ void protocol_observer::start() NOEXCEPT
     if (started())
         return;
 
-    // Events subscription is asynchronous.
-    async_subscribe_events(BIND(handle_event, _1, _2, _3));
+    // Events subscription is asynchronous, events may be missed.
+    subscribe_events(BIND(handle_event, _1, _2, _3),
+        BIND(complete_event, _1, _2));
 
     protocol::start();
 }
 
-void protocol_observer::handle_event(const code&, chase event_,
+// protected
+void protocol_observer::complete_event(const code& ec, object_key key) NOEXCEPT
+{
+    POST(do_complete_event, ec, key);
+}
+
+// private
+void protocol_observer::do_complete_event(const code&,
+    object_key key) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    key_ = key;
+
+    // stopped() is true before stopping() is called (by base).
+    if (stopped())
+    {
+        unsubscribe_events(key_);
+        return;
+    }
+}
+
+// If this is invoked before do_complete_event then it will unsubscribe.
+void protocol_observer::stopping(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    unsubscribe_events(key_);
+    protocol::stopping(ec);
+}
+
+bool protocol_observer::handle_event(const code&, chase event_,
     event_link) NOEXCEPT
 {
     if (stopped())
-        return;
+        return false;
 
     switch (event_)
     {
@@ -58,14 +88,15 @@ void protocol_observer::handle_event(const code&, chase event_,
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 } // namespace node

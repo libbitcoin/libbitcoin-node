@@ -37,14 +37,14 @@ full_node::full_node(query& query, const configuration& configuration,
   : p2p(configuration.network, log),
     config_(configuration),
     query_(query),
-    event_subscriber_(strand()),
     chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
     chaser_preconfirm_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
-    chaser_template_(*this)
+    chaser_template_(*this),
+    event_subscriber_(strand())
 {
 }
 
@@ -120,8 +120,7 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    event_subscriber_.stop(network::error::service_stopped, chase::stop,
-        error::success);
+    event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();
 }
 
@@ -154,13 +153,33 @@ void full_node::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
-code full_node::subscribe_events(event_handler&& handler) NOEXCEPT
+object_key full_node::subscribe_events(event_handler&& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    return event_subscriber_.subscribe(std::move(handler));
+    const auto key = create_key();
+    event_subscriber_.subscribe(std::move(handler), key);
+    return key;
 }
 
-void full_node::notify(const code& ec, chase event_, event_link value) NOEXCEPT
+void full_node::subscribe_events(event_handler&& handler,
+    event_completer&& complete) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&full_node::do_subscribe_events,
+            this, std::move(handler), std::move(complete)));
+}
+
+// private
+void full_node::do_subscribe_events(const event_handler& handler,
+    const event_completer& complete) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto key = create_key();
+    complete(event_subscriber_.subscribe(move_copy(handler), key), key);
+}
+
+void full_node::notify(const code& ec, chase event_,
+    event_link value) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&full_node::do_notify,
@@ -173,6 +192,43 @@ void full_node::do_notify(const code& ec, chase event_,
 {
     BC_ASSERT(stranded());
     event_subscriber_.notify(ec, event_, value);
+}
+
+void full_node::notify_one(object_key key, const code& ec, chase event_,
+    event_link value) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&full_node::do_notify_one,
+            this, key, ec, event_, value));
+}
+
+// private
+void full_node::do_notify_one(object_key key, const code& ec, chase event_,
+    event_link value) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    event_subscriber_.notify_one(key, ec, event_, value);
+}
+
+void full_node::unsubscribe_events(object_key key) NOEXCEPT
+{
+    notify_one(key, network::error::service_stopped, chase::stop, {});
+}
+
+// private
+// At one object/session/ns, this overflows in ~585 years (and handled).
+// Could just use channel.identifier() if we didn't have subscribed chasers.
+object_key full_node::create_key() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (is_zero(++keys_))
+    {
+        BC_ASSERT_MSG(false, "overflow");
+        LOGF("Session object overflow.");
+    }
+
+    return keys_;
 }
 
 // Suspensions.

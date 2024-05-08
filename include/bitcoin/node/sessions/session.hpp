@@ -55,12 +55,23 @@ public:
     /// Events.
     /// -----------------------------------------------------------------------
 
+    /// Subscribe to chaser events (requires node strand).
+    virtual object_key subscribe_events(event_handler&& handler) NOEXCEPT;
+
+    /// Subscribe to chaser events.
+    virtual void subscribe_events(event_handler&& handler,
+        event_completer&& complete) NOEXCEPT;
+
     /// Set a chaser event.
     virtual void notify(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    /// Subscribe to chaser events.
-    virtual void async_subscribe_events(event_handler&& handler) NOEXCEPT;
+    /// Set chaser event for the given subscriber only.
+    virtual void notify_one(object_key key, const code& ec, chase event_,
+        event_link value) NOEXCEPT;
+
+    /// Unsubscribe from chaser events.
+    virtual void unsubscribe_events(object_key key) NOEXCEPT;
 
     /// Methods.
     /// -----------------------------------------------------------------------
@@ -79,7 +90,7 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Thread safe synchronous archival interface.
-    query& archive() const NOEXCEPT;
+    full_node::query& archive() const NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
@@ -91,8 +102,10 @@ protected:
     template <class Sibling, class Shared>
     std::shared_ptr<Sibling> shared_from_sibling() NOEXCEPT
     {
+        BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
         return std::dynamic_pointer_cast<Sibling>(
             dynamic_cast<Shared*>(this)->shared_from_this());
+        BC_POP_WARNING()
     }
 
     /// Constructors.
@@ -101,11 +114,9 @@ protected:
     session(full_node& node) NOEXCEPT;
     ~session() NOEXCEPT;
 
-    /// Events.
-    /// -----------------------------------------------------------------------
-
-    /// Subscribe to chaser events (requires strand).
-    virtual void subscribe_events(const event_handler& handler) NOEXCEPT;
+private:
+    void do_subscribe_events(const event_handler& handler,
+        const event_completer& complete) NOEXCEPT;
 
 private:
     // This is thread safe (mostly).

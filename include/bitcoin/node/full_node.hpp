@@ -75,21 +75,32 @@ public:
     /// Events.
     /// -----------------------------------------------------------------------
 
-    /// Set chaser event (does not require network strand).
+    /// Call from chaser start() methods (requires strand).
+    virtual object_key subscribe_events(event_handler&& handler) NOEXCEPT;
+
+    /// Call from protocol start() methods.
+    virtual void subscribe_events(event_handler&& handler,
+        event_completer&& complete) NOEXCEPT;
+
+    /// Set chaser event.
     virtual void notify(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    /// Call from chaser start() methods (node strand).
-    virtual code subscribe_events(event_handler&& handler) NOEXCEPT;
+    /// Set chaser event for the given subscriber only.
+    virtual void notify_one(object_key key, const code& ec, chase event_,
+        event_link value) NOEXCEPT;
+
+    /// Unsubscribe from chaser events.
+    virtual void unsubscribe_events(object_key key) NOEXCEPT;
 
     /// Suspensions.
     /// -----------------------------------------------------------------------
 
     /// Suspend nework connections.
-    void suspend(const code& ec) NOEXCEPT override;
+    virtual void suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
-    void resume() NOEXCEPT override;
+    virtual void resume() NOEXCEPT override;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -120,14 +131,18 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
+    object_key create_key() NOEXCEPT;
+    void do_subscribe_events(const event_handler& handler,
+        const event_completer& complete) NOEXCEPT;
     void do_notify(const code& ec, chase event_, event_link value) NOEXCEPT;
+    void do_notify_one(object_key key, const code& ec, chase event_,
+        event_link value) NOEXCEPT;
 
     // These are thread safe.
     const configuration& config_;
     query& query_;
 
     // These are protected by strand.
-    event_subscriber event_subscriber_;
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
@@ -135,6 +150,8 @@ private:
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
     chaser_template chaser_template_;
+    event_subscriber event_subscriber_;
+    object_key keys_{};
 };
 
 } // namespace node

@@ -77,12 +77,16 @@ protected:
     /// Events.
     /// -----------------------------------------------------------------------
 
+    /// Subscribe to chaser events.
+    virtual void subscribe_events(event_handler&& handler,
+        event_completer&& complete) NOEXCEPT;
+
     /// Set a chaser event.
     virtual void notify(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
-    /// Subscribe to chaser events.
-    virtual void async_subscribe_events(event_handler&& handler) NOEXCEPT;
+    /// Unsubscribe from chaser events.
+    virtual void unsubscribe_events(object_key key) NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -97,7 +101,11 @@ protected:
     virtual bool is_current() const NOEXCEPT;
 
 private:
+    // This is thread safe.
     const session::ptr session_;
+
+    // This is protected by strand.
+    object_key key_{};
 };
 
 } // namespace node
