@@ -43,7 +43,7 @@ namespace node {
 #define BN_INITCHAIN_CREATING \
     "Please wait while creating the database..."
 #define BN_INITCHAIN_COMPLETE \
-    "Created and initialized empty chain in %1% ms."
+    "Created and initialized empty chain in %1% secs."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
     "Database creation failed with error, '%1%'."
 #define BN_INITCHAIN_DATABASE_INITIALIZE \
@@ -65,7 +65,7 @@ namespace node {
 #define BN_RESTORE_FAILURE \
     "Database restore failed with error, '%1%'."
 #define BN_RESTORE_COMPLETE \
-    "Restored database in %1% ms."
+    "Restored database in %1% secs."
 
 // --measure
 #define BN_MEASURE_SIZES \
@@ -177,11 +177,13 @@ namespace node {
 #define BN_NODE_BACKUP_FAIL \
     "Node failed to backup with error, %1%."
 #define BN_NODE_BACKUP_COMPLETE \
-    "Node backup complete."
+    "Node backup complete in %1% secs."
 #define BN_NODE_DISK_FULL_RESET \
     "Node reset from disk full condition."
 #define BN_NODE_UNRECOVERABLE \
     "Node is not in recoverable condition."
+#define BN_NODE_DISK_FULL \
+    "Node cannot resume because its disk is full."
 #define BN_NODE_OK \
     "Node is ok."
 #define BN_NODE_STARTED \
@@ -201,6 +203,8 @@ namespace node {
     "Database failed to stop with error, %1%."
 #define BN_DATABASE_STOPPED \
     "Database stopped successfully."
+#define BN_DATABASE_TIMED_STOP \
+    "Database stopped successfully in %1% secs."
 
 #define BN_NETWORK_STOPPING \
     "Please wait while the network is stopping..."

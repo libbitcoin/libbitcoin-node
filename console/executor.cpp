@@ -37,33 +37,50 @@ using boost::format;
 using system::config::printer;
 using namespace network;
 using namespace system;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 // for --help only
 const std::string executor::name_{ "bn" };
 
-// runtime options
-const std::string executor::backup_{ "b" };
+// for capture only
 const std::string executor::close_{ "c" };
-const std::string executor::distro_{ "d" };
-const std::string executor::errors_{ "e" };
-const std::string executor::go_{ "g" };
-const std::string executor::measure_{ "m" };
-const std::string executor::explore_{ "x" };
 
-const std::unordered_map<uint8_t, bool> executor::defined_
+const std::unordered_map<std::string, uint8_t> executor::options_
 {
-    { levels::application, true },
-    { levels::news,        levels::news_defined },
-    { levels::session,     levels::session_defined },
-    { levels::protocol,    levels::protocol_defined },
-    { levels::proxy,       levels::proxy_defined },
-    { levels::wire,        levels::wire_defined },
-    { levels::remote,      levels::remote_defined },
-    { levels::fault,       levels::fault_defined },
-    { levels::quit,        levels::quit_defined },
-    { levels::objects,     levels::objects_defined },
-    { levels::verbose,     levels::verbose_defined },
+    { "b", menu::backup },
+    { "c", menu::close },
+    { "e", menu::errors },
+    { "e", menu::hold },
+    { "i", menu::info },
+    { "t", menu::test },
+    { "w", menu::work },
+    { "z", menu::zoom }
+};
+const std::unordered_map<uint8_t, std::string> executor::menu_
+{
+    { menu::backup, "[b]ackup" },
+    { menu::close,  "[c]lose" },
+    { menu::errors, "[e]rrors" },
+    { menu::hold,   "[h]old" },
+    { menu::info,   "[i]nformation" },
+    { menu::test,   "[t]est" },
+    { menu::work,   "[w]ork" },
+    { menu::zoom,   "[z]oom" }
+};
+const std::unordered_map<std::string, uint8_t> executor::toggles_
+{
+    { "a", levels::application },
+    { "n", levels::news },
+    { "s", levels::session },
+    { "p", levels::protocol },
+    { "x", levels::proxy },
+    { "w", levels::wire },
+    { "r", levels::remote },
+    { "f", levels::fault },
+    { "q", levels::quit },
+    { "o", levels::objects },
+    { "v", levels::verbose }
 };
 const std::unordered_map<uint8_t, std::string> executor::display_
 {
@@ -79,19 +96,19 @@ const std::unordered_map<uint8_t, std::string> executor::display_
     { levels::objects,     "toggle Objects" },
     { levels::verbose,     "toggle Verbose" }
 };
-const std::unordered_map<std::string, uint8_t> executor::keys_
+const std::unordered_map<uint8_t, bool> executor::defined_
 {
-    { "a", levels::application },
-    { "n", levels::news },
-    { "s", levels::session },
-    { "p", levels::protocol },
-    { "x", levels::proxy },
-    { "w", levels::wire },
-    { "r", levels::remote },
-    { "f", levels::fault },
-    { "q", levels::quit },
-    { "o", levels::objects },
-    { "v", levels::verbose }
+    { levels::application, true },
+    { levels::news,        levels::news_defined },
+    { levels::session,     levels::session_defined },
+    { levels::protocol,    levels::protocol_defined },
+    { levels::proxy,       levels::proxy_defined },
+    { levels::wire,        levels::wire_defined },
+    { levels::remote,      levels::remote_defined },
+    { levels::fault,       levels::fault_defined },
+    { levels::quit,        levels::quit_defined },
+    { levels::objects,     levels::objects_defined },
+    { levels::verbose,     levels::verbose_defined },
 };
 const std::unordered_map<uint8_t, std::string> executor::fired_
 {
@@ -119,7 +136,7 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
 const std::unordered_map<database::event_t, std::string> executor::events_
 {
     { database::event_t::create_file, "create_file" },
-    { database::event_t::open_file, "open_file" },
+    { database::event_t::open_file,   "open_file" },
     { database::event_t::load_file, "load_file" },
     { database::event_t::unload_file, "unload_file" },
     { database::event_t::close_file, "close_file" },
@@ -236,6 +253,91 @@ void executor::stopper(const auto& message)
     stopped_.get_future().wait();
 }
 
+// Measures.
+// ----------------------------------------------------------------------------
+
+void executor::dump_sizes(auto&& writer) const
+{
+    writer << (format(BN_MEASURE_SIZES) %
+        query_.header_size() %
+        query_.txs_size() %
+        query_.tx_size() %
+        query_.point_size() %
+        query_.input_size() %
+        query_.output_size() %
+        query_.puts_size() %
+        query_.candidate_size() %
+        query_.confirmed_size() %
+        query_.spend_size() %
+        query_.strong_tx_size() %
+        query_.validated_tx_size() %
+        query_.validated_bk_size() %
+        query_.address_size() %
+        query_.neutrino_size()) << std::endl;
+}
+
+void executor::dump_records(auto&& writer) const
+{
+    writer << (format(BN_MEASURE_RECORDS) %
+        query_.header_records() %
+        query_.tx_records() %
+        query_.point_records() %
+        query_.candidate_records() %
+        query_.confirmed_records() %
+        query_.spend_records() %
+        query_.strong_tx_records() %
+        query_.address_records()) << std::endl;
+}
+
+void executor::dump_buckets(auto&& writer) const
+{
+    writer << (format(BN_MEASURE_BUCKETS) %
+        query_.header_buckets() %
+        query_.txs_buckets() %
+        query_.tx_buckets() %
+        query_.point_buckets() %
+        query_.spend_buckets() %
+        query_.strong_tx_buckets() %
+        query_.validated_tx_buckets() %
+        query_.validated_bk_buckets() %
+        query_.address_buckets() %
+        query_.neutrino_buckets()) << std::endl;
+}
+
+void executor::dump_progress(auto&& writer) const
+{
+    writer << (format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(
+            query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(
+            query_.get_top_candidate()))) %
+        query_.get_top_associated() %
+        (query_.get_top_candidate() - query_.get_unassociated_count()) %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size()) << std::endl;
+}
+
+// txs, validated_tx, validated_bk collision rates assume 1:1 records.
+void executor::dump_collisions(auto&& writer) const
+{
+    writer << (format(BN_MEASURE_COLLISION_RATES) %
+        ((1.0 * query_.header_records()) / query_.header_buckets()) %
+        ((1.0 * query_.header_records()) / query_.txs_buckets()) %
+        ((1.0 * query_.tx_records()) / query_.tx_buckets()) %
+        ((1.0 * query_.point_records()) / query_.point_buckets()) %
+        ((1.0 * query_.spend_records()) / query_.spend_buckets()) %
+        ((1.0 * query_.strong_tx_records()) / query_.strong_tx_buckets()) %
+        ((1.0 * query_.tx_records()) / query_.validated_tx_buckets()) %
+        ((1.0 * query_.header_records()) / query_.validated_bk_buckets()) %
+        (query_.address_enabled() ? ((1.0 * query_.address_records()) /
+            query_.address_buckets()) : 0) %
+        (query_.neutrino_enabled() ? ((1.0 * query_.header_records()) /
+            query_.neutrino_buckets()) : 0)) << std::endl;
+}
+
 // fork flag transitions (candidate chain).
 void executor::scan_flags() const
 {
@@ -276,68 +378,14 @@ void executor::scan_flags() const
 // file and logical sizes.
 void executor::measure_size() const
 {
-    // txs, validated_tx, validated_bk collision rates assume 1:1 records.
-    console(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_size());
-    console(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    console(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets() %
-        query_.address_buckets() %
-        query_.neutrino_buckets());
-    console(format(BN_MEASURE_COLLISION_RATES) %
-        ((1.0 * query_.header_records()) / query_.header_buckets()) %
-        ((1.0 * query_.header_records()) / query_.txs_buckets()) %
-        ((1.0 * query_.tx_records()) / query_.tx_buckets()) %
-        ((1.0 * query_.point_records()) / query_.point_buckets()) %
-        ((1.0 * query_.spend_records()) / query_.spend_buckets()) %
-        ((1.0 * query_.strong_tx_records()) / query_.strong_tx_buckets()) %
-        ((1.0 * query_.tx_records()) / query_.validated_tx_buckets()) %
-        ((1.0 * query_.header_records()) / query_.validated_bk_buckets()) %
-        (query_.address_enabled() ? ((1.0 * query_.address_records()) /
-            query_.address_buckets()) : 0) %
-        (query_.neutrino_enabled() ? ((1.0 * query_.header_records()) /
-            query_.neutrino_buckets()) : 0));
+    dump_sizes(output_);
+    dump_records(output_);
+    dump_buckets(output_);
+    dump_collisions(output_);
+
     // This one can take a few seconds on cold iron.
     console(BN_MEASURE_PROGRESS_START);
-    console(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    dump_progress(output_);
 
 #if defined(UNDEFINED)
     console(BN_MEASURE_SLABS);
@@ -1854,53 +1902,13 @@ bool executor::do_initchain()
     }
 
     // Records and sizes reflect genesis block only.
-    console(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_buckets());
-    console(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    console(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets() %
-        query_.address_buckets() %
-        query_.neutrino_buckets());
-    logger(BN_MEASURE_PROGRESS_START);
-    logger(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    dump_sizes(output_);
+    dump_records(output_);
+    dump_buckets(output_);
+
+    // This one can take a few seconds on cold iron.
+    console(BN_MEASURE_PROGRESS_START);
+    dump_progress(output_);
 
     console(BN_DATABASE_STOPPING);
     if (const auto ec = store_.close([&](auto event, auto table)
@@ -1912,7 +1920,7 @@ bool executor::do_initchain()
         return false;
     }
 
-    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    const auto span = duration_cast<seconds>(logger::now() - start);
     console(format(BN_INITCHAIN_COMPLETE) % span.count());
     return true;
 }
@@ -1943,7 +1951,7 @@ bool executor::do_restore()
         return false;
     }
 
-    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    const auto span = duration_cast<seconds>(logger::now() - start);
     console(format(BN_RESTORE_COMPLETE) % span.count());
     return true;
 }
@@ -2218,6 +2226,98 @@ bool executor::do_write()
     return true;
 }
 
+// Runtime options.
+// ----------------------------------------------------------------------------
+
+void executor::do_backup()
+{
+    if (!node_)
+    {
+        logger(BN_NODE_BACKUP_UNAVAILABLE);
+        return;
+    }
+
+    if (const auto fault = store_.get_fault())
+    {
+        logger(format(BN_RESTORE_INVALID) % fault.message());
+        return;
+    }
+
+    logger(BN_NODE_BACKUP_STARTED);
+
+    const auto start = logger::now();
+    node_->suspend(error::store_snapshotting);
+    const auto code = store_.snapshot([&](auto event, auto table)
+    {
+        // Suspend channels that missed previous suspend events.
+        if (event == database::event_t::wait_lock)
+            node_->suspend(error::store_snapshotting);
+
+        logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
+    });
+
+    if (code)
+        logger(format(BN_NODE_BACKUP_FAIL) % code.message());
+    else
+        logger(format(BN_NODE_BACKUP_COMPLETE) %
+            duration_cast<seconds>(logger::now() - start).count());
+
+    // Disk may be full from previous condition.
+    do_toggle_hold();
+}
+
+void executor::do_toggle_hold()
+{
+    if (node_->suspended())
+    {
+        if (query_.is_full())
+            logger(BN_NODE_DISK_FULL);
+        else
+            node_->resume();
+    }
+    else
+    {
+        node_->suspend(error::suspended_service);
+    }
+}
+
+void executor::do_resume()
+{
+    // Any table with error::disk_full code.
+    if (query_.is_full())
+    {
+        logger(BN_NODE_DISK_FULL_RESET);
+        store_.clear_errors();
+        node_->resume();
+        return;
+    }
+
+    // Any table with any error code.
+    logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
+}
+
+void executor::do_report_errors() const
+{
+    store_.report_errors([&](const auto& ec, auto table)
+    {
+        logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
+    });
+}
+
+void executor::do_report_work() const
+{
+    node_->notify(error::success, chase::report, {});
+}
+
+void executor::do_information() const
+{
+    dump_sizes(log_.write(levels::application));
+    dump_records(log_.write(levels::application));
+    dump_buckets(log_.write(levels::application));
+    dump_collisions(log_.write(levels::application));
+    dump_progress(log_.write(levels::application));
+}
+
 // Run.
 // ----------------------------------------------------------------------------
 
@@ -2288,117 +2388,88 @@ void executor::subscribe_capture()
     // is running a backup (for example), resulting in a try_lock warning loop.
     capture_.subscribe([&](const code& ec, const std::string& line)
     {
+        // <control>-c emits empty token on Win32, causing menu emit on stop.
         const auto token = system::trim_copy(line);
-
-        if (token == close_)
+        if (token.empty())
         {
-            logger("CONSOLE: Close");
-            stop(error::success);
-            return false;
-        }
-
-        if (token == distro_)
-        {
-            node_->notify(error::success, chase::report, {});
-            return true;
-        }
-
-        // TODO: add option to toggle inbound/outbound connections.
-        if (token == go_)
-        {
-            // Any table with error::disk_full code.
-            if (query_.is_full())
-            {
-                logger(BN_NODE_DISK_FULL_RESET);
-                store_.clear_errors();
-                node_->resume();
-                return true;
-            }
-
-            // Any table with any error code.
-            logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
-            return true;
-        }
-
-        if (token == errors_)
-        {
-            store_.report_errors([&](const auto& ec, auto table)
-            {
-                logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
-            });
+            for (const auto option: menu_)
+                logger(format("Option: %1%") % option.second);
 
             return true;
         }
 
-        if (token == backup_)
+        if (options_.contains(token))
         {
-            if (!node_)
+            switch (options_.at(token))
             {
-                logger(BN_NODE_BACKUP_UNAVAILABLE);
-                return true;
+                case menu::backup:
+                {
+                    do_backup();
+                    return true;
+                }
+                case menu::close:
+                {
+                    logger("CONSOLE: Close");
+                    stop(error::success);
+                    return false;
+                }
+                case menu::errors:
+                {
+                    do_report_errors();
+                    return true;
+                }
+                case menu::hold:
+                {
+                    do_toggle_hold();
+                    return true;
+                }
+                case menu::info:
+                {
+                    do_information();
+                    return true;
+                }
+                case menu::test:
+                {
+                    read_test();
+                    return true;
+                }
+                case menu::work:
+                {
+                    do_report_work();
+                    return true;
+                }
+                case menu::zoom:
+                {
+                    do_resume();
+                    return true;
+                }
+                default:
+                {
+                    logger("CONSOLE: Unexpected option.");
+                    return true;
+                }
             }
+        }
 
-            if (const auto fault = store_.get_fault())
+        if (toggles_.contains(token))
+        {
+            const auto toggle = toggles_.at(token);
+            if (defined_.at(toggle))
             {
-                logger(format(BN_RESTORE_INVALID) % fault.message());
-                return true;
+                toggle_.at(toggle) = !toggle_.at(toggle);
+                logger("CONSOLE: " + display_.at(toggle) + (toggle_.at(toggle) ?
+                    " logging (+)." : " logging (-)."));
             }
-
-            logger(BN_NODE_BACKUP_STARTED);
-            node_->suspend(error::store_snapshotting);
-
-            const auto error = store_.snapshot([&](auto event, auto table)
-            {
-                // Suspend channels that missed previous suspend events.
-                if (event == database::event_t::wait_lock)
-                    node_->suspend(error::store_snapshotting);
-
-                logger(format(BN_BACKUP) % events_.at(event) %
-                    tables_.at(table));
-            });
-
-            if (error)
-                logger(format(BN_NODE_BACKUP_FAIL) % error.message());
             else
-                logger(format(BN_NODE_BACKUP_COMPLETE));
+            {
+                // Selected log level was not compiled.
+                logger("CONSOLE: " + display_.at(toggle) + " logging (~).");
+            }
 
-            // Not from the backup but of previous condition.
-            if (!query_.is_full()) node_->resume();
             return true;
         }
 
-        if (token == measure_)
-        {
-            measure_size();
-            return !ec;
-        }
-
-        if (token == explore_)
-        {
-            read_test();
-            return !ec;
-        }
-
-        // Toggles...
-        if (!keys_.contains(token))
-        {
-            logger("CONSOLE: '" + line + "'");
-            return !ec;
-        }
-
-        const auto index = keys_.at(token);
-        if (defined_.at(index))
-        {
-            toggle_.at(index) = !toggle_.at(index);
-            logger("CONSOLE: " + display_.at(index) + (toggle_.at(index) ?
-                " logging (+)." : " logging (-)."));
-        }
-        else
-        {
-            // Selected log level was not compiled.
-            logger("CONSOLE: " + display_.at(index) + " logging (~).");
-        }
-
+        logger("CONSOLE: '" + line + "'");
         return !ec;
     },
     [&](const code&)
@@ -2522,53 +2593,13 @@ bool executor::do_run()
         return false;
     }
 
-    logger(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_size());
-    logger(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    logger(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets() %
-        query_.address_buckets() %
-        query_.neutrino_buckets());
-    logger(BN_MEASURE_PROGRESS_START);
-    logger(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    dump_sizes(log_.write(levels::application));
+    dump_records(log_.write(levels::application));
+    dump_buckets(log_.write(levels::application));
+
+    // This one can take a few seconds on cold iron.
+    log_.write(levels::application) << BN_MEASURE_PROGRESS_START << std::endl;
+    dump_progress(log_.write(levels::application));
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -2593,45 +2624,17 @@ bool executor::do_run()
     // Stop network (if not already stopped by self).
     node_->close();
 
-    logger(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_size());
-    logger(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    logger(BN_MEASURE_PROGRESS_START);
-    logger(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    // All measures can change except buckets.
+    dump_sizes(log_.write(levels::application));
+    dump_records(log_.write(levels::application));
+
+    // This one can take a few seconds on cold iron.
+    log_.write(levels::application) << BN_MEASURE_PROGRESS_START << std::endl;
+    dump_progress(log_.write(levels::application));
 
     // Close store (flush to disk).
     logger(BN_DATABASE_STOPPING);
+    const auto start = logger::now();
     if (const auto ec = store_.close([&](auto event, auto table)
     {
         logger(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
@@ -2641,6 +2644,10 @@ bool executor::do_run()
         stopper(BN_NODE_STOPPED);
         return false;
     }
+
+    // Store is stopped.
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    stopper((format(BN_DATABASE_TIMED_STOP) % span.count()).str());
 
     // Node is stopped.
     stopper(BN_NODE_STOPPED);

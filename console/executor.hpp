@@ -41,6 +41,18 @@ public:
     bool menu();
 
 private:
+    enum menu : uint8_t
+    {
+        backup,
+        close,
+        errors,
+        hold,
+        info,
+        test,
+        work,
+        zoom
+    };
+
     using rotator_t = database::file::stream::out::rotator;
 
     void logger(const auto& message) const;
@@ -56,6 +68,7 @@ private:
     void handle_running(const system::code& ec);
     bool handle_stopped(const system::code& ec);
 
+    // Command line options.
     bool do_help();
     bool do_settings();
     bool do_version();
@@ -69,13 +82,20 @@ private:
     bool do_write();
     bool do_run();
 
-    rotator_t create_log_sink() const;
-    system::ofstream create_event_sink() const;
-    void subscribe_log(std::ostream& sink);
-    void subscribe_events(std::ostream& sink);
-    void subscribe_capture();
-    void subscribe_connect();
-    void subscribe_close();
+    // Runtime options.
+    void do_backup();
+    void do_resume();
+    void do_toggle_hold();
+    void do_report_errors() const;
+    void do_report_work() const;
+    void do_information() const;
+
+    // Store measures.
+    void dump_sizes(auto&& writer) const;
+    void dump_records(auto&& writer) const;
+    void dump_buckets(auto&& writer) const;
+    void dump_progress(auto&& writer) const;
+    void dump_collisions(auto&& writer) const;
 
     void scan_flags() const;
     void measure_size() const;
@@ -84,20 +104,31 @@ private:
     void read_test() const;
     void write_test();
 
+    rotator_t create_log_sink() const;
+    system::ofstream create_event_sink() const;
+    void subscribe_log(std::ostream& sink);
+    void subscribe_events(std::ostream& sink);
+    void subscribe_capture();
+    void subscribe_connect();
+    void subscribe_close();
+    
     static const std::string name_;
-    static const std::string backup_;
     static const std::string close_;
-    static const std::string distro_;
-    static const std::string errors_;
-    static const std::string go_;
-    static const std::string measure_;
-    static const std::string explore_;
-    static const std::unordered_map<uint8_t, bool> defined_;
+
+    // Runtime options.
+    static const std::unordered_map<std::string, uint8_t> options_;
+    static const std::unordered_map<uint8_t, std::string> menu_;
+
+    // Runtime toggles.
+    static const std::unordered_map<std::string, uint8_t> toggles_;
     static const std::unordered_map<uint8_t, std::string> display_;
-    static const std::unordered_map<std::string, uint8_t> keys_;
+    static const std::unordered_map<uint8_t, bool> defined_;
+
+    // Runtime events.
     static const std::unordered_map<uint8_t, std::string> fired_;
     static const std::unordered_map<database::event_t, std::string> events_;
     static const std::unordered_map<database::table_t, std::string> tables_;
+
     static std::promise<system::code> stopping_;
     static std::atomic_bool cancel_;
 
