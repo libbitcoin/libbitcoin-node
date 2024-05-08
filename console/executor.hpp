@@ -76,6 +76,7 @@ private:
     bool do_restore();
     bool do_flags();
     bool do_measure();
+    bool do_slabs();
     bool do_buckets();
     bool do_collisions();
     bool do_read();
@@ -101,6 +102,7 @@ private:
     void measure_size() const;
     void scan_buckets() const;
     void scan_collisions() const;
+    void scan_slabs() const;
     void read_test() const;
     void write_test();
 

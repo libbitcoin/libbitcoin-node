@@ -387,8 +387,11 @@ void executor::measure_size() const
     // This one can take a few seconds on cold iron.
     console(BN_MEASURE_PROGRESS_START);
     dump_progress(output_);
+}
 
-#if !defined(UNDEFINED)
+// input and output table slab counts.
+void executor::scan_slabs() const
+{
     console(BN_MEASURE_SLABS);
     console(BN_OPERATION_INTERRUPT);
     database::tx_link::integer link{};
@@ -414,7 +417,6 @@ void executor::measure_size() const
 
     const auto span = duration_cast<seconds>(fine_clock::now() - start);
     console(format(BN_MEASURE_STOP) % inputs % outputs % span.count());
-#endif // UNDEFINED
 }
 
 // hashmap bucket fill rates.
@@ -1818,6 +1820,9 @@ bool executor::menu()
     if (config.measure)
         return do_measure();
 
+    if (config.slabs)
+        return do_slabs();
+
     if (config.buckets)
         return do_buckets();
 
@@ -2043,6 +2048,51 @@ bool executor::do_measure()
     }
 
     measure_size();
+
+    // Close store.
+    console(BN_DATABASE_STOPPING);
+    if (const auto ec = store_.close([&](auto, auto)
+    {
+        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
+        return false;
+    }
+
+    console(BN_DATABASE_STOPPED);
+    return true;
+}
+
+// --slabs
+bool executor::do_slabs()
+{
+    log_.stop();
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        console(BN_USING_DEFAULT_CONFIG);
+    else
+        console(format(BN_USING_CONFIG_FILE) % configuration);
+
+    const auto& store = metadata_.configured.database.path;
+    if (!database::file::is_directory(store))
+    {
+        console(format(BN_UNINITIALIZED_DATABASE) % store);
+        return false;
+    }
+
+    // Open store.
+    console(BN_DATABASE_STARTING);
+    if (const auto ec = store_.open([&](auto, auto)
+    {
+        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        console(format(BN_DATABASE_START_FAIL) % ec.message());
+        return false;
+    }
+
+    scan_slabs();
 
     // Close store.
     console(BN_DATABASE_STOPPING);

@@ -36,6 +36,7 @@ namespace node {
 
 #define BN_FLAGS_VARIABLE "flags"
 #define BN_MEASURE_VARIABLE "measure"
+#define BN_SLABS_VARIABLE "slabs"
 #define BN_BUCKETS_VARIABLE "buckets"
 #define BN_COLLISIONS_VARIABLE "collisions"
 
@@ -71,6 +72,7 @@ public:
     /// Chain scans.
     bool flags;
     bool measure;
+    bool slabs;
     bool buckets;
     bool collisions;
 

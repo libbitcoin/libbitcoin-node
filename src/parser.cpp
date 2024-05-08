@@ -174,25 +174,31 @@ options_metadata parser::load_options() THROWS
         BN_FLAGS_VARIABLE ",f",
         value<bool>(&configured.flags)->
             default_value(false)->zero_tokens(),
-        "Compute and display all flag transitions."
+        "Scan and display all flag transitions."
     )
     (
         BN_MEASURE_VARIABLE ",m",
         value<bool>(&configured.measure)->
             default_value(false)->zero_tokens(),
-        "Compute and display store measures."
+        "Scan and display store measures."
+    )
+    (
+        BN_SLABS_VARIABLE ",a",
+        value<bool>(&configured.slabs)->
+            default_value(false)->zero_tokens(),
+        "Scan and display store slab measures."
     )
     (
         BN_BUCKETS_VARIABLE ",b",
         value<bool>(&configured.buckets)->
             default_value(false)->zero_tokens(),
-        "Compute and display all bucket densities."
+        "Scan and display all bucket densities."
     )
     (
         BN_COLLISIONS_VARIABLE ",l",
         value<bool>(&configured.collisions)->
             default_value(false)->zero_tokens(),
-        "Compute and display hashmap collision stats."
+        "Scan and display hashmap collision stats."
     )
     // Ad-hoc Testing.
     (
