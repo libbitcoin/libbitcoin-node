@@ -74,7 +74,6 @@ private:
     void subscribe_log(std::ostream& sink);
     void subscribe_events(std::ostream& sink);
     void subscribe_capture();
-    void subscribe_events();
     void subscribe_connect();
     void subscribe_close();
 
@@ -99,7 +98,6 @@ private:
     static const std::unordered_map<uint8_t, std::string> fired_;
     static const std::unordered_map<database::event_t, std::string> events_;
     static const std::unordered_map<database::table_t, std::string> tables_;
-    static constexpr size_t logs = add1(network::levels::quit);
     static std::promise<system::code> stopping_;
     static std::atomic_bool cancel_;
 
@@ -113,18 +111,19 @@ private:
     std::ostream& output_;
     network::logger log_{};
     network::capture capture_{ input_, close_ };
-    std_array<std::atomic_bool, logs> toggle_
+    std_array<std::atomic_bool, add1(network::levels::verbose)> toggle_
     {
         true,  // application
         network::levels::news_defined,
-        false, //network::levels::objects_defined,
         network::levels::session_defined,
         false, //network::levels::protocol_defined,
         false, //network::levels::proxy_defined,
         false, //network::levels::wire_defined,
         network::levels::remote_defined,
         network::levels::fault_defined,
-        false  // network::levels::quit_defined
+        false,  // network::levels::quit_defined
+        false, //network::levels::objects_defined,
+        false  //network::levels::verbose_defined
     };
 };
 

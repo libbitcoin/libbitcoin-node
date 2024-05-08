@@ -54,8 +54,8 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual void handle_event(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+    virtual bool handle_event(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
 
     virtual void do_header(height_t branch_point) NOEXCEPT;
     virtual void do_preconfirmable(height_t height) NOEXCEPT;

@@ -56,16 +56,14 @@ void chaser::suspend(const code& ec) const NOEXCEPT
 // Events.
 // ----------------------------------------------------------------------------
 
-code chaser::subscribe_events(event_handler&& handler) NOEXCEPT
+object_key chaser::subscribe_events(event_notifier&& handler) NOEXCEPT
 {
-    // requires node strand
     return node_.subscribe_events(std::move(handler));
 }
 
 void chaser::notify(const code& ec, chase event_,
-    event_link value) const NOEXCEPT
+    event_value value) const NOEXCEPT
 {
-    // Posts to node strand, not chaser strand.
     node_.notify(ec, event_, value);
 }
 

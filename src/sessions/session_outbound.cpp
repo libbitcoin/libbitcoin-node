@@ -69,13 +69,13 @@ void session_outbound::start(result_handler&& handler) NOEXCEPT
 }
 
 // Event subscriber operates on the network strand (session).
-void session_outbound::handle_event(const code&,
-    chase event_, event_link value) NOEXCEPT
+bool session_outbound::handle_event(const code&,
+    chase event_, event_value value) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped())
-        return;
+        return false;
 
     switch (event_)
     {
@@ -87,14 +87,15 @@ void session_outbound::handle_event(const code&,
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 void session_outbound::split(channel_t self) NOEXCEPT
@@ -118,6 +119,8 @@ void session_outbound::split(channel_t self) NOEXCEPT
         // Erase entry so less likely to be claimed again before stopping.
         const auto channel = slowest->first;
         speeds_.erase(slowest);
+
+        // TODO: use notify_one and subscription key to identify channel.
         node::session::notify(error::success, chase::split, channel);
         return;
     }

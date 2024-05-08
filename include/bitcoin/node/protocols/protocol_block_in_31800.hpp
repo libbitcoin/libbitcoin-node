@@ -51,10 +51,15 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    /// Handle event subscription completion.
+    virtual void complete_event(const code& ec, object_key key) NOEXCEPT;
+
     /// Get published download identifiers.
-    virtual void handle_event(const code& ec,
-        chase event_, event_link value) NOEXCEPT;
     virtual void do_get_downloads(count_t count) NOEXCEPT;
+
+    /// Handle chaser events.
+    virtual bool handle_event(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
 
     /// Manage work splitting.
     bool is_idle() const NOEXCEPT override;
@@ -80,12 +85,14 @@ private:
     void restore(const map_ptr& map) NOEXCEPT;
     void handle_put_hashes(const code& ec) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
+    void do_complete_event(const code& ec, object_key key) NOEXCEPT;
 
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;
 
-    //  This is protected by strand.
+    // These are protected by strand.
     map_ptr map_;
+    object_key key_{};
 };
 
 } // namespace node

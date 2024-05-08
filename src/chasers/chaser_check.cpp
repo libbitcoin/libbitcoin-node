@@ -77,14 +77,15 @@ code chaser_check::start() NOEXCEPT
     const auto add = get_unassociated();
     LOGN("Fork point (" << validated_ << ") unassociated (" << add << ").");
 
-    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    return error::success;
 }
 
-void chaser_check::handle_event(const code&, chase event_,
-    event_link value) NOEXCEPT
+bool chaser_check::handle_event(const code&, chase event_,
+    event_value value) NOEXCEPT
 {
     if (closed())
-        return;
+        return false;
 
     switch (event_)
     {
@@ -115,14 +116,15 @@ void chaser_check::handle_event(const code&, chase event_,
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 // add headers

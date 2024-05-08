@@ -68,19 +68,20 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Node threadpool is stopped and may still be joining.
-    bool closed() const NOEXCEPT;
+    virtual bool closed() const NOEXCEPT;
 
     /// Suspend all existing and future network connections.
-    void suspend(const code& ec) const NOEXCEPT;
+    virtual void suspend(const code& ec) const NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
 
     /// Call from chaser start methods (requires node strand).
-    code subscribe_events(event_handler&& handler) NOEXCEPT;
+    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
 
     /// Set event (does not require node strand).
-    void notify(const code& ec, chase event_, event_link value) const NOEXCEPT;
+    virtual void notify(const code& ec, chase event_,
+        event_value value) const NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------

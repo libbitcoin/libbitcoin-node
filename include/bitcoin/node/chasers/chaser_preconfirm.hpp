@@ -40,8 +40,8 @@ public:
     code start() NOEXCEPT override;
 
 protected:
-    virtual void handle_event(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+    virtual bool handle_event(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_disorganized(height_t top) NOEXCEPT;

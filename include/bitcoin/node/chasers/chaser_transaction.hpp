@@ -42,8 +42,8 @@ public:
     virtual void store(const system::chain::transaction::cptr& block) NOEXCEPT;
 
 protected:
-    virtual void handle_event(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+    virtual bool handle_event(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
 
     virtual void do_confirmed(header_t link) NOEXCEPT;
     virtual void do_store(

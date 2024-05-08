@@ -46,14 +46,15 @@ chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
 code chaser_preconfirm::start() NOEXCEPT
 {
     update_cache(archive().get_fork());
-    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    return error::success;
 }
 
-void chaser_preconfirm::handle_event(const code&, chase event_,
-    event_link value) NOEXCEPT
+bool chaser_preconfirm::handle_event(const code&, chase event_,
+    event_value value) NOEXCEPT
 {
     if (closed())
-        return;
+        return false;
 
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
@@ -82,14 +83,15 @@ void chaser_preconfirm::handle_event(const code&, chase event_,
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT

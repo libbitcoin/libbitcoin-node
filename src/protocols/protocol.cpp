@@ -25,7 +25,10 @@
 namespace libbitcoin {
 namespace node {
 
+#define CLASS protocol
+
 using namespace network;
+using namespace std::placeholders;
 
 protocol::~protocol() NOEXCEPT
 {
@@ -60,14 +63,20 @@ void protocol::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
-void protocol::notify(const code& ec, chase event_, event_link value) NOEXCEPT
+void protocol::subscribe_events(event_notifier&& handler,
+    event_completer&& complete) NOEXCEPT
+{
+    session_->subscribe_events(std::move(handler), std::move(complete));
+}
+
+void protocol::notify(const code& ec, chase event_, event_value value) NOEXCEPT
 {
     session_->notify(ec, event_, value);
 }
 
-void protocol::async_subscribe_events(event_handler&& handler) NOEXCEPT
+void protocol::unsubscribe_events(object_key key) NOEXCEPT
 {
-    return session_->async_subscribe_events(std::move(handler));
+    session_->unsubscribe_events(key);
 }
 
 // Methods.
