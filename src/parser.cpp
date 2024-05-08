@@ -145,7 +145,7 @@ options_metadata parser::load_options() THROWS
         "Display command line options."
     )
     (
-        BN_HELP_VARIABLE ",d",
+        BN_HARDWARE_VARIABLE ",d",
         value<bool>(&configured.hardware)->
             default_value(false)->zero_tokens(),
         "Display hardware compatibility."
@@ -170,7 +170,7 @@ options_metadata parser::load_options() THROWS
         "Initialize store in configured directory."
     )
     (
-        BN_RESTORE_VARIABLE ",r",
+        BN_RESTORE_VARIABLE ",x",
         value<bool>(&configured.restore)->
             default_value(false)->zero_tokens(),
         "Restore from most recent snapshot."
@@ -208,7 +208,7 @@ options_metadata parser::load_options() THROWS
     )
     // Ad-hoc Testing.
     (
-        BN_READ_VARIABLE ",x",
+        BN_READ_VARIABLE ",r",
         value<bool>(&configured.read)->
             default_value(false)->zero_tokens(),
         "Read test and display performance."

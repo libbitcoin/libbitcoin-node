@@ -29,6 +29,7 @@ namespace node {
 
 // Not localizable.
 #define BN_HELP_VARIABLE "help"
+#define BN_HARDWARE_VARIABLE "hardware"
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
 #define BN_INITCHAIN_VARIABLE "initchain"
