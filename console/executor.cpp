@@ -1802,26 +1802,8 @@ bool executor::menu()
     if (config.help)
         return do_help();
 
-    if (config.settings)
-        return do_hardware();
-
-    if (config.settings)
-        return do_settings();
-
-    if (config.version)
-        return do_version();
-
-    if (config.initchain)
-        return do_initchain();
-
-    if (config.restore)
-        return do_restore();
-
-    if (config.flags)
-        return do_flags();
-
-    if (config.measure)
-        return do_measure();
+    // Order below matches help output (alphabetical), so that first option is
+    // executed in the case where multiple options are parsed.
 
     if (config.slabs)
         return do_slabs();
@@ -1829,14 +1811,35 @@ bool executor::menu()
     if (config.buckets)
         return do_buckets();
 
+    if (config.hardware)
+        return do_hardware();
+
+    if (config.flags)
+        return do_flags();
+
+    if (config.initchain)
+        return do_initchain();
+
     if (config.collisions)
         return do_collisions();
+
+    if (config.measure)
+        return do_measure();
 
     if (config.read)
         return do_read();
 
+    if (config.settings)
+        return do_settings();
+
+    if (config.version)
+        return do_version();
+
     if (config.write)
         return do_write();
+
+    if (config.restore)
+        return do_restore();
 
     return do_run();
 }
