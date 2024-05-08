@@ -43,7 +43,7 @@ protected:
     using header_links = std::vector<database::header_link>;
 
     virtual bool handle_event(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     virtual void do_preconfirmed(height_t height) NOEXCEPT;
     virtual code confirm(const database::header_link& link,

@@ -103,7 +103,7 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
 }
 
 bool protocol_block_in_31800::handle_event(const code&,
-    chase event_, event_link value) NOEXCEPT
+    chase event_, event_value value) NOEXCEPT
 {
     if (stopped())
         return false;

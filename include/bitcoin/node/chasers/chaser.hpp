@@ -77,11 +77,11 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Call from chaser start methods (requires node strand).
-    virtual object_key subscribe_events(event_handler&& handler) NOEXCEPT;
+    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
 
     /// Set event (does not require node strand).
     virtual void notify(const code& ec, chase event_,
-        event_link value) const NOEXCEPT;
+        event_value value) const NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------

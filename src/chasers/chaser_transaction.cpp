@@ -52,7 +52,7 @@ code chaser_transaction::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool chaser_transaction::handle_event(const code&, chase event_,
-    event_link) NOEXCEPT
+    event_value) NOEXCEPT
 {
     if (closed())
         return false;

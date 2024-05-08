@@ -63,16 +63,16 @@ typedef std::function<void(const code&, const map_ptr&)> map_handler;
 
 /// Node events.
 typedef uint64_t object_key;
-typedef uint64_t event_link;
-typedef network::desubscriber<object_key, chase, event_link> event_subscriber;
-typedef event_subscriber::handler event_handler;
+typedef uint64_t event_value;
+typedef network::desubscriber<object_key, chase, event_value> event_subscriber;
+typedef event_subscriber::handler event_notifier;
 typedef event_subscriber::completer event_completer;
 
-/// Use for event_link variants (all unsigned integral integers).
+/// Use for event_value variants (all unsigned integral integers).
 /// std::variant is inconsistent with interpretation of size_t as redundant or
 /// unique with respect to uint32_t and/or uint64_t (specifically macOS). So
-/// instead these are implicitly casted to event_link (uint64_t) and explicitly
-/// casted from event_link using system::possible_narrow_cast. This is no less
+/// instead these are implicitly casted to event_value (uint64_t) and explicitly
+/// casted from event_value using system::possible_narrow_cast. This is no less
 /// type-safe as using std::variant in cases where the types are overloaded.
 using count_t = size_t;
 using height_t = size_t;

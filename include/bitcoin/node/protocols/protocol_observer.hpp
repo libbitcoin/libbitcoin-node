@@ -51,7 +51,7 @@ protected:
 
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
 private:
     void do_complete_event(const code& ec, object_key key) NOEXCEPT;

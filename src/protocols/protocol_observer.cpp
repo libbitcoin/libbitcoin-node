@@ -74,7 +74,7 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
 }
 
 bool protocol_observer::handle_event(const code&, chase event_,
-    event_link) NOEXCEPT
+    event_value) NOEXCEPT
 {
     if (stopped())
         return false;

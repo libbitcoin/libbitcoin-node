@@ -63,13 +63,13 @@ void protocol::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
-void protocol::subscribe_events(event_handler&& handler,
+void protocol::subscribe_events(event_notifier&& handler,
     event_completer&& complete) NOEXCEPT
 {
     session_->subscribe_events(std::move(handler), std::move(complete));
 }
 
-void protocol::notify(const code& ec, chase event_, event_link value) NOEXCEPT
+void protocol::notify(const code& ec, chase event_, event_value value) NOEXCEPT
 {
     session_->notify(ec, event_, value);
 }

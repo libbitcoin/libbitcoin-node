@@ -76,19 +76,19 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Call from chaser start() methods (requires strand).
-    virtual object_key subscribe_events(event_handler&& handler) NOEXCEPT;
+    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
 
     /// Call from protocol start() methods.
-    virtual void subscribe_events(event_handler&& handler,
+    virtual void subscribe_events(event_notifier&& handler,
         event_completer&& complete) NOEXCEPT;
 
     /// Set chaser event.
     virtual void notify(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     /// Set chaser event for the given subscriber only.
     virtual void notify_one(object_key key, const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
     virtual void unsubscribe_events(object_key key) NOEXCEPT;
@@ -132,11 +132,11 @@ protected:
 
 private:
     object_key create_key() NOEXCEPT;
-    void do_subscribe_events(const event_handler& handler,
+    void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
-    void do_notify(const code& ec, chase event_, event_link value) NOEXCEPT;
+    void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;
     void do_notify_one(object_key key, const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     // These are thread safe.
     const configuration& config_;

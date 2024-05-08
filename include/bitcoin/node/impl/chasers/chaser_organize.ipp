@@ -90,7 +90,7 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-bool CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
+bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
 {
     if (closed())
         return false;

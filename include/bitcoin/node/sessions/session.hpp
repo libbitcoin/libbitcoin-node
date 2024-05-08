@@ -56,19 +56,19 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Subscribe to chaser events (requires node strand).
-    virtual object_key subscribe_events(event_handler&& handler) NOEXCEPT;
+    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
 
     /// Subscribe to chaser events.
-    virtual void subscribe_events(event_handler&& handler,
+    virtual void subscribe_events(event_notifier&& handler,
         event_completer&& complete) NOEXCEPT;
 
     /// Set a chaser event.
     virtual void notify(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     /// Set chaser event for the given subscriber only.
     virtual void notify_one(object_key key, const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
     virtual void unsubscribe_events(object_key key) NOEXCEPT;
@@ -115,7 +115,7 @@ protected:
     ~session() NOEXCEPT;
 
 private:
-    void do_subscribe_events(const event_handler& handler,
+    void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
 
 private:

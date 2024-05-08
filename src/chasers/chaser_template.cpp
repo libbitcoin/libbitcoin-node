@@ -51,7 +51,7 @@ code chaser_template::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool chaser_template::handle_event(const code&, chase event_,
-    event_link value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     if (closed())
         return false;

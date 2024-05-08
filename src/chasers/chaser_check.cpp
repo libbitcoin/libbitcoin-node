@@ -82,7 +82,7 @@ code chaser_check::start() NOEXCEPT
 }
 
 bool chaser_check::handle_event(const code&, chase event_,
-    event_link value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     if (closed())
         return false;

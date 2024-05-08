@@ -59,7 +59,7 @@ protected:
 
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_,
-        event_link value) NOEXCEPT;
+        event_value value) NOEXCEPT;
 
     /// Manage work splitting.
     bool is_idle() const NOEXCEPT override;
