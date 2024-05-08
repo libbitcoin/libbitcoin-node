@@ -170,6 +170,12 @@ options_metadata parser::load_options() THROWS
         "Initialize store in configured directory."
     )
     (
+        BN_BACKUP_VARIABLE ",b",
+        value<bool>(&configured.backup)->
+            default_value(false)->zero_tokens(),
+        "Backup to a snapshot (can also do live)."
+    )
+    (
         BN_RESTORE_VARIABLE ",x",
         value<bool>(&configured.restore)->
             default_value(false)->zero_tokens(),
@@ -195,7 +201,7 @@ options_metadata parser::load_options() THROWS
         "Scan and display store slab measures."
     )
     (
-        BN_BUCKETS_VARIABLE ",b",
+        BN_BUCKETS_VARIABLE ",k",
         value<bool>(&configured.buckets)->
             default_value(false)->zero_tokens(),
         "Scan and display all bucket densities."

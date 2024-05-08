@@ -1875,32 +1875,10 @@ bool executor::close_store(bool details)
     return true;
 }
 
-bool executor::backup_store(bool details)
-{
-    logger(BN_NODE_BACKUP_STARTED);
-    const auto start = logger::now();
-    if (const auto ec = store_.snapshot([&](auto event, auto table)
-    {
-        // Suspend channels that missed previous suspend events.
-        if (node_ && event == database::event_t::wait_lock)
-            node_->suspend(error::store_snapshotting);
-
-        if (details)
-            logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
-        return false;
-    }
-
-    const auto span = duration_cast<seconds>(logger::now() - start);
-    logger(format(BN_NODE_BACKUP_COMPLETE) % span.count());
-    return true;
-}
-
 bool executor::restore_store(bool details)
 {
     console(format(BN_RESTORING_CHAIN));
+    const auto start = logger::now();
     if (const auto ec = store_.restore([&](auto event, auto table)
     {
         if (details)
@@ -1915,13 +1893,39 @@ bool executor::restore_store(bool details)
         return false;
     }
 
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    console(format(BN_RESTORE_COMPLETE) % span.count());
+    return true;
+}
+
+bool executor::backup_store(auto&& writer, bool details)
+{
+    writer << (BN_NODE_BACKUP_STARTED) << std::endl;
+    const auto start = logger::now();
+    if (const auto ec = store_.snapshot([&](auto event, auto table)
+    {
+        // Suspend channels that missed previous suspend events.
+        if (node_ && event == database::event_t::wait_lock)
+            node_->suspend(error::store_snapshotting);
+
+        if (details)
+            writer << (format(BN_BACKUP) % events_.at(event) % tables_.at(table))
+                << std::endl;
+    }))
+    {
+        writer << (format(BN_NODE_BACKUP_FAIL) % ec.message()) << std::endl;
+        return false;
+    }
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    writer << (format(BN_NODE_BACKUP_COMPLETE) % span.count()) << std::endl;
     return true;
 }
 
 // Command line options.
 // ----------------------------------------------------------------------------
 
-// --help[h]
+// --[h]elp
 bool executor::do_help()
 {
     log_.stop();
@@ -1931,14 +1935,14 @@ bool executor::do_help()
     return true;
 }
 
-// --hardware[d]
+// --har[d]ware
 bool executor::do_hardware()
 {
     console(format("Coming soon..."));
     return true;
 }
 
-// --settings[s]
+// --[s]ettings
 bool executor::do_settings()
 {
     log_.stop();
@@ -1948,7 +1952,7 @@ bool executor::do_settings()
     return true;
 }
 
-// --version[v]
+// --[v]ersion
 bool executor::do_version()
 {
     log_.stop();
@@ -1960,7 +1964,7 @@ bool executor::do_version()
     return true;
 }
 
-// --initchain[i]
+// --[i]nitchain
 bool executor::do_initchain()
 {
     log_.stop();
@@ -1994,27 +1998,35 @@ bool executor::do_initchain()
     return true;
 }
 
+// --[b]ackup
+bool executor::do_snapshot()
+{
+    log_.stop();
+    if (!check_store_path() || !open_store() || !backup_store(output_, true))
+        return false;
+
+    // backup_store leaves open, designed for ongoing runtime.
+    // This one can take a few seconds on cold iron.
+    console(BN_MEASURE_PROGRESS_START);
+    dump_progress(output_);
+    return close_store(true);
+}
+
 // --restore[x]
 bool executor::do_restore()
 {
     log_.stop();
-    const auto start = logger::now();
     if (!check_store_path() || !restore_store(true))
         return false;
 
+    // restore_store leaves open, designed for startup runtime.
     // This one can take a few seconds on cold iron.
     console(BN_MEASURE_PROGRESS_START);
     dump_progress(output_);
-
-    if (!close_store(true)) 
-        return false;
-
-    const auto span = duration_cast<seconds>(logger::now() - start);
-    console(format(BN_RESTORE_COMPLETE) % span.count());
-    return true;
+    return close_store(true);
 }
 
-// --flags[f]
+// --[f]lags
 bool executor::do_flags()
 {
     log_.stop();
@@ -2029,7 +2041,7 @@ bool executor::do_flags()
     return true;
 }
 
-// --measure[m]
+// --[m]easure
 bool executor::do_measure()
 {
     log_.stop();
@@ -2044,7 +2056,7 @@ bool executor::do_measure()
     return true;
 }
 
-// --slabs[a]
+// --sl[a]bs
 bool executor::do_slabs()
 {
     log_.stop();
@@ -2059,7 +2071,7 @@ bool executor::do_slabs()
     return true;
 }
 
-// --buckets[b]
+// --buc[k]ets
 bool executor::do_buckets()
 {
     log_.stop();
@@ -2138,7 +2150,7 @@ void executor::do_backup()
     }
 
     node_->suspend(error::store_snapshotting);
-    backup_store();
+    backup_store(log_.write(levels::application), true);
     do_toggle_suspend();
 }
 
@@ -2227,8 +2239,8 @@ bool executor::menu()
     if (config.slabs)
         return do_slabs();
 
-    if (config.buckets)
-        return do_buckets();
+    if (config.backup)
+        return do_snapshot();
 
     if (config.hardware)
         return do_hardware();
@@ -2238,6 +2250,9 @@ bool executor::menu()
 
     if (config.initchain)
         return do_initchain();
+
+    if (config.buckets)
+        return do_buckets();
 
     if (config.collisions)
         return do_collisions();

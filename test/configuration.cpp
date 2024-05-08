@@ -31,6 +31,7 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
     BOOST_REQUIRE(!instance.initchain);
+    BOOST_REQUIRE(!instance.backup);
     BOOST_REQUIRE(!instance.restore);
     BOOST_REQUIRE(!instance.flags);
     BOOST_REQUIRE(!instance.measure);

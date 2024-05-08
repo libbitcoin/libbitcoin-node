@@ -76,12 +76,12 @@ private:
     void dump_collisions(auto&& writer) const;
 
     // Store functions.
-    bool check_store_path(bool create = false) const;
-    bool open_store(bool details = false);
-    bool close_store(bool details = false);
-    bool create_store(bool details = false);
-    bool backup_store(bool details = false);
-    bool restore_store(bool details = false);
+    bool open_store(bool details=false);
+    bool close_store(bool details=false);
+    bool create_store(bool details=false);
+    bool restore_store(bool details=false);
+    bool check_store_path(bool create=false) const;
+    bool backup_store(auto&& writer, bool details=false);
 
     // Command line options.
     bool do_help();
@@ -89,6 +89,7 @@ private:
     bool do_settings();
     bool do_version();
     bool do_initchain();
+    bool do_snapshot();
     bool do_restore();
     bool do_flags();
     bool do_measure();

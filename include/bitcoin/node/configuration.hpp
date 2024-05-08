@@ -33,6 +33,7 @@ namespace node {
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
 #define BN_INITCHAIN_VARIABLE "initchain"
+#define BN_BACKUP_VARIABLE "backup"
 #define BN_RESTORE_VARIABLE "restore"
 
 #define BN_FLAGS_VARIABLE "flags"
@@ -69,6 +70,7 @@ public:
 
     /// Actions.
     bool initchain{};
+    bool backup{};
     bool restore{};
 
     /// Chain scans.
