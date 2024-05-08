@@ -41,7 +41,7 @@ public:
         network::result_handler&& handler) NOEXCEPT override;
 
 protected:
-    virtual void handle_event(const code& ec, chase event_,
+    virtual bool handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
     virtual void split(channel_t self) NOEXCEPT;
     virtual void do_performance(uint64_t channel, uint64_t speed,

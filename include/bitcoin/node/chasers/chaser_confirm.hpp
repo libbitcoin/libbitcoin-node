@@ -42,7 +42,7 @@ public:
 protected:
     using header_links = std::vector<database::header_link>;
 
-    virtual void handle_event(const code& ec, chase event_,
+    virtual bool handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
     virtual void do_preconfirmed(height_t height) NOEXCEPT;

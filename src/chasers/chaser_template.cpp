@@ -43,17 +43,18 @@ chaser_template::chaser_template(full_node& node) NOEXCEPT
 // TODO: initialize template state.
 code chaser_template::start() NOEXCEPT
 {
-    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    return error::success;
 }
 
 // event handlers
 // ----------------------------------------------------------------------------
 
-void chaser_template::handle_event(const code&, chase event_,
+bool chaser_template::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
     if (closed())
-        return;
+        return false;
 
     // TODO: also handle confirmed/unconfirmed.
     switch (event_)
@@ -66,14 +67,15 @@ void chaser_template::handle_event(const code&, chase event_,
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 // TODO: handle transaction graph change (may issue 'candidate').

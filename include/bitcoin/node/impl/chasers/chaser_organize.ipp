@@ -57,7 +57,8 @@ code CLASS::start() NOEXCEPT
     LOGN("Candidate top [" << encode_hash(state_->hash()) << ":"
         << state_->height() << "].");
 
-    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    return error::success;
 }
 
 TEMPLATE
@@ -89,10 +90,10 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
+bool CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
 {
     if (closed())
-        return;
+        return false;
 
     using namespace system;
     switch (event_)
@@ -106,14 +107,15 @@ void CLASS::handle_event(const code&, chase event_, event_link value) NOEXCEPT
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 TEMPLATE

@@ -54,7 +54,7 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual void handle_event(const code& ec, chase event_,
+    virtual bool handle_event(const code& ec, chase event_,
         event_link value) NOEXCEPT;
 
     virtual void do_header(height_t branch_point) NOEXCEPT;

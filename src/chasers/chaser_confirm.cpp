@@ -41,17 +41,18 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 
 code chaser_confirm::start() NOEXCEPT
 {
-    return SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    return error::success;
 }
 
 // Protected
 // ----------------------------------------------------------------------------
 
-void chaser_confirm::handle_event(const code&, chase event_,
+bool chaser_confirm::handle_event(const code&, chase event_,
     event_link value) NOEXCEPT
 {
     if (closed())
-        return;
+        return false;
 
     // These can come out of order, advance in order synchronously.
     switch (event_)
@@ -68,14 +69,15 @@ void chaser_confirm::handle_event(const code&, chase event_,
         }
         case chase::stop:
         {
-            // TODO: handle fault.
-            break;
+            return false;
         }
         default:
         {
             break;
         }
     }
+
+    return true;
 }
 
 // Blocks are either confirmed (blocks first) or preconfirmed/confirmed

@@ -91,7 +91,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Handle chaser events.
-    virtual void handle_event(const code&, chase event_,
+    virtual bool handle_event(const code&, chase event_,
         event_link value) NOEXCEPT;
 
     /// Reorganize following Block unconfirmability.
