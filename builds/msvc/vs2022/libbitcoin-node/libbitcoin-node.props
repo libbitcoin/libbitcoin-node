@@ -28,7 +28,6 @@
 
   <ImportGroup Label="PropertySheets">
     <Import Project="$(SolutionDir)libbitcoin-system.import.props" />
-    <Import Project="$(SolutionDir)libbitcoin-consensus.import.props" />
     <Import Project="$(SolutionDir)libbitcoin-database.import.props" />
     <Import Project="$(SolutionDir)libbitcoin-network.import.props" />
   </ImportGroup>
@@ -40,21 +39,18 @@
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'dynamic'">
     <Linkage-secp256k1>dynamic</Linkage-secp256k1>
     <Linkage-libbitcoin-system>dynamic</Linkage-libbitcoin-system>
-    <Linkage-libbitcoin-consensus>dynamic</Linkage-libbitcoin-consensus>
     <Linkage-libbitcoin-database>dynamic</Linkage-libbitcoin-database>
     <Linkage-libbitcoin-network>dynamic</Linkage-libbitcoin-network>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'ltcg'">
     <Linkage-secp256k1>ltcg</Linkage-secp256k1>
     <Linkage-libbitcoin-system>ltcg</Linkage-libbitcoin-system>
-    <Linkage-libbitcoin-consensus>ltcg</Linkage-libbitcoin-consensus>
     <Linkage-libbitcoin-database>ltcg</Linkage-libbitcoin-database>
     <Linkage-libbitcoin-network>ltcg</Linkage-libbitcoin-network>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DefaultLinkage)' == 'static'">
     <Linkage-secp256k1>static</Linkage-secp256k1>
     <Linkage-libbitcoin-system>static</Linkage-libbitcoin-system>
-    <Linkage-libbitcoin-consensus>static</Linkage-libbitcoin-consensus>
     <Linkage-libbitcoin-database>static</Linkage-libbitcoin-database>
     <Linkage-libbitcoin-network>static</Linkage-libbitcoin-network>
   </PropertyGroup>
@@ -64,7 +60,6 @@
   <Target Name="LinkageInfo" BeforeTargets="PrepareForBuild">
     <Message Text="Linkage-secp256k1 : $(Linkage-secp256k1)" Importance="high"/>
     <Message Text="Linkage-_system   : $(Linkage-libbitcoin-system)" Importance="high"/>
-    <Message Text="Linkage-_consensus: $(Linkage-libbitcoin-consensus)" Importance="high"/>
     <Message Text="Linkage-_database : $(Linkage-libbitcoin-database)" Importance="high"/>
     <Message Text="Linkage-_network  : $(Linkage-libbitcoin-network)" Importance="high"/>
   </Target>
