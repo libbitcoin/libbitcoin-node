@@ -341,9 +341,9 @@ void executor::dump_collisions(auto&& writer) const
 // fork flag transitions (candidate chain).
 void executor::scan_flags() const
 {
+    const auto start = logger::now();
     constexpr auto flag_bits = to_bits(sizeof(chain::flags));
     const auto error = code{ error::store_integrity }.message();
-    const auto start = unix_time();
     const auto top = query_.get_top_candidate();
     uint32_t flags{};
 
@@ -372,7 +372,8 @@ void executor::scan_flags() const
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("scan_flags" BN_READ_ROW) % top % (unix_time() - start));
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    console(format("scan_flags" BN_READ_ROW_MS) % top % span.count());
 }
 
 // file and logical sizes.
@@ -387,12 +388,12 @@ void executor::measure_size() const
     console(BN_MEASURE_PROGRESS_START);
     dump_progress(output_);
 
-#if defined(UNDEFINED)
+#if !defined(UNDEFINED)
     console(BN_MEASURE_SLABS);
     console(BN_OPERATION_INTERRUPT);
     database::tx_link::integer link{};
     size_t inputs{}, outputs{};
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
     constexpr auto frequency = 100'000;
 
     // Tx (record) links are sequential and so iterable, however the terminal
@@ -408,8 +409,11 @@ void executor::measure_size() const
             console(format(BN_MEASURE_SLABS_ROW) % link % inputs % outputs);
     }
 
-    if (cancel_) console(BN_OPERATION_CANCELED);
-    console(format(BN_MEASURE_STOP) % inputs % outputs % (unix_time() - start));
+    if (cancel_)
+        console(BN_OPERATION_CANCELED);
+
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    console(format(BN_MEASURE_STOP) % inputs % outputs % span.count());
 #endif // UNDEFINED
 }
 
@@ -424,7 +428,7 @@ void executor::scan_buckets() const
 
     auto filled = zero;
     auto bucket = max_size_t;
-    auto start = unix_time();
+    auto start = logger::now();
     while (!cancel_ && (++bucket < query_.header_buckets()))
     {
         const auto top = query_.top_header(bucket);
@@ -432,21 +436,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % block_frequency))
-            console(format("header" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            console(format("header" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("header" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    auto span = duration_cast<seconds>(logger::now() - start);
+    console(format("header" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.txs_buckets()))
     {
         const auto top = query_.top_txs(bucket);
@@ -454,21 +459,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % block_frequency))
-            console(format("txs" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            console(format("txs" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("txs" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    console(format("txs" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.tx_buckets()))
     {
         const auto top = query_.top_tx(bucket);
@@ -476,21 +482,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % tx_frequency))
-            console(format("tx" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            console(format("tx" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("tx" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    console(format("tx" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.point_buckets()))
     {
         const auto top = query_.top_point(bucket);
@@ -498,21 +505,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % tx_frequency))
-            console(format("point" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            console(format("point" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("point" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    console(format("point" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.spend_buckets()))
     {
         const auto top = query_.top_spend(bucket);
@@ -520,15 +528,16 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % put_frequency))
-            console(format("spend" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            console(format("spend" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("spend" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    console(format("spend" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 }
 
 // hashmap collision distributions.
@@ -576,7 +585,7 @@ void executor::scan_collisions() const
     // ------------------------------------------------------------------------
 
     auto index = max_size_t;
-    auto start = unix_time();
+    auto start = logger::now();
     const auto header_buckets = query_.header_buckets();
     const auto header_records = query_.header_records();
     std_vector<size_t> header(header_buckets, empty);
@@ -588,8 +597,8 @@ void executor::scan_collisions() const
         ++txs.at(hash((header_link::bytes)link) % header_buckets);
 
         if (is_zero(index % block_frequency))
-            console(format("header/txs" BN_READ_ROW) %
-                index % (unix_time() - start));
+            console(format("header/txs" BN_READ_ROW) % index %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
@@ -598,8 +607,9 @@ void executor::scan_collisions() const
     // ........................................................................
     
     const auto header_count = count(header);
+    auto span = duration_cast<seconds>(logger::now() - start);
     console(format("header: %1% in %2%s buckets %3% filled %4% rate %5% ") %
-        index % (unix_time() - start) % header_buckets % header_count %
+        index % span.count() % header_buckets % header_count %
         (floater(header_count) / header_buckets));
 
     for (const auto& entry: dump(header))
@@ -612,8 +622,9 @@ void executor::scan_collisions() const
     // ........................................................................
 
     const auto txs_count = count(txs);
+    span = duration_cast<seconds>(logger::now() - start);
     console(format("txs: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % header_buckets % txs_count %
+        index % span.count() % header_buckets % txs_count %
         (floater(txs_count) / header_buckets));
 
     for (const auto& entry: dump(txs))
@@ -627,7 +638,7 @@ void executor::scan_collisions() const
     // ------------------------------------------------------------------------
 
     index = max_size_t;
-    start = unix_time();
+    start = logger::now();
     const auto tx_buckets = query_.tx_buckets();
     const auto tx_records = query_.tx_records();
     std_vector<size_t> tx(tx_buckets, empty);
@@ -639,8 +650,8 @@ void executor::scan_collisions() const
         ++strong_tx.at(hash((tx_link::bytes)link) % tx_buckets);
     
         if (is_zero(index % tx_frequency))
-            console(format("tx & strong_tx" BN_READ_ROW) %
-                index % (unix_time() - start));
+            console(format("tx & strong_tx" BN_READ_ROW) % index %
+                duration_cast<seconds>(logger::now() - start).count());
     }
     
     if (cancel_)
@@ -649,8 +660,9 @@ void executor::scan_collisions() const
     // ........................................................................
     
     const auto tx_count = count(tx);
+    span = duration_cast<seconds>(logger::now() - start);
     console(format("tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % tx_buckets % tx_count %
+        index % span.count() % tx_buckets % tx_count %
         (floater(tx_count) / tx_buckets));
     
     for (const auto& entry: dump(tx))
@@ -663,8 +675,9 @@ void executor::scan_collisions() const
     // ........................................................................
     
     const auto strong_tx_count = count(strong_tx);
+    span = duration_cast<seconds>(logger::now() - start);
     console(format("strong_tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % tx_buckets % strong_tx_count %
+        index % span.count() % tx_buckets % strong_tx_count %
         (floater(strong_tx_count) / tx_buckets));
     
     for (const auto& entry: dump(strong_tx))
@@ -678,7 +691,7 @@ void executor::scan_collisions() const
     // ------------------------------------------------------------------------
 
     index = max_size_t;
-    start = unix_time();
+    start = logger::now();
     const auto point_buckets = query_.point_buckets();
     const auto point_records = query_.point_records();
     std_vector<size_t> point(point_buckets, empty);
@@ -688,8 +701,8 @@ void executor::scan_collisions() const
         ++point.at(hash(query_.get_point_key(link.value)) % point_buckets);
     
         if (is_zero(index % tx_frequency))
-            console(format("point" BN_READ_ROW) %
-                index % (unix_time() - start));
+            console(format("point" BN_READ_ROW) % index %
+                duration_cast<seconds>(logger::now() - start).count());
     }
     
     if (cancel_)
@@ -698,8 +711,9 @@ void executor::scan_collisions() const
     // ........................................................................
     
     const auto point_count = count(point);
+    span = duration_cast<seconds>(logger::now() - start);
     console(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % point_buckets % point_count %
+        index % span.count() % point_buckets % point_count %
         (floater(point_count) / point_buckets));
     
     for (const auto& entry: dump(point))
@@ -714,7 +728,7 @@ void executor::scan_collisions() const
 
     auto total = zero;
     index = max_size_t;
-    start = unix_time();
+    start = logger::now();
     const auto spend_buckets = query_.spend_buckets();
     std_vector<size_t> spend(spend_buckets, empty);
     while (!cancel_ && (++index < query_.header_records()))
@@ -730,8 +744,8 @@ void executor::scan_collisions() const
                 ++spend.at(hash(query_.to_spend_key(in)) % spend_buckets);
 
                 if (is_zero(index % put_frequency))
-                    console(format("spend" BN_READ_ROW) %
-                        total % (unix_time() - start));
+                    console(format("spend" BN_READ_ROW) % total %
+                        duration_cast<seconds>(logger::now() - start).count());
             }
         }
     }
@@ -742,8 +756,9 @@ void executor::scan_collisions() const
     // ........................................................................
 
     const auto spend_count = count(spend);
+    span = duration_cast<seconds>(logger::now() - start);
     console(format("spend: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        total % (unix_time() - start) % spend_buckets % spend_count %
+        total % span.count() % spend_buckets % spend_count %
         (floater(spend_count) / spend_buckets));
 
     for (const auto& entry: dump(spend))
@@ -765,7 +780,6 @@ void executor::read_test() const
 void executor::read_test() const
 {
     constexpr auto start_tx = 15'000_u32;
-    constexpr auto ns_to_ms = 1'000'000_i64;
     constexpr auto target_count = 3000_size;
 
     // Set ensures unique addresses.
@@ -789,10 +803,10 @@ void executor::read_test() const
                 break;
         }
     }
-    auto end = fine_clock::now();
 
+    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
     console(format("Got first [%1%] unique addresses above tx [%2%] in [%3%] ms.") %
-        keys.size() % start_tx % ((end - start).count() / ns_to_ms));
+        keys.size() % start_tx % span.count());
 
     struct out
     {
@@ -990,10 +1004,10 @@ void executor::read_test() const
         }
         while (address_it.advance());
     }
-    end = fine_clock::now();
 
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
     console(format("Got all [%1%] payments to [%2%] addresses in [%3%] ms.") %
-        outs.size() % keys.size() % ((end - start).count() / ns_to_ms));
+        outs.size() % keys.size() % span.count());
 
     ////console(
     ////    "output_script_hash, "
@@ -1072,11 +1086,9 @@ void executor::read_test() const
     if (!query_.to_address_outputs(outputs, output_script.hash()))
         return;
 
-    const auto end = fine_clock::now();
-    const auto span = (end - start).count() / 1'000'000;
-
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
     console(format("Found [%1%] outputs of {%2%} in [%3%] ms.") %
-        outputs.size() % mnemonic % span);
+        outputs.size() % mnemonic % span.count());
 }
 
 // This was caused by concurrent redundant downloads at tail following restart.
@@ -1325,7 +1337,7 @@ void executor::read_test() const
 {
     using namespace database;
     constexpr auto frequency = 100'000u;
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
     auto tx = 664'400'000_size;
 
     // Read all data except genesis (ie. for validation).
@@ -1366,15 +1378,15 @@ void executor::read_test() const
         }
 
         if (is_zero(tx % frequency))
-            console(format("get_transaction" BN_READ_ROW) %
-                tx % (unix_time() - start));
+            console(format("get_transaction" BN_READ_ROW) % tx %
+                duration_cast<seconds>(fine_clock::now() - start).count());
     }
 
     if (cancel_)
         console(BN_OPERATION_CANCELED);
 
-    console(format("get_transaction" BN_READ_ROW) %
-        tx % (unix_time() - start));
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    console(format("get_transaction" BN_READ_ROW) % tx % span.count());
 }
 
 void executor::read_test() const
@@ -1385,7 +1397,7 @@ void executor::read_test() const
     console("HIT <enter> TO START");
     std::string line{};
     std::getline(input_, line);
-    const auto start = unix_time();
+    const auto start = (fine_clock::now();
 
     for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
     {
@@ -1496,7 +1508,8 @@ void executor::read_test() const
         ////    ctx.height % ctx.flags % ctx.mtp);
     }
 
-    console(format("STOP (%1% secs)") % (unix_time() - start));
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    console(format("STOP (%1% secs)") % span.count());
 }
 
 // TODO: create a block/tx dumper.
@@ -1589,7 +1602,7 @@ void executor::write_test()
 {
     code ec{};
     size_t count{};
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
 
     ////// This tx in block 840161 is not strong by block 840112 (weak prevout).
     ////const auto tx = "865d721037b0c995822367c41875593d7093d1bae412f3861ce471de3c07e180";
@@ -1635,15 +1648,15 @@ void executor::write_test()
             console(format("write_test [%1%].") % height);
     }
 
-    console(format("%1% blocks in %2% secs.") % count % (unix_time() - start));
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    console(format("%1% blocks in %2% secs.") % count % span.count());
 }
 
 void executor::write_test()
 {
     using namespace database;
     constexpr auto frequency = 10'000;
-    const auto start = unix_time();
-    const auto start1 = fine_clock::now();
+    const auto start = fine_clock::now();
     console(BN_OPERATION_INTERRUPT);
 
     auto height = query_.get_top_candidate();
@@ -1665,15 +1678,15 @@ void executor::write_test()
         }
 
         if (is_zero(height % frequency))
-            console(format("block" BN_WRITE_ROW) %
-                height % (unix_time() - start));
+            console(format("block" BN_WRITE_ROW) % height %
+                duration_cast<seconds>(fine_clock::now() - start).count());
     }
             
     if (cancel_)
         console(BN_OPERATION_CANCELED);
-            
-    console(format("block" BN_WRITE_ROW) %
-        height % (fine_clock::now() - start1).count());
+
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    console(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
 void executor::write_test()
@@ -1681,7 +1694,7 @@ void executor::write_test()
     using namespace database;
     ////constexpr uint64_t fees = 99;
     constexpr auto frequency = 10'000;
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
     code ec{};
 
     console(BN_OPERATION_INTERRUPT);
@@ -1732,15 +1745,15 @@ void executor::write_test()
         ////}
 
         if (is_zero(height % frequency))
-            console(format("block" BN_WRITE_ROW) %
-                height % (unix_time() - start));
+            console(format("block" BN_WRITE_ROW) % height %
+                duration_cast<seconds>(fine_clock::now() - start).count());
     }
     
     if (cancel_)
         console(BN_OPERATION_CANCELED);
-    
-    console(format("block" BN_WRITE_ROW) %
-        height % (unix_time() - start));
+
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    console(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
 void executor::write_test()
@@ -2392,7 +2405,7 @@ void executor::subscribe_capture()
         const auto token = system::trim_copy(line);
         if (token.empty())
         {
-            for (const auto option: menu_)
+            for (const auto& option: menu_)
                 logger(format("Option: %1%") % option.second);
 
             return true;

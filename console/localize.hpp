@@ -142,10 +142,12 @@ namespace node {
 // --read
 #define BN_READ_ROW \
     ": %1% in %2% secs."
+#define BN_READ_ROW_MS \
+    ": %1% in %2% ms."
 
 // --write
 #define BN_WRITE_ROW \
-    ": %1% in %2% secs."
+    ": %1% in %2% span."
 
 // run/general
 
