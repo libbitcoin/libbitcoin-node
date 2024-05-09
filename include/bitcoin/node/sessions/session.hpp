@@ -84,7 +84,7 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Suspend all connections.
-    virtual void suspend(const code& ec) NOEXCEPT;
+    virtual code suspend(const code& ec) NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------

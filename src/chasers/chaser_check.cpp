@@ -36,9 +36,6 @@ using namespace database;
 using namespace network;
 using namespace std::placeholders;
 
-// TODO: this becomes the block object cache size.
-constexpr auto maximum_window = max_size_t;
-
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
@@ -46,7 +43,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
-    maximum_block_(node.config().node.maximum_block()),
+    maximum_advance_(node.config().node.maximum_advance_()),
+    maximum_height_(node.config().node.maximum_height_()),
     connections_(node.config().network.outbound_connections),
     inventory_(system::lesser(node.config().node.maximum_inventory,
         messages::max_inventory))
@@ -148,7 +146,6 @@ void chaser_check::do_header(height_t) NOEXCEPT
 void chaser_check::do_preconfirmable(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     validated_ = height;
     do_header(height);
 }
@@ -194,13 +191,7 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
     association out{};
     if (!query.set_dissasociated(link))
     {
-        if (query.is_full())
-        {
-            suspend(database::error::disk_full);
-            return;
-        }
-
-        suspend(error::store_integrity);
+        suspend(query.get_code());
         return;
     }
 
@@ -254,6 +245,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
+    BC_ASSERT(map->size() <= max_inventory);
     BC_ASSERT(stranded());
 
     if (closed())
@@ -279,17 +271,25 @@ map_ptr chaser_check::get_map() NOEXCEPT
 }
 
 // Get all unassociated block records from start to stop heights.
-// Groups records into table sets by inventory_ maximum_window set size.
-// Return the total number of records obtained and set hi_block_ to last.
+// Groups records into table sets by inventory set size, limited by advance.
+// Return the total number of records obtained and set requested_ to last.
 size_t chaser_check::get_unassociated() NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
 
     size_t count{};
+    if (validated_ < requested_)
+        return count;
+
+    // Due to previous downloads, validation can race ahead of last request.
+    // The last request (requested_) stops at the last gap in the window, but
+    // validation continues until the next gap. Start next scan above validated
+    // not last requested, since all between are already downloaded.
     const auto& query = archive();
-    const auto stop = std::min(ceilinged_add(validated_, maximum_window),
-        maximum_block_);
+    const auto requested = requested_;
+    const auto stop = std::min(ceilinged_add(validated_, maximum_advance_),
+        maximum_height_);
 
     while (true)
     {
@@ -297,12 +297,23 @@ size_t chaser_check::get_unassociated() NOEXCEPT
             query.get_unassociated_above(requested_, inventory_, stop));
 
         if (map->empty())
-            return count;
+            break;
 
+        BC_ASSERT(map->size() <= max_inventory);
         maps_.push_back(map);
         requested_ = map->top().height;
         count += map->size();
     }
+
+    LOGN("Advance by ("
+        << maximum_advance_ << ") above ("
+        << requested << ") from ("
+        << validated_ << ") stop ("
+        << stop << ") found ("
+        << count << ") last ("
+        << requested_ << ").");
+
+    return count;
 }
 
 ////size_t chaser_check::count_maps() const NOEXCEPT

@@ -96,8 +96,9 @@ public:
     /// Suspensions.
     /// -----------------------------------------------------------------------
 
-    /// Suspend nework connections.
-    void suspend(const code& ec) NOEXCEPT override;
+    /// Suspend all existing and future network connections.
+    /// A race condition could result in an unsuspended connection.
+    code suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
     void resume() NOEXCEPT override;

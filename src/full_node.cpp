@@ -234,16 +234,17 @@ object_key full_node::create_key() NOEXCEPT
 // Suspensions.
 // ----------------------------------------------------------------------------
 
+// A race condition could result in an unsuspended connection.
+// A connection may be established and miss notification (race). This can
+// be managed by reissuing the notification in a wait loop (snapshot), or
+// by waiting for another error to trigger it (integrity). These are ok
+// because suspension is best-effort to reduce traffic and wasted storage.
 // TODO: use timer to check disk space, resume if not full or reissue suspend.
-void full_node::suspend(const code& ec) NOEXCEPT
+code full_node::suspend(const code& ec) NOEXCEPT
 {
-    // A connection may be established and miss notification (race). This can
-    // be managed by reissuing the notification in a wait loop (snapshot), or
-    // by waiting for another error to trigger it (integrity). These are ok
-    // because suspension is best-effort to reduce traffic and wasted storage.
     LOGS("Suspending network connections: " << ec.message());
     notify(error::success, chase::suspend, ec.value());
-    p2p::suspend(ec);
+    return p2p::suspend(ec);
 }
 
 void full_node::resume() NOEXCEPT

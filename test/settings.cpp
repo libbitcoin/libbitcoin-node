@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_SUITE(settings_tests)
 
 BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
 {
-    log::settings log{};
+    const log::settings log{};
     ////BOOST_REQUIRE_EQUAL(log.verbose, false);
     BOOST_REQUIRE_EQUAL(log.maximum_size, 1'000'000_u32);
     BOOST_REQUIRE_EQUAL(log.path, "");
@@ -37,14 +37,16 @@ BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
 
 BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
 {
-    node::settings node{};
+    const node::settings node{};
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
     BOOST_REQUIRE_EQUAL(node.maximum_inventory, 8000);
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
     BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
+    BOOST_REQUIRE_EQUAL(node.maximum_advance, 0_u32);
+    BOOST_REQUIRE_EQUAL(node.maximum_advance_(), max_size_t);
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
-    BOOST_REQUIRE_EQUAL(node.maximum_block(), max_size_t);
+    BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BOOST_REQUIRE(node.sample_period() == network::steady_clock::duration(network::seconds(10)));
     BOOST_REQUIRE(node.currency_window() == network::steady_clock::duration(network::minutes(60)));
 }

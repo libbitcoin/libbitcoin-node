@@ -42,9 +42,9 @@ public:
     std::filesystem::path symbols;
 #endif
 
-    virtual std::filesystem::path log_file1() NOEXCEPT;
-    virtual std::filesystem::path log_file2() NOEXCEPT;
-    virtual std::filesystem::path events_file() NOEXCEPT;
+    virtual std::filesystem::path log_file1() const NOEXCEPT;
+    virtual std::filesystem::path log_file2() const NOEXCEPT;
+    virtual std::filesystem::path events_file() const NOEXCEPT;
 };
 
 } // namespace log
@@ -66,14 +66,12 @@ public:
     uint16_t maximum_inventory;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
+    uint32_t maximum_advance;
     uint32_t maximum_height;
 
-    ////// TODO: these aren't actually node settings.
-    ////uint16_t target{ 0 };
-    ////uint16_t interval{ 0 };
-
     /// Helpers.
-    virtual size_t maximum_block() const NOEXCEPT;
+    virtual size_t maximum_advance_() const NOEXCEPT;
+    virtual size_t maximum_height_() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
 };

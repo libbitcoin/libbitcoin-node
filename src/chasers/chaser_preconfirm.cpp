@@ -157,13 +157,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
 
             if (code == error::store_integrity)
             {
-                if (query.is_full())
-                {
-                    suspend(database::error::disk_full);
-                    return;
-                }
-
-                suspend(error::store_integrity);
+                suspend(query.get_code());
                 return;
             }
 
@@ -177,13 +171,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                 if (code != database::error::block_unconfirmable &&
                     !query.set_block_unconfirmable(link))
                 {
-                    if (query.is_full())
-                    {
-                        suspend(database::error::disk_full);
-                        return;
-                    }
-
-                    suspend(error::store_integrity);
+                    suspend(query.get_code());
                     return;
                 }
 
@@ -205,13 +193,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
-            if (query.is_full())
-            {
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            suspend(error::store_integrity);
+            suspend(query.get_code());
             return;
         }
 

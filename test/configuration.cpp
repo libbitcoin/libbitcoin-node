@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_SUITE(configuration_tests)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 {
-    node::configuration instance(chain::selection::none);
+    const node::configuration instance(chain::selection::none);
     BOOST_REQUIRE(instance.file.empty());
     BOOST_REQUIRE(!instance.help);
     BOOST_REQUIRE(!instance.hardware);
