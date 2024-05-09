@@ -1843,10 +1843,10 @@ bool executor::create_store(bool details)
     return true;
 }
 
-// not timed (fast)
-bool executor::open_store(bool details)
+// not timed or announced (generally fast)
+code executor::open_store_code(bool details)
 {
-    logger(BN_DATABASE_STARTING);
+    ////logger(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto event_, auto table)
     {
         if (details)
@@ -1854,11 +1854,16 @@ bool executor::open_store(bool details)
     }))
     {
         logger(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
+        return ec;
     }
 
     logger(BN_DATABASE_STARTED);
-    return true;
+    return error::success;
+}
+
+bool executor::open_store(bool details)
+{
+    return !open_store_code(details);
 }
 
 bool executor::close_store(bool details)
@@ -1942,7 +1947,8 @@ bool executor::do_help()
 // --har[d]ware
 bool executor::do_hardware()
 {
-    logger(format("Coming soon..."));
+    log_.stop();
+    logger("Coming soon...");
     return true;
 }
 
@@ -1994,7 +2000,7 @@ bool executor::do_initchain()
     logger(BN_MEASURE_PROGRESS_START);
     dump_progress();
 
-    if (!close_store(true))
+    if (!close_store())
         return false;
 
     logger(BN_INITCHAIN_COMPLETE);
@@ -2005,28 +2011,19 @@ bool executor::do_initchain()
 bool executor::do_backup()
 {
     log_.stop();
-    if (check_store_path() && open_store())
-    {
-        // Close opened store even if backup failed, otherwise corrupted.
-        const auto result = backup_store(true);
-        return close_store(true) && result;
-    }
-
-    return false;
+    return check_store_path()
+        && open_store()
+        && backup_store(true)
+        && close_store();
 }
 
 // --restore[x]
 bool executor::do_restore()
 {
     log_.stop();
-    if (check_store_path())
-    {
-        // Close store even if restore failed, otherwise corrupted.
-        const auto result = restore_store(true);
-        return close_store(true) && result;
-    }
-
-    return false;
+    return check_store_path()
+        && restore_store(true)
+        && close_store();
 }
 
 // --[f]lags
@@ -2331,9 +2328,13 @@ void executor::subscribe_capture()
     // is running a backup (for example), resulting in a try_lock warning loop.
     capture_.subscribe([&](const code& ec, const std::string& line)
     {
-        // <control>-c emits empty token on Win32, causing menu emit on stop.
         const auto token = system::trim_copy(line);
+
+        // <control>-c emits empty token on Win32.
         if (token.empty())
+            return true;
+
+        if (token == "1")
         {
             for (const auto& option: menu_)
                 logger(format("Option: %1%") % option.second);
@@ -2487,27 +2488,54 @@ bool executor::do_run()
     subscribe_log(log);
     subscribe_events(events);
     subscribe_capture();
+
     logger(BN_LOG_HEADER);
     logger(BN_NODE_INTERRUPT);
+
     logger(BN_LOG_TABLE_HEADER);
-    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
-    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
-    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
-    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
-    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
-    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
-    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
-    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
-    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
-    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
-    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
+    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined %
+        toggle_.at(levels::application));
+    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined %
+        toggle_.at(levels::news));
+    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined %
+        toggle_.at(levels::session));
+    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined %
+        toggle_.at(levels::protocol));
+    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined %
+        toggle_.at(levels::proxy));
+    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined %
+        toggle_.at(levels::wire));
+    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined %
+        toggle_.at(levels::remote));
+    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined %
+        toggle_.at(levels::fault));
+    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined %
+        toggle_.at(levels::quit));
+    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined %
+        toggle_.at(levels::objects));
+    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined %
+        toggle_.at(levels::verbose));
 
     if (!check_store_path())
         return false;
 
+    // stopped by stopper.
     capture_.start();
-    if (!open_store(true))
+
+    const auto ec = open_store_code(true);
+    if (ec == database::error::flush_lock)
+    {
+        if (!restore_store(true))
+        {
+            stopper(BN_NODE_STOPPED);
+            return false;
+        }
+    }
+    else if (ec)
+    {
+        stopper(BN_NODE_STOPPED);
         return false;
+    }
 
     dump_sizes();
     dump_records();
@@ -2546,7 +2574,10 @@ bool executor::do_run()
     dump_progress();
 
     if (!close_store(true))
+    {
+        stopper(BN_NODE_STOPPED);
         return false;
+    }
 
     stopper(BN_NODE_STOPPED);
     return true; 
