@@ -219,7 +219,9 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
 void protocol_block_in_31800::do_report(count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    LOGN("Work (" << map_->size() << ") for channel [" << authority() << "].");
+
+    // Uses application logging since it outputs to a runtime option.
+    LOGA("Work (" << map_->size() << ") for channel [" << authority() << "].");
 }
 
 // request hashes
