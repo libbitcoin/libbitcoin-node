@@ -145,6 +145,12 @@ options_metadata parser::load_options() THROWS
         "Display command line options."
     )
     (
+        BN_HARDWARE_VARIABLE ",d",
+        value<bool>(&configured.hardware)->
+            default_value(false)->zero_tokens(),
+        "Display hardware compatibility."
+    )
+    (
         BN_SETTINGS_VARIABLE ",s",
         value<bool>(&configured.settings)->
             default_value(false)->zero_tokens(),
@@ -164,7 +170,13 @@ options_metadata parser::load_options() THROWS
         "Initialize store in configured directory."
     )
     (
-        BN_RESTORE_VARIABLE ",r",
+        BN_BACKUP_VARIABLE ",b",
+        value<bool>(&configured.backup)->
+            default_value(false)->zero_tokens(),
+        "Backup to a snapshot (can also do live)."
+    )
+    (
+        BN_RESTORE_VARIABLE ",x",
         value<bool>(&configured.restore)->
             default_value(false)->zero_tokens(),
         "Restore from most recent snapshot."
@@ -174,29 +186,35 @@ options_metadata parser::load_options() THROWS
         BN_FLAGS_VARIABLE ",f",
         value<bool>(&configured.flags)->
             default_value(false)->zero_tokens(),
-        "Compute and display all flag transitions."
+        "Scan and display all flag transitions."
     )
     (
         BN_MEASURE_VARIABLE ",m",
         value<bool>(&configured.measure)->
             default_value(false)->zero_tokens(),
-        "Compute and display store measures."
+        "Scan and display store measures."
     )
     (
-        BN_BUCKETS_VARIABLE ",b",
+        BN_SLABS_VARIABLE ",a",
+        value<bool>(&configured.slabs)->
+            default_value(false)->zero_tokens(),
+        "Scan and display store slab measures."
+    )
+    (
+        BN_BUCKETS_VARIABLE ",k",
         value<bool>(&configured.buckets)->
             default_value(false)->zero_tokens(),
-        "Compute and display all bucket densities."
+        "Scan and display all bucket densities."
     )
     (
         BN_COLLISIONS_VARIABLE ",l",
         value<bool>(&configured.collisions)->
             default_value(false)->zero_tokens(),
-        "Compute and display hashmap collision stats."
+        "Scan and display hashmap collision stats."
     )
     // Ad-hoc Testing.
     (
-        BN_READ_VARIABLE ",x",
+        BN_READ_VARIABLE ",r",
         value<bool>(&configured.read)->
             default_value(false)->zero_tokens(),
         "Read test and display performance."
@@ -885,17 +903,6 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.node.maximum_height),
         "The maximum block height to populate, defaults to 0 (unlimited)."
     )
-    // ### temporary hacks ###
-    ////(
-    ////    "node.target",
-    ////    value<uint16_t>(&configured.node.target),
-    ////    "Channel count that triggers node stop, defaults to 0 (0 disables)."
-    ////)
-    ////(
-    ////    "node.interval",
-    ////    value<uint16_t>(&configured.node.interval),
-    ////    "Channel count reporting interval, defaults to 0 (0 disables)."
-    ////)
     // #######################
     ////(
     ////    "node.notify_limit_hours",

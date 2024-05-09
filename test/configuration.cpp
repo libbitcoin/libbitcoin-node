@@ -27,12 +27,15 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     node::configuration instance(chain::selection::none);
     BOOST_REQUIRE(instance.file.empty());
     BOOST_REQUIRE(!instance.help);
+    BOOST_REQUIRE(!instance.hardware);
     BOOST_REQUIRE(!instance.settings);
     BOOST_REQUIRE(!instance.version);
     BOOST_REQUIRE(!instance.initchain);
+    BOOST_REQUIRE(!instance.backup);
     BOOST_REQUIRE(!instance.restore);
     BOOST_REQUIRE(!instance.flags);
     BOOST_REQUIRE(!instance.measure);
+    BOOST_REQUIRE(!instance.slabs);
     BOOST_REQUIRE(!instance.buckets);
     BOOST_REQUIRE(!instance.collisions);
     BOOST_REQUIRE(!instance.read);

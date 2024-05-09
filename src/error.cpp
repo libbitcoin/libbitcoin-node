@@ -42,6 +42,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { exhausted_channel, "exhausted channel" },
     { sacrificed_channel, "sacrificed channel" },
     { suspended_channel, "sacrificed channel" },
+    { suspended_service, "sacrificed service" },
 
     // blockchain
     { orphan_block, "orphan block" },

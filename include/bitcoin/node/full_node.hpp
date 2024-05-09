@@ -97,10 +97,10 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Suspend nework connections.
-    virtual void suspend(const code& ec) NOEXCEPT override;
+    void suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
-    virtual void resume() NOEXCEPT override;
+    void resume() NOEXCEPT override;
 
     /// Properties.
     /// -----------------------------------------------------------------------

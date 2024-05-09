@@ -29,13 +29,16 @@ namespace node {
 
 // Not localizable.
 #define BN_HELP_VARIABLE "help"
+#define BN_HARDWARE_VARIABLE "hardware"
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
 #define BN_INITCHAIN_VARIABLE "initchain"
+#define BN_BACKUP_VARIABLE "backup"
 #define BN_RESTORE_VARIABLE "restore"
 
 #define BN_FLAGS_VARIABLE "flags"
 #define BN_MEASURE_VARIABLE "measure"
+#define BN_SLABS_VARIABLE "slabs"
 #define BN_BUCKETS_VARIABLE "buckets"
 #define BN_COLLISIONS_VARIABLE "collisions"
 
@@ -60,23 +63,26 @@ public:
     std::filesystem::path file;
 
     /// Information.
-    bool help;
-    bool settings;
-    bool version;
+    bool help{};
+    bool hardware{};
+    bool settings{};
+    bool version{};
 
     /// Actions.
-    bool initchain;
-    bool restore;
+    bool initchain{};
+    bool backup{};
+    bool restore{};
 
     /// Chain scans.
-    bool flags;
-    bool measure;
-    bool buckets;
-    bool collisions;
+    bool flags{};
+    bool measure{};
+    bool slabs{};
+    bool buckets{};
+    bool collisions{};
 
     /// Ad-hoc Testing.
-    bool read;
-    bool write;
+    bool read{};
+    bool write{};
 
     /// Settings.
     log::settings log;

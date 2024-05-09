@@ -37,33 +37,50 @@ using boost::format;
 using system::config::printer;
 using namespace network;
 using namespace system;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 // for --help only
 const std::string executor::name_{ "bn" };
 
-// runtime options
-const std::string executor::backup_{ "b" };
+// for capture only
 const std::string executor::close_{ "c" };
-const std::string executor::distro_{ "d" };
-const std::string executor::errors_{ "e" };
-const std::string executor::go_{ "g" };
-const std::string executor::measure_{ "m" };
-const std::string executor::explore_{ "x" };
 
-const std::unordered_map<uint8_t, bool> executor::defined_
+const std::unordered_map<std::string, uint8_t> executor::options_
 {
-    { levels::application, true },
-    { levels::news,        levels::news_defined },
-    { levels::session,     levels::session_defined },
-    { levels::protocol,    levels::protocol_defined },
-    { levels::proxy,       levels::proxy_defined },
-    { levels::wire,        levels::wire_defined },
-    { levels::remote,      levels::remote_defined },
-    { levels::fault,       levels::fault_defined },
-    { levels::quit,        levels::quit_defined },
-    { levels::objects,     levels::objects_defined },
-    { levels::verbose,     levels::verbose_defined },
+    { "b", menu::backup },
+    { "c", menu::close },
+    { "e", menu::errors },
+    { "h", menu::hold },
+    { "i", menu::info },
+    { "t", menu::test },
+    { "w", menu::work },
+    { "z", menu::zoom }
+};
+const std::unordered_map<uint8_t, std::string> executor::menu_
+{
+    { menu::backup, "[b]ackup the store" },
+    { menu::close,  "[c]lose the node" },
+    { menu::errors, "display any store [e]rrors" },
+    { menu::hold,   "toggle [h]old network communication" },
+    { menu::info,   "display node [i]nformation" },
+    { menu::test,   "execute built-in [t]est" },
+    { menu::work,   "display [w]ork distribution" },
+    { menu::zoom,   "re[z]ume from disk full condition" }
+};
+const std::unordered_map<std::string, uint8_t> executor::toggles_
+{
+    { "a", levels::application },
+    { "n", levels::news },
+    { "s", levels::session },
+    { "p", levels::protocol },
+    { "x", levels::proxy },
+    { "w", levels::wire },
+    { "r", levels::remote },
+    { "f", levels::fault },
+    { "q", levels::quit },
+    { "o", levels::objects },
+    { "v", levels::verbose }
 };
 const std::unordered_map<uint8_t, std::string> executor::display_
 {
@@ -79,19 +96,19 @@ const std::unordered_map<uint8_t, std::string> executor::display_
     { levels::objects,     "toggle Objects" },
     { levels::verbose,     "toggle Verbose" }
 };
-const std::unordered_map<std::string, uint8_t> executor::keys_
+const std::unordered_map<uint8_t, bool> executor::defined_
 {
-    { "a", levels::application },
-    { "n", levels::news },
-    { "s", levels::session },
-    { "p", levels::protocol },
-    { "x", levels::proxy },
-    { "w", levels::wire },
-    { "r", levels::remote },
-    { "f", levels::fault },
-    { "q", levels::quit },
-    { "o", levels::objects },
-    { "v", levels::verbose }
+    { levels::application, true },
+    { levels::news,        levels::news_defined },
+    { levels::session,     levels::session_defined },
+    { levels::protocol,    levels::protocol_defined },
+    { levels::proxy,       levels::proxy_defined },
+    { levels::wire,        levels::wire_defined },
+    { levels::remote,      levels::remote_defined },
+    { levels::fault,       levels::fault_defined },
+    { levels::quit,        levels::quit_defined },
+    { levels::objects,     levels::objects_defined },
+    { levels::verbose,     levels::verbose_defined },
 };
 const std::unordered_map<uint8_t, std::string> executor::fired_
 {
@@ -119,7 +136,7 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
 const std::unordered_map<database::event_t, std::string> executor::events_
 {
     { database::event_t::create_file, "create_file" },
-    { database::event_t::open_file, "open_file" },
+    { database::event_t::open_file,   "open_file" },
     { database::event_t::load_file, "load_file" },
     { database::event_t::unload_file, "unload_file" },
     { database::event_t::close_file, "close_file" },
@@ -221,12 +238,10 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
 
 void executor::logger(const auto& message) const
 {
-    log_.write(levels::application) << message << std::endl;
-};
-
-void executor::console(const auto& message) const
-{
-    output_ << message << std::endl;
+    if (log_.stopped())
+        output_ << message << std::endl;
+    else
+        log_.write(levels::application) << message << std::endl;
 };
 
 void executor::stopper(const auto& message)
@@ -236,48 +251,12 @@ void executor::stopper(const auto& message)
     stopped_.get_future().wait();
 }
 
-// fork flag transitions (candidate chain).
-void executor::scan_flags() const
+// Measures.
+// ----------------------------------------------------------------------------
+
+void executor::dump_sizes() const
 {
-    constexpr auto flag_bits = to_bits(sizeof(chain::flags));
-    const auto error = code{ error::store_integrity }.message();
-    const auto start = unix_time();
-    const auto top = query_.get_top_candidate();
-    uint32_t flags{};
-
-    console(BN_OPERATION_INTERRUPT);
-
-    for (size_t height{}; !cancel_ && height <= top; ++height)
-    {
-        database::context ctx{};
-        const auto link = query_.to_candidate(height);
-        if (!query_.get_context(ctx, link) || (ctx.height != height))
-        {
-            console(format("Error: %1%") % error);
-            return;
-        }
-
-        if (ctx.flags != flags)
-        {
-            const binary prev{ flag_bits, to_big_endian(flags) };
-            const binary next{ flag_bits, to_big_endian(ctx.flags) };
-            console(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
-                next % encode_hash(query_.get_header_key(link)) % height);
-            flags = ctx.flags;
-        }
-    }
-
-    if (cancel_)
-        console(BN_OPERATION_CANCELED);
-
-    console(format("scan_flags" BN_READ_ROW) % top % (unix_time() - start));
-}
-
-// file and logical sizes.
-void executor::measure_size() const
-{
-    // txs, validated_tx, validated_bk collision rates assume 1:1 records.
-    console(format(BN_MEASURE_SIZES) %
+    logger(format(BN_MEASURE_SIZES) %
         query_.header_size() %
         query_.txs_size() %
         query_.tx_size() %
@@ -293,7 +272,11 @@ void executor::measure_size() const
         query_.validated_bk_size() %
         query_.address_size() %
         query_.neutrino_size());
-    console(format(BN_MEASURE_RECORDS) %
+}
+
+void executor::dump_records() const
+{
+    logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
@@ -302,7 +285,11 @@ void executor::measure_size() const
         query_.spend_records() %
         query_.strong_tx_records() %
         query_.address_records());
-    console(format(BN_MEASURE_BUCKETS) %
+}
+
+void executor::dump_buckets() const
+{
+    logger(format(BN_MEASURE_BUCKETS) %
         query_.header_buckets() %
         query_.txs_buckets() %
         query_.tx_buckets() %
@@ -313,7 +300,28 @@ void executor::measure_size() const
         query_.validated_bk_buckets() %
         query_.address_buckets() %
         query_.neutrino_buckets());
-    console(format(BN_MEASURE_COLLISION_RATES) %
+}
+
+void executor::dump_progress() const
+{
+    logger(format(BN_MEASURE_PROGRESS) %
+        query_.get_fork() %
+        query_.get_top_confirmed() %
+        encode_hash(query_.get_header_key(query_.to_confirmed(
+            query_.get_top_confirmed()))) %
+        query_.get_top_candidate() %
+        encode_hash(query_.get_header_key(query_.to_candidate(
+            query_.get_top_candidate()))) %
+        query_.get_top_associated() %
+        (query_.get_top_candidate() - query_.get_unassociated_count()) %
+        query_.get_confirmed_size() %
+        query_.get_candidate_size());
+}
+
+// txs, validated_tx, validated_bk collision rates assume 1:1 records.
+void executor::dump_collisions() const
+{
+    logger(format(BN_MEASURE_COLLISION_RATES) %
         ((1.0 * query_.header_records()) / query_.header_buckets()) %
         ((1.0 * query_.header_records()) / query_.txs_buckets()) %
         ((1.0 * query_.tx_records()) / query_.tx_buckets()) %
@@ -326,25 +334,68 @@ void executor::measure_size() const
             query_.address_buckets()) : 0) %
         (query_.neutrino_enabled() ? ((1.0 * query_.header_records()) /
             query_.neutrino_buckets()) : 0));
-    // This one can take a few seconds on cold iron.
-    console(BN_MEASURE_PROGRESS_START);
-    console(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+}
 
-#if defined(UNDEFINED)
-    console(BN_MEASURE_SLABS);
-    console(BN_OPERATION_INTERRUPT);
+// fork flag transitions (candidate chain).
+void executor::scan_flags() const
+{
+    const auto start = logger::now();
+    constexpr auto flag_bits = to_bits(sizeof(chain::flags));
+    const auto error = code{ error::store_integrity }.message();
+    const auto top = query_.get_top_candidate();
+    uint32_t flags{};
+
+    logger(BN_OPERATION_INTERRUPT);
+
+    for (size_t height{}; !cancel_ && height <= top; ++height)
+    {
+        database::context ctx{};
+        const auto link = query_.to_candidate(height);
+        if (!query_.get_context(ctx, link) || (ctx.height != height))
+        {
+            logger(format("Error: %1%") % error);
+            return;
+        }
+
+        if (ctx.flags != flags)
+        {
+            const binary prev{ flag_bits, to_big_endian(flags) };
+            const binary next{ flag_bits, to_big_endian(ctx.flags) };
+            logger(format("Forked from [%1%] to [%2%] at [%3%:%4%]") % prev %
+                next % encode_hash(query_.get_header_key(link)) % height);
+            flags = ctx.flags;
+        }
+    }
+
+    if (cancel_)
+        logger(BN_OPERATION_CANCELED);
+
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    logger(format("Scanned %1% headers for rule forks in %2% ms.") % top %
+        span.count());
+}
+
+// file and logical sizes.
+void executor::measure_size() const
+{
+    dump_sizes();
+    dump_records();
+    dump_buckets();
+    dump_collisions();
+
+    // This one can take a few seconds on cold iron.
+    logger(BN_MEASURE_PROGRESS_START);
+    dump_progress();
+}
+
+// input and output table slab counts.
+void executor::scan_slabs() const
+{
+    logger(BN_MEASURE_SLABS);
+    logger(BN_OPERATION_INTERRUPT);
     database::tx_link::integer link{};
     size_t inputs{}, outputs{};
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
     constexpr auto frequency = 100'000;
 
     // Tx (record) links are sequential and so iterable, however the terminal
@@ -357,12 +408,14 @@ void executor::measure_size() const
         inputs += puts.first;
         outputs += puts.second;
         if (is_zero(link % frequency))
-            console(format(BN_MEASURE_SLABS_ROW) % link % inputs % outputs);
+            logger(format(BN_MEASURE_SLABS_ROW) % link % inputs % outputs);
     }
 
-    if (cancel_) console(BN_OPERATION_CANCELED);
-    console(format(BN_MEASURE_STOP) % inputs % outputs % (unix_time() - start));
-#endif // UNDEFINED
+    if (cancel_)
+        logger(BN_OPERATION_CANCELED);
+
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    logger(format(BN_MEASURE_STOP) % inputs % outputs % span.count());
 }
 
 // hashmap bucket fill rates.
@@ -372,11 +425,11 @@ void executor::scan_buckets() const
     constexpr auto tx_frequency = 1'000'000u;
     constexpr auto put_frequency = 10'000'000u;
 
-    console(BN_OPERATION_INTERRUPT);
+    logger(BN_OPERATION_INTERRUPT);
 
     auto filled = zero;
     auto bucket = max_size_t;
-    auto start = unix_time();
+    auto start = logger::now();
     while (!cancel_ && (++bucket < query_.header_buckets()))
     {
         const auto top = query_.top_header(bucket);
@@ -384,21 +437,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % block_frequency))
-            console(format("header" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            logger(format("header" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
-    console(format("header" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format("header" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.txs_buckets()))
     {
         const auto top = query_.top_txs(bucket);
@@ -406,21 +460,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % block_frequency))
-            console(format("txs" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            logger(format("txs" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
-    console(format("txs" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("txs" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.tx_buckets()))
     {
         const auto top = query_.top_tx(bucket);
@@ -428,21 +483,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % tx_frequency))
-            console(format("tx" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            logger(format("tx" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
-    console(format("tx" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("tx" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.point_buckets()))
     {
         const auto top = query_.top_point(bucket);
@@ -450,21 +506,22 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % tx_frequency))
-            console(format("point" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            logger(format("point" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
-    console(format("point" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("point" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 
     // ------------------------------------------------------------------------
 
     filled = zero;
     bucket = max_size_t;
-    start = unix_time();
+    start = logger::now();
     while (!cancel_ && (++bucket < query_.spend_buckets()))
     {
         const auto top = query_.top_spend(bucket);
@@ -472,15 +529,16 @@ void executor::scan_buckets() const
             ++filled;
 
         if (is_zero(bucket % put_frequency))
-            console(format("spend" BN_READ_ROW) %
-                bucket % (unix_time() - start));
+            logger(format("spend" BN_READ_ROW) % bucket %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
-    console(format("spend" BN_READ_ROW) %
-        (1.0 * filled / bucket) % (unix_time() - start));
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("spend" BN_READ_ROW) % (1.0 * filled / bucket) %
+        span.count());
 }
 
 // hashmap collision distributions.
@@ -522,13 +580,13 @@ void executor::scan_collisions() const
         return value;
     };
 
-    console(BN_OPERATION_INTERRUPT);
+    logger(BN_OPERATION_INTERRUPT);
 
     // header & txs (txs is a proxy for validated_bk)
     // ------------------------------------------------------------------------
 
     auto index = max_size_t;
-    auto start = unix_time();
+    auto start = logger::now();
     const auto header_buckets = query_.header_buckets();
     const auto header_records = query_.header_records();
     std_vector<size_t> header(header_buckets, empty);
@@ -540,22 +598,23 @@ void executor::scan_collisions() const
         ++txs.at(hash((header_link::bytes)link) % header_buckets);
 
         if (is_zero(index % block_frequency))
-            console(format("header/txs" BN_READ_ROW) %
-                index % (unix_time() - start));
+            logger(format("header/txs" BN_READ_ROW) % index %
+                duration_cast<seconds>(logger::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
     // ........................................................................
     
     const auto header_count = count(header);
-    console(format("header: %1% in %2%s buckets %3% filled %4% rate %5% ") %
-        index % (unix_time() - start) % header_buckets % header_count %
+    auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format("header: %1% in %2%s buckets %3% filled %4% rate %5% ") %
+        index % span.count() % header_buckets % header_count %
         (floater(header_count) / header_buckets));
 
     for (const auto& entry: dump(header))
-        console(format("header: %1% frequency: %2%") %
+        logger(format("header: %1% frequency: %2%") %
             entry.first % entry.second);
 
     header.clear();
@@ -564,12 +623,13 @@ void executor::scan_collisions() const
     // ........................................................................
 
     const auto txs_count = count(txs);
-    console(format("txs: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % header_buckets % txs_count %
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("txs: %1% in %2%s buckets %3% filled %4% rate %5%") %
+        index % span.count() % header_buckets % txs_count %
         (floater(txs_count) / header_buckets));
 
     for (const auto& entry: dump(txs))
-        console(format("txs: %1% frequency: %2%") %
+        logger(format("txs: %1% frequency: %2%") %
             entry.first % entry.second);
  
     txs.clear();
@@ -579,7 +639,7 @@ void executor::scan_collisions() const
     // ------------------------------------------------------------------------
 
     index = max_size_t;
-    start = unix_time();
+    start = logger::now();
     const auto tx_buckets = query_.tx_buckets();
     const auto tx_records = query_.tx_records();
     std_vector<size_t> tx(tx_buckets, empty);
@@ -591,22 +651,23 @@ void executor::scan_collisions() const
         ++strong_tx.at(hash((tx_link::bytes)link) % tx_buckets);
     
         if (is_zero(index % tx_frequency))
-            console(format("tx & strong_tx" BN_READ_ROW) %
-                index % (unix_time() - start));
+            logger(format("tx & strong_tx" BN_READ_ROW) % index %
+                duration_cast<seconds>(logger::now() - start).count());
     }
     
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
     
     // ........................................................................
     
     const auto tx_count = count(tx);
-    console(format("tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % tx_buckets % tx_count %
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
+        index % span.count() % tx_buckets % tx_count %
         (floater(tx_count) / tx_buckets));
     
     for (const auto& entry: dump(tx))
-        console(format("tx: %1% frequency: %2%") %
+        logger(format("tx: %1% frequency: %2%") %
             entry.first % entry.second);
     
     tx.clear();
@@ -615,12 +676,13 @@ void executor::scan_collisions() const
     // ........................................................................
     
     const auto strong_tx_count = count(strong_tx);
-    console(format("strong_tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % tx_buckets % strong_tx_count %
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("strong_tx: %1% in %2%s buckets %3% filled %4% rate %5%") %
+        index % span.count() % tx_buckets % strong_tx_count %
         (floater(strong_tx_count) / tx_buckets));
     
     for (const auto& entry: dump(strong_tx))
-        console(format("strong_tx: %1% frequency: %2%") %
+        logger(format("strong_tx: %1% frequency: %2%") %
             entry.first % entry.second);
     
     strong_tx.clear();
@@ -630,7 +692,7 @@ void executor::scan_collisions() const
     // ------------------------------------------------------------------------
 
     index = max_size_t;
-    start = unix_time();
+    start = logger::now();
     const auto point_buckets = query_.point_buckets();
     const auto point_records = query_.point_records();
     std_vector<size_t> point(point_buckets, empty);
@@ -640,22 +702,23 @@ void executor::scan_collisions() const
         ++point.at(hash(query_.get_point_key(link.value)) % point_buckets);
     
         if (is_zero(index % tx_frequency))
-            console(format("point" BN_READ_ROW) %
-                index % (unix_time() - start));
+            logger(format("point" BN_READ_ROW) % index %
+                duration_cast<seconds>(logger::now() - start).count());
     }
     
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
     
     // ........................................................................
     
     const auto point_count = count(point);
-    console(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % (unix_time() - start) % point_buckets % point_count %
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
+        index % span.count() % point_buckets % point_count %
         (floater(point_count) / point_buckets));
     
     for (const auto& entry: dump(point))
-        console(format("point: %1% frequency: %2%") %
+        logger(format("point: %1% frequency: %2%") %
             entry.first % entry.second);
     
     point.clear();
@@ -666,7 +729,7 @@ void executor::scan_collisions() const
 
     auto total = zero;
     index = max_size_t;
-    start = unix_time();
+    start = logger::now();
     const auto spend_buckets = query_.spend_buckets();
     std_vector<size_t> spend(spend_buckets, empty);
     while (!cancel_ && (++index < query_.header_records()))
@@ -682,24 +745,25 @@ void executor::scan_collisions() const
                 ++spend.at(hash(query_.to_spend_key(in)) % spend_buckets);
 
                 if (is_zero(index % put_frequency))
-                    console(format("spend" BN_READ_ROW) %
-                        total % (unix_time() - start));
+                    logger(format("spend" BN_READ_ROW) % total %
+                        duration_cast<seconds>(logger::now() - start).count());
             }
         }
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
     // ........................................................................
 
     const auto spend_count = count(spend);
-    console(format("spend: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        total % (unix_time() - start) % spend_buckets % spend_count %
+    span = duration_cast<seconds>(logger::now() - start);
+    logger(format("spend: %1% in %2%s buckets %3% filled %4% rate %5%") %
+        total % span.count() % spend_buckets % spend_count %
         (floater(spend_count) / spend_buckets));
 
     for (const auto& entry: dump(spend))
-        console(format("spend: %1% frequency: %2%") %
+        logger(format("spend: %1% frequency: %2%") %
             entry.first % entry.second);
 
     spend.clear();
@@ -709,7 +773,7 @@ void executor::scan_collisions() const
 // arbitrary testing (const).
 void executor::read_test() const
 {
-    console("No read test implemented.");
+    logger("No read test implemented.");
 }
 
 #if defined(UNDEFINED)
@@ -717,14 +781,13 @@ void executor::read_test() const
 void executor::read_test() const
 {
     constexpr auto start_tx = 15'000_u32;
-    constexpr auto ns_to_ms = 1'000'000_i64;
     constexpr auto target_count = 3000_size;
 
     // Set ensures unique addresses.
     std::set<hash_digest> keys{};
     auto tx = start_tx;
 
-    console(format("Getting first [%1%] output address hashes.") %
+    logger(format("Getting first [%1%] output address hashes.") %
         target_count);
 
     auto start = fine_clock::now();
@@ -741,10 +804,10 @@ void executor::read_test() const
                 break;
         }
     }
-    auto end = fine_clock::now();
 
-    console(format("Got first [%1%] unique addresses above tx [%2%] in [%3%] ms.") %
-        keys.size() % start_tx % ((end - start).count() / ns_to_ms));
+    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Got first [%1%] unique addresses above tx [%2%] in [%3%] ms.") %
+        keys.size() % start_tx % span.count());
 
     struct out
     {
@@ -942,12 +1005,12 @@ void executor::read_test() const
         }
         while (address_it.advance());
     }
-    end = fine_clock::now();
 
-    console(format("Got all [%1%] payments to [%2%] addresses in [%3%] ms.") %
-        outs.size() % keys.size() % ((end - start).count() / ns_to_ms));
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Got all [%1%] payments to [%2%] addresses in [%3%] ms.") %
+        outs.size() % keys.size() % span.count());
 
-    ////console(
+    ////logger(
     ////    "output_script_hash, "
     ////    "output_fk, "
     ////    "spend_fk, "
@@ -983,7 +1046,7 @@ void executor::read_test() const
     ////    const auto output = !row.output ? "{error}" :
     ////        row.output->script().to_string(chain::flags::all_rules);
     ////
-    ////    console(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
+    ////    logger(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
     ////        encode_hash(row.address) %
     ////        row.output_fk %
     ////        row.spend_fk%
@@ -1017,18 +1080,16 @@ void executor::read_test() const
     const auto data = base16_array("0014dc6bf86354105de2fcd9868a2b0376d6731cb92f");
     const chain::script output_script{ data, false };
     const auto mnemonic = output_script.to_string(chain::flags::all_rules);
-    console(format("Getting payments to {%1%}.") % mnemonic);
+    logger(format("Getting payments to {%1%}.") % mnemonic);
 
     const auto start = fine_clock::now();
     database::output_links outputs{};
     if (!query_.to_address_outputs(outputs, output_script.hash()))
         return;
 
-    const auto end = fine_clock::now();
-    const auto span = (end - start).count() / 1'000'000;
-
-    console(format("Found [%1%] outputs of {%2%} in [%3%] ms.") %
-        outputs.size() % mnemonic % span);
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Found [%1%] outputs of {%2%} in [%3%] ms.") %
+        outputs.size() % mnemonic % span.count());
 }
 
 // This was caused by concurrent redundant downloads at tail following restart.
@@ -1040,14 +1101,14 @@ void executor::read_test() const
     const auto block = query_.to_confirmed(height);
     if (block.is_terminal())
     {
-        console("!block");
+        logger("!block");
         return;
     }
 
     const auto txs = query_.to_txs(block);
     if (txs.empty())
     {
-        console("!txs");
+        logger("!txs");
         return;
     }
 
@@ -1077,21 +1138,21 @@ void executor::read_test() const
 
     if (is_zero(spender_count))
     {
-        console("is_zero(spender_count)");
+        logger("is_zero(spender_count)");
         return;
     }
 
     // ...260
     if (spender_link.is_terminal())
     {
-        console("spender_link.is_terminal()");
+        logger("spender_link.is_terminal()");
         return;
     }
 
     const auto spender_link1 = query_.to_tx(hash_spender);
     if (spender_link != spender_link1)
     {
-        console("spender_link != spender_link1");
+        logger("spender_link != spender_link1");
         ////return;
     }
 
@@ -1121,40 +1182,40 @@ void executor::read_test() const
 
     if (is_zero(spent_count))
     {
-        console("is_zero(spent_count)");
+        logger("is_zero(spent_count)");
         return;
     }
 
     // ...254 (not ...255)
     if (spent_link.is_terminal())
     {
-        console("spent_link.is_terminal()");
+        logger("spent_link.is_terminal()");
         return;
     }
 
     const auto spent_link1 = query_.to_tx(hash_spent);
     if (spent_link != spent_link1)
     {
-        console("spent_link != spent_link1");
+        logger("spent_link != spent_link1");
         ////return;
     }
 
     const auto tx = query_.to_tx(hash_spender);
     if (tx.is_terminal())
     {
-        console("!tx");
+        logger("!tx");
         return;
     }
 
     if (tx != spender_link)
     {
-        console("tx != spender_link");
+        logger("tx != spender_link");
         return;
     }
 
     if (spender_link <= spent_link)
     {
-        console("spender_link <= spent_link");
+        logger("spender_link <= spent_link");
         return;
     }
 
@@ -1162,7 +1223,7 @@ void executor::read_test() const
     const auto header1 = query_.to_block(spender_link);
     if (header1.is_terminal())
     {
-        console("header1.is_terminal()");
+        logger("header1.is_terminal()");
         return;
     }
 
@@ -1170,7 +1231,7 @@ void executor::read_test() const
     const auto header11 = query_.to_block(add1(spender_link));
     if (!header11.is_terminal())
     {
-        console("!header11.is_terminal()");
+        logger("!header11.is_terminal()");
         return;
     }
 
@@ -1178,7 +1239,7 @@ void executor::read_test() const
     const auto header2 = query_.to_block(spent_link);
     if (header2.is_terminal())
     {
-        console("auto.is_terminal()");
+        logger("auto.is_terminal()");
         return;
     }
 
@@ -1186,24 +1247,24 @@ void executor::read_test() const
     const auto header22 = query_.to_block(add1(spent_link));
     if (!header22.is_terminal())
     {
-        console("!header22.is_terminal()");
+        logger("!header22.is_terminal()");
         return;
     }
 
     if (header1 != header2)
     {
-        console("header1 != header2");
+        logger("header1 != header2");
         return;
     }
 
     if (header1 != block)
     {
-        console("header1 != block");
+        logger("header1 != block");
         return;
     }
 
     const auto ec = query_.block_confirmable(query_.to_confirmed(height));
-    console(format("Confirm [%1%] test (%2%).") % height % ec.message());
+    logger(format("Confirm [%1%] test (%2%).") % height % ec.message());
 }
 
 void executor::read_test() const
@@ -1212,21 +1273,21 @@ void executor::read_test() const
     const auto block = query_.get_block(bk_link);
     if (!block)
     {
-        console("!query_.get_block(link)");
+        logger("!query_.get_block(link)");
         return;
     }
 
     ////const auto tx = query_.get_transaction({ 980'984'671_u32 });
     ////if (!tx)
     ////{
-    ////    console("!query_.get_transaction(tx_link)");
+    ////    logger("!query_.get_transaction(tx_link)");
     ////    return;
     ////}
     ////
     ////database::context context{};
     ////if (!query_.get_context(context, bk_link))
     ////{
-    ////    console("!query_.get_context(context, bk_link)");
+    ////    logger("!query_.get_context(context, bk_link)");
     ////    return;
     ////}
     ////
@@ -1242,42 +1303,42 @@ void executor::read_test() const
     ////
     ////if (!query_.populate_with_metadata(*tx))
     ////{
-    ////    console("!query_.populate_with_metadata(*tx)");
+    ////    logger("!query_.populate_with_metadata(*tx)");
     ////    return;
     ////}
     ////
     ////if (const auto ec = tx->confirm(ctx))
-    ////    console(format("Error confirming tx [980'984'671] %1%") % ec.message());
+    ////    logger(format("Error confirming tx [980'984'671] %1%") % ec.message());
     ////
     ////// Does not compute spent metadata, assumes coinbase spent and others not.
     ////if (!query_.populate_with_metadata(*block))
     ////{
-    ////    console("!query_.populate_with_metadata(*block)");
+    ////    logger("!query_.populate_with_metadata(*block)");
     ////    return;
     ////}
     ////
     ////const auto& txs = *block->transactions_ptr();
     ////if (txs.empty())
     ////{
-    ////    console("txs.empty()");
+    ////    logger("txs.empty()");
     ////    return;
     ////}
     ////
     ////for (auto index = one; index < txs.size(); ++index)
     ////    if (const auto ec = txs.at(index)->confirm(ctx))
-    ////        console(format("Error confirming tx [%1%] %2%") % index % ec.message());
+    ////        logger(format("Error confirming tx [%1%] %2%") % index % ec.message());
     ////
-    ////console("Confirm test 1 complete.");
+    ////logger("Confirm test 1 complete.");
 
     const auto ec = query_.block_confirmable(bk_link);
-    console(format("Confirm test 2 complete (%1%).") % ec.message());
+    logger(format("Confirm test 2 complete (%1%).") % ec.message());
 }
 
 void executor::read_test() const
 {
     using namespace database;
     constexpr auto frequency = 100'000u;
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
     auto tx = 664'400'000_size;
 
     // Read all data except genesis (ie. for validation).
@@ -1289,44 +1350,44 @@ void executor::read_test() const
         ////const auto ptr = query_.get_header(link);
         ////if (!ptr)
         ////{
-        ////    console("Failure: get_header");
+        ////    logger("Failure: get_header");
         ////    break;
         ////}
         ////else if (is_zero(ptr->bits()))
         ////{
-        ////    console("Failure: zero bits");
+        ////    logger("Failure: zero bits");
         ////    break;
         ////}
 
         ////const auto txs = query_.to_txs(link);
         ////if (txs.empty())
         ////{
-        ////    console("Failure: to_txs");
+        ////    logger("Failure: to_txs");
         ////    break;
         ////}
 
         const auto ptr = query_.get_transaction(link);
         if (!ptr)
         {
-            console("Failure: get_transaction");
+            logger("Failure: get_transaction");
             break;
         }
         else if (!ptr->is_valid())
         {
-            console("Failure: is_valid");
+            logger("Failure: is_valid");
             break;
         }
 
         if (is_zero(tx % frequency))
-            console(format("get_transaction" BN_READ_ROW) %
-                tx % (unix_time() - start));
+            logger(format("get_transaction" BN_READ_ROW) % tx %
+                duration_cast<seconds>(fine_clock::now() - start).count());
     }
 
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
+        logger(BN_OPERATION_CANCELED);
 
-    console(format("get_transaction" BN_READ_ROW) %
-        tx % (unix_time() - start));
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    logger(format("get_transaction" BN_READ_ROW) % tx % span.count());
 }
 
 void executor::read_test() const
@@ -1334,10 +1395,10 @@ void executor::read_test() const
     constexpr auto hash492224 = base16_hash(
         "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
 
-    console("HIT <enter> TO START");
+    logger("HIT <enter> TO START");
     std::string line{};
     std::getline(input_, line);
-    const auto start = unix_time();
+    const auto start = (fine_clock::now();
 
     for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
     {
@@ -1345,14 +1406,14 @@ void executor::read_test() const
         const auto link = query_.to_header(hash492224);
         if (link.is_terminal())
         {
-            console("to_header");
+            logger("to_header");
             return;
         }
 
         ////const auto link = query_.to_confirmed(height);
         ////if (link.is_terminal())
         ////{
-        ////    console("to_confirmed");
+        ////    logger("to_confirmed");
         ////    return;
         ////}
 
@@ -1360,7 +1421,7 @@ void executor::read_test() const
         const auto block = query_.get_block(link);
         if (!block || !block->is_valid() || block->hash() != hash492224)
         {
-            console("get_block");
+            logger("get_block");
             return;
         }
         
@@ -1368,7 +1429,7 @@ void executor::read_test() const
         code ec{};
         if ((ec = block->check()))
         {
-            console(format("Block [%1%] check1: %2%") % height % ec.message());
+            logger(format("Block [%1%] check1: %2%") % height % ec.message());
             return;
         }
 
@@ -1376,7 +1437,7 @@ void executor::read_test() const
         if (chain::checkpoint::is_conflict(
             metadata_.configured.bitcoin.checkpoints, block->hash(), height))
         {
-            console(format("Block [%1%] checkpoint conflict") % height);
+            logger(format("Block [%1%] checkpoint conflict") % height);
             return;
         }
 
@@ -1387,7 +1448,7 @@ void executor::read_test() const
         // ???? 228s/219s/200s [combined]
         if (!query_.populate(*block))
         {
-            console("populate");
+            logger("populate");
             return;
         }
 
@@ -1395,7 +1456,7 @@ void executor::read_test() const
         database::context ctx{};
         if (!query_.get_context(ctx, link) || ctx.height != height)
         {
-            console("get_context");
+            logger("get_context");
             return;
         }
 
@@ -1409,7 +1470,7 @@ void executor::read_test() const
         // split from accept.
         if ((ec = block->check(state)))
         {
-            console(format("Block [%1%] check2: %2%") % height % ec.message());
+            logger(format("Block [%1%] check2: %2%") % height % ec.message());
             return;
         }
 
@@ -1418,14 +1479,14 @@ void executor::read_test() const
         if ((ec = block->accept(state, coin.subsidy_interval_blocks,
             coin.initial_subsidy())))
         {
-            console(format("Block [%1%] accept: %2%") % height % ec.message());
+            logger(format("Block [%1%] accept: %2%") % height % ec.message());
             return;
         }
 
         // 1410s
         if ((ec = block->connect(state)))
         {
-            console(format("Block [%1%] connect: %2%") % height % ec.message());
+            logger(format("Block [%1%] connect: %2%") % height % ec.message());
             return;
         }
 
@@ -1435,7 +1496,7 @@ void executor::read_test() const
         ////    const auto& tx = *block->transactions_ptr()->at(index);
         ////    if ((ec = tx.connect(state)))
         ////    {
-        ////        console(format("Tx (%1%) [%2%] %3%")
+        ////        logger(format("Tx (%1%) [%2%] %3%")
         ////            % index
         ////            % encode_hash(tx.hash(false))
         ////            % ec.message());
@@ -1443,12 +1504,13 @@ void executor::read_test() const
         ////}
 
         // +10s for all.
-        console(format("block:%1%") % height);
-        ////console(format("block:%1% flags:%2% mtp:%3%") %
+        logger(format("block:%1%") % height);
+        ////logger(format("block:%1% flags:%2% mtp:%3%") %
         ////    ctx.height % ctx.flags % ctx.mtp);
     }
 
-    console(format("STOP (%1% secs)") % (unix_time() - start));
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    logger(format("STOP (%1% secs)") % span.count());
 }
 
 // TODO: create a block/tx dumper.
@@ -1462,31 +1524,31 @@ void executor::read_test() const
     const auto link = query_.to_header(hash251684);
     if (link.is_terminal())
     {
-        console("link.is_terminal()");
+        logger("link.is_terminal()");
         return;
     }
 
     const auto block = query_.get_block(link);
     if (!block)
     {
-        console("!block");
+        logger("!block");
         return;
     }
     if (!block->is_valid())
     {
-        console("!block->is_valid()");
+        logger("!block->is_valid()");
         return;
     }
 
     database::context ctx{};
     if (!query_.get_context(ctx, link))
     {
-        console("!query_.get_context(ctx, link)");
+        logger("!query_.get_context(ctx, link)");
         return;
     }
 
     // flags:131223 height:251684 mtp:1376283946
-    console(format("flags:%1% height:%2% mtp:%3%") %
+    logger(format("flags:%1% height:%2% mtp:%3%") %
         ctx.flags % ctx.height % ctx.mtp);
 
     // minimum_block_version and work_required are only for header validate.
@@ -1499,14 +1561,14 @@ void executor::read_test() const
     state.work_required = 0;
     if (!query_.populate(*block))
     {
-        console("!query_.populate(*block)");
+        logger("!query_.populate(*block)");
         return;
     }
 
     code ec{};
     if ((ec = block->check()))
     {
-        console(format("Block check: %1%") % ec.message());
+        logger(format("Block check: %1%") % ec.message());
         return;
     }
 
@@ -1514,17 +1576,17 @@ void executor::read_test() const
     if ((ec = block->accept(state, coin.subsidy_interval_blocks,
         coin.initial_subsidy())))
     {
-        console(format("Block accept: %1%") % ec.message());
+        logger(format("Block accept: %1%") % ec.message());
         return;
     }
 
     if ((ec = block->connect(state)))
     {
-        console(format("Block connect: %1%") % ec.message());
+        logger(format("Block connect: %1%") % ec.message());
         return;
     }
 
-    console("Validated block 251684.");
+    logger("Validated block 251684.");
 }
 
 #endif // UNDEFINED
@@ -1532,7 +1594,7 @@ void executor::read_test() const
 // arbitrary testing (non-const).
 void executor::write_test()
 {
-    console("No write test implemented.");
+    logger("No write test implemented.");
 }
 
 #if defined(UNDEFINED)
@@ -1541,7 +1603,7 @@ void executor::write_test()
 {
     code ec{};
     size_t count{};
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
 
     ////// This tx in block 840161 is not strong by block 840112 (weak prevout).
     ////const auto tx = "865d721037b0c995822367c41875593d7093d1bae412f3861ce471de3c07e180";
@@ -1549,7 +1611,7 @@ void executor::write_test()
     ////const auto hash = system::base16_hash(block);
     ////if (!query_.push_candidate(query_.to_header(hash)))
     ////{
-    ////    console(format("!query_.push_candidate(query_.to_header(hash))"));
+    ////    logger(format("!query_.push_candidate(query_.to_header(hash))"));
     ////    return;
     ////}
 
@@ -1560,43 +1622,43 @@ void executor::write_test()
         const auto block = query_.to_candidate(height);
         if (!query_.set_strong(block))
         {
-            console(format("set_strong [%1%] fault.") % height);
+            logger(format("set_strong [%1%] fault.") % height);
             return;
         }
 
         ////if (height > 804'000_size)
         ////if (ec = query_.block_confirmable(block))
         ////{
-        ////    console(format("block_confirmable [%1%] fault (%2%).") % height % ec.message());
+        ////    logger(format("block_confirmable [%1%] fault (%2%).") % height % ec.message());
         ////    return;
         ////}
         ////
         ////if (!query_.set_block_confirmable(block, uint64_t{}))
         ////{
-        ////    console(format("set_block_confirmable [%1%] fault.") % height);
+        ////    logger(format("set_block_confirmable [%1%] fault.") % height);
         ////    return;
         ////}
 
         if (!query_.push_confirmed(block))
         {
-            console(format("push_confirmed [%1%] fault.") % height);
+            logger(format("push_confirmed [%1%] fault.") % height);
             return;
         }
 
         if (is_zero(height % 100_size))
-            console(format("write_test [%1%].") % height);
+            logger(format("write_test [%1%].") % height);
     }
 
-    console(format("%1% blocks in %2% secs.") % count % (unix_time() - start));
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    logger(format("%1% blocks in %2% secs.") % count % span.count());
 }
 
 void executor::write_test()
 {
     using namespace database;
     constexpr auto frequency = 10'000;
-    const auto start = unix_time();
-    const auto start1 = fine_clock::now();
-    console(BN_OPERATION_INTERRUPT);
+    const auto start = fine_clock::now();
+    logger(BN_OPERATION_INTERRUPT);
 
     auto height = query_.get_top_candidate();
     while (!cancel_ && (++height < query_.header_records()))
@@ -1606,26 +1668,26 @@ void executor::write_test()
 
         if (!query_.push_confirmed(link))
         {
-            console("!query_.push_confirmed(link)");
+            logger("!query_.push_confirmed(link)");
             return;
         }
 
         if (!query_.push_candidate(link))
         {
-            console("!query_.push_candidate(link)");
+            logger("!query_.push_candidate(link)");
             return;
         }
 
         if (is_zero(height % frequency))
-            console(format("block" BN_WRITE_ROW) %
-                height % (unix_time() - start));
+            logger(format("block" BN_WRITE_ROW) % height %
+                duration_cast<seconds>(fine_clock::now() - start).count());
     }
             
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
-            
-    console(format("block" BN_WRITE_ROW) %
-        height % (fine_clock::now() - start1).count());
+        logger(BN_OPERATION_CANCELED);
+
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
 void executor::write_test()
@@ -1633,10 +1695,10 @@ void executor::write_test()
     using namespace database;
     ////constexpr uint64_t fees = 99;
     constexpr auto frequency = 10'000;
-    const auto start = unix_time();
+    const auto start = fine_clock::now();
     code ec{};
 
-    console(BN_OPERATION_INTERRUPT);
+    logger(BN_OPERATION_INTERRUPT);
 
     auto height = zero;//// query_.get_top_confirmed();
     const auto records = query_.header_records();
@@ -1648,51 +1710,51 @@ void executor::write_test()
         if (!query_.set_strong(link))
         {
             // total sequential chain cost: 18.7 min (now 6.6).
-            console("Failure: set_strong");
+            logger("Failure: set_strong");
             break;
         }
         else if ((ec = query_.block_confirmable(link)))
         {
             // must set_strong before each (no push, verifies non-use).
-            console(format("Failure: block_confirmed, %1%") % ec.message());
+            logger(format("Failure: block_confirmed, %1%") % ec.message());
             break;
         }
         ////if (!query_.set_txs_connected(link))
         ////{
         ////    // total sequential chain cost: 21 min.
-        ////    console("Failure: set_txs_connected");
+        ////    logger("Failure: set_txs_connected");
         ////    break;
         ////}
         ////if (!query_.set_block_confirmable(link, fees))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    console("Failure: set_block_confirmable");
+        ////    logger("Failure: set_block_confirmable");
         ////    break;
         ////    break;
         ////}
         ////else if (!query_.push_candidate(link))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    console("Failure: push_candidate");
+        ////    logger("Failure: push_candidate");
         ////    break;
         ////}
         ////else if (!query_.push_confirmed(link))
         ////{
         ////    // total chain cost: 1 sec.
-        ////    console("Failure: push_confirmed");
+        ////    logger("Failure: push_confirmed");
         ////    break;
         ////}
 
         if (is_zero(height % frequency))
-            console(format("block" BN_WRITE_ROW) %
-                height % (unix_time() - start));
+            logger(format("block" BN_WRITE_ROW) % height %
+                duration_cast<seconds>(fine_clock::now() - start).count());
     }
     
     if (cancel_)
-        console(BN_OPERATION_CANCELED);
-    
-    console(format("block" BN_WRITE_ROW) %
-        height % (unix_time() - start));
+        logger(BN_OPERATION_CANCELED);
+
+    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
 void executor::write_test()
@@ -1702,80 +1764,178 @@ void executor::write_test()
     const auto link = query_.to_header(hash251684);
     if (link.is_terminal())
     {
-        console("link.is_terminal()");
+        logger("link.is_terminal()");
         return;
     }
 
     if (query_.confirmed_records() != 251684u)
     {
-        console("!query_.confirmed_records() != 251684u");
+        logger("!query_.confirmed_records() != 251684u");
         return;
     }
 
     if (!query_.push_confirmed(link))
     {
-        console("!query_.push_confirmed(link)");
+        logger("!query_.push_confirmed(link)");
         return;
     }
 
     if (query_.confirmed_records() != 251685u)
     {
-        console("!query_.confirmed_records() != 251685u");
+        logger("!query_.confirmed_records() != 251685u");
         return;
     }
 
-    console("Successfully confirmed block 251684.");
+    logger("Successfully confirmed block 251684.");
 }
 
 #endif // UNDEFINED
 
-// Menu selection.
+// Store functions.
 // ----------------------------------------------------------------------------
 
-bool executor::menu()
+bool executor::check_store_path(bool create) const
 {
-    const auto& config = metadata_.configured;
+    const auto& configuration = metadata_.configured.file;
+    if (configuration.empty())
+        logger(BN_USING_DEFAULT_CONFIG);
+    else
+        logger(format(BN_USING_CONFIG_FILE) % configuration);
 
-    if (config.help)
-        return do_help();
+    const auto& store = metadata_.configured.database.path;
 
-    if (config.settings)
-        return do_settings();
+    if (create)
+    {
+        logger(format(BN_INITIALIZING_CHAIN) % store);
+        if (!database::file::create_directory(store))
+        {
+            logger(format(BN_INITCHAIN_EXISTS) % store);
+            return false;
+        }
+    }
+    else
+    {
+        if (!database::file::is_directory(store))
+        {
+            logger(format(BN_UNINITIALIZED_DATABASE) % store);
+            return false;
+        }
+    }
 
-    if (config.version)
-        return do_version();
+    return true;
+}
 
-    if (config.initchain)
-        return do_initchain();
+bool executor::create_store(bool details)
+{
+    logger(BN_INITCHAIN_CREATING);
+    const auto start = logger::now();
+    if (const auto ec = store_.create([&](auto event_, auto table)
+    {
+        if (details)
+            logger(format(BN_CREATE) % events_.at(event_) % tables_.at(table));
+    }))
+    {
+        logger(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
+        return false;
+    }
 
-    if (config.restore)
-        return do_restore();
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_INITCHAIN_CREATED) % span.count());
+    return true;
+}
 
-    if (config.flags)
-        return do_flags();
+// not timed or announced (generally fast)
+code executor::open_store_code(bool details)
+{
+    ////logger(BN_DATABASE_STARTING);
+    if (const auto ec = store_.open([&](auto event_, auto table)
+    {
+        if (details)
+            logger(format(BN_OPEN) % events_.at(event_) % tables_.at(table));
+    }))
+    {
+        logger(format(BN_DATABASE_START_FAIL) % ec.message());
+        return ec;
+    }
 
-    if (config.measure)
-        return do_measure();
+    logger(BN_DATABASE_STARTED);
+    return error::success;
+}
 
-    if (config.buckets)
-        return do_buckets();
+bool executor::open_store(bool details)
+{
+    return !open_store_code(details);
+}
 
-    if (config.collisions)
-        return do_collisions();
+bool executor::close_store(bool details)
+{
+    logger(BN_DATABASE_STOPPING);
+    const auto start = logger::now();
+    if (const auto ec = store_.close([&](auto event_, auto table)
+    {
+        if (details)
+            logger(format(BN_CLOSE) % events_.at(event_) % tables_.at(table));
+    }))
+    {
+        logger(format(BN_DATABASE_STOP_FAIL) % ec.message());
+        return false;
+    }
 
-    if (config.read)
-        return do_read();
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_DATABASE_TIMED_STOP) % span.count());
+    return true;
+}
 
-    if (config.write)
-        return do_write();
+bool executor::restore_store(bool details)
+{
+    logger(BN_RESTORING_CHAIN);
+    const auto start = logger::now();
+    if (const auto ec = store_.restore([&](auto event, auto table)
+    {
+        if (details)
+            logger(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        if (ec == database::error::flush_lock)
+            logger(BN_RESTORE_MISSING_FLUSH_LOCK);
+        else
+            logger(format(BN_RESTORE_FAILURE) % ec.message());
 
-    return do_run();
+        return false;
+    }
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_RESTORE_COMPLETE) % span.count());
+    return true;
+}
+
+bool executor::backup_store(bool details)
+{
+    logger(BN_NODE_BACKUP_STARTED);
+    const auto start = logger::now();
+    if (const auto ec = store_.snapshot([&](auto event, auto table)
+    {
+        // Suspend channels that missed previous suspend events.
+        if (node_ && event == database::event_t::wait_lock)
+            node_->suspend(error::store_snapshotting);
+
+        if (details)
+            logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
+    }))
+    {
+        logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
+        return false;
+    }
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_NODE_BACKUP_COMPLETE) % span.count());
+    return true;
 }
 
 // Command line options.
 // ----------------------------------------------------------------------------
 
-// --help
+// --[h]elp
 bool executor::do_help()
 {
     log_.stop();
@@ -1785,7 +1945,43 @@ bool executor::do_help()
     return true;
 }
 
-// --settings
+#ifdef HAVE_XCPU
+    constexpr auto with_xcpu = true;
+#else
+    constexpr auto with_xcpu = false;
+#endif
+
+#ifdef HAVE_ARM
+    constexpr auto with_arm = true;
+#else
+    constexpr auto with_arm = false;
+#endif
+
+// --har[d]ware
+bool executor::do_hardware()
+{
+    // Intrinsics can be safely compiled for unsupported platforms.
+    // The "try" functions exclude out checks for instructions not compiled in.
+    // But for instructions comiled in, each use currently invokes the "try".
+    // HOWEVER: win32 compiler vectorization config is tied to these options.
+    // HOWEVER: The process will crash if those are compiled and not present.
+    // So our options are portable, but related compiler optimizations are not.
+    // And in that case this function cannot even be executed. So test for
+    // avx512 or shani here (for example) and only after enable compiler opts.
+
+    log_.stop();
+    logger("Intrinsics...");
+    logger(format("arm..... platform:%1%.") % with_arm);
+    logger(format("intel... platform:%1%.") % with_xcpu);
+    logger(format("avx512.. platform:%1% compiled:%2%.") % system::try_avx512() % with_avx512);
+    logger(format("avx2.... platform:%1% compiled:%2%.") % system::try_avx2() % with_avx2);
+    logger(format("sse41... platform:%1% compiled:%2%.") % system::try_sse41() % with_sse41);
+    logger(format("shani... platform:%1% compiled:%2%.") % system::try_shani() % with_shani);
+    logger(format("neon.... platform:%1% compiled:%2%.") % system::try_neon() % with_neon);
+    return true;
+}
+
+// --[s]ettings
 bool executor::do_settings()
 {
     log_.stop();
@@ -1795,11 +1991,11 @@ bool executor::do_settings()
     return true;
 }
 
-// --version
+// --[v]ersion
 bool executor::do_version()
 {
     log_.stop();
-    console(format(BN_VERSION_MESSAGE)
+    logger(format(BN_VERSION_MESSAGE)
         % LIBBITCOIN_NODE_VERSION
         % LIBBITCOIN_DATABASE_VERSION
         % LIBBITCOIN_NETWORK_VERSION
@@ -1807,415 +2003,287 @@ bool executor::do_version()
     return true;
 }
 
-// --initchain
+// --[i]nitchain
 bool executor::do_initchain()
 {
     log_.stop();
-    const auto start = logger::now();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    console(format(BN_INITIALIZING_CHAIN) % store);
-    if (!database::file::create_directory(store))
-    {
-        console(format(BN_INITCHAIN_EXISTS) % store);
+    if (!check_store_path(true) ||
+        !create_store(true) ||
+        !open_store())
         return false;
-    }
 
-    console(BN_INITCHAIN_CREATING);
-    if (const auto ec = store_.create([&](auto event_, auto table)
-    {
-        console(format(BN_CREATE) % events_.at(event_) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto event_, auto table)
-    {
-        console(format(BN_OPEN) % events_.at(event_) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_OPEN_FAILURE) % ec.message());
-        return false;
-    }
-
-    console(BN_INITCHAIN_DATABASE_INITIALIZE);
+    // Create and confirm genesis block (store invalid without it).
+    logger(BN_INITCHAIN_DATABASE_INITIALIZE);
     if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
     {
-        console(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
+        logger(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
         return false;
     }
 
     // Records and sizes reflect genesis block only.
-    console(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_buckets());
-    console(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    console(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets() %
-        query_.address_buckets() %
-        query_.neutrino_buckets());
+    dump_sizes();
+    dump_records();
+    dump_buckets();
+
+    // This one can take a few seconds on cold iron.
     logger(BN_MEASURE_PROGRESS_START);
-    logger(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    dump_progress();
 
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
-    {
-        console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_INITCHAIN_DATABASE_CLOSE_FAILURE) % ec.message());
+    if (!close_store())
         return false;
-    }
 
-    const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format(BN_INITCHAIN_COMPLETE) % span.count());
+    logger(BN_INITCHAIN_COMPLETE);
     return true;
 }
 
-// --restore
+// --[b]ackup
+bool executor::do_backup()
+{
+    log_.stop();
+    return check_store_path()
+        && open_store()
+        && backup_store(true)
+        && close_store();
+}
+
+// --restore[x]
 bool executor::do_restore()
 {
     log_.stop();
-    const auto start = logger::now();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    console(format(BN_RESTORING_CHAIN) % store);
-
-    if (const auto ec = store_.restore([&](auto event, auto table)
-    {
-        console(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        if (ec == database::error::flush_lock)
-            console(BN_RESTORE_MISSING_FLUSH_LOCK);
-        else
-            console(format(BN_RESTORE_FAILURE) % ec.message());
-        return false;
-    }
-
-    const auto span = duration_cast<milliseconds>(logger::now() - start);
-    console(format(BN_RESTORE_COMPLETE) % span.count());
-    return true;
+    return check_store_path()
+        && restore_store(true)
+        && close_store();
 }
 
-// --flags
+// --[f]lags
 bool executor::do_flags()
 {
     log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
+    if (!check_store_path() ||
+        !open_store())
         return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
 
     scan_flags();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
+    return close_store();
 }
 
-// --measure
+// --[m]easure
 bool executor::do_measure()
 {
     log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
+    if (!check_store_path() ||
+        !open_store())
         return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
 
     measure_size();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
+    return close_store();
 }
 
-// --buckets
+// --sl[a]bs
+bool executor::do_slabs()
+{
+    log_.stop();
+    if (!check_store_path() ||
+        !open_store())
+        return false;
+
+    scan_slabs();
+    return close_store();
+}
+
+// --buc[k]ets
 bool executor::do_buckets()
 {
     log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
+    if (!check_store_path() ||
+        !open_store())
         return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
 
     scan_buckets();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
+    return close_store();
 }
 
 // --collisions[l]
 bool executor::do_collisions()
 {
     log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
+    if (!check_store_path() ||
+        !open_store())
         return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
 
     scan_collisions();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
+    return close_store();
 }
 
-// --read[x]
+// --read[r]
 bool executor::do_read()
 {
     log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
+    if (!check_store_path() ||
+        !open_store())
         return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
 
     read_test();
-
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
-    {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
-    }
-
-    console(BN_DATABASE_STOPPED);
-    return true;
+    return close_store();
 }
 
-// --write
+// --write[w]
 bool executor::do_write()
 {
     log_.stop();
-    const auto& configuration = metadata_.configured.file;
-    if (configuration.empty())
-        console(BN_USING_DEFAULT_CONFIG);
-    else
-        console(format(BN_USING_CONFIG_FILE) % configuration);
-
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        console(format(BN_UNINITIALIZED_DATABASE) % store);
+    if (!check_store_path() ||
+        !open_store())
         return false;
-    }
-
-    // Open store.
-    console(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto, auto)
-    {
-        ////console(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_START_FAIL) % ec.message());
-        return false;
-    }
 
     write_test();
+    return close_store();
+}
 
-    // Close store.
-    console(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto, auto)
+// Runtime options.
+// ----------------------------------------------------------------------------
+
+// [b]ackup
+void executor::do_hot_backup()
+{
+    if (!node_)
     {
-        ////console(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        console(format(BN_DATABASE_STOP_FAIL) % ec.message());
-        return false;
+        logger(BN_NODE_BACKUP_UNAVAILABLE);
+        return;
     }
 
-    console(BN_DATABASE_STOPPED);
-    return true;
+    if (const auto ec = store_.get_fault())
+    {
+        logger(format(BN_SNAPSHOT_INVALID) % ec.message());
+        return;
+    }
+
+    node_->suspend(error::store_snapshotting);
+    backup_store(true);
+    do_toggle_suspend();
+}
+
+// [c]lose
+void executor::do_close()
+{
+    logger("CONSOLE: Close");
+    stop(error::success);
+}
+
+// [e]rrors
+void executor::do_report_condition() const
+{
+    store_.report_errors([&](const auto& ec, auto table)
+    {
+        logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
+    });
+}
+
+// [h]old
+void executor::do_toggle_suspend()
+{
+    if (node_->suspended())
+    {
+        if (query_.is_full())
+            logger(BN_NODE_DISK_FULL);
+        else
+            node_->resume();
+    }
+    else
+    {
+        node_->suspend(error::suspended_service);
+    }
+}
+
+// [i]nformation
+void executor::do_information() const
+{
+    dump_sizes();
+    dump_records();
+    dump_buckets();
+    dump_collisions();
+    dump_progress();
+}
+
+// [t]est
+void executor::do_test() const
+{
+    read_test();
+}
+
+// [w]ork
+void executor::do_report_work() const
+{
+    node_->notify(error::success, chase::report, {});
+}
+
+// re[z]ume
+void executor::do_resume()
+{
+    // Any table with error::disk_full code.
+    if (query_.is_full())
+    {
+        logger(BN_NODE_DISK_FULL_RESET);
+        store_.clear_errors();
+        node_->resume();
+        return;
+    }
+
+    // Any table with any error code.
+    logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
+}
+
+// Command line menu selection.
+// ----------------------------------------------------------------------------
+
+bool executor::menu()
+{
+    const auto& config = metadata_.configured;
+    if (config.help)
+        return do_help();
+
+    // Order below matches help output (alphabetical), so that first option is
+    // executed in the case where multiple options are parsed.
+
+    if (config.slabs)
+        return do_slabs();
+
+    if (config.backup)
+        return do_backup();
+
+    if (config.hardware)
+        return do_hardware();
+
+    if (config.flags)
+        return do_flags();
+
+    if (config.initchain)
+        return do_initchain();
+
+    if (config.buckets)
+        return do_buckets();
+
+    if (config.collisions)
+        return do_collisions();
+
+    if (config.measure)
+        return do_measure();
+
+    if (config.read)
+        return do_read();
+
+    if (config.settings)
+        return do_settings();
+
+    if (config.version)
+        return do_version();
+
+    if (config.write)
+        return do_write();
+
+    if (config.restore)
+        return do_restore();
+
+    return do_run();
 }
 
 // Run.
@@ -2282,6 +2350,7 @@ void executor::subscribe_events(std::ostream& sink)
     });
 }
 
+// Runtime menu selection.
 void executor::subscribe_capture()
 {
     // This is not on a network thread, so the node may call close() while this
@@ -2290,115 +2359,89 @@ void executor::subscribe_capture()
     {
         const auto token = system::trim_copy(line);
 
-        if (token == close_)
-        {
-            logger("CONSOLE: Close");
-            stop(error::success);
-            return false;
-        }
-
-        if (token == distro_)
-        {
-            node_->notify(error::success, chase::report, {});
+        // <control>-c emits empty token on Win32.
+        if (token.empty())
             return true;
-        }
 
-        // TODO: add option to toggle inbound/outbound connections.
-        if (token == go_)
+        if (token == "1")
         {
-            // Any table with error::disk_full code.
-            if (query_.is_full())
-            {
-                logger(BN_NODE_DISK_FULL_RESET);
-                store_.clear_errors();
-                node_->resume();
-                return true;
-            }
-
-            // Any table with any error code.
-            logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
-            return true;
-        }
-
-        if (token == errors_)
-        {
-            store_.report_errors([&](const auto& ec, auto table)
-            {
-                logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
-            });
+            for (const auto& option: menu_)
+                logger(format("Option: %1%") % option.second);
 
             return true;
         }
 
-        if (token == backup_)
+        if (options_.contains(token))
         {
-            if (!node_)
+            switch (options_.at(token))
             {
-                logger(BN_NODE_BACKUP_UNAVAILABLE);
-                return true;
+                case menu::backup:
+                {
+                    do_hot_backup();
+                    return true;
+                }
+                case menu::close:
+                {
+                    do_close();
+                    return false;
+                }
+                case menu::errors:
+                {
+                    do_report_condition();
+                    return true;
+                }
+                case menu::hold:
+                {
+                    do_toggle_suspend();
+                    return true;
+                }
+                case menu::info:
+                {
+                    do_information();
+                    return true;
+                }
+                case menu::test:
+                {
+                    do_test();
+                    return true;
+                }
+                case menu::work:
+                {
+                    do_report_work();
+                    return true;
+                }
+                case menu::zoom:
+                {
+                    do_resume();
+                    return true;
+                }
+                default:
+                {
+                    logger("CONSOLE: Unexpected option.");
+                    return true;
+                }
             }
+        }
 
-            if (const auto fault = store_.get_fault())
+        if (toggles_.contains(token))
+        {
+            const auto toggle = toggles_.at(token);
+            if (defined_.at(toggle))
             {
-                logger(format(BN_RESTORE_INVALID) % fault.message());
-                return true;
+                toggle_.at(toggle) = !toggle_.at(toggle);
+                logger("CONSOLE: " + display_.at(toggle) + (toggle_.at(toggle) ?
+                    " logging (+)." : " logging (-)."));
             }
-
-            logger(BN_NODE_BACKUP_STARTED);
-            node_->suspend(error::store_snapshotting);
-
-            const auto error = store_.snapshot([&](auto event, auto table)
-            {
-                // Suspend channels that missed previous suspend events.
-                if (event == database::event_t::wait_lock)
-                    node_->suspend(error::store_snapshotting);
-
-                logger(format(BN_BACKUP) % events_.at(event) %
-                    tables_.at(table));
-            });
-
-            if (error)
-                logger(format(BN_NODE_BACKUP_FAIL) % error.message());
             else
-                logger(format(BN_NODE_BACKUP_COMPLETE));
+            {
+                // Selected log level was not compiled.
+                logger("CONSOLE: " + display_.at(toggle) + " logging (~).");
+            }
 
-            // Not from the backup but of previous condition.
-            if (!query_.is_full()) node_->resume();
             return true;
         }
 
-        if (token == measure_)
-        {
-            measure_size();
-            return !ec;
-        }
-
-        if (token == explore_)
-        {
-            read_test();
-            return !ec;
-        }
-
-        // Toggles...
-        if (!keys_.contains(token))
-        {
-            logger("CONSOLE: '" + line + "'");
-            return !ec;
-        }
-
-        const auto index = keys_.at(token);
-        if (defined_.at(index))
-        {
-            toggle_.at(index) = !toggle_.at(index);
-            logger("CONSOLE: " + display_.at(index) + (toggle_.at(index) ?
-                " logging (+)." : " logging (-)."));
-        }
-        else
-        {
-            // Selected log level was not compiled.
-            logger("CONSOLE: " + display_.at(index) + " logging (~).");
-        }
-
+        logger("CONSOLE: '" + line + "'");
         return !ec;
     },
     [&](const code&)
@@ -2411,31 +2454,15 @@ void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        ////if (to_bool(metadata_.configured.node.interval) &&
-        ////    is_zero(node_->channel_count() %
-        ////        metadata_.configured.node.interval))
-        {
-            log_.write(levels::application) <<
-                "{in:" << node_->inbound_channel_count() << "}"
-                "{ch:" << node_->channel_count() << "}"
-                "{rv:" << node_->reserved_count() << "}"
-                "{nc:" << node_->nonces_count() << "}"
-                "{ad:" << node_->address_count() << "}"
-                "{ss:" << node_->stop_subscriber_count() << "}"
-                "{cs:" << node_->connect_subscriber_count() << "}."
-                << std::endl;
-        }
-
-        ////if (to_bool(metadata_.configured.node.target) &&
-        ////    (node_->channel_count() >= metadata_.configured.node.target))
-        ////{
-        ////    log_.write(levels::application) << "Stopping at channel target ("
-        ////        << metadata_.configured.node.target << ")." << std::endl;
-        ////
-        ////    // Signal stop (simulates <ctrl-c>).
-        ////    stop(error::success);
-        ////    return false;
-        ////}
+        log_.write(levels::verbose) <<
+            "{in:" << node_->inbound_channel_count() << "}"
+            "{ch:" << node_->channel_count() << "}"
+            "{rv:" << node_->reserved_count() << "}"
+            "{nc:" << node_->nonces_count() << "}"
+            "{ad:" << node_->address_count() << "}"
+            "{ss:" << node_->stop_subscriber_count() << "}"
+            "{cs:" << node_->connect_subscriber_count() << "}."
+            << std::endl;
 
         return true;
     },
@@ -2451,7 +2478,7 @@ void executor::subscribe_close()
 {
     node_->subscribe_close([&](const code&)
     {
-        log_.write(levels::application) <<
+        log_.write(levels::verbose) <<
             "{in:" << node_->inbound_channel_count() << "}"
             "{ch:" << node_->channel_count() << "}"
             "{rv:" << node_->reserved_count() << "}"
@@ -2483,92 +2510,57 @@ bool executor::do_run()
     auto events = create_event_sink();
     if (!log || !events)
     {
-        console(BN_LOG_INITIALIZE_FAILURE);
+        logger(BN_LOG_INITIALIZE_FAILURE);
         return false;
     }
 
     subscribe_log(log);
     subscribe_events(events);
     subscribe_capture();
+
     logger(BN_LOG_HEADER);
-
-    const auto& file = metadata_.configured.file;
-    if (file.empty())
-        logger(BN_USING_DEFAULT_CONFIG);
-    else
-        logger(format(BN_USING_CONFIG_FILE) % file);
-
-    // Verify store exists.
-    const auto& store = metadata_.configured.database.path;
-    if (!database::file::is_directory(store))
-    {
-        logger(format(BN_UNINITIALIZED_DATABASE) % store);
-        stopper(BN_NODE_STOPPED);
-        return false;
-    }
-
     logger(BN_NODE_INTERRUPT);
+    logger(BN_LOG_TABLE_HEADER);
+    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
+    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
+    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
+    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
+    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
+    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
+    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
+    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
+    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
+    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
+    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
+
+    if (!check_store_path())
+        return false;
+
+    // stopped by stopper.
     capture_.start();
 
-    // Open store.
-    logger(BN_DATABASE_STARTING);
-    if (const auto ec = store_.open([&](auto event, auto table)
+    const auto ec = open_store_code(true);
+    if (ec == database::error::flush_lock)
     {
-        logger(format(BN_OPEN) % events_.at(event) % tables_.at(table));
-    }))
+        if (!restore_store(true))
+        {
+            stopper(BN_NODE_STOPPED);
+            return false;
+        }
+    }
+    else if (ec)
     {
-        logger(format(BN_DATABASE_START_FAIL) % ec.message());
         stopper(BN_NODE_STOPPED);
         return false;
     }
 
-    logger(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_size());
-    logger(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    logger(format(BN_MEASURE_BUCKETS) %
-        query_.header_buckets() %
-        query_.txs_buckets() %
-        query_.tx_buckets() %
-        query_.point_buckets() %
-        query_.spend_buckets() %
-        query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
-        query_.validated_bk_buckets() %
-        query_.address_buckets() %
-        query_.neutrino_buckets());
+    dump_sizes();
+    dump_records();
+    dump_buckets();
+
+    // This one can take a few seconds on cold iron.
     logger(BN_MEASURE_PROGRESS_START);
-    logger(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    dump_progress();
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -2577,9 +2569,6 @@ bool executor::do_run()
     // Subscribe node.
     subscribe_connect();
     subscribe_close();
-
-    ////logger(format(BN_CHANNEL_LOG_PERIOD) % metadata_.configured.node.interval);
-    ////logger(format(BN_CHANNEL_STOP_TARGET) % metadata_.configured.node.target);
 
     // Start network.
     logger(BN_NETWORK_STARTING);
@@ -2593,56 +2582,20 @@ bool executor::do_run()
     // Stop network (if not already stopped by self).
     node_->close();
 
-    logger(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_size());
-    logger(format(BN_MEASURE_RECORDS) %
-        query_.header_records() %
-        query_.tx_records() %
-        query_.point_records() %
-        query_.candidate_records() %
-        query_.confirmed_records() %
-        query_.spend_records() %
-        query_.strong_tx_records() %
-        query_.address_records());
-    logger(BN_MEASURE_PROGRESS_START);
-    logger(format(BN_MEASURE_PROGRESS) %
-        query_.get_fork() %
-        query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
-        query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
-        query_.get_top_associated() %
-        (query_.get_top_candidate() - query_.get_unassociated_count()) %
-        query_.get_confirmed_size() %
-        query_.get_candidate_size());
+    // All measures can change except buckets.
+    dump_sizes();
+    dump_records();
 
-    // Close store (flush to disk).
-    logger(BN_DATABASE_STOPPING);
-    if (const auto ec = store_.close([&](auto event, auto table)
+    // This one can take a few seconds on cold iron.
+    logger(BN_MEASURE_PROGRESS_START);
+    dump_progress();
+
+    if (!close_store(true))
     {
-        logger(format(BN_CLOSE) % events_.at(event) % tables_.at(table));
-    }))
-    {
-        logger(format(BN_DATABASE_STOP_FAIL) % ec.message());
         stopper(BN_NODE_STOPPED);
         return false;
     }
 
-    // Node is stopped.
     stopper(BN_NODE_STOPPED);
     return true; 
 }

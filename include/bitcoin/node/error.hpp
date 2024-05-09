@@ -51,6 +51,7 @@ enum error_t : uint8_t
     exhausted_channel,
     sacrificed_channel,
     suspended_channel,
+    suspended_service,
 
     // blockchain
     orphan_block,

@@ -37,35 +37,35 @@ namespace node {
 
 // --initchain
 #define BN_INITIALIZING_CHAIN \
-    "Please wait while initializing %1% directory..."
+    "Initializing %1% directory..."
 #define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_CREATING \
     "Please wait while creating the database..."
+#define BN_INITCHAIN_CREATED \
+    "Created the database in %1% secs."
 #define BN_INITCHAIN_COMPLETE \
-    "Created and initialized empty chain in %1% ms."
+    "Created and initialized the database."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
-    "Database creation failed with error, '%1%'."
+    "Database creation failed with error '%1%'."
 #define BN_INITCHAIN_DATABASE_INITIALIZE \
-    "Database storing genesis block."
+    "Storing genesis block."
 #define BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE \
-    "Database failure to store genesis block."
-#define BN_INITCHAIN_DATABASE_OPEN_FAILURE \
-    "Database failed to open, %1%."
-#define BN_INITCHAIN_DATABASE_CLOSE_FAILURE \
-    "Database failed to close, %1%."
+    "Failure storing genesis block."
 
 // --restore
+#define BN_SNAPSHOT_INVALID \
+    "Database snapshot disallowed due to corruption '%1%'."
 #define BN_RESTORING_CHAIN \
-    "Please wait while restoring %1% from most recent snapshot..."
+    "Please wait while restoring from most recent snapshot..."
 #define BN_RESTORE_MISSING_FLUSH_LOCK \
     "Database is not corrupted, flush lock file is absent."
 #define BN_RESTORE_INVALID \
-    "Database restore disallowed with corruption, '%1%'."
+    "Database restore disallowed when corrupt '%1%'."
 #define BN_RESTORE_FAILURE \
-    "Database restore failed with error, '%1%'."
+    "Database restore failed with error '%1%'."
 #define BN_RESTORE_COMPLETE \
-    "Restored database in %1% ms."
+    "Restored the database in %1% secs."
 
 // --measure
 #define BN_MEASURE_SIZES \
@@ -130,7 +130,7 @@ namespace node {
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \
-    "Progress...\n" \
+    "Chain progress...\n" \
     "   fork pt   :%1%\n" \
     "   top conf  :%2%:%3%\n" \
     "   top cand  :%4%:%5%\n" \
@@ -145,7 +145,7 @@ namespace node {
 
 // --write
 #define BN_WRITE_ROW \
-    ": %1% in %2% secs."
+    ": %1% in %2% span."
 
 // run/general
 
@@ -164,24 +164,28 @@ namespace node {
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
-#define BN_DATABASE_STARTING \
-    "Please wait while the database is starting..."
+////#define BN_DATABASE_STARTING \
+////    "Database is starting..."
+#define BN_DATABASE_STARTED \
+    "Database is started."
 #define BN_NETWORK_STARTING \
-    "Please wait while the network is starting..."
+    "Please wait while network is starting..."
 #define BN_NODE_START_FAIL \
-    "Node failed to start with error, %1%."
+    "Node failed to start with error '%1%'."
 #define BN_NODE_BACKUP_UNAVAILABLE \
-    "Node backup not available until started."
+    "Backup not available until started."
 #define BN_NODE_BACKUP_STARTED \
-    "Node backup started."
+    "Backup is started."
 #define BN_NODE_BACKUP_FAIL \
-    "Node failed to backup with error, %1%."
+    "Backup failed with error '%1%'."
 #define BN_NODE_BACKUP_COMPLETE \
-    "Node backup complete."
+    "Backup complete in %1% secs."
 #define BN_NODE_DISK_FULL_RESET \
     "Node reset from disk full condition."
 #define BN_NODE_UNRECOVERABLE \
     "Node is not in recoverable condition."
+#define BN_NODE_DISK_FULL \
+    "Node cannot resume because its disk is full."
 #define BN_NODE_OK \
     "Node is ok."
 #define BN_NODE_STARTED \
@@ -194,18 +198,18 @@ namespace node {
 #define BN_UNINITIALIZED_CHAIN \
     "The %1% database is not initialized, delete and run: bn --initchain"
 #define BN_DATABASE_START_FAIL \
-    "Database failed to start with error, %1%."
+    "Database failed to start with error '%1%'."
 #define BN_DATABASE_STOPPING \
-    "Please wait while the database is stopping..."
+    "Please wait while database is stopping..."
 #define BN_DATABASE_STOP_FAIL \
-    "Database failed to stop with error, %1%."
-#define BN_DATABASE_STOPPED \
-    "Database stopped successfully."
+    "Database failed to stop with error '%1%'."
+#define BN_DATABASE_TIMED_STOP \
+    "Database stopped successfully in %1% secs."
 
 #define BN_NETWORK_STOPPING \
-    "Please wait while the network is stopping..."
+    "Please wait while network is stopping..."
 #define BN_NODE_STOP_CODE \
-    "Node stopped with code, %1%."
+    "Node stopped with code %1%."
 #define BN_NODE_STOPPED \
     "Node stopped successfully."
 #define BN_CHANNEL_LOG_PERIOD \
@@ -213,6 +217,10 @@ namespace node {
 #define BN_CHANNEL_STOP_TARGET \
     "Stop target: %1%"
 
+#define BN_LOG_TABLE \
+    "compiled:%1% enabled:%2%."
+#define BN_LOG_TABLE_HEADER \
+    "Log system configuration..."
 #define BN_LOG_INITIALIZE_FAILURE \
     "Failed to initialize logging."
 #define BN_USING_CONFIG_FILE \
