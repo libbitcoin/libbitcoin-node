@@ -147,12 +147,9 @@ bool protocol_block_in_31800::handle_event(const code&,
         case chase::download:
         {
             // There are count blocks to download at/above given header.
-            // But don't download blocks until candidate chain is current.
-            if (is_current())
-            {
-                POST(do_get_downloads, possible_narrow_cast<size_t>(value));
-            }
-
+            // chase::header is only sent for current candidate chain, and this
+            // chase::download is only sent as a consequence of chase::header.
+            POST(do_get_downloads, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::report:
