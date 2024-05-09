@@ -69,19 +69,19 @@ private:
     bool handle_stopped(const system::code& ec);
 
     // Store measures.
-    void dump_sizes(auto&& writer) const;
-    void dump_records(auto&& writer) const;
-    void dump_buckets(auto&& writer) const;
-    void dump_progress(auto&& writer) const;
-    void dump_collisions(auto&& writer) const;
+    void dump_sizes() const;
+    void dump_records() const;
+    void dump_buckets() const;
+    void dump_progress() const;
+    void dump_collisions() const;
 
     // Store functions.
     bool open_store(bool details=false);
     bool close_store(bool details=false);
     bool create_store(bool details=false);
     bool restore_store(bool details=false);
-    bool check_store_path(bool create=false) const;
-    bool backup_store(auto&& writer, bool details=false);
+    bool backup_store(bool details=false);
+    bool check_store_path(bool create = false) const;
 
     // Command line options.
     bool do_help();
@@ -89,7 +89,7 @@ private:
     bool do_settings();
     bool do_version();
     bool do_initchain();
-    bool do_snapshot();
+    bool do_backup();
     bool do_restore();
     bool do_flags();
     bool do_measure();
@@ -101,14 +101,14 @@ private:
     bool do_run();
 
     // Runtime options.
+    void do_hot_backup();
     void do_close();
-    void do_backup();
-    void do_resume();
+    void do_report_condition() const;
     void do_toggle_suspend();
     void do_information() const;
-    void do_report_work() const;
-    void do_report_condition() const;
     void do_test() const;
+    void do_report_work() const;
+    void do_resume();
 
     void scan_flags() const;
     void measure_size() const;

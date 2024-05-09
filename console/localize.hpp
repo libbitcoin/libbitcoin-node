@@ -37,19 +37,21 @@ namespace node {
 
 // --initchain
 #define BN_INITIALIZING_CHAIN \
-    "Please wait while initializing %1% directory..."
+    "Initializing %1% directory..."
 #define BN_INITCHAIN_EXISTS \
     "Failed because the directory %1% already exists."
 #define BN_INITCHAIN_CREATING \
     "Please wait while creating the database..."
+#define BN_INITCHAIN_CREATED \
+    "Created the database in %1% secs."
 #define BN_INITCHAIN_COMPLETE \
-    "Created and initialized empty chain in %1% secs."
+    "Created and initialized the database."
 #define BN_INITCHAIN_DATABASE_CREATE_FAILURE \
     "Database creation failed with error, '%1%'."
 #define BN_INITCHAIN_DATABASE_INITIALIZE \
-    "Database storing genesis block."
+    "Storing genesis block."
 #define BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE \
-    "Database failure to store genesis block."
+    "Failure storing genesis block."
 
 // --restore
 #define BN_SNAPSHOT_INVALID \
@@ -63,7 +65,7 @@ namespace node {
 #define BN_RESTORE_FAILURE \
     "Database restore failed with error, '%1%'."
 #define BN_RESTORE_COMPLETE \
-    "Restored database in %1% secs."
+    "Restored the database in %1% secs."
 
 // --measure
 #define BN_MEASURE_SIZES \
@@ -163,7 +165,9 @@ namespace node {
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
 #define BN_DATABASE_STARTING \
-    "Please wait while the database is starting..."
+    "The database is starting..."
+#define BN_DATABASE_STARTED \
+    "The database is started."
 #define BN_NETWORK_STARTING \
     "Please wait while the network is starting..."
 #define BN_NODE_START_FAIL \
@@ -199,8 +203,6 @@ namespace node {
     "Please wait while the database is stopping..."
 #define BN_DATABASE_STOP_FAIL \
     "Database failed to stop with error, %1%."
-#define BN_DATABASE_STOPPED \
-    "Database stopped successfully."
 #define BN_DATABASE_TIMED_STOP \
     "Database stopped successfully in %1% secs."
 
