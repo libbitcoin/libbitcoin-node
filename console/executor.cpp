@@ -2005,19 +2005,28 @@ bool executor::do_initchain()
 bool executor::do_backup()
 {
     log_.stop();
-    return check_store_path()
-        && open_store()
-        && backup_store(true)
-        && close_store(true);
+    if (check_store_path() && open_store())
+    {
+        // Close opened store even if backup failed, otherwise corrupted.
+        const auto result = backup_store(true);
+        return close_store(true) && result;
+    }
+
+    return false;
 }
 
 // --restore[x]
 bool executor::do_restore()
 {
     log_.stop();
-    return check_store_path()
-        && restore_store(true)
-        && close_store();
+    if (check_store_path())
+    {
+        // Close store even if restore failed, otherwise corrupted.
+        const auto result = restore_store(true);
+        return close_store(true) && result;
+    }
+
+    return false;
 }
 
 // --[f]lags
