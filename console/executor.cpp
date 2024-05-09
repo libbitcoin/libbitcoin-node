@@ -1793,6 +1793,7 @@ void executor::write_test()
 
 // Store functions.
 // ----------------------------------------------------------------------------
+
 bool executor::check_store_path(bool create) const
 {
     const auto& configuration = metadata_.configured.file;
@@ -1944,11 +1945,39 @@ bool executor::do_help()
     return true;
 }
 
+#ifdef HAVE_XCPU
+    constexpr auto with_xcpu = true;
+#else
+    constexpr auto with_xcpu = false;
+#endif
+
+#ifdef HAVE_ARM
+    constexpr auto with_arm = true;
+#else
+    constexpr auto with_arm = false;
+#endif
+
 // --har[d]ware
 bool executor::do_hardware()
 {
+    // Intrinsics can be safely compiled for unsupported platforms.
+    // The "try" functions exclude out checks for instructions not compiled in.
+    // But for instructions comiled in, each use currently invokes the "try".
+    // HOWEVER: win32 compiler vectorization config is tied to these options.
+    // HOWEVER: The process will crash if those are compiled and not present.
+    // So our options are portable, but related compiler optimizations are not.
+    // And in that case this function cannot even be executed. So test for
+    // avx512 or shani here (for example) and only after enable compiler opts.
+
     log_.stop();
-    logger("Coming soon...");
+    logger("Intrinsics...");
+    logger(format("arm..... platform:%1%.") % with_arm);
+    logger(format("intel... platform:%1%.") % with_xcpu);
+    logger(format("avx512.. platform:%1% compiled:%2%.") % system::try_avx512() % with_avx512);
+    logger(format("avx2.... platform:%1% compiled:%2%.") % system::try_avx2() % with_avx2);
+    logger(format("sse41... platform:%1% compiled:%2%.") % system::try_sse41() % with_sse41);
+    logger(format("shani... platform:%1% compiled:%2%.") % system::try_shani() % with_shani);
+    logger(format("neon.... platform:%1% compiled:%2%.") % system::try_neon() % with_neon);
     return true;
 }
 
@@ -2425,7 +2454,7 @@ void executor::subscribe_connect()
 {
     node_->subscribe_connect([&](const code&, const channel::ptr&)
     {
-        log_.write(levels::application) <<
+        log_.write(levels::verbose) <<
             "{in:" << node_->inbound_channel_count() << "}"
             "{ch:" << node_->channel_count() << "}"
             "{rv:" << node_->reserved_count() << "}"
@@ -2449,7 +2478,7 @@ void executor::subscribe_close()
 {
     node_->subscribe_close([&](const code&)
     {
-        log_.write(levels::application) <<
+        log_.write(levels::verbose) <<
             "{in:" << node_->inbound_channel_count() << "}"
             "{ch:" << node_->channel_count() << "}"
             "{rv:" << node_->reserved_count() << "}"
@@ -2491,30 +2520,18 @@ bool executor::do_run()
 
     logger(BN_LOG_HEADER);
     logger(BN_NODE_INTERRUPT);
-
     logger(BN_LOG_TABLE_HEADER);
-    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined %
-        toggle_.at(levels::application));
-    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined %
-        toggle_.at(levels::news));
-    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined %
-        toggle_.at(levels::session));
-    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined %
-        toggle_.at(levels::protocol));
-    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined %
-        toggle_.at(levels::proxy));
-    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined %
-        toggle_.at(levels::wire));
-    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined %
-        toggle_.at(levels::remote));
-    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined %
-        toggle_.at(levels::fault));
-    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined %
-        toggle_.at(levels::quit));
-    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined %
-        toggle_.at(levels::objects));
-    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined %
-        toggle_.at(levels::verbose));
+    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
+    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
+    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
+    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
+    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
+    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
+    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
+    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
+    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
+    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
+    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
 
     if (!check_store_path())
         return false;
