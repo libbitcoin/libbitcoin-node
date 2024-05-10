@@ -43,11 +43,10 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
-    maximum_advance_(node.config().node.maximum_advance_()),
+    maximum_concurrency_(node.config().node.maximum_concurrency_()),
     maximum_height_(node.config().node.maximum_height_()),
     connections_(node.config().network.outbound_connections),
-    inventory_(system::lesser(node.config().node.maximum_inventory,
-        messages::max_inventory))
+    inventory_(node.maximum_inventory())
 {
 }
 
@@ -288,7 +287,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     // not last requested, since all between are already downloaded.
     const auto& query = archive();
     const auto requested = requested_;
-    const auto stop = std::min(ceilinged_add(validated_, maximum_advance_),
+    const auto stop = std::min(ceilinged_add(validated_, maximum_concurrency_),
         maximum_height_);
 
     while (true)
@@ -306,7 +305,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     }
 
     LOGN("Advance by ("
-        << maximum_advance_ << ") above ("
+        << maximum_concurrency_ << ") above ("
         << requested << ") from ("
         << validated_ << ") stop ("
         << stop << ") found ("

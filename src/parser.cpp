@@ -884,6 +884,21 @@ options_metadata parser::load_settings() THROWS
         "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
     )
     (
+        "node.maximum_height",
+        value<uint32_t>(&configured.node.maximum_height),
+        "Maximum block height to populate, defaults to 0 (unlimited)."
+    )
+    (
+        "node.maximum_concurrency",
+        value<uint32_t>(&configured.node.maximum_concurrency),
+        "Maximum number of blocks to download concurrently, defaults to '50000' (0 disables)."
+    )
+    (
+        "node.snapshot_interval",
+        value<uint32_t>(&configured.node.snapshot_interval),
+        "Block interval for automatic store snapshots, defaults to '100000' (0 disables)."
+    )
+    (
         "node.sample_period_seconds",
         value<uint16_t>(&configured.node.sample_period_seconds),
         "Sampling period for drop of stalled channels, defaults to 10 (0 disables)."
@@ -892,21 +907,6 @@ options_metadata parser::load_settings() THROWS
         "node.currency_window_minutes",
         value<uint32_t>(&configured.node.currency_window_minutes),
         "Time from present that blocks are considered current, defaults to 60 (0 disables)."
-    )
-    (
-        "node.maximum_inventory",
-        value<uint16_t>(&configured.node.maximum_inventory),
-        "Maximum size of block inventory requests, defaults to 8000."
-    )
-    (
-        "node.maximum_advance",
-        value<uint32_t>(&configured.node.maximum_advance),
-        "Maximum number of blocks to download prior to validation, defaults to 0 (unlimited)."
-    )
-    (
-        "node.maximum_height",
-        value<uint32_t>(&configured.node.maximum_height),
-        "The maximum block height to populate, defaults to 0 (unlimited)."
     )
     // #######################
     ////(

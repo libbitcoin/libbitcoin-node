@@ -63,15 +63,16 @@ public:
     /// Properties.
     bool headers_first;
     float allowed_deviation;
-    uint16_t maximum_inventory;
+    uint32_t maximum_height;
+    uint32_t maximum_concurrency;
+    uint32_t snapshot_interval;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
-    uint32_t maximum_advance;
-    uint32_t maximum_height;
 
     /// Helpers.
-    virtual size_t maximum_advance_() const NOEXCEPT;
     virtual size_t maximum_height_() const NOEXCEPT;
+    virtual size_t maximum_concurrency_() const NOEXCEPT;
+    virtual size_t snapshot_interval_() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
 };
