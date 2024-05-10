@@ -71,7 +71,8 @@ protected:
     virtual bool closed() const NOEXCEPT;
 
     /// Suspend all existing and future network connections.
-    virtual void suspend(const code& ec) const NOEXCEPT;
+    /// A race condition could result in an unsuspended connection.
+    virtual code suspend(const code& ec) const NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

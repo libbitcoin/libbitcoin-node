@@ -48,9 +48,9 @@ bool chaser::closed() const NOEXCEPT
     return node_.closed();
 }
 
-void chaser::suspend(const code& ec) const NOEXCEPT
+code chaser::suspend(const code& ec) const NOEXCEPT
 {
-    node_.suspend(ec);
+    return node_.suspend(ec);
 }
 
 // Events.

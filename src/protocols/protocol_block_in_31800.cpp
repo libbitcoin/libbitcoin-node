@@ -126,7 +126,7 @@ bool protocol_block_in_31800::handle_event(const code&,
             // If this channel has divisible work, split it and stop.
             // There are no channels reporting work, either stalled or done.
             // This is initiated by any channel notifying chase::starved.
-            if (map_->size() >= minimum_for_stall_divide)
+            if (map_->size() > one)
             {
                 POST(do_split, channel_t{});
             }
@@ -137,7 +137,7 @@ bool protocol_block_in_31800::handle_event(const code&,
         {
             // If have work clear it and stop.
             // This is initiated by chase::regressed/disorganized.
-            if (map_->size() >= minimum_for_stall_divide)
+            if (map_->size() > one)
             {
                 POST(do_purge, channel_t{});
             }
@@ -147,12 +147,9 @@ bool protocol_block_in_31800::handle_event(const code&,
         case chase::download:
         {
             // There are count blocks to download at/above given header.
-            // But don't download blocks until candidate chain is current.
-            if (is_current())
-            {
-                POST(do_get_downloads, possible_narrow_cast<size_t>(value));
-            }
-
+            // chase::header is only sent for current candidate chain, and this
+            // chase::download is only sent as a consequence of chase::header.
+            POST(do_get_downloads, possible_narrow_cast<size_t>(value));
             break;
         }
         case chase::report:
@@ -195,7 +192,6 @@ void protocol_block_in_31800::do_purge(channel_t) NOEXCEPT
     if (!map_->empty())
     {
         LOGV("Purge work (" << map_->size() << ") from [" << authority() << "].");
-
         map_->clear();
         stop(error::sacrificed_channel);
     }
@@ -209,7 +205,6 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
         return;
 
     LOGV("Divide work (" << map_->size() << ") from [" << authority() << "].");
-
     restore(chaser_check::split(map_));
     restore(map_);
     map_ = chaser_check::empty_map();
@@ -219,7 +214,9 @@ void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
 void protocol_block_in_31800::do_report(count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    LOGN("Work (" << map_->size() << ") for channel [" << authority() << "].");
+
+    // Uses application logging since it outputs to a runtime option.
+    LOGA("Work (" << map_->size() << ") for channel [" << authority() << "].");
 }
 
 // request hashes
@@ -316,13 +313,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         {
             if (!query.set_block_unconfirmable(link))
             {
-                if (query.is_full())
-                {
-                    suspend(database::error::disk_full);
-                    return false;
-                }
-
-                stop(error::store_integrity);
+                suspend(query.get_code());
                 return false;
             }
 
@@ -343,16 +334,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (query.set_link(*block.transactions_ptr(), link,
         block.serialized_size(true)).is_terminal())
     {
-        if (query.is_full())
-        {
-            suspend(database::error::disk_full);
-            return false;
-        }
-
-        LOGF("Failure storing block [" << encode_hash(hash) << ":"
+        LOGV("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "].");
 
-        stop(error::store_integrity);
+        stop(suspend(query.get_code()));
         return false;
     }
 
@@ -368,10 +353,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     count(message->cached_size);
     map_->erase(it);
     if (is_idle())
-    {
-        LOGV("Getting more block hashes for [" << authority() << "].");
         get_hashes(BIND(handle_get_hashes, _1, _2));
-    }
 
     return true;
 }
@@ -391,24 +373,24 @@ code protocol_block_in_31800::check(const chain::block& block,
 void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
 {
     if (!map->empty())
-        put_hashes(map, BIND(handle_put_hashes, _1));
+        put_hashes(map, BIND(handle_put_hashes, _1, map->size()));
 }
 
-void protocol_block_in_31800::handle_put_hashes(const code& ec) NOEXCEPT
+void protocol_block_in_31800::handle_put_hashes(const code& ec,
+    size_t count) NOEXCEPT
 {
+    LOGV("Put (" << count << ") work for [" << authority() << "].");
+
     if (ec)
     {
-        LOGF("Error putting block hashes for [" << authority() << "] "
-            << ec.message());
+        LOGF("Error putting work for [" << authority() << "] " << ec.message());
     }
 }
 
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
     const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT_MSG(map->size() <= max_inventory, "inventory overflow");
-
-    LOGV("Got (" << map->size() << ") block hashes for [" << authority() << "].");
+    LOGV("Got (" << map->size() << ") work for [" << authority() << "].");
 
     if (stopped())
     {
@@ -418,8 +400,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
     if (ec)
     {
-        LOGF("Error getting block hashes for [" << authority() << "] "
-            << ec.message());
+        LOGF("Error getting work for [" << authority() << "] " << ec.message());
         stop(ec);
         return;
     }

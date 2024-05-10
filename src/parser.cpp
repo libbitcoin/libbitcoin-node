@@ -899,6 +899,11 @@ options_metadata parser::load_settings() THROWS
         "Maximum size of block inventory requests, defaults to 8000."
     )
     (
+        "node.maximum_advance",
+        value<uint32_t>(&configured.node.maximum_advance),
+        "Maximum number of blocks to download prior to validation, defaults to 0 (unlimited)."
+    )
+    (
         "node.maximum_height",
         value<uint32_t>(&configured.node.maximum_height),
         "The maximum block height to populate, defaults to 0 (unlimited)."

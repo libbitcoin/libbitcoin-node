@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/settings.hpp>
 
+#include <algorithm>
 #include <filesystem>
 #include <bitcoin/network.hpp>
 
@@ -37,21 +38,21 @@ settings::settings(chain::selection) NOEXCEPT
 {
 }
 
-std::filesystem::path settings::log_file1() NOEXCEPT
+std::filesystem::path settings::log_file1() const NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return path / "bn_end.log";
     BC_POP_WARNING()
 }
 
-std::filesystem::path settings::log_file2() NOEXCEPT
+std::filesystem::path settings::log_file2() const NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return path / "bn_begin.log";
     BC_POP_WARNING()
 }
 
-std::filesystem::path settings::events_file() NOEXCEPT
+std::filesystem::path settings::events_file() const NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return path / "events.log";
@@ -68,6 +69,7 @@ settings::settings() NOEXCEPT
     maximum_inventory{ 8000 },
     sample_period_seconds{ 10 },
     currency_window_minutes{ 60 },
+    maximum_advance{ 0 },
     maximum_height{ 0 }
 {
 }
@@ -77,7 +79,12 @@ settings::settings(chain::selection) NOEXCEPT
 {
 }
 
-size_t settings::maximum_block() const NOEXCEPT
+size_t settings::maximum_advance_() const NOEXCEPT
+{
+    return is_zero(maximum_advance) ? max_size_t : maximum_advance;
+}
+
+size_t settings::maximum_height_() const NOEXCEPT
 {
     return is_zero(maximum_height) ? max_size_t : maximum_height;
 }

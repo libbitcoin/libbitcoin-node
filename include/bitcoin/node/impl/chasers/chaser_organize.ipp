@@ -152,8 +152,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         size_t height{};
         if (!query.get_height(height, id))
         {
-            handler(error::store_integrity, {});
-            suspend(error::store_integrity);
+            handler(suspend(error::store_integrity), {});
             return;
         }
 
@@ -239,8 +238,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header) ||
         !get_is_strong(strong, work, branch_point))
     {
-        handler(error::store_integrity, height);
-        suspend(error::store_integrity);
+        handler(suspend(error::store_integrity), height);
         return;
     }
 
@@ -259,8 +257,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     const auto top_candidate = state_->height();
     if (branch_point > top_candidate)
     {
-        handler(error::store_integrity, height);
-        suspend(error::store_integrity);
+        handler(suspend(error::store_integrity), height);
         return;
     }
 
@@ -276,15 +273,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.pop_candidate())
         {
-            if (query.is_full())
-            {
-                handler(database::error::disk_full, height);
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            handler(error::store_integrity, height);
-            suspend(error::store_integrity);
+            handler(suspend(query.get_code()), height);
             return;
         }
 
@@ -299,15 +288,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.push_candidate(link))
         {
-            if (query.is_full())
-            {
-                handler(database::error::disk_full, height);
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            handler(error::store_integrity, height);
-            suspend(error::store_integrity);
+            handler(suspend(query.get_code()), height);
             return;
         }
 
@@ -319,15 +300,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!push(key))
         {
-            if (query.is_full())
-            {
-                handler(database::error::disk_full, height);
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            handler(error::store_integrity, height);
-            suspend(error::store_integrity);
+            handler(suspend(query.get_code()), height);
             return;
         }
 
@@ -339,15 +312,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (push(block, state->context()).is_terminal())
         {
-            if (query.is_full())
-            {
-                handler(database::error::disk_full, height);
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            handler(error::store_integrity, height);
-            suspend(error::store_integrity);
+            handler(suspend(query.get_code()), height);
             return;
         }
         
@@ -452,13 +417,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
-            if (query.is_full())
-            {
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            suspend(error::store_integrity);
+            suspend(query.get_code());
             return;
         }
 
@@ -473,13 +432,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
-            if (query.is_full())
-            {
-                suspend(database::error::disk_full);
-                return;
-            }
-
-            suspend(error::store_integrity);
+            suspend(query.get_code());
             return;
         }
 

@@ -39,13 +39,12 @@ public:
 
 protected:
     template <typename SessionPtr>
-    protocol_performer(const SessionPtr& session, const channel_ptr& channel,
-        bool enable) NOEXCEPT
+    protocol_performer(const SessionPtr& session,
+        const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_performer>(session->log),
-        use_deviation_(session->config().node.allowed_deviation > 0.0),
-        drop_stall_(enable &&
-            to_bool(session->config().node.sample_period_seconds)),
+        deviation_(session->config().node.allowed_deviation > 0.0),
+        enabled_(to_bool(session->config().node.sample_period_seconds)),
         performance_timer_(std::make_shared<network::deadline>(session->log,
             channel->strand(), session->config().node.sample_period()))
     {
@@ -61,8 +60,8 @@ private:
     void send_performance(uint64_t rate) NOEXCEPT;
 
     // These are thread safe.
-    const bool use_deviation_;
-    const bool drop_stall_;
+    const bool deviation_;
+    const bool enabled_;
 
     // These are protected by strand.
     uint64_t bytes_{ zero };

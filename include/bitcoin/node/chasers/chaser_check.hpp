@@ -74,7 +74,8 @@ private:
     size_t get_unassociated() NOEXCEPT;
 
     // These are thread safe.
-    const size_t maximum_block_;
+    const size_t maximum_advance_;
+    const size_t maximum_height_;
     const size_t connections_;
     const size_t inventory_;
 

@@ -57,41 +57,44 @@ protected:
     void attach_protocols(
         const network::channel::ptr& channel) NOEXCEPT override
     {
+        constexpr auto bip130 = network::messages::level::bip130;
+        constexpr auto headers = network::messages::level::headers_protocol;
+        constexpr auto in = is_same_type<Session, network::session_inbound>;
+
         const auto headers_first = config().node.headers_first;
         const auto version = channel->negotiated_version();
         const auto self = session::shared_from_sibling<attach<Session>,
             network::session>();
 
-        // Only session_outbound channels compete on performance.
-        auto performance = false;
-        if constexpr (is_same_type<Session, network::session_outbound>)
-        {
-            performance = true;
-        }
-
         // Attach appropriate alert, reject, ping, and/or address protocols.
         Session::attach_protocols(channel);
         
-        // Very hard to find < 31800 peer to connect with.
-        if (headers_first && version >= network::messages::level::bip130)
+        if (headers_first && version >= bip130)
         {
-            // Headers-first synchronization (parallel block download).
             channel->attach<protocol_header_in_70012>(self)->start();
             channel->attach<protocol_header_out_70012>(self)->start();
-            channel->attach<protocol_block_in_31800>(self, performance)->start();
+            if constexpr (!in)
+            {
+                channel->attach<protocol_block_in_31800>(self)->start();
+            }
         }
-        else if (headers_first && 
-            version >= network::messages::level::headers_protocol)
+        else if (headers_first && version >= headers)
         {
-            // Headers-first synchronization (parallel block download).
             channel->attach<protocol_header_in_31800>(self)->start();
             channel->attach<protocol_header_out_31800>(self)->start();
-            channel->attach<protocol_block_in_31800>(self, performance)->start();
+            if constexpr (!in)
+            {
+                channel->attach<protocol_block_in_31800>(self)->start();
+            }
         }
         else
         {
-            // Blocks-first synchronization (no header protocol).
-            channel->attach<protocol_block_in>(self)->start();
+            // Very hard to find < 31800 peer to connect with.
+            // Blocks-first synchronization (no headers protocol).
+            if constexpr (!in)
+            {
+                channel->attach<protocol_block_in>(self)->start();
+            }
         }
 
         channel->attach<protocol_block_out>(self)->start();

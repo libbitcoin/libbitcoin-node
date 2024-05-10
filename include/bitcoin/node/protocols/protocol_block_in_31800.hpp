@@ -37,8 +37,8 @@ public:
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename SessionPtr>
     protocol_block_in_31800(const SessionPtr& session,
-        const channel_ptr& channel, bool performance) NOEXCEPT
-      : protocol_performer(session, channel, performance),
+        const channel_ptr& channel) NOEXCEPT
+      : protocol_performer(session, channel),
         block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         map_(chaser_check::empty_map())
@@ -73,7 +73,6 @@ protected:
 
 private:
     using type_id = network::messages::inventory::type_id;
-    static constexpr size_t minimum_for_stall_divide = 2;
 
     code check(const system::chain::block& block,
         const system::chain::context& ctx) const NOEXCEPT;
@@ -83,7 +82,7 @@ private:
         const map_ptr& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
-    void handle_put_hashes(const code& ec) NOEXCEPT;
+    void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
     void do_complete_event(const code& ec, object_key key) NOEXCEPT;
 

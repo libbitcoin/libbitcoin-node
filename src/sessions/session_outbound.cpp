@@ -201,7 +201,7 @@ void session_outbound::do_performance(uint64_t channel, uint64_t speed,
     const auto slow = (mean - speed) > (allowed_deviation_ * sdev);
 
     // Only speed < mean channels are logged.
-    LOGN("Block download channels (" << count << ") rate ("
+    LOGN("Below average channel (" << count << ") rate ("
         << to_kilobits_per_second(rate) << ") mean ("
         << to_kilobits_per_second(mean) << ") sdev ("
         << to_kilobits_per_second(sdev) << ") Kbps [" << (slow ? "*" : "")
