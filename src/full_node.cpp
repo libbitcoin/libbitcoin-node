@@ -72,7 +72,8 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
     code ec;
 
-    if (((ec = (config().node.headers_first ? chaser_header_.start() :
+    if (((ec = (config().node.headers_first ?
+            chaser_header_.start() :
             chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_preconfirm_.start())) ||
@@ -285,15 +286,6 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     const auto time = wall_clock::from_time_t(timestamp);
     const auto current = wall_clock::now() - config_.node.currency_window();
     return time >= current;
-}
-
-size_t full_node::maximum_inventory() const NOEXCEPT
-{
-    const auto peers = config().network.outbound_connections;
-    return is_zero(peers) ? messages::max_inventory :
-        std::min(ceilinged_divide(query_.get_unassociated_count(), peers),
-            messages::max_inventory);
-        
 }
 
 // Session attachments.
