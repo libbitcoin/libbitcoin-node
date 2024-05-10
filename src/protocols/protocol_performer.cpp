@@ -36,7 +36,7 @@ void protocol_performer::start_performance() NOEXCEPT
     if (stopped())
         return;
 
-    if (drop_stall_)
+    if (enabled_)
     {
         bytes_ = zero;
         start_ = steady_clock::now();
@@ -90,11 +90,11 @@ void protocol_performer::send_performance(uint64_t rate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (drop_stall_)
+    if (enabled_)
     {
         // Must come first as this takes priority as per configuration.
         // Shared performance manager detects slow and stalled channels.
-        if (use_deviation_)
+        if (deviation_)
         {
             performance_timer_->stop();
             node::protocol::performance(identifier(), rate,

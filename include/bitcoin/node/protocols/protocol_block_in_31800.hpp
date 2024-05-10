@@ -37,8 +37,8 @@ public:
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename SessionPtr>
     protocol_block_in_31800(const SessionPtr& session,
-        const channel_ptr& channel, bool performance) NOEXCEPT
-      : protocol_performer(session, channel, performance),
+        const channel_ptr& channel) NOEXCEPT
+      : protocol_performer(session, channel),
         block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         map_(chaser_check::empty_map())
