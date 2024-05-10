@@ -2201,7 +2201,7 @@ void executor::do_information() const
     dump_records();
     dump_buckets();
     dump_collisions();
-    dump_progress();
+    ////dump_progress();
 }
 
 // [t]est
