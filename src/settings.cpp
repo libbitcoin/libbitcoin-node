@@ -66,27 +66,33 @@ namespace node {
 settings::settings() NOEXCEPT
   : headers_first{ true },
     allowed_deviation{ 1.5 },
-    maximum_inventory{ 8000 },
+    maximum_height{ 0 },
+    maximum_concurrency{ 50'000 },
+    snapshot_interval{ 100'000 },
     sample_period_seconds{ 10 },
-    currency_window_minutes{ 60 },
-    maximum_advance{ 0 },
-    maximum_height{ 0 }
+    currency_window_minutes{ 60 }
 {
 }
 
 settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
-}
-
-size_t settings::maximum_advance_() const NOEXCEPT
-{
-    return is_zero(maximum_advance) ? max_size_t : maximum_advance;
+    // TODO: testnet, etc. maximum_concurrency, snapshot_interval.
 }
 
 size_t settings::maximum_height_() const NOEXCEPT
 {
     return is_zero(maximum_height) ? max_size_t : maximum_height;
+}
+
+size_t settings::maximum_concurrency_() const NOEXCEPT
+{
+    return is_zero(maximum_concurrency) ? max_size_t : maximum_concurrency;
+}
+
+size_t settings::snapshot_interval_() const NOEXCEPT
+{
+    return is_zero(snapshot_interval) ? max_size_t : snapshot_interval;
 }
 
 network::steady_clock::duration settings::sample_period() const NOEXCEPT

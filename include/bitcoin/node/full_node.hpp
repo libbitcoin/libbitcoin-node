@@ -118,6 +118,9 @@ public:
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
 
+    /// Maximum optimal block inventory sizing based on chain and config.
+    virtual size_t maximum_inventory() const NOEXCEPT;
+
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------

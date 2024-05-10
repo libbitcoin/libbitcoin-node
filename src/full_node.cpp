@@ -287,6 +287,15 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     return time >= current;
 }
 
+size_t full_node::maximum_inventory() const NOEXCEPT
+{
+    const auto peers = config().network.outbound_connections;
+    return is_zero(peers) ? messages::max_inventory :
+        std::min(ceilinged_divide(query_.get_unassociated_count(), peers),
+            messages::max_inventory);
+        
+}
+
 // Session attachments.
 // ----------------------------------------------------------------------------
 

@@ -780,6 +780,37 @@ void executor::read_test() const
 
 void executor::read_test() const
 {
+    logger("Wire size computation.");
+    const auto start = fine_clock::now();
+    constexpr auto last = 500'000_size;
+
+    size_t size{};
+    for (auto height = zero; !cancel_ && height <= last; ++height)
+    {
+        const auto link = query_.to_candidate(height);
+        if (link.is_terminal())
+        {
+            logger(format("Max candidate height is (%1%).") % sub1(height));
+            return;
+        }
+
+        const auto bytes = query_.get_block_size(link);
+        if (is_zero(bytes))
+        {
+            logger(format("Block (%1%) is not associated.") % height);
+            return;
+        }
+
+        size += bytes;
+    }
+
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
+        size % last % span.count());
+}
+
+void executor::read_test() const
+{
     constexpr auto start_tx = 15'000_u32;
     constexpr auto target_count = 3000_size;
 
@@ -1398,7 +1429,7 @@ void executor::read_test() const
     logger("HIT <enter> TO START");
     std::string line{};
     std::getline(input_, line);
-    const auto start = (fine_clock::now();
+    const auto start = fine_clock::now();
 
     for (size_t height = 492'224; (height <= 492'224) && !cancel_; ++height)
     {
