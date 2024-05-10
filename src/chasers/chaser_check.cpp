@@ -245,7 +245,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT(map->size() <= max_inventory);
+    BC_ASSERT(map->size() <= messages::max_inventory);
     BC_ASSERT(stranded());
 
     if (closed())
@@ -299,7 +299,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
         if (map->empty())
             break;
 
-        BC_ASSERT(map->size() <= max_inventory);
+        BC_ASSERT(map->size() <= messages::max_inventory);
         maps_.push_back(map);
         requested_ = map->top().height;
         count += map->size();
