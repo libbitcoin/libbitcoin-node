@@ -126,7 +126,7 @@ bool protocol_block_in_31800::handle_event(const code&,
             // If this channel has divisible work, split it and stop.
             // There are no channels reporting work, either stalled or done.
             // This is initiated by any channel notifying chase::starved.
-            if (map_->size() >= minimum_for_stall_divide)
+            if (map_->size() > one)
             {
                 POST(do_split, channel_t{});
             }
@@ -137,7 +137,7 @@ bool protocol_block_in_31800::handle_event(const code&,
         {
             // If have work clear it and stop.
             // This is initiated by chase::regressed/disorganized.
-            if (map_->size() >= minimum_for_stall_divide)
+            if (map_->size() > one)
             {
                 POST(do_purge, channel_t{});
             }

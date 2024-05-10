@@ -241,11 +241,12 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             suspend(query.get_code());
             return;
         }
+
+        LOGV("Block confirmed: " << height);
     }
 }
 
-code chaser_confirm::confirm(const header_link& link,
-    size_t height) NOEXCEPT
+code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
 {
     auto& query = archive();
 
@@ -263,6 +264,8 @@ code chaser_confirm::confirm(const header_link& link,
 
     if (ec == database::error::block_preconfirmable)
         return query.block_confirmable(link);
+
+    LOGV("Block confirmed: " << height);
 
     // Should not get here without a known block state.
     return error::store_integrity;

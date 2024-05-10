@@ -73,7 +73,6 @@ protected:
 
 private:
     using type_id = network::messages::inventory::type_id;
-    static constexpr size_t minimum_for_stall_divide = 2;
 
     code check(const system::chain::block& block,
         const system::chain::context& ctx) const NOEXCEPT;
