@@ -54,6 +54,7 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
+    virtual size_t get_maximum_inventory() const NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
@@ -77,9 +78,9 @@ private:
     const size_t maximum_concurrency_;
     const size_t maximum_height_;
     const size_t connections_;
-    const size_t inventory_;
 
     // These are protected by strand.
+    size_t inventory_{};
     size_t requested_{};
     size_t validated_{};
     maps maps_{};
