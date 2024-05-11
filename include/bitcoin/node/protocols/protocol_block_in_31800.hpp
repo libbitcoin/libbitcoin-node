@@ -84,7 +84,7 @@ private:
     void restore(const map_ptr& map) NOEXCEPT;
     void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
-    void do_complete_event(const code& ec, object_key key) NOEXCEPT;
+    void do_complete_event(const code& ec) NOEXCEPT;
 
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;

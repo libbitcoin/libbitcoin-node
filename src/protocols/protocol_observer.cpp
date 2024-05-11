@@ -47,20 +47,18 @@ void protocol_observer::start() NOEXCEPT
 // protected
 void protocol_observer::complete_event(const code& ec, object_key key) NOEXCEPT
 {
-    POST(do_complete_event, ec, key);
+    POST(do_complete_event, ec);
 }
 
 // private
-void protocol_observer::do_complete_event(const code&,
-    object_key key) NOEXCEPT
+void protocol_observer::do_complete_event(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    key_ = key;
 
     // stopped() is true before stopping() is called (by base).
-    if (stopped())
+    if (stopped(ec))
     {
-        unsubscribe_events(key_);
+        unsubscribe_events();
         return;
     }
 }
@@ -69,7 +67,7 @@ void protocol_observer::do_complete_event(const code&,
 void protocol_observer::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    unsubscribe_events(key_);
+    unsubscribe_events();
     protocol::stopping(ec);
 }
 

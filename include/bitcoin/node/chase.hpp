@@ -45,7 +45,7 @@ enum class chase
     /// Issued by 'full_node' and handled by 'observer'.
     suspend,
 
-    /// Channel starved for block download identifiers (channel_t).
+    /// Channel starved for work (object_t).
     /// Issued by 'block_in_31800' and handled by 'session_outbound'.
     starved,
 
@@ -61,7 +61,7 @@ enum class chase
     /// Issued by 'check' and handled by 'block_in_31800'.
     purge,
 
-    /// Channels (all) directed to write hash count to the log (count_t).
+    /// Channels (all) directed to write work count to the log (count_t).
     /// Issued by 'executore' and handled by 'block_in_31800'.
     report,
 

@@ -78,7 +78,7 @@ protected:
     /// Events.
     /// -----------------------------------------------------------------------
 
-    /// Subscribe to chaser events.
+    /// Subscribe to chaser events (only once).
     virtual void subscribe_events(event_notifier&& handler,
         event_completer&& complete) NOEXCEPT;
 
@@ -87,7 +87,10 @@ protected:
         event_value value) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
-    virtual void unsubscribe_events(object_key key) NOEXCEPT;
+    virtual void unsubscribe_events() NOEXCEPT;
+
+    /// Get the subscription key (for notify_one).
+    virtual object_key events_key() const NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -102,8 +105,14 @@ protected:
     virtual bool is_current() const NOEXCEPT;
 
 private:
+    void handle_subscribe(const code& ec, object_key key,
+        const event_completer& complete) NOEXCEPT;
+
     // This is thread safe.
     const session::ptr session_;
+
+    // This is protected by singular subscription.
+    object_key key_{};
 };
 
 } // namespace node

@@ -82,7 +82,7 @@ bool session_outbound::handle_event(const code&,
         case chase::starved:
         {
             // When a channel becomes starved notify other(s) to split work.
-            split(possible_narrow_cast<channel_t>(value));
+            split(possible_narrow_cast<object_t>(value));
             break;
         }
         case chase::stop:
@@ -98,7 +98,9 @@ bool session_outbound::handle_event(const code&,
     return true;
 }
 
-void session_outbound::split(channel_t self) NOEXCEPT
+// object_key is used instead of channel identifier because the event
+// subscriber supports objects other than channels.
+void session_outbound::split(object_t self) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -120,8 +122,7 @@ void session_outbound::split(channel_t self) NOEXCEPT
         const auto channel = slowest->first;
         speeds_.erase(slowest);
 
-        // TODO: use notify_one and subscription key to identify channel.
-        node::session::notify(error::success, chase::split, channel);
+        node::session::notify_one(self, error::success, chase::split, channel);
         return;
     }
 

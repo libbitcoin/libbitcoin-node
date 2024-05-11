@@ -77,6 +77,7 @@ typedef event_subscriber::completer event_completer;
 using count_t = size_t;
 using height_t = size_t;
 using channel_t = uint64_t;
+using object_t = object_key;
 using header_t = database::header_link::integer;
 using transaction_t = database::tx_link::integer;
 

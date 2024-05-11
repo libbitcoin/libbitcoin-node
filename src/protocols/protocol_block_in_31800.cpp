@@ -55,22 +55,23 @@ void protocol_block_in_31800::start() NOEXCEPT
 
 // protected
 void protocol_block_in_31800::complete_event(const code& ec,
-    object_key key) NOEXCEPT
+    object_key) NOEXCEPT
 {
-    POST(do_complete_event, ec, key);
+    if (stopped(ec))
+        return;
+
+    POST(do_complete_event, ec);
 }
 
 // private
-void protocol_block_in_31800::do_complete_event(const code&,
-    object_key key) NOEXCEPT
+void protocol_block_in_31800::do_complete_event(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    key_ = key;
 
     // stopped() is true before stopping() is called (by base).
-    if (stopped())
+    if (stopped(ec))
     {
-        unsubscribe_events(key_);
+        unsubscribe_events();
         return;
     }
 
@@ -90,7 +91,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     restore(map_);
     map_ = chaser_check::empty_map();
     stop_performance();
-    unsubscribe_events(key_);
+    unsubscribe_events();
     protocol::stopping(ec);
 }
 
@@ -112,13 +113,9 @@ bool protocol_block_in_31800::handle_event(const code&,
     {
         case chase::split:
         {
-            // TODO: remove condition once notify_one is used for chase::split.
-            // If value identifies this channel (slowest), split work and stop.
-            if (possible_narrow_cast<channel_t>(value) == identifier())
-            {
-                POST(do_split, channel_t{});
-            }
-
+            // chase::split is posted by notify_one() using subscription key.
+            // That key is not the channel identifier, but it's this channel.
+            POST(do_split, identifier());
             break;
         }
         case chase::stall:
@@ -407,7 +404,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
     if (map->empty())
     {
-        notify(error::success, chase::starved, identifier());
+        notify(error::success, chase::starved, events_key());
         return;
     }
 
