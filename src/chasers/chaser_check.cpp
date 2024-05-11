@@ -331,8 +331,8 @@ size_t chaser_check::get_maximum_inventory() const NOEXCEPT
     const auto step = config().node.maximum_concurrency_();
     const auto fork = archive().get_fork();
     const auto scan = archive().get_unassociated_count_above(fork, step);
-    const auto chunk = std::min(step, scan);
-    const auto inventory = std::min(chunk, messages::max_inventory);
+    const auto span = std::min(step, scan);
+    const auto inventory = std::min(span, messages::max_inventory);
     return system::ceilinged_divide(inventory, peers);
 }
 
