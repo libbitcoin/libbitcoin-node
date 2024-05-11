@@ -40,7 +40,7 @@ chaser::chaser(full_node& node) NOEXCEPT
 {
 }
 
-// Close/suspend.
+// Methods.
 // ----------------------------------------------------------------------------
 
 bool chaser::closed() const NOEXCEPT
@@ -51,6 +51,11 @@ bool chaser::closed() const NOEXCEPT
 code chaser::suspend(const code& ec) const NOEXCEPT
 {
     return node_.suspend(ec);
+}
+
+code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
+{
+    return node_.snapshot(handler);
 }
 
 // Events.

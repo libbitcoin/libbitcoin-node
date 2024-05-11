@@ -154,6 +154,7 @@ private:
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
     chaser_template chaser_template_;
+    chaser_snapshot chaser_snapshot_;
     event_subscriber event_subscriber_;
     object_key keys_{};
 };

@@ -64,7 +64,7 @@ protected:
         return boost::asio::post(strand(), BIND_THIS(method, args));
     }
 
-    /// Close.
+    /// Methods.
     /// -----------------------------------------------------------------------
 
     /// Node threadpool is stopped and may still be joining.
@@ -73,6 +73,9 @@ protected:
     /// Suspend all existing and future network connections.
     /// A race condition could result in an unsuspended connection.
     virtual code suspend(const code& ec) const NOEXCEPT;
+
+    /// Snapshot the store, suspends and resumes network.
+    code snapshot(const store::event_handler& handler) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
