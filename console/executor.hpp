@@ -77,7 +77,7 @@ private:
     void dump_collisions() const;
 
     // Store functions.
-    code open_store_code(bool details=false);
+    code open_store_coded(bool details=false);
     bool open_store(bool details=false);
     bool close_store(bool details=false);
     bool create_store(bool details=false);

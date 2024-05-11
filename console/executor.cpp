@@ -1878,7 +1878,7 @@ bool executor::create_store(bool details)
 }
 
 // not timed or announced (generally fast)
-code executor::open_store_code(bool details)
+code executor::open_store_coded(bool details)
 {
     ////logger(BN_DATABASE_STARTING);
     if (const auto ec = store_.open([&](auto event_, auto table)
@@ -1897,7 +1897,7 @@ code executor::open_store_code(bool details)
 
 bool executor::open_store(bool details)
 {
-    return !open_store_code(details);
+    return !open_store_coded(details);
 }
 
 bool executor::close_store(bool details)
@@ -2597,7 +2597,7 @@ bool executor::do_run()
     // stopped by stopper.
     capture_.start();
 
-    const auto ec = open_store_code(true);
+    const auto ec = open_store_coded(true);
     if (ec == database::error::flush_lock)
     {
         if (!restore_store(true))
