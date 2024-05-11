@@ -234,13 +234,30 @@ object_key full_node::create_key() NOEXCEPT
 
 // Suspensions.
 // ----------------------------------------------------------------------------
-
-// A race condition could result in an unsuspended connection.
-// A connection may be established and miss notification (race). This can
-// be managed by reissuing the notification in a wait loop (snapshot), or
-// by waiting for another error to trigger it (integrity). These are ok
-// because suspension is best-effort to reduce traffic and wasted storage.
 // TODO: use timer to check disk space, resume if not full or reissue suspend.
+
+code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
+{
+    if (query_.is_fault())
+        return query_.get_code();
+
+    suspend(error::store_snapshotting);
+    const auto ec = query_.snapshot([&](auto event, auto table) NOEXCEPT
+    {
+        // Suspend channels that missed previous suspend events.
+        if (event == database::event_t::wait_lock)
+            suspend(error::store_snapshotting);
+
+        handler(event, table);
+    });
+
+    // Could become full before snapshot start (and it could still succeed).
+    if (!query_.is_full())
+        resume();
+
+    return ec;
+}
+
 code full_node::suspend(const code& ec) NOEXCEPT
 {
     LOGS("Suspending network connections: " << ec.message());
