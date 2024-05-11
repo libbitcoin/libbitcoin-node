@@ -33,6 +33,10 @@ enum class chase
     /// Issued by 'full_node' and handled by 'preconfirm'.
     start,
 
+    /// It's time to snapshot the store, relayed to independent chaser thread.
+    /// Issued by 'xxxxxx' and handled by 'snapshot'.
+    snapshot,
+
     /// Chaser is directed to start when there are no downloads (height_t).
     /// Issued by 'organize' and handled by 'preconfirm'.
     bump,

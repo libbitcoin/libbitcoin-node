@@ -44,6 +44,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_confirm_(*this),
     chaser_transaction_(*this),
     chaser_template_(*this),
+    chaser_snapshot_(*this),
     event_subscriber_(strand())
 {
 }
@@ -72,13 +73,15 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
     code ec;
 
-    if (((ec = (config().node.headers_first ? chaser_header_.start() :
+    if (((ec = (config().node.headers_first ?
+            chaser_header_.start() :
             chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_preconfirm_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
-        ((ec = chaser_template_.start())))
+        ((ec = chaser_template_.start())) ||
+        ((ec = chaser_snapshot_.start())))
     {
         handler(ec);
         return;
@@ -233,23 +236,51 @@ object_key full_node::create_key() NOEXCEPT
 
 // Suspensions.
 // ----------------------------------------------------------------------------
-
-// A race condition could result in an unsuspended connection.
-// A connection may be established and miss notification (race). This can
-// be managed by reissuing the notification in a wait loop (snapshot), or
-// by waiting for another error to trigger it (integrity). These are ok
-// because suspension is best-effort to reduce traffic and wasted storage.
 // TODO: use timer to check disk space, resume if not full or reissue suspend.
+
+code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
+{
+    if (query_.is_fault())
+        return query_.get_code();
+
+    const auto was_running = !suspended();
+    suspend(error::store_snapshotting);
+    const auto ec = query_.snapshot([&](auto event, auto table) NOEXCEPT
+    {
+        // Suspend channels that missed previous suspend events.
+        if (event == database::event_t::wait_lock)
+            suspend(error::store_snapshotting);
+
+        handler(event, table);
+    });
+
+    // Could become full before snapshot start (and it could still succeed).
+    if (was_running && !query_.is_full())
+        resume();
+
+    return ec;
+}
+
+// This is just a best effort, it generally has to be repeated.
 code full_node::suspend(const code& ec) NOEXCEPT
 {
-    LOGS("Suspending network connections: " << ec.message());
+    if (!suspended())
+    {
+        LOGS("Suspending network connections: " << ec.message());
+    }
+
+    // Do these even if suspended was true, since there are multiple levels.
     notify(error::success, chase::suspend, ec.value());
     return p2p::suspend(ec);
 }
 
 void full_node::resume() NOEXCEPT
 {
-    LOGS("Resuming network connections.");
+    if (suspended())
+    {
+        LOGS("Resuming network connections.");
+    }
+
     p2p::resume();
 }
 
@@ -285,15 +316,6 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     const auto time = wall_clock::from_time_t(timestamp);
     const auto current = wall_clock::now() - config_.node.currency_window();
     return time >= current;
-}
-
-size_t full_node::maximum_inventory() const NOEXCEPT
-{
-    const auto peers = config().network.outbound_connections;
-    return is_zero(peers) ? messages::max_inventory :
-        std::min(ceilinged_divide(query_.get_unassociated_count(), peers),
-            messages::max_inventory);
-        
 }
 
 // Session attachments.

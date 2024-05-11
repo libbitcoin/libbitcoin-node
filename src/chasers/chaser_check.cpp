@@ -45,8 +45,7 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
     maximum_concurrency_(node.config().node.maximum_concurrency_()),
     maximum_height_(node.config().node.maximum_height_()),
-    connections_(node.config().network.outbound_connections),
-    inventory_(node.maximum_inventory())
+    connections_(node.config().network.outbound_connections)
 {
 }
 
@@ -281,14 +280,21 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     if (validated_ < requested_)
         return count;
 
+    // Inventory size gets set only once.
+    if (is_zero(inventory_))
+    {
+        inventory_ = get_maximum_inventory();
+        if (is_zero(inventory_)) return zero;
+    }
+
     // Due to previous downloads, validation can race ahead of last request.
     // The last request (requested_) stops at the last gap in the window, but
     // validation continues until the next gap. Start next scan above validated
     // not last requested, since all between are already downloaded.
     const auto& query = archive();
     const auto requested = requested_;
-    const auto stop = std::min(ceilinged_add(validated_, maximum_concurrency_),
-        maximum_height_);
+    const auto step = ceilinged_add(validated_, maximum_concurrency_);
+    const auto stop = std::min(step, maximum_height_);
 
     while (true)
     {
@@ -313,6 +319,21 @@ size_t chaser_check::get_unassociated() NOEXCEPT
         << requested_ << ").");
 
     return count;
+}
+
+size_t chaser_check::get_maximum_inventory() const NOEXCEPT
+{
+    // Either condition means blocks shouldn't be getting downloaded (yet).
+    const auto peers = config().network.outbound_connections;
+    if (is_zero(peers) || !is_current())
+        return zero;
+
+    const auto step = config().node.maximum_concurrency_();
+    const auto fork = archive().get_fork();
+    const auto scan = archive().get_unassociated_count_above(fork, step);
+    const auto span = std::min(step, scan);
+    const auto inventory = std::min(span, messages::max_inventory);
+    return system::ceilinged_divide(inventory, peers);
 }
 
 ////size_t chaser_check::count_maps() const NOEXCEPT

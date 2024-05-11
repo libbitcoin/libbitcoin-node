@@ -46,6 +46,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_confirm.cpp \
     src/chasers/chaser_header.cpp \
     src/chasers/chaser_preconfirm.cpp \
+    src/chasers/chaser_snapshot.cpp \
     src/chasers/chaser_template.cpp \
     src/chasers/chaser_transaction.cpp \
     src/protocols/protocol.cpp \
@@ -139,6 +140,7 @@ include_bitcoin_node_chasers_HEADERS = \
     include/bitcoin/node/chasers/chaser_header.hpp \
     include/bitcoin/node/chasers/chaser_organize.hpp \
     include/bitcoin/node/chasers/chaser_preconfirm.hpp \
+    include/bitcoin/node/chasers/chaser_snapshot.hpp \
     include/bitcoin/node/chasers/chaser_template.hpp \
     include/bitcoin/node/chasers/chaser_transaction.hpp \
     include/bitcoin/node/chasers/chasers.hpp

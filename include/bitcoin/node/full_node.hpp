@@ -96,8 +96,11 @@ public:
     /// Suspensions.
     /// -----------------------------------------------------------------------
 
+    /// Snapshot the store, suspends and resumes network.
+    code snapshot(const store::event_handler& handler) NOEXCEPT;
+
     /// Suspend all existing and future network connections.
-    /// A race condition could result in an unsuspended connection.
+    /// A race condition can result in an unsuspended connection.
     code suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
@@ -117,9 +120,6 @@ public:
 
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
-
-    /// Maximum optimal block inventory sizing based on chain and config.
-    virtual size_t maximum_inventory() const NOEXCEPT;
 
 protected:
     /// Session attachments.
@@ -154,6 +154,7 @@ private:
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
     chaser_template chaser_template_;
+    chaser_snapshot chaser_snapshot_;
     event_subscriber event_subscriber_;
     object_key keys_{};
 };

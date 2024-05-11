@@ -189,7 +189,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         
             if (query.is_malleable(link))
             {
-                // Index will be reportd multiple times when 'height' is above.
+                // Index will be reported multiple times when 'height' is above.
                 notify(code, chase::malleated, link);
                 fire(events::block_malleated, index);
             }
@@ -265,8 +265,6 @@ code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
     if (ec == database::error::block_preconfirmable)
         return query.block_confirmable(link);
 
-    LOGV("Block confirmed: " << height);
-
     // Should not get here without a known block state.
     return error::store_integrity;
 }
@@ -279,6 +277,9 @@ bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
     auto& query = archive();
     if (!query.push_confirmed(link))
         return false;
+
+    if (is_zero(height % config().node.snapshot_interval_()))
+        notify(error::success, chase::snapshot, height);
 
     notify(error::success, chase::organized, link);
     fire(events::block_organized, height);

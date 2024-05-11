@@ -51,6 +51,7 @@ const std::unordered_map<std::string, uint8_t> executor::options_
     { "b", menu::backup },
     { "c", menu::close },
     { "e", menu::errors },
+    { "g", menu::go },
     { "h", menu::hold },
     { "i", menu::info },
     { "t", menu::test },
@@ -62,7 +63,8 @@ const std::unordered_map<uint8_t, std::string> executor::menu_
     { menu::backup, "[b]ackup the store" },
     { menu::close,  "[c]lose the node" },
     { menu::errors, "display any store [e]rrors" },
-    { menu::hold,   "toggle [h]old network communication" },
+    { menu::go,   "[g]o network communication" },
+    { menu::hold,   "[h]old network communication" },
     { menu::info,   "display node [i]nformation" },
     { menu::test,   "execute built-in [t]est" },
     { menu::work,   "display [w]ork distribution" },
@@ -1942,14 +1944,16 @@ bool executor::restore_store(bool details)
 
 bool executor::backup_store(bool details)
 {
+    if (!node_)
+    {
+        logger(BN_NODE_UNAVAILABLE);
+        return false;
+    }
+
     logger(BN_NODE_BACKUP_STARTED);
     const auto start = logger::now();
-    if (const auto ec = store_.snapshot([&](auto event, auto table)
+    if (const auto ec = node_->snapshot([&](auto event, auto table)
     {
-        // Suspend channels that missed previous suspend events.
-        if (node_ && event == database::event_t::wait_lock)
-            node_->suspend(error::store_snapshotting);
-
         if (details)
             logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
     }))
@@ -2176,21 +2180,13 @@ bool executor::do_write()
 // [b]ackup
 void executor::do_hot_backup()
 {
-    if (!node_)
-    {
-        logger(BN_NODE_BACKUP_UNAVAILABLE);
-        return;
-    }
-
     if (const auto ec = store_.get_fault())
     {
         logger(format(BN_SNAPSHOT_INVALID) % ec.message());
         return;
     }
 
-    node_->suspend(error::store_snapshotting);
     backup_store(true);
-    do_toggle_suspend();
 }
 
 // [c]lose
@@ -2210,19 +2206,33 @@ void executor::do_report_condition() const
 }
 
 // [h]old
-void executor::do_toggle_suspend()
+void executor::do_suspend()
 {
-    if (node_->suspended())
+    if (!node_)
     {
-        if (query_.is_full())
-            logger(BN_NODE_DISK_FULL);
-        else
-            node_->resume();
+        logger(BN_NODE_UNAVAILABLE);
+        return;
     }
-    else
+
+    node_->suspend(error::suspended_service);
+}
+
+// [g]o
+void executor::do_resume()
+{
+    if (query_.is_full())
     {
-        node_->suspend(error::suspended_service);
+        logger(BN_NODE_DISK_FULL);
+        return;
     }
+
+    if (!node_)
+    {
+        logger(BN_NODE_UNAVAILABLE);
+        return;
+    }
+
+    node_->resume();
 }
 
 // [i]nformation
@@ -2244,15 +2254,27 @@ void executor::do_test() const
 // [w]ork
 void executor::do_report_work() const
 {
+    if (!node_)
+    {
+        logger(BN_NODE_UNAVAILABLE);
+        return;
+    }
+
     node_->notify(error::success, chase::report, {});
 }
 
 // re[z]ume
-void executor::do_resume()
+void executor::do_zoom()
 {
     // Any table with error::disk_full code.
     if (query_.is_full())
     {
+        if (!node_)
+        {
+            logger(BN_NODE_UNAVAILABLE);
+            return;
+        }
+
         logger(BN_NODE_DISK_FULL_RESET);
         store_.clear_errors();
         node_->resume();
@@ -2421,9 +2443,14 @@ void executor::subscribe_capture()
                     do_report_condition();
                     return true;
                 }
+                case menu::go:
+                {
+                    do_resume();
+                    return true;
+                }
                 case menu::hold:
                 {
-                    do_toggle_suspend();
+                    do_suspend();
                     return true;
                 }
                 case menu::info:
@@ -2443,7 +2470,7 @@ void executor::subscribe_capture()
                 }
                 case menu::zoom:
                 {
-                    do_resume();
+                    do_zoom();
                     return true;
                 }
                 default:
