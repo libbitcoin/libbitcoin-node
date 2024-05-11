@@ -66,7 +66,8 @@ void protocol::put_hashes(const map_ptr& map,
 void protocol::subscribe_events(event_notifier&& handler,
     event_completer&& complete) NOEXCEPT
 {
-    session_->subscribe_events(std::move(handler), std::move(complete));
+    session_->subscribe_events(std::move(handler),
+        BIND(handle_subscribe, _1, _2, std::move(complete)));
 }
 
 void protocol::notify(const code& ec, chase event_, event_value value) NOEXCEPT
@@ -74,9 +75,31 @@ void protocol::notify(const code& ec, chase event_, event_value value) NOEXCEPT
     session_->notify(ec, event_, value);
 }
 
-void protocol::unsubscribe_events(object_key key) NOEXCEPT
+// As this has no completion handler resubscription is not allowed.
+void protocol::unsubscribe_events() NOEXCEPT
 {
-    session_->unsubscribe_events(key);
+    session_->unsubscribe_events(key_);
+    key_ = {};
+}
+
+// private
+void protocol::handle_subscribe(const code& ec, object_key key,
+    const event_completer& complete) NOEXCEPT
+{
+    // Protocol stop is thread safe.
+    if (ec)
+    {
+        stop(ec);
+        return;
+    }
+
+    key_ = key;
+    complete(ec, key_);
+}
+
+object_key protocol::events_key() const NOEXCEPT
+{
+    return key_;
 }
 
 // Methods.

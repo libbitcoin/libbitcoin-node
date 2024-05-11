@@ -37,14 +37,14 @@ public:
     session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
 
     void start(network::result_handler&& handler) NOEXCEPT override;
-    void performance(uint64_t channel, uint64_t speed,
+    void performance(object_key channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT override;
 
 protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
-    virtual void split(channel_t self) NOEXCEPT;
-    virtual void do_performance(uint64_t channel, uint64_t speed,
+    virtual void split(object_t self) NOEXCEPT;
+    virtual void do_performance(object_key channel, uint64_t speed,
         const network::result_handler& handler) NOEXCEPT;
 
 private:
@@ -54,7 +54,7 @@ private:
     const float allowed_deviation_;
 
     // This is protected by strand.
-    std::unordered_map<uint64_t, double> speeds_{};
+    std::unordered_map<object_key, double> speeds_{};
 };
 
 } // namespace node

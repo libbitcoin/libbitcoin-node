@@ -87,10 +87,10 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 
     if (const auto ec = snapshot([&](auto, auto) NOEXCEPT
     {
-        LOGN("SNAPSHOT PROGRESS: " << height);
+        LOGA("SNAPSHOT PROGRESS: " << height);
     }))
     {
-        LOGN("SNAPSHOT ERROR: " << ec.message());
+        LOGA("SNAPSHOT ERROR: " << ec.message());
     }
 }
 
