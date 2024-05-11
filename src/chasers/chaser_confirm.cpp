@@ -189,7 +189,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         
             if (query.is_malleable(link))
             {
-                // Index will be reportd multiple times when 'height' is above.
+                // Index will be reported multiple times when 'height' is above.
                 notify(code, chase::malleated, link);
                 fire(events::block_malleated, index);
             }
