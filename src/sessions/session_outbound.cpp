@@ -119,10 +119,11 @@ void session_outbound::split(object_t self) NOEXCEPT
     if (slowest != speeds_.end())
     {
         // Erase entry so less likely to be claimed again before stopping.
-        const auto channel = slowest->first;
+        const auto slow = slowest->first;
         speeds_.erase(slowest);
 
-        node::session::notify_one(self, error::success, chase::split, channel);
+        // Notify slow channel to split itself (in favor of 'self' channel).
+        node::session::notify_one(slow, error::success, chase::split, self);
         return;
     }
 
@@ -133,7 +134,7 @@ void session_outbound::split(object_t self) NOEXCEPT
 // performance
 // ----------------------------------------------------------------------------
 
-void session_outbound::performance(uint64_t channel, uint64_t speed,
+void session_outbound::performance(object_key channel, uint64_t speed,
     network::result_handler&& handler) NOEXCEPT
 {
     if (stopped())
@@ -146,7 +147,7 @@ void session_outbound::performance(uint64_t channel, uint64_t speed,
         BIND(do_performance, channel, speed, handler));
 }
 
-void session_outbound::do_performance(uint64_t channel, uint64_t speed,
+void session_outbound::do_performance(object_key channel, uint64_t speed,
     const network::result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());

@@ -77,7 +77,7 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Handle performance, base returns false (implied terminate).
-    virtual void performance(uint64_t channel, uint64_t speed,
+    virtual void performance(object_key channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT;
 
     /// Suspensions.

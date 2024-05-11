@@ -105,10 +105,10 @@ object_key protocol::events_key() const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void protocol::performance(uint64_t channel, uint64_t speed,
+void protocol::performance(uint64_t speed,
     network::result_handler&& handler) const NOEXCEPT
 {
-    session_->performance(channel, speed, std::move(handler));
+    session_->performance(events_key(), speed, std::move(handler));
 }
 
 code protocol::suspend(const code& ec) NOEXCEPT

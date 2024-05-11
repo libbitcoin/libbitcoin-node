@@ -97,8 +97,7 @@ void protocol_performer::send_performance(uint64_t rate) NOEXCEPT
         if (deviation_)
         {
             performance_timer_->stop();
-            node::protocol::performance(identifier(), rate,
-                BIND(handle_send_performance, _1));
+            performance(rate, BIND(handle_send_performance, _1));
             return;
         }
 

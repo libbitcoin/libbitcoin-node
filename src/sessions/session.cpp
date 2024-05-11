@@ -101,7 +101,8 @@ void session::unsubscribe_events(object_key key) NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void session::performance(uint64_t, uint64_t, result_handler&& handler) NOEXCEPT
+void session::performance(object_key, uint64_t,
+    result_handler&& handler) NOEXCEPT
 {
     // This session type does not implement performance, handler error.
     // The handler captures the protocol shared pointer for its lifetime.
