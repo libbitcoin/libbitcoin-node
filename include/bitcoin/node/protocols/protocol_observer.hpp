@@ -55,9 +55,6 @@ protected:
 
 private:
     void do_complete_event(const code& e) NOEXCEPT;
-
-    // This is protected by strand.
-    object_key key_{};
 };
 
 } // namespace node

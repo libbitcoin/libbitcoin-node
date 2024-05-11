@@ -89,9 +89,8 @@ private:
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;
 
-    // These are protected by strand.
+    // This is protected by strand.
     map_ptr map_;
-    object_key key_{};
 };
 
 } // namespace node
