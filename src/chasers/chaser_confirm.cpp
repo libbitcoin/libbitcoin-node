@@ -278,6 +278,7 @@ bool chaser_confirm::set_confirmed(header_t link, height_t height) NOEXCEPT
     if (!query.push_confirmed(link))
         return false;
 
+    // Could just tap into organized, but it uses link vs. height.
     if (is_zero(height % config().node.snapshot_interval_()))
         notify(error::success, chase::snapshot, height);
 
