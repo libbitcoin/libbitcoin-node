@@ -45,7 +45,7 @@ void protocol_observer::start() NOEXCEPT
 }
 
 // protected
-void protocol_observer::complete_event(const code& ec, object_key key) NOEXCEPT
+void protocol_observer::complete_event(const code& ec, object_key) NOEXCEPT
 {
     POST(do_complete_event, ec);
 }
@@ -71,10 +71,10 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
     protocol::stopping(ec);
 }
 
-bool protocol_observer::handle_event(const code&, chase event_,
+bool protocol_observer::handle_event(const code& ec, chase event_,
     event_value) NOEXCEPT
 {
-    if (stopped())
+    if (stopped(ec))
         return false;
 
     switch (event_)

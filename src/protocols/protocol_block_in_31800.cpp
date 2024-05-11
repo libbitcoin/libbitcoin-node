@@ -103,10 +103,10 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
     return map_->empty();
 }
 
-bool protocol_block_in_31800::handle_event(const code&,
+bool protocol_block_in_31800::handle_event(const code& ec,
     chase event_, event_value value) NOEXCEPT
 {
-    if (stopped())
+    if (stopped(ec))
         return false;
 
     switch (event_)
