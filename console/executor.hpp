@@ -46,6 +46,7 @@ private:
         backup,
         close,
         errors,
+        go,
         hold,
         info,
         test,
@@ -104,12 +105,13 @@ private:
     // Runtime options.
     void do_hot_backup();
     void do_close();
+    void do_suspend();
+    void do_resume();
+    void do_zoom();
     void do_report_condition() const;
-    void do_toggle_suspend();
     void do_information() const;
     void do_test() const;
     void do_report_work() const;
-    void do_resume();
 
     void scan_flags() const;
     void measure_size() const;
