@@ -197,8 +197,6 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        LOGV("Block validated: " << height);
-
         // Advance.
         // ....................................................................
 

@@ -265,8 +265,6 @@ code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
     if (ec == database::error::block_preconfirmable)
         return query.block_confirmable(link);
 
-    LOGV("Block confirmed: " << height);
-
     // Should not get here without a known block state.
     return error::store_integrity;
 }
