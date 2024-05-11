@@ -88,13 +88,14 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
     if (closed())
         return;
 
-    // TODO: have handler return cancellation bool.
-    if (const auto ec = snapshot([&](auto, auto) NOEXCEPT
+    if (const auto ec = snapshot([&](auto event_, auto table) NOEXCEPT
     {
-        LOGA("SNAPSHOT PROGRESS: " << height);
+        LOGN("Snapshot at (" << height << ") event ["
+            << static_cast<size_t>(event_) << ", "
+            << static_cast<size_t>(table) << "].");
     }))
     {
-        LOGA("SNAPSHOT ERROR: " << ec.message());
+        LOGN("Snapshot failed, " << ec.message());
     }
 }
 
