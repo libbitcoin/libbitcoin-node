@@ -100,7 +100,7 @@ public:
     code snapshot(const store::event_handler& handler) NOEXCEPT;
 
     /// Suspend all existing and future network connections.
-    /// A race condition could result in an unsuspended connection.
+    /// A race condition can result in an unsuspended connection.
     code suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
