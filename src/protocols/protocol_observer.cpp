@@ -53,12 +53,8 @@ void protocol_observer::do_handle_complete(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // stopped() is true before stopping() is called (by base).
     if (stopped(ec))
-    {
         unsubscribe_events();
-        return;
-    }
 }
 
 // If this is invoked before do_handle_complete then it will unsubscribe.
