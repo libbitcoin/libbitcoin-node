@@ -194,9 +194,9 @@ namespace node {
     "Node is running."
 
 #define BN_UNINITIALIZED_DATABASE \
-    "The %1% database directory does not exist, run: bn --initchain"
+    "The %1% database directory does not exist."
 #define BN_UNINITIALIZED_CHAIN \
-    "The %1% database is not initialized, delete and run: bn --initchain"
+    "The %1% database is not initialized, delete and retry."
 #define BN_DATABASE_START_FAIL \
     "Database failed to start with error '%1%'."
 #define BN_DATABASE_STOPPING \

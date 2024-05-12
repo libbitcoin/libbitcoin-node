@@ -1831,12 +1831,15 @@ bool executor::check_store_path(bool create) const
 {
     const auto& configuration = metadata_.configured.file;
     if (configuration.empty())
+    {
         logger(BN_USING_DEFAULT_CONFIG);
+    }
     else
+    {
         logger(format(BN_USING_CONFIG_FILE) % configuration);
+    }
 
     const auto& store = metadata_.configured.database.path;
-
     if (create)
     {
         logger(format(BN_INITIALIZING_CHAIN) % store);
@@ -1869,6 +1872,14 @@ bool executor::create_store(bool details)
     }))
     {
         logger(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
+        return false;
+    }
+
+    // Create and confirm genesis block (store invalid without it).
+    logger(BN_INITCHAIN_DATABASE_INITIALIZE);
+    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
+    {
+        logger(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
         return false;
     }
 
@@ -2043,26 +2054,13 @@ bool executor::do_initchain()
 {
     log_.stop();
     if (!check_store_path(true) ||
-        !create_store(true) ||
-        !open_store())
+        !create_store(true))
         return false;
-
-    // Create and confirm genesis block (store invalid without it).
-    logger(BN_INITCHAIN_DATABASE_INITIALIZE);
-    if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
-    {
-        logger(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
-        return false;
-    }
 
     // Records and sizes reflect genesis block only.
     dump_sizes();
     dump_records();
     dump_buckets();
-
-    // This one can take a few seconds on cold iron.
-    logger(BN_MEASURE_PROGRESS_START);
-    dump_progress();
 
     if (!close_store())
         return false;
@@ -2556,6 +2554,23 @@ void executor::subscribe_close()
     });
 }
 
+void executor::dump_options() const
+{
+    logger(BN_NODE_INTERRUPT);
+    logger(BN_LOG_TABLE_HEADER);
+    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
+    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
+    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
+    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
+    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
+    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
+    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
+    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
+    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
+    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
+    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
+}
+
 // ----------------------------------------------------------------------------
 
 bool executor::do_run()
@@ -2575,38 +2590,21 @@ bool executor::do_run()
     subscribe_log(log);
     subscribe_events(events);
     subscribe_capture();
-
     logger(BN_LOG_HEADER);
-    logger(BN_NODE_INTERRUPT);
-    logger(BN_LOG_TABLE_HEADER);
-    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
-    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
-    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
-    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
-    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
-    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
-    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
-    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
-    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
-    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
-    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
 
-    if (!check_store_path())
-        return false;
-
-    // stopped by stopper.
-    capture_.start();
-
-    const auto ec = open_store_coded(true);
-    if (ec == database::error::flush_lock)
+    if (check_store_path())
     {
-        if (!restore_store(true))
+        auto ec = open_store_coded(true);
+        if ((ec == database::error::flush_lock) && !restore_store(true))
+            ec = error::store_integrity;
+
+        if (ec)
         {
             stopper(BN_NODE_STOPPED);
             return false;
         }
     }
-    else if (ec)
+    else if (!check_store_path(true) || !create_store(true))
     {
         stopper(BN_NODE_STOPPED);
         return false;
@@ -2615,10 +2613,12 @@ bool executor::do_run()
     dump_sizes();
     dump_records();
     dump_buckets();
-
-    // This one can take a few seconds on cold iron.
     logger(BN_MEASURE_PROGRESS_START);
     dump_progress();
+
+    // stopped by stopper.
+    capture_.start();
+    dump_options();
 
     // Create node.
     metadata_.configured.network.initialize();
@@ -2640,11 +2640,9 @@ bool executor::do_run()
     // Stop network (if not already stopped by self).
     node_->close();
 
-    // All measures can change except buckets.
+    // Sizes and records change, buckets don't.
     dump_sizes();
     dump_records();
-
-    // This one can take a few seconds on cold iron.
     logger(BN_MEASURE_PROGRESS_START);
     dump_progress();
 
