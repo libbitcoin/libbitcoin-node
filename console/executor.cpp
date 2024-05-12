@@ -30,6 +30,18 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
+// for do_hardware
+#ifdef HAVE_XCPU
+    constexpr auto with_xcpu = true;
+#else
+    constexpr auto with_xcpu = false;
+#endif
+#ifdef HAVE_ARM
+    constexpr auto with_arm = true;
+#else
+    constexpr auto with_arm = false;
+#endif
+
 namespace libbitcoin {
 namespace node {
 
@@ -1991,18 +2003,6 @@ bool executor::do_help()
     return true;
 }
 
-#ifdef HAVE_XCPU
-    constexpr auto with_xcpu = true;
-#else
-    constexpr auto with_xcpu = false;
-#endif
-
-#ifdef HAVE_ARM
-    constexpr auto with_arm = true;
-#else
-    constexpr auto with_arm = false;
-#endif
-
 // --har[d]ware
 bool executor::do_hardware()
 {
@@ -2258,6 +2258,7 @@ void executor::do_report_work() const
         return;
     }
 
+    logger(BN_NODE_REPORT_WORK);
     node_->notify(error::success, chase::report, {});
 }
 

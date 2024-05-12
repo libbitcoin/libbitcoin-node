@@ -164,8 +164,6 @@ namespace node {
 
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
-////#define BN_DATABASE_STARTING \
-////    "Database is starting..."
 #define BN_DATABASE_STARTED \
     "Database is started."
 #define BN_NETWORK_STARTING \
@@ -188,6 +186,8 @@ namespace node {
     "Node cannot resume because its disk is full."
 #define BN_NODE_OK \
     "Node is ok."
+#define BN_NODE_REPORT_WORK \
+    "Requested channel work report."
 #define BN_NODE_STARTED \
     "Node is started."
 #define BN_NODE_RUNNING \
