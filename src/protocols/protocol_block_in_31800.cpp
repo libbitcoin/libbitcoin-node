@@ -114,8 +114,8 @@ bool protocol_block_in_31800::handle_event(const code& ec,
         case chase::split:
         {
             // chase::split is posted by notify_one() using subscription key.
-            // That key is not the channel identifier, but it's this channel.
-            POST(do_split, identifier());
+            // 'value' is the channel that requested a split to obtain work.
+            POST(do_split, channel_t{});
             break;
         }
         case chase::stall:

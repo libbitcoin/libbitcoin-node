@@ -269,6 +269,10 @@ code full_node::suspend(const code& ec) NOEXCEPT
         LOGS("Suspending network connections: " << ec.message());
     }
 
+    // Multiple messages will be absorbed by snapshot chaser.
+    if (ec == database::error::disk_full)
+        notify(error::success, chase::snapshot, {});
+
     // Do these even if suspended was true, since there are multiple levels.
     notify(error::success, chase::suspend, ec.value());
     return p2p::suspend(ec);

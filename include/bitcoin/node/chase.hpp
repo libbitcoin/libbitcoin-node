@@ -34,7 +34,7 @@ enum class chase
     start,
 
     /// It's time to snapshot the store, relayed to independent chaser thread.
-    /// Issued by 'xxxxxx' and handled by 'snapshot'.
+    /// Issued by [various] and handled by 'snapshot'.
     snapshot,
 
     /// Chaser is directed to start when there are no downloads (height_t).
@@ -49,7 +49,7 @@ enum class chase
     /// Issued by 'block_in_31800' and handled by 'session_outbound'.
     starved,
 
-    /// Channel (slow) directed to split work and stop (channel_t).
+    /// Channel (slow) directed to split work and stop (object_t).
     /// Issued by 'session_outbound' and handled by 'block_in_31800'.
     split,
 

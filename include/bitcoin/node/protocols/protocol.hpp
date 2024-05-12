@@ -68,7 +68,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Report performance, handler may direct self-terminate.
-    virtual void performance(uint64_t channel, uint64_t speed,
+    virtual void performance(uint64_t speed,
         network::result_handler&& handler) const NOEXCEPT;
 
     /// Suspend all existing and future network connections.

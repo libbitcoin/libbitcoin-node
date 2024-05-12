@@ -75,15 +75,16 @@ private:
     void dump_buckets() const;
     void dump_progress() const;
     void dump_collisions() const;
+    void dump_options() const;
 
     // Store functions.
-    code open_store_code(bool details=false);
+    code open_store_coded(bool details=false);
     bool open_store(bool details=false);
     bool close_store(bool details=false);
     bool create_store(bool details=false);
     bool restore_store(bool details=false);
     bool backup_store(bool details=false);
-    bool check_store_path(bool create = false) const;
+    bool check_store_path(bool create=false) const;
 
     // Command line options.
     bool do_help();

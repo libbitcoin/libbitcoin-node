@@ -62,11 +62,14 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     {
         case chase::snapshot:
         {
+            // Either from confirmed or disk full.
             POST(do_snapshot, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
         {
+            // From full_node.stop().
+            POST(do_snapshot, height_t{});
             return false;
         }
         default:
@@ -85,12 +88,14 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
     if (closed())
         return;
 
-    if (const auto ec = snapshot([&](auto, auto) NOEXCEPT
+    if (const auto ec = snapshot([&](auto event_, auto table) NOEXCEPT
     {
-        LOGA("SNAPSHOT PROGRESS: " << height);
+        LOGN("Snapshot at (" << height << ") event ["
+            << static_cast<size_t>(event_) << ", "
+            << static_cast<size_t>(table) << "].");
     }))
     {
-        LOGA("SNAPSHOT ERROR: " << ec.message());
+        LOGN("Snapshot failed, " << ec.message());
     }
 }
 
