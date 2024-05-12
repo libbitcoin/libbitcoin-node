@@ -47,24 +47,24 @@ void protocol_block_in_31800::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3),
-        BIND(complete_event, _1, _2));
+        BIND(handle_complete, _1, _2));
 
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     protocol::start();
 }
 
 // protected
-void protocol_block_in_31800::complete_event(const code& ec,
+void protocol_block_in_31800::handle_complete(const code& ec,
     object_key) NOEXCEPT
 {
     if (stopped(ec))
         return;
 
-    POST(do_complete_event, ec);
+    POST(do_handle_complete, ec);
 }
 
 // private
-void protocol_block_in_31800::do_complete_event(const code& ec) NOEXCEPT
+void protocol_block_in_31800::do_handle_complete(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -84,7 +84,7 @@ void protocol_block_in_31800::do_complete_event(const code& ec) NOEXCEPT
     }
 }
 
-// If this is invoked before do_complete_event then it will unsubscribe.
+// If this is invoked before do_handle_complete then it will unsubscribe.
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -103,10 +103,11 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
     return map_->empty();
 }
 
-bool protocol_block_in_31800::handle_event(const code& ec,
-    chase event_, event_value value) NOEXCEPT
+bool protocol_block_in_31800::handle_event(const code&, chase event_,
+    event_value value) NOEXCEPT
 {
-    if (stopped(ec))
+    // Do not pass ec to stopped as it is not a call status.
+    if (stopped())
         return false;
 
     switch (event_)
