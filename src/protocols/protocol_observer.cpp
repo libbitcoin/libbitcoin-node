@@ -21,8 +21,6 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
-// TODO: fold into node::protocol now that this is trivial.
-
 namespace libbitcoin {
 namespace node {
 
@@ -39,19 +37,19 @@ void protocol_observer::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3),
-        BIND(complete_event, _1, _2));
+        BIND(handle_complete, _1, _2));
 
     protocol::start();
 }
 
 // protected
-void protocol_observer::complete_event(const code& ec, object_key) NOEXCEPT
+void protocol_observer::handle_complete(const code& ec, object_key) NOEXCEPT
 {
-    POST(do_complete_event, ec);
+    POST(do_handle_complete, ec);
 }
 
 // private
-void protocol_observer::do_complete_event(const code& ec) NOEXCEPT
+void protocol_observer::do_handle_complete(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -63,7 +61,7 @@ void protocol_observer::do_complete_event(const code& ec) NOEXCEPT
     }
 }
 
-// If this is invoked before do_complete_event then it will unsubscribe.
+// If this is invoked before do_handle_complete then it will unsubscribe.
 void protocol_observer::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -71,10 +69,11 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
     protocol::stopping(ec);
 }
 
-bool protocol_observer::handle_event(const code& ec, chase event_,
+bool protocol_observer::handle_event(const code&, chase event_,
     event_value) NOEXCEPT
 {
-    if (stopped(ec))
+    // Do not pass ec to stopped as it is not a call status.
+    if (stopped())
         return false;
 
     switch (event_)

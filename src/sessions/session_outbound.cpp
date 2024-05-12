@@ -69,8 +69,8 @@ void session_outbound::start(result_handler&& handler) NOEXCEPT
 }
 
 // Event subscriber operates on the network strand (session).
-bool session_outbound::handle_event(const code&,
-    chase event_, event_value value) NOEXCEPT
+bool session_outbound::handle_event(const code&, chase event_,
+    event_value value) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

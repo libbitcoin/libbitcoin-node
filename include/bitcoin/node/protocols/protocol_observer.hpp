@@ -47,14 +47,14 @@ public:
 
 protected:
     /// Handle event subscription completion.
-    virtual void complete_event(const code& ec, object_key key) NOEXCEPT;
+    virtual void handle_complete(const code& ec, object_key key) NOEXCEPT;
 
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
 private:
-    void do_complete_event(const code& e) NOEXCEPT;
+    void do_handle_complete(const code& e) NOEXCEPT;
 };
 
 } // namespace node
