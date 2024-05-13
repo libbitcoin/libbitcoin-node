@@ -29,6 +29,7 @@ namespace node {
 #define CLASS chaser_snapshot
 
 using namespace system;
+using namespace network;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -60,16 +61,24 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
 
     switch (event_)
     {
+        ////case chase::block:
+        ////case chase::checked:
+        case chase::confirmable:
+        {
+            // chase::confirmable posts height (organized posts link).
+            POST(do_snapshot, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::snapshot:
         {
-            // Either from confirmed or disk full.
-            POST(do_snapshot, possible_narrow_cast<height_t>(value));
+            // error::disk_full
+            POST(do_snapshot, archive().get_top_confirmed());
             break;
         }
         case chase::stop:
         {
-            // From full_node.stop().
-            POST(do_snapshot, height_t{});
+            // full_node.stop()
+            POST(do_snapshot, archive().get_top_confirmed());
             return false;
         }
         default:
@@ -81,24 +90,41 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_snapshot::do_snapshot(size_t) NOEXCEPT
+void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (closed())
+    // Height may decrease or increase, any difference is acceptable.
+    if (height == current_ || closed())
         return;
 
-    LOGN("Snapshot...............................................................");
+    execute_snapshot((current_ = height));
+}
 
-    ////if (const auto ec = snapshot([&](auto event_, auto table) NOEXCEPT
-    ////{
-    ////    LOGN("Snapshot at (" << height << ") event ["
-    ////        << static_cast<size_t>(event_) << ", "
-    ////        << static_cast<size_t>(table) << "].");
-    ////}))
-    ////{
-    ////    LOGN("Snapshot failed, " << ec.message());
-    ////}
+void chaser_snapshot::execute_snapshot(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    LOGN("Snapshot at height [" << height << "] is started.");
+
+    const auto start = wall_clock::now();
+    const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
+    {
+        LOGN("snapshot::" << full_node::store::events.at(event_)
+            << "(" << full_node::store::tables.at(table) << ")");
+    });
+
+    if (ec)
+    {
+        LOGN("Snapshot at height [" << height << "] failed with error, "
+            << ec.message());
+    }
+    else
+    {
+        auto span = duration_cast<milliseconds>(wall_clock::now() - start);
+        LOGN("Snapshot at height [" << height << "] complete in "
+            << ec.message() << span.count());
+    }
 }
 
 BC_POP_WARNING()

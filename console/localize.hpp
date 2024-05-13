@@ -156,7 +156,7 @@ namespace node {
 #define BN_CLOSE \
     "close::%1%(%2%)"
 #define BN_BACKUP \
-    "backup::%1%(%2%)"
+    "snapshot::%1%(%2%)"
 #define BN_RESTORE \
     "restore::%1%(%2%)"
 #define BN_CONDITION \
@@ -173,11 +173,11 @@ namespace node {
 #define BN_NODE_UNAVAILABLE \
     "Command not available until started."
 #define BN_NODE_BACKUP_STARTED \
-    "Backup is started."
+    "Snapshot is started."
 #define BN_NODE_BACKUP_FAIL \
-    "Backup failed with error '%1%'."
+    "Snapshot failed with error '%1%'."
 #define BN_NODE_BACKUP_COMPLETE \
-    "Backup complete in %1% secs."
+    "Snapshot complete in %1% secs."
 #define BN_NODE_DISK_FULL_RESET \
     "Node reset from disk full condition."
 #define BN_NODE_UNRECOVERABLE \

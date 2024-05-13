@@ -46,7 +46,11 @@ protected:
     virtual void do_snapshot(height_t height) NOEXCEPT;
 
 private:
+    void execute_snapshot(height_t height) NOEXCEPT;
+
+    // These are thread safe.
     size_t snapshot_interval_;
+    size_t current_{};
 };
 
 } // namespace node
