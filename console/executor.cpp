@@ -2258,8 +2258,8 @@ void executor::do_report_work()
         return;
     }
 
-    logger(BN_NODE_REPORT_WORK);
-    node_->notify(error::success, chase::report, work_counter_++);
+    logger(format(BN_NODE_REPORT_WORK) % counter_);
+    node_->notify(error::success, chase::report, counter_++);
 }
 
 // [z]eroize

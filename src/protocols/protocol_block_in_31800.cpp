@@ -214,7 +214,7 @@ void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Uses application logging since it outputs to a runtime option.
-    LOGA("Work [" << sequence << "] is (" << map_->size() << ") for ["
+    LOGA("Work report [" << sequence << "] is (" << map_->size() << ") for ["
         << authority() << "].");
 }
 

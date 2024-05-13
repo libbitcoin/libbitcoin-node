@@ -243,7 +243,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
     if (query_.is_fault())
         return query_.get_code();
 
-    const auto was_running = !suspended();
+    const auto running = !suspended();
     suspend(error::store_snapshotting);
     const auto ec = query_.snapshot([&](auto event, auto table) NOEXCEPT
     {
@@ -255,7 +255,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
     });
 
     // Could become full before snapshot start (and it could still succeed).
-    if (was_running && !query_.is_full())
+    if (running && !query_.is_full())
         resume();
 
     return ec;
@@ -264,27 +264,20 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
 // This is just a best effort, it generally has to be repeated.
 code full_node::suspend(const code& ec) NOEXCEPT
 {
-    if (!suspended())
-    {
-        LOGS("Suspending network connections: " << ec.message());
-    }
+    LOGS("Suspending network connections: " << ec.message());
+    p2p::suspend(ec);
 
     // Multiple messages will be absorbed by snapshot chaser.
     if (ec == database::error::disk_full)
         notify(error::success, chase::snapshot, {});
 
-    // Do these even if suspended was true, since there are multiple levels.
     notify(error::success, chase::suspend, ec.value());
-    return p2p::suspend(ec);
+    return ec;
 }
 
 void full_node::resume() NOEXCEPT
 {
-    if (suspended())
-    {
-        LOGS("Resuming network connections.");
-    }
-
+    LOGS("Resuming network connections.");
     p2p::resume();
 }
 
