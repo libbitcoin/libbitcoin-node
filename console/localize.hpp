@@ -187,7 +187,7 @@ namespace node {
 #define BN_NODE_OK \
     "Node is ok."
 #define BN_NODE_REPORT_WORK \
-    "Requested channel work report."
+    "Requested channel work report [%1%]."
 #define BN_NODE_STARTED \
     "Node is started."
 #define BN_NODE_RUNNING \

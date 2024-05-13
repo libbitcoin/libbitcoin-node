@@ -68,19 +68,19 @@ const std::unordered_map<std::string, uint8_t> executor::options_
     { "i", menu::info },
     { "t", menu::test },
     { "w", menu::work },
-    { "z", menu::zoom }
+    { "z", menu::zeroize }
 };
 const std::unordered_map<uint8_t, std::string> executor::menu_
 {
-    { menu::backup, "[b]ackup the store" },
-    { menu::close,  "[c]lose the node" },
-    { menu::errors, "display any store [e]rrors" },
-    { menu::go,   "[g]o network communication" },
-    { menu::hold,   "[h]old network communication" },
-    { menu::info,   "display node [i]nformation" },
-    { menu::test,   "execute built-in [t]est" },
-    { menu::work,   "display [w]ork distribution" },
-    { menu::zoom,   "re[z]ume from disk full condition" }
+    { menu::backup,  "[b]ackup the store" },
+    { menu::close,   "[c]lose the node" },
+    { menu::errors,  "display any store [e]rrors" },
+    { menu::go,      "[g]o network communication" },
+    { menu::hold,    "[h]old network communication" },
+    { menu::info,    "display node [i]nformation" },
+    { menu::test,    "execute built-in [t]est" },
+    { menu::work,    "display [w]ork distribution" },
+    { menu::zeroize, "[z]eroize store disk full error" }
 };
 const std::unordered_map<std::string, uint8_t> executor::toggles_
 {
@@ -2250,7 +2250,7 @@ void executor::do_test() const
 }
 
 // [w]ork
-void executor::do_report_work() const
+void executor::do_report_work()
 {
     if (!node_)
     {
@@ -2258,14 +2258,14 @@ void executor::do_report_work() const
         return;
     }
 
-    logger(BN_NODE_REPORT_WORK);
-    node_->notify(error::success, chase::report, {});
+    logger(format(BN_NODE_REPORT_WORK) % counter_);
+    node_->notify(error::success, chase::report, counter_++);
 }
 
-// re[z]ume
-void executor::do_zoom()
+// [z]eroize
+void executor::do_reset_store()
 {
-    // Any table with error::disk_full code.
+    // Use do_resume command to restart connections after resetting here.
     if (query_.is_full())
     {
         if (!node_)
@@ -2274,9 +2274,8 @@ void executor::do_zoom()
             return;
         }
 
-        logger(BN_NODE_DISK_FULL_RESET);
         store_.clear_errors();
-        node_->resume();
+        logger(BN_NODE_DISK_FULL_RESET);
         return;
     }
 
@@ -2467,9 +2466,9 @@ void executor::subscribe_capture()
                     do_report_work();
                     return true;
                 }
-                case menu::zoom:
+                case menu::zeroize:
                 {
-                    do_zoom();
+                    do_reset_store();
                     return true;
                 }
                 default:
@@ -2617,7 +2616,7 @@ bool executor::do_run()
     logger(BN_MEASURE_PROGRESS_START);
     dump_progress();
 
-    // stopped by stopper.
+    // Stopped by stopper.
     capture_.start();
     dump_options();
 

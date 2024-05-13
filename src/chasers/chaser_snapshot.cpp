@@ -81,22 +81,24 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
+void chaser_snapshot::do_snapshot(size_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (closed())
         return;
 
-    if (const auto ec = snapshot([&](auto event_, auto table) NOEXCEPT
-    {
-        LOGN("Snapshot at (" << height << ") event ["
-            << static_cast<size_t>(event_) << ", "
-            << static_cast<size_t>(table) << "].");
-    }))
-    {
-        LOGN("Snapshot failed, " << ec.message());
-    }
+    LOGN("Snapshot...............................................................");
+
+    ////if (const auto ec = snapshot([&](auto event_, auto table) NOEXCEPT
+    ////{
+    ////    LOGN("Snapshot at (" << height << ") event ["
+    ////        << static_cast<size_t>(event_) << ", "
+    ////        << static_cast<size_t>(table) << "].");
+    ////}))
+    ////{
+    ////    LOGN("Snapshot failed, " << ec.message());
+    ////}
 }
 
 BC_POP_WARNING()
