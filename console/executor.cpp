@@ -2191,8 +2191,8 @@ void executor::do_report_work()
         return;
     }
 
-    logger(format(BN_NODE_REPORT_WORK) % counter_);
-    node_->notify(error::success, chase::report, counter_++);
+    logger(format(BN_NODE_REPORT_WORK) % sequence_);
+    node_->notify(error::success, chase::report, sequence_++);
 }
 
 // [z]eroize

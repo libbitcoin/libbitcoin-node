@@ -152,7 +152,7 @@ private:
     full_node::store store_;
     full_node::query query_;
     std::promise<system::code> stopped_{};
-    count_t counter_{};
+    count_t sequence_{};
 
     std::istream& input_;
     std::ostream& output_;
