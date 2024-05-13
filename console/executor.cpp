@@ -1994,7 +1994,7 @@ bool executor::do_initchain()
     dump_records();
     dump_buckets();
 
-    if (!close_store())
+    if (!close_store(true))
         return false;
 
     logger(BN_INITCHAIN_COMPLETE);
