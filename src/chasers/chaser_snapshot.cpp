@@ -46,6 +46,7 @@ chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
 // initialize snapshot tracking state.
 code chaser_snapshot::start() NOEXCEPT
 {
+    // TODO: initialize current_archive_ and current_confirm_?
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -81,14 +82,8 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
         case chase::snapshot:
         {
             // error::disk_full (infrequent, compute height).
-            POST(do_stop, archive().get_top_confirmed());
+            POST(do_snap, archive().get_top_confirmed());
             break;
-        }
-        case chase::stop:
-        {
-            // full_node.stop (infrequent, compute height).
-            POST(do_stop, archive().get_top_confirmed());
-            return false;
         }
         default:
         {
@@ -137,7 +132,7 @@ void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
     do_snapshot((current_confirm_ = height));
 }
 
-void chaser_snapshot::do_stop(size_t height) NOEXCEPT
+void chaser_snapshot::do_snap(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
