@@ -68,13 +68,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__store_integrity__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "store integrity");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__store_snapshotting__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__store_snapshot__true_exected_message)
 {
-    constexpr auto value = error::store_snapshotting;
+    constexpr auto value = error::store_snapshot;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store snapshotting");
+    BOOST_REQUIRE_EQUAL(ec.message(), "store snapshot");
 }
 
 BOOST_AUTO_TEST_CASE(error_t__code__slow_channel__true_exected_message)

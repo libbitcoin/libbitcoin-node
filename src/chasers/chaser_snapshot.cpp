@@ -53,7 +53,7 @@ code chaser_snapshot::start() NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_snapshot::handle_event(const code&, chase event_,
+bool chaser_snapshot::handle_event(const code& ec, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
@@ -61,24 +61,33 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        ////case chase::block:
-        ////case chase::checked:
-        case chase::confirmable:
+        case chase::block:
+        case chase::checked:
         {
-            // chase::confirmable posts height (organized posts link).
-            POST(do_snapshot, possible_narrow_cast<height_t>(value));
+            // Checked blocks are our of order, so this is probalistic.
+            POST(do_archive, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::snapshot:
         {
-            // error::disk_full
-            POST(do_snapshot, archive().get_top_confirmed());
+            // error::disk_full (infrequent, compute height).
+            POST(do_archive, archive().get_top_candidate());
+            break;
+        }
+        case chase::confirmable:
+        {
+            // Bypassed/previous confirmable events are too close to archive.
+            if (!ec)
+            {
+                POST(do_confirm, possible_narrow_cast<height_t>(value));
+            }
+
             break;
         }
         case chase::stop:
         {
-            // full_node.stop()
-            POST(do_snapshot, archive().get_top_confirmed());
+            // full_node.stop (infrequent, compute height).
+            POST(do_confirm, archive().get_top_confirmed());
             return false;
         }
         default:
@@ -90,22 +99,47 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     return true;
 }
 
+void chaser_snapshot::do_archive(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // Filter redundant events.
+    if (height == current_archive_)
+        return;
+
+    // Height-based interval, could be improved.
+    if (!is_zero(height % snapshot_interval_))
+        return;
+
+    LOGN("Snapshot at archived height [" << height << "] is started.");
+    do_snapshot((current_archive_ = height));
+}
+
+void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // Filter redundant events.
+    if (height == current_confirm_)
+        return;
+
+    // Height-based interval, could be improved.
+    if (!is_zero(height % snapshot_interval_))
+        return;
+
+    LOGN("Snapshot at confirmable height [" << height << "] is started.");
+    do_snapshot((current_confirm_ = height));
+}
+
 void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    // Height may decrease or increase, any difference is acceptable.
-    if (height == current_ || closed())
-        return;
-
-    execute_snapshot((current_ = height));
-}
-
-void chaser_snapshot::execute_snapshot(size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    LOGN("Snapshot at height [" << height << "] is started.");
 
     const auto start = wall_clock::now();
     const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
@@ -116,14 +150,15 @@ void chaser_snapshot::execute_snapshot(size_t height) NOEXCEPT
 
     if (ec)
     {
-        LOGN("Snapshot at height [" << height << "] failed with error, "
-            << ec.message());
+        // Does not suspend node, will keep downloading until full.
+        LOGN("Snapshot at height [" << height << "] failed with error '"
+            << ec.message() << "'.");
     }
     else
     {
-        auto span = duration_cast<milliseconds>(wall_clock::now() - start);
+        const auto span = duration_cast<seconds>(wall_clock::now() - start);
         LOGN("Snapshot at height [" << height << "] complete in "
-            << ec.message() << span.count());
+            << span.count() << " secs.");
     }
 }
 

@@ -34,7 +34,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // database
     { store_integrity, "store integrity" },
     { store_uninitialized, "store not initialized" },
-    { store_snapshotting, "store snapshotting" },
+    { store_snapshot, "store snapshot" },
 
     // network
     { slow_channel, "slow channel" },
