@@ -190,24 +190,24 @@ void executor::stopper(const auto& message)
 // Measures.
 // ----------------------------------------------------------------------------
 
-void executor::dump_sizes() const
+void executor::dump_body_sizes() const
 {
     logger(format(BN_MEASURE_SIZES) %
-        query_.header_size() %
-        query_.txs_size() %
-        query_.tx_size() %
-        query_.point_size() %
-        query_.input_size() %
-        query_.output_size() %
-        query_.puts_size() %
-        query_.candidate_size() %
-        query_.confirmed_size() %
-        query_.spend_size() %
-        query_.strong_tx_size() %
-        query_.validated_tx_size() %
-        query_.validated_bk_size() %
-        query_.address_size() %
-        query_.neutrino_size());
+        query_.header_body_size() %
+        query_.txs_body_size() %
+        query_.tx_body_size() %
+        query_.point_body_size() %
+        query_.input_body_size() %
+        query_.output_body_size() %
+        query_.puts_body_size() %
+        query_.candidate_body_size() %
+        query_.confirmed_body_size() %
+        query_.spend_body_size() %
+        query_.strong_tx_body_size() %
+        query_.validated_tx_body_size() %
+        query_.validated_bk_body_size() %
+        query_.address_body_size() %
+        query_.neutrino_body_size());
 }
 
 void executor::dump_records() const
@@ -314,7 +314,7 @@ void executor::scan_flags() const
 // file and logical sizes.
 void executor::measure_size() const
 {
-    dump_sizes();
+    dump_body_sizes();
     dump_records();
     dump_buckets();
     dump_collisions();
@@ -1990,7 +1990,7 @@ bool executor::do_initchain()
         return false;
 
     // Records and sizes reflect genesis block only.
-    dump_sizes();
+    dump_body_sizes();
     dump_records();
     dump_buckets();
 
@@ -2169,7 +2169,7 @@ void executor::do_resume()
 // [i]nformation
 void executor::do_information() const
 {
-    dump_sizes();
+    dump_body_sizes();
     dump_records();
     dump_buckets();
     dump_collisions();
@@ -2543,7 +2543,7 @@ bool executor::do_run()
         return false;
     }
 
-    dump_sizes();
+    dump_body_sizes();
     dump_records();
     dump_buckets();
     logger(BN_MEASURE_PROGRESS_START);
@@ -2574,7 +2574,7 @@ bool executor::do_run()
     node_->close();
 
     // Sizes and records change, buckets don't.
-    dump_sizes();
+    dump_body_sizes();
     dump_records();
     logger(BN_MEASURE_PROGRESS_START);
     dump_progress();

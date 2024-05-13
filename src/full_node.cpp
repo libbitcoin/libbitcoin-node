@@ -80,8 +80,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||
-        ((ec = (to_bool(config().node.snapshot_interval) ?
-            chaser_snapshot_.start() : error::success))))
+        ((ec = chaser_snapshot_.start())))
     {
         handler(ec);
         return;

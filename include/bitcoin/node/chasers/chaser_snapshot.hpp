@@ -45,15 +45,23 @@ protected:
 
     virtual void do_archive(height_t height) NOEXCEPT;
     virtual void do_confirm(height_t height) NOEXCEPT;
-    virtual void do_snap(height_t height) NOEXCEPT;
+    virtual void do_full(height_t height) NOEXCEPT;
 
 private:
+    bool update_bytes() NOEXCEPT;
+    bool update_valid(height_t height) NOEXCEPT;
+    bool is_redundant(height_t height) const NOEXCEPT;
     void do_snapshot(height_t height) NOEXCEPT;
 
     // These are thread safe.
-    const size_t snapshot_interval_;
-    size_t current_archive_{};
-    size_t current_confirm_{};
+    const uint64_t snapshot_bytes_;
+    const size_t snapshot_valid_;
+    const bool enabled_bytes_;
+    const bool enabled_valid_;
+
+    // These are protected by strand.
+    uint64_t bytes_{};
+    size_t valid_{};
 };
 
 } // namespace node
