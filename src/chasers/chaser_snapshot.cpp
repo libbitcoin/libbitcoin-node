@@ -29,6 +29,7 @@ namespace node {
 #define CLASS chaser_snapshot
 
 using namespace system;
+using namespace network;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -45,6 +46,7 @@ chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
 // initialize snapshot tracking state.
 code chaser_snapshot::start() NOEXCEPT
 {
+    // TODO: initialize current_archive_ and current_confirm_?
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -52,7 +54,7 @@ code chaser_snapshot::start() NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_snapshot::handle_event(const code&, chase event_,
+bool chaser_snapshot::handle_event(const code& ec, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
@@ -60,17 +62,28 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        case chase::snapshot:
+        case chase::block:
+        case chase::checked:
         {
-            // Either from confirmed or disk full.
-            POST(do_snapshot, possible_narrow_cast<height_t>(value));
+            // Checked blocks are our of order, so this is probalistic.
+            POST(do_archive, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::stop:
+        case chase::confirmable:
         {
-            // From full_node.stop().
-            POST(do_snapshot, height_t{});
-            return false;
+            // Bypassed/previous confirmable events are too close to archive.
+            if (!ec)
+            {
+                POST(do_confirm, possible_narrow_cast<height_t>(value));
+            }
+
+            break;
+        }
+        case chase::snapshot:
+        {
+            // error::disk_full (infrequent, compute height).
+            POST(do_snap, archive().get_top_confirmed());
+            break;
         }
         default:
         {
@@ -81,24 +94,82 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_snapshot::do_snapshot(size_t) NOEXCEPT
+void chaser_snapshot::do_archive(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (closed())
         return;
 
-    LOGN("Snapshot...............................................................");
+    // Filter redundant events.
+    if (height == current_archive_)
+        return;
 
-    ////if (const auto ec = snapshot([&](auto event_, auto table) NOEXCEPT
-    ////{
-    ////    LOGN("Snapshot at (" << height << ") event ["
-    ////        << static_cast<size_t>(event_) << ", "
-    ////        << static_cast<size_t>(table) << "].");
-    ////}))
-    ////{
-    ////    LOGN("Snapshot failed, " << ec.message());
-    ////}
+    // Height-based interval, could be improved.
+    if (!is_zero(height % snapshot_interval_))
+        return;
+
+    LOGN("Snapshot at archived height [" << height << "] is started.");
+    do_snapshot((current_archive_ = height));
+}
+
+void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // Filter redundant events.
+    if (height == current_confirm_)
+        return;
+
+    // Height-based interval, could be improved.
+    if (!is_zero(height % snapshot_interval_))
+        return;
+
+    LOGN("Snapshot at confirmable height [" << height << "] is started.");
+    do_snapshot((current_confirm_ = height));
+}
+
+void chaser_snapshot::do_snap(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // Filter redundant events.
+    if (height == current_confirm_)
+        return;
+
+    LOGN("Snapshot at stop height [" << height << "] is started.");
+    do_snapshot((current_confirm_ = height));
+}
+
+void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    const auto start = wall_clock::now();
+    const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
+    {
+        LOGN("snapshot::" << full_node::store::events.at(event_)
+            << "(" << full_node::store::tables.at(table) << ")");
+    });
+
+    if (ec)
+    {
+        // Does not suspend node, will keep downloading until full.
+        LOGN("Snapshot at height [" << height << "] failed with error '"
+            << ec.message() << "'.");
+    }
+    else
+    {
+        const auto span = duration_cast<seconds>(wall_clock::now() - start);
+        LOGN("Snapshot at height [" << height << "] complete in "
+            << span.count() << " secs.");
+    }
 }
 
 BC_POP_WARNING()

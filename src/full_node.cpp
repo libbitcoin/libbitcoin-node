@@ -74,14 +74,14 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     code ec;
 
     if (((ec = (config().node.headers_first ?
-            chaser_header_.start() :
-            chaser_block_.start()))) ||
+            chaser_header_.start() : chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_preconfirm_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||
-        ((ec = chaser_snapshot_.start())))
+        ((ec = (to_bool(config().node.snapshot_interval) ?
+            chaser_snapshot_.start() : error::success))))
     {
         handler(ec);
         return;
@@ -244,12 +244,12 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
         return query_.get_code();
 
     const auto running = !suspended();
-    suspend(error::store_snapshotting);
+    suspend(error::store_snapshot);
     const auto ec = query_.snapshot([&](auto event, auto table) NOEXCEPT
     {
         // Suspend channels that missed previous suspend events.
         if (event == database::event_t::wait_lock)
-            suspend(error::store_snapshotting);
+            suspend(error::store_snapshot);
 
         handler(event, table);
     });

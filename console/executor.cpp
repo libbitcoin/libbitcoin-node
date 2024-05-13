@@ -147,84 +147,6 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
 
     { events::template_issued,     "template_issued....." },
 };
-const std::unordered_map<database::event_t, std::string> executor::events_
-{
-    { database::event_t::create_file, "create_file" },
-    { database::event_t::open_file,   "open_file" },
-    { database::event_t::load_file, "load_file" },
-    { database::event_t::unload_file, "unload_file" },
-    { database::event_t::close_file, "close_file" },
-    { database::event_t::create_table, "create_table" },
-    { database::event_t::verify_table, "verify_table" },
-    { database::event_t::close_table, "close_table" },
-
-    { database::event_t::wait_lock, "wait_lock" },
-    { database::event_t::flush_body, "flush_body" },
-    { database::event_t::backup_table, "backup_table" },
-    { database::event_t::copy_header, "copy_header" },
-    { database::event_t::archive_snapshot, "archive_snapshot" },
-
-    { database::event_t::restore_table, "restore_table" },
-    { database::event_t::recover_snapshot, "recover_snapshot" }
-};
-const std::unordered_map<database::table_t, std::string> executor::tables_
-{
-    { database::table_t::store, "store" },
-
-    { database::table_t::header_table, "header_table" },
-    { database::table_t::header_head, "header_head" },
-    { database::table_t::header_body, "header_body" },
-    { database::table_t::point_table, "point_table" },
-    { database::table_t::point_head, "point_head" },
-    { database::table_t::point_body, "point_body" },
-    { database::table_t::input_table, "input_table" },
-    { database::table_t::input_head, "input_head" },
-    { database::table_t::input_body, "input_body" },
-    { database::table_t::output_table, "output_table" },
-    { database::table_t::output_head, "output_head" },
-    { database::table_t::output_body, "output_body" },
-    { database::table_t::puts_table, "puts_table" },
-    { database::table_t::puts_head, "puts_head" },
-    { database::table_t::puts_body, "puts_body" },
-    { database::table_t::tx_table, "tx_table" },
-    { database::table_t::tx_head, "tx_head" },
-    { database::table_t::txs_table, "txs_table" },
-    { database::table_t::tx_body, "tx_body" },
-    { database::table_t::txs_head, "txs_head" },
-    { database::table_t::txs_body, "txs_body" },
-
-    { database::table_t::address_table, "address_table" },
-    { database::table_t::address_head, "address_head" },
-    { database::table_t::address_body, "address_body" },
-    { database::table_t::candidate_table, "candidate_table" },
-    { database::table_t::candidate_head, "candidate_head" },
-    { database::table_t::candidate_body, "candidate_body" },
-    { database::table_t::confirmed_table, "confirmed_table" },
-    { database::table_t::confirmed_head, "confirmed_head" },
-    { database::table_t::confirmed_body, "confirmed_body" },
-    { database::table_t::spend_table, "spend_table" },
-    { database::table_t::spend_head, "spend_head" },
-    { database::table_t::spend_body, "spend_body" },
-    { database::table_t::strong_tx_table, "strong_tx_table" },
-    { database::table_t::strong_tx_head, "strong_tx_head" },
-    { database::table_t::strong_tx_body, "strong_tx_body" },
-
-    { database::table_t::validated_bk_table, "validated_bk_table" },
-    { database::table_t::validated_bk_head, "validated_bk_head" },
-    { database::table_t::validated_bk_body, "validated_bk_body" },
-    { database::table_t::validated_tx_table, "validated_tx_table" },
-    { database::table_t::validated_tx_head, "validated_tx_head" },
-    { database::table_t::validated_tx_body, "validated_tx_body" },
-    { database::table_t::neutrino_table, "neutrino_table" },
-    { database::table_t::neutrino_head, "neutrino_head" },
-    { database::table_t::neutrino_body, "neutrino_body" }
-    ////{ database::table_t::bootstrap_table, "bootstrap_table" },
-    ////{ database::table_t::bootstrap_head, "bootstrap_head" },
-    ////{ database::table_t::bootstrap_body, "bootstrap_body" },
-    ////{ database::table_t::buffer_table, "buffer_table" },
-    ////{ database::table_t::buffer_head, "buffer_head" },
-    ////{ database::table_t::buffer_body, "buffer_body" }
-};
 
 // non-const member static (global for blocking interrupt handling).
 std::promise<code> executor::stopping_{};
@@ -409,7 +331,7 @@ void executor::scan_slabs() const
     logger(BN_OPERATION_INTERRUPT);
     database::tx_link::integer link{};
     size_t inputs{}, outputs{};
-    const auto start = fine_clock::now();
+    const auto start = logger::now();
     constexpr auto frequency = 100'000;
 
     // Tx (record) links are sequential and so iterable, however the terminal
@@ -428,7 +350,7 @@ void executor::scan_slabs() const
     if (cancel_)
         logger(BN_OPERATION_CANCELED);
 
-    const auto span = duration_cast<seconds>(fine_clock::now() - start);
+    const auto span = duration_cast<seconds>(logger::now() - start);
     logger(format(BN_MEASURE_STOP) % inputs % outputs % span.count());
 }
 
@@ -1880,7 +1802,9 @@ bool executor::create_store(bool details)
     if (const auto ec = store_.create([&](auto event_, auto table)
     {
         if (details)
-            logger(format(BN_CREATE) % events_.at(event_) % tables_.at(table));
+            logger(format(BN_CREATE) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
     }))
     {
         logger(format(BN_INITCHAIN_DATABASE_CREATE_FAILURE) % ec.message());
@@ -1907,7 +1831,9 @@ code executor::open_store_coded(bool details)
     if (const auto ec = store_.open([&](auto event_, auto table)
     {
         if (details)
-            logger(format(BN_OPEN) % events_.at(event_) % tables_.at(table));
+            logger(format(BN_OPEN) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
     }))
     {
         logger(format(BN_DATABASE_START_FAIL) % ec.message());
@@ -1930,7 +1856,9 @@ bool executor::close_store(bool details)
     if (const auto ec = store_.close([&](auto event_, auto table)
     {
         if (details)
-            logger(format(BN_CLOSE) % events_.at(event_) % tables_.at(table));
+            logger(format(BN_CLOSE) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
     }))
     {
         logger(format(BN_DATABASE_STOP_FAIL) % ec.message());
@@ -1946,10 +1874,12 @@ bool executor::restore_store(bool details)
 {
     logger(BN_RESTORING_CHAIN);
     const auto start = logger::now();
-    if (const auto ec = store_.restore([&](auto event, auto table)
+    if (const auto ec = store_.restore([&](auto event_, auto table)
     {
         if (details)
-            logger(format(BN_RESTORE) % events_.at(event) % tables_.at(table));
+            logger(format(BN_RESTORE) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
     }))
     {
         if (ec == database::error::flush_lock)
@@ -1975,10 +1905,12 @@ bool executor::backup_store(bool details)
 
     logger(BN_NODE_BACKUP_STARTED);
     const auto start = logger::now();
-    if (const auto ec = node_->snapshot([&](auto event, auto table)
+    if (const auto ec = node_->snapshot([&](auto event_, auto table)
     {
         if (details)
-            logger(format(BN_BACKUP) % events_.at(event) % tables_.at(table));
+            logger(format(BN_BACKUP) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
     }))
     {
         logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
@@ -2062,7 +1994,7 @@ bool executor::do_initchain()
     dump_records();
     dump_buckets();
 
-    if (!close_store())
+    if (!close_store(true))
         return false;
 
     logger(BN_INITCHAIN_COMPLETE);
@@ -2199,7 +2131,8 @@ void executor::do_report_condition() const
 {
     store_.report_errors([&](const auto& ec, auto table)
     {
-        logger(format(BN_CONDITION) % tables_.at(table) % ec.message());
+        logger(format(BN_CONDITION) % full_node::store::tables.at(table) %
+            ec.message());
     });
 }
 
@@ -2258,8 +2191,8 @@ void executor::do_report_work()
         return;
     }
 
-    logger(format(BN_NODE_REPORT_WORK) % counter_);
-    node_->notify(error::success, chase::report, counter_++);
+    logger(format(BN_NODE_REPORT_WORK) % sequence_);
+    node_->notify(error::success, chase::report, sequence_++);
 }
 
 // [z]eroize

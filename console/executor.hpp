@@ -144,9 +144,6 @@ private:
 
     // Runtime events.
     static const std::unordered_map<uint8_t, std::string> fired_;
-    static const std::unordered_map<database::event_t, std::string> events_;
-    static const std::unordered_map<database::table_t, std::string> tables_;
-
     static std::promise<system::code> stopping_;
     static std::atomic_bool cancel_;
 
@@ -155,7 +152,7 @@ private:
     full_node::store store_;
     full_node::query query_;
     std::promise<system::code> stopped_{};
-    count_t counter_{};
+    count_t sequence_{};
 
     std::istream& input_;
     std::ostream& output_;

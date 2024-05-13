@@ -43,10 +43,17 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_snapshot(height_t height) NOEXCEPT;
+    virtual void do_archive(height_t height) NOEXCEPT;
+    virtual void do_confirm(height_t height) NOEXCEPT;
+    virtual void do_snap(height_t height) NOEXCEPT;
 
 private:
-    size_t snapshot_interval_;
+    void do_snapshot(height_t height) NOEXCEPT;
+
+    // These are thread safe.
+    const size_t snapshot_interval_;
+    size_t current_archive_{};
+    size_t current_confirm_{};
 };
 
 } // namespace node
