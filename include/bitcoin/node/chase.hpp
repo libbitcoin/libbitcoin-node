@@ -62,7 +62,7 @@ enum class chase
     purge,
 
     /// Channels (all) directed to write work count to the log (count_t).
-    /// Issued by 'executore' and handled by 'block_in_31800'.
+    /// Issued by 'executor' and handled by 'block_in_31800'.
     report,
 
     /// Candidate Chain.
