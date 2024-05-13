@@ -36,18 +36,31 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
   : chaser(node),
-    snapshot_interval_(node.config().node.snapshot_interval_())
+    snapshot_bytes_(node.config().node.snapshot_bytes),
+    snapshot_valid_(node.config().node.snapshot_valid),
+    enabled_bytes_(to_bool(snapshot_bytes_)),
+    enabled_valid_(to_bool(snapshot_valid_))
 {
 }
 
 // start
 // ----------------------------------------------------------------------------
 
-// initialize snapshot tracking state.
 code chaser_snapshot::start() NOEXCEPT
 {
-    // TODO: initialize current_archive_ and current_confirm_?
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    // Initial values assume all stops or starts are snapped (clone headers).
+
+    if (enabled_bytes_)
+        bytes_ = archive().store_body_size();
+
+    if (enabled_valid_)
+        valid_ = archive().get_top_confirmed();
+
+    if (enabled_bytes_ || enabled_valid_)
+    {
+        SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    }
+
     return error::success;
 }
 
@@ -65,24 +78,26 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
         case chase::block:
         case chase::checked:
         {
+            if (!enabled_bytes_ || ec) break;
+
             // Checked blocks are our of order, so this is probalistic.
             POST(do_archive, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::confirmable:
         {
-            // Bypassed/previous confirmable events are too close to archive.
-            if (!ec)
-            {
-                POST(do_confirm, possible_narrow_cast<height_t>(value));
-            }
+            // Skip bypassed confirmable events as they are close to archive.
+            if (!enabled_valid_ || ec) break;
 
+            // Confirmable covers all validation except set_confirmed (link).
+            POST(do_confirm, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::snapshot:
         {
+            // Inherently disabled if both types are disabled.
             // error::disk_full (infrequent, compute height).
-            POST(do_snap, archive().get_top_confirmed());
+            POST(do_full, archive().get_top_confirmed());
             break;
         }
         default:
@@ -98,54 +113,37 @@ void chaser_snapshot::do_archive(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (closed())
-        return;
-
-    // Filter redundant events.
-    if (height == current_archive_)
-        return;
-
-    // Height-based interval, could be improved.
-    if (!is_zero(height % snapshot_interval_))
+    if (closed() || !update_bytes())
         return;
 
     LOGN("Snapshot at archived height [" << height << "] is started.");
-    do_snapshot((current_archive_ = height));
+    do_snapshot(height);
 }
-
+ 
 void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (closed())
-        return;
-
-    // Filter redundant events.
-    if (height == current_confirm_)
-        return;
-
-    // Height-based interval, could be improved.
-    if (!is_zero(height % snapshot_interval_))
+    if (closed() || !update_valid(height))
         return;
 
     LOGN("Snapshot at confirmable height [" << height << "] is started.");
-    do_snapshot((current_confirm_ = height));
+    do_snapshot(height);
 }
 
-void chaser_snapshot::do_snap(size_t height) NOEXCEPT
+void chaser_snapshot::do_full(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (closed())
+    if (closed() || is_redundant(height))
         return;
 
-    // Filter redundant events.
-    if (height == current_confirm_)
-        return;
-
-    LOGN("Snapshot at stop height [" << height << "] is started.");
-    do_snapshot((current_confirm_ = height));
+    LOGN("Snapshot at disk full height [" << height << "] is started.");
+    do_snapshot(height);
 }
+
+// utility
+// ----------------------------------------------------------------------------
 
 void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
@@ -170,6 +168,30 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
         LOGN("Snapshot at height [" << height << "] complete in "
             << span.count() << " secs.");
     }
+}
+
+bool chaser_snapshot::update_bytes() NOEXCEPT
+{
+    // This is the most costly, sizing for every download, but is just a sum.
+    // Wire size might be better, but there is no constant time query for it.
+    const uint64_t current = archive().store_body_size();
+    const auto growth = floored_subtract(current, bytes_);
+    const auto sufficient = (growth >= snapshot_bytes_);
+    bytes_ = sufficient ? current : bytes_;
+    return sufficient;
+}
+
+bool chaser_snapshot::update_valid(height_t height) NOEXCEPT
+{
+    const auto growth = floored_subtract(height, valid_);
+    const auto sufficient = (growth >= snapshot_valid_);
+    valid_ = sufficient ? height : valid_;
+    return sufficient;
+}
+
+bool chaser_snapshot::is_redundant(height_t height) const NOEXCEPT
+{
+    return valid_ == height || bytes_ == archive().store_body_size();
 }
 
 BC_POP_WARNING()

@@ -70,7 +70,7 @@ private:
     bool handle_stopped(const system::code& ec);
 
     // Store measures.
-    void dump_sizes() const;
+    void dump_body_sizes() const;
     void dump_records() const;
     void dump_buckets() const;
     void dump_progress() const;

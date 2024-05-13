@@ -41,14 +41,14 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
 
+    BOOST_REQUIRE_EQUAL(node.snapshot_bytes, 107'374'182'400_u64);
+    BOOST_REQUIRE_EQUAL(node.snapshot_valid, 100'000_u32);
+
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
 
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
-
-    BOOST_REQUIRE_EQUAL(node.snapshot_interval, 100'000_u32);
-    BOOST_REQUIRE_EQUAL(node.snapshot_interval_(), 100'000_size);
 
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
     BOOST_REQUIRE(node.sample_period() == network::steady_clock::duration(network::seconds(10)));

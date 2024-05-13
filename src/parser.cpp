@@ -894,9 +894,14 @@ options_metadata parser::load_settings() THROWS
         "Maximum number of blocks to download concurrently, defaults to '50000' (0 disables)."
     )
     (
-        "node.snapshot_interval",
-        value<uint32_t>(&configured.node.snapshot_interval),
-        "Block interval for automatic store snapshots, defaults to '100000' (0 disables)."
+        "node.snapshot_bytes",
+        value<uint64_t>(&configured.node.snapshot_bytes),
+        "Downloaded bytes that triggers snapshot, defaults to '107374182400' (0 disables)."
+    )
+    (
+        "node.snapshot_valid",
+        value<uint32_t>(&configured.node.snapshot_valid),
+        "Completed validations that trigger snapshot, defaults to '100000' (0 disables)."
     )
     (
         "node.sample_period_seconds",
@@ -938,6 +943,7 @@ options_metadata parser::load_settings() THROWS
         "Path to windows debug build symbols file (.pdb)."
     )
 #endif
+    // TODO: configurable defaults for all log levels.
     ////(
     ////    "log.verbose",
     ////    value<bool>(&configured.log.verbose),
