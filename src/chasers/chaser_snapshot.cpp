@@ -68,12 +68,6 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             POST(do_archive, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::snapshot:
-        {
-            // error::disk_full (infrequent, compute height).
-            POST(do_archive, archive().get_top_candidate());
-            break;
-        }
         case chase::confirmable:
         {
             // Bypassed/previous confirmable events are too close to archive.
@@ -84,10 +78,16 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
 
             break;
         }
+        case chase::snapshot:
+        {
+            // error::disk_full (infrequent, compute height).
+            POST(do_stop, archive().get_top_confirmed());
+            break;
+        }
         case chase::stop:
         {
             // full_node.stop (infrequent, compute height).
-            POST(do_confirm, archive().get_top_confirmed());
+            POST(do_stop, archive().get_top_confirmed());
             return false;
         }
         default:
@@ -134,6 +134,21 @@ void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
         return;
 
     LOGN("Snapshot at confirmable height [" << height << "] is started.");
+    do_snapshot((current_confirm_ = height));
+}
+
+void chaser_snapshot::do_stop(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // Filter redundant events.
+    if (height == current_confirm_)
+        return;
+
+    LOGN("Snapshot at stop height [" << height << "] is started.");
     do_snapshot((current_confirm_ = height));
 }
 

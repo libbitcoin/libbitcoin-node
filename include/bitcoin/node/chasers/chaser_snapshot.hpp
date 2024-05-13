@@ -45,6 +45,7 @@ protected:
 
     virtual void do_archive(height_t height) NOEXCEPT;
     virtual void do_confirm(height_t height) NOEXCEPT;
+    virtual void do_stop(height_t height) NOEXCEPT;
 
 private:
     void do_snapshot(height_t height) NOEXCEPT;
