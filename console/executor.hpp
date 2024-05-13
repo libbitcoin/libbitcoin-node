@@ -51,7 +51,7 @@ private:
         info,
         test,
         work,
-        zoom
+        zeroize
     };
 
     using rotator_t = database::file::stream::out::rotator;
@@ -108,11 +108,11 @@ private:
     void do_close();
     void do_suspend();
     void do_resume();
-    void do_zoom();
+    void do_reset_store();
+    void do_report_work();
     void do_report_condition() const;
     void do_information() const;
     void do_test() const;
-    void do_report_work() const;
 
     void scan_flags() const;
     void measure_size() const;
@@ -156,6 +156,7 @@ private:
     full_node::query query_;
     std::promise<system::code> stopped_{};
 
+    count_t work_counter_{};
     std::istream& input_;
     std::ostream& output_;
     network::logger log_{};
