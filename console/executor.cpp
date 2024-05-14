@@ -2539,8 +2539,12 @@ bool executor::do_run()
     if (check_store_path())
     {
         auto ec = open_store_coded(true);
-        if ((ec == database::error::flush_lock) && !restore_store(true))
-            ec = error::store_integrity;
+        if (ec == database::error::flush_lock)
+        {
+            ec = error::success;
+            if (!restore_store(true))
+                ec = error::store_integrity;
+        }
 
         if (ec)
         {
@@ -2557,8 +2561,8 @@ bool executor::do_run()
     dump_body_sizes();
     dump_records();
     dump_buckets();
-    logger(BN_MEASURE_PROGRESS_START);
-    dump_progress();
+    ////logger(BN_MEASURE_PROGRESS_START);
+    ////dump_progress();
 
     // Stopped by stopper.
     capture_.start();
@@ -2587,8 +2591,8 @@ bool executor::do_run()
     // Sizes and records change, buckets don't.
     dump_body_sizes();
     dump_records();
-    logger(BN_MEASURE_PROGRESS_START);
-    dump_progress();
+    ////logger(BN_MEASURE_PROGRESS_START);
+    ////dump_progress();
 
     if (!close_store(true))
     {
