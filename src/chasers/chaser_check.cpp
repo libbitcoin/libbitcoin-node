@@ -277,7 +277,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     ////BC_ASSERT(stranded());
 
     size_t count{};
-    if (validated_ < requested_)
+    if (validated_ < requested_ || requested_ >= maximum_height_)
         return count;
 
     // Inventory size gets set only once.

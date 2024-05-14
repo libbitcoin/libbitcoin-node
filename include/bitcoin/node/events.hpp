@@ -52,7 +52,10 @@ enum events : uint8_t
     block_reorganized,   // block popped
 
     /// Mining.
-    template_issued      // block template issued for mining
+    template_issued,      // block template issued for mining
+
+    /// Snapshot span.
+    snapshot_span
 };
 
 } // namespace node
