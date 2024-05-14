@@ -936,6 +936,88 @@ options_metadata parser::load_settings() THROWS
     ////)
 
     /* [log] */
+#if defined(HAVE_LOGA)
+    (
+        "log.application",
+        value<bool>(&configured.log.application),
+        "Enable application logging, defaults to true."
+    )
+#endif
+#if defined(HAVE_LOGN)
+    (
+        "log.news",
+        value<bool>(&configured.log.news),
+        "Enable news logging, defaults to true."
+    )
+#endif
+#if defined(HAVE_LOGS)
+    (
+        "log.session",
+        value<bool>(&configured.log.session),
+        "Enable session logging, defaults to true."
+    )
+#endif
+#if defined(HAVE_LOGP)
+    (
+        "log.protocol",
+        value<bool>(&configured.log.protocol),
+        "Enable protocol logging, defaults to false."
+    )
+#endif
+#if defined(HAVE_LOGX)
+    (
+        "log.proxy",
+        value<bool>(&configured.log.proxy),
+        "Enable proxy logging, defaults to false."
+    )
+#endif
+#if defined(HAVE_LOGW)
+    (
+        "log.wire",
+        value<bool>(&configured.log.wire),
+        "Enable wire communication logging, defaults to false."
+    )
+#endif
+#if defined(HAVE_LOGR)
+    (
+        "log.remote",
+        value<bool>(&configured.log.remote),
+        "Enable remote fault logging, defaults to true."
+    )
+#endif
+#if defined(HAVE_LOGF)
+    (
+        "log.fault",
+        value<bool>(&configured.log.fault),
+        "Enable local fault logging, defaults to true."
+    )
+#endif
+#if defined(HAVE_LOGQ)
+    (
+        "log.quit",
+        value<bool>(&configured.log.quit),
+        "Enable quit logging, defaults to false."
+    )
+#endif
+#if defined(HAVE_LOGO)
+    (
+        "log.objects",
+        value<bool>(&configured.log.objects),
+        "Enable objects logging, defaults to false."
+    )
+#endif
+#if defined(HAVE_LOGV)
+    (
+        "log.verbose",
+        value<bool>(&configured.log.verbose),
+        "Enable verbose logging, defaults to false."
+#endif
+        )
+    (
+        "log.maximum_size",
+        value<uint32_t>(&configured.log.maximum_size),
+        "The maximum byte size of each pair of rotated log files, defaults to 1000000."
+    )
 #if defined (HAVE_MSC)
     (
         "log.symbols",
@@ -943,17 +1025,6 @@ options_metadata parser::load_settings() THROWS
         "Path to windows debug build symbols file (.pdb)."
     )
 #endif
-    // TODO: configurable defaults for all log levels.
-    ////(
-    ////    "log.verbose",
-    ////    value<bool>(&configured.log.verbose),
-    ////    "Enable verbose logging, defaults to false."
-    ////)
-    (
-        "log.maximum_size",
-        value<uint32_t>(&configured.log.maximum_size),
-        "The maximum byte size of each pair of rotated log files, defaults to 1000000."
-    )
     (
         "log.path",
         value<std::filesystem::path>(&configured.log.path),

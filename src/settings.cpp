@@ -23,12 +23,24 @@
 #include <bitcoin/network.hpp>
 
 using namespace bc::system;
+using namespace bc::network;
 
 namespace libbitcoin {
 namespace log {
 
+// Log states default to network compiled states or explicit false.
 settings::settings() NOEXCEPT
-  : ////verbose{ false },
+  : application{ levels::application_defined },
+    news{ levels::news_defined },
+    session{ levels::session_defined },
+    protocol{ false /*levels::protocol_defined*/ },
+    proxy{ false /*levels::proxy_defined*/ },
+    wire{ false /*levels::wire_defined*/ },
+    remote{ levels::remote_defined },
+    fault{ levels::fault_defined },
+    quit{ false /*levels::quit_defined*/ },
+    objects{ false /*levels::objects_defined*/ },
+    verbose{ false /*levels::verbose_defined*/ },
     maximum_size{ 1'000'000_u32 }
 {
 }

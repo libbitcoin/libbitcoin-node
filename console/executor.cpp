@@ -162,7 +162,21 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     store_(metadata.configured.database),
     query_(store_),
     input_(input),
-    output_(output)
+    output_(output),
+    toggle_
+    {
+        metadata.configured.log.application,
+        metadata.configured.log.news,
+        metadata.configured.log.session,
+        metadata.configured.log.protocol,
+        metadata.configured.log.proxy,
+        metadata.configured.log.wire,
+        metadata.configured.log.remote,
+        metadata.configured.log.fault,
+        metadata.configured.log.quit,
+        metadata.configured.log.objects,
+        metadata.configured.log.verbose
+    }
 {
     // Turn of console echoing from std::cin to std:cout.
     system::unset_console_echo();

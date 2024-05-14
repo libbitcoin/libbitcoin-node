@@ -35,9 +35,21 @@ public:
     settings() NOEXCEPT;
     settings(system::chain::selection context) NOEXCEPT;
 
-    ////bool verbose;
+    bool application;
+    bool news;
+    bool session;
+    bool protocol;
+    bool proxy;
+    bool wire;
+    bool remote;
+    bool fault;
+    bool quit;
+    bool objects;
+    bool verbose;
+
     uint32_t maximum_size;
     std::filesystem::path path;
+
 #if defined (HAVE_MSC)
     std::filesystem::path symbols;
 #endif
