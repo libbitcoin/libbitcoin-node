@@ -2209,7 +2209,7 @@ void executor::do_reset_store()
             return;
         }
 
-        store_.clear_errors();
+        query_.reset_full();
         logger(BN_NODE_DISK_FULL_RESET);
         return;
     }

@@ -70,12 +70,21 @@ protected:
     /// Node threadpool is stopped and may still be joining.
     virtual bool closed() const NOEXCEPT;
 
+    /// Network connections are suspended (incoming and/or outgoing).
+    virtual bool suspended() const NOEXCEPT;
+
     /// Suspend all existing and future network connections.
     /// A race condition could result in an unsuspended connection.
-    virtual code suspend(const code& ec) const NOEXCEPT;
+    virtual code suspend_network(const code& ec)  NOEXCEPT;
+
+    /// Resume all network connections.
+    virtual void resume_network() NOEXCEPT;
 
     /// Snapshot the store, suspends and resumes network.
-    code snapshot(const store::event_handler& handler) NOEXCEPT;
+    virtual code snapshot(const store::event_handler& handler) NOEXCEPT;
+
+    /// Reset store disk full condition.
+    virtual void reset_full() NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

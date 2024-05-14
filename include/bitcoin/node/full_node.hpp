@@ -96,15 +96,18 @@ public:
     /// Suspensions.
     /// -----------------------------------------------------------------------
 
-    /// Snapshot the store, suspends and resumes network.
-    code snapshot(const store::event_handler& handler) NOEXCEPT;
-
     /// Suspend all existing and future network connections.
     /// A race condition can result in an unsuspended connection.
     code suspend(const code& ec) NOEXCEPT override;
 
     /// Resume nework connections.
     void resume() NOEXCEPT override;
+
+    /// Snapshot the store, suspends and resumes network.
+    virtual code snapshot(const store::event_handler& handler) NOEXCEPT;
+
+    /// Reset store disk full condition.
+    virtual void reset_full() NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------
@@ -155,6 +158,7 @@ private:
     chaser_transaction chaser_transaction_;
     chaser_template chaser_template_;
     chaser_snapshot chaser_snapshot_;
+    chaser_storage chaser_storage_;
     event_subscriber event_subscriber_;
     object_key keys_{};
 };

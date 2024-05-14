@@ -48,7 +48,7 @@ chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
 
 code chaser_snapshot::start() NOEXCEPT
 {
-    // Initial values assume all stops or starts are snapped (clone headers).
+    // Initial values assume all stops or starts are snapped.
 
     if (enabled_bytes_)
         bytes_ = archive().store_body_size();

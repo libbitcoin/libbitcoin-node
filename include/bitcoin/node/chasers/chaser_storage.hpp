@@ -16,10 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_SNAPSHOT_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASER_SNAPSHOT_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_STORAGE_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_STORAGE_HPP
 
-#include <bitcoin/system.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -28,39 +28,29 @@ namespace node {
 
 class full_node;
 
-/// Perform automated snapshots.
-class BCN_API chaser_snapshot
+/// Monitor storage capacity following a disk full condition.
+/// Clear disk full condition and restart network given increased capacity.
+class BCN_API chaser_storage
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE_DESTRUCT(chaser_snapshot);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_storage);
 
-    chaser_snapshot(full_node& node) NOEXCEPT;
+    chaser_storage(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
 
 protected:
-    virtual void do_full(height_t height) NOEXCEPT;
-    virtual void do_confirm(height_t height) NOEXCEPT;
-    virtual void do_archive(height_t height) NOEXCEPT;
+    virtual void do_full(size_t height) NOEXCEPT;
+    virtual void do_stop(size_t height) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
 private:
-    bool update_bytes() NOEXCEPT;
-    bool update_valid(height_t height) NOEXCEPT;
-    bool is_redundant(height_t height) const NOEXCEPT;
-    void do_snapshot(height_t height) NOEXCEPT;
+    void handle_timer(const code& ec) NOEXCEPT;
+    bool is_full() const NOEXCEPT;
 
-    // These are thread safe.
-    const uint64_t snapshot_bytes_;
-    const size_t snapshot_valid_;
-    const bool enabled_bytes_;
-    const bool enabled_valid_;
-
-    // These are protected by strand.
-    uint64_t bytes_{};
-    size_t valid_{};
+    network::deadline::ptr disk_timer_;
 };
 
 } // namespace node

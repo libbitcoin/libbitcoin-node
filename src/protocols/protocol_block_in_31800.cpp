@@ -312,6 +312,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         {
             if (!query.set_block_unconfirmable(link))
             {
+                LOGF("Failure setting block unconfirmable ["
+                    << encode_hash(hash) << ":" << ctx.height
+                    << "] from [" << authority() << "].");
+
                 suspend(query.get_code());
                 return false;
             }
@@ -333,7 +337,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (query.set_link(*block.transactions_ptr(), link,
         block.serialized_size(true)).is_terminal())
     {
-        LOGV("Failure storing block [" << encode_hash(hash) << ":"
+        LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "].");
 
         stop(suspend(query.get_code()));

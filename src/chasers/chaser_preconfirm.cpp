@@ -157,7 +157,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
 
             if (code == error::store_integrity)
             {
-                suspend(query.get_code());
+                suspend_network(query.get_code());
                 return;
             }
 
@@ -171,7 +171,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                 if (code != database::error::block_unconfirmable &&
                     !query.set_block_unconfirmable(link))
                 {
-                    suspend(query.get_code());
+                    suspend_network(query.get_code());
                     return;
                 }
 
@@ -193,7 +193,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         if (!query.set_txs_connected(link) ||
             !query.set_block_preconfirmable(link))
         {
-            suspend(query.get_code());
+            suspend_network(query.get_code());
             return;
         }
 

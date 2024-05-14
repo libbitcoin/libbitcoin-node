@@ -152,7 +152,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         size_t height{};
         if (!query.get_height(height, id))
         {
-            handler(suspend(error::store_integrity), {});
+            handler(suspend_network(error::store_integrity), {});
             return;
         }
 
@@ -238,7 +238,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header) ||
         !get_is_strong(strong, work, branch_point))
     {
-        handler(suspend(error::store_integrity), height);
+        handler(suspend_network(error::store_integrity), height);
         return;
     }
 
@@ -257,7 +257,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     const auto top_candidate = state_->height();
     if (branch_point > top_candidate)
     {
-        handler(suspend(error::store_integrity), height);
+        handler(suspend_network(error::store_integrity), height);
         return;
     }
 
@@ -273,7 +273,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.pop_candidate())
         {
-            handler(suspend(query.get_code()), height);
+            handler(suspend_network(query.get_code()), height);
             return;
         }
 
@@ -288,7 +288,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.push_candidate(link))
         {
-            handler(suspend(query.get_code()), height);
+            handler(suspend_network(query.get_code()), height);
             return;
         }
 
@@ -300,7 +300,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!push(key))
         {
-            handler(suspend(query.get_code()), height);
+            handler(suspend_network(query.get_code()), height);
             return;
         }
 
@@ -312,7 +312,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (push(block, state->context()).is_terminal())
         {
-            handler(suspend(query.get_code()), height);
+            handler(suspend_network(query.get_code()), height);
             return;
         }
         
@@ -368,7 +368,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, link) || is_zero(height))
     {
-        suspend(error::store_integrity);
+        suspend_network(error::store_integrity);
         return;
     }
 
@@ -376,7 +376,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
-        suspend(error::store_integrity);
+        suspend_network(error::store_integrity);
         return;
     }
 
@@ -386,7 +386,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
-        suspend(error::store_integrity);
+        suspend_network(error::store_integrity);
         return;
     }
 
@@ -400,7 +400,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         typename Block::cptr block{};
         if (!get_block(block, index))
         {
-            suspend(error::store_integrity);
+            suspend_network(error::store_integrity);
             return;
         }
 
@@ -417,7 +417,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
-            suspend(query.get_code());
+            suspend_network(query.get_code());
             return;
         }
 
@@ -432,7 +432,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
-            suspend(query.get_code());
+            suspend_network(query.get_code());
             return;
         }
 
