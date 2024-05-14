@@ -2131,7 +2131,7 @@ void executor::do_close()
 // [e]rrors
 void executor::do_report_condition() const
 {
-    store_.report_errors([&](const auto& ec, auto table)
+    store_.report_condition([&](const auto& ec, auto table)
     {
         logger(format(BN_CONDITION) % full_node::store::tables.at(table) %
             ec.message());
