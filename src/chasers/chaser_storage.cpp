@@ -36,13 +36,14 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_storage::chaser_storage(full_node& node) NOEXCEPT
-  : chaser(node),
-    disk_timer_(std::make_shared<deadline>(log, strand(), seconds{1}))
+  : chaser(node)
 {
 }
 
 code chaser_storage::start() NOEXCEPT
 {
+    disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1});
+
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -110,10 +111,11 @@ void chaser_storage::handle_timer(const code& ec) NOEXCEPT
         return;
     }
 
-    // Network is resumed, cancel monitor.
-    if (!suspended())
+    // Network is resumed or store is failed, cancel monitor.
+    if (!suspended() || archive().is_fault())
         return;
 
+    // Disk now has space, reset store condition and resume network.
     if (!is_full())
     {
         reset_full();
@@ -121,12 +123,14 @@ void chaser_storage::handle_timer(const code& ec) NOEXCEPT
         return;
     }
 
+    // Otherwise restart the timer.
     disk_timer_->start(BIND(handle_timer, _1));
 }
 
 bool chaser_storage::is_full() const NOEXCEPT
 {
     // TODO: difference required and available space.
+    // TODO: after a remap (allocate) failure the map may be closed.
     // en.cppreference.com/w/cpp/filesystem/space_info
     return true;
 }

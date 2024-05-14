@@ -81,8 +81,8 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||
-        ((ec = chaser_snapshot_.start())) ||
-        ((ec = chaser_storage_.start())))
+        ((ec = chaser_snapshot_.start())))
+    ////    ((ec = chaser_storage_.start())))
     {
         handler(ec);
         return;
@@ -124,6 +124,7 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
+    ////disk_timer_->stop();
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();
 }

@@ -50,7 +50,7 @@ private:
     void handle_timer(const code& ec) NOEXCEPT;
     bool is_full() const NOEXCEPT;
 
-    network::deadline::ptr disk_timer_;
+    network::deadline::ptr disk_timer_{};
 };
 
 } // namespace node
