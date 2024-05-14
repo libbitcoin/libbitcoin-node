@@ -146,6 +146,8 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
     { events::block_reorganized,   "block_reorganized..." },
 
     { events::template_issued,     "template_issued....." },
+
+    { events::snapshot_span,       "snapshot_span......." }
 };
 
 // non-const member static (global for blocking interrupt handling).

@@ -149,7 +149,7 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto start = wall_clock::now();
+    const auto start = logger::now();
     const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
     {
         LOGN("snapshot::" << full_node::store::events.at(event_)
@@ -164,10 +164,12 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
     }
     else
     {
-        const auto span = duration_cast<seconds>(wall_clock::now() - start);
+        const auto span = duration_cast<seconds>(logger::now() - start);
         LOGN("Snapshot at height [" << height << "] complete in "
             << span.count() << " secs.");
     }
+
+    span(events::snapshot_span, start);
 }
 
 bool chaser_snapshot::update_bytes() NOEXCEPT
