@@ -2385,7 +2385,7 @@ void executor::subscribe_capture()
             if (defined_.at(toggle))
             {
                 toggle_.at(toggle) = !toggle_.at(toggle);
-                logger(format("CONSOLE: toggle %1% logging(%2%).") %
+                logger(format("CONSOLE: toggle %1% logging (%2%).") %
                     display_.at(toggle) %
                     (toggle_.at(toggle) ? "+" : "-"));
             }
