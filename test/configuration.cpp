@@ -47,7 +47,6 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE_EQUAL(instance.log.session, levels::session_defined);
     BOOST_REQUIRE_EQUAL(instance.log.protocol, false /*levels::protocol_defined*/);
     BOOST_REQUIRE_EQUAL(instance.log.proxy, false /*levels::proxy_defined*/);
-    BOOST_REQUIRE_EQUAL(instance.log.wire, false /*levels::wire_defined*/);
     BOOST_REQUIRE_EQUAL(instance.log.remote, levels::remote_defined);
     BOOST_REQUIRE_EQUAL(instance.log.fault, levels::fault_defined);
     BOOST_REQUIRE_EQUAL(instance.log.quit, false /*levels::quit_defined*/);

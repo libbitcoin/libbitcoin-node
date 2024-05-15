@@ -971,13 +971,6 @@ options_metadata parser::load_settings() THROWS
         "Enable proxy logging, defaults to false."
     )
 #endif
-#if defined(HAVE_LOGW)
-    (
-        "log.wire",
-        value<bool>(&configured.log.wire),
-        "Enable wire communication logging, defaults to false."
-    )
-#endif
 #if defined(HAVE_LOGR)
     (
         "log.remote",

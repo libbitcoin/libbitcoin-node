@@ -35,7 +35,6 @@ settings::settings() NOEXCEPT
     session{ levels::session_defined },
     protocol{ false /*levels::protocol_defined*/ },
     proxy{ false /*levels::proxy_defined*/ },
-    wire{ false /*levels::wire_defined*/ },
     remote{ levels::remote_defined },
     fault{ levels::fault_defined },
     quit{ false /*levels::quit_defined*/ },

@@ -89,7 +89,6 @@ const std::unordered_map<std::string, uint8_t> executor::toggles_
     { "s", levels::session },
     { "p", levels::protocol },
     { "x", levels::proxy },
-    { "w", levels::wire },
     { "r", levels::remote },
     { "f", levels::fault },
     { "q", levels::quit },
@@ -103,7 +102,6 @@ const std::unordered_map<uint8_t, std::string> executor::display_
     { levels::session,     "[s]ession" },
     { levels::protocol,    "[p]rotocol" },
     { levels::proxy,       "pro[x]y" },
-    { levels::wire,        "[w]ire" }, // unused
     { levels::remote,      "[r]emote" },
     { levels::fault,       "[f]ault" },
     { levels::quit,        "[q]uitting" },
@@ -117,7 +115,6 @@ const std::unordered_map<uint8_t, bool> executor::defined_
     { levels::session,     levels::session_defined },
     { levels::protocol,    levels::protocol_defined },
     { levels::proxy,       levels::proxy_defined },
-    { levels::wire,        levels::wire_defined },
     { levels::remote,      levels::remote_defined },
     { levels::fault,       levels::fault_defined },
     { levels::quit,        levels::quit_defined },
@@ -170,7 +167,6 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
         metadata.configured.log.session,
         metadata.configured.log.protocol,
         metadata.configured.log.proxy,
-        metadata.configured.log.wire,
         metadata.configured.log.remote,
         metadata.configured.log.fault,
         metadata.configured.log.quit,
@@ -2521,7 +2517,6 @@ void executor::dump_options() const
     logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
     logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
     logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
-    logger(format("Wire......... " BN_LOG_TABLE) % levels::wire_defined % toggle_.at(levels::wire));
     logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
     logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
     logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
