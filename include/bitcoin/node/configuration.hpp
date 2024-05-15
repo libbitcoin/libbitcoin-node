@@ -32,17 +32,17 @@ namespace node {
 #define BN_HARDWARE_VARIABLE "hardware"
 #define BN_SETTINGS_VARIABLE "settings"
 #define BN_VERSION_VARIABLE "version"
-#define BN_INITCHAIN_VARIABLE "initchain"
+#define BN_NEWSTORE_VARIABLE "newstore"
 #define BN_BACKUP_VARIABLE "backup"
 #define BN_RESTORE_VARIABLE "restore"
 
 #define BN_FLAGS_VARIABLE "flags"
-#define BN_MEASURE_VARIABLE "measure"
 #define BN_SLABS_VARIABLE "slabs"
 #define BN_BUCKETS_VARIABLE "buckets"
 #define BN_COLLISIONS_VARIABLE "collisions"
+#define BN_INFORMATION_VARIABLE "information"
 
-#define BN_READ_VARIABLE "read"
+#define BN_READ_VARIABLE "test"
 #define BN_WRITE_VARIABLE "write"
 
 // This must be lower case but the env var part can be any case.
@@ -69,19 +69,19 @@ public:
     bool version{};
 
     /// Actions.
-    bool initchain{};
+    bool newstore{};
     bool backup{};
     bool restore{};
 
     /// Chain scans.
     bool flags{};
-    bool measure{};
+    bool information{};
     bool slabs{};
     bool buckets{};
     bool collisions{};
 
     /// Ad-hoc Testing.
-    bool read{};
+    bool test{};
     bool write{};
 
     /// Settings.

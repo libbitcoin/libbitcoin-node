@@ -38,7 +38,7 @@ public:
         std::ostream& error);
 
     /// Invoke the menu command indicated by the metadata.
-    bool menu();
+    bool dispatch();
 
 private:
     enum menu : uint8_t
@@ -49,7 +49,9 @@ private:
         go,
         hold,
         info,
+        menu_,
         test,
+        version,
         work,
         zeroize
     };
@@ -57,7 +59,6 @@ private:
     using rotator_t = database::file::stream::out::rotator;
 
     void logger(const auto& message) const;
-    void console(const auto& message) const;
     void stopper(const auto& message);
 
     static void initialize_stop() NOEXCEPT;
@@ -76,6 +77,7 @@ private:
     void dump_progress() const;
     void dump_collisions() const;
     void dump_options() const;
+    void dump_version() const;
 
     // Store functions.
     code open_store_coded(bool details=false);
@@ -83,19 +85,20 @@ private:
     bool close_store(bool details=false);
     bool create_store(bool details=false);
     bool restore_store(bool details=false);
-    bool backup_store(bool details=false);
+    bool hot_backup_store(bool details=false);
+    bool cold_backup_store(bool details = false);
     bool check_store_path(bool create=false) const;
 
     // Command line options.
     bool do_help();
+    bool do_version();
     bool do_hardware();
     bool do_settings();
-    bool do_version();
-    bool do_initchain();
+    bool do_new_store();
     bool do_backup();
     bool do_restore();
     bool do_flags();
-    bool do_measure();
+    bool do_information();
     bool do_slabs();
     bool do_buckets();
     bool do_collisions();
@@ -105,14 +108,16 @@ private:
 
     // Runtime options.
     void do_hot_backup();
+    void do_hot_version();
     void do_close();
     void do_suspend();
     void do_resume();
     void do_reset_store();
     void do_report_work();
-    void do_report_condition() const;
-    void do_information() const;
+    void do_menu() const;
     void do_test() const;
+    void do_info() const;
+    void do_report_condition() const;
 
     void scan_flags() const;
     void measure_size() const;
@@ -135,11 +140,11 @@ private:
 
     // Runtime options.
     static const std::unordered_map<std::string, uint8_t> options_;
-    static const std::unordered_map<uint8_t, std::string> menu_;
+    static const std::unordered_map<uint8_t, std::string> options_menu_;
 
     // Runtime toggles.
     static const std::unordered_map<std::string, uint8_t> toggles_;
-    static const std::unordered_map<uint8_t, std::string> display_;
+    static const std::unordered_map<uint8_t, std::string> toggles_menu_;
     static const std::unordered_map<uint8_t, bool> defined_;
 
     // Runtime events.

@@ -109,5 +109,5 @@ int bc::system::main(int argc, char* argv[])
 #endif
 
     executor host(metadata, cin, cout, cerr);
-    return host.menu() ? 0 : -1;
+    return host.dispatch() ? 0 : -1;
 }

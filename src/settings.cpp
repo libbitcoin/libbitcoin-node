@@ -35,10 +35,9 @@ settings::settings() NOEXCEPT
     session{ levels::session_defined },
     protocol{ false /*levels::protocol_defined*/ },
     proxy{ false /*levels::proxy_defined*/ },
-    wire{ false /*levels::wire_defined*/ },
     remote{ levels::remote_defined },
     fault{ levels::fault_defined },
-    quit{ false /*levels::quit_defined*/ },
+    quitting{ false /*levels::quitting_defined*/ },
     objects{ false /*levels::objects_defined*/ },
     verbose{ false /*levels::verbose_defined*/ },
     maximum_size{ 1'000'000_u32 }

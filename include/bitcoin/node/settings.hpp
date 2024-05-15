@@ -40,10 +40,9 @@ public:
     bool session;
     bool protocol;
     bool proxy;
-    bool wire;
     bool remote;
     bool fault;
-    bool quit;
+    bool quitting;
     bool objects;
     bool verbose;
 

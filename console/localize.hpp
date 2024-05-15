@@ -171,7 +171,7 @@ namespace node {
 #define BN_NODE_START_FAIL \
     "Node failed to start with error '%1%'."
 #define BN_NODE_UNAVAILABLE \
-    "Command not available until started."
+    "Command not available until node started."
 #define BN_NODE_BACKUP_STARTED \
     "Snapshot is started."
 #define BN_NODE_BACKUP_FAIL \
