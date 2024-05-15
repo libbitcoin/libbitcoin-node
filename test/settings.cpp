@@ -20,12 +20,24 @@
 
 BOOST_AUTO_TEST_SUITE(settings_tests)
 
+using namespace bc::network;
+
 // [log]
 
 BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
 {
     const log::settings log{};
-    ////BOOST_REQUIRE_EQUAL(log.verbose, false);
+    BOOST_REQUIRE_EQUAL(log.application, levels::application_defined);
+    BOOST_REQUIRE_EQUAL(log.news, levels::news_defined);
+    BOOST_REQUIRE_EQUAL(log.session, levels::session_defined);
+    BOOST_REQUIRE_EQUAL(log.protocol, false /*levels::protocol_defined*/);
+    BOOST_REQUIRE_EQUAL(log.proxy, false /*levels::proxy_defined*/);
+    BOOST_REQUIRE_EQUAL(log.wire, false /*levels::wire_defined*/);
+    BOOST_REQUIRE_EQUAL(log.remote, levels::remote_defined);
+    BOOST_REQUIRE_EQUAL(log.fault, levels::fault_defined);
+    BOOST_REQUIRE_EQUAL(log.quit, false /*levels::quit_defined*/);
+    BOOST_REQUIRE_EQUAL(log.objects, false /*levels::objects_defined*/);
+    BOOST_REQUIRE_EQUAL(log.verbose, false /*levels::verbose_defined*/);
     BOOST_REQUIRE_EQUAL(log.maximum_size, 1'000'000_u32);
     BOOST_REQUIRE_EQUAL(log.path, "");
     BOOST_REQUIRE_EQUAL(log.log_file1(), "bn_end.log");

@@ -48,14 +48,29 @@ bool chaser::closed() const NOEXCEPT
     return node_.closed();
 }
 
-code chaser::suspend(const code& ec) const NOEXCEPT
+bool chaser::suspended() const NOEXCEPT
+{
+    return node_.suspended();
+}
+
+code chaser::suspend_network(const code& ec) NOEXCEPT
 {
     return node_.suspend(ec);
+}
+
+void chaser::resume_network() NOEXCEPT
+{
+    return node_.resume();
 }
 
 code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
 {
     return node_.snapshot(handler);
+}
+
+void chaser::reset_full() NOEXCEPT
+{
+    return node_.reset_full();
 }
 
 // Events.

@@ -189,13 +189,13 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
     association out{};
     if (!query.set_dissasociated(link))
     {
-        suspend(query.get_code());
+        suspend_network(error::set_dissasociated);
         return;
     }
 
     if (!query.get_unassociated(out, link))
     {
-        suspend(error::store_integrity);
+        suspend_network(error::get_unassociated);
         return;
     }
 

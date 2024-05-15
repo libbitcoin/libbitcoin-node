@@ -257,6 +257,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/chasers/chaser_header.cpp"
     "../../src/chasers/chaser_preconfirm.cpp"
     "../../src/chasers/chaser_snapshot.cpp"
+    "../../src/chasers/chaser_storage.cpp"
     "../../src/chasers/chaser_template.cpp"
     "../../src/chasers/chaser_transaction.cpp"
     "../../src/protocols/protocol.cpp"

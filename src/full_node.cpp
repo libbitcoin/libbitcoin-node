@@ -26,10 +26,10 @@
 namespace libbitcoin {
 namespace node {
 
-BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-
 using namespace system;
 using namespace network;
+
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // p2p::strand() is safe to call from constructor (non-virtual).
 full_node::full_node(query& query, const configuration& configuration,
@@ -45,6 +45,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_transaction_(*this),
     chaser_template_(*this),
     chaser_snapshot_(*this),
+    chaser_storage_(*this),
     event_subscriber_(strand())
 {
 }
@@ -81,6 +82,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||
         ((ec = chaser_snapshot_.start())))
+    ////    ((ec = chaser_storage_.start())))
     {
         handler(ec);
         return;
@@ -122,6 +124,7 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
+    ////disk_timer_->stop();
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();
 }
@@ -235,7 +238,6 @@ object_key full_node::create_key() NOEXCEPT
 
 // Suspensions.
 // ----------------------------------------------------------------------------
-// TODO: use timer to check disk space, resume if not full or reissue suspend.
 
 code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
 {
@@ -268,7 +270,7 @@ code full_node::suspend(const code& ec) NOEXCEPT
 
     // Multiple messages will be absorbed by snapshot chaser.
     if (ec == database::error::disk_full)
-        notify(error::success, chase::snapshot, {});
+        notify(ec, chase::snapshot, {});
 
     notify(error::success, chase::suspend, ec.value());
     return ec;
@@ -278,6 +280,11 @@ void full_node::resume() NOEXCEPT
 {
     LOGS("Resuming network connections.");
     p2p::resume();
+}
+
+void full_node::reset_full() NOEXCEPT
+{
+    query_.reset_full();
 }
 
 // Properties.

@@ -74,13 +74,13 @@ const std::unordered_map<uint8_t, std::string> executor::menu_
 {
     { menu::backup,  "[b]ackup the store" },
     { menu::close,   "[c]lose the node" },
-    { menu::errors,  "display any store [e]rrors" },
+    { menu::errors,  "[e]rrors in store display" },
     { menu::go,      "[g]o network communication" },
     { menu::hold,    "[h]old network communication" },
-    { menu::info,    "display node [i]nformation" },
-    { menu::test,    "execute built-in [t]est" },
-    { menu::work,    "display [w]ork distribution" },
-    { menu::zeroize, "[z]eroize store disk full error" }
+    { menu::info,    "[i]nformation display" },
+    { menu::test,    "[t]est built-in case" },
+    { menu::work,    "[w]ork distribution display" },
+    { menu::zeroize, "[z]eroize disk full error" }
 };
 const std::unordered_map<std::string, uint8_t> executor::toggles_
 {
@@ -98,21 +98,21 @@ const std::unordered_map<std::string, uint8_t> executor::toggles_
 };
 const std::unordered_map<uint8_t, std::string> executor::display_
 {
-    { levels::application, "toggle Application" },
-    { levels::news,        "toggle News" },
-    { levels::session,     "toggle Session" },
-    { levels::protocol,    "toggle Protocol" },
-    { levels::proxy,       "toggle proXy" },
-    { levels::wire,        "toggle Wire" }, // unused
-    { levels::remote,      "toggle Remote" },
-    { levels::fault,       "toggle Fault" },
-    { levels::quit,        "toggle Quitting" },
-    { levels::objects,     "toggle Objects" },
-    { levels::verbose,     "toggle Verbose" }
+    { levels::application, "[a]pplication" },
+    { levels::news,        "[n]ews" },
+    { levels::session,     "[s]ession" },
+    { levels::protocol,    "[p]rotocol" },
+    { levels::proxy,       "pro[x]y" },
+    { levels::wire,        "[w]ire" }, // unused
+    { levels::remote,      "[r]emote" },
+    { levels::fault,       "[f]ault" },
+    { levels::quit,        "[q]uitting" },
+    { levels::objects,     "[o]bjects" },
+    { levels::verbose,     "[v]erbose" }
 };
 const std::unordered_map<uint8_t, bool> executor::defined_
 {
-    { levels::application, true },
+    { levels::application, levels::application_defined },
     { levels::news,        levels::news_defined },
     { levels::session,     levels::session_defined },
     { levels::protocol,    levels::protocol_defined },
@@ -162,7 +162,21 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
     store_(metadata.configured.database),
     query_(store_),
     input_(input),
-    output_(output)
+    output_(output),
+    toggle_
+    {
+        metadata.configured.log.application,
+        metadata.configured.log.news,
+        metadata.configured.log.session,
+        metadata.configured.log.protocol,
+        metadata.configured.log.proxy,
+        metadata.configured.log.wire,
+        metadata.configured.log.remote,
+        metadata.configured.log.fault,
+        metadata.configured.log.quit,
+        metadata.configured.log.objects,
+        metadata.configured.log.verbose
+    }
 {
     // Turn of console echoing from std::cin to std:cout.
     system::unset_console_echo();
@@ -2131,7 +2145,7 @@ void executor::do_close()
 // [e]rrors
 void executor::do_report_condition() const
 {
-    store_.report_errors([&](const auto& ec, auto table)
+    store_.report_condition([&](const auto& ec, auto table)
     {
         logger(format(BN_CONDITION) % full_node::store::tables.at(table) %
             ec.message());
@@ -2209,7 +2223,7 @@ void executor::do_reset_store()
             return;
         }
 
-        store_.clear_errors();
+        query_.reset_full();
         logger(BN_NODE_DISK_FULL_RESET);
         return;
     }
@@ -2357,6 +2371,33 @@ void executor::subscribe_capture()
             return true;
         }
 
+        if (token == "2")
+        {
+            for (const auto& toggle: display_)
+                logger(format("Toggle: %1%") % toggle.second);
+
+            return true;
+        }
+
+        if (toggles_.contains(token))
+        {
+            const auto toggle = toggles_.at(token);
+            if (defined_.at(toggle))
+            {
+                toggle_.at(toggle) = !toggle_.at(toggle);
+                logger(format("CONSOLE: toggle %1% logging (%2%).") %
+                    display_.at(toggle) %
+                    (toggle_.at(toggle) ? "+" : "-"));
+            }
+            else
+            {
+                logger(format("CONSOLE: %1% logging is not compiled.") %
+                    display_.at(toggle));
+            }
+
+            return true;
+        }
+
         if (options_.contains(token))
         {
             switch (options_.at(token))
@@ -2412,24 +2453,6 @@ void executor::subscribe_capture()
                     return true;
                 }
             }
-        }
-
-        if (toggles_.contains(token))
-        {
-            const auto toggle = toggles_.at(token);
-            if (defined_.at(toggle))
-            {
-                toggle_.at(toggle) = !toggle_.at(toggle);
-                logger("CONSOLE: " + display_.at(toggle) + (toggle_.at(toggle) ?
-                    " logging (+)." : " logging (-)."));
-            }
-            else
-            {
-                // Selected log level was not compiled.
-                logger("CONSOLE: " + display_.at(toggle) + " logging (~).");
-            }
-
-            return true;
         }
 
         logger("CONSOLE: '" + line + "'");
@@ -2530,8 +2553,12 @@ bool executor::do_run()
     if (check_store_path())
     {
         auto ec = open_store_coded(true);
-        if ((ec == database::error::flush_lock) && !restore_store(true))
-            ec = error::store_integrity;
+        if (ec == database::error::flush_lock)
+        {
+            ec = error::success;
+            if (!restore_store(true))
+                ec = error::store_integrity;
+        }
 
         if (ec)
         {
@@ -2548,8 +2575,8 @@ bool executor::do_run()
     dump_body_sizes();
     dump_records();
     dump_buckets();
-    logger(BN_MEASURE_PROGRESS_START);
-    dump_progress();
+    ////logger(BN_MEASURE_PROGRESS_START);
+    ////dump_progress();
 
     // Stopped by stopper.
     capture_.start();
@@ -2578,8 +2605,8 @@ bool executor::do_run()
     // Sizes and records change, buckets don't.
     dump_body_sizes();
     dump_records();
-    logger(BN_MEASURE_PROGRESS_START);
-    dump_progress();
+    ////logger(BN_MEASURE_PROGRESS_START);
+    ////dump_progress();
 
     if (!close_store(true))
     {

@@ -158,20 +158,7 @@ private:
     std::ostream& output_;
     network::logger log_{};
     network::capture capture_{ input_, close_ };
-    std_array<std::atomic_bool, add1(network::levels::verbose)> toggle_
-    {
-        network::levels::application_defined,
-        network::levels::news_defined,
-        network::levels::session_defined,
-        false, //network::levels::protocol_defined,
-        false, //network::levels::proxy_defined,
-        false, //network::levels::wire_defined,
-        network::levels::remote_defined,
-        network::levels::fault_defined,
-        false,  // network::levels::quit_defined
-        false, //network::levels::objects_defined,
-        false  //network::levels::verbose_defined
-    };
+    std_array<std::atomic_bool, add1(network::levels::verbose)> toggle_;
 };
 
 } // namespace node

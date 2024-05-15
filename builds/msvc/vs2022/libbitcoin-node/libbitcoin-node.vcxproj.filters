@@ -69,6 +69,9 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_snapshot.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_storage.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser_template.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
@@ -168,6 +171,9 @@
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_snapshot.hpp">
+      <Filter>include\bitcoin\node\chasers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_storage.hpp">
       <Filter>include\bitcoin\node\chasers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_template.hpp">
