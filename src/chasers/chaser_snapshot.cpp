@@ -53,10 +53,8 @@ code chaser_snapshot::start() NOEXCEPT
     if (enabled_bytes_)
         bytes_ = archive().store_body_size();
 
-    // TODO: std::max(archive().get_top_confirmed(), config().top_bypass()).
-    // TODO: this will ensure the period does not start until it is costly.
     if (enabled_valid_)
-        valid_ = archive().get_top_confirmed();
+        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint());
 
     if (enabled_bytes_ || enabled_valid_)
     {
@@ -178,7 +176,7 @@ bool chaser_snapshot::update_bytes() NOEXCEPT
 {
     // This is the most costly, sizing for every download, but is just a sum.
     // Wire size might be better, but there is no constant time query for it.
-    const uint64_t current = archive().store_body_size();
+    const auto current = archive().store_body_size();
     const auto growth = floored_subtract(current, bytes_);
     const auto sufficient = (growth >= snapshot_bytes_);
     bytes_ = sufficient ? current : bytes_;
@@ -187,7 +185,7 @@ bool chaser_snapshot::update_bytes() NOEXCEPT
 
 bool chaser_snapshot::update_valid(height_t height) NOEXCEPT
 {
-    // The difference may be negative and therefore show zero growth (ok).
+    // The difference may have been negative and therefore show zero growth.
     const auto growth = floored_subtract(height, valid_);
     const auto sufficient = (growth >= snapshot_valid_);
     valid_ = sufficient ? height : valid_;
