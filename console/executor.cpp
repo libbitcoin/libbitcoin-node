@@ -76,14 +76,14 @@ const std::unordered_map<uint8_t, std::string> executor::options_menu_
 {
     { menu::backup,  "[b]ackup the store" },
     { menu::close,   "[c]lose the node" },
-    { menu::errors,  "[e]rrors in store display" },
+    { menu::errors,  "[e]rrors in store" },
     { menu::go,      "[g]o network communication" },
     { menu::hold,    "[h]old network communication" },
-    { menu::info,    "[i]nfo about store display" },
+    { menu::info,    "[i]nfo about store" },
     { menu::menu_,   "[m]enu of options and toggles" },
     { menu::test,    "[t]est built-in case" },
     { menu::version, "[v]ersion information" },
-    { menu::work,    "[w]ork distribution display" },
+    { menu::work,    "[w]ork distribution" },
     { menu::zeroize, "[z]eroize disk full error" }
 };
 const std::unordered_map<std::string, uint8_t> executor::toggles_
