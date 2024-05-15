@@ -42,7 +42,7 @@ public:
     bool proxy;
     bool remote;
     bool fault;
-    bool quit;
+    bool quitting;
     bool objects;
     bool verbose;
 

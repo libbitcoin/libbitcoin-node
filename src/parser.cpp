@@ -164,10 +164,10 @@ options_metadata parser::load_options() THROWS
     )
     // Actions.
     (
-        BN_INITCHAIN_VARIABLE ",i",
-        value<bool>(&configured.initchain)->
+        BN_NEWSTORE_VARIABLE ",n",
+        value<bool>(&configured.newstore)->
             default_value(false)->zero_tokens(),
-        "Initialize store in configured directory."
+        "Create new store in configured directory."
     )
     (
         BN_BACKUP_VARIABLE ",b",
@@ -176,7 +176,7 @@ options_metadata parser::load_options() THROWS
         "Backup to a snapshot (can also do live)."
     )
     (
-        BN_RESTORE_VARIABLE ",x",
+        BN_RESTORE_VARIABLE ",r",
         value<bool>(&configured.restore)->
             default_value(false)->zero_tokens(),
         "Restore from most recent snapshot."
@@ -187,12 +187,6 @@ options_metadata parser::load_options() THROWS
         value<bool>(&configured.flags)->
             default_value(false)->zero_tokens(),
         "Scan and display all flag transitions."
-    )
-    (
-        BN_MEASURE_VARIABLE ",m",
-        value<bool>(&configured.measure)->
-            default_value(false)->zero_tokens(),
-        "Scan and display store measures."
     )
     (
         BN_SLABS_VARIABLE ",a",
@@ -212,18 +206,24 @@ options_metadata parser::load_options() THROWS
             default_value(false)->zero_tokens(),
         "Scan and display hashmap collision stats."
     )
+    (
+        BN_INFORMATION_VARIABLE ",i",
+        value<bool>(&configured.information)->
+            default_value(false)->zero_tokens(),
+        "Scan and display store information."
+    )
     // Ad-hoc Testing.
     (
-        BN_READ_VARIABLE ",r",
-        value<bool>(&configured.read)->
+        BN_READ_VARIABLE ",t",
+        value<bool>(&configured.test)->
             default_value(false)->zero_tokens(),
-        "Read test and display performance."
+        "Run built-in read test and display."
     )
     (
         BN_WRITE_VARIABLE ",w",
         value<bool>(&configured.write)->
             default_value(false)->zero_tokens(),
-        "Write test and display performance."
+        "Run built-in write test and display."
     );
 
     return description;
@@ -987,9 +987,9 @@ options_metadata parser::load_settings() THROWS
 #endif
 #if defined(HAVE_LOGQ)
     (
-        "log.quit",
-        value<bool>(&configured.log.quit),
-        "Enable quit logging, defaults to false."
+        "log.quitting",
+        value<bool>(&configured.log.quitting),
+        "Enable quitting logging, defaults to false."
     )
 #endif
 #if defined(HAVE_LOGO)

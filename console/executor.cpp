@@ -66,19 +66,23 @@ const std::unordered_map<std::string, uint8_t> executor::options_
     { "g", menu::go },
     { "h", menu::hold },
     { "i", menu::info },
+    { "m", menu::menu_ },
     { "t", menu::test },
+    { "v", menu::version },
     { "w", menu::work },
     { "z", menu::zeroize }
 };
-const std::unordered_map<uint8_t, std::string> executor::menu_
+const std::unordered_map<uint8_t, std::string> executor::options_menu_
 {
     { menu::backup,  "[b]ackup the store" },
     { menu::close,   "[c]lose the node" },
     { menu::errors,  "[e]rrors in store display" },
     { menu::go,      "[g]o network communication" },
     { menu::hold,    "[h]old network communication" },
-    { menu::info,    "[i]nformation display" },
+    { menu::info,    "[i]nfo about store display" },
+    { menu::menu_,   "[m]enu of options and toggles" },
     { menu::test,    "[t]est built-in case" },
+    { menu::version, "[v]ersion information" },
     { menu::work,    "[w]ork distribution display" },
     { menu::zeroize, "[z]eroize disk full error" }
 };
@@ -91,20 +95,20 @@ const std::unordered_map<std::string, uint8_t> executor::toggles_
     { "x", levels::proxy },
     { "r", levels::remote },
     { "f", levels::fault },
-    { "q", levels::quit },
+    { "q", levels::quitting },
     { "o", levels::objects },
     { "v", levels::verbose }
 };
-const std::unordered_map<uint8_t, std::string> executor::display_
+const std::unordered_map<uint8_t, std::string> executor::toggles_menu_
 {
     { levels::application, "[a]pplication" },
     { levels::news,        "[n]ews" },
     { levels::session,     "[s]ession" },
     { levels::protocol,    "[p]rotocol" },
-    { levels::proxy,       "pro[x]y" },
+    { levels::proxy,       "[x]proxy" },
     { levels::remote,      "[r]emote" },
     { levels::fault,       "[f]ault" },
-    { levels::quit,        "[q]uitting" },
+    { levels::quitting,    "[q]uitting" },
     { levels::objects,     "[o]bjects" },
     { levels::verbose,     "[v]erbose" }
 };
@@ -117,7 +121,7 @@ const std::unordered_map<uint8_t, bool> executor::defined_
     { levels::proxy,       levels::proxy_defined },
     { levels::remote,      levels::remote_defined },
     { levels::fault,       levels::fault_defined },
-    { levels::quit,        levels::quit_defined },
+    { levels::quitting,    levels::quitting_defined },
     { levels::objects,     levels::objects_defined },
     { levels::verbose,     levels::verbose_defined },
 };
@@ -169,7 +173,7 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
         metadata.configured.log.proxy,
         metadata.configured.log.remote,
         metadata.configured.log.fault,
-        metadata.configured.log.quit,
+        metadata.configured.log.quitting,
         metadata.configured.log.objects,
         metadata.configured.log.verbose
     }
@@ -282,6 +286,33 @@ void executor::dump_collisions() const
             query_.address_buckets()) : 0) %
         (query_.neutrino_enabled() ? ((1.0 * query_.header_records()) /
             query_.neutrino_buckets()) : 0));
+}
+
+// logging compilation and initial values.
+void executor::dump_options() const
+{
+    logger(BN_NODE_INTERRUPT);
+    logger(BN_LOG_TABLE_HEADER);
+    logger(format("[a]pplication.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
+    logger(format("[n]ews......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
+    logger(format("[s]ession...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
+    logger(format("[p]rotocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
+    logger(format("[x]proxy....... " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
+    logger(format("[r]emote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
+    logger(format("[f]ault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
+    logger(format("[q]uitting..... " BN_LOG_TABLE) % levels::quitting_defined % toggle_.at(levels::quitting));
+    logger(format("[o]bjects...... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
+    logger(format("[v]erbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
+}
+
+// emit version information for libbitcoin libraries
+void executor::dump_version() const
+{
+    logger(format(BN_VERSION_MESSAGE)
+        % LIBBITCOIN_NODE_VERSION
+        % LIBBITCOIN_DATABASE_VERSION
+        % LIBBITCOIN_NETWORK_VERSION
+        % LIBBITCOIN_SYSTEM_VERSION);
 }
 
 // fork flag transitions (candidate chain).
@@ -1907,7 +1938,7 @@ bool executor::restore_store(bool details)
     return true;
 }
 
-bool executor::backup_store(bool details)
+bool executor::hot_backup_store(bool details)
 {
     if (!node_)
     {
@@ -1915,9 +1946,36 @@ bool executor::backup_store(bool details)
         return false;
     }
 
+    if (const auto ec = store_.get_fault())
+    {
+        logger(format(BN_SNAPSHOT_INVALID) % ec.message());
+        return false;
+    }
+
     logger(BN_NODE_BACKUP_STARTED);
     const auto start = logger::now();
     if (const auto ec = node_->snapshot([&](auto event_, auto table)
+    {
+        if (details)
+            logger(format(BN_BACKUP) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
+    }))
+    {
+        logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
+        return false;
+    }
+
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_NODE_BACKUP_COMPLETE) % span.count());
+    return true;
+}
+
+bool executor::cold_backup_store(bool details)
+{
+    logger(BN_NODE_BACKUP_STARTED);
+    const auto start = logger::now();
+    if (const auto ec = store_.snapshot([&](auto event_, auto table)
     {
         if (details)
             logger(format(BN_BACKUP) %
@@ -1947,7 +2005,7 @@ bool executor::do_help()
     return true;
 }
 
-// --har[d]ware
+// --[d]hardware
 bool executor::do_hardware()
 {
     // Intrinsics can be safely compiled for unsupported platforms.
@@ -1985,16 +2043,12 @@ bool executor::do_settings()
 bool executor::do_version()
 {
     log_.stop();
-    logger(format(BN_VERSION_MESSAGE)
-        % LIBBITCOIN_NODE_VERSION
-        % LIBBITCOIN_DATABASE_VERSION
-        % LIBBITCOIN_NETWORK_VERSION
-        % LIBBITCOIN_SYSTEM_VERSION);
+    dump_version();
     return true;
 }
 
-// --[i]nitchain
-bool executor::do_initchain()
+// --[n]ewstore
+bool executor::do_new_store()
 {
     log_.stop();
     if (!check_store_path(true) ||
@@ -2019,11 +2073,11 @@ bool executor::do_backup()
     log_.stop();
     return check_store_path()
         && open_store()
-        && backup_store(true)
+        && cold_backup_store(true)
         && close_store();
 }
 
-// --restore[x]
+// --[r]estore
 bool executor::do_restore()
 {
     log_.stop();
@@ -2044,8 +2098,8 @@ bool executor::do_flags()
     return close_store();
 }
 
-// --[m]easure
-bool executor::do_measure()
+// --[i]nformation
+bool executor::do_information()
 {
     log_.stop();
     if (!check_store_path() ||
@@ -2056,7 +2110,7 @@ bool executor::do_measure()
     return close_store();
 }
 
-// --sl[a]bs
+// --[a]slabs
 bool executor::do_slabs()
 {
     log_.stop();
@@ -2068,7 +2122,7 @@ bool executor::do_slabs()
     return close_store();
 }
 
-// --buc[k]ets
+// --[k]buckets
 bool executor::do_buckets()
 {
     log_.stop();
@@ -2080,7 +2134,7 @@ bool executor::do_buckets()
     return close_store();
 }
 
-// --collisions[l]
+// --[l]collisions
 bool executor::do_collisions()
 {
     log_.stop();
@@ -2092,7 +2146,7 @@ bool executor::do_collisions()
     return close_store();
 }
 
-// --read[r]
+// --[t]read
 bool executor::do_read()
 {
     log_.stop();
@@ -2104,7 +2158,7 @@ bool executor::do_read()
     return close_store();
 }
 
-// --write[w]
+// --[w]rite
 bool executor::do_write()
 {
     log_.stop();
@@ -2122,13 +2176,13 @@ bool executor::do_write()
 // [b]ackup
 void executor::do_hot_backup()
 {
-    if (const auto ec = store_.get_fault())
+    if (!node_)
     {
-        logger(format(BN_SNAPSHOT_INVALID) % ec.message());
+        logger(BN_NODE_UNAVAILABLE);
         return;
     }
 
-    backup_store(true);
+    hot_backup_store(true);
 }
 
 // [c]lose
@@ -2178,8 +2232,8 @@ void executor::do_resume()
     node_->resume();
 }
 
-// [i]nformation
-void executor::do_information() const
+// [i]nfo
+void executor::do_info() const
 {
     dump_body_sizes();
     dump_records();
@@ -2188,10 +2242,26 @@ void executor::do_information() const
     ////dump_progress();
 }
 
+// [m]enu
+void executor::do_menu() const
+{
+    for (const auto& toggle: toggles_menu_)
+        logger(format("Toggle: %1%") % toggle.second);
+
+    for (const auto& option: options_menu_)
+        logger(format("Option: %1%") % option.second);
+}
+
 // [t]est
 void executor::do_test() const
 {
     read_test();
+}
+
+// [v]ersion
+void executor::do_hot_version()
+{
+    dump_version();
 }
 
 // [w]ork
@@ -2228,12 +2298,13 @@ void executor::do_reset_store()
     logger(query_.is_fault() ? BN_NODE_UNRECOVERABLE : BN_NODE_OK);
 }
 
-// Command line menu selection.
+// Command line command selection.
 // ----------------------------------------------------------------------------
 
-bool executor::menu()
+bool executor::dispatch()
 {
     const auto& config = metadata_.configured;
+
     if (config.help)
         return do_help();
 
@@ -2252,8 +2323,8 @@ bool executor::menu()
     if (config.flags)
         return do_flags();
 
-    if (config.initchain)
-        return do_initchain();
+    if (config.newstore)
+        return do_new_store();
 
     if (config.buckets)
         return do_buckets();
@@ -2261,10 +2332,10 @@ bool executor::menu()
     if (config.collisions)
         return do_collisions();
 
-    if (config.measure)
-        return do_measure();
+    if (config.information)
+        return do_information();
 
-    if (config.read)
+    if (config.test)
         return do_read();
 
     if (config.settings)
@@ -2346,6 +2417,54 @@ void executor::subscribe_events(std::ostream& sink)
     });
 }
 
+void executor::subscribe_connect()
+{
+    node_->subscribe_connect([&](const code&, const channel::ptr&)
+        {
+            log_.write(levels::verbose) <<
+                "{in:" << node_->inbound_channel_count() << "}"
+                "{ch:" << node_->channel_count() << "}"
+                "{rv:" << node_->reserved_count() << "}"
+                "{nc:" << node_->nonces_count() << "}"
+                "{ad:" << node_->address_count() << "}"
+                "{ss:" << node_->stop_subscriber_count() << "}"
+                "{cs:" << node_->connect_subscriber_count() << "}."
+                << std::endl;
+
+            return true;
+        },
+        [&](const code&, uintptr_t)
+        {
+            // By not handling it is possible stop could fire before complete.
+            // But the handler is not required for termination, so this is ok.
+            // The error code in the handler can be used to differentiate.
+        });
+}
+
+void executor::subscribe_close()
+{
+    node_->subscribe_close([&](const code&)
+        {
+            log_.write(levels::verbose) <<
+                "{in:" << node_->inbound_channel_count() << "}"
+                "{ch:" << node_->channel_count() << "}"
+                "{rv:" << node_->reserved_count() << "}"
+                "{nc:" << node_->nonces_count() << "}"
+                "{ad:" << node_->address_count() << "}"
+                "{ss:" << node_->stop_subscriber_count() << "}"
+                "{cs:" << node_->connect_subscriber_count() << "}."
+                << std::endl;
+
+            return false;
+        },
+        [&](const code&, size_t)
+        {
+            // By not handling it is possible stop could fire before complete.
+            // But the handler is not required for termination, so this is ok.
+            // The error code in the handler can be used to differentiate.
+        });
+}
+
 // Runtime menu selection.
 void executor::subscribe_capture()
 {
@@ -2359,22 +2478,6 @@ void executor::subscribe_capture()
         if (token.empty())
             return true;
 
-        if (token == "1")
-        {
-            for (const auto& option: menu_)
-                logger(format("Option: %1%") % option.second);
-
-            return true;
-        }
-
-        if (token == "2")
-        {
-            for (const auto& toggle: display_)
-                logger(format("Toggle: %1%") % toggle.second);
-
-            return true;
-        }
-
         if (toggles_.contains(token))
         {
             const auto toggle = toggles_.at(token);
@@ -2382,13 +2485,12 @@ void executor::subscribe_capture()
             {
                 toggle_.at(toggle) = !toggle_.at(toggle);
                 logger(format("CONSOLE: toggle %1% logging (%2%).") %
-                    display_.at(toggle) %
-                    (toggle_.at(toggle) ? "+" : "-"));
+                    toggles_menu_.at(toggle) % (toggle_.at(toggle) ? "+" : "-"));
             }
             else
             {
                 logger(format("CONSOLE: %1% logging is not compiled.") %
-                    display_.at(toggle));
+                    toggles_menu_.at(toggle));
             }
 
             return true;
@@ -2425,12 +2527,22 @@ void executor::subscribe_capture()
                 }
                 case menu::info:
                 {
-                    do_information();
+                    do_info();
+                    return true;
+                }
+                case menu::menu_:
+                {
+                    do_menu();
                     return true;
                 }
                 case menu::test:
                 {
                     do_test();
+                    return true;
+                }
+                case menu::version:
+                {
+                    do_hot_version();
                     return true;
                 }
                 case menu::work:
@@ -2458,70 +2570,6 @@ void executor::subscribe_capture()
     {
         // subscription completion handler.
     });
-}
-
-void executor::subscribe_connect()
-{
-    node_->subscribe_connect([&](const code&, const channel::ptr&)
-    {
-        log_.write(levels::verbose) <<
-            "{in:" << node_->inbound_channel_count() << "}"
-            "{ch:" << node_->channel_count() << "}"
-            "{rv:" << node_->reserved_count() << "}"
-            "{nc:" << node_->nonces_count() << "}"
-            "{ad:" << node_->address_count() << "}"
-            "{ss:" << node_->stop_subscriber_count() << "}"
-            "{cs:" << node_->connect_subscriber_count() << "}."
-            << std::endl;
-
-        return true;
-    },
-    [&](const code&, uintptr_t)
-    {
-        // By not handling it is possible stop could fire before complete.
-        // But the handler is not required for termination, so this is ok.
-        // The error code in the handler can be used to differentiate.
-    });
-}
-
-void executor::subscribe_close()
-{
-    node_->subscribe_close([&](const code&)
-    {
-        log_.write(levels::verbose) <<
-            "{in:" << node_->inbound_channel_count() << "}"
-            "{ch:" << node_->channel_count() << "}"
-            "{rv:" << node_->reserved_count() << "}"
-            "{nc:" << node_->nonces_count() << "}"
-            "{ad:" << node_->address_count() << "}"
-            "{ss:" << node_->stop_subscriber_count() << "}"
-            "{cs:" << node_->connect_subscriber_count() << "}."
-            << std::endl;
-
-        return false;
-    },
-    [&](const code&, size_t)
-    {
-        // By not handling it is possible stop could fire before complete.
-        // But the handler is not required for termination, so this is ok.
-        // The error code in the handler can be used to differentiate.
-    });
-}
-
-void executor::dump_options() const
-{
-    logger(BN_NODE_INTERRUPT);
-    logger(BN_LOG_TABLE_HEADER);
-    logger(format("Application.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
-    logger(format("News......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
-    logger(format("Session...... " BN_LOG_TABLE) % levels::session_defined % toggle_.at(levels::session));
-    logger(format("Protocol..... " BN_LOG_TABLE) % levels::protocol_defined % toggle_.at(levels::protocol));
-    logger(format("ProXy........ " BN_LOG_TABLE) % levels::proxy_defined % toggle_.at(levels::proxy));
-    logger(format("Remote....... " BN_LOG_TABLE) % levels::remote_defined % toggle_.at(levels::remote));
-    logger(format("Fault........ " BN_LOG_TABLE) % levels::fault_defined % toggle_.at(levels::fault));
-    logger(format("Quit......... " BN_LOG_TABLE) % levels::quit_defined % toggle_.at(levels::quit));
-    logger(format("Object....... " BN_LOG_TABLE) % levels::objects_defined % toggle_.at(levels::objects));
-    logger(format("Verbose...... " BN_LOG_TABLE) % levels::verbose_defined % toggle_.at(levels::verbose));
 }
 
 // ----------------------------------------------------------------------------
