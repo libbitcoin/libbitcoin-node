@@ -1859,6 +1859,7 @@ bool executor::create_store(bool details)
     if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
     {
         logger(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
+        close_store(details);
         return false;
     }
 
