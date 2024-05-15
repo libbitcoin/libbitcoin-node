@@ -222,14 +222,14 @@ BOOST_AUTO_TEST_CASE(error_t__code__set_block_unconfirmable__true_exected_messag
     BOOST_REQUIRE_EQUAL(ec.message(), "set_block_unconfirmable");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__set_block_link__true_exected_message)
-{
-    constexpr auto value = error::set_block_link;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "set_block_link");
-}
+////BOOST_AUTO_TEST_CASE(error_t__code__set_block_link__true_exected_message)
+////{
+////    constexpr auto value = error::set_block_link;
+////    const auto ec = code(value);
+////    BOOST_REQUIRE(ec);
+////    BOOST_REQUIRE(ec == value);
+////    BOOST_REQUIRE_EQUAL(ec.message(), "set_block_link");
+////}
 
 BOOST_AUTO_TEST_CASE(error_t__code__get_height__true_exected_message)
 {

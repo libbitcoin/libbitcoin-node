@@ -56,7 +56,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 
     /// query
     { set_block_unconfirmable, "set_block_unconfirmable" },
-    { set_block_link, "set_block_link" },
+    ////{ set_block_link, "set_block_link" },
     { get_height, "get_height" },
     { get_branch_work, "get_branch_work" },
     { get_is_strong, "get_is_strong" },
