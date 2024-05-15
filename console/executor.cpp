@@ -2378,6 +2378,14 @@ void executor::subscribe_log(std::ostream& sink)
     log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
         const std::string& message)
     {
+        if (level >= toggle_.size())
+        {
+            sink    << "Invalid log [" << serialize(level) << "] : " << message;
+            output_ << "Invalid log [" << serialize(level) << "] : " << message;
+            output_.flush();
+            return true;
+        }
+
         // Write only selected logs.
         if (!ec && !toggle_.at(level))
             return true;
