@@ -334,13 +334,16 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    if (query.set_link(*block.transactions_ptr(), link,
-        block.serialized_size(true)).is_terminal())
+    const auto size = block.serialized_size(true);
+    const auto& txs = *block.transactions_ptr();
+
+    if (const auto code = query.set_code(txs, link, size))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
-            << ctx.height << "] from [" << authority() << "].");
+            << ctx.height << "] from [" << authority() << "] " << link.value
+            << ", " << txs.size() << ", " << code.message());
 
-        stop(suspend(error::set_block_link));
+        stop(suspend(code));
         return false;
     }
 
