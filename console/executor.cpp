@@ -749,11 +749,11 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-// arbitrary testing (const).
-void executor::read_test() const
-{
-    logger("No read test implemented.");
-}
+////// arbitrary testing (const).
+////void executor::read_test() const
+////{
+////    logger("No read test implemented.");
+////}
 
 #if defined(UNDEFINED)
 
@@ -1523,15 +1523,15 @@ void executor::read_test() const
     logger(format("STOP (%1% secs)") % span.count());
 }
 
+#endif // UNDEFINED
+
 // TODO: create a block/tx dumper.
 void executor::read_test() const
 {
-    constexpr auto hash251684 = base16_hash(
-        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
-    constexpr auto hash9 = base16_hash(
-        "61a078472543e9de9247446076320499c108b52307d8d0fafbe53b5c4e32acc4");
+    constexpr auto hash523354 = base16_hash(
+        "0000000000000000002e0e763e60bde40c58aa23f295ef1919b352f3303e06a6");
 
-    const auto link = query_.to_header(hash251684);
+    const auto link = query_.to_header(hash523354);
     if (link.is_terminal())
     {
         logger("link.is_terminal()");
@@ -1557,7 +1557,7 @@ void executor::read_test() const
         return;
     }
 
-    // flags:131223 height:251684 mtp:1376283946
+    // flags:147455 height:523354 mtp:1526711964
     logger(format("flags:%1% height:%2% mtp:%3%") %
         ctx.flags % ctx.height % ctx.mtp);
 
@@ -1596,10 +1596,8 @@ void executor::read_test() const
         return;
     }
 
-    logger("Validated block 251684.");
+    logger("Validated block 523354.");
 }
-
-#endif // UNDEFINED
 
 // arbitrary testing (non-const).
 void executor::write_test()
