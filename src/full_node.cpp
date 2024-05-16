@@ -277,7 +277,7 @@ void full_node::fault(const code& ec) NOEXCEPT
 {
     if (query_.is_full())
     {
-        LOGF("Disk full, free [" << query_.get_space() << "] bytes.");
+        LOGF("Disk full, [" << query_.get_space() << "] bytes required.");
         notify(ec, chase::space, {});
     }
     else if (query_.is_fault())

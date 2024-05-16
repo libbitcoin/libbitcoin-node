@@ -47,7 +47,7 @@ chaser_storage::chaser_storage(full_node& node) NOEXCEPT
 
 code chaser_storage::start() NOEXCEPT
 {
-    // Cosntruct is too early to create the unstarted timer.
+    // Construct is too early to create the unstarted timer.
     disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1});
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
@@ -64,6 +64,7 @@ void chaser_storage::do_stopping(const code&) NOEXCEPT
 {
     BC_ASSERT(stranded());
     disk_timer_->stop();
+    disk_timer_.reset();
 }
 
 // event handlers
@@ -113,12 +114,12 @@ void chaser_storage::do_full(size_t) NOEXCEPT
 void chaser_storage::handle_timer(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (closed() || ec == network::error::operation_canceled)
+    if (closed() || !disk_timer_ || ec == network::error::operation_canceled)
         return;
 
     if (ec && ec != network::error::operation_timeout)
     {
-        LOGN("Storage chaser timer fault, " << ec.message());
+        LOGF("Storage chaser timer fault, " << ec.message());
         return;
     }
 
@@ -163,7 +164,8 @@ bool chaser_storage::have_capacity() const NOEXCEPT
     size_t have{};
     const auto require = archive().get_space();
     const auto success = (file::space(have, store_) && have >= require);
-    LOGV("Require [" << require << "] bytes and [" << have << "] are free.");
+    LOGF("Require [" << require << "] bytes and [" << have << "] are free.");
+
     return success;
 }
 
