@@ -39,15 +39,16 @@ public:
     chaser_storage(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
     virtual void do_reload() NOEXCEPT;
-    virtual void do_full(size_t height) NOEXCEPT;
-    virtual void do_stop(size_t height) NOEXCEPT;
+    virtual void do_full(size_t space) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
 private:
+    void do_stopping(const code& ec) NOEXCEPT;
     void handle_timer(const code& ec) NOEXCEPT;
     bool have_capacity() const NOEXCEPT;
 

@@ -74,8 +74,23 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
     code ec;
 
+    subscribe_close([&](const code& ec) NOEXCEPT
+    {
+        chaser_header_.stopping(ec);
+        chaser_block_.stopping(ec);
+        chaser_check_.stopping(ec);
+        chaser_preconfirm_.stopping(ec);
+        chaser_confirm_.stopping(ec);
+        chaser_transaction_.stopping(ec);
+        chaser_template_.stopping(ec);
+        chaser_snapshot_.stopping(ec);
+        chaser_storage_.stopping(ec);
+        return false;
+    });
+
     if (((ec = (config().node.headers_first ?
-            chaser_header_.start() : chaser_block_.start()))) ||
+            chaser_header_.start() :
+            chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_preconfirm_.start())) ||
         ((ec = chaser_confirm_.start())) ||
@@ -124,7 +139,6 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    ////disk_timer_->stop();
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();
 }
@@ -239,39 +253,43 @@ object_key full_node::create_key() NOEXCEPT
 // Suspensions.
 // ----------------------------------------------------------------------------
 
-// This is just a best effort, it may have to be repeated.
-code full_node::suspend(const code& ec) NOEXCEPT
-{
-    if (ec != error::store_snapshot)
-    {
-        const auto& query = archive();
-        if (query.is_full())
-        {
-            LOGF("Disk full, free [" << query.get_space() << "] bytes.");
-            notify(ec, chase::snapshot, {});
-        }
-        else if (query.is_fault())
-        {
-            LOGF("Store failed, " << query.get_fault());
-        }
-    }
-
-    LOGS("Suspending network, " << ec.message());
-    notify(error::success, chase::suspend, p2p::suspend(ec).value());
-    return ec;
-}
-
 void full_node::resume() NOEXCEPT
 {
-    const auto& query = archive();
-    if (query.is_fault())
+    if (query_.is_fault())
     {
-        LOGF("Cannot resume network (store failed), " << query.get_fault());
+        LOGF("Cannot resume network, " << query_.get_fault());
         return;
     }
 
     LOGS("Resuming network.");
     p2p::resume();
+}
+
+// This is just a best effort, the call may have to be repeated.
+void full_node::suspend(const code& ec) NOEXCEPT
+{
+    LOGS("Suspending network, " << ec.message());
+    p2p::suspend(ec);
+    notify(ec, chase::suspend, {});
+}
+
+void full_node::fault(const code& ec) NOEXCEPT
+{
+    if (query_.is_full())
+    {
+        LOGF("Disk full, free [" << query_.get_space() << "] bytes.");
+        notify(ec, chase::space, {});
+    }
+    else if (query_.is_fault())
+    {
+        LOGF("Store fault, " << query_.get_fault());
+    }
+    else if (ec)
+    {
+        LOGF("Node fault, " << ec.message());
+    }
+
+    suspend(ec);
 }
 
 // Leaves store suspended, caller may want to resume upon success.

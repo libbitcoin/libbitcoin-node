@@ -316,7 +316,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
                     << encode_hash(hash) << ":" << ctx.height
                     << "] from [" << authority() << "].");
 
-                suspend(error::set_block_unconfirmable);
+                fault(error::set_block_unconfirmable);
                 return false;
             }
 
@@ -343,7 +343,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             << ctx.height << "] from [" << authority() << "] "
             << code.message());
 
-        stop(suspend(code));
+        stop(fault(code));
         return false;
     }
 

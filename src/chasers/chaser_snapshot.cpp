@@ -93,7 +93,7 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             POST(do_confirm, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::snapshot:
+        case chase::space:
         {
             // Inherently disabled if both types are disabled.
             // error::disk_full (infrequent, compute height).
@@ -160,19 +160,18 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
-        // Does not suspend node, will keep downloading until full.
-        LOGN("Snapshot at height [" << height << "] failed with error '"
-            << ec.message() << "'.");
+        LOGN("Snapshot at height [" << height << "] failed, "
+            << ec.message());
     }
     else
     {
         span(events::snapshot_span, start);
-        const auto span = duration_cast<seconds>(logger::now() - start);
 
         // Could become full before snapshot start (and it could still succeed).
         if (running && !archive().is_full())
-            resume_network();
+            resume();
 
+        const auto span = duration_cast<seconds>(logger::now() - start);
         LOGN("Snapshot at height [" << height << "] complete in "
             << span.count() << " secs.");
     }

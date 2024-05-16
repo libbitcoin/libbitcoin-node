@@ -42,7 +42,7 @@ public:
 
     /// Should be called from node strand.
     virtual code start() NOEXCEPT = 0;
-
+    
 protected:
     /// Abstract base class protected construct.
     chaser(full_node& node) NOEXCEPT;
@@ -67,6 +67,10 @@ protected:
     /// Methods.
     /// -----------------------------------------------------------------------
 
+    /// Override to capture node stopping, allow full_node to invoke.
+    friend full_node;
+    virtual void stopping(const code& ec) NOEXCEPT;
+
     /// Node threadpool is stopped and may still be joining.
     virtual bool closed() const NOEXCEPT;
 
@@ -75,10 +79,10 @@ protected:
 
     /// Suspend all existing and future network connections.
     /// A race condition could result in an unsuspended connection.
-    virtual code suspend_network(const code& ec)  NOEXCEPT;
+    virtual code fault(const code& ec)  NOEXCEPT;
 
     /// Resume all network connections.
-    virtual void resume_network() NOEXCEPT;
+    virtual void resume() NOEXCEPT;
 
     /// Snapshot the store, suspends and resumes network.
     virtual code snapshot(const store::event_handler& handler) NOEXCEPT;

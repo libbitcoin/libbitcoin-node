@@ -96,12 +96,15 @@ public:
     /// Suspensions.
     /// -----------------------------------------------------------------------
 
-    /// Suspend all existing and future network connections.
-    /// A race condition can result in an unsuspended connection.
-    code suspend(const code& ec) NOEXCEPT override;
-
     /// Resume nework connections.
     void resume() NOEXCEPT override;
+
+    /// Suspend all existing and future network connections.
+    /// A race condition can result in an unsuspended connection.
+    void suspend(const code& ec) NOEXCEPT override;
+
+    /// Handle a fault that has occurred.
+    virtual void fault(const code& ec) NOEXCEPT;
 
     /// Snapshot the store, suspends and resumes network.
     virtual code snapshot(const store::event_handler& handler) NOEXCEPT;

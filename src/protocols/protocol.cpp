@@ -111,13 +111,14 @@ void protocol::performance(uint64_t speed,
     session_->performance(events_key(), speed, std::move(handler));
 }
 
-code protocol::suspend(const code& ec) NOEXCEPT
+code protocol::fault(const code& ec) NOEXCEPT
 {
     // Short-circuit self stop.
     stop(ec);
 
     // Stop all other channels and suspend all connectors/acceptors.
-    return session_->suspend(ec);
+    session_->fault(ec);
+    return ec;
 }
 
 // Properties.

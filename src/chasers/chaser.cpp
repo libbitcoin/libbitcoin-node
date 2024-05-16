@@ -43,6 +43,10 @@ chaser::chaser(full_node& node) NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
+void chaser::stopping(const code&) NOEXCEPT
+{
+}
+
 bool chaser::closed() const NOEXCEPT
 {
     return node_.closed();
@@ -53,12 +57,13 @@ bool chaser::suspended() const NOEXCEPT
     return node_.suspended();
 }
 
-code chaser::suspend_network(const code& ec) NOEXCEPT
+code chaser::fault(const code& ec) NOEXCEPT
 {
-    return node_.suspend(ec);
+    node_.fault(ec);
+    return ec;
 }
 
-void chaser::resume_network() NOEXCEPT
+void chaser::resume() NOEXCEPT
 {
     node_.resume();
 }

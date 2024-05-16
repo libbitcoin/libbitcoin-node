@@ -114,9 +114,9 @@ void session::performance(object_key, uint64_t,
 // Suspensions.
 // ----------------------------------------------------------------------------
 
-code session::suspend(const code& ec) NOEXCEPT
+void session::fault(const code& ec) NOEXCEPT
 {
-    return node_.suspend(ec);
+    node_.fault(ec);
 }
 
 // Properties.

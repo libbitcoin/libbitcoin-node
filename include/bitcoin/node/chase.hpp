@@ -33,9 +33,9 @@ enum class chase
     /// Issued by 'full_node' and handled by 'preconfirm'.
     start,
 
-    /// It's time to snapshot the store, relayed to independent chaser thread.
-    /// Issued by [various] and handled by 'snapshot'.
-    snapshot,
+    /// Disk space is limited (count_t).
+    /// Issued by full_node and handled by 'snapshot' and 'storage'.
+    space,
 
     /// Chaser is directed to start when there are no downloads (height_t).
     /// Issued by 'organize' and handled by 'preconfirm'.

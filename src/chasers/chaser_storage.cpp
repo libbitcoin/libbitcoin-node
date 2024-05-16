@@ -42,7 +42,7 @@ chaser_storage::chaser_storage(full_node& node) NOEXCEPT
 {
 }
 
-// start
+// start/stop
 // ----------------------------------------------------------------------------
 
 code chaser_storage::start() NOEXCEPT
@@ -54,10 +54,22 @@ code chaser_storage::start() NOEXCEPT
     return error::success;
 }
 
+void chaser_storage::stopping(const code& ec) NOEXCEPT
+{
+    POST(do_stopping, ec);
+}
+
+// private
+void chaser_storage::do_stopping(const code&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    disk_timer_->stop();
+}
+
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_storage::handle_event(const code& ec, chase event_,
+bool chaser_storage::handle_event(const code&, chase event_,
     event_value) NOEXCEPT
 {
     if (closed())
@@ -65,18 +77,14 @@ bool chaser_storage::handle_event(const code& ec, chase event_,
 
     switch (event_)
     {
-        case chase::snapshot:
+        case chase::space:
         {
-            if (ec != database::error::disk_full)
-                break;
-
-            POST(do_full, height_t{});
+            POST(do_full, count_t{});
             break;
         }
         case chase::stop:
         {
-            POST(do_stop, height_t{});
-            break;
+            return false;
         }
         default:
         {
@@ -87,7 +95,7 @@ bool chaser_storage::handle_event(const code& ec, chase event_,
     return true;
 }
 
-// monitoring events
+// monitor space
 // ----------------------------------------------------------------------------
 
 void chaser_storage::do_full(size_t) NOEXCEPT
@@ -99,12 +107,6 @@ void chaser_storage::do_full(size_t) NOEXCEPT
     handle_timer(error::success);
 }
 
-void chaser_storage::do_stop(size_t) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    disk_timer_->stop();
-}
-
 // utility
 // ----------------------------------------------------------------------------
 
@@ -114,31 +116,31 @@ void chaser_storage::handle_timer(const code& ec) NOEXCEPT
     if (closed() || ec == network::error::operation_canceled)
         return;
 
-    if (ec != network::error::operation_timeout)
+    if (ec && ec != network::error::operation_timeout)
     {
-        LOGN("Storage chaser timer, " << ec.message());
+        LOGN("Storage chaser timer fault, " << ec.message());
         return;
     }
 
-    // Network is resumed or store is failed, cancel monitor.
+    // Network is resumed or store is failed, cancel monitoring.
     if (!suspended() || archive().is_fault())
         return;
 
+    // There are often multiple events, each resetting the timer.
     if (!have_capacity())
     {
         disk_timer_->start(BIND(handle_timer, _1));
         return;
     }
 
+    // Disk now has space, reset store condition and resume network.
     do_reload();
 }
-
 
 void chaser_storage::do_reload() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Disk now has space, reset store condition and resume network.
     const auto start = logger::now();
     if (const auto ec = reload([this](auto event_, auto table) NOEXCEPT
     {
@@ -146,14 +148,12 @@ void chaser_storage::do_reload() NOEXCEPT
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
-        // No retry, otherwise it's just a tight loop.
-        LOGF("Failed to reload from disk full condition, " << ec.message());
+        LOGF("Reload from disk full condition failed, " << ec.message());
     }
     else
     {
+        resume();
         const auto span = duration_cast<seconds>(logger::now() - start);
-        resume_network();
-
         LOGN("Reload from disk full complete in " << span.count() << " secs.");
     }
 }
@@ -161,15 +161,10 @@ void chaser_storage::do_reload() NOEXCEPT
 bool chaser_storage::have_capacity() const NOEXCEPT
 {
     size_t have{};
-    const auto required = archive().get_space();
-    if (file::space(have, store_) && have >= required)
-    {
-        LOGN("Space required [" << required << "] and free [" << have << "].");
-        return true;
-    }
-
-    LOGV("Space required [" << required << "] and free [" << have << "].");
-    return false;
+    const auto require = archive().get_space();
+    const auto success = (file::space(have, store_) && have >= require);
+    LOGV("Require [" << require << "] bytes and [" << have << "] are free.");
+    return success;
 }
 
 BC_POP_WARNING()
