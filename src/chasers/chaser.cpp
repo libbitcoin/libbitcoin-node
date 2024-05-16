@@ -60,7 +60,7 @@ code chaser::suspend_network(const code& ec) NOEXCEPT
 
 void chaser::resume_network() NOEXCEPT
 {
-    return node_.resume();
+    node_.resume();
 }
 
 code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
@@ -68,9 +68,9 @@ code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
     return node_.snapshot(handler);
 }
 
-void chaser::reset_full() NOEXCEPT
+code chaser::reload(const store::event_handler& handler) NOEXCEPT
 {
-    return node_.reset_full();
+    return node_.reload(handler);
 }
 
 // Events.
@@ -154,5 +154,5 @@ size_t chaser::top_checkpoint() const NOEXCEPT
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

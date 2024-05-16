@@ -54,6 +54,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__unexpected_event__true_exected_message)
 
 // database
 
+BOOST_AUTO_TEST_CASE(error_t__code__store_integrity__true_exected_message)
+{
+    constexpr auto value = error::store_integrity;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "store integrity");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__store_uninitialized__true_exected_message)
 {
     constexpr auto value = error::store_uninitialized;
@@ -63,13 +72,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__store_uninitialized__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "store not initialized");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__store_integrity__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__store_reload__true_exected_message)
 {
-    constexpr auto value = error::store_integrity;
+    constexpr auto value = error::store_reload;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store integrity");
+    BOOST_REQUIRE_EQUAL(ec.message(), "store reload");
 }
 
 BOOST_AUTO_TEST_CASE(error_t__code__store_snapshot__true_exected_message)

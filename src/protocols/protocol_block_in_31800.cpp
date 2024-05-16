@@ -340,8 +340,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (const auto code = query.set_code(txs, link, size))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
-            << ctx.height << "] from [" << authority() << "] " << link.value
-            << ", " << txs.size() << ", " << code.message());
+            << ctx.height << "] from [" << authority() << "] "
+            << code.message());
 
         stop(suspend(code));
         return false;

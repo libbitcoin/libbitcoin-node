@@ -44,6 +44,7 @@ enum error_t : uint8_t
     /// database
     store_integrity,
     store_uninitialized,
+    store_reload,
     store_snapshot,
 
     /// network

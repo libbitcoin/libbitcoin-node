@@ -54,6 +54,10 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // Stop generating message/query traffic from the validation messages.
+    if (suspended())
+        return true;
+
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {
@@ -362,5 +366,5 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

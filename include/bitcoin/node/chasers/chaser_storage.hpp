@@ -41,6 +41,7 @@ public:
     code start() NOEXCEPT override;
 
 protected:
+    virtual void do_reload() NOEXCEPT;
     virtual void do_full(size_t height) NOEXCEPT;
     virtual void do_stop(size_t height) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
@@ -48,8 +49,12 @@ protected:
 
 private:
     void handle_timer(const code& ec) NOEXCEPT;
-    bool is_full() const NOEXCEPT;
+    bool have_capacity() const NOEXCEPT;
 
+    // This is thread safe.
+    const std::filesystem::path store_;
+
+    // This is protected by strand.
     network::deadline::ptr disk_timer_{};
 };
 

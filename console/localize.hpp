@@ -159,6 +159,8 @@ namespace node {
     "snapshot::%1%(%2%)"
 #define BN_RESTORE \
     "restore::%1%(%2%)"
+#define BN_RELOAD \
+    "reload::%1%(%2%)"
 #define BN_CONDITION \
     "condition::%1%(%2%)"
 
@@ -172,22 +174,35 @@ namespace node {
     "Node failed to start with error '%1%'."
 #define BN_NODE_UNAVAILABLE \
     "Command not available until node started."
+
 #define BN_NODE_BACKUP_STARTED \
     "Snapshot is started."
 #define BN_NODE_BACKUP_FAIL \
     "Snapshot failed with error '%1%'."
 #define BN_NODE_BACKUP_COMPLETE \
     "Snapshot complete in %1% secs."
-#define BN_NODE_DISK_FULL_RESET \
-    "Node reset from disk full condition."
+
+#define BN_RELOAD_SPACE \
+    "Free [%1%] bytes of disk space to restart."
+#define BN_RELOAD_INVALID \
+    "Reload disallowed due to database corruption '%1%'."
+#define BN_NODE_RELOAD_STARTED \
+    "Reload from disk full is started."
+#define BN_NODE_RELOAD_COMPLETE \
+    "Reload from disk full in %1% secs."
+#define BN_NODE_RELOAD_FAIL \
+    "Reload failed with error '%1%'."
+
 #define BN_NODE_UNRECOVERABLE \
     "Node is not in recoverable condition."
 #define BN_NODE_DISK_FULL \
     "Node cannot resume because its disk is full."
 #define BN_NODE_OK \
     "Node is ok."
+
 #define BN_NODE_REPORT_WORK \
     "Requested channel work report [%1%]."
+
 #define BN_NODE_STARTED \
     "Node is started."
 #define BN_NODE_RUNNING \

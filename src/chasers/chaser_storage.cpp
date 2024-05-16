@@ -31,22 +31,31 @@ namespace node {
 
 using namespace system;
 using namespace network;
+using namespace database;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_storage::chaser_storage(full_node& node) NOEXCEPT
-  : chaser(node)
+  : chaser(node),
+    store_(node.config().database.path)
 {
 }
 
+// start
+// ----------------------------------------------------------------------------
+
 code chaser_storage::start() NOEXCEPT
 {
+    // Cosntruct is too early to create the unstarted timer.
     disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1});
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
+
+// event handlers
+// ----------------------------------------------------------------------------
 
 bool chaser_storage::handle_event(const code& ec, chase event_,
     event_value) NOEXCEPT
@@ -78,7 +87,7 @@ bool chaser_storage::handle_event(const code& ec, chase event_,
     return true;
 }
 
-// monitor
+// monitoring events
 // ----------------------------------------------------------------------------
 
 void chaser_storage::do_full(size_t) NOEXCEPT
@@ -115,27 +124,55 @@ void chaser_storage::handle_timer(const code& ec) NOEXCEPT
     if (!suspended() || archive().is_fault())
         return;
 
-    // Disk now has space, reset store condition and resume network.
-    if (!is_full())
+    if (!have_capacity())
     {
-        reset_full();
-        resume_network();
+        disk_timer_->start(BIND(handle_timer, _1));
         return;
     }
 
-    // Otherwise restart the timer.
-    disk_timer_->start(BIND(handle_timer, _1));
+    do_reload();
 }
 
-bool chaser_storage::is_full() const NOEXCEPT
+
+void chaser_storage::do_reload() NOEXCEPT
 {
-    // TODO: difference required and available space.
-    // TODO: after a remap (allocate) failure the map may be closed.
-    // en.cppreference.com/w/cpp/filesystem/space_info
-    return true;
+    BC_ASSERT(stranded());
+
+    // Disk now has space, reset store condition and resume network.
+    const auto start = logger::now();
+    if (const auto ec = reload([this](auto event_, auto table) NOEXCEPT
+    {
+        LOGN("reload::" << full_node::store::events.at(event_)
+            << "(" << full_node::store::tables.at(table) << ")");
+    }))
+    {
+        // No retry, otherwise it's just a tight loop.
+        LOGF("Failed to reload from disk full condition, " << ec.message());
+    }
+    else
+    {
+        const auto span = duration_cast<seconds>(logger::now() - start);
+        resume_network();
+
+        LOGN("Reload from disk full complete in " << span.count() << " secs.");
+    }
+}
+
+bool chaser_storage::have_capacity() const NOEXCEPT
+{
+    size_t have{};
+    const auto required = archive().get_space();
+    if (file::space(have, store_) && have >= required)
+    {
+        LOGN("Space required [" << required << "] and free [" << have << "].");
+        return true;
+    }
+
+    LOGV("Space required [" << required << "] and free [" << have << "].");
+    return false;
 }
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

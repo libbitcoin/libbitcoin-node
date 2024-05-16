@@ -34,6 +34,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // database
     { store_integrity, "store integrity" },
     { store_uninitialized, "store not initialized" },
+    { store_reload, "store reload" },
     { store_snapshot, "store snapshot" },
 
     // network
@@ -87,5 +88,5 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
 
 } // namespace error
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

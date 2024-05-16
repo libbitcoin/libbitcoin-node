@@ -109,6 +109,9 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
     return true;
 }
 
+// snapshot events
+// ----------------------------------------------------------------------------
+
 void chaser_snapshot::do_archive(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -149,14 +152,13 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    const auto running = !suspended();
     const auto start = logger::now();
-    const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
+    if (const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
     {
         LOGN("snapshot::" << full_node::store::events.at(event_)
             << "(" << full_node::store::tables.at(table) << ")");
-    });
-
-    if (ec)
+    }))
     {
         // Does not suspend node, will keep downloading until full.
         LOGN("Snapshot at height [" << height << "] failed with error '"
@@ -164,12 +166,16 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
     }
     else
     {
+        span(events::snapshot_span, start);
         const auto span = duration_cast<seconds>(logger::now() - start);
+
+        // Could become full before snapshot start (and it could still succeed).
+        if (running && !archive().is_full())
+            resume_network();
+
         LOGN("Snapshot at height [" << height << "] complete in "
             << span.count() << " secs.");
     }
-
-    span(events::snapshot_span, start);
 }
 
 bool chaser_snapshot::update_bytes() NOEXCEPT
@@ -199,5 +205,5 @@ bool chaser_snapshot::is_redundant(height_t height) const NOEXCEPT
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

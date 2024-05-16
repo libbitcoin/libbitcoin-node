@@ -56,6 +56,10 @@ bool chaser_preconfirm::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // Stop generating message/query traffic from the candidate chain.
+    if (suspended())
+        return true;
+
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
     switch (event_)
@@ -308,5 +312,5 @@ bool chaser_preconfirm::update_neutrino(const header_link& link,
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

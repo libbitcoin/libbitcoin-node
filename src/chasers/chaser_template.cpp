@@ -86,5 +86,5 @@ void chaser_template::do_transaction(transaction_t) NOEXCEPT
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

@@ -84,7 +84,7 @@ protected:
     virtual code snapshot(const store::event_handler& handler) NOEXCEPT;
 
     /// Reset store disk full condition.
-    virtual void reset_full() NOEXCEPT;
+    virtual code reload(const store::event_handler& handler) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
