@@ -80,7 +80,7 @@ bool chaser_storage::handle_event(const code&, chase event_,
     {
         case chase::space:
         {
-            POST(do_full, count_t{});
+            POST(do_space, count_t{});
             break;
         }
         case chase::stop:
@@ -99,7 +99,7 @@ bool chaser_storage::handle_event(const code&, chase event_,
 // monitor space
 // ----------------------------------------------------------------------------
 
-void chaser_storage::do_full(size_t) NOEXCEPT
+void chaser_storage::do_space(size_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (closed())

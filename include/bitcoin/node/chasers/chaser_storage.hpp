@@ -43,7 +43,7 @@ public:
 
 protected:
     virtual void do_reload() NOEXCEPT;
-    virtual void do_full(size_t space) NOEXCEPT;
+    virtual void do_space(size_t space) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
