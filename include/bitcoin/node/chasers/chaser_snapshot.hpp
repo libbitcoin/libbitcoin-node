@@ -40,7 +40,6 @@ public:
     code start() NOEXCEPT override;
 
 protected:
-    virtual void do_full(height_t height) NOEXCEPT;
     virtual void do_confirm(height_t height) NOEXCEPT;
     virtual void do_archive(height_t height) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
@@ -49,7 +48,6 @@ protected:
 private:
     bool update_bytes() NOEXCEPT;
     bool update_valid(height_t height) NOEXCEPT;
-    bool is_redundant(height_t height) const NOEXCEPT;
     void do_snapshot(height_t height) NOEXCEPT;
 
     // These are thread safe.

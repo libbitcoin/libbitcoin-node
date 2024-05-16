@@ -93,13 +93,6 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             POST(do_confirm, possible_narrow_cast<height_t>(value));
             break;
         }
-        ////case chase::space:
-        ////{
-        ////    // Inherently disabled if both types are disabled.
-        ////    // error::disk_full (infrequent, compute height).
-        ////    POST(do_full, archive().get_top_confirmed());
-        ////    break;
-        ////}
         default:
         {
             break;
@@ -131,17 +124,6 @@ void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
         return;
 
     LOGN("Snapshot at confirmable height [" << height << "] is started.");
-    do_snapshot(height);
-}
-
-void chaser_snapshot::do_full(size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (closed() || is_redundant(height))
-        return;
-
-    LOGN("Snapshot at disk full height [" << height << "] is started.");
     do_snapshot(height);
 }
 
@@ -199,11 +181,6 @@ bool chaser_snapshot::update_valid(height_t height) NOEXCEPT
     // The difference may have been negative and therefore show zero growth.
     const auto growth = floored_subtract(height, valid_);
     return growth >= snapshot_valid_;
-}
-
-bool chaser_snapshot::is_redundant(height_t height) const NOEXCEPT
-{
-    return valid_ == height || bytes_ == archive().store_body_size();
 }
 
 BC_POP_WARNING()
