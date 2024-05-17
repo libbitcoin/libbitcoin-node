@@ -277,8 +277,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     auto& query = archive();
-    const auto& block = *message->block_ptr;
-    const auto hash = block.hash();
+    const auto& block_ptr = message->block_ptr;
+    const auto hash = block_ptr->hash();
     const auto it = map_->find(hash);
 
     if (it == map_->end())
@@ -289,7 +289,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    if (query.is_malleated(block))
+    if (query.is_malleated(*block_ptr))
     {
         // Disallow known block malleation, drop peer and keep trying.
         LOGR("Malleated block [" << encode_hash(hash) << "] from ["
@@ -304,11 +304,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    if (const auto code = check(block, ctx))
+    if (const auto code = check(*block_ptr, ctx))
     {
         // Both forms of malleabilty are possible here.
         // Malleable has not been associated, so just drop peer and continue.
-        if (!block.is_malleable())
+        if (!block_ptr->is_malleable())
         {
             if (!query.set_block_unconfirmable(link))
             {
@@ -334,10 +334,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    const auto size = block.serialized_size(true);
-    const auto& txs = *block.transactions_ptr();
+    const auto size = block_ptr->serialized_size(true);
+    const auto& txs_ptr = block_ptr->transactions_ptr();
 
-    if (const auto code = query.set_code(txs, link, size))
+    if (const auto code = query.set_code(*txs_ptr, link, size))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "

@@ -131,9 +131,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     BC_ASSERT(stranded());
 
     using namespace system;
-    const auto& block = *block_ptr;
-    const auto hash = block.hash();
-    const auto header = get_header(block);
+    const auto hash = block_ptr->hash();
+    const auto header = get_header(*block_ptr);
     auto& query = archive();
 
     // Skip existing/orphan, get state.
@@ -217,14 +216,14 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     };
 
-    if (const auto ec = validate(block, *state))
+    if (const auto ec = validate(*block_ptr, *state))
     {
         handler(ec, height);
         return;
     }
 
     // Store with checkpoint, milestone, or currency with sufficient work.
-    if (!is_storable(block, *state))
+    if (!is_storable(*block_ptr, *state))
     {
         log_state_change(*parent, *state);
         cache(block_ptr, state);
@@ -321,7 +320,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Push new header as top of candidate chain.
     {
-        if (push(block, state->context()).is_terminal())
+        if (push(*block_ptr, state->context()).is_terminal())
         {
             handler(fault(error::node_push), height);
             return;
@@ -408,16 +407,16 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
-        typename Block::cptr block{};
-        if (!get_block(block, index))
+        typename Block::cptr block_ptr{};
+        if (!get_block(block_ptr, index))
         {
             fault(error::get_block);
             return;
         }
 
-        const auto& header = get_header(*block);
+        const auto& header = get_header(*block_ptr);
         state.reset(new chain::chain_state{ *state, header, settings_ });
-        cache(block, state);
+        cache(block_ptr, state);
     }
 
     // Pop candidates from top down to above fork point.
