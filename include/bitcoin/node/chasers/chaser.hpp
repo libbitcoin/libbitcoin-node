@@ -42,7 +42,7 @@ public:
 
     /// Should be called from node strand.
     virtual code start() NOEXCEPT = 0;
-
+    
 protected:
     /// Abstract base class protected construct.
     chaser(full_node& node) NOEXCEPT;
@@ -67,6 +67,10 @@ protected:
     /// Methods.
     /// -----------------------------------------------------------------------
 
+    /// Override to capture node stopping, allow full_node to invoke.
+    friend full_node;
+    virtual void stopping(const code& ec) NOEXCEPT;
+
     /// Node threadpool is stopped and may still be joining.
     virtual bool closed() const NOEXCEPT;
 
@@ -75,16 +79,16 @@ protected:
 
     /// Suspend all existing and future network connections.
     /// A race condition could result in an unsuspended connection.
-    virtual code suspend_network(const code& ec)  NOEXCEPT;
+    virtual code fault(const code& ec)  NOEXCEPT;
 
     /// Resume all network connections.
-    virtual void resume_network() NOEXCEPT;
+    virtual void resume() NOEXCEPT;
 
     /// Snapshot the store, suspends and resumes network.
     virtual code snapshot(const store::event_handler& handler) NOEXCEPT;
 
     /// Reset store disk full condition.
-    virtual void reset_full() NOEXCEPT;
+    virtual code reload(const store::event_handler& handler) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
@@ -117,21 +121,24 @@ protected:
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
+    /// Height represents a candidate block covered by checkpoint or milestone.
+    bool is_under_bypass(size_t height) const NOEXCEPT;
+
     /// Height represents a candidate block covered by milestone.
     bool is_under_milestone(size_t height) const NOEXCEPT;
 
     /// Height represents a candidate block covered by checkpoint.
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
-    /// Height represents a candidate block covered by checkpoint or milestone.
-    bool is_under_bypass(size_t height) const NOEXCEPT;
+    /// Height of checkpoint (or genesis) with maximum height.
+    size_t top_checkpoint() const NOEXCEPT;
 
 private:
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
     const system::chain::checkpoint& milestone_;
-    const system::chain::checkpoints& checkpoints_;
+    const system::chain::checkpoints checkpoints_;
 };
 
 #define SUBSCRIBE_EVENTS(method, ...) \

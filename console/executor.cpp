@@ -749,11 +749,11 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-// arbitrary testing (const).
-void executor::read_test() const
-{
-    logger("No read test implemented.");
-}
+////// arbitrary testing (const).
+////void executor::read_test() const
+////{
+////    logger("No read test implemented.");
+////}
 
 #if defined(UNDEFINED)
 
@@ -1523,15 +1523,15 @@ void executor::read_test() const
     logger(format("STOP (%1% secs)") % span.count());
 }
 
+#endif // UNDEFINED
+
 // TODO: create a block/tx dumper.
 void executor::read_test() const
 {
-    constexpr auto hash251684 = base16_hash(
-        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
-    constexpr auto hash9 = base16_hash(
-        "61a078472543e9de9247446076320499c108b52307d8d0fafbe53b5c4e32acc4");
+    constexpr auto hash523354 = base16_hash(
+        "0000000000000000002e0e763e60bde40c58aa23f295ef1919b352f3303e06a6");
 
-    const auto link = query_.to_header(hash251684);
+    const auto link = query_.to_header(hash523354);
     if (link.is_terminal())
     {
         logger("link.is_terminal()");
@@ -1557,7 +1557,7 @@ void executor::read_test() const
         return;
     }
 
-    // flags:131223 height:251684 mtp:1376283946
+    // flags:147455 height:523354 mtp:1526711964
     logger(format("flags:%1% height:%2% mtp:%3%") %
         ctx.flags % ctx.height % ctx.mtp);
 
@@ -1596,10 +1596,8 @@ void executor::read_test() const
         return;
     }
 
-    logger("Validated block 251684.");
+    logger("Validated block 523354.");
 }
-
-#endif // UNDEFINED
 
 // arbitrary testing (non-const).
 void executor::write_test()
@@ -1859,6 +1857,7 @@ bool executor::create_store(bool details)
     if (!query_.initialize(metadata_.configured.bitcoin.genesis_block))
     {
         logger(BN_INITCHAIN_DATABASE_INITIALIZE_FAILURE);
+        close_store(details);
         return false;
     }
 
@@ -1910,6 +1909,40 @@ bool executor::close_store(bool details)
 
     const auto span = duration_cast<seconds>(logger::now() - start);
     logger(format(BN_DATABASE_TIMED_STOP) % span.count());
+    return true;
+}
+
+bool executor::reload_store(bool details)
+{
+    if (!node_)
+    {
+        logger(BN_NODE_UNAVAILABLE);
+        return false;
+    }
+
+    if (const auto ec = store_.get_fault())
+    {
+        logger(format(BN_RELOAD_INVALID) % ec.message());
+        return false;
+    }
+
+    logger(BN_NODE_RELOAD_STARTED);
+    const auto start = logger::now();
+    if (const auto ec = node_->reload([&](auto event_, auto table)
+    {
+        if (details)
+            logger(format(BN_RELOAD) %
+                full_node::store::events.at(event_) %
+                full_node::store::tables.at(table));
+    }))
+    {
+        logger(format(BN_NODE_RELOAD_FAIL) % ec.message());
+        return false;
+    };
+
+    node_->resume();
+    const auto span = duration_cast<seconds>(logger::now() - start);
+    logger(format(BN_NODE_RELOAD_COMPLETE) % span.count());
     return true;
 }
 
@@ -1966,6 +1999,7 @@ bool executor::hot_backup_store(bool details)
         return false;
     }
 
+    node_->resume();
     const auto span = duration_cast<seconds>(logger::now() - start);
     logger(format(BN_NODE_BACKUP_COMPLETE) % span.count());
     return true;
@@ -2195,11 +2229,14 @@ void executor::do_close()
 // [e]rrors
 void executor::do_report_condition() const
 {
-    store_.report_condition([&](const auto& ec, auto table)
+    store_.report([&](const auto& ec, auto table)
     {
         logger(format(BN_CONDITION) % full_node::store::tables.at(table) %
             ec.message());
     });
+
+    if (query_.is_full())
+        logger(format(BN_RELOAD_SPACE) % query_.get_space());
 }
 
 // [h]old
@@ -2220,6 +2257,12 @@ void executor::do_resume()
     if (query_.is_full())
     {
         logger(BN_NODE_DISK_FULL);
+        return;
+    }
+
+    if (query_.is_fault())
+    {
+        logger(BN_NODE_UNRECOVERABLE);
         return;
     }
 
@@ -2278,7 +2321,7 @@ void executor::do_report_work()
 }
 
 // [z]eroize
-void executor::do_reset_store()
+void executor::do_reload_store()
 {
     // Use do_resume command to restart connections after resetting here.
     if (query_.is_full())
@@ -2289,8 +2332,7 @@ void executor::do_reset_store()
             return;
         }
 
-        query_.reset_full();
-        logger(BN_NODE_DISK_FULL_RESET);
+        reload_store(true);
         return;
     }
 
@@ -2560,7 +2602,7 @@ void executor::subscribe_capture()
                 }
                 case menu::zeroize:
                 {
-                    do_reset_store();
+                    do_reload_store();
                     return true;
                 }
                 default:

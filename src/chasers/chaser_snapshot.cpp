@@ -53,10 +53,8 @@ code chaser_snapshot::start() NOEXCEPT
     if (enabled_bytes_)
         bytes_ = archive().store_body_size();
 
-    // TODO: std::max(archive().get_top_confirmed(), config().top_bypass()).
-    // TODO: this will ensure the period does not start until it is costly.
     if (enabled_valid_)
-        valid_ = archive().get_top_confirmed();
+        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint());
 
     if (enabled_bytes_ || enabled_valid_)
     {
@@ -95,13 +93,6 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             POST(do_confirm, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::snapshot:
-        {
-            // Inherently disabled if both types are disabled.
-            // error::disk_full (infrequent, compute height).
-            POST(do_full, archive().get_top_confirmed());
-            break;
-        }
         default:
         {
             break;
@@ -110,6 +101,9 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
 
     return true;
 }
+
+// snapshot events
+// ----------------------------------------------------------------------------
 
 void chaser_snapshot::do_archive(size_t height) NOEXCEPT
 {
@@ -133,17 +127,6 @@ void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
     do_snapshot(height);
 }
 
-void chaser_snapshot::do_full(size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (closed() || is_redundant(height))
-        return;
-
-    LOGN("Snapshot at disk full height [" << height << "] is started.");
-    do_snapshot(height);
-}
-
 // utility
 // ----------------------------------------------------------------------------
 
@@ -151,55 +134,56 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    const auto running = !suspended();
     const auto start = logger::now();
-    const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
+    if (const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
     {
         LOGN("snapshot::" << full_node::store::events.at(event_)
             << "(" << full_node::store::tables.at(table) << ")");
-    });
-
-    if (ec)
+    }))
     {
-        // Does not suspend node, will keep downloading until full.
-        LOGN("Snapshot at height [" << height << "] failed with error '"
-            << ec.message() << "'.");
+        LOGF("Snapshot at height [" << height << "] failed, "
+            << ec.message());
     }
     else
     {
+        span(events::snapshot_span, start);
+
+        // Could become full before snapshot start (and it could still succeed).
+        if (running && !archive().is_full())
+            resume();
+
         const auto span = duration_cast<seconds>(logger::now() - start);
         LOGN("Snapshot at height [" << height << "] complete in "
             << span.count() << " secs.");
     }
 
-    span(events::snapshot_span, start);
+    // Current values may have raced ahead but this is sufficient.
+    // Snapshot failure also resets these values, to prevent cycling.
+
+    if (enabled_bytes_)
+        bytes_ = archive().store_body_size();
+
+    if (enabled_valid_)
+        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint());
 }
 
 bool chaser_snapshot::update_bytes() NOEXCEPT
 {
     // This is the most costly, sizing for every download, but is just a sum.
     // Wire size might be better, but there is no constant time query for it.
-    const uint64_t current = archive().store_body_size();
-    const auto growth = floored_subtract(current, bytes_);
-    const auto sufficient = (growth >= snapshot_bytes_);
-    bytes_ = sufficient ? current : bytes_;
-    return sufficient;
+    const auto growth = floored_subtract(archive().store_body_size(), bytes_);
+    return growth >= snapshot_bytes_;
 }
 
 bool chaser_snapshot::update_valid(height_t height) NOEXCEPT
 {
-    // The difference may be negative and therefore show zero growth (ok).
+    // The difference may have been negative and therefore show zero growth.
     const auto growth = floored_subtract(height, valid_);
-    const auto sufficient = (growth >= snapshot_valid_);
-    valid_ = sufficient ? height : valid_;
-    return sufficient;
-}
-
-bool chaser_snapshot::is_redundant(height_t height) const NOEXCEPT
-{
-    return valid_ == height || bytes_ == archive().store_body_size();
+    return growth >= snapshot_valid_;
 }
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

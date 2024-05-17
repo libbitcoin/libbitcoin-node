@@ -74,15 +74,30 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
     code ec;
 
+    subscribe_close([&](const code& ec) NOEXCEPT
+    {
+        chaser_header_.stopping(ec);
+        chaser_block_.stopping(ec);
+        chaser_check_.stopping(ec);
+        chaser_preconfirm_.stopping(ec);
+        chaser_confirm_.stopping(ec);
+        chaser_transaction_.stopping(ec);
+        chaser_template_.stopping(ec);
+        chaser_snapshot_.stopping(ec);
+        chaser_storage_.stopping(ec);
+        return false;
+    });
+
     if (((ec = (config().node.headers_first ?
-            chaser_header_.start() : chaser_block_.start()))) ||
+            chaser_header_.start() :
+            chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_preconfirm_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||
-        ((ec = chaser_snapshot_.start())))
-    ////    ((ec = chaser_storage_.start())))
+        ((ec = chaser_snapshot_.start())) ||
+        ((ec = chaser_storage_.start())))
     {
         handler(ec);
         return;
@@ -124,7 +139,6 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    ////disk_timer_->stop();
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();
 }
@@ -239,12 +253,51 @@ object_key full_node::create_key() NOEXCEPT
 // Suspensions.
 // ----------------------------------------------------------------------------
 
+void full_node::resume() NOEXCEPT
+{
+    if (query_.is_fault())
+    {
+        LOGF("Cannot resume network, " << query_.get_fault());
+        return;
+    }
+
+    LOGS("Resuming network.");
+    p2p::resume();
+}
+
+// This is just a best effort, the call may have to be repeated.
+void full_node::suspend(const code& ec) NOEXCEPT
+{
+    LOGS("Suspending network, " << ec.message());
+    p2p::suspend(ec);
+    notify(ec, chase::suspend, {});
+}
+
+void full_node::fault(const code& ec) NOEXCEPT
+{
+    if (query_.is_full())
+    {
+        LOGF("Disk full, [" << query_.get_space() << "] bytes required.");
+        notify(ec, chase::space, {});
+    }
+    else if (query_.is_fault())
+    {
+        LOGF("Store fault, " << query_.get_fault());
+    }
+    else if (ec)
+    {
+        LOGF("Node fault, " << ec.message());
+    }
+
+    suspend(ec);
+}
+
+// Leaves store suspended, caller may want to resume upon success.
 code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
 {
     if (query_.is_fault())
         return query_.get_code();
 
-    const auto running = !suspended();
     suspend(error::store_snapshot);
     const auto ec = query_.snapshot([&](auto event, auto table) NOEXCEPT
     {
@@ -255,36 +308,26 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
-    // Could become full before snapshot start (and it could still succeed).
-    if (running && !query_.is_full())
-        resume();
-
     return ec;
 }
 
-// This is just a best effort, it generally has to be repeated.
-code full_node::suspend(const code& ec) NOEXCEPT
+// Leaves store suspended, caller may want to resume upon success.
+code full_node::reload(const store::event_handler& handler) NOEXCEPT
 {
-    LOGS("Suspending network connections: " << ec.message());
-    p2p::suspend(ec);
+    if (!query_.is_full())
+        return query_.is_fault() ? query_.get_code() : error::success;
 
-    // Multiple messages will be absorbed by snapshot chaser.
-    if (ec == database::error::disk_full)
-        notify(ec, chase::snapshot, {});
+    suspend(error::store_reload);
+    const auto ec = query_.reload([&](auto event, auto table) NOEXCEPT
+    {
+        // Suspend channels that missed previous suspend events.
+        if (event == database::event_t::wait_lock)
+            suspend(error::store_reload);
 
-    notify(error::success, chase::suspend, ec.value());
+        handler(event, table);
+    });
+
     return ec;
-}
-
-void full_node::resume() NOEXCEPT
-{
-    LOGS("Resuming network connections.");
-    p2p::resume();
-}
-
-void full_node::reset_full() NOEXCEPT
-{
-    query_.reset_full();
 }
 
 // Properties.

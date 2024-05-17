@@ -153,5 +153,5 @@ void chaser_block::populate(const block& block) const NOEXCEPT
     });
 }
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

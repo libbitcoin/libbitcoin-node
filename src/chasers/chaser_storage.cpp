@@ -31,24 +31,46 @@ namespace node {
 
 using namespace system;
 using namespace network;
+using namespace database;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_storage::chaser_storage(full_node& node) NOEXCEPT
-  : chaser(node)
+  : chaser(node),
+    store_(node.config().database.path)
 {
 }
 
+// start/stop
+// ----------------------------------------------------------------------------
+
 code chaser_storage::start() NOEXCEPT
 {
+    // Construct is too early to create the unstarted timer.
     disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1});
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
 
-bool chaser_storage::handle_event(const code& ec, chase event_,
+void chaser_storage::stopping(const code& ec) NOEXCEPT
+{
+    POST(do_stopping, ec);
+}
+
+// private
+void chaser_storage::do_stopping(const code&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    disk_timer_->stop();
+    disk_timer_.reset();
+}
+
+// event handlers
+// ----------------------------------------------------------------------------
+
+bool chaser_storage::handle_event(const code&, chase event_,
     event_value) NOEXCEPT
 {
     if (closed())
@@ -56,18 +78,14 @@ bool chaser_storage::handle_event(const code& ec, chase event_,
 
     switch (event_)
     {
-        case chase::snapshot:
+        case chase::space:
         {
-            if (ec != database::error::disk_full)
-                break;
-
-            POST(do_full, height_t{});
+            POST(do_space, count_t{});
             break;
         }
         case chase::stop:
         {
-            POST(do_stop, height_t{});
-            break;
+            return false;
         }
         default:
         {
@@ -78,10 +96,10 @@ bool chaser_storage::handle_event(const code& ec, chase event_,
     return true;
 }
 
-// monitor
+// monitor space
 // ----------------------------------------------------------------------------
 
-void chaser_storage::do_full(size_t) NOEXCEPT
+void chaser_storage::do_space(size_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (closed())
@@ -90,52 +108,68 @@ void chaser_storage::do_full(size_t) NOEXCEPT
     handle_timer(error::success);
 }
 
-void chaser_storage::do_stop(size_t) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    disk_timer_->stop();
-}
-
 // utility
 // ----------------------------------------------------------------------------
 
 void chaser_storage::handle_timer(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (closed() || ec == network::error::operation_canceled)
+    if (closed() || !disk_timer_ || ec == network::error::operation_canceled)
         return;
 
-    if (ec != network::error::operation_timeout)
+    if (ec && ec != network::error::operation_timeout)
     {
-        LOGN("Storage chaser timer, " << ec.message());
+        LOGF("Storage chaser timer fault, " << ec.message());
         return;
     }
 
-    // Network is resumed or store is failed, cancel monitor.
+    // Network is resumed or store is failed, cancel monitoring.
     if (!suspended() || archive().is_fault())
         return;
 
-    // Disk now has space, reset store condition and resume network.
-    if (!is_full())
+    // There are often multiple events, each resetting the timer.
+    if (!have_capacity())
     {
-        reset_full();
-        resume_network();
+        disk_timer_->start(BIND(handle_timer, _1));
         return;
     }
 
-    // Otherwise restart the timer.
-    disk_timer_->start(BIND(handle_timer, _1));
+    // Disk now has space, reset store condition and resume network.
+    do_reload();
 }
 
-bool chaser_storage::is_full() const NOEXCEPT
+void chaser_storage::do_reload() NOEXCEPT
 {
-    // TODO: difference required and available space.
-    // TODO: after a remap (allocate) failure the map may be closed.
-    // en.cppreference.com/w/cpp/filesystem/space_info
-    return true;
+    BC_ASSERT(stranded());
+
+    const auto start = logger::now();
+    if (const auto ec = reload([this](auto event_, auto table) NOEXCEPT
+    {
+        LOGN("reload::" << full_node::store::events.at(event_)
+            << "(" << full_node::store::tables.at(table) << ")");
+    }))
+    {
+        LOGF("Reload from disk full condition failed, " << ec.message());
+    }
+    else
+    {
+        resume();
+        const auto span = duration_cast<seconds>(logger::now() - start);
+        LOGN("Reload from disk full complete in " << span.count() << " secs.");
+    }
+}
+
+bool chaser_storage::have_capacity() const NOEXCEPT
+{
+    size_t have{};
+    const auto require = archive().get_space();
+    const auto success = (file::space(have, store_) && have >= require);
+    LOGF("Require [" << require << "] bytes and [" << have << "] are free.");
+
+    return success;
 }
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

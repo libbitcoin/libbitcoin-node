@@ -56,6 +56,10 @@ bool chaser_preconfirm::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // Stop generating message/query traffic from the candidate chain.
+    if (suspended())
+        return true;
+
     // These come out of order, advance in order asynchronously.
     // Asynchronous completion results in out of order notification.
     switch (event_)
@@ -157,7 +161,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
 
             if (code == error::store_integrity)
             {
-                suspend_network(error::node_validate);
+                fault(error::node_validate);
                 return;
             }
 
@@ -171,7 +175,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                 if (code != database::error::block_unconfirmable &&
                     !query.set_block_unconfirmable(link))
                 {
-                    suspend_network(error::set_block_unconfirmable);
+                    fault(error::set_block_unconfirmable);
                     return;
                 }
 
@@ -192,13 +196,13 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         // Tx validation/states are independent of block validation.
         if (!query.set_txs_connected(link))
         {
-            suspend_network(error::set_txs_connected);
+            fault(error::set_txs_connected);
             return;
         }
 
         if (!query.set_block_preconfirmable(link))
         {
-            suspend_network(error::set_block_preconfirmable);
+            fault(error::set_block_preconfirmable);
             return;
         }
 
@@ -308,5 +312,5 @@ bool chaser_preconfirm::update_neutrino(const header_link& link,
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

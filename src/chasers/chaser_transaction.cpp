@@ -99,5 +99,5 @@ void chaser_transaction::do_store(const transaction::cptr&) NOEXCEPT
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

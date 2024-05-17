@@ -54,6 +54,10 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // Stop generating message/query traffic from the validation messages.
+    if (suspended())
+        return true;
+
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {
@@ -107,13 +111,13 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 
     if (!get_fork_work(work, fork, height))
     {
-        suspend_network(error::get_fork_work);
+        fault(error::get_fork_work);
         return;
     }
 
     if (!get_is_strong(strong, work, height))
     {
-        suspend_network(error::get_is_strong);
+        fault(error::get_is_strong);
         return;
     }
 
@@ -129,7 +133,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
     const auto fork_point = height - fork.size();
     if (top < fork_point)
     {
-        suspend_network(error::invalid_fork_point);
+        fault(error::invalid_fork_point);
         return;
     }
 
@@ -141,13 +145,13 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         popped.push_back(query.to_confirmed(index));
         if (popped.back().is_terminal())
         {
-            suspend_network(error::to_confirmed);
+            fault(error::to_confirmed);
             return;
         }
 
         if (!query.pop_confirmed())
         {
-            suspend_network(error::pop_confirmed);
+            fault(error::pop_confirmed);
             return;
         }
 
@@ -179,7 +183,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 // chase::organized & events::block_organized
                 if (!set_confirmed(link, index++))
                 {
-                    suspend_network(error::set_confirmed);
+                    fault(error::set_confirmed);
                     return;
                 }
 
@@ -188,7 +192,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
 
             if (code == error::store_integrity)
             {
-                suspend_network(error::node_confirm);
+                fault(error::node_confirm);
                 return;
             }
         
@@ -203,7 +207,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
                 if (code != database::error::block_unconfirmable &&
                     !query.set_block_unconfirmable(link))
                 {
-                    suspend_network(error::set_block_unconfirmable);
+                    fault(error::set_block_unconfirmable);
                     return;
                 }
 
@@ -216,7 +220,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
             // chase::organized & events::block_organized
             if (!roll_back(popped, fork_point, sub1(index)))
             {
-                suspend_network(error::node_roll_back);
+                fault(error::node_roll_back);
                 return;
             }
         
@@ -230,7 +234,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         // TODO: compute fees from validation records (optional metadata).
         if (!query.set_block_confirmable(link, uint64_t{}))
         {
-            suspend_network(error::block_confirmable);
+            fault(error::block_confirmable);
             return;
         }
 
@@ -243,7 +247,7 @@ void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
         // chase::organized & events::block_organized
         if (!set_confirmed(link, index++))
         {
-            suspend_network(error::set_confirmed);
+            fault(error::set_confirmed);
             return;
         }
 
@@ -362,5 +366,5 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin

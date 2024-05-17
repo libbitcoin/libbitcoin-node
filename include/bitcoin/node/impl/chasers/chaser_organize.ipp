@@ -56,7 +56,7 @@ code CLASS::start() NOEXCEPT
 
     if (!state_)
     {
-        suspend_network(error::get_candidate_chain_state);
+        fault(error::get_candidate_chain_state);
         return error::get_candidate_chain_state;
     }
 
@@ -131,9 +131,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     BC_ASSERT(stranded());
 
     using namespace system;
-    const auto& block = *block_ptr;
-    const auto hash = block.hash();
-    const auto header = get_header(block);
+    const auto hash = block_ptr->hash();
+    const auto header = get_header(*block_ptr);
     auto& query = archive();
 
     // Skip existing/orphan, get state.
@@ -158,7 +157,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         size_t height{};
         if (!query.get_height(height, id))
         {
-            handler(suspend_network(error::get_height), {});
+            handler(fault(error::get_height), {});
             return;
         }
 
@@ -217,14 +216,14 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     };
 
-    if (const auto ec = validate(block, *state))
+    if (const auto ec = validate(*block_ptr, *state))
     {
         handler(ec, height);
         return;
     }
 
     // Store with checkpoint, milestone, or currency with sufficient work.
-    if (!is_storable(block, *state))
+    if (!is_storable(*block_ptr, *state))
     {
         log_state_change(*parent, *state);
         cache(block_ptr, state);
@@ -243,13 +242,13 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
-        handler(suspend_network(error::get_branch_work), height);
+        handler(fault(error::get_branch_work), height);
         return;
     }
 
     if (!get_is_strong(strong, work, branch_point))
     {
-        handler(suspend_network(error::get_is_strong), height);
+        handler(fault(error::get_is_strong), height);
         return;
     }
 
@@ -268,7 +267,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     const auto top_candidate = state_->height();
     if (branch_point > top_candidate)
     {
-        handler(suspend_network(error::invalid_branch_point), height);
+        handler(fault(error::invalid_branch_point), height);
         return;
     }
 
@@ -284,7 +283,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.pop_candidate())
         {
-            handler(suspend_network(error::pop_candidate), height);
+            handler(fault(error::pop_candidate), height);
             return;
         }
 
@@ -299,7 +298,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!query.push_candidate(link))
         {
-            handler(suspend_network(error::push_candidate), height);
+            handler(fault(error::push_candidate), height);
             return;
         }
 
@@ -311,7 +310,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     {
         if (!push(key))
         {
-            handler(suspend_network(error::node_push), height);
+            handler(fault(error::node_push), height);
             return;
         }
 
@@ -321,9 +320,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Push new header as top of candidate chain.
     {
-        if (push(block, state->context()).is_terminal())
+        if (push(*block_ptr, state->context()).is_terminal())
         {
-            handler(suspend_network(error::node_push), height);
+            handler(fault(error::node_push), height);
             return;
         }
         
@@ -379,7 +378,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, link) || is_zero(height))
     {
-        suspend_network(error::get_height);
+        fault(error::get_height);
         return;
     }
 
@@ -387,7 +386,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
-        suspend_network(error::invalid_fork_point);
+        fault(error::invalid_fork_point);
         return;
     }
 
@@ -397,7 +396,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
-        suspend_network(error::get_candidate_chain_state);
+        fault(error::get_candidate_chain_state);
         return;
     }
 
@@ -408,16 +407,16 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = add1(fork_point); index <= top_candidate; ++index)
     {
-        typename Block::cptr block{};
-        if (!get_block(block, index))
+        typename Block::cptr block_ptr{};
+        if (!get_block(block_ptr, index))
         {
-            suspend_network(error::get_block);
+            fault(error::get_block);
             return;
         }
 
-        const auto& header = get_header(*block);
+        const auto& header = get_header(*block_ptr);
         state.reset(new chain::chain_state{ *state, header, settings_ });
-        cache(block, state);
+        cache(block_ptr, state);
     }
 
     // Pop candidates from top down to above fork point.
@@ -428,7 +427,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.pop_candidate())
         {
-            suspend_network(error::pop_candidate);
+            fault(error::pop_candidate);
             return;
         }
 
@@ -443,7 +442,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.push_candidate(query.to_confirmed(index)))
         {
-            suspend_network(error::push_candidate);
+            fault(error::push_candidate);
             return;
         }
 
@@ -453,7 +452,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state = query.get_candidate_chain_state(settings_, top_confirmed);
     if (!state)
     {
-        suspend_network(error::get_candidate_chain_state);
+        fault(error::get_candidate_chain_state);
         return;
     }
 

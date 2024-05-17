@@ -44,6 +44,7 @@ enum error_t : uint8_t
     /// database
     store_integrity,
     store_uninitialized,
+    store_reload,
     store_snapshot,
 
     /// network
@@ -66,7 +67,7 @@ enum error_t : uint8_t
 
     /// query
     set_block_unconfirmable,
-    set_block_link,
+    ////set_block_link,
     get_height,
     get_branch_work,
     get_is_strong,

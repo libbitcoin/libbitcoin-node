@@ -83,10 +83,11 @@ private:
     code open_store_coded(bool details=false);
     bool open_store(bool details=false);
     bool close_store(bool details=false);
+    bool reload_store(bool details=false);
     bool create_store(bool details=false);
     bool restore_store(bool details=false);
     bool hot_backup_store(bool details=false);
-    bool cold_backup_store(bool details = false);
+    bool cold_backup_store(bool details=false);
     bool check_store_path(bool create=false) const;
 
     // Command line options.
@@ -112,8 +113,8 @@ private:
     void do_close();
     void do_suspend();
     void do_resume();
-    void do_reset_store();
     void do_report_work();
+    void do_reload_store();
     void do_menu() const;
     void do_test() const;
     void do_info() const;

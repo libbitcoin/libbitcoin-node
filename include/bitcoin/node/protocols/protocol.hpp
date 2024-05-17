@@ -73,7 +73,7 @@ protected:
 
     /// Suspend all existing and future network connections.
     /// A race condition could result in an unsuspended connection.
-    virtual code suspend(const code& ec) NOEXCEPT;
+    virtual code fault(const code& ec) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

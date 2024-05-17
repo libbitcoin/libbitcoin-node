@@ -84,7 +84,7 @@ bool chaser_header::is_storable(const system::chain::header& header,
             state.cumulative_work() >= settings().minimum_work);
 }
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin
 
 // bip90 prevents bip34/65/66 activation oscillations

@@ -35,13 +35,17 @@ chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
     milestone_(node.config().bitcoin.milestone),
-    checkpoints_(node.config().bitcoin.checkpoints),
+    checkpoints_(system::sort_copy(node.config().bitcoin.checkpoints)),
     reporter(node.log)
 {
 }
 
 // Methods.
 // ----------------------------------------------------------------------------
+
+void chaser::stopping(const code&) NOEXCEPT
+{
+}
 
 bool chaser::closed() const NOEXCEPT
 {
@@ -53,14 +57,15 @@ bool chaser::suspended() const NOEXCEPT
     return node_.suspended();
 }
 
-code chaser::suspend_network(const code& ec) NOEXCEPT
+code chaser::fault(const code& ec) NOEXCEPT
 {
-    return node_.suspend(ec);
+    node_.fault(ec);
+    return ec;
 }
 
-void chaser::resume_network() NOEXCEPT
+void chaser::resume() NOEXCEPT
 {
-    return node_.resume();
+    node_.resume();
 }
 
 code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
@@ -68,9 +73,9 @@ code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
     return node_.snapshot(handler);
 }
 
-void chaser::reset_full() NOEXCEPT
+code chaser::reload(const store::event_handler& handler) NOEXCEPT
 {
-    return node_.reset_full();
+    return node_.reload(handler);
 }
 
 // Events.
@@ -123,6 +128,11 @@ bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
+bool chaser::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return is_under_checkpoint(height) || is_under_milestone(height);
+}
+
 // TODO: the existence of milestone could be cached/updated.
 bool chaser::is_under_milestone(size_t height) const NOEXCEPT
 {
@@ -137,15 +147,17 @@ bool chaser::is_under_milestone(size_t height) const NOEXCEPT
 
 bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
 {
+    // Checkpoints are sorted by increasing height (optimal).
     return system::chain::checkpoint::is_under(checkpoints_, height);
 }
 
-bool chaser::is_under_bypass(size_t height) const NOEXCEPT
+size_t chaser::top_checkpoint() const NOEXCEPT
 {
-    return is_under_checkpoint(height) || is_under_milestone(height);
+    // Checkpoints are sorted by increasing height (required).
+    return checkpoints_.empty() ? zero : checkpoints_.back().height();
 }
 
 BC_POP_WARNING()
 
-} // namespace database
+} // namespace node
 } // namespace libbitcoin
