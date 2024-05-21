@@ -157,6 +157,19 @@ size_t chaser::top_checkpoint() const NOEXCEPT
     return checkpoints_.empty() ? zero : checkpoints_.back().height();
 }
 
+// Position.
+// ----------------------------------------------------------------------------
+
+void chaser::set_position(size_t height) NOEXCEPT
+{
+    position_ = height;
+}
+
+size_t& chaser::position() NOEXCEPT
+{
+    return position_;
+}
+
 BC_POP_WARNING()
 
 } // namespace node

@@ -56,14 +56,13 @@ private:
     bool update_neutrino(const database::header_link& link) NOEXCEPT;
     bool update_neutrino(const database::header_link& link,
         const system::chain::block& block) NOEXCEPT;
-    void update_cache(size_t height) NOEXCEPT;
+    void update_position(size_t height) NOEXCEPT;
 
     // These are thread safe.
     const uint64_t initial_subsidy_;
     const uint32_t subsidy_interval_blocks_;
 
-    // These are protected by strand.
-    size_t validated_{};
+    // This is protected by strand.
     system::hash_digest neutrino_{};
 };
 

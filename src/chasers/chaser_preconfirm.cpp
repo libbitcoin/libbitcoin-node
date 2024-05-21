@@ -45,7 +45,7 @@ chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
 
 code chaser_preconfirm::start() NOEXCEPT
 {
-    update_cache(archive().get_fork());
+    update_position(archive().get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -103,8 +103,8 @@ void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT
     BC_ASSERT(stranded());
 
     // If branch point is at or above last validated there is nothing to do.
-    if (branch_point < validated_)
-        update_cache(branch_point);
+    if (branch_point < position())
+        update_position(branch_point);
 
     do_checked(branch_point);
 }
@@ -114,7 +114,7 @@ void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Revert to confirmed top as the candidate chain is fully reverted.
-    update_cache(top);
+    update_position(top);
     do_checked(top);
 }
 
@@ -123,7 +123,7 @@ void chaser_preconfirm::do_checked(height_t height) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Candidate block was checked and archived at the given height.
-    if (height == add1(validated_))
+    if (height == add1(position()))
         do_bump(height);
 }
 
@@ -133,7 +133,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
     auto& query = archive();
 
     // Validate checked blocks starting immediately after last validated.
-    for (auto height = add1(validated_); !closed(); ++height)
+    for (auto height = add1(position()); !closed(); ++height)
     {
         // Precondition (associated).
         // ....................................................................
@@ -153,7 +153,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                 code == database::error::block_preconfirmable)
             {
                 // Advance.
-                ++validated_;
+                ++position();
                 notify(code, chase::preconfirmable, height);
                 fire(events::validate_bypassed, height);
                 continue;
@@ -209,7 +209,7 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         // Advance.
         // ....................................................................
 
-        ++validated_;
+        ++position();
         notify(error::success, chase::preconfirmable, height);
         fire(events::block_validated, height);
     }
@@ -262,12 +262,6 @@ code chaser_preconfirm::validate(const header_link& link,
 // neutrino
 // ----------------------------------------------------------------------------
 
-void chaser_preconfirm::update_cache(size_t height) NOEXCEPT
-{
-    validated_ = height;
-    neutrino_ = get_neutrino(validated_);
-}
-
 // Returns null_hash if not found, intended for genesis block.
 hash_digest chaser_preconfirm::get_neutrino(size_t height) const NOEXCEPT
 {
@@ -308,6 +302,13 @@ bool chaser_preconfirm::update_neutrino(const header_link& link,
 
     neutrino_ = compute_filter_header(neutrino_, filter);
     return query.set_filter(link, neutrino_, filter);
+}
+
+
+void chaser_preconfirm::update_position(size_t height) NOEXCEPT
+{
+    set_position(height);
+    neutrino_ = get_neutrino(position());
 }
 
 BC_POP_WARNING()

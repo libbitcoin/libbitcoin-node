@@ -67,11 +67,13 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 
 // start
 // ----------------------------------------------------------------------------
+
 code chaser_check::start() NOEXCEPT
 {
-    requested_ = validated_ = archive().get_fork();
+    set_position(archive().get_fork());
+    requested_ = position();
     const auto add = get_unassociated();
-    LOGN("Fork point (" << validated_ << ") unassociated (" << add << ").");
+    LOGN("Fork point (" << requested_ << ") unassociated (" << add << ").");
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
@@ -144,7 +146,7 @@ void chaser_check::do_header(height_t) NOEXCEPT
 void chaser_check::do_preconfirmable(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    validated_ = height;
+    set_position(height);
     do_header(height);
 }
 
@@ -154,22 +156,19 @@ void chaser_check::do_preconfirmable(height_t height) NOEXCEPT
 void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 {
     // If branch point is at or above last validated there is nothing to do.
-    if (branch_point < validated_)
-        validated_ = branch_point;
+    if (branch_point < position())
+        set_position(branch_point);
 
     maps_.clear();
     notify(error::success, chase::purge, branch_point);
 }
-
-// purge headers
-// ----------------------------------------------------------------------------
 
 void chaser_check::do_disorganized(height_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     // Revert to confirmed top as the candidate chain is fully reverted.
-    validated_ = top;
+    set_position(top);
 
     maps_.clear();
     notify(error::success, chase::purge, top);
@@ -279,7 +278,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     // This delays download until validation is caught up, not just gaps.
 
     size_t count{};
-    if (validated_ < requested_ || requested_ >= maximum_height_)
+    if (position() < requested_ || requested_ >= maximum_height_)
         return count;
 
     // Inventory size gets set only once.
@@ -295,7 +294,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     // not last requested, since all between are already downloaded.
     const auto& query = archive();
     const auto requested = requested_;
-    const auto step = ceilinged_add(validated_, maximum_concurrency_);
+    const auto step = ceilinged_add(position(), maximum_concurrency_);
     const auto stop = std::min(step, maximum_height_);
 
     while (true)
@@ -315,7 +314,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     LOGN("Advance by ("
         << maximum_concurrency_ << ") above ("
         << requested << ") from ("
-        << validated_ << ") stop ("
+        << position() << ") stop ("
         << stop << ") found ("
         << count << ") last ("
         << requested_ << ").");
