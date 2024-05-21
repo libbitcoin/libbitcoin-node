@@ -68,7 +68,6 @@ const std::unordered_map<std::string, uint8_t> executor::options_
     { "i", menu::info },
     { "m", menu::menu_ },
     { "t", menu::test },
-    { "v", menu::version },
     { "w", menu::work },
     { "z", menu::zeroize }
 };
@@ -82,7 +81,6 @@ const std::unordered_map<uint8_t, std::string> executor::options_menu_
     { menu::info,    "[i]nfo about store" },
     { menu::menu_,   "[m]enu of options and toggles" },
     { menu::test,    "[t]est built-in case" },
-    { menu::version, "[v]ersion information" },
     { menu::work,    "[w]ork distribution" },
     { menu::zeroize, "[z]eroize disk full error" }
 };
@@ -2301,12 +2299,6 @@ void executor::do_test() const
     read_test();
 }
 
-// [v]ersion
-void executor::do_hot_version()
-{
-    dump_version();
-}
-
 // [w]ork
 void executor::do_report_work()
 {
@@ -2590,11 +2582,6 @@ void executor::subscribe_capture()
                     do_test();
                     return true;
                 }
-                case menu::version:
-                {
-                    do_hot_version();
-                    return true;
-                }
                 case menu::work:
                 {
                     do_report_work();
@@ -2673,6 +2660,7 @@ bool executor::do_run()
 
     // Stopped by stopper.
     capture_.start();
+    dump_version();
     dump_options();
 
     // Create node.
