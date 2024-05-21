@@ -243,8 +243,7 @@ namespace node {
 #define BN_USING_DEFAULT_CONFIG \
     "Using default configuration settings."
 #define BN_VERSION_MESSAGE \
-    "\nVersion Information\n" \
-    "----------------------------\n" \
+    "Version Information...\n" \
     "libbitcoin-node:       %1%\n" \
     "libbitcoin-database:   %2%\n" \
     "libbitcoin-network:    %3%\n" \
