@@ -64,6 +64,8 @@ bool chaser_preconfirm::handle_event(const code&, chase event_,
     // Asynchronous completion results in out of order notification.
     switch (event_)
     {
+        // Track downloaded.
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::start:
         case chase::bump:
         {
@@ -85,6 +87,8 @@ bool chaser_preconfirm::handle_event(const code&, chase event_,
             POST(do_disorganized, possible_narrow_cast<height_t>(value));
             break;
         }
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         case chase::stop:
         {
             return false;
@@ -98,15 +102,16 @@ bool chaser_preconfirm::handle_event(const code&, chase event_,
     return true;
 }
 
+// track downloaded in order (to validate)
+// ----------------------------------------------------------------------------
+
 void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     // If branch point is at or above last validated there is nothing to do.
     if (branch_point < position())
-        update_position(branch_point);
-
-    do_checked(branch_point);
+        do_disorganized(branch_point);
 }
 
 void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
@@ -122,7 +127,7 @@ void chaser_preconfirm::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Candidate block was checked and archived at the given height.
+    // Candidate block was checked at the given height, validate/advance.
     if (height == add1(position()))
         do_bump(height);
 }

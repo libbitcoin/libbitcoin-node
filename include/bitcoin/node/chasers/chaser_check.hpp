@@ -58,8 +58,9 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
+    virtual void do_bump(height_t branch_point) NOEXCEPT;
     virtual void do_header(height_t branch_point) NOEXCEPT;
-    virtual void do_preconfirmable(height_t height) NOEXCEPT;
+    virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_disorganized(height_t top) NOEXCEPT;
     virtual void do_malleated(header_t link) NOEXCEPT;

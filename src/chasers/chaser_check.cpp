@@ -87,14 +87,17 @@ bool chaser_check::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        case chase::header:
+        // Track downloaded.
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        case chase::start:
+        case chase::bump:
         {
-            POST(do_header, possible_narrow_cast<height_t>(value));
+            POST(do_bump, height_t{});
             break;
         }
-        case chase::preconfirmable:
+        case chase::checked:
         {
-            POST(do_preconfirmable, possible_narrow_cast<height_t>(value));
+            POST(do_checked, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::regressed:
@@ -105,6 +108,13 @@ bool chaser_check::handle_event(const code&, chase event_,
         case chase::disorganized:
         {
             POST(do_disorganized, possible_narrow_cast<height_t>(value));
+            break;
+        }
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+        case chase::header:
+        {
+            POST(do_header, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::malleated:
@@ -125,6 +135,52 @@ bool chaser_check::handle_event(const code&, chase event_,
     return true;
 }
 
+// track downloaded in order (to move download window)
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // If branch point is at or above last downloaded there is nothing to do.
+    if (branch_point < position())
+        do_disorganized(branch_point);
+}
+
+void chaser_check::do_disorganized(height_t top) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Revert to confirmed top as the candidate chain is fully reverted.
+    set_position(top);
+
+    // purge headers
+    maps_.clear();
+    notify(error::success, chase::purge, top);
+
+    do_checked(top);
+}
+
+void chaser_check::do_checked(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Candidate block was checked at the given height, advance.
+    if (height == add1(position()))
+        do_bump(height);
+}
+
+void chaser_check::do_bump(height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    // Skip checked blocks starting immediately after last checked.
+    while (!closed() && query.is_associated(
+        query.to_candidate(add1(position()))))
+        ++position();
+}
+
 // add headers
 // ----------------------------------------------------------------------------
 
@@ -140,43 +196,7 @@ void chaser_check::do_header(height_t) NOEXCEPT
         notify(error::success, chase::download, add);
 }
 
-// set floor
-// ----------------------------------------------------------------------------
-
-void chaser_check::do_preconfirmable(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    set_position(height);
-    do_header(height);
-}
-
-// purge headers
-// ----------------------------------------------------------------------------
-
-void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
-{
-    // If branch point is at or above last validated there is nothing to do.
-    if (branch_point < position())
-        set_position(branch_point);
-
-    maps_.clear();
-    notify(error::success, chase::purge, branch_point);
-}
-
-void chaser_check::do_disorganized(height_t top) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Revert to confirmed top as the candidate chain is fully reverted.
-    set_position(top);
-
-    maps_.clear();
-    notify(error::success, chase::purge, top);
-}
-
 // re-download malleated block (invalid but malleable)
-// ----------------------------------------------------------------------------
-
 // The archived malleable block was found to be invalid (treat as malleated).
 // The block/header hash cannot be marked unconfirmable due to malleability, so
 // disassociate the block and then add the block hash back to the current set.
@@ -275,8 +295,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     // Called from start.
     ////BC_ASSERT(stranded());
 
-    // This delays download until validation is caught up, not just gaps.
-
+    // Defer new work issuance until all gaps are filled.
     size_t count{};
     if (position() < requested_ || requested_ >= maximum_height_)
         return count;
