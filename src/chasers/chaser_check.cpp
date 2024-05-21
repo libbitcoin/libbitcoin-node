@@ -276,6 +276,8 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     // Called from start.
     ////BC_ASSERT(stranded());
 
+    // This delays download until validation is caught up, not just gaps.
+
     size_t count{};
     if (validated_ < requested_ || requested_ >= maximum_height_)
         return count;
