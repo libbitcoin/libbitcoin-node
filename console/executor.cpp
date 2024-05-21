@@ -176,9 +176,6 @@ executor::executor(parser& metadata, std::istream& input, std::ostream& output,
         metadata.configured.log.verbose
     }
 {
-    // Turn of console echoing from std::cin to std:cout.
-    system::unset_console_echo();
-
     // Capture <ctrl-c>.
     initialize_stop();
 }
@@ -2514,7 +2511,14 @@ void executor::subscribe_capture()
     // is running a backup (for example), resulting in a try_lock warning loop.
     capture_.subscribe([&](const code& ec, const std::string& line)
     {
-        const auto token = system::trim_copy(line);
+        // The only case in which false may be returned.
+        if (ec == network::error::service_stopped)
+        {
+            set_console_echo();
+            return false;
+        }
+
+        const auto token = trim_copy(line);
 
         // <control>-c emits empty token on Win32.
         if (token.empty())
@@ -2550,7 +2554,7 @@ void executor::subscribe_capture()
                 case menu::close:
                 {
                     do_close();
-                    return false;
+                    return true;
                 }
                 case menu::errors:
                 {
@@ -2601,11 +2605,13 @@ void executor::subscribe_capture()
         }
 
         logger("CONSOLE: '" + line + "'");
-        return !ec;
+        return true;
     },
-    [&](const code&)
+    [&](const code& ec)
     {
         // subscription completion handler.
+        if (!ec)
+            unset_console_echo();
     });
 }
 
