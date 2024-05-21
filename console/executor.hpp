@@ -51,7 +51,6 @@ private:
         info,
         menu_,
         test,
-        version,
         work,
         zeroize
     };
@@ -109,7 +108,6 @@ private:
 
     // Runtime options.
     void do_hot_backup();
-    void do_hot_version();
     void do_close();
     void do_suspend();
     void do_resume();
