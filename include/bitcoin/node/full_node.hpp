@@ -156,7 +156,7 @@ private:
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
-    chaser_preconfirm chaser_preconfirm_;
+    chaser_validate chaser_validate_;
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
     chaser_template chaser_template_;

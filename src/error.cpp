@@ -76,7 +76,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { set_confirmed, "set_confirmed" },
     { block_confirmable, "block_confirmable" },
     { set_txs_connected, "set_txs_connected" },
-    { set_block_preconfirmable, "set_block_preconfirmable" },
+    { set_block_valid, "set_block_valid" },
 
     /// query composite
     { node_push, "node_push" },

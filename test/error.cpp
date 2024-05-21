@@ -402,13 +402,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__set_txs_connected__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "set_txs_connected");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__set_block_preconfirmable__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__set_block_valid__true_exected_message)
 {
-    constexpr auto value = error::set_block_preconfirmable;
+    constexpr auto value = error::set_block_valid;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "set_block_preconfirmable");
+    BOOST_REQUIRE_EQUAL(ec.message(), "set_block_valid");
 }
 
 // query composite

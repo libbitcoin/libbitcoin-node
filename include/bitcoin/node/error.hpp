@@ -86,7 +86,7 @@ enum error_t : uint8_t
     set_confirmed,
     block_confirmable,
     set_txs_connected,
-    set_block_preconfirmable,
+    set_block_valid,
 
     /// query composite
     node_push,

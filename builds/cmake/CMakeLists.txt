@@ -255,11 +255,11 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/chasers/chaser_check.cpp"
     "../../src/chasers/chaser_confirm.cpp"
     "../../src/chasers/chaser_header.cpp"
-    "../../src/chasers/chaser_preconfirm.cpp"
     "../../src/chasers/chaser_snapshot.cpp"
     "../../src/chasers/chaser_storage.cpp"
     "../../src/chasers/chaser_template.cpp"
     "../../src/chasers/chaser_transaction.cpp"
+    "../../src/chasers/chaser_validate.cpp"
     "../../src/protocols/protocol.cpp"
     "../../src/protocols/protocol_block_in.cpp"
     "../../src/protocols/protocol_block_in_31800.cpp"
@@ -329,9 +329,9 @@ if (with-tests)
         "../../test/chasers/chaser_check.cpp"
         "../../test/chasers/chaser_confirm.cpp"
         "../../test/chasers/chaser_header.cpp"
-        "../../test/chasers/chaser_preconfirm.cpp"
         "../../test/chasers/chaser_template.cpp"
         "../../test/chasers/chaser_transaction.cpp"
+        "../../test/chasers/chaser_validate.cpp"
         "../../test/protocols/protocol.cpp"
         "../../test/sessions/session.cpp" )
 

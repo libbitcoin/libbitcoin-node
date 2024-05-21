@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/chasers/chaser_preconfirm.hpp>
+#include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -26,7 +26,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS chaser_preconfirm
+#define CLASS chaser_validate
 
 using namespace system;
 using namespace system::chain;
@@ -36,21 +36,21 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-chaser_preconfirm::chaser_preconfirm(full_node& node) NOEXCEPT
+chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks)
 {
 }
 
-code chaser_preconfirm::start() NOEXCEPT
+code chaser_validate::start() NOEXCEPT
 {
     update_position(archive().get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
 
-bool chaser_preconfirm::handle_event(const code&, chase event_,
+bool chaser_validate::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
@@ -105,7 +105,7 @@ bool chaser_preconfirm::handle_event(const code&, chase event_,
 // track downloaded in order (to validate)
 // ----------------------------------------------------------------------------
 
-void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT
+void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -114,7 +114,7 @@ void chaser_preconfirm::do_regressed(height_t branch_point) NOEXCEPT
         do_disorganized(branch_point);
 }
 
-void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
+void chaser_validate::do_disorganized(height_t top) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -123,7 +123,7 @@ void chaser_preconfirm::do_disorganized(height_t top) NOEXCEPT
     do_checked(top);
 }
 
-void chaser_preconfirm::do_checked(height_t height) NOEXCEPT
+void chaser_validate::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -132,7 +132,7 @@ void chaser_preconfirm::do_checked(height_t height) NOEXCEPT
         do_bump(height);
 }
 
-void chaser_preconfirm::do_bump(height_t) NOEXCEPT
+void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
@@ -155,11 +155,11 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         {
             if (code == error::validation_bypass ||
                 code == database::error::block_confirmable ||
-                code == database::error::block_preconfirmable)
+                code == database::error::block_valid)
             {
                 // Advance.
                 ++position();
-                notify(code, chase::preconfirmable, height);
+                notify(code, chase::valid, height);
                 fire(events::validate_bypassed, height);
                 continue;
             }
@@ -184,18 +184,18 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
                     return;
                 }
 
-                notify(code, chase::unpreconfirmable, link);
+                notify(code, chase::unvalid, link);
                 fire(events::block_unconfirmable, height);
             }
 
-            LOGR("Unpreconfirmed block [" << height << "] " << code.message());
+            LOGR("Unvalidated block [" << height << "] " << code.message());
             return;
         }
 
         // Commit validation metadata.
         // ....................................................................
 
-        // TODO: set fees on preconfirmable because prevout.value() populated.
+        // TODO: set fees on valid because prevout.value() populated.
         // TODO: in concurrent model sum fees from each validated_tx record.
         // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
         // Tx validation/states are independent of block validation.
@@ -205,9 +205,9 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        if (!query.set_block_preconfirmable(link))
+        if (!query.set_block_valid(link))
         {
-            fault(error::set_block_preconfirmable);
+            fault(error::set_block_valid);
             return;
         }
 
@@ -215,12 +215,12 @@ void chaser_preconfirm::do_bump(height_t) NOEXCEPT
         // ....................................................................
 
         ++position();
-        notify(error::success, chase::preconfirmable, height);
+        notify(error::success, chase::valid, height);
         fire(events::block_validated, height);
     }
 }
 
-code chaser_preconfirm::validate(const header_link& link,
+code chaser_validate::validate(const header_link& link,
     size_t height) NOEXCEPT
 {
     code ec{};
@@ -232,7 +232,7 @@ code chaser_preconfirm::validate(const header_link& link,
     ec = query.get_block_state(link);
     if (ec == database::error::block_confirmable ||
         ec == database::error::block_unconfirmable ||
-        ec == database::error::block_preconfirmable)
+        ec == database::error::block_valid)
         return ec;
 
     database::context context{};
@@ -268,7 +268,7 @@ code chaser_preconfirm::validate(const header_link& link,
 // ----------------------------------------------------------------------------
 
 // Returns null_hash if not found, intended for genesis block.
-hash_digest chaser_preconfirm::get_neutrino(size_t height) const NOEXCEPT
+hash_digest chaser_validate::get_neutrino(size_t height) const NOEXCEPT
 {
     hash_digest neutrino{};
     const auto& query = archive();
@@ -279,7 +279,7 @@ hash_digest chaser_preconfirm::get_neutrino(size_t height) const NOEXCEPT
 }
 
 // This can only fail if block missing or prevouts are not fully populated.
-bool chaser_preconfirm::update_neutrino(const header_link& link) NOEXCEPT
+bool chaser_validate::update_neutrino(const header_link& link) NOEXCEPT
 {
     const auto& query = archive();
     if (!query.neutrino_enabled())
@@ -294,7 +294,7 @@ bool chaser_preconfirm::update_neutrino(const header_link& link) NOEXCEPT
 }
 
 // This can only fail if prevouts are not fully populated.
-bool chaser_preconfirm::update_neutrino(const header_link& link,
+bool chaser_validate::update_neutrino(const header_link& link,
     const chain::block& block) NOEXCEPT
 {
     auto& query = archive();
@@ -310,7 +310,7 @@ bool chaser_preconfirm::update_neutrino(const header_link& link,
 }
 
 
-void chaser_preconfirm::update_position(size_t height) NOEXCEPT
+void chaser_validate::update_position(size_t height) NOEXCEPT
 {
     set_position(height);
     neutrino_ = get_neutrino(position());

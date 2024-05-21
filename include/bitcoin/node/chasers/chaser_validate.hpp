@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_PRECONFIRM_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASER_PRECONFIRM_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -29,13 +29,13 @@ namespace node {
 class full_node;
 
 /// Chase down blocks in the the candidate header chain for validation.
-class BCN_API chaser_preconfirm
+class BCN_API chaser_validate
   : public chaser
 {
 public:
-    DELETE_COPY_MOVE_DESTRUCT(chaser_preconfirm);
+    DELETE_COPY_MOVE_DESTRUCT(chaser_validate);
 
-    chaser_preconfirm(full_node& node) NOEXCEPT;
+    chaser_validate(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
 

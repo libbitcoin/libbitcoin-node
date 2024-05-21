@@ -105,7 +105,7 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
     switch (event_)
     {
         case chase::unchecked:
-        case chase::unpreconfirmable:
+        case chase::unvalid:
         case chase::unconfirmable:
         {
             POST(do_disorganize, possible_narrow_cast<header_t>(value));
@@ -172,10 +172,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             // This eventually stops the peer, but the full set of headers may
             // still cycle through to become strong, despite this being stored
             // as block_unconfirmable from a block validate or confirm failure.
-            // Block preconfirmation will then fail and this cycle will
-            // continue until a strong candidate chain is located. The cycle
-            // occurs because peers continue to send the same headers,which
-            // may indicate an local failure or peer failures.
+            // Block validation will then fail and this cycle will continue
+            // until a strong candidate chain is located. The cycle occurs
+            // because peers continue to send the same headers, which may 
+            // indicate a local failure or peer failures.
             handler(ec, height);
             return;
         }
@@ -341,10 +341,10 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         // is already downloaded, then new header will arrive and download will
         // be skipped, resulting in stall until restart at which time the start
         // event will advance through all downloaded candidates and progress on
-        // arrivals. This bumps preconfirmation for current strong headers.
+        // arrivals. This bumps validation for current strong headers.
         notify(error::success, chase::bump, add1(branch_point));
 
-        // Start block downloads, which upon completion bumps preconfirmation.
+        // Start block downloads, which upon completion bumps validation.
         notify(error::success, chase_object(), branch_point);
     }
 

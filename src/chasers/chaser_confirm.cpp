@@ -63,12 +63,12 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     {
         case chase::block:
         {
-            POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
+            POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::preconfirmable:
+        case chase::valid:
         {
-            POST(do_preconfirmed, possible_narrow_cast<height_t>(value));
+            POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
@@ -84,7 +84,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
-// Blocks are either confirmed (blocks first) or preconfirmed/confirmed
+// Blocks are either confirmed (blocks first) or validated/confirmed
 // (headers first) at this point. An unconfirmable block may not land here.
 // Candidate chain reorganizations will result in reported heights moving
 // in any direction. Each is treated as independent and only one representing
@@ -94,7 +94,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 // The scans are extremely fast and tiny in all typical scnearios, so it may
 // not improve performance or be worth spending 32 bytes per header to store
 // work, especially since individual header work is obtained from 4 bytes.
-void chaser_confirm::do_preconfirmed(height_t height) NOEXCEPT
+void chaser_confirm::do_validated(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -271,7 +271,7 @@ code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
         ec == database::error::block_unconfirmable)
         return ec;
 
-    if (ec == database::error::block_preconfirmable)
+    if (ec == database::error::block_valid)
         return error::success;
 
     // Should not get here without a known block state.
