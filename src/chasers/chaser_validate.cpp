@@ -309,7 +309,6 @@ bool chaser_validate::update_neutrino(const header_link& link,
     return query.set_filter(link, neutrino_, filter);
 }
 
-
 void chaser_validate::update_position(size_t height) NOEXCEPT
 {
     set_position(height);
