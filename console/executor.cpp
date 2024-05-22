@@ -30,18 +30,6 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
-// for do_hardware
-#ifdef HAVE_XCPU
-    constexpr auto with_xcpu = true;
-#else
-    constexpr auto with_xcpu = false;
-#endif
-#ifdef HAVE_ARM
-    constexpr auto with_arm = true;
-#else
-    constexpr auto with_arm = false;
-#endif
-
 namespace libbitcoin {
 namespace node {
 
