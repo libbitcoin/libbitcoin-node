@@ -133,7 +133,16 @@ protected:
     /// Height of checkpoint (or genesis) with maximum height.
     size_t top_checkpoint() const NOEXCEPT;
 
+    /// Position keeping.
+    /// -----------------------------------------------------------------------
+
+    size_t& position() NOEXCEPT;
+    void set_position(size_t height) NOEXCEPT;
+
 private:
+    // This is protected by strand.
+    size_t position_;
+
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;

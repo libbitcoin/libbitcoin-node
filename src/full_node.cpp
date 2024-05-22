@@ -40,7 +40,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
-    chaser_preconfirm_(*this),
+    chaser_validate_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
     chaser_template_(*this),
@@ -79,7 +79,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         chaser_header_.stopping(ec);
         chaser_block_.stopping(ec);
         chaser_check_.stopping(ec);
-        chaser_preconfirm_.stopping(ec);
+        chaser_validate_.stopping(ec);
         chaser_confirm_.stopping(ec);
         chaser_transaction_.stopping(ec);
         chaser_template_.stopping(ec);
@@ -92,7 +92,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
             chaser_header_.start() :
             chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
-        ((ec = chaser_preconfirm_.start())) ||
+        ((ec = chaser_validate_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||

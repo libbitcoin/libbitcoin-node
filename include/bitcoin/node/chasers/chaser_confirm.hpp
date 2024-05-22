@@ -45,7 +45,7 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_preconfirmed(height_t height) NOEXCEPT;
+    virtual void do_validated(height_t height) NOEXCEPT;
     virtual code confirm(const database::header_link& link,
         size_t height) NOEXCEPT;
 

@@ -30,7 +30,7 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// Chasers directed to start operating (height_t).
-    /// Issued by 'full_node' and handled by 'preconfirm'.
+    /// Issued by 'full_node' and handled by 'validate'.
     start,
 
     /// Disk space is limited (count_t).
@@ -38,7 +38,7 @@ enum class chase
     space,
 
     /// Chaser is directed to start when there are no downloads (height_t).
-    /// Issued by 'organize' and handled by 'preconfirm'.
+    /// Issued by 'organize' and handled by 'validate'.
     bump,
 
     /// Channels (all) directed to stop (channel_t).
@@ -87,12 +87,12 @@ enum class chase
     /// Late-stage Invalidity.
     /// -----------------------------------------------------------------------
 
-    /// unchecked, unpreconfirmable or unconfirmable was handled (height_t).
-    /// Issued by 'organize' and handled by 'preconfirm' (disorgs candidates).
+    /// unchecked, unvalid or unconfirmable was handled (height_t).
+    /// Issued by 'organize' and handled by 'validate' (disorgs candidates).
     disorganized,
 
     /// stored block was determined to be malleated (invalid) (header_t).
-    /// Issued by 'preconfirm' and 'confirm', handled by 'chaser' (redownload).
+    /// Issued by 'validate' and 'confirm', handled by 'chaser' (redownload).
     malleated,
 
     /// Validation.
@@ -106,13 +106,13 @@ enum class chase
     /// Issued by 'block_in_31800' and handled by 'header'.
     unchecked,
 
-    /// A branch has become preconfirmable (height_t).
-    /// Issued by 'preconfirm' and handled by 'confirm'.
-    preconfirmable,
+    /// A branch has become valid (height_t).
+    /// Issued by 'validate' and handled by 'confirm'.
+    valid,
 
-    /// A checked block has failed preconfirmability (header_t).
-    /// Issued by 'preconfirm' and handled by 'header'.
-    unpreconfirmable,
+    /// A checked block has failed validation (header_t).
+    /// Issued by 'validate' and handled by 'header'.
+    unvalid,
 
     /// Confirmation.
     /// -----------------------------------------------------------------------

@@ -36,7 +36,7 @@ class BCN_API chaser_check
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_check);
 
-    /// Craete empty shared map.
+    /// Create empty shared map.
     static map_ptr empty_map() NOEXCEPT;
 
     /// Move half of map into returned map.
@@ -58,8 +58,9 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
+    virtual void do_bump(height_t branch_point) NOEXCEPT;
     virtual void do_header(height_t branch_point) NOEXCEPT;
-    virtual void do_preconfirmable(height_t height) NOEXCEPT;
+    virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_disorganized(height_t top) NOEXCEPT;
     virtual void do_malleated(header_t link) NOEXCEPT;
@@ -70,7 +71,6 @@ protected:
 private:
     typedef std::deque<map_ptr> maps;
 
-    ////size_t count_maps() const NOEXCEPT;
     map_ptr get_map() NOEXCEPT;
     size_t get_unassociated() NOEXCEPT;
 
@@ -82,7 +82,6 @@ private:
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
-    size_t validated_{};
     maps maps_{};
 };
 

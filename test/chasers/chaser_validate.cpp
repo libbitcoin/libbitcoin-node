@@ -18,9 +18,9 @@
  */
 #include "../test.hpp"
 
-BOOST_AUTO_TEST_SUITE(chaser_preconfirm_tests)
+BOOST_AUTO_TEST_SUITE(chaser_validate_tests)
 
-BOOST_AUTO_TEST_CASE(chaser_preconfirm_test)
+BOOST_AUTO_TEST_CASE(chaser_validate_test)
 {
     BOOST_REQUIRE(true);
 }

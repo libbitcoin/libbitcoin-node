@@ -30,18 +30,6 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
-// for do_hardware
-#ifdef HAVE_XCPU
-    constexpr auto with_xcpu = true;
-#else
-    constexpr auto with_xcpu = false;
-#endif
-#ifdef HAVE_ARM
-    constexpr auto with_arm = true;
-#else
-    constexpr auto with_arm = false;
-#endif
-
 namespace libbitcoin {
 namespace node {
 
@@ -1526,6 +1514,7 @@ void executor::read_test() const
     constexpr auto hash523354 = base16_hash(
         "0000000000000000002e0e763e60bde40c58aa23f295ef1919b352f3303e06a6");
 
+    const auto start = logger::now();
     const auto link = query_.to_header(hash523354);
     if (link.is_terminal())
     {
@@ -1591,7 +1580,8 @@ void executor::read_test() const
         return;
     }
 
-    logger("Validated block 523354.");
+    const auto span = duration_cast<milliseconds>(logger::now() - start);
+    logger(format("Validated block 523354 in %1% msec.") % span.count());
 }
 
 // arbitrary testing (non-const).

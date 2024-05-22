@@ -31,11 +31,11 @@
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
-#include <bitcoin/node/chasers/chaser_preconfirm.hpp>
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>
 #include <bitcoin/node/chasers/chaser_storage.hpp>
 #include <bitcoin/node/chasers/chaser_template.hpp>
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
+#include <bitcoin/node/chasers/chaser_validate.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
