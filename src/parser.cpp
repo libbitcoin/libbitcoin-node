@@ -204,7 +204,7 @@ options_metadata parser::load_options() THROWS
         BN_COLLISIONS_VARIABLE ",l",
         value<bool>(&configured.collisions)->
             default_value(false)->zero_tokens(),
-        "Scan and display hashmap collision stats."
+        "Scan and display hashmap collision stats (may exceed RAM and result in SIGKILL)."
     )
     (
         BN_INFORMATION_VARIABLE ",i",
@@ -217,7 +217,7 @@ options_metadata parser::load_options() THROWS
         BN_READ_VARIABLE ",t",
         value<bool>(&configured.test)->
             default_value(false)->zero_tokens(),
-        "Run built-in read test and display."
+        "Run built-in read test and display (validate block 523,354 if exists)."
     )
     (
         BN_WRITE_VARIABLE ",w",
