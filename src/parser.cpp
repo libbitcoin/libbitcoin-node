@@ -592,7 +592,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.rate_limit",
         value<uint32_t>(&configured.network.rate_limit),
-        "The peer download rate limit in bytes per second, defaults to 1024."
+        "The peer download rate limit in bytes per second, defaults to 1024 (not implemented)."
     )
     (
         "network.user_agent",
