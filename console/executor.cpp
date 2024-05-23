@@ -363,8 +363,7 @@ void executor::scan_slabs() const
     // Tx (record) links are sequential and so iterable, however the terminal
     // condition assumes all tx entries fully written (ok for stopped node).
     // A running node cannot safely iterate over record links, but stopped can.
-    for (auto puts = query_.put_counts(link);
-        to_bool(puts.first) && !cancel_.load();
+    for (auto puts = query_.put_counts(link); to_bool(puts.first) && !cancel_;
         puts = query_.put_counts(++link))
     {
         inputs += puts.first;
@@ -504,6 +503,8 @@ void executor::scan_buckets() const
 }
 
 // hashmap collision distributions.
+// BUGBUG: the vector allocations are exceessive and can result in sigkill.
+// BUGBUG: must process each header independently as buckets may not coincide.
 void executor::scan_collisions() const
 {
     using namespace database;

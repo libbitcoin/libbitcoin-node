@@ -204,7 +204,7 @@ options_metadata parser::load_options() THROWS
         BN_COLLISIONS_VARIABLE ",l",
         value<bool>(&configured.collisions)->
             default_value(false)->zero_tokens(),
-        "Scan and display hashmap collision stats."
+        "Scan and display hashmap collision stats (may exceed RAM and result in SIGKILL)."
     )
     (
         BN_INFORMATION_VARIABLE ",i",
@@ -217,7 +217,7 @@ options_metadata parser::load_options() THROWS
         BN_READ_VARIABLE ",t",
         value<bool>(&configured.test)->
             default_value(false)->zero_tokens(),
-        "Run built-in read test and display."
+        "Run built-in read test and display (validate block 523,354 if exists)."
     )
     (
         BN_WRITE_VARIABLE ",w",
@@ -592,7 +592,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.rate_limit",
         value<uint32_t>(&configured.network.rate_limit),
-        "The peer download rate limit in bytes per second, defaults to 1024."
+        "The peer download rate limit in bytes per second, defaults to 1024 (not implemented)."
     )
     (
         "network.user_agent",

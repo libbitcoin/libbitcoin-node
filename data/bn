@@ -1,10 +1,11 @@
 #
 #  Command-line completion for bn.
+#  Listed options are currently incomplete.
 #
 _bn()
 {
     local current="${COMP_WORDS[COMP_CWORD]}"
-    local options=" --config --help --initchain --settings --version -c -h -i -s -v"
+    local options=" --config --help --newstore --settings --version -c -h -n -s -v"
 
     COMPREPLY=( `compgen -W "$options" -- $current` )
 }
