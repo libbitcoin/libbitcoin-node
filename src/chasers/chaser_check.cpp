@@ -179,6 +179,8 @@ void chaser_check::do_bump(height_t) NOEXCEPT
     while (!closed() && query.is_associated(
         query.to_candidate(add1(position()))))
         ++position();
+
+    get_unassociated();
 }
 
 // add headers
@@ -187,10 +189,6 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 void chaser_check::do_header(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    if (closed())
-        return;
-
     const auto add = get_unassociated();
     if (!is_zero(add))
         notify(error::success, chase::download, add);
@@ -250,7 +248,6 @@ void chaser_check::put_hashes(const map_ptr& map,
 void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     if (closed())
         return;
 
@@ -264,7 +261,6 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 {
     BC_ASSERT(map->size() <= messages::max_inventory);
     BC_ASSERT(stranded());
-
     if (closed())
         return;
 
@@ -294,9 +290,11 @@ size_t chaser_check::get_unassociated() NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
+    size_t count{};
+    if (closed())
+        return count;
 
     // Defer new work issuance until all gaps are filled.
-    size_t count{};
     if (position() < requested_ || requested_ >= maximum_height_)
         return count;
 
