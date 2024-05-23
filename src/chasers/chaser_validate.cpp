@@ -18,6 +18,8 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
+#include <functional>
+#include <memory>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -34,12 +36,18 @@ using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
 
+constexpr auto threads = 64_size;
+
+// Shared pointer is required to keep the race object alive in bind closure.
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
-    subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks)
+    subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks),
+    pool_(threads, network::thread_priority::normal)
 {
 }
 
@@ -147,6 +155,15 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         if (!query.is_associated(link))
             return;
 
+#if defined UNDEFINED
+        // TODO: the quentity of work must be throttled.
+        if (!enqueue_block(link))
+        {
+            fault(error::store_integrity);
+            return;
+        }
+#endif // UNDEFINED
+
         // Accept/Connect block.
         // ....................................................................
 
@@ -219,6 +236,163 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         fire(events::block_validated, height);
     }
 }
+
+#if defined UNDEFINED
+
+// DISTRUBUTE WORK
+bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    database::context context{};
+    const auto txs = query.to_txs(link);
+    if (txs.empty() || !query.get_context(context, link))
+        return false;
+
+    // race_unity: last to finish with success, or first error code.
+    const auto racer = std::make_shared<race>(txs.size());
+    racer->start(BIND(handle_txs, _1, _2, link));
+
+    for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
+        boost::asio::post(pool_.service(),
+            std::bind(&chaser_validate::validate_tx,
+                this, context, *tx, racer));
+
+    return true;
+}
+
+// CONCURRENT WORK
+void chaser_validate::validate_tx(const database::context& context,
+    const tx_link& link, const race::ptr& racer) NOEXCEPT
+{
+    // TODO: can early terminate if racer has a failure state.
+    // TODO: add fault method to racer exposing an atomic bool.
+    if (closed())
+    {
+        POST(handle_tx, network::error::service_stopped, link, racer);
+        return;
+    }
+
+    auto& query = archive();
+    auto ec = query.get_tx_state(link, context);
+    if (ec == database::error::integrity)
+        ec = error::store_integrity;
+
+    // These states bypass validation.
+    if (ec == error::store_integrity ||
+        ec == database::error::tx_connected ||
+        ec == database::error::tx_disconnected)
+    {
+        POST(handle_tx, ec, link, racer);
+        return;
+    }
+
+    // These states imply validation.
+    //// database::error::tx_preconnected
+    //// database::error::unknown_state
+    //// database::error::unvalidated
+
+    const chain::context ctx
+    {
+        context.flags,  // [accept & connect]
+        {},             // timestamp
+        {},             // mtp
+        context.height, // [accept]
+        {},             // minimum_block_version
+        {}              // work_required
+    };
+
+    const auto validate = [&](const transaction& tx) NOEXCEPT
+    {
+        const auto bip16 = ctx.is_enabled(flags::bip16_rule);
+        const auto bip141 = ctx.is_enabled(flags::bip141_rule);
+        const auto sigops = tx.signature_operations(bip16, bip141);
+
+        // TODO: cache fee and sigops from validation stage.
+        return query.set_tx_connected(link, context, tx.fee(), sigops) ?
+            error::success : error::store_integrity;
+    };
+
+    const auto invalidate = [&](const code& ec) NOEXCEPT
+    {
+        return query.set_tx_disconnected(link, context) ? ec :
+            error::store_integrity;
+    };
+
+    const auto tx = query.get_transaction(link);
+    if (!tx)
+    {
+        ec = error::store_integrity;
+    }
+    else if (!query.populate(*tx))
+    {
+        ec = invalidate(system::error::missing_previous_output);
+    }
+    else if (((ec = tx->accept(ctx))) || ((ec = tx->connect(ctx))))
+    {
+        ec = invalidate(ec);
+    }
+    else
+    {
+        ec = validate(*tx);
+    }
+
+    // link provides context for handle_txs in case of failure code.
+    POST(handle_tx, ec, link, racer);
+}
+
+void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
+    const race::ptr& racer) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // handle_txs will only get invoked once, with a first error code, so
+    // invoke fault here ensure that this non-validation code isn't lost.
+    if (ec == error::store_integrity)
+        fault(ec);
+
+    // Always allow the racer to finish, invokes handle_txs exactly once.
+    racer->finish(ec, tx);
+}
+
+// SYNCHRONIZE WORK
+void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
+    const header_link& link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    if (ec)
+    {
+        // Log tx here as it's the first failed one.
+        LOG_ONLY(const auto hash = encode_hash(archive().get_tx_key(tx));)
+        LOGR("Error validating tx [" << hash << "] " << ec.message());
+    }
+    else
+    {
+        // Don't log tx here as it's just the last successful one.
+        LOG_ONLY(const auto hash = encode_hash(archive().get_header_key(link));)
+        LOGV("Validated transactions from block [" << hash << "].");
+    }
+
+    validate_block(ec, link);
+}
+
+// SUMMARIZE WORK
+void chaser_validate::validate_block(const code& ec,
+    const header_link& link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    // TODO:
+    // If ec (other than store_integrity) block is unconfirmable.
+    // Collect up tx fees and sigops, etc. for block validation with no block.
+}
+
+#endif // UNDEFINED
 
 code chaser_validate::validate(const header_link& link,
     size_t height) NOEXCEPT
@@ -315,6 +489,8 @@ void chaser_validate::update_position(size_t height) NOEXCEPT
     neutrino_ = get_neutrino(position());
 }
 
+BC_POP_WARNING()
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

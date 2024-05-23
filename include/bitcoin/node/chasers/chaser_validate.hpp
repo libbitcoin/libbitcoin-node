@@ -40,6 +40,8 @@ public:
     code start() NOEXCEPT override;
 
 protected:
+    typedef network::race_unity<const code&, const database::tx_link&> race;
+
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
@@ -47,6 +49,18 @@ protected:
     virtual void do_disorganized(height_t top) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
+
+#if defined UNDEFINED
+    virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
+    virtual void validate_tx(const database::context& context,
+        const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
+    virtual void handle_tx(const code& ec, const database::tx_link& tx,
+        const race::ptr& racer) NOEXCEPT;
+    virtual void handle_txs(const code& ec, const database::tx_link& tx,
+        const database::header_link& link) NOEXCEPT;
+    virtual void validate_block(const code& ec,
+        const database::header_link& link) NOEXCEPT;
+#endif // UNDEFINED
 
 private:
     code validate(const database::header_link& link, size_t height) NOEXCEPT;
@@ -62,7 +76,8 @@ private:
     const uint64_t initial_subsidy_;
     const uint32_t subsidy_interval_blocks_;
 
-    // This is protected by strand.
+    // These are protected by strand.
+    network::threadpool pool_;
     system::hash_digest neutrino_{};
 };
 
