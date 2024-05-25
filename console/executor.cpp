@@ -2378,6 +2378,7 @@ bool executor::dispatch()
 // Run.
 // ----------------------------------------------------------------------------
 
+// TODO: verify error handled.
 executor::rotator_t executor::create_log_sink() const
 {
     return
@@ -2389,6 +2390,7 @@ executor::rotator_t executor::create_log_sink() const
     };
 }
 
+// TODO: throws, handle failure.
 system::ofstream executor::create_event_sink() const
 {
     // Standard file name, within the [node].path directory.
