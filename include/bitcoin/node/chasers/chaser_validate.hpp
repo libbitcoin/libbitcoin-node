@@ -50,17 +50,19 @@ protected:
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
-#if defined UNDEFINED
+////#if defined(UNDEFINED)
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void validate_tx(const database::context& context,
         const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
     virtual void handle_tx(const code& ec, const database::tx_link& tx,
         const race::ptr& racer) NOEXCEPT;
     virtual void handle_txs(const code& ec, const database::tx_link& tx,
-        const database::header_link& link) NOEXCEPT;
+        const database::header_link& link,
+        const database::context& ctx) NOEXCEPT;
     virtual void validate_block(const code& ec,
-        const database::header_link& link) NOEXCEPT;
-#endif // UNDEFINED
+        const database::header_link& link,
+        const database::context& ctx) NOEXCEPT;
+////#endif // UNDEFINED
 
 private:
     code validate(const database::header_link& link, size_t height) NOEXCEPT;

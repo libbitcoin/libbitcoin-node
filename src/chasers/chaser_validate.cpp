@@ -152,18 +152,45 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // ....................................................................
 
         const auto link = query.to_candidate(height);
-        if (!query.is_associated(link))
+        auto ec = query.get_block_state(link);
+        if (ec == database::error::unassociated)
+        {
+        }
+
+        if (is_under_bypass(height) && !query.is_malleable(link))
+        {
+            update_neutrino(link);
+            return;
+        }
+
+        if (ec == database::error::block_confirmable ||
+            ec == database::error::block_unconfirmable ||
+            ec == database::error::block_valid)
             return;
 
-#if defined UNDEFINED
-        // TODO: the quentity of work must be throttled.
+        if (ec == error::validation_bypass ||
+            ec == database::error::block_confirmable ||
+            ec == database::error::block_valid)
+        {
+            update_position(height);
+            notify(ec, chase::valid, height);
+            fire(events::validate_bypassed, height);
+            continue;
+        }
+
+        // TODO: the quantity of work must be throttled.
+        // This will very rapidly pump all outstanding work into asio queue.
         if (!enqueue_block(link))
         {
             fault(error::store_integrity);
             return;
         }
-#endif // UNDEFINED
+        else
+        {
+            update_position(height);
+        }
 
+#if defined(UNDEFINED)
         // Accept/Connect block.
         // ....................................................................
 
@@ -234,10 +261,11 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         ++position();
         notify(error::success, chase::valid, height);
         fire(events::block_validated, height);
+#endif // UNDEFINED
     }
 }
 
-#if defined UNDEFINED
+////#if defined(UNDEFINED)
 
 // DISTRUBUTE WORK
 bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
@@ -252,8 +280,9 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
 
     // race_unity: last to finish with success, or first error code.
     const auto racer = std::make_shared<race>(txs.size());
-    racer->start(BIND(handle_txs, _1, _2, link));
+    racer->start(BIND(handle_txs, _1, _2, link, context));
 
+    fire(events::block_buffered, context.height);
     for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
         boost::asio::post(pool_.service(),
             std::bind(&chaser_validate::validate_tx,
@@ -266,8 +295,6 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
 void chaser_validate::validate_tx(const database::context& context,
     const tx_link& link, const race::ptr& racer) NOEXCEPT
 {
-    // TODO: can early terminate if racer has a failure state.
-    // TODO: add fault method to racer exposing an atomic bool.
     if (closed())
     {
         POST(handle_tx, network::error::service_stopped, link, racer);
@@ -276,11 +303,9 @@ void chaser_validate::validate_tx(const database::context& context,
 
     auto& query = archive();
     auto ec = query.get_tx_state(link, context);
-    if (ec == database::error::integrity)
-        ec = error::store_integrity;
 
     // These states bypass validation.
-    if (ec == error::store_integrity ||
+    if (ec == database::error::integrity ||
         ec == database::error::tx_connected ||
         ec == database::error::tx_disconnected)
     {
@@ -288,7 +313,7 @@ void chaser_validate::validate_tx(const database::context& context,
         return;
     }
 
-    // These states imply validation.
+    // These other states imply validation is required.
     //// database::error::tx_preconnected
     //// database::error::unknown_state
     //// database::error::unvalidated
@@ -303,7 +328,8 @@ void chaser_validate::validate_tx(const database::context& context,
         {}              // work_required
     };
 
-    const auto validate = [&](const transaction& tx) NOEXCEPT
+    const auto set_connected = [&query, &ctx, &link, &context](
+        const transaction& tx) NOEXCEPT
     {
         const auto bip16 = ctx.is_enabled(flags::bip16_rule);
         const auto bip141 = ctx.is_enabled(flags::bip141_rule);
@@ -314,12 +340,15 @@ void chaser_validate::validate_tx(const database::context& context,
             error::success : error::store_integrity;
     };
 
-    const auto invalidate = [&](const code& ec) NOEXCEPT
+    const auto set_disconnected = [&query, &link, &context](
+        const code& invalid) NOEXCEPT
     {
-        return query.set_tx_disconnected(link, context) ? ec :
+        return query.set_tx_disconnected(link, context) ? invalid :
             error::store_integrity;
     };
 
+    code invalid{};
+    const auto start = log.now();
     const auto tx = query.get_transaction(link);
     if (!tx)
     {
@@ -327,18 +356,25 @@ void chaser_validate::validate_tx(const database::context& context,
     }
     else if (!query.populate(*tx))
     {
-        ec = invalidate(system::error::missing_previous_output);
+        ec = set_disconnected(system::error::missing_previous_output);
+        fire(events::tx_invalidated, ctx.height);
     }
-    else if (((ec = tx->accept(ctx))) || ((ec = tx->connect(ctx))))
+    else if (((invalid = tx->accept(ctx))) || ((invalid = tx->connect(ctx))))
     {
-        ec = invalidate(ec);
+        ec = set_disconnected(invalid);
+        fire(events::tx_invalidated, ctx.height);
+
+        LOGR("Invalid tx [" << encode_hash(tx->hash(false)) << "] in block ("
+            << ctx .height << ") " << invalid.message());
     }
     else
     {
-        ec = validate(*tx);
+        ec = set_connected(*tx);
+
+        //// Too much data.
+        ////span<network::microseconds>(events::tx_validated, start);
     }
 
-    // link provides context for handle_txs in case of failure code.
     POST(handle_tx, ec, link, racer);
 }
 
@@ -348,17 +384,18 @@ void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
     BC_ASSERT(stranded());
 
     // handle_txs will only get invoked once, with a first error code, so
-    // invoke fault here ensure that this non-validation code isn't lost.
-    if (ec == error::store_integrity)
+    // invoke fault here ensure that non-validation codes are not lost.
+    if (ec == error::store_integrity || ec == database::error::integrity)
         fault(ec);
 
+    // TODO: need to sort out bypass, validity, and fault codes.
     // Always allow the racer to finish, invokes handle_txs exactly once.
     racer->finish(ec, tx);
 }
 
 // SYNCHRONIZE WORK
 void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
-    const header_link& link) NOEXCEPT
+    const header_link& link, const database::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (closed())
@@ -374,26 +411,37 @@ void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
     {
         // Don't log tx here as it's just the last successful one.
         LOG_ONLY(const auto hash = encode_hash(archive().get_header_key(link));)
-        LOGV("Validated transactions from block [" << hash << "].");
+        ////LOGV("Validated transactions from block [" << hash << "].");
     }
 
-    validate_block(ec, link);
+    validate_block(ec, link, ctx);
 }
 
 // SUMMARIZE WORK
 void chaser_validate::validate_block(const code& ec,
-    const header_link& link) NOEXCEPT
+    const header_link& link, const database::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
+    if (ec && query.is_malleable(link))
+    {
+        notify(ec, chase::malleated, link);
+        fire(events::block_malleated, ctx.height);
+        return;
+    }
 
     // TODO:
     // If ec (other than store_integrity) block is unconfirmable.
     // Collect up tx fees and sigops, etc. for block validation with no block.
+
+    // fire event first so that log is ordered.
+    fire(events::block_validated, ctx.height);
+    notify(ec, chase::valid, ctx.height);
 }
 
-#endif // UNDEFINED
+////#endif // UNDEFINED
 
+#if defined (UNDEFINED)
 code chaser_validate::validate(const header_link& link,
     size_t height) NOEXCEPT
 {
@@ -438,6 +486,8 @@ code chaser_validate::validate(const header_link& link,
     return update_neutrino(link, block) ? ec : error::store_integrity;
 }
 
+#endif // UNDEFINED
+
 // neutrino
 // ----------------------------------------------------------------------------
 
@@ -457,6 +507,10 @@ bool chaser_validate::update_neutrino(const header_link& link) NOEXCEPT
 {
     const auto& query = archive();
     if (!query.neutrino_enabled())
+        return true;
+
+    // Avoid computing the filter if already stored.
+    if (!query.to_filter(link).is_terminal())
         return true;
 
     const auto block_ptr = query.get_block(link);
