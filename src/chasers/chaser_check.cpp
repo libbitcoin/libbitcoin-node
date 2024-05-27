@@ -175,6 +175,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
+    // TODO: query.is_associated() is very expensive (hashmap search).
     // Skip checked blocks starting immediately after last checked.
     while (!closed() && query.is_associated(
         query.to_candidate(add1(position()))))
@@ -316,6 +317,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
 
     while (true)
     {
+        // Calls query.is_associated() per block, expensive (hashmap search).
         const auto map = std::make_shared<associations>(
             query.get_unassociated_above(requested_, inventory_, stop));
 
