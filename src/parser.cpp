@@ -59,6 +59,10 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.services_maximum = service::node_network | 
         service::node_witness;
 
+    // database
+
+    configured.database.minimize = false;
+
     // archive
 
     configured.database.header_buckets = 524'493;
@@ -640,6 +644,11 @@ options_metadata parser::load_settings() THROWS
         "database.path",
         value<std::filesystem::path>(&configured.database.path),
         "The blockchain database directory, defaults to 'blockchain'."
+    )
+    (
+        "database.minimize",
+        value<bool>(&configured.database.minimize),
+        "Minimize store, saves ~50GiB, requires high RAM to avoid thrashing, defaults to false."
     )
 
     /* header */
