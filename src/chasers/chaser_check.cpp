@@ -356,15 +356,6 @@ size_t chaser_check::get_maximum_inventory() const NOEXCEPT
     return system::ceilinged_divide(inventory, peers);
 }
 
-////size_t chaser_check::count_maps() const NOEXCEPT
-////{
-////    return std::accumulate(maps_.begin(), maps_.end(), zero,
-////        [](size_t sum, const map_ptr& map) NOEXCEPT
-////        {
-////            return sum + map->size();
-////        });
-////}
-
 BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
