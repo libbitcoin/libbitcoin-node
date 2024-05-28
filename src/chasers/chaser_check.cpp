@@ -245,7 +245,6 @@ void chaser_check::put_hashes(const map_ptr& map,
             this, map, std::move(handler)));
 }
 
-////LOGN("Hashes -" << map->size() << " (" << count_maps() << ") remain.");
 void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -256,7 +255,6 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     handler(error::success, map);
 }
 
-////LOGN("Hashes +" << map->size() << " (" << count_maps() << ") remain.");
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
@@ -302,7 +300,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     // Inventory size gets set only once.
     if (is_zero(inventory_))
     {
-        inventory_ = get_maximum_inventory();
+        inventory_ = get_inventory_size();
         if (is_zero(inventory_)) return zero;
     }
 
@@ -341,7 +339,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     return count;
 }
 
-size_t chaser_check::get_maximum_inventory() const NOEXCEPT
+size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
     // Either condition means blocks shouldn't be getting downloaded (yet).
     const auto peers = config().network.outbound_connections;
