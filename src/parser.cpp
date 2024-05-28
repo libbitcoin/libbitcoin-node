@@ -883,6 +883,11 @@ options_metadata parser::load_settings() THROWS
 
     /* [node] */
     (
+        "node.threads",
+        value<uint32_t>(&configured.node.threads),
+        "The number of threads in the validation threadpool, defaults to 16."
+    )
+    (
         "node.headers_first",
         value<bool>(&configured.node.headers_first),
         "Obtain current header chain before obtaining associated blocks, defaults to true."
