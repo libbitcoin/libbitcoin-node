@@ -74,27 +74,27 @@ bool chaser_validate::handle_event(const code&, chase event_,
     {
         // Track downloaded.
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        case chase::start:
-        case chase::bump:
-        {
-            POST(do_bump, height_t{});
-            break;
-        }
-        case chase::checked:
-        {
-            POST(do_checked, possible_narrow_cast<height_t>(value));
-            break;
-        }
-        case chase::regressed:
-        {
-            POST(do_regressed, possible_narrow_cast<height_t>(value));
-            break;
-        }
-        case chase::disorganized:
-        {
-            POST(do_disorganized, possible_narrow_cast<height_t>(value));
-            break;
-        }
+        ////case chase::start:
+        ////case chase::bump:
+        ////{
+        ////    POST(do_bump, height_t{});
+        ////    break;
+        ////}
+        ////case chase::checked:
+        ////{
+        ////    POST(do_checked, possible_narrow_cast<height_t>(value));
+        ////    break;
+        ////}
+        ////case chase::regressed:
+        ////{
+        ////    POST(do_regressed, possible_narrow_cast<height_t>(value));
+        ////    break;
+        ////}
+        ////case chase::disorganized:
+        ////{
+        ////    POST(do_disorganized, possible_narrow_cast<height_t>(value));
+        ////    break;
+        ////}
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
         case chase::stop:
