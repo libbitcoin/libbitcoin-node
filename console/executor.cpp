@@ -2379,7 +2379,7 @@ bool executor::dispatch()
 // Run.
 // ----------------------------------------------------------------------------
 
-// TODO: verify error handled.
+// TODO: verify construction failure handled.
 executor::rotator_t executor::create_log_sink() const
 {
     return
