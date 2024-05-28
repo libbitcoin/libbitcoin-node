@@ -118,6 +118,7 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
     { events::header_reorganized,  "header_reorganized.." },
 
     { events::block_archived,      "block_archived......" },
+    { events::block_buffered,      "block_buffered......" },
     { events::block_validated,     "block_validated....." },
     { events::block_confirmed,     "block_confirmed....." },
     { events::block_unconfirmable, "block_unconfirmable." },
