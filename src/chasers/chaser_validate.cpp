@@ -36,8 +36,6 @@ using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
 
-constexpr auto threads = 64_size;
-
 // Shared pointer is required to keep the race object alive in bind closure.
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
@@ -47,7 +45,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks),
-    pool_(threads, network::thread_priority::normal)
+    threadpool_(std::min(node.config().node.threads, 1_u32))
 {
 }
 
@@ -284,7 +282,7 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
 
     fire(events::block_buffered, context.height);
     for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
-        boost::asio::post(pool_.service(),
+        boost::asio::post(threadpool_.service(),
             std::bind(&chaser_validate::validate_tx,
                 this, context, *tx, racer));
 

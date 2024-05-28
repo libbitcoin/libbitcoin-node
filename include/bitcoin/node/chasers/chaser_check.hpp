@@ -54,7 +54,6 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual size_t get_maximum_inventory() const NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
@@ -73,6 +72,7 @@ private:
 
     map_ptr get_map() NOEXCEPT;
     size_t get_unassociated() NOEXCEPT;
+    size_t get_inventory_size() const NOEXCEPT;
 
     // These are thread safe.
     const size_t maximum_concurrency_;

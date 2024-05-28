@@ -42,30 +42,31 @@ BOOST_AUTO_TEST_CASE(settings__log__default_context__expected)
     BOOST_REQUIRE_EQUAL(log.log_file1(), "bn_end.log");
     BOOST_REQUIRE_EQUAL(log.log_file2(), "bn_begin.log");
     BOOST_REQUIRE_EQUAL(log.events_file(), "events.log");
+#if defined(HAVE_MSC)
+    BOOST_REQUIRE_EQUAL(log.symbols, "");
+#endif
 }
 
 // [node]
 
 BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
 {
+    using namespace network;
+
     const node::settings node{};
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
-
     BOOST_REQUIRE_EQUAL(node.snapshot_bytes, 107'374'182'400_u64);
     BOOST_REQUIRE_EQUAL(node.snapshot_valid, 100'000_u32);
-
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
-
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
-
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
-    BOOST_REQUIRE(node.sample_period() == network::steady_clock::duration(network::seconds(10)));
-
+    BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
-    BOOST_REQUIRE(node.currency_window() == network::steady_clock::duration(network::minutes(60)));
+    BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(60)));
+    BOOST_REQUIRE_EQUAL(node.threads, 1_u32);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

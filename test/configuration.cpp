@@ -43,25 +43,12 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE(!instance.test);
     BOOST_REQUIRE(!instance.write);
 
+    // Just a sample of settings.
+    BOOST_REQUIRE(instance.database.minimize);
+    BOOST_REQUIRE(instance.node.headers_first);
+    BOOST_REQUIRE_EQUAL(instance.network.threads, 1_u32);
+    BOOST_REQUIRE_EQUAL(instance.bitcoin.first_version, 1_u32);
     BOOST_REQUIRE_EQUAL(instance.log.application, levels::application_defined);
-    BOOST_REQUIRE_EQUAL(instance.log.news, levels::news_defined);
-    BOOST_REQUIRE_EQUAL(instance.log.session, levels::session_defined);
-    BOOST_REQUIRE_EQUAL(instance.log.protocol, false /*levels::protocol_defined*/);
-    BOOST_REQUIRE_EQUAL(instance.log.proxy, false /*levels::proxy_defined*/);
-    BOOST_REQUIRE_EQUAL(instance.log.remote, levels::remote_defined);
-    BOOST_REQUIRE_EQUAL(instance.log.fault, levels::fault_defined);
-    BOOST_REQUIRE_EQUAL(instance.log.quitting, false /*levels::quitting_defined*/);
-    BOOST_REQUIRE_EQUAL(instance.log.objects, false /*levels::objects_defined*/);
-    BOOST_REQUIRE_EQUAL(instance.log.verbose, false /*levels::verbose_defined*/);
-
-    BOOST_REQUIRE_EQUAL(instance.log.maximum_size, 1'000'000_u32);
-    BOOST_REQUIRE_EQUAL(instance.log.log_file1(), "bn_end.log");
-    BOOST_REQUIRE_EQUAL(instance.log.log_file2(), "bn_begin.log");
-    BOOST_REQUIRE_EQUAL(instance.log.events_file(), "events.log");
-    BOOST_REQUIRE_EQUAL(instance.log.path, "");
-#if defined(HAVE_MSC)
-    BOOST_REQUIRE_EQUAL(instance.log.symbols, "");
-#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()

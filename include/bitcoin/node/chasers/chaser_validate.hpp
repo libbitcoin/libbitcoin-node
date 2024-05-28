@@ -79,7 +79,7 @@ private:
     const uint32_t subsidy_interval_blocks_;
 
     // These are protected by strand.
-    network::threadpool pool_;
+    network::threadpool threadpool_;
     system::hash_digest neutrino_{};
 };
 
