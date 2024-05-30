@@ -116,12 +116,12 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // optional
 
-    configured.database.address_buckets = 1'459'791'875;
-    configured.database.address_size = 29'390'853'398;
+    configured.database.address_buckets = 0;
+    configured.database.address_size = 1;
     configured.database.address_rate = 5;
 
-    configured.database.neutrino_buckets = 524'493;
-    configured.database.neutrino_size =  2'656'071'402;
+    configured.database.neutrino_buckets = 0;
+    configured.database.neutrino_size =  1;
     configured.database.neutrino_rate = 5;
 
     ////configured.database.buffer_buckets = 100;
@@ -851,34 +851,34 @@ options_metadata parser::load_settings() THROWS
     (
         "database.address_buckets",
         value<uint32_t>(&configured.database.address_buckets),
-        "The number of buckets in the address table head, defaults to '1459791875' (0 disables)."
+        "The number of buckets in the address table head, defaults to '0' (0 disables)."
     )
     (
         "database.address_size",
         value<uint64_t>(&configured.database.address_size),
-        "The minimum allocation of the address table body, defaults to '29390853398'."
+        "The minimum allocation of the address table body, defaults to '1'."
     )
     (
         "database.address_rate",
         value<uint16_t>(&configured.database.address_rate),
-        "The percentage expansion of the address table body, defaults to '5'."
+        "The percentage expansion of the address table body, defaults to '0'."
     )
 
     /* neutrino */
     (
         "database.neutrino_buckets",
         value<uint32_t>(&configured.database.neutrino_buckets),
-        "The number of buckets in the neutrino table head, defaults to '524493' (0 disables)."
+        "The number of buckets in the neutrino table head, defaults to '0' (0 disables)."
     )
     (
         "database.neutrino_size",
         value<uint64_t>(&configured.database.neutrino_size),
-        "The minimum allocation of the neutrino table body, defaults to '2656071402'."
+        "The minimum allocation of the neutrino table body, defaults to '1'."
     )
     (
         "database.neutrino_rate",
         value<uint16_t>(&configured.database.neutrino_rate),
-        "The percentage expansion of the neutrino table body, defaults to '5'."
+        "The percentage expansion of the neutrino table body, defaults to '0'."
     )
 
     /* [node] */
