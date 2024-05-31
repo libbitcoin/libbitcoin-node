@@ -873,7 +873,7 @@ void executor::read_test() const
                     null_hash,
                     max_uint32,  // height
 
-                    nullptr,
+                    nullptr,     //query_.get_output(out_fk),
                     nullptr
                 });
                 continue;
