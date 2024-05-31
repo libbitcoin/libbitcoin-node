@@ -45,7 +45,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks),
-    threadpool_(std::min(node.config().node.threads, 1_u32))
+    threadpool_(std::max(node.config().node.threads, 1_u32))
 {
 }
 
@@ -263,8 +263,6 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     }
 }
 
-////#if defined(UNDEFINED)
-
 // DISTRUBUTE WORK
 bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
 {
@@ -405,12 +403,6 @@ void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
         LOG_ONLY(const auto hash = encode_hash(archive().get_tx_key(tx));)
         LOGR("Error validating tx [" << hash << "] " << ec.message());
     }
-    else
-    {
-        // Don't log tx here as it's just the last successful one.
-        LOG_ONLY(const auto hash = encode_hash(archive().get_header_key(link));)
-        ////LOGV("Validated transactions from block [" << hash << "].");
-    }
 
     validate_block(ec, link, ctx);
 }
@@ -436,8 +428,6 @@ void chaser_validate::validate_block(const code& ec,
     fire(events::block_validated, ctx.height);
     notify(ec, chase::valid, ctx.height);
 }
-
-////#endif // UNDEFINED
 
 #if defined (UNDEFINED)
 code chaser_validate::validate(const header_link& link,
@@ -483,7 +473,6 @@ code chaser_validate::validate(const header_link& link,
     // This can only fail if block missing or prevouts are not fully populated.
     return update_neutrino(link, block) ? ec : error::store_integrity;
 }
-
 #endif // UNDEFINED
 
 // neutrino

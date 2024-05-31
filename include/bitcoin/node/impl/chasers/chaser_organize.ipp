@@ -302,7 +302,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        fire(events::header_organized, index++);
+        ////fire(events::header_organized, index++);
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -314,8 +314,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        fire(events::header_archived, index);
-        fire(events::header_organized, index++);
+        ////fire(events::header_archived, index);
+        ////fire(events::header_organized, index++);
     }
 
     // Push new header as top of candidate chain.
@@ -326,8 +326,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
         
-        fire(events::header_archived, index);
-        fire(events::header_organized, index++);
+        ////fire(events::header_archived, index);
+        ////fire(events::header_organized, index++);
     }
 
     // Reset top chain state cache and notify.

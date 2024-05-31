@@ -50,7 +50,6 @@ protected:
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
-////#if defined(UNDEFINED)
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void validate_tx(const database::context& context,
         const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
@@ -62,10 +61,11 @@ protected:
     virtual void validate_block(const code& ec,
         const database::header_link& link,
         const database::context& ctx) NOEXCEPT;
-////#endif // UNDEFINED
 
 private:
+#if defined (UNDEFINED)
     code validate(const database::header_link& link, size_t height) NOEXCEPT;
+#endif // UNDEFINED
 
     // neutrino
     system::hash_digest get_neutrino(size_t height) const NOEXCEPT;

@@ -334,10 +334,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    const auto size = block_ptr->serialized_size(true);
-    const auto& txs_ptr = block_ptr->transactions_ptr();
+    const auto txs_ptr = block_ptr->transactions_ptr();
+    const auto block_size = block_ptr->serialized_size(true);
 
-    if (const auto code = query.set_code(*txs_ptr, link, size))
+    // block_ptr goes out of scope here, even if a reference is held to its
+    // transactions_ptr, so txs_ptr must be a pointer copy.
+    if (const auto code = query.set_code(*txs_ptr, link, block_size))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "

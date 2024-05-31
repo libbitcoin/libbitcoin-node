@@ -740,39 +740,6 @@ void executor::scan_collisions() const
 ////    logger("No read test implemented.");
 ////}
 
-#if defined(UNDEFINED)
-
-void executor::read_test() const
-{
-    logger("Wire size computation.");
-    const auto start = fine_clock::now();
-    constexpr auto last = 500'000_size;
-
-    size_t size{};
-    for (auto height = zero; !cancel_ && height <= last; ++height)
-    {
-        const auto link = query_.to_candidate(height);
-        if (link.is_terminal())
-        {
-            logger(format("Max candidate height is (%1%).") % sub1(height));
-            return;
-        }
-
-        const auto bytes = query_.get_block_size(link);
-        if (is_zero(bytes))
-        {
-            logger(format("Block (%1%) is not associated.") % height);
-            return;
-        }
-
-        size += bytes;
-    }
-
-    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
-        size % last % span.count());
-}
-
 void executor::read_test() const
 {
     constexpr auto start_tx = 15'000_u32;
@@ -906,7 +873,7 @@ void executor::read_test() const
                     null_hash,
                     max_uint32,  // height
 
-                    nullptr,
+                    nullptr,     //query_.get_output(out_fk),
                     nullptr
                 });
                 continue;
@@ -1005,6 +972,7 @@ void executor::read_test() const
     logger(format("Got all [%1%] payments to [%2%] addresses in [%3%] ms.") %
         outs.size() % keys.size() % span.count());
 
+    // Write it all...
     ////logger(
     ////    "output_script_hash, "
     ////    "output_fk, "
@@ -1066,6 +1034,39 @@ void executor::read_test() const
     ////        output%
     ////        input);
     ////}
+}
+
+#if defined(UNDEFINED)
+
+void executor::read_test() const
+{
+    logger("Wire size computation.");
+    const auto start = fine_clock::now();
+    constexpr auto last = 500'000_size;
+
+    size_t size{};
+    for (auto height = zero; !cancel_ && height <= last; ++height)
+    {
+        const auto link = query_.to_candidate(height);
+        if (link.is_terminal())
+        {
+            logger(format("Max candidate height is (%1%).") % sub1(height));
+            return;
+        }
+
+        const auto bytes = query_.get_block_size(link);
+        if (is_zero(bytes))
+        {
+            logger(format("Block (%1%) is not associated.") % height);
+            return;
+        }
+
+        size += bytes;
+    }
+
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
+        size % last % span.count());
 }
 
 void executor::read_test() const
@@ -1508,8 +1509,6 @@ void executor::read_test() const
     logger(format("STOP (%1% secs)") % span.count());
 }
 
-#endif // UNDEFINED
-
 // TODO: create a block/tx dumper.
 void executor::read_test() const
 {
@@ -1530,6 +1529,7 @@ void executor::read_test() const
         logger("!block");
         return;
     }
+
     if (!block->is_valid())
     {
         logger("!block->is_valid()");
@@ -1585,6 +1585,8 @@ void executor::read_test() const
     const auto span = duration_cast<milliseconds>(logger::now() - start);
     logger(format("Validated block 523354 in %1% msec.") % span.count());
 }
+
+#endif // UNDEFINED
 
 // arbitrary testing (non-const).
 void executor::write_test()
@@ -2379,7 +2381,7 @@ bool executor::dispatch()
 // Run.
 // ----------------------------------------------------------------------------
 
-// TODO: verify error handled.
+// TODO: verify construction failure handled.
 executor::rotator_t executor::create_log_sink() const
 {
     return
