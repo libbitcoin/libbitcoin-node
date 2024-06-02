@@ -316,8 +316,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         // Do not rely on return code because does not catch non-bypass mally.
         if (block_ptr->is_malleated32())
         {
-            LOGR("Malleated32 block [" << encode_hash(hash) << ":" << ctx.height
-                << "] from [" << authority() << "].");
+            LOGR("Malleated32 block [" << encode_hash(hash) << ":"
+                << ctx.height << "] from [" << authority() << "] "
+                << code.message());
             stop(code);
             return false;
         }
@@ -326,8 +327,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         // Cannot mark unconfirmable as confirmable with same hash may exist.
         if (block_ptr->is_malleable64())
         {
-            LOGR("Malleable block [" << encode_hash(hash) << ":" << ctx.height
-                << "] from [" << authority() << "] failed check, "
+            LOGR("Malleable64 block failed check [" << encode_hash(hash) << ":"
+                << ctx.height << "] from [" << authority() << "] "
                 << code.message());
             stop(code);
             return false;
@@ -344,8 +345,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         }
 
         // Non-malleable block failed block check and was set unconfirmable. 
-        LOGR("Block [" << encode_hash(hash) << ":" << ctx.height  << "] from ["
-            << authority() << "] failed check, " << code.message());
+        LOGR("Block failed check [" << encode_hash(hash) << ":" << ctx.height
+            << "] from [" << authority() << "] " << code.message());
         notify(error::success, chase::unchecked, link);
         fire(events::block_unconfirmable, ctx.height);
         stop(code);
