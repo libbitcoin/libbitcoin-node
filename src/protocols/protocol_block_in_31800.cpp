@@ -277,7 +277,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     auto& query = archive();
-    const auto& block_ptr = message->block_ptr;
+    const chain::block::cptr block_ptr{ message->block_ptr };
     const auto hash = block_ptr->hash();
     const auto it = map_->find(hash);
 
@@ -356,10 +356,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    // block_ptr goes out of scope here, even if a reference is held to its
-    // transactions_ptr, so txs_ptr must be a pointer copy.
-    chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
-    const auto block_size = block_ptr->serialized_size(true);
+    const auto size = block_ptr->serialized_size(true);
+    const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     // TODO: ensure that when a mally64 is caught under bypass that tx
@@ -367,7 +365,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Query: A strong_tx may be in a not-yet-confirmed block.
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    if (const auto code = query.set_code(*txs_ptr, link, block_size, bypass))
+    if (const auto code = query.set_code(*txs_ptr, link, size, bypass))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "
