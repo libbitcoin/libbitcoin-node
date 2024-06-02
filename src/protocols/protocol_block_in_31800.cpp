@@ -289,10 +289,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    if (query.is_malleated(*block_ptr))
+    if (query.is_malleated64(*block_ptr))
     {
         // Disallow known block malleation, drop peer and keep trying.
-        LOGR("Malleated block [" << encode_hash(hash) << "] from ["
+        // Malleation is assumed (and archived) when malleable64 is invalid.
+        LOGR("Malleated64 block [" << encode_hash(hash) << "] from ["
             << authority() << "].");
         stop(error::malleated_block);
         return false;
@@ -307,31 +308,46 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Hack to measure performance with cached bypass point.
     constexpr auto bypass = true;
 
-    // Perform full check if block is malleable.
-    // mally32 is caught here, mally64 may pass.
+    // Performs full check if block is mally64 (mally32 is caught here).
     if (const auto code = check(*block_ptr, ctx, bypass))
     {
-        // Both forms of malleabilty are possible here.
-        // Malleable has not been associated, so just drop peer and continue.
-        if (!block_ptr->is_malleable())
+        // Malleated32 is never associated, so drop peer and continue.
+        // Cannot mark unconfirmable as confirmable with same hash may exist.
+        // Do not rely on return code because does not catch non-bypass mally.
+        if (block_ptr->is_malleated32())
         {
-            if (!query.set_block_unconfirmable(link))
-            {
-                LOGF("Failure setting block unconfirmable ["
-                    << encode_hash(hash) << ":" << ctx.height
-                    << "] from [" << authority() << "].");
-
-                fault(error::set_block_unconfirmable);
-                return false;
-            }
-
-            notify(error::success, chase::unchecked, link);
-            fire(events::block_unconfirmable, ctx.height);
+            LOGR("Malleated32 block [" << encode_hash(hash) << ":" << ctx.height
+                << "] from [" << authority() << "].");
+            stop(code);
+            return false;
         }
 
-        LOGR("Unchecked block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "] " << code.message());
+        // Malleable64 has not been associated, so drop peer and continue.
+        // Cannot mark unconfirmable as confirmable with same hash may exist.
+        if (block_ptr->is_malleable64())
+        {
+            LOGR("Malleable block [" << encode_hash(hash) << ":" << ctx.height
+                << "] from [" << authority() << "] failed check, "
+                << code.message());
+            stop(code);
+            return false;
+        }
 
+        // Set invalid non-malleable header to unconfirmable state.
+        // Mark unconfirmable as block is neither malleated32 nor malleable64.
+        if (!query.set_block_unconfirmable(link))
+        {
+            LOGF("Failure setting block unconfirmable [" << encode_hash(hash)
+                << ":" << ctx.height << "] from [" << authority() << "].");
+            fault(error::set_block_unconfirmable);
+            return false;
+        }
+
+        // Non-malleable block failed block check and was set unconfirmable. 
+        LOGR("Block [" << encode_hash(hash) << ":" << ctx.height  << "] from ["
+            << authority() << "] failed check, " << code.message());
+        notify(error::success, chase::unchecked, link);
+        fire(events::block_unconfirmable, ctx.height);
         stop(code);
         return false;
     }
