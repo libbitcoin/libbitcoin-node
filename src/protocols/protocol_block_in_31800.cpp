@@ -307,6 +307,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Hack to measure performance with cached bypass point.
     constexpr auto bypass = true;
 
+    // Perform full check if block is malleable.
+    // mally32 is caught here, mally64 may pass.
     if (const auto code = check(*block_ptr, ctx, bypass))
     {
         // Both forms of malleabilty are possible here.
@@ -337,11 +339,17 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    const auto txs_ptr = block_ptr->transactions_ptr();
-    const auto block_size = block_ptr->serialized_size(true);
-
     // block_ptr goes out of scope here, even if a reference is held to its
     // transactions_ptr, so txs_ptr must be a pointer copy.
+    chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
+    const auto block_size = block_ptr->serialized_size(true);
+
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // TODO: ensure that when a mally64 is caught under bypass that tx
+    // confirmations are reverted when the block is sequentially invalidated.
+    // Query: A strong_tx may be in a not-yet-confirmed block.
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
     if (const auto code = query.set_code(*txs_ptr, link, block_size, bypass))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
