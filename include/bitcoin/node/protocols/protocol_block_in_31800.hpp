@@ -75,7 +75,7 @@ private:
     using type_id = network::messages::inventory::type_id;
 
     code check(const system::chain::block& block,
-        const system::chain::context& ctx) const NOEXCEPT;
+        const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
     void send_get_data(const map_ptr& map) NOEXCEPT;
     network::messages::get_data create_get_data(

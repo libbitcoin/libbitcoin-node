@@ -1602,18 +1602,10 @@ void executor::write_test()
     size_t count{};
     const auto start = fine_clock::now();
 
-    ////// This tx in block 840161 is not strong by block 840112 (weak prevout).
-    ////const auto tx = "865d721037b0c995822367c41875593d7093d1bae412f3861ce471de3c07e180";
-    ////const auto block = "00000000000000000002504eefed4dc72956aa941aa7b6defe893e261de6a636";
-    ////const auto hash = system::base16_hash(block);
-    ////if (!query_.push_candidate(query_.to_header(hash)))
-    ////{
-    ////    logger(format("!query_.push_candidate(query_.to_header(hash))"));
-    ////    return;
-    ////}
+    const auto fork = query_.get_fork();
+    const auto top_associated = query_.get_top_associated_from(fork);
 
-    for (size_t height = query_.get_fork();
-        !cancel_ && !ec && height <= query_.get_top_associated_from(height);
+    for (auto height = fork; !cancel_ && !ec && height <= top_associated;
         ++height, ++count)
     {
         const auto block = query_.to_candidate(height);
@@ -1623,7 +1615,6 @@ void executor::write_test()
             return;
         }
 
-        ////if (height > 804'000_size)
         ////if (ec = query_.block_confirmable(block))
         ////{
         ////    logger(format("block_confirmable [%1%] fault (%2%).") % height % ec.message());
@@ -1642,12 +1633,13 @@ void executor::write_test()
             return;
         }
 
-        if (is_zero(height % 100_size))
+        if (is_zero(height % 1000_size))
             logger(format("write_test [%1%].") % height);
     }
 
     const auto span = duration_cast<seconds>(fine_clock::now() - start);
-    logger(format("%1% blocks in %2% secs.") % count % span.count());
+    logger(format("Set confirmation of %1% blocks in %2% secs.") % count %
+        span.count());
 }
 
 void executor::write_test()

@@ -304,7 +304,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    if (const auto code = check(*block_ptr, ctx))
+    // Hack to measure performance with cached bypass point.
+    constexpr auto bypass = true;
+
+    if (const auto code = check(*block_ptr, ctx, bypass))
     {
         // Both forms of malleabilty are possible here.
         // Malleable has not been associated, so just drop peer and continue.
@@ -339,7 +342,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     // block_ptr goes out of scope here, even if a reference is held to its
     // transactions_ptr, so txs_ptr must be a pointer copy.
-    if (const auto code = query.set_code(*txs_ptr, link, block_size))
+    if (const auto code = query.set_code(*txs_ptr, link, block_size, bypass))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "
@@ -366,13 +369,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-// Transaction commitments are required under checkpoint/milestone, and other
-// checks are comparable to the bypass condition cost, so just do them.
+// Transaction/witness commitments are required under checkpoint/milestone.
 code protocol_block_in_31800::check(const chain::block& block,
-    const chain::context& ctx) const NOEXCEPT
+    const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     code ec{};
-    return ec = block.check() ? ec : block.check(ctx);
+    return ec = block.check(bypass) ? ec : block.check(ctx, bypass);
 }
 
 // get/put hashes
