@@ -36,10 +36,11 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
   : chaser(node),
-    snapshot_bytes_(node.config().node.snapshot_bytes),
+    top_checkpoint_(node.config().bitcoin.top_checkpoint().height()),
     snapshot_valid_(node.config().node.snapshot_valid),
-    enabled_bytes_(to_bool(snapshot_bytes_)),
-    enabled_valid_(to_bool(snapshot_valid_))
+    snapshot_bytes_(node.config().node.snapshot_bytes),
+    enabled_valid_(to_bool(snapshot_valid_)),
+    enabled_bytes_(to_bool(snapshot_bytes_))
 {
 }
 
@@ -54,7 +55,7 @@ code chaser_snapshot::start() NOEXCEPT
         bytes_ = archive().store_body_size();
 
     if (enabled_valid_)
-        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint());
+        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint_);
 
     if (enabled_bytes_ || enabled_valid_)
     {
@@ -134,6 +135,7 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    const auto& query = archive();
     const auto running = !suspended();
     const auto start = logger::now();
     if (const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
@@ -162,10 +164,10 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
     // Snapshot failure also resets these values, to prevent cycling.
 
     if (enabled_bytes_)
-        bytes_ = archive().store_body_size();
+        bytes_ = query.store_body_size();
 
     if (enabled_valid_)
-        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint());
+        valid_ = std::max(query.get_top_confirmed(), top_checkpoint_);
 }
 
 bool chaser_snapshot::update_bytes() NOEXCEPT
