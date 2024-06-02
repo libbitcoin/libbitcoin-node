@@ -344,7 +344,7 @@ void chaser_validate::validate_tx(const database::context& context,
     };
 
     code invalid{};
-    const auto start = log.now();
+    ////const auto start = log.now();
     const auto tx = query.get_transaction(link);
     if (!tx)
     {
