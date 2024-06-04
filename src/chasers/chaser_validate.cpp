@@ -525,8 +525,9 @@ bool chaser_validate::update_neutrino(const header_link& link,
     return query.set_filter(link, neutrino_, filter);
 }
 
-// positions
+// position/bypass
 // ----------------------------------------------------------------------------
+// Bypass accept/connect is a no-op, no metadata is set.
 
 // protected
 void chaser_validate::do_bypass(height_t height) NOEXCEPT

@@ -106,13 +106,13 @@ protected:
         const system::chain::context& context) const NOEXCEPT;
 
     /// Height represents a candidate block covered by checkpoint or milestone.
-    virtual bool is_under_bypass(size_t height) const NOEXCEPT;
+    virtual inline bool is_under_bypass(size_t height) const NOEXCEPT;
 
     /// Height represents a candidate block covered by active milestone.
-    virtual bool is_under_milestone(size_t height) const NOEXCEPT;
+    virtual inline bool is_under_milestone(size_t height) const NOEXCEPT;
 
     /// Height represents a candidate block covered by checkpoint.
-    virtual bool is_under_checkpoint(size_t height) const NOEXCEPT;
+    virtual inline bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
 private:
     static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
@@ -160,7 +160,7 @@ private:
     // ------------------------------------------------------------------------
 
     // The current bypass height.
-    size_t bypass_height() const NOEXCEPT;
+    inline size_t bypass_height() const NOEXCEPT;
 
     // Set milestone cache if exists in candidate chain, send chase::bypass.
     bool initialize_bypass() NOEXCEPT;

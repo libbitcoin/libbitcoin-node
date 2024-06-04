@@ -89,12 +89,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_confirm::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
 // confirm
 // ----------------------------------------------------------------------------
 
@@ -390,6 +384,15 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
 // bypass
 // ----------------------------------------------------------------------------
+// Bypassed confirmation checks are implemented in download protocol. Above the
+// bypass point the confirmation chaser takes over.
+
+// protected
+void chaser_confirm::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
 
 bool chaser_confirm::is_under_bypass(size_t height) const NOEXCEPT
 {

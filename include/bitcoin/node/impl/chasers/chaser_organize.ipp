@@ -609,27 +609,27 @@ bool CLASS::push(const system::hash_digest& key) NOEXCEPT
 
 // protected
 TEMPLATE
-bool CLASS::is_under_checkpoint(size_t height) const NOEXCEPT
+inline bool CLASS::is_under_checkpoint(size_t height) const NOEXCEPT
 {
     return height <= top_checkpoint_height_;
 }
 
 // protected
 TEMPLATE
-bool CLASS::is_under_milestone(size_t height) const NOEXCEPT
+inline bool CLASS::is_under_milestone(size_t height) const NOEXCEPT
 {
     return height <= active_milestone_height_;
 }
 
 // protected
 TEMPLATE
-bool CLASS::is_under_bypass(size_t height) const NOEXCEPT
+inline bool CLASS::is_under_bypass(size_t height) const NOEXCEPT
 {
     return height <= bypass_height();
 }
 
 TEMPLATE
-size_t CLASS::bypass_height() const NOEXCEPT
+inline size_t CLASS::bypass_height() const NOEXCEPT
 {
     return std::max(active_milestone_height_, top_checkpoint_height_);
 }
@@ -638,7 +638,8 @@ TEMPLATE
 bool CLASS::initialize_bypass() NOEXCEPT
 {
     active_milestone_height_ = zero;
-    if (is_zero(milestone_.height()) || milestone_.hash() == system::null_hash)
+    if (is_zero(milestone_.height()) ||
+        milestone_.hash() == system::null_hash)
         return true;
 
     const auto& query = archive();
@@ -684,8 +685,7 @@ void CLASS::update_milestone(const system::hash_digest& hash,
 TEMPLATE
 void CLASS::notify_bypass() const NOEXCEPT
 {
-    notify(error::success, chase::bypass, std::max(active_milestone_height_,
-        top_checkpoint_height_));
+    notify(error::success, chase::bypass, bypass_height());
 }
 
 // Logging.
