@@ -172,31 +172,6 @@ void full_node::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
-object_key full_node::subscribe_events(event_notifier&& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    const auto key = create_key();
-    event_subscriber_.subscribe(std::move(handler), key);
-    return key;
-}
-
-void full_node::subscribe_events(event_notifier&& handler,
-    event_completer&& complete) NOEXCEPT
-{
-    boost::asio::post(strand(),
-        std::bind(&full_node::do_subscribe_events,
-            this, std::move(handler), std::move(complete)));
-}
-
-// private
-void full_node::do_subscribe_events(const event_notifier& handler,
-    const event_completer& complete) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    const auto key = create_key();
-    complete(event_subscriber_.subscribe(move_copy(handler), key), key);
-}
-
 void full_node::notify(const code& ec, chase event_,
     event_value value) NOEXCEPT
 {
@@ -227,6 +202,31 @@ void full_node::do_notify_one(object_key key, const code& ec, chase event_,
 {
     BC_ASSERT(stranded());
     event_subscriber_.notify_one(key, ec, event_, value);
+}
+
+object_key full_node::subscribe_events(event_notifier&& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto key = create_key();
+    event_subscriber_.subscribe(std::move(handler), key);
+    return key;
+}
+
+void full_node::subscribe_events(event_notifier&& handler,
+    event_completer&& complete) NOEXCEPT
+{
+    boost::asio::post(strand(),
+        std::bind(&full_node::do_subscribe_events,
+            this, std::move(handler), std::move(complete)));
+}
+
+// private
+void full_node::do_subscribe_events(const event_notifier& handler,
+    const event_completer& complete) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto key = create_key();
+    complete(event_subscriber_.subscribe(move_copy(handler), key), key);
 }
 
 void full_node::unsubscribe_events(object_key key) NOEXCEPT

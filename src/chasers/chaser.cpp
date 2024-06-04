@@ -92,6 +92,12 @@ void chaser::notify(const code& ec, chase event_,
     node_.notify(ec, event_, value);
 }
 
+void chaser::notify_one(object_key key, const code& ec, chase event_,
+    event_value value) const NOEXCEPT
+{
+    node_.notify_one(key, ec, event_, value);
+}
+
 // Properties.
 // ----------------------------------------------------------------------------
 

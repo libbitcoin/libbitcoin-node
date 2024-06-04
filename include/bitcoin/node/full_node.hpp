@@ -75,13 +75,6 @@ public:
     /// Events.
     /// -----------------------------------------------------------------------
 
-    /// Call from chaser start() methods (requires strand).
-    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
-
-    /// Call from protocol start() methods.
-    virtual void subscribe_events(event_notifier&& handler,
-        event_completer&& complete) NOEXCEPT;
-
     /// Set chaser event.
     virtual void notify(const code& ec, chase event_,
         event_value value) NOEXCEPT;
@@ -89,6 +82,13 @@ public:
     /// Set chaser event for the given subscriber only.
     virtual void notify_one(object_key key, const code& ec, chase event_,
         event_value value) NOEXCEPT;
+
+    /// Call from chaser start() methods (requires strand).
+    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
+
+    /// Call from protocol start() methods.
+    virtual void subscribe_events(event_notifier&& handler,
+        event_completer&& complete) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
     virtual void unsubscribe_events(object_key key) NOEXCEPT;

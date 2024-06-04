@@ -100,6 +100,10 @@ protected:
     virtual void notify(const code& ec, chase event_,
         event_value value) const NOEXCEPT;
 
+    /// Set event to one subscriber (does not require node strand).
+    virtual void notify_one(object_key key, const code& ec, chase event_,
+        event_value value) const NOEXCEPT;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 

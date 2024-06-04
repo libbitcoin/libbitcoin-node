@@ -63,16 +63,23 @@ void protocol::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
+void protocol::notify(const code& ec, chase event_,
+    event_value value) const NOEXCEPT
+{
+    session_->notify(ec, event_, value);
+}
+
+void protocol::notify_one(object_key key, const code& ec, chase event_,
+    event_value value) const NOEXCEPT
+{
+    session_->notify_one(key, ec, event_, value);
+}
+
 void protocol::subscribe_events(event_notifier&& handler,
     event_completer&& complete) NOEXCEPT
 {
     session_->subscribe_events(std::move(handler),
         BIND(handle_subscribe, _1, _2, std::move(complete)));
-}
-
-void protocol::notify(const code& ec, chase event_, event_value value) NOEXCEPT
-{
-    session_->notify(ec, event_, value);
 }
 
 // As this has no completion handler resubscription is not allowed.

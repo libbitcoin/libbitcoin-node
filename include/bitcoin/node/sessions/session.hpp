@@ -55,20 +55,20 @@ public:
     /// Events.
     /// -----------------------------------------------------------------------
 
+    /// Set a chaser event.
+    virtual void notify(const code& ec, chase event_,
+        event_value value) const NOEXCEPT;
+
+    /// Set chaser event for the given subscriber only.
+    virtual void notify_one(object_key key, const code& ec, chase event_,
+        event_value value) const NOEXCEPT;
+
     /// Subscribe to chaser events (requires node strand).
     virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
 
     /// Subscribe to chaser events.
     virtual void subscribe_events(event_notifier&& handler,
         event_completer&& complete) NOEXCEPT;
-
-    /// Set a chaser event.
-    virtual void notify(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
-
-    /// Set chaser event for the given subscriber only.
-    virtual void notify_one(object_key key, const code& ec, chase event_,
-        event_value value) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
     virtual void unsubscribe_events(object_key key) NOEXCEPT;
