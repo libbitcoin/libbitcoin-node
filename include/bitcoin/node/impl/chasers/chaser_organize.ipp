@@ -281,7 +281,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         handler(fault(error::invalid_branch_point), height);
         return;
     }
-    
+
+    // Reorganization, otherwise organization (branch point is top candidate).
+    // Organize chanser owns the candidate index and can organize it freely.
     if (branch_point < top_candidate)
     {
         // Implies all blocks above branch are weak (clear downloads and wait).
@@ -341,7 +343,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         ////fire(events::header_organized, index++);
     }
 
-    // Reset top chain state cache and notify.
+    // Reset top chain state and notify.
     // ........................................................................
 
     // Delay so headers can get current before block download starts.
@@ -429,6 +431,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         cache(block_ptr, state);
     }
 
+    // Notify check/validate/confirm to stop confirming.
+    // Organize chanser owns the candidate index and can organize it freely.
+    const auto top_confirmed = query.get_top_confirmed();
+    notify(error::success, chase::disorganized, top_confirmed);
+
     // Pop candidates from top candidate down to above fork point.
     // ........................................................................
     // Can't pop in loop above because state chaining requires forward order.
@@ -449,7 +456,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
-    const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
         if (!query.push_candidate(query.to_confirmed(index)))
@@ -471,9 +477,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Logs from previous top candidate to previous fork point (jumps back).
     log_state_change(*state_, *state);
     state_ = state;
-
-    // Notify check/download/confirmation to reset to top (clear).
-    notify(error::success, chase::disorganized, top_confirmed);
 }
 
 // Private

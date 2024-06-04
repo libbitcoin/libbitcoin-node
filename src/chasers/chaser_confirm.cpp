@@ -322,7 +322,7 @@ bool chaser_confirm::roll_back(const header_links& popped,
 {
     auto& query = archive();
     for (auto height = add1(fork_point); height <= top; ++height)
-        if (!set_unconfirmed(query.to_candidate(height), height))
+        if (!set_unconfirmed(query.to_confirmed(height), height))
             return false;
 
     for (const auto& link: views_reverse(popped))
@@ -336,12 +336,22 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     header_links& fork, height_t fork_top) const NOEXCEPT
 {
     const auto& query = archive();
+
+    // Walk down candidate index from fork_top to fork point (first confirmed).
     for (auto link = query.to_candidate(fork_top);
         !query.is_confirmed_block(link);
         link = query.to_candidate(--fork_top))
     {
+        // Terminal candidate from validated link implies candidate regression.
+        // This is ok, just means that the fork is no longer a candidate.
+        if (link.is_terminal())
+        {
+            fork_work = zero;
+            return true;
+        }
+
         uint32_t bits{};
-        if (link.is_terminal() || !query.get_bits(bits, link))
+        if (!query.get_bits(bits, link))
             return false;
 
         fork.push_back(link);

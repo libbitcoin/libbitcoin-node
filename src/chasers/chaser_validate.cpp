@@ -138,7 +138,7 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
+    const auto& query = archive();
 
     // Validate checked blocks starting immediately after last validated.
     for (auto height = add1(position()); !closed(); ++height)
@@ -146,8 +146,10 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // Precondition (associated).
         // ....................................................................
 
+        // Validation is always sequential from position, along the candidate
+        // index. It does not care about regressions that may be in process.
         const auto link = query.to_candidate(height);
-        auto ec = query.get_block_state(link);
+        const auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
             return;
 
@@ -479,7 +481,11 @@ hash_digest chaser_validate::get_neutrino(size_t height) const NOEXCEPT
     hash_digest neutrino{};
     const auto& query = archive();
     if (query.neutrino_enabled())
+    {
+        // candidate regression race may result in null_hash, which is ok, as
+        // in that case position will subsequently be reset to below height.
         query.get_filter_head(neutrino, query.to_candidate(height));
+    }
 
     return neutrino;
 }
