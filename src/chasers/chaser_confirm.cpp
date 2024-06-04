@@ -196,7 +196,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 return;
             }
         
-            if (query.is_malleable(link))
+            if (query.is_malleable64(link))
             {
                 // Index will be reported multiple times when 'height' is above.
                 notify(code, chase::malleated, link);
@@ -263,7 +263,7 @@ code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
     if (!query.set_strong(link))
         return error::store_integrity;
 
-    if (is_under_bypass(height) && !query.is_malleable(link))
+    if (is_under_bypass(height) && !query.is_malleable64(link))
         return error::confirmation_bypass;
 
     const auto ec = query.get_block_state(link);

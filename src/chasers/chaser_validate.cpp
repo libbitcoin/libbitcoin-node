@@ -155,7 +155,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         {
         }
 
-        if (is_under_bypass(height) && !query.is_malleable(link))
+        if (is_under_bypass(height) && !query.is_malleable64(link))
         {
             update_neutrino(link);
             return;
@@ -413,7 +413,7 @@ void chaser_validate::validate_block(const code& ec,
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
-    if (ec && query.is_malleable(link))
+    if (ec && query.is_malleable64(link))
     {
         notify(ec, chase::malleated, link);
         fire(events::block_malleated, ctx.height);
