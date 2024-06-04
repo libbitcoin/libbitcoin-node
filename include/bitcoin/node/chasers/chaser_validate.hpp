@@ -46,7 +46,6 @@ protected:
         event_value value) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
-    virtual void do_disorganized(height_t top) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
     virtual void do_bypass(size_t height) NOEXCEPT;
@@ -73,6 +72,8 @@ private:
     bool update_neutrino(const database::header_link& link) NOEXCEPT;
     bool update_neutrino(const database::header_link& link,
         const system::chain::block& block) NOEXCEPT;
+
+    // positions
     void update_position(size_t height) NOEXCEPT;
     bool is_under_bypass(size_t height) const NOEXCEPT;
 

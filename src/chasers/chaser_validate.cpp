@@ -90,7 +90,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
         ////}
         ////case chase::disorganized:
         ////{
-        ////    POST(do_disorganized, possible_narrow_cast<height_t>(value));
+        ////    POST(do_regressed, possible_narrow_cast<height_t>(value));
         ////    break;
         ////}
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -112,12 +112,6 @@ bool chaser_validate::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_validate::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
 // track downloaded in order (to validate)
 // ----------------------------------------------------------------------------
 
@@ -125,18 +119,11 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // If branch point is at or above last validated there is nothing to do.
-    if (branch_point < position())
-        do_disorganized(branch_point);
-}
+    if (branch_point >= position())
+        return;
 
-void chaser_validate::do_disorganized(height_t top) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Revert to confirmed top as the candidate chain is fully reverted.
-    update_position(top);
-    do_checked(top);
+    // Update position and wait.
+    update_position(branch_point);
 }
 
 void chaser_validate::do_checked(height_t height) NOEXCEPT
@@ -535,15 +522,22 @@ bool chaser_validate::update_neutrino(const header_link& link,
 // positions
 // ----------------------------------------------------------------------------
 
-void chaser_validate::update_position(size_t height) NOEXCEPT
+// protected
+void chaser_validate::do_bypass(height_t height) NOEXCEPT
 {
-    set_position(height);
-    neutrino_ = get_neutrino(position());
+    BC_ASSERT(stranded());
+    bypass_ = height;
 }
 
 bool chaser_validate::is_under_bypass(size_t height) const NOEXCEPT
 {
     return height <= bypass_;
+}
+
+void chaser_validate::update_position(size_t height) NOEXCEPT
+{
+    set_position(height);
+    neutrino_ = get_neutrino(position());
 }
 
 BC_POP_WARNING()
