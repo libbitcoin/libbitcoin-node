@@ -93,7 +93,7 @@ private:
 
     // These are protected by strand.
     map_ptr map_;
-    size_t bypass_{};
+    size_t bypass_{ max_size_t };
 };
 
 } // namespace node
