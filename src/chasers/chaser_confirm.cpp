@@ -71,6 +71,11 @@ bool chaser_confirm::handle_event(const code&, chase event_,
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -83,6 +88,15 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
     return true;
 }
+
+void chaser_confirm::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
+// confirm
+// ----------------------------------------------------------------------------
 
 // Blocks are either confirmed (blocks first) or validated/confirmed
 // (headers first) at this point. An unconfirmable block may not land here.
@@ -201,20 +215,19 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 // Index will be reported multiple times when 'height' is above.
                 notify(code, chase::malleated, link);
                 fire(events::block_malleated, index);
+                return;
             }
-            else
-            {
-                if (code != database::error::block_unconfirmable &&
-                    !query.set_block_unconfirmable(link))
-                {
-                    fault(error::set_block_unconfirmable);
-                    return;
-                }
 
-                // Index will be reportd multiple times when 'height' us above.
-                notify(code, chase::unconfirmable, link);
-                fire(events::block_unconfirmable, index);
+            if (code != database::error::block_unconfirmable &&
+                !query.set_block_unconfirmable(link))
+            {
+                fault(error::set_block_unconfirmable);
+                return;
             }
+
+            // Index will be reported multiple times when 'height' is above.
+            notify(code, chase::unconfirmable, link);
+            fire(events::block_unconfirmable, index);
 
             // chase::reorganized & events::block_reorganized
             // chase::organized & events::block_organized
@@ -263,6 +276,7 @@ code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
     if (!query.set_strong(link))
         return error::store_integrity;
 
+    // query.is_malleable64(link) is used when there is no block instance.
     if (is_under_bypass(height) && !query.is_malleable64(link))
         return error::confirmation_bypass;
 
@@ -337,7 +351,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     return true;
 }
 
-// A forl with greater work will cause confirmed reorganization.
+// A fork with greater work will cause confirmed reorganization.
 bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {
@@ -362,6 +376,14 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
+}
+
+// bypass
+// ----------------------------------------------------------------------------
+
+bool chaser_confirm::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
 }
 
 BC_POP_WARNING()

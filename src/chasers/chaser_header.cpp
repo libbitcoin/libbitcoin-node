@@ -45,20 +45,19 @@ bool chaser_header::get_block(system::chain::header::cptr& out,
     return !is_null(out);
 }
 
-// Header check/accept are not bypassed when under checkpoint/milestone.
-// This is because checkpoint would be reliant on height alone and milestone
-// would have no reliance because its passage is not required.
 code chaser_header::validate(const system::chain::header& header,
     const chain_state& state) const NOEXCEPT
 {
     code ec{ error::success };
 
+    // header.check is never bypassed.
     if ((ec = header.check(
         settings().timestamp_limit_seconds,
         settings().proof_of_work_limit,
         settings().forks.scrypt_proof_of_work)))
         return ec;
 
+    // header.accept is never bypassed.
     if ((ec = header.accept(state.context())))
         return ec;
 
@@ -70,7 +69,7 @@ code chaser_header::validate(const system::chain::header& header,
     ////if (ec == database::error::block_unconfirmable)
     ////    return ec;
 
-    return system::error::success;
+    return system::error::block_success;
 }
 
 // Cache valid headers until storable.
@@ -80,8 +79,8 @@ bool chaser_header::is_storable(const system::chain::header& header,
     return
         checkpoint::is_at(settings().checkpoints, state.height()) ||
         settings().milestone.equals(state.hash(), state.height()) ||
-        (is_current(header.timestamp()) &&
-            state.cumulative_work() >= settings().minimum_work);
+        (is_current(header.timestamp()) && state.cumulative_work() >=
+            settings().minimum_work);
 }
 
 } // namespace node

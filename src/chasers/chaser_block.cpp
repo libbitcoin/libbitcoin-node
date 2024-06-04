@@ -52,6 +52,7 @@ code chaser_block::validate(const block& block,
     code ec{};
     const auto& header = block.header();
 
+    // header.check is never bypassed.
     // block.check does not invoke header.check.
     if ((ec = header.check(
         settings().timestamp_limit_seconds,
@@ -59,26 +60,27 @@ code chaser_block::validate(const block& block,
         settings().forks.scrypt_proof_of_work)))
         return ec;
 
+    // header.accept is never bypassed.
     // block.accept does not invoke header.accept.
     if ((ec = header.accept(state.context())))
         return ec;
 
-    // Transaction commitments are required under checkpoint/milestone.
-    if ((ec = block.check()))
+    // Transaction/witness commitments are required under checkpoint.
+    // This ensures that the block/header hash represents expected txs.
+    // Performs full check if block is mally64 (mally32 caught either way).
+    const auto bypass = is_under_checkpoint(state.height()) &&
+        !block.is_malleable64();
+
+    // Transaction commitments and malleated32 are checked under checkpoint.
+    if ((ec = block.check(bypass)))
         return ec;
 
-    // As checkpoints rely on block hash, malleability must be guarded.
-    if (is_under_checkpoint(state.height()))
-    {
-        if (block.is_malleable32())
-            return system::error::block_internal_double_spend;
-
-        if (!block.is_malleable64())
-            return system::error::success;
-    }
-
-    if ((ec = block.check(state.context())))
+    // Witnessed tx commitments are checked under checkpoint (if bip141).
+    if ((ec = block.check(state.context(), bypass)))
         return ec;
+
+    if (bypass)
+        return system::error::block_success;
 
     // Populate prevouts from self/tree/store (metadata not required).
     populate(block);

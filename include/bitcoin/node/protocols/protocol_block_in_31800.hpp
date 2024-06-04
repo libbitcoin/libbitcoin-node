@@ -66,6 +66,7 @@ protected:
     virtual void do_purge(channel_t) NOEXCEPT;
     virtual void do_split(channel_t) NOEXCEPT;
     virtual void do_report(count_t count) NOEXCEPT;
+    virtual void do_bypass(height_t height) NOEXCEPT;
 
     /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
@@ -74,6 +75,7 @@ protected:
 private:
     using type_id = network::messages::inventory::type_id;
 
+    bool is_under_bypass(size_t height) const NOEXCEPT;
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
@@ -89,8 +91,9 @@ private:
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;
 
-    // This is protected by strand.
+    // These are protected by strand.
     map_ptr map_;
+    size_t bypass_{};
 };
 
 } // namespace node

@@ -34,8 +34,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
-    milestone_(node.config().bitcoin.milestone),
-    checkpoints_(system::sort_copy(node.config().bitcoin.checkpoints)),
     reporter(node.log)
 {
 }
@@ -129,38 +127,6 @@ bool chaser::is_current() const NOEXCEPT
 bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 {
     return node_.is_current(timestamp);
-}
-
-// Methods.
-// ----------------------------------------------------------------------------
-
-bool chaser::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return is_under_checkpoint(height) || is_under_milestone(height);
-}
-
-// TODO: the existence of milestone could be cached/updated.
-bool chaser::is_under_milestone(size_t height) const NOEXCEPT
-{
-    // get_header_key returns null_hash on not found.
-    if (height > milestone_.height() || milestone_.hash() == system::null_hash)
-        return false;
-
-    const auto& query = archive();
-    return query.get_header_key(query.to_candidate(milestone_.height())) ==
-        milestone_.hash();
-}
-
-bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
-{
-    // Checkpoints are sorted by increasing height (optimal).
-    return system::chain::checkpoint::is_under(checkpoints_, height);
-}
-
-size_t chaser::top_checkpoint() const NOEXCEPT
-{
-    // Checkpoints are sorted by increasing height (required).
-    return checkpoints_.empty() ? zero : checkpoints_.back().height();
 }
 
 // Position.

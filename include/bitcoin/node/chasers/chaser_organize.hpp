@@ -101,9 +101,18 @@ protected:
     virtual void do_organize(typename Block::cptr& block_ptr,
         const organize_handler& handler) NOEXCEPT;
 
-    // Store Block to database and push to top of candidate chain.
+    /// Store Block to database and push to top of candidate chain.
     virtual database::header_link push(const Block& block,
         const system::chain::context& context) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by checkpoint or milestone.
+    virtual bool is_under_bypass(size_t height) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by active milestone.
+    virtual bool is_under_milestone(size_t height) const NOEXCEPT;
+
+    /// Height represents a candidate block covered by checkpoint.
+    virtual bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
 private:
     static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
@@ -123,6 +132,9 @@ private:
     {
         return is_block() ? chase::block : chase::header;
     }
+
+    // Chain methods.
+    // ------------------------------------------------------------------------
 
     // Store Block into logical tree cache.
     void cache(const typename Block::cptr& block_ptr,
@@ -144,14 +156,40 @@ private:
     // Move tree Block to database and push to top of candidate chain.
     bool push(const system::hash_digest& key) NOEXCEPT;
 
+    // Bypass methods.
+    // ------------------------------------------------------------------------
+
+    // The current bypass height.
+    size_t bypass_height() const NOEXCEPT;
+
+    // Set milestone cache if exists in candidate chain, send chase::bypass.
+    bool initialize_bypass() NOEXCEPT;
+
+    // Clear milestone cache if its height is above branch_point.
+    void reset_milestone(size_t branch_point) NOEXCEPT;
+
+    // Set milestone cache if configured milestone matches given checkpoint.
+    void update_milestone(const system::hash_digest& hash,
+        size_t height) NOEXCEPT;
+
+    // Notify chase::bypass subscribers of a change in bypass height.
+    void notify_bypass() const NOEXCEPT;
+
+    // Logging.
+    // ------------------------------------------------------------------------
+
     // Log changes to flags and/or minimum block version in candidate chain.
     void log_state_change(const chain_state& from,
         const chain_state& to) const NOEXCEPT;
 
-    // This is thread safe.
+    // These are thread safe.
     const system::settings& settings_;
+    const system::chain::checkpoint& milestone_;
+    const system::chain::checkpoints checkpoints_;
+    const size_t top_checkpoint_height_;
 
     // These are protected by strand.
+    size_t active_milestone_height_{};
     chain_state::ptr state_{};
     block_tree tree_{};
 };

@@ -84,6 +84,11 @@ enum class chase
     /// Issued by 'organize' and handled by 'check'.
     regressed,
 
+    /// Bypass height has changed for all subsequent notifications (height_t).
+    /// Issued by 'organize' and handled by 'validate', 'confirm', and
+    /// 'block_in_31800'.
+    bypass,
+
     /// Late-stage Invalidity.
     /// -----------------------------------------------------------------------
 

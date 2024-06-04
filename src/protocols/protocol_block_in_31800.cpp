@@ -155,6 +155,11 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
             POST(do_report, possible_narrow_cast<count_t>(value));
             break;
         }
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -218,6 +223,12 @@ void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
         << authority() << "].");
 }
 
+void protocol_block_in_31800::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
 // request hashes
 // ----------------------------------------------------------------------------
 
@@ -254,7 +265,7 @@ get_data protocol_block_in_31800::create_get_data(
     // bip144: get_data uses witness constant but inventory does not.
     // clang emplace_back bug (no matching constructor), using push_back.
     std::for_each(map->pos_begin(), map->pos_end(),
-        [&](const database::association& item) NOEXCEPT
+        [&](const auto& item) NOEXCEPT
         {
             getter.items.push_back({ block_type_, item.hash });
         });
@@ -305,10 +316,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    // Hack to measure performance with cached bypass point.
-    constexpr auto bypass = true;
+    // Transaction/witness commitments are required under checkpoint.
+    // This ensures that the block/header hash represents expected txs.
+    const auto bypass = is_under_bypass(ctx.height) &&
+        !block_ptr->is_malleable64();
 
-    // Performs full check if block is mally64 (mally32 is caught here).
+    // Performs full check if block is mally64 (mally32 caught either way).
     if (const auto code = check(*block_ptr, ctx, bypass))
     {
         // Malleated32 is never associated, so drop peer and continue.
@@ -392,12 +405,25 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-// Transaction/witness commitments are required under checkpoint/milestone.
+bool protocol_block_in_31800::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
+}
+
 code protocol_block_in_31800::check(const chain::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     code ec{};
-    return ec = block.check(bypass) ? ec : block.check(ctx, bypass);
+
+    // Transaction commitments and malleated32 are checked under bypass.
+    if ((ec = block.check(bypass)))
+        return ec;
+
+    // Witnessed tx commitments are checked under bypass (if bip141).
+    if ((ec = block.check(ctx, bypass)))
+        return ec;
+
+    return system::error::block_success;
 }
 
 // get/put hashes

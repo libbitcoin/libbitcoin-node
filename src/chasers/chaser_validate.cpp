@@ -57,7 +57,7 @@ code chaser_validate::start() NOEXCEPT
 }
 
 bool chaser_validate::handle_event(const code&, chase event_,
-    event_value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -94,7 +94,11 @@ bool chaser_validate::handle_event(const code&, chase event_,
         ////    break;
         ////}
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -106,6 +110,12 @@ bool chaser_validate::handle_event(const code&, chase event_,
     }
 
     return true;
+}
+
+void chaser_validate::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
 }
 
 // track downloaded in order (to validate)
@@ -152,9 +162,9 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
-        {
-        }
+            return;
 
+        // query.is_malleable64(link) is used when there is no block instance.
         if (is_under_bypass(height) && !query.is_malleable64(link))
         {
             update_neutrino(link);
@@ -344,7 +354,6 @@ void chaser_validate::validate_tx(const database::context& context,
     };
 
     code invalid{};
-    ////const auto start = log.now();
     const auto tx = query.get_transaction(link);
     if (!tx)
     {
@@ -366,9 +375,6 @@ void chaser_validate::validate_tx(const database::context& context,
     else
     {
         ec = set_connected(*tx);
-
-        //// Too much data.
-        ////span<network::microseconds>(events::tx_validated, start);
     }
 
     POST(handle_tx, ec, link, racer);
@@ -435,7 +441,9 @@ code chaser_validate::validate(const header_link& link,
 {
     code ec{};
     const auto& query = archive();
-    if (is_under_bypass(height) && !query.is_malleable(link))
+
+    // query.is_malleable64(link) is used when there is no block instance.
+    if (is_under_bypass(height) && !query.is_malleable64(link))
         return update_neutrino(link) ? error::validation_bypass :
             error::store_integrity;
 
@@ -524,10 +532,18 @@ bool chaser_validate::update_neutrino(const header_link& link,
     return query.set_filter(link, neutrino_, filter);
 }
 
+// positions
+// ----------------------------------------------------------------------------
+
 void chaser_validate::update_position(size_t height) NOEXCEPT
 {
     set_position(height);
     neutrino_ = get_neutrino(position());
+}
+
+bool chaser_validate::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
 }
 
 BC_POP_WARNING()
