@@ -300,7 +300,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    if (query.is_malleated64(*block_ptr))
+    const auto malleable64 = block_ptr->is_malleable64();
+    if (malleable64 && query.is_malleated64(*block_ptr))
     {
         // Disallow known block malleation, drop peer and keep trying.
         // Malleation is assumed (and archived) when malleable64 is invalid.
@@ -318,8 +319,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     // Transaction/witness commitments are required under checkpoint.
     // This ensures that the block/header hash represents expected txs.
-    const auto bypass = is_under_bypass(ctx.height) &&
-        !block_ptr->is_malleable64();
+    const auto bypass = is_under_bypass(ctx.height) && !malleable64;
 
     // Performs full check if block is mally64 (mally32 caught either way).
     if (const auto code = check(*block_ptr, ctx, bypass))
