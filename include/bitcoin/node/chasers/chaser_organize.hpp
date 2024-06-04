@@ -169,6 +169,8 @@ private:
     void reset_milestone(size_t branch_point) NOEXCEPT;
 
     // Set milestone cache if configured milestone matches given checkpoint.
+    void update_milestone(const database::header_link& link,
+        size_t height) NOEXCEPT;
     void update_milestone(const system::hash_digest& hash,
         size_t height) NOEXCEPT;
 

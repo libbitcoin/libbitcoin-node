@@ -304,7 +304,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     }
 
     // branch_point + 1
-    ++index;
+    reset_milestone(++index);
 
     // Push stored strong headers to candidate chain.
     for (const auto& link: views_reverse(store_branch))
@@ -315,7 +315,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        ////fire(events::header_organized, index++);
+        ////fire(events::header_organized, index);
+        update_milestone(link, index++);
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -328,7 +329,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
 
         ////fire(events::header_archived, index);
-        ////fire(events::header_organized, index++);
+        ////fire(events::header_organized, index);
+        update_milestone(key, index++);
     }
 
     // Push new header as top of candidate chain.
@@ -340,7 +342,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
         
         ////fire(events::header_archived, index);
-        ////fire(events::header_organized, index++);
+        ////fire(events::header_organized, index);
+        update_milestone(block_ptr->hash(), index);
     }
 
     // Reset top chain state and notify.
@@ -453,18 +456,22 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         fire(events::header_reorganized, index);
     }
 
+    reset_milestone(fork_point);
+
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
-        if (!query.push_candidate(query.to_confirmed(index)))
+        const auto confirmed = query.to_confirmed(index);
+        if (!query.push_candidate(confirmed))
         {
             fault(error::push_candidate);
             return;
         }
 
         fire(events::header_organized, index);
+        update_milestone(confirmed, index);
     }
 
     state = query.get_candidate_chain_state(settings_, top_confirmed);
@@ -668,6 +675,18 @@ void CLASS::reset_milestone(size_t branch_point) NOEXCEPT
         active_milestone_height_ = branch_point;
         notify_bypass();
     }
+}
+
+TEMPLATE
+void CLASS::update_milestone(const database::header_link& link,
+    size_t height) NOEXCEPT
+{
+    // Defer querying for hash until heights are compared.
+    if (height != milestone_.height())
+        return;
+
+    // Invokes a redundant height comparison, but only once for entire chain.
+    update_milestone(archive().get_header_key(link), height);
 }
 
 TEMPLATE
