@@ -372,12 +372,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto size = block_ptr->serialized_size(true);
     const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    // TODO: ensure that when a mally64 is caught under bypass that tx
-    // confirmations are reverted when the block is sequentially invalidated.
-    // Query: A strong_tx may be in a not-yet-confirmed block.
-    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+    // Transactions are set strong when bypass is true.
     if (const auto code = query.set_code(*txs_ptr, link, size, bypass))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"

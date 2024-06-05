@@ -151,23 +151,27 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
-            return;
-
-        // query.is_malleable64(link) is used when there is no block instance.
-        if (is_under_bypass(height) && !query.is_malleable64(link))
         {
-            update_neutrino(link);
+            // Wait until the gap is filled.
             return;
         }
 
-        if (ec == database::error::block_confirmable ||
-            ec == database::error::block_unconfirmable ||
-            ec == database::error::block_valid)
+        if (ec == database::error::integrity)
+        {
+            fault(ec);
             return;
+        }
 
-        if (ec == error::validation_bypass ||
+        if (ec == database::error::block_unconfirmable)
+        {
+            notify(ec, chase::unconfirmable, height);
+            fire(events::block_unconfirmable, height);
+            return;
+        }
+
+        if (ec == database::error::block_valid ||
             ec == database::error::block_confirmable ||
-            ec == database::error::block_valid)
+            (is_under_bypass(height) && !query.is_malleable64(link)))
         {
             update_position(height);
             notify(ec, chase::valid, height);
@@ -182,87 +186,13 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             fault(error::store_integrity);
             return;
         }
-        else
-        {
-            update_position(height);
-        }
 
-#if defined(UNDEFINED)
-        // Accept/Connect block.
-        // ....................................................................
-
-        // neutrino_ is advanced here if successful or bypassed.
-        if (const auto code = validate(link, height))
-        {
-            if (code == error::validation_bypass ||
-                code == database::error::block_confirmable ||
-                code == database::error::block_valid)
-            {
-                // Advance.
-                ++position();
-                notify(code, chase::valid, height);
-                fire(events::validate_bypassed, height);
-                continue;
-            }
-
-            if (code == error::store_integrity)
-            {
-                fault(error::node_validate);
-                return;
-            }
-
-            if (query.is_malleable(link))
-            {
-                notify(code, chase::malleated, link);
-                fire(events::block_malleated, height);
-            }
-            else
-            {
-                if (code != database::error::block_unconfirmable &&
-                    !query.set_block_unconfirmable(link))
-                {
-                    fault(error::set_block_unconfirmable);
-                    return;
-                }
-
-                notify(code, chase::unvalid, link);
-                fire(events::block_unconfirmable, height);
-            }
-
-            LOGR("Unvalidated block [" << height << "] " << code.message());
-            return;
-        }
-
-        // Commit validation metadata.
-        // ....................................................................
-
-        // TODO: set fees on valid because prevout.value() populated.
-        // TODO: in concurrent model sum fees from each validated_tx record.
-        // [set_txs_connected] FOR PERFORMANCE EVALUATION ONLY.
-        // Tx validation/states are independent of block validation.
-        if (!query.set_txs_connected(link))
-        {
-            fault(error::set_txs_connected);
-            return;
-        }
-
-        if (!query.set_block_valid(link))
-        {
-            fault(error::set_block_valid);
-            return;
-        }
-
-        // Advance.
-        // ....................................................................
-
-        ++position();
-        notify(error::success, chase::valid, height);
-        fire(events::block_validated, height);
-#endif // UNDEFINED
+        // Retain last height in validation sequence, update neutrino.
+        update_position(height);
     }
 }
 
-// DISTRUBUTE WORK
+// DISTRUBUTE WORK UNITS
 bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -286,7 +216,7 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
     return true;
 }
 
-// CONCURRENT WORK
+// START WORK UNIT
 void chaser_validate::validate_tx(const database::context& context,
     const tx_link& link, const race::ptr& racer) NOEXCEPT
 {
@@ -369,6 +299,7 @@ void chaser_validate::validate_tx(const database::context& context,
     POST(handle_tx, ec, link, racer);
 }
 
+// FINISH WORK UNIT
 void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
     const race::ptr& racer) NOEXCEPT
 {
@@ -384,7 +315,7 @@ void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
     racer->finish(ec, tx);
 }
 
-// SYNCHRONIZE WORK
+// SYNCHRONIZE WORK UNITS
 void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
     const header_link& link, const database::context& ctx) NOEXCEPT
 {
@@ -407,70 +338,42 @@ void chaser_validate::validate_block(const code& ec,
     const header_link& link, const database::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
-    if (ec && query.is_malleable64(link))
+    auto& query = archive();
+
+    if (ec)
     {
-        notify(ec, chase::malleated, link);
-        fire(events::block_malleated, ctx.height);
+        const auto malleable64 = query.is_malleable64(link);
+
+        // Must be malleable64 if failed under checkpoint.
+        // Transactions are set strong upon archive when under bypass.
+        if (is_under_bypass(ctx.height) &&
+            (!malleable64 || query.set_unstrong(link)))
+        {
+            fault(error::store_integrity);
+            return;
+        }
+
+        if (malleable64)
+        {
+            // TODO: log malleated64 block with ec.
+            notify(ec, chase::malleated, link);
+            fire(events::block_malleated, ctx.height);
+            return;
+        }
+
+        // TODO: log block is unconfirmable.
+        notify(ec, chase::unconfirmable, link);
+        fire(events::block_unconfirmable, ctx.height);
         return;
     }
 
     // TODO:
-    // If ec (other than store_integrity) block is unconfirmable.
-    // Collect up tx fees and sigops, etc. for block validation with no block.
+    // Collect up tx fees and sigops, etc. for block validate with no block.
 
     // fire event first so that log is ordered.
     fire(events::block_validated, ctx.height);
     notify(ec, chase::valid, ctx.height);
 }
-
-#if defined (UNDEFINED)
-code chaser_validate::validate(const header_link& link,
-    size_t height) NOEXCEPT
-{
-    code ec{};
-    const auto& query = archive();
-
-    // query.is_malleable64(link) is used when there is no block instance.
-    if (is_under_bypass(height) && !query.is_malleable64(link))
-        return update_neutrino(link) ? error::validation_bypass :
-            error::store_integrity;
-
-    ec = query.get_block_state(link);
-    if (ec == database::error::block_confirmable ||
-        ec == database::error::block_unconfirmable ||
-        ec == database::error::block_valid)
-        return ec;
-
-    database::context context{};
-    const auto block_ptr = query.get_block(link);
-    if (!block_ptr || !query.get_context(context, link))
-        return error::store_integrity;
-
-    const auto& block = *block_ptr;
-    if (!query.populate(block))
-        return system::error::missing_previous_output;
-
-    const chain::context ctx
-    {
-        context.flags,  // [accept & connect]
-        {},             // timestamp
-        {},             // mtp
-        context.height, // [accept]
-        {},             // minimum_block_version
-        {}              // work_required
-    };
-
-    if ((ec = block.accept(ctx, subsidy_interval_blocks_, initial_subsidy_)))
-        return ec;
-
-    if ((ec = block.connect(ctx)))
-        return ec;
-
-    // This can only fail if block missing or prevouts are not fully populated.
-    return update_neutrino(link, block) ? ec : error::store_integrity;
-}
-#endif // UNDEFINED
 
 // neutrino
 // ----------------------------------------------------------------------------
