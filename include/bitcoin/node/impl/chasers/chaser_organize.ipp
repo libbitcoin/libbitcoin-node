@@ -282,14 +282,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
-    // Reorganization, otherwise organization (branch point is top candidate).
-    // Organize chanser owns the candidate index and can organize it freely.
-    if (branch_point < top_candidate)
-    {
-        // Implies all blocks above branch are weak (clear downloads and wait).
-        notify(error::success, chase::regressed, branch_point);
-    }
-
     // Pop down to the branch point.
     auto index = top_candidate;
     while (index > branch_point)
@@ -301,6 +293,17 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
 
         fire(events::header_reorganized, index--);
+    }
+
+    // pop, regress, milestone, push, headers (order)
+    // Ensures old milestone is never used on new branch (push/headers).
+
+    // Reorganization, otherwise organization (branch point is top candidate).
+    // Organize chanser owns the candidate index and can organize it freely.
+    if (branch_point < top_candidate)
+    {
+        // Implies all blocks above branch are weak (clear downloads and wait).
+        notify(error::success, chase::regressed, branch_point);
     }
 
     // branch_point + 1
@@ -434,11 +437,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         cache(block_ptr, state);
     }
 
-    // Notify check/validate/confirm to stop confirming.
-    // Organize chanser owns the candidate index and can organize it freely.
-    const auto top_confirmed = query.get_top_confirmed();
-    notify(error::success, chase::disorganized, top_confirmed);
-
     // Pop candidates from top candidate down to above fork point.
     // ........................................................................
     // Can't pop in loop above because state chaining requires forward order.
@@ -456,6 +454,13 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         fire(events::header_reorganized, index);
     }
 
+    // pop, disorganize (regress), milestone, push, headers (order)
+    // Ensures old milestone is never used on new branch (push/headers).
+
+    // Notify check/validate/confirm to stop confirming.
+    // Organize chanser owns the candidate index and can organize it freely.
+    const auto top_confirmed = query.get_top_confirmed();
+    notify(error::success, chase::disorganized, top_confirmed);
     reset_milestone(fork_point);
 
     // Push confirmed headers from above fork point onto candidate chain.
