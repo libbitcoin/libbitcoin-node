@@ -47,12 +47,10 @@ protected:
 
     virtual void do_bypass(size_t height) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
-    virtual code confirm(const database::header_link& link,
-        size_t height) NOEXCEPT;
 
 private:
-    bool set_confirmed(header_t link, height_t height) NOEXCEPT;
-    bool set_unconfirmed(header_t link, height_t height) NOEXCEPT;
+    bool set_organized(header_t link, height_t height) NOEXCEPT;
+    bool set_reorganized(header_t link, height_t height) NOEXCEPT;
     bool roll_back(const header_links& popped,
         size_t fork_point, size_t top) NOEXCEPT;
     bool get_fork_work(uint256_t& fork_work, header_links& fork,
