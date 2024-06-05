@@ -61,7 +61,6 @@ protected:
     virtual void do_header(height_t branch_point) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
-    virtual void do_disorganized(height_t top) NOEXCEPT;
     virtual void do_malleated(header_t link) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,

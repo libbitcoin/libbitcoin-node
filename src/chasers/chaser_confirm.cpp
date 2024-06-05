@@ -71,6 +71,11 @@ bool chaser_confirm::handle_event(const code&, chase event_,
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -83,6 +88,9 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
     return true;
 }
+
+// confirm
+// ----------------------------------------------------------------------------
 
 // Blocks are either confirmed (blocks first) or validated/confirmed
 // (headers first) at this point. An unconfirmable block may not land here.
@@ -196,25 +204,24 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 return;
             }
         
-            if (query.is_malleable(link))
+            if (query.is_malleable64(link))
             {
                 // Index will be reported multiple times when 'height' is above.
                 notify(code, chase::malleated, link);
                 fire(events::block_malleated, index);
+                return;
             }
-            else
-            {
-                if (code != database::error::block_unconfirmable &&
-                    !query.set_block_unconfirmable(link))
-                {
-                    fault(error::set_block_unconfirmable);
-                    return;
-                }
 
-                // Index will be reportd multiple times when 'height' us above.
-                notify(code, chase::unconfirmable, link);
-                fire(events::block_unconfirmable, index);
+            if (code != database::error::block_unconfirmable &&
+                !query.set_block_unconfirmable(link))
+            {
+                fault(error::set_block_unconfirmable);
+                return;
             }
+
+            // Index will be reported multiple times when 'height' is above.
+            notify(code, chase::unconfirmable, link);
+            fire(events::block_unconfirmable, index);
 
             // chase::reorganized & events::block_reorganized
             // chase::organized & events::block_organized
@@ -263,7 +270,8 @@ code chaser_confirm::confirm(const header_link& link, size_t height) NOEXCEPT
     if (!query.set_strong(link))
         return error::store_integrity;
 
-    if (is_under_bypass(height) && !query.is_malleable(link))
+    // query.is_malleable64(link) is used when there is no block instance.
+    if (is_under_bypass(height) && !query.is_malleable64(link))
         return error::confirmation_bypass;
 
     const auto ec = query.get_block_state(link);
@@ -308,7 +316,7 @@ bool chaser_confirm::roll_back(const header_links& popped,
 {
     auto& query = archive();
     for (auto height = add1(fork_point); height <= top; ++height)
-        if (!set_unconfirmed(query.to_candidate(height), height))
+        if (!set_unconfirmed(query.to_confirmed(height), height))
             return false;
 
     for (const auto& link: views_reverse(popped))
@@ -322,12 +330,22 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     header_links& fork, height_t fork_top) const NOEXCEPT
 {
     const auto& query = archive();
+
+    // Walk down candidate index from fork_top to fork point (first confirmed).
     for (auto link = query.to_candidate(fork_top);
         !query.is_confirmed_block(link);
         link = query.to_candidate(--fork_top))
     {
+        // Terminal candidate from validated link implies candidate regression.
+        // This is ok, just means that the fork is no longer a candidate.
+        if (link.is_terminal())
+        {
+            fork_work = zero;
+            return true;
+        }
+
         uint32_t bits{};
-        if (link.is_terminal() || !query.get_bits(bits, link))
+        if (!query.get_bits(bits, link))
             return false;
 
         fork.push_back(link);
@@ -337,7 +355,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
     return true;
 }
 
-// A forl with greater work will cause confirmed reorganization.
+// A fork with greater work will cause confirmed reorganization.
 bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {
@@ -362,6 +380,23 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
+}
+
+// bypass
+// ----------------------------------------------------------------------------
+// Bypassed confirmation checks are implemented in download protocol. Above the
+// bypass point the confirmation chaser takes over.
+
+// protected
+void chaser_confirm::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
+bool chaser_confirm::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
 }
 
 BC_POP_WARNING()

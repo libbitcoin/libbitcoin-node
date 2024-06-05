@@ -107,7 +107,7 @@ bool chaser_check::handle_event(const code&, chase event_,
         }
         case chase::disorganized:
         {
-            POST(do_disorganized, possible_narrow_cast<height_t>(value));
+            POST(do_regressed, possible_narrow_cast<height_t>(value));
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -142,25 +142,14 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // If branch point is at or above last downloaded there is nothing to do.
-    if (branch_point < position())
-        do_disorganized(branch_point);
-}
+    if (branch_point >= position())
+        return;
 
-void chaser_check::do_disorganized(height_t top) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Revert to confirmed top as the candidate chain is fully reverted.
-    set_position(top);
-
-    // purge headers
+    // Update position, purge outstanding work, and wait.
+    set_position(branch_point);
     maps_.clear();
-    notify(error::success, chase::purge, top);
-
-    do_checked(top);
+    notify(error::success, chase::purge, branch_point);
 }
-
 void chaser_check::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -175,7 +164,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
-    // TODO: query.is_associated() is very expensive (hashmap search).
+    // TODO: query.is_associated() is expensive (hashmap search).
     // Skip checked blocks starting immediately after last checked.
     while (!closed() && query.is_associated(
         query.to_candidate(add1(position()))))

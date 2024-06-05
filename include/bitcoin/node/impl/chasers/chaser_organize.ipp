@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 
+#include <algorithm>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -35,7 +36,10 @@ BC_PUSH_WARNING(NO_NEW_OR_DELETE)
 TEMPLATE
 CLASS::chaser_organize(full_node& node) NOEXCEPT
   : chaser(node),
-    settings_(config().bitcoin)
+    settings_(config().bitcoin),
+    milestone_(config().bitcoin.milestone),
+    checkpoints_(config().bitcoin.sorted_checkpoints()),
+    top_checkpoint_height_(config().bitcoin.top_checkpoint().height())
 {
 }
 
@@ -44,13 +48,19 @@ code CLASS::start() NOEXCEPT
 {
     using namespace system;
     using namespace std::placeholders;
-    const auto& query = archive();
+
+    if (!initialize_bypass())
+    {
+        fault(error::store_integrity);
+        return error::store_integrity;
+    }
 
     // Initialize cache of top candidate chain state.
     // Spans full chain to obtain cumulative work. This can be optimized by
     // storing it with each header, though the scan is fast. The same occurs
     // when a block first branches below the current chain top. Chain work
     // is a questionable DoS protection scheme only, so could also toss it.
+    const auto& query = archive();
     state_ = query.get_candidate_chain_state(settings_,
         query.get_top_candidate());
 
@@ -98,10 +108,11 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
 TEMPLATE
 bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
 {
+    using namespace system;
+
     if (closed())
         return false;
 
-    using namespace system;
     switch (event_)
     {
         case chase::unchecked:
@@ -271,9 +282,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
+    // Reorganization, otherwise organization (branch point is top candidate).
+    // Organize chanser owns the candidate index and can organize it freely.
     if (branch_point < top_candidate)
     {
-        // Implies that all blocks above branch are weak (restart downloads).
+        // Implies all blocks above branch are weak (clear downloads and wait).
         notify(error::success, chase::regressed, branch_point);
     }
 
@@ -291,7 +304,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     }
 
     // branch_point + 1
-    ++index;
+    reset_milestone(++index);
 
     // Push stored strong headers to candidate chain.
     for (const auto& link: views_reverse(store_branch))
@@ -302,7 +315,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        ////fire(events::header_organized, index++);
+        ////fire(events::header_organized, index);
+        update_milestone(link, index++);
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -315,7 +329,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
 
         ////fire(events::header_archived, index);
-        ////fire(events::header_organized, index++);
+        ////fire(events::header_organized, index);
+        update_milestone(key, index++);
     }
 
     // Push new header as top of candidate chain.
@@ -327,10 +342,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         }
         
         ////fire(events::header_archived, index);
-        ////fire(events::header_organized, index++);
+        ////fire(events::header_organized, index);
+        update_milestone(block_ptr->hash(), index);
     }
 
-    // Reset top chain state cache and notify.
+    // Reset top chain state and notify.
     // ........................................................................
 
     // Delay so headers can get current before block download starts.
@@ -400,14 +416,13 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
-    // Copy candidates from above fork point to top into header tree.
+    // Copy candidates from above fork point to below height into header tree.
     // ........................................................................
     // Forward order is required to advance chain state for tree.
 
-    const auto top_candidate = state_->height();
-    for (auto index = add1(fork_point); index <= top_candidate; ++index)
+    typename Block::cptr block_ptr{};
+    for (auto index = add1(fork_point); index < height; ++index)
     {
-        typename Block::cptr block_ptr{};
         if (!get_block(block_ptr, index))
         {
             fault(error::get_block);
@@ -419,10 +434,16 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         cache(block_ptr, state);
     }
 
-    // Pop candidates from top down to above fork point.
+    // Notify check/validate/confirm to stop confirming.
+    // Organize chanser owns the candidate index and can organize it freely.
+    const auto top_confirmed = query.get_top_confirmed();
+    notify(error::success, chase::disorganized, top_confirmed);
+
+    // Pop candidates from top candidate down to above fork point.
     // ........................................................................
     // Can't pop in loop above because state chaining requires forward order.
 
+    const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
         if (!query.pop_candidate())
@@ -431,22 +452,26 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
             return;
         }
 
+        // headers >= height are invalid, but also report as reorganized.
         fire(events::header_reorganized, index);
     }
+
+    reset_milestone(fork_point);
 
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
-    const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
-        if (!query.push_candidate(query.to_confirmed(index)))
+        const auto confirmed = query.to_confirmed(index);
+        if (!query.push_candidate(confirmed))
         {
             fault(error::push_candidate);
             return;
         }
 
         fire(events::header_organized, index);
+        update_milestone(confirmed, index);
     }
 
     state = query.get_candidate_chain_state(settings_, top_confirmed);
@@ -459,10 +484,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Logs from previous top candidate to previous fork point (jumps back).
     log_state_change(*state_, *state);
     state_ = state;
-
-    // Notify check/download/confirmation to reset to top (clear).
-    // As this organizer controls the candidate array, height is definitive.
-    notify(error::success, chase::disorganized, top_confirmed);
 }
 
 // Private
@@ -590,14 +611,112 @@ bool CLASS::push(const system::hash_digest& key) NOEXCEPT
     return query.push_candidate(link);
 }
 
+// Bypass methods.
+// ----------------------------------------------------------------------------
+
+// protected
+TEMPLATE
+inline bool CLASS::is_under_checkpoint(size_t height) const NOEXCEPT
+{
+    return height <= top_checkpoint_height_;
+}
+
+// protected
+TEMPLATE
+inline bool CLASS::is_under_milestone(size_t height) const NOEXCEPT
+{
+    return height <= active_milestone_height_;
+}
+
+// protected
+TEMPLATE
+inline bool CLASS::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_height();
+}
+
+TEMPLATE
+inline size_t CLASS::bypass_height() const NOEXCEPT
+{
+    return std::max(active_milestone_height_, top_checkpoint_height_);
+}
+
+TEMPLATE
+bool CLASS::initialize_bypass() NOEXCEPT
+{
+    active_milestone_height_ = zero;
+    if (is_zero(milestone_.height()) ||
+        milestone_.hash() == system::null_hash)
+        return true;
+
+    const auto& query = archive();
+    const auto link = query.to_candidate(milestone_.height());
+    if (link.is_terminal())
+        return true;
+
+    const auto hash = query.get_header_key(link);
+    if (hash == system::null_hash)
+        return false;
+
+    if (hash == milestone_.hash())
+        active_milestone_height_ = milestone_.height();
+
+    // Protocols are not started when this is sent.
+    notify_bypass();
+    return true;
+}
+
+TEMPLATE
+void CLASS::reset_milestone(size_t branch_point) NOEXCEPT
+{
+    if (active_milestone_height_ > branch_point)
+    {
+        // Allow use of milestone on its partial subbranch.
+        active_milestone_height_ = branch_point;
+        notify_bypass();
+    }
+}
+
+TEMPLATE
+void CLASS::update_milestone(const database::header_link& link,
+    size_t height) NOEXCEPT
+{
+    // Defer querying for hash until heights are compared.
+    if (height != milestone_.height())
+        return;
+
+    // Invokes a redundant height comparison, but only once for entire chain.
+    update_milestone(archive().get_header_key(link), height);
+}
+
+TEMPLATE
+void CLASS::update_milestone(const system::hash_digest& hash,
+    size_t height) NOEXCEPT
+{
+    if (height == milestone_.height() && hash == milestone_.hash())
+    {
+        BC_ASSERT(is_zero(active_milestone_height_));
+        active_milestone_height_ = height;
+        notify_bypass();
+    }
+}
+
+TEMPLATE
+void CLASS::notify_bypass() const NOEXCEPT
+{
+    notify(error::success, chase::bypass, bypass_height());
+}
+
+// Logging.
+// ----------------------------------------------------------------------------
+
 TEMPLATE
 void CLASS::log_state_change(const chain_state& from,
     const chain_state& to) const NOEXCEPT
 {
+    using namespace system;
     if constexpr (network::levels::news_defined)
     {
-        using namespace system;
-
         if (from.flags() != to.flags())
         {
             const binary prev{ flag_bits, to_big_endian(from.flags()) };

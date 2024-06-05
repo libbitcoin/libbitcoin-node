@@ -28,6 +28,7 @@ namespace node {
 
 #define CLASS chaser_template
 
+using namespace system;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -61,7 +62,6 @@ bool chaser_template::handle_event(const code&, chase event_,
     {
         case chase::transaction:
         {
-            using namespace system;
             POST(do_transaction, possible_narrow_cast<transaction_t>(value));
             break;
         }

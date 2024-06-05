@@ -155,6 +155,11 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
             POST(do_report, possible_narrow_cast<count_t>(value));
             break;
         }
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -218,6 +223,12 @@ void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
         << authority() << "].");
 }
 
+void protocol_block_in_31800::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
 // request hashes
 // ----------------------------------------------------------------------------
 
@@ -254,7 +265,7 @@ get_data protocol_block_in_31800::create_get_data(
     // bip144: get_data uses witness constant but inventory does not.
     // clang emplace_back bug (no matching constructor), using push_back.
     std::for_each(map->pos_begin(), map->pos_end(),
-        [&](const database::association& item) NOEXCEPT
+        [&](const auto& item) NOEXCEPT
         {
             getter.items.push_back({ block_type_, item.hash });
         });
@@ -277,7 +288,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     auto& query = archive();
-    const auto& block_ptr = message->block_ptr;
+    const chain::block::cptr block_ptr{ message->block_ptr };
     const auto hash = block_ptr->hash();
     const auto it = map_->find(hash);
 
@@ -289,10 +300,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    if (query.is_malleated(*block_ptr))
+    if (query.is_malleated64(*block_ptr))
     {
         // Disallow known block malleation, drop peer and keep trying.
-        LOGR("Malleated block [" << encode_hash(hash) << "] from ["
+        // Malleation is assumed (and archived) when malleable64 is invalid.
+        LOGR("Malleated64 block [" << encode_hash(hash) << "] from ["
             << authority() << "].");
         stop(error::malleated_block);
         return false;
@@ -304,32 +316,52 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    // Hack to measure performance with cached bypass point.
-    constexpr auto bypass = true;
+    // Transaction/witness commitments are required under checkpoint.
+    // This ensures that the block/header hash represents expected txs.
+    const auto bypass = is_under_bypass(ctx.height) &&
+        !block_ptr->is_malleable64();
 
+    // Performs full check if block is mally64 (mally32 caught either way).
     if (const auto code = check(*block_ptr, ctx, bypass))
     {
-        // Both forms of malleabilty are possible here.
-        // Malleable has not been associated, so just drop peer and continue.
-        if (!block_ptr->is_malleable())
+        // Malleated32 is never associated, so drop peer and continue.
+        // Cannot mark unconfirmable as confirmable with same hash may exist.
+        // Do not rely on return code because does not catch non-bypass mally.
+        if (block_ptr->is_malleated32())
         {
-            if (!query.set_block_unconfirmable(link))
-            {
-                LOGF("Failure setting block unconfirmable ["
-                    << encode_hash(hash) << ":" << ctx.height
-                    << "] from [" << authority() << "].");
-
-                fault(error::set_block_unconfirmable);
-                return false;
-            }
-
-            notify(error::success, chase::unchecked, link);
-            fire(events::block_unconfirmable, ctx.height);
+            LOGR("Malleated32 block [" << encode_hash(hash) << ":"
+                << ctx.height << "] from [" << authority() << "] "
+                << code.message());
+            stop(code);
+            return false;
         }
 
-        LOGR("Unchecked block [" << encode_hash(hash) << ":" << ctx.height
-            << "] from [" << authority() << "] " << code.message());
+        // Malleable64 has not been associated, so drop peer and continue.
+        // Cannot mark unconfirmable as confirmable with same hash may exist.
+        if (block_ptr->is_malleable64())
+        {
+            LOGR("Malleable64 block failed check [" << encode_hash(hash) << ":"
+                << ctx.height << "] from [" << authority() << "] "
+                << code.message());
+            stop(code);
+            return false;
+        }
 
+        // Set invalid non-malleable header to unconfirmable state.
+        // Mark unconfirmable as block is neither malleated32 nor malleable64.
+        if (!query.set_block_unconfirmable(link))
+        {
+            LOGF("Failure setting block unconfirmable [" << encode_hash(hash)
+                << ":" << ctx.height << "] from [" << authority() << "].");
+            fault(error::set_block_unconfirmable);
+            return false;
+        }
+
+        // Non-malleable block failed block check and was set unconfirmable. 
+        LOGR("Block failed check [" << encode_hash(hash) << ":" << ctx.height
+            << "] from [" << authority() << "] " << code.message());
+        notify(error::success, chase::unchecked, link);
+        fire(events::block_unconfirmable, ctx.height);
         stop(code);
         return false;
     }
@@ -337,12 +369,16 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    const auto txs_ptr = block_ptr->transactions_ptr();
-    const auto block_size = block_ptr->serialized_size(true);
+    const auto size = block_ptr->serialized_size(true);
+    const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
-    // block_ptr goes out of scope here, even if a reference is held to its
-    // transactions_ptr, so txs_ptr must be a pointer copy.
-    if (const auto code = query.set_code(*txs_ptr, link, block_size, bypass))
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    // TODO: ensure that when a mally64 is caught under bypass that tx
+    // confirmations are reverted when the block is sequentially invalidated.
+    // Query: A strong_tx may be in a not-yet-confirmed block.
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    if (const auto code = query.set_code(*txs_ptr, link, size, bypass))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "
@@ -369,12 +405,25 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-// Transaction/witness commitments are required under checkpoint/milestone.
+bool protocol_block_in_31800::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
+}
+
 code protocol_block_in_31800::check(const chain::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     code ec{};
-    return ec = block.check(bypass) ? ec : block.check(ctx, bypass);
+
+    // Transaction commitments and malleated32 are checked under bypass.
+    if ((ec = block.check(bypass)))
+        return ec;
+
+    // Witnessed tx commitments are checked under bypass (if bip141).
+    if ((ec = block.check(ctx, bypass)))
+        return ec;
+
+    return system::error::block_success;
 }
 
 // get/put hashes

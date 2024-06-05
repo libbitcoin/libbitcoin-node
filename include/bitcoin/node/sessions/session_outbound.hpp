@@ -43,7 +43,7 @@ public:
 protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
-    virtual void split(object_t self) NOEXCEPT;
+    virtual void do_starved(object_t self) NOEXCEPT;
     virtual void do_performance(object_key channel, uint64_t speed,
         const network::result_handler& handler) NOEXCEPT;
 

@@ -100,6 +100,10 @@ protected:
     virtual void notify(const code& ec, chase event_,
         event_value value) const NOEXCEPT;
 
+    /// Set event to one subscriber (does not require node strand).
+    virtual void notify_one(object_key key, const code& ec, chase event_,
+        event_value value) const NOEXCEPT;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 
@@ -121,18 +125,6 @@ protected:
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
-    /// Height represents a candidate block covered by checkpoint or milestone.
-    bool is_under_bypass(size_t height) const NOEXCEPT;
-
-    /// Height represents a candidate block covered by milestone.
-    bool is_under_milestone(size_t height) const NOEXCEPT;
-
-    /// Height represents a candidate block covered by checkpoint.
-    bool is_under_checkpoint(size_t height) const NOEXCEPT;
-
-    /// Height of checkpoint (or genesis) with maximum height.
-    size_t top_checkpoint() const NOEXCEPT;
-
     /// Position keeping.
     /// -----------------------------------------------------------------------
 
@@ -146,8 +138,6 @@ private:
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
-    const system::chain::checkpoint& milestone_;
-    const system::chain::checkpoints checkpoints_;
 };
 
 #define SUBSCRIBE_EVENTS(method, ...) \

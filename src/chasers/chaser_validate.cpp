@@ -57,7 +57,7 @@ code chaser_validate::start() NOEXCEPT
 }
 
 bool chaser_validate::handle_event(const code&, chase event_,
-    event_value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -90,11 +90,15 @@ bool chaser_validate::handle_event(const code&, chase event_,
         ////}
         ////case chase::disorganized:
         ////{
-        ////    POST(do_disorganized, possible_narrow_cast<height_t>(value));
+        ////    POST(do_regressed, possible_narrow_cast<height_t>(value));
         ////    break;
         ////}
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -115,18 +119,11 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // If branch point is at or above last validated there is nothing to do.
-    if (branch_point < position())
-        do_disorganized(branch_point);
-}
+    if (branch_point >= position())
+        return;
 
-void chaser_validate::do_disorganized(height_t top) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Revert to confirmed top as the candidate chain is fully reverted.
-    update_position(top);
-    do_checked(top);
+    // Update position and wait.
+    update_position(branch_point);
 }
 
 void chaser_validate::do_checked(height_t height) NOEXCEPT
@@ -141,7 +138,7 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
+    const auto& query = archive();
 
     // Validate checked blocks starting immediately after last validated.
     for (auto height = add1(position()); !closed(); ++height)
@@ -149,13 +146,15 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // Precondition (associated).
         // ....................................................................
 
+        // Validation is always sequential from position, along the candidate
+        // index. It does not care about regressions that may be in process.
         const auto link = query.to_candidate(height);
-        auto ec = query.get_block_state(link);
+        const auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
-        {
-        }
+            return;
 
-        if (is_under_bypass(height) && !query.is_malleable(link))
+        // query.is_malleable64(link) is used when there is no block instance.
+        if (is_under_bypass(height) && !query.is_malleable64(link))
         {
             update_neutrino(link);
             return;
@@ -344,7 +343,6 @@ void chaser_validate::validate_tx(const database::context& context,
     };
 
     code invalid{};
-    const auto start = log.now();
     const auto tx = query.get_transaction(link);
     if (!tx)
     {
@@ -366,9 +364,6 @@ void chaser_validate::validate_tx(const database::context& context,
     else
     {
         ec = set_connected(*tx);
-
-        //// Too much data.
-        ////span<network::microseconds>(events::tx_validated, start);
     }
 
     POST(handle_tx, ec, link, racer);
@@ -413,7 +408,7 @@ void chaser_validate::validate_block(const code& ec,
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
-    if (ec && query.is_malleable(link))
+    if (ec && query.is_malleable64(link))
     {
         notify(ec, chase::malleated, link);
         fire(events::block_malleated, ctx.height);
@@ -435,7 +430,9 @@ code chaser_validate::validate(const header_link& link,
 {
     code ec{};
     const auto& query = archive();
-    if (is_under_bypass(height) && !query.is_malleable(link))
+
+    // query.is_malleable64(link) is used when there is no block instance.
+    if (is_under_bypass(height) && !query.is_malleable64(link))
         return update_neutrino(link) ? error::validation_bypass :
             error::store_integrity;
 
@@ -484,7 +481,11 @@ hash_digest chaser_validate::get_neutrino(size_t height) const NOEXCEPT
     hash_digest neutrino{};
     const auto& query = archive();
     if (query.neutrino_enabled())
+    {
+        // candidate regression race may result in null_hash, which is ok, as
+        // in that case position will subsequently be reset to below height.
         query.get_filter_head(neutrino, query.to_candidate(height));
+    }
 
     return neutrino;
 }
@@ -522,6 +523,22 @@ bool chaser_validate::update_neutrino(const header_link& link,
 
     neutrino_ = compute_filter_header(neutrino_, filter);
     return query.set_filter(link, neutrino_, filter);
+}
+
+// position/bypass
+// ----------------------------------------------------------------------------
+// Bypass accept/connect is a no-op, no metadata is set.
+
+// protected
+void chaser_validate::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
+bool chaser_validate::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
 }
 
 void chaser_validate::update_position(size_t height) NOEXCEPT

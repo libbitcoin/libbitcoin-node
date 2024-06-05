@@ -51,10 +51,11 @@ private:
     void do_snapshot(height_t height) NOEXCEPT;
 
     // These are thread safe.
-    const uint64_t snapshot_bytes_;
+    const size_t top_checkpoint_;
     const size_t snapshot_valid_;
-    const bool enabled_bytes_;
+    const uint64_t snapshot_bytes_;
     const bool enabled_valid_;
+    const bool enabled_bytes_;
 
     // These are protected by strand.
     uint64_t bytes_{};
