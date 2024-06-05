@@ -140,6 +140,8 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
+    // TODO: update specialized fault codes.
+
     // Validate checked blocks starting immediately after last validated.
     for (auto height = add1(position()); !closed(); ++height)
     {
@@ -158,17 +160,19 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
 
         if (ec == database::error::integrity)
         {
-            fault(ec);
+            fault(error::node_validate);
             return;
         }
 
         if (ec == database::error::block_unconfirmable)
         {
-            notify(ec, chase::unconfirmable, height);
+            LOGR("Unconfirmable block [" << height << "] " << ec.message());
+            notify(ec, chase::unvalid, link);
             fire(events::block_unconfirmable, height);
             return;
         }
 
+        // error::validation_bypass is not used because fan-out.
         if (ec == database::error::block_valid ||
             ec == database::error::block_confirmable ||
             (is_under_bypass(height) && !query.is_malleable64(link)))
@@ -183,7 +187,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // This will very rapidly pump all outstanding work into asio queue.
         if (!enqueue_block(link))
         {
-            fault(error::store_integrity);
+            fault(error::node_validate);
             return;
         }
 
@@ -308,7 +312,7 @@ void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
     // handle_txs will only get invoked once, with a first error code, so
     // invoke fault here ensure that non-validation codes are not lost.
     if (ec == error::store_integrity || ec == database::error::integrity)
-        fault(ec);
+        fault(error::node_validate);
 
     // TODO: need to sort out bypass, validity, and fault codes.
     // Always allow the racer to finish, invokes handle_txs exactly once.
@@ -338,30 +342,28 @@ void chaser_validate::validate_block(const code& ec,
     const header_link& link, const database::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
     if (ec)
     {
-        const auto malleable64 = query.is_malleable64(link);
+        auto& query = archive();
 
-        // Must be malleable64 if failed under checkpoint.
         // Transactions are set strong upon archive when under bypass.
-        if (is_under_bypass(ctx.height) &&
-            (!malleable64 || query.set_unstrong(link)))
+        if (is_under_bypass(ctx.height))
         {
-            fault(error::store_integrity);
-            return;
-        }
+            if (!query.set_unstrong(link))
+            {
+                fault(error::node_validate);
+                return;
+            }
 
-        if (malleable64)
-        {
-            // TODO: log malleated64 block with ec.
+            // Must be malleable64 if validated when under bypass.
+            LOGR("Malleated64 block [" << ctx.height << "] " << ec.message());
             notify(ec, chase::malleated, link);
             fire(events::block_malleated, ctx.height);
             return;
         }
 
-        // TODO: log block is unconfirmable.
+        LOGR("Unconfirmable block [" << ctx.height << "] " << ec.message());
         notify(ec, chase::unconfirmable, link);
         fire(events::block_unconfirmable, ctx.height);
         return;
@@ -373,6 +375,8 @@ void chaser_validate::validate_block(const code& ec,
     // fire event first so that log is ordered.
     fire(events::block_validated, ctx.height);
     notify(ec, chase::valid, ctx.height);
+
+    LOGV("Block.txs accepted and connected: " << ctx.height);
 }
 
 // neutrino
