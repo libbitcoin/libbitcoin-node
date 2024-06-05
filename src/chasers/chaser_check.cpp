@@ -111,7 +111,11 @@ bool chaser_check::handle_event(const code&, chase event_,
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+        case chase::bypass:
+        {
+            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::header:
         {
             POST(do_header, possible_narrow_cast<height_t>(value));
@@ -150,6 +154,7 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
     maps_.clear();
     notify(error::success, chase::purge, branch_point);
 }
+
 void chaser_check::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -341,6 +346,21 @@ size_t chaser_check::get_inventory_size() const NOEXCEPT
     const auto span = std::min(step, scan);
     const auto inventory = std::min(span, messages::max_inventory);
     return system::ceilinged_divide(inventory, peers);
+}
+
+// bypass
+// ----------------------------------------------------------------------------
+
+// protected
+void chaser_check::do_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
+bool chaser_check::is_under_bypass(size_t height) const NOEXCEPT
+{
+    return height <= bypass_;
 }
 
 BC_POP_WARNING()

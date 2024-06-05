@@ -62,6 +62,7 @@ protected:
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_malleated(header_t link) NOEXCEPT;
+    virtual void do_bypass(size_t height) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
@@ -72,6 +73,7 @@ private:
     map_ptr get_map() NOEXCEPT;
     size_t get_unassociated() NOEXCEPT;
     size_t get_inventory_size() const NOEXCEPT;
+    bool is_under_bypass(size_t height) const NOEXCEPT;
 
     // These are thread safe.
     const size_t maximum_concurrency_;
@@ -81,6 +83,7 @@ private:
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
+    size_t bypass_{};
     maps maps_{};
 };
 
