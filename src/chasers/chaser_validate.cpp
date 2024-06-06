@@ -342,24 +342,23 @@ void chaser_validate::validate_block(const code& ec,
     const header_link& link, const database::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    auto& query = archive();
 
     if (ec)
     {
-        auto& query = archive();
-
-        // Transactions are set strong upon archive when under bypass.
+        // Transactions are set strong upon archive when under bypass. Only
+        // malleable blocks are validated under bypass, and not set strong.
         if (is_bypassed(ctx.height))
         {
-            if (!query.set_unstrong(link))
-            {
-                fault(error::node_validate);
-                return;
-            }
-
-            // Must be malleable64 if validated when under bypass.
             LOGR("Malleated64 block [" << ctx.height << "] " << ec.message());
             notify(ec, chase::malleated, link);
             fire(events::block_malleated, ctx.height);
+            return;
+        }
+
+        if (!query.set_block_unconfirmable(link))
+        {
+            fault(error::set_block_unconfirmable);
             return;
         }
 
@@ -369,8 +368,13 @@ void chaser_validate::validate_block(const code& ec,
         return;
     }
 
-    // TODO:
-    // Collect up tx fees and sigops, etc. for block validate with no block.
+    if (!query.set_block_valid(link))
+    {
+        fault(error::set_block_valid);
+        return;
+    }
+
+    // TODO: collect fees and sigops for block validate with no block.
 
     // fire event first so that log is ordered.
     fire(events::block_validated, ctx.height);

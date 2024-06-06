@@ -173,12 +173,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     // Push candidate headers to confirmed chain.
     for (const auto& link: views_reverse(fork))
     {
-        // Precondition (established by fork construction above).
-        // ....................................................................
-
-        // Confirm block.
-        // ....................................................................
-
+        // TODO: skip under bypass and not malleable?
         auto ec = query.get_block_state(link);
         if (ec == database::error::integrity)
         {
@@ -186,6 +181,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             return;
         }
 
+        // TODO: rollback required.
         if (ec == database::error::block_unconfirmable)
         {
             notify(ec, chase::unconfirmable, link);
@@ -195,6 +191,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         const auto malleable64 = query.is_malleable64(link);
 
+        // TODO: set organized.
         // error::confirmation_bypass is not used.
         if (ec == database::error::block_confirmable ||
             (is_bypassed(index) && !malleable64))
@@ -213,16 +210,11 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         if (ec)
         {
-            // Transactions are set strong upon archive when under bypass.
+            // TODO: rollback required.
+            // Transactions are set strong upon archive when under bypass. Only
+            // malleable blocks are validated under bypass, and not set strong.
             if (is_bypassed(height))
             {
-                if (!query.set_unstrong(link))
-                {
-                    fault(error::node_confirm);
-                    return;
-                }
-
-                // Must be malleable64 if validated when under bypass.
                 LOGR("Malleated64 block [" << index << "] " << ec.message());
                 notify(ec, chase::malleated, link);
                 fire(events::block_malleated, index);
@@ -250,7 +242,8 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             return;
         }
 
-        // TODO: compute fees from validation records (optional metadata).
+        // TODO: compute fees from validation records.
+
         if (!query.set_block_confirmable(link, uint64_t{}))
         {
             fault(error::block_confirmable);
