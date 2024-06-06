@@ -72,8 +72,8 @@ code chaser_check::start() NOEXCEPT
 {
     set_position(archive().get_fork());
     requested_ = position();
-    const auto add = get_unassociated();
-    LOGN("Fork point (" << requested_ << ") unassociated (" << add << ").");
+    const auto added = set_unassociated();
+    LOGN("Fork point (" << requested_ << ") unassociated (" << added << ").");
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
@@ -146,13 +146,19 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    // Inconsequential regression, work isn't there yet.
     if (branch_point >= position())
         return;
 
     // Update position, purge outstanding work, and wait.
     set_position(branch_point);
     maps_.clear();
+    purging_ = true;
     notify(error::success, chase::purge, branch_point);
+
+    // TODO: wait on current branch purge completion, then do set_unstrong.
+    // TODO: while waiting ignore new work, so when complete must bump to
+    // TODO: avoid temporary stall.
 }
 
 void chaser_check::do_checked(height_t height) NOEXCEPT
@@ -167,6 +173,9 @@ void chaser_check::do_checked(height_t height) NOEXCEPT
 void chaser_check::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    if (purging())
+        return;
+
     const auto& query = archive();
 
     // TODO: query.is_associated() is expensive (hashmap search).
@@ -175,7 +184,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
         query.to_candidate(add1(position()))))
             set_position(add1(position()));
 
-    get_unassociated();
+    set_unassociated();
 }
 
 // add headers
@@ -184,9 +193,10 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 void chaser_check::do_header(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto add = get_unassociated();
-    if (!is_zero(add))
-        notify(error::success, chase::download, add);
+
+    const auto added = set_unassociated();
+    if (!is_zero(added))
+        notify(error::success, chase::download, added);
 }
 
 // re-download malleated block (invalid but malleable)
@@ -211,12 +221,18 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
         return;
     }
 
-    maps_.push_back(std::make_shared<associations>(associations{ out }));
-    notify(error::success, chase::download, one);
+    const auto map = std::make_shared<associations>(associations{ out });
+    if (set_map(map) && !purging())
+        notify(error::success, chase::download, one);
 }
 
 // get/put hashes
 // ----------------------------------------------------------------------------
+
+bool chaser_check::purging() const NOEXCEPT
+{
+    return purging_;
+}
 
 void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
 {
@@ -242,7 +258,7 @@ void chaser_check::put_hashes(const map_ptr& map,
 void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (closed())
+    if (closed() || purging())
         return;
 
     const auto map = get_map();
@@ -256,14 +272,11 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 {
     BC_ASSERT(map->size() <= messages::max_inventory);
     BC_ASSERT(stranded());
-    if (closed())
+    if (closed() || purging())
         return;
 
-    if (!map->empty())
-    {
-        maps_.push_back(map);
+    if (set_map(map))
         notify(error::success, chase::download, map->size());
-    }
 
     handler(error::success);
 }
@@ -278,20 +291,32 @@ map_ptr chaser_check::get_map() NOEXCEPT
     return maps_.empty() ? empty_map() : pop_front(maps_);
 }
 
+
+bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    BC_ASSERT(map->size() <= messages::max_inventory);
+
+    if (map->empty())
+        return false;
+
+    maps_.push_back(map);
+    return true;
+}
+
 // Get all unassociated block records from start to stop heights.
 // Groups records into table sets by inventory set size, limited by advance.
 // Return the total number of records obtained and set requested_ to last.
-size_t chaser_check::get_unassociated() NOEXCEPT
+size_t chaser_check::set_unassociated() NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
-    size_t count{};
-    if (closed())
-        return count;
+    if (closed() || purging())
+        return {};
 
     // Defer new work issuance until all gaps are filled.
     if (position() < requested_ || requested_ >= maximum_height_)
-        return count;
+        return {};
 
     // Inventory size gets set only once.
     if (is_zero(inventory_))
@@ -308,6 +333,7 @@ size_t chaser_check::get_unassociated() NOEXCEPT
     const auto requested = requested_;
     const auto step = ceilinged_add(position(), maximum_concurrency_);
     const auto stop = std::min(step, maximum_height_);
+    size_t count{};
 
     while (true)
     {
@@ -315,11 +341,9 @@ size_t chaser_check::get_unassociated() NOEXCEPT
         const auto map = std::make_shared<associations>(
             query.get_unassociated_above(requested_, inventory_, stop));
 
-        if (map->empty())
+        if (!set_map(map))
             break;
 
-        BC_ASSERT(map->size() <= messages::max_inventory);
-        maps_.push_back(map);
         requested_ = map->top().height;
         count += map->size();
     }

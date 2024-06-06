@@ -70,8 +70,10 @@ private:
     typedef std::deque<map_ptr> maps;
 
     map_ptr get_map() NOEXCEPT;
-    size_t get_unassociated() NOEXCEPT;
+    size_t set_unassociated() NOEXCEPT;
     size_t get_inventory_size() const NOEXCEPT;
+    bool set_map(const map_ptr& map) NOEXCEPT;
+    bool purging() const NOEXCEPT;
 
     // These are thread safe.
     const size_t maximum_concurrency_;
@@ -81,6 +83,7 @@ private:
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
+    bool purging_{};
     maps maps_{};
 };
 
