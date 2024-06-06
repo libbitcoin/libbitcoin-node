@@ -79,21 +79,22 @@ private:
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
-    void send_get_data(const map_ptr& map) NOEXCEPT;
+    void send_get_data(const map_ptr& map, size_t bypass) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
-    void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
-    void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
     void do_handle_complete(const code& ec) NOEXCEPT;
+    void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
+    void handle_get_hashes(const code& ec, const map_ptr& map,
+        size_t bypass) NOEXCEPT;
 
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;
 
     // These are protected by strand.
     map_ptr map_;
-    size_t bypass_{ max_size_t };
+    size_t bypass_{};
 };
 
 } // namespace node

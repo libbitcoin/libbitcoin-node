@@ -57,9 +57,9 @@ typedef std::function<void(const code&, size_t)> organize_handler;
 typedef database::store<database::map> store;
 typedef database::query<store> query;
 
-/// Hash accumulator.
+/// Work list.
 typedef std::shared_ptr<database::associations> map_ptr;
-typedef std::function<void(const code&, const map_ptr&)> map_handler;
+typedef std::function<void(const code&, const map_ptr&, size_t)> map_handler;
 
 /// Node events.
 typedef uint64_t object_key;

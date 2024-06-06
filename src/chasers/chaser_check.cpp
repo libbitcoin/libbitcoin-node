@@ -246,9 +246,11 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
         return;
 
     const auto map = get_map();
-    handler(error::success, map);
+    handler(error::success, map, bypass_);
 }
 
+// It is possible that this call can be made before a purge has been sent and
+// received after. This may result in unnecessary work and incorrect bypass.
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
