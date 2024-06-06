@@ -232,12 +232,7 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map,
         return;
     }
 
-    // Protocols cannot rely on the bypass message because they miss startup
-    // initialization, and they do not maintain work order. So this is updated
-    // wit each get_hashes response. If there is a regression then all channels
-    // are purged, so bypass only progresses forward in the protocol.
-    BC_ASSERT(bypass >= bypass_);
-    do_bypass(bypass);
+    set_bypass(bypass);
 
     if (map->empty())
         return;
@@ -316,7 +311,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     // Transaction/witness commitments are required under checkpoint.
     // This ensures that the block/header hash represents expected txs.
-    const auto bypass = is_under_bypass(ctx.height) && !malleable64;
+    const auto bypass = is_bypassed(ctx.height) && !malleable64;
 
     // Performs full check if block is mally64 (mally32 caught either way).
     if (const auto code = check(*block_ptr, ctx, bypass))
@@ -463,14 +458,15 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 // bypass
 // ----------------------------------------------------------------------------
 
-void protocol_block_in_31800::do_bypass(height_t height) NOEXCEPT
+void protocol_block_in_31800::set_bypass(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     bypass_ = height;
 }
 
-bool protocol_block_in_31800::is_under_bypass(size_t height) const NOEXCEPT
+bool protocol_block_in_31800::is_bypassed(size_t height) const NOEXCEPT
 {
+    BC_ASSERT(stranded());
     return height <= bypass_;
 }
 
