@@ -113,7 +113,7 @@ bool chaser_check::handle_event(const code&, chase event_,
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::bypass:
         {
-            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            POST(set_bypass, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::header:
@@ -173,7 +173,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
     // Skip checked blocks starting immediately after last checked.
     while (!closed() && query.is_associated(
         query.to_candidate(add1(position()))))
-        ++position();
+            set_position(add1(position()));
 
     get_unassociated();
 }
@@ -246,7 +246,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
         return;
 
     const auto map = get_map();
-    handler(error::success, map, bypass_);
+    handler(error::success, map, bypass());
 }
 
 // It is possible that this call can be made before a purge has been sent and
@@ -348,21 +348,6 @@ size_t chaser_check::get_inventory_size() const NOEXCEPT
     const auto span = std::min(step, scan);
     const auto inventory = std::min(span, messages::max_inventory);
     return system::ceilinged_divide(inventory, peers);
-}
-
-// bypass
-// ----------------------------------------------------------------------------
-
-// protected
-void chaser_check::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
-bool chaser_check::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_;
 }
 
 BC_POP_WARNING()

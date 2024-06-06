@@ -73,7 +73,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         }
         case chase::bypass:
         {
-            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            POST(set_bypass, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
@@ -197,7 +197,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         // error::confirmation_bypass is not used.
         if (ec == database::error::block_confirmable ||
-            (is_under_bypass(index) && !malleable64))
+            (is_bypassed(index) && !malleable64))
         {
             notify(ec, chase::confirmable, index);
             fire(events::confirm_bypassed, index);
@@ -214,7 +214,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         if (ec)
         {
             // Transactions are set strong upon archive when under bypass.
-            if (is_under_bypass(height))
+            if (is_bypassed(height))
             {
                 if (!query.set_unstrong(link))
                 {
@@ -366,23 +366,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
-}
-
-// bypass
-// ----------------------------------------------------------------------------
-// Bypassed confirmation checks are implemented in download protocol. Above the
-// bypass point the confirmation chaser takes over.
-
-// protected
-void chaser_confirm::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
-bool chaser_confirm::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_;
 }
 
 BC_POP_WARNING()

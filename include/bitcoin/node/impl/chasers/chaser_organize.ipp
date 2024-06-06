@@ -633,19 +633,6 @@ inline bool CLASS::is_under_milestone(size_t height) const NOEXCEPT
     return height <= active_milestone_height_;
 }
 
-// protected
-TEMPLATE
-inline bool CLASS::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_height();
-}
-
-TEMPLATE
-inline size_t CLASS::bypass_height() const NOEXCEPT
-{
-    return std::max(active_milestone_height_, top_checkpoint_height_);
-}
-
 TEMPLATE
 bool CLASS::initialize_bypass() NOEXCEPT
 {
@@ -709,7 +696,8 @@ void CLASS::update_milestone(const system::hash_digest& hash,
 TEMPLATE
 void CLASS::notify_bypass() const NOEXCEPT
 {
-    notify(error::success, chase::bypass, bypass_height());
+    notify(error::success, chase::bypass,
+        std::max(active_milestone_height_, top_checkpoint_height_));
 }
 
 // Logging.

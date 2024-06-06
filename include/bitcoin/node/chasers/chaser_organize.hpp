@@ -105,9 +105,6 @@ protected:
     virtual database::header_link push(const Block& block,
         const system::chain::context& context) const NOEXCEPT;
 
-    /// Height represents a candidate block covered by checkpoint or milestone.
-    virtual inline bool is_under_bypass(size_t height) const NOEXCEPT;
-
     /// Height represents a candidate block covered by active milestone.
     virtual inline bool is_under_milestone(size_t height) const NOEXCEPT;
 
@@ -158,9 +155,6 @@ private:
 
     // Bypass methods.
     // ------------------------------------------------------------------------
-
-    // The current bypass height.
-    inline size_t bypass_height() const NOEXCEPT;
 
     // Set milestone cache if exists in candidate chain, send chase::bypass.
     bool initialize_bypass() NOEXCEPT;

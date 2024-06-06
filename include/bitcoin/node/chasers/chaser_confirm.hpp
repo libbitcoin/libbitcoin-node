@@ -45,7 +45,6 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_bypass(size_t height) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
 
 private:
@@ -57,11 +56,6 @@ private:
         height_t fork_top) const NOEXCEPT;
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
-
-    bool is_under_bypass(size_t height) const NOEXCEPT;
-
-    // This is protected by strand.
-    size_t bypass_{};
 };
 
 } // namespace node

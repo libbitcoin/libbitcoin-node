@@ -96,7 +96,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::bypass:
         {
-            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            POST(set_bypass, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
@@ -175,7 +175,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // error::validation_bypass is not used because fan-out.
         if (ec == database::error::block_valid ||
             ec == database::error::block_confirmable ||
-            (is_under_bypass(height) && !query.is_malleable64(link)))
+            (is_bypassed(height) && !query.is_malleable64(link)))
         {
             update_position(height);
             notify(ec, chase::valid, height);
@@ -348,7 +348,7 @@ void chaser_validate::validate_block(const code& ec,
         auto& query = archive();
 
         // Transactions are set strong upon archive when under bypass.
-        if (is_under_bypass(ctx.height))
+        if (is_bypassed(ctx.height))
         {
             if (!query.set_unstrong(link))
             {
@@ -432,21 +432,8 @@ bool chaser_validate::update_neutrino(const header_link& link,
     return query.set_filter(link, neutrino_, filter);
 }
 
-// position/bypass
+// position
 // ----------------------------------------------------------------------------
-// Bypassing accept/connect is a no-op, no metadata is set.
-
-// protected
-void chaser_validate::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
-bool chaser_validate::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_;
-}
 
 void chaser_validate::update_position(size_t height) NOEXCEPT
 {
