@@ -196,6 +196,10 @@ void chaser_check::do_handle_purged(const code&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    // TODO: set_unstrong(link) where link of all associated and not malleable
+    // TODO: from min(candidate_top, bypass) to > branch_point (do_regressed).
+    // TODO: cannot rely on height index. Probably need to notify with range.
+
     start_tracking();
     do_bump(height_t{});
 }
@@ -323,7 +327,6 @@ map_ptr chaser_check::get_map() NOEXCEPT
 
     return maps_.empty() ? empty_map() : pop_front(maps_);
 }
-
 
 bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
 {

@@ -300,18 +300,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         fire(events::header_reorganized, index--);
     }
 
-    // pop, regress, milestone, push, headers (order)
-    // Ensures old milestone is never used on new branch (push/headers).
+    // BUGBUG: this is insufficient because downloads race ahead.
+    // BUGBUG: the new branch can become ordered and downloaded under the old
+    // BUGBUG: milestone while the new is pending in the notification queue.
+    // BUGBUG: probably need to provide both fork point and old top.
 
-    // Reorganization, otherwise organization (branch point is top candidate).
-    // Organize chanser owns the candidate index and can organize it freely.
-    if (branch_point < top_candidate)
-    {
-        // Implies all blocks above branch are weak (clear downloads and wait).
-        notify(error::success, chase::regressed, branch_point);
-    }
-
-    // branch_point + 1
+    // branch_point
     reset_milestone(++index);
 
     // Push stored strong headers to candidate chain.
@@ -368,8 +362,17 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         // arrivals. This bumps validation for current strong headers.
         notify(error::success, chase::bump, add1(branch_point));
 
+        // This is just to prevent stall, the check chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
         notify(error::success, chase_object(), branch_point);
+    }
+
+    // Check chaser may be working on any of the blocks, and subsequent until
+    // it receives this message. That will reset to the branch point, but the
+    // work on the new branch is usable.
+    if (branch_point < top_candidate)
+    {
+        notify(error::success, chase::regressed, branch_point);
     }
 
     // Logs from candidate block parent to the candidate (forward sequential).
@@ -459,18 +462,16 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         fire(events::header_reorganized, index);
     }
 
-    // pop, disorganize (regress), milestone, push, headers (order)
-    // Ensures old milestone is never used on new branch (push/headers).
-
-    // Notify check/validate/confirm to stop confirming.
-    // Organize chanser owns the candidate index and can organize it freely.
-    const auto top_confirmed = query.get_top_confirmed();
-    notify(error::success, chase::disorganized, top_confirmed);
+    // BUGBUG: this is insufficient because downloads race ahead.
+    // BUGBUG: the new branch can become ordered and downloaded under the old
+    // BUGBUG: milestone while the new is pending in the notification queue.
+    // BUGBUG: probably need to provide both fork point and old top.
     reset_milestone(fork_point);
 
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
+    const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
         const auto confirmed = query.to_confirmed(index);
@@ -490,6 +491,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         fault(error::get_candidate_chain_state);
         return;
     }
+
+    // Check chaser may be working on any of the blocks, and subsequent until
+    // it receives this message. That will reset to the branch point, but the
+    // work on the new branch is usable.
+    notify(error::success, chase::disorganized, fork_point);
 
     // Logs from previous top candidate to previous fork point (jumps back).
     log_state_change(*state_, *state);
