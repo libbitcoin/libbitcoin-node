@@ -61,19 +61,21 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {
-        case chase::block:
+        case chase::blocks:
         {
+            // TODO: value is branch point.
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::valid:
         {
+            // value is individual height.
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::bypass:
         {
-            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            POST(set_bypass, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
@@ -173,12 +175,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     // Push candidate headers to confirmed chain.
     for (const auto& link: views_reverse(fork))
     {
-        // Precondition (established by fork construction above).
-        // ....................................................................
-
-        // Confirm block.
-        // ....................................................................
-
+        // TODO: skip under bypass and not malleable?
         auto ec = query.get_block_state(link);
         if (ec == database::error::integrity)
         {
@@ -186,6 +183,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             return;
         }
 
+        // TODO: rollback required.
         if (ec == database::error::block_unconfirmable)
         {
             notify(ec, chase::unconfirmable, link);
@@ -195,9 +193,10 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         const auto malleable64 = query.is_malleable64(link);
 
+        // TODO: set organized.
         // error::confirmation_bypass is not used.
         if (ec == database::error::block_confirmable ||
-            (is_under_bypass(index) && !malleable64))
+            (is_bypassed(index) && !malleable64))
         {
             notify(ec, chase::confirmable, index);
             fire(events::confirm_bypassed, index);
@@ -213,16 +212,11 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         if (ec)
         {
-            // Transactions are set strong upon archive when under bypass.
-            if (is_under_bypass(height))
+            // TODO: rollback required.
+            // Transactions are set strong upon archive when under bypass. Only
+            // malleable blocks are validated under bypass, and not set strong.
+            if (is_bypassed(height))
             {
-                if (!query.set_unstrong(link))
-                {
-                    fault(error::node_confirm);
-                    return;
-                }
-
-                // Must be malleable64 if validated when under bypass.
                 LOGR("Malleated64 block [" << index << "] " << ec.message());
                 notify(ec, chase::malleated, link);
                 fire(events::block_malleated, index);
@@ -250,7 +244,8 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             return;
         }
 
-        // TODO: compute fees from validation records (optional metadata).
+        // TODO: compute fees from validation records.
+
         if (!query.set_block_confirmable(link, uint64_t{}))
         {
             fault(error::block_confirmable);
@@ -366,23 +361,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
-}
-
-// bypass
-// ----------------------------------------------------------------------------
-// Bypassed confirmation checks are implemented in download protocol. Above the
-// bypass point the confirmation chaser takes over.
-
-// protected
-void chaser_confirm::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
-bool chaser_confirm::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_;
 }
 
 BC_POP_WARNING()

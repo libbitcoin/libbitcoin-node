@@ -96,7 +96,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::bypass:
         {
-            POST(do_bypass, possible_narrow_cast<height_t>(value));
+            POST(set_bypass, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
@@ -175,7 +175,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // error::validation_bypass is not used because fan-out.
         if (ec == database::error::block_valid ||
             ec == database::error::block_confirmable ||
-            (is_under_bypass(height) && !query.is_malleable64(link)))
+            (is_bypassed(height) && !query.is_malleable64(link)))
         {
             update_position(height);
             notify(ec, chase::valid, height);
@@ -342,24 +342,23 @@ void chaser_validate::validate_block(const code& ec,
     const header_link& link, const database::context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    auto& query = archive();
 
     if (ec)
     {
-        auto& query = archive();
-
-        // Transactions are set strong upon archive when under bypass.
-        if (is_under_bypass(ctx.height))
+        // Transactions are set strong upon archive when under bypass. Only
+        // malleable blocks are validated under bypass, and not set strong.
+        if (is_bypassed(ctx.height))
         {
-            if (!query.set_unstrong(link))
-            {
-                fault(error::node_validate);
-                return;
-            }
-
-            // Must be malleable64 if validated when under bypass.
             LOGR("Malleated64 block [" << ctx.height << "] " << ec.message());
             notify(ec, chase::malleated, link);
             fire(events::block_malleated, ctx.height);
+            return;
+        }
+
+        if (!query.set_block_unconfirmable(link))
+        {
+            fault(error::set_block_unconfirmable);
             return;
         }
 
@@ -369,8 +368,13 @@ void chaser_validate::validate_block(const code& ec,
         return;
     }
 
-    // TODO:
-    // Collect up tx fees and sigops, etc. for block validate with no block.
+    if (!query.set_block_valid(link))
+    {
+        fault(error::set_block_valid);
+        return;
+    }
+
+    // TODO: collect fees and sigops for block validate with no block.
 
     // fire event first so that log is ordered.
     fire(events::block_validated, ctx.height);
@@ -432,21 +436,8 @@ bool chaser_validate::update_neutrino(const header_link& link,
     return query.set_filter(link, neutrino_, filter);
 }
 
-// position/bypass
+// position
 // ----------------------------------------------------------------------------
-// Bypass accept/connect is a no-op, no metadata is set.
-
-// protected
-void chaser_validate::do_bypass(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
-bool chaser_validate::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_;
-}
 
 void chaser_validate::update_position(size_t height) NOEXCEPT
 {

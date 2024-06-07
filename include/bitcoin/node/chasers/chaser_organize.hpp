@@ -94,19 +94,19 @@ protected:
     virtual bool handle_event(const code&, chase event_,
         event_value value) NOEXCEPT;
 
-    /// Reorganize following Block unconfirmability.
-    virtual void do_disorganize(header_t header) NOEXCEPT;
-
     /// Reorganize following strong branch discovery.
     virtual void do_organize(typename Block::cptr& block_ptr,
         const organize_handler& handler) NOEXCEPT;
 
+    /// Reorganize following Block unconfirmability.
+    virtual void do_disorganize(header_t header) NOEXCEPT;
+
+    /// Disassociate malleated block and notify repeat header in current job.
+    virtual void do_malleated(header_t link) NOEXCEPT;
+
     /// Store Block to database and push to top of candidate chain.
     virtual database::header_link push(const Block& block,
         const system::chain::context& context) const NOEXCEPT;
-
-    /// Height represents a candidate block covered by checkpoint or milestone.
-    virtual inline bool is_under_bypass(size_t height) const NOEXCEPT;
 
     /// Height represents a candidate block covered by active milestone.
     virtual inline bool is_under_milestone(size_t height) const NOEXCEPT;
@@ -130,7 +130,7 @@ private:
     }
     static constexpr auto chase_object() NOEXCEPT
     {
-        return is_block() ? chase::block : chase::header;
+        return is_block() ? chase::blocks : chase::headers;
     }
 
     // Chain methods.
@@ -158,9 +158,6 @@ private:
 
     // Bypass methods.
     // ------------------------------------------------------------------------
-
-    // The current bypass height.
-    inline size_t bypass_height() const NOEXCEPT;
 
     // Set milestone cache if exists in candidate chain, send chase::bypass.
     bool initialize_bypass() NOEXCEPT;

@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
 #include <deque>
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -46,6 +47,7 @@ public:
 
     /// Initialize chaser state.
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
     /// Interface for protocols to obtain/return pending download identifiers.
     /// Identifiers not downloaded must be returned or chain will remain gapped.
@@ -54,14 +56,16 @@ public:
         network::result_handler&& handler) NOEXCEPT;
 
 protected:
+    virtual void handle_purged(const code& ec) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_bump(height_t branch_point) NOEXCEPT;
-    virtual void do_header(height_t branch_point) NOEXCEPT;
+    virtual void do_bump(height_t height) NOEXCEPT;
+    virtual void do_header(header_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
+    virtual void do_headers(height_t branch_point) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
-    virtual void do_malleated(header_t link) NOEXCEPT;
+    virtual void do_handle_purged(const code& ec) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
@@ -70,8 +74,13 @@ private:
     typedef std::deque<map_ptr> maps;
 
     map_ptr get_map() NOEXCEPT;
-    size_t get_unassociated() NOEXCEPT;
+    size_t set_unassociated() NOEXCEPT;
     size_t get_inventory_size() const NOEXCEPT;
+    bool set_map(const map_ptr& map) NOEXCEPT;
+
+    void start_tracking() NOEXCEPT;
+    void stop_tracking() NOEXCEPT;
+    bool purging() const NOEXCEPT;
 
     // These are thread safe.
     const size_t maximum_concurrency_;
@@ -81,6 +90,7 @@ private:
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
+    job::ptr job_{};
     maps maps_{};
 };
 

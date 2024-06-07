@@ -129,17 +129,40 @@ bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
     return node_.is_current(timestamp);
 }
 
+// Bypass.
+// ----------------------------------------------------------------------------
+
+size_t chaser::bypass() const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    return bypass_;
+}
+
+void chaser::set_bypass(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    bypass_ = height;
+}
+
+bool chaser::is_bypassed(size_t height) const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    return height <= bypass_;
+}
+
 // Position.
 // ----------------------------------------------------------------------------
 
-void chaser::set_position(size_t height) NOEXCEPT
+size_t chaser::position() const NOEXCEPT
 {
-    position_ = height;
+    BC_ASSERT(stranded());
+    return position_;
 }
 
-size_t& chaser::position() NOEXCEPT
+void chaser::set_position(size_t height) NOEXCEPT
 {
-    return position_;
+    BC_ASSERT(stranded());
+    position_ = height;
 }
 
 BC_POP_WARNING()

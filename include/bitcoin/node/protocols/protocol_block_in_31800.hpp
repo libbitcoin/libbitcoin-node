@@ -66,7 +66,6 @@ protected:
     virtual void do_purge(channel_t) NOEXCEPT;
     virtual void do_split(channel_t) NOEXCEPT;
     virtual void do_report(count_t count) NOEXCEPT;
-    virtual void do_bypass(height_t height) NOEXCEPT;
 
     /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
@@ -75,25 +74,30 @@ protected:
 private:
     using type_id = network::messages::inventory::type_id;
 
-    bool is_under_bypass(size_t height) const NOEXCEPT;
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
-    void send_get_data(const map_ptr& map) NOEXCEPT;
+    void send_get_data(const map_ptr& map, const job::ptr& job,
+        size_t bypass) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
-    void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
-    void handle_get_hashes(const code& ec, const map_ptr& map) NOEXCEPT;
     void do_handle_complete(const code& ec) NOEXCEPT;
+    void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
+    void handle_get_hashes(const code& ec, const map_ptr& map,
+        const job::ptr& job, size_t bypass) NOEXCEPT;
+
+    void set_bypass(height_t height) NOEXCEPT;
+    bool is_bypassed(size_t height) const NOEXCEPT;
 
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;
 
     // These are protected by strand.
     map_ptr map_;
-    size_t bypass_{ max_size_t };
+    job::ptr job_{};
+    size_t bypass_{};
 };
 
 } // namespace node

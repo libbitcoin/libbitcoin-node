@@ -122,6 +122,11 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
             POST(do_disorganize, possible_narrow_cast<header_t>(value));
             break;
         }
+        case chase::malleated:
+        {
+            POST(do_malleated, possible_narrow_cast<header_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -282,14 +287,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
-    // Reorganization, otherwise organization (branch point is top candidate).
-    // Organize chanser owns the candidate index and can organize it freely.
-    if (branch_point < top_candidate)
-    {
-        // Implies all blocks above branch are weak (clear downloads and wait).
-        notify(error::success, chase::regressed, branch_point);
-    }
-
     // Pop down to the branch point.
     auto index = top_candidate;
     while (index > branch_point)
@@ -303,7 +300,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         fire(events::header_reorganized, index--);
     }
 
-    // branch_point + 1
+    // BUGBUG: this is insufficient because downloads race ahead.
+    // BUGBUG: the new branch can become ordered and downloaded under the old
+    // BUGBUG: milestone while the new is pending in the notification queue.
+    // BUGBUG: probably need to provide both fork point and old top.
+
+    // branch_point
     reset_milestone(++index);
 
     // Push stored strong headers to candidate chain.
@@ -360,8 +362,17 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         // arrivals. This bumps validation for current strong headers.
         notify(error::success, chase::bump, add1(branch_point));
 
+        // This is just to prevent stall, the check chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
         notify(error::success, chase_object(), branch_point);
+    }
+
+    // Check chaser may be working on any of the blocks, and subsequent until
+    // it receives this message. That will reset to the branch point, but the
+    // work on the new branch is usable.
+    if (branch_point < top_candidate)
+    {
+        notify(error::success, chase::regressed, branch_point);
     }
 
     // Logs from candidate block parent to the candidate (forward sequential).
@@ -388,7 +399,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // If header is not a current candidate it has been reorganized out.
     // If header becomes candidate again its unconfirmable state is handled.
     auto& query = archive();
-    if (!query.is_candidate_block(link))
+    if (!query.is_candidate_header(link))
         return;
 
     size_t height{};
@@ -434,11 +445,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         cache(block_ptr, state);
     }
 
-    // Notify check/validate/confirm to stop confirming.
-    // Organize chanser owns the candidate index and can organize it freely.
-    const auto top_confirmed = query.get_top_confirmed();
-    notify(error::success, chase::disorganized, top_confirmed);
-
     // Pop candidates from top candidate down to above fork point.
     // ........................................................................
     // Can't pop in loop above because state chaining requires forward order.
@@ -456,11 +462,16 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         fire(events::header_reorganized, index);
     }
 
+    // BUGBUG: this is insufficient because downloads race ahead.
+    // BUGBUG: the new branch can become ordered and downloaded under the old
+    // BUGBUG: milestone while the new is pending in the notification queue.
+    // BUGBUG: probably need to provide both fork point and old top.
     reset_milestone(fork_point);
 
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
+    const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
         const auto confirmed = query.to_confirmed(index);
@@ -481,9 +492,41 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         return;
     }
 
+    // Check chaser may be working on any of the blocks, and subsequent until
+    // it receives this message. That will reset to the branch point, but the
+    // work on the new branch is usable.
+    notify(error::success, chase::disorganized, fork_point);
+
     // Logs from previous top candidate to previous fork point (jumps back).
     log_state_change(*state_, *state);
     state_ = state;
+}
+
+// The archived malleable block was found to be invalid (treat as malleated).
+// The block/header hash cannot be marked unconfirmable due to malleability, so
+// disassociate the block and then notify check chaser to reisuse the download.
+// This must be issued here in order to ensure proper bypass/regress ordering.
+TEMPLATE
+void CLASS::do_malleated(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // If not disassociated, validation/confirmation will be reattemted.
+    // This could happen due to shutdown before this step is completed.
+    if (!query.set_dissasociated(link))
+    {
+        fault(error::set_dissasociated);
+        return;
+    }
+
+    // Header is no longer in the candidate chain, so do not announce.
+    if (!query.is_candidate_header(link))
+        return;
+
+    // Announce a singleton header that requires download.
+    // Since it is in the candidate chain, it must presently be missing.
+    notify(error::success, chase::header, link);
 }
 
 // Private
@@ -540,7 +583,7 @@ bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
 
     // Sum branch work from store.
     database::height_link link{};
-    for (link = query.to_header(*previous); !query.is_candidate_block(link);
+    for (link = query.to_header(*previous); !query.is_candidate_header(link);
         link = query.to_parent(link))
     {
         uint32_t bits{};
@@ -628,19 +671,6 @@ inline bool CLASS::is_under_milestone(size_t height) const NOEXCEPT
     return height <= active_milestone_height_;
 }
 
-// protected
-TEMPLATE
-inline bool CLASS::is_under_bypass(size_t height) const NOEXCEPT
-{
-    return height <= bypass_height();
-}
-
-TEMPLATE
-inline size_t CLASS::bypass_height() const NOEXCEPT
-{
-    return std::max(active_milestone_height_, top_checkpoint_height_);
-}
-
 TEMPLATE
 bool CLASS::initialize_bypass() NOEXCEPT
 {
@@ -704,7 +734,8 @@ void CLASS::update_milestone(const system::hash_digest& hash,
 TEMPLATE
 void CLASS::notify_bypass() const NOEXCEPT
 {
-    notify(error::success, chase::bypass, bypass_height());
+    notify(error::success, chase::bypass,
+        std::max(active_milestone_height_, top_checkpoint_height_));
 }
 
 // Logging.

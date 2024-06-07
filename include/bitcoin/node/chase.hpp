@@ -68,13 +68,17 @@ enum class chase
     /// Candidate Chain.
     /// -----------------------------------------------------------------------
 
-    /// Legacy: A new strong branch exists (height_t).
-    /// Issued by 'block' and handled by 'confirm'.
-    block,
-
-    /// A new candidate branch exists (height_t).
+    /// A candidate header has been disassociated due to malleation (header_t).
     /// Issued by 'header' and handled by 'check'.
     header,
+
+    /// A new candidate branch exists from given branch point (height_t).
+    /// Issued by 'block' and handled by 'confirm'.
+    blocks,
+
+    /// A new candidate branch exists from given branch point (height_t).
+    /// Issued by 'header' and handled by 'check'.
+    headers,
 
     /// New candidate headers without txs exist (count_t).
     /// Issued by 'check' and handled by 'block_in_31800'.

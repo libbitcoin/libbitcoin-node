@@ -48,7 +48,6 @@ protected:
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
-    virtual void do_bypass(size_t height) NOEXCEPT;
 
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void validate_tx(const database::context& context,
@@ -68,14 +67,11 @@ private:
 #endif // UNDEFINED
 
     // neutrino
+    void update_position(size_t height) NOEXCEPT;
     system::hash_digest get_neutrino(size_t height) const NOEXCEPT;
     bool update_neutrino(const database::header_link& link) NOEXCEPT;
     bool update_neutrino(const database::header_link& link,
         const system::chain::block& block) NOEXCEPT;
-
-    // positions
-    void update_position(size_t height) NOEXCEPT;
-    bool is_under_bypass(size_t height) const NOEXCEPT;
 
     // These are thread safe.
     const uint64_t initial_subsidy_;
@@ -84,7 +80,6 @@ private:
     // These are protected by strand.
     network::threadpool threadpool_;
     system::hash_digest neutrino_{};
-    size_t bypass_{};
 };
 
 } // namespace node

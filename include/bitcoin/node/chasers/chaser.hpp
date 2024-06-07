@@ -125,15 +125,23 @@ protected:
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
-    /// Position keeping.
+    /// Bypass (requires strand).
     /// -----------------------------------------------------------------------
 
-    size_t& position() NOEXCEPT;
+    size_t bypass() const NOEXCEPT;
+    void set_bypass(size_t height) NOEXCEPT;
+    bool is_bypassed(size_t height) const NOEXCEPT;
+
+    /// Position (requires strand).
+    /// -----------------------------------------------------------------------
+
+    size_t position() const NOEXCEPT;
     void set_position(size_t height) NOEXCEPT;
 
 private:
-    // This is protected by strand.
-    size_t position_;
+    // These are protected by strand.
+    size_t bypass_{};
+    size_t position_{};
 
     // These are thread safe (mostly).
     full_node& node_;
