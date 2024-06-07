@@ -80,7 +80,7 @@ void protocol_block_in_31800::do_handle_complete(const code& ec) NOEXCEPT
     if (is_current())
     {
         start_performance();
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
+        get_hashes(BIND(handle_get_hashes, _1, _2, _3, _4));
     }
 }
 
@@ -145,8 +145,8 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
         case chase::download:
         {
             // There are count blocks to download at/above given header.
-            // chase::header is only sent for current candidate chain, and this
-            // chase::download is only sent as a consequence of chase::header.
+            // chase::headers is only sent for current candidate chain, and this
+            // chase::download is only sent as a consequence of chase::headers.
             POST(do_get_downloads, possible_narrow_cast<size_t>(value));
             break;
         }
@@ -179,7 +179,7 @@ void protocol_block_in_31800::do_get_downloads(count_t) NOEXCEPT
     {
         // Assume performance was stopped due to exhaustion.
         start_performance();
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
+        get_hashes(BIND(handle_get_hashes, _1, _2, _3, _4));
     }
 }
 
@@ -222,7 +222,7 @@ void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map,
-    size_t bypass) NOEXCEPT
+    const job::ptr& job, size_t bypass) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -233,19 +233,19 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map,
     }
 
     set_bypass(bypass);
-
     if (map->empty())
         return;
 
-    if (is_idle())
+    // There are two populated maps, return new and leave old in place.
+    if (!is_idle())
     {
-        const auto message = create_get_data((map_ = map));
-        SEND(message, handle_send, _1);
+        restore(map);
         return;
     }
 
-    // There are two populated maps, return the new and leave the old alone.
-    restore(map);
+    job_ = job;
+    map_ = map;
+    SEND(create_get_data(map_), handle_send, _1);
 }
 
 get_data protocol_block_in_31800::create_get_data(
@@ -387,7 +387,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     count(message->cached_size);
     map_->erase(it);
     if (is_idle())
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
+    {
+        job_.reset();
+        get_hashes(BIND(handle_get_hashes, _1, _2, _3, _4));
+    }
 
     return true;
 }
@@ -429,7 +432,7 @@ void protocol_block_in_31800::handle_put_hashes(const code& ec,
 }
 
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
-    const map_ptr& map, size_t bypass) NOEXCEPT
+    const map_ptr& map, const job::ptr& job, size_t bypass) NOEXCEPT
 {
     LOGV("Got (" << map->size() << ") work for [" << authority() << "].");
 
@@ -452,7 +455,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
         return;
     }
 
-    POST(send_get_data, map, bypass);
+    POST(send_get_data, map, job, bypass);
 }
 
 // bypass

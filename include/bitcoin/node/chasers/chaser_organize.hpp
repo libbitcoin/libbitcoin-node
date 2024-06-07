@@ -94,12 +94,15 @@ protected:
     virtual bool handle_event(const code&, chase event_,
         event_value value) NOEXCEPT;
 
-    /// Reorganize following Block unconfirmability.
-    virtual void do_disorganize(header_t header) NOEXCEPT;
-
     /// Reorganize following strong branch discovery.
     virtual void do_organize(typename Block::cptr& block_ptr,
         const organize_handler& handler) NOEXCEPT;
+
+    /// Reorganize following Block unconfirmability.
+    virtual void do_disorganize(header_t header) NOEXCEPT;
+
+    /// Disassociate malleated block and notify repeat header in current job.
+    virtual void do_malleated(header_t link) NOEXCEPT;
 
     /// Store Block to database and push to top of candidate chain.
     virtual database::header_link push(const Block& block,
@@ -127,7 +130,7 @@ private:
     }
     static constexpr auto chase_object() NOEXCEPT
     {
-        return is_block() ? chase::block : chase::header;
+        return is_block() ? chase::blocks : chase::headers;
     }
 
     // Chain methods.

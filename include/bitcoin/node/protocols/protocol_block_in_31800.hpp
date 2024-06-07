@@ -77,7 +77,8 @@ private:
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
-    void send_get_data(const map_ptr& map, size_t bypass) NOEXCEPT;
+    void send_get_data(const map_ptr& map, const job::ptr& job,
+        size_t bypass) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
 
@@ -85,7 +86,7 @@ private:
     void do_handle_complete(const code& ec) NOEXCEPT;
     void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map,
-        size_t bypass) NOEXCEPT;
+        const job::ptr& job, size_t bypass) NOEXCEPT;
 
     void set_bypass(height_t height) NOEXCEPT;
     bool is_bypassed(size_t height) const NOEXCEPT;
@@ -95,6 +96,7 @@ private:
 
     // These are protected by strand.
     map_ptr map_;
+    job::ptr job_{};
     size_t bypass_{};
 };
 

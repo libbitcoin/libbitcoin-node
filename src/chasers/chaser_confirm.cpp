@@ -61,13 +61,15 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {
-        case chase::block:
+        case chase::blocks:
         {
+            // TODO: value is branch point.
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::valid:
         {
+            // value is individual height.
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }

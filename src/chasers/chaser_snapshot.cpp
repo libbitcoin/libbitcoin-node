@@ -76,12 +76,12 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
 
     switch (event_)
     {
-        case chase::block:
+        case chase::blocks:
         case chase::checked:
         {
             if (!enabled_bytes_ || ec) break;
 
-            // Checked blocks are our of order, so this is probalistic.
+            // Checked blocks are out of order, so this is probalistic.
             POST(do_archive, possible_narrow_cast<height_t>(value));
             break;
         }

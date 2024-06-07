@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <algorithm>
+#include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -65,11 +66,12 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
     return half;
 }
 
-// start
+// start/stop
 // ----------------------------------------------------------------------------
 
 code chaser_check::start() NOEXCEPT
 {
+    start_tracking();
     set_position(archive().get_fork());
     requested_ = position();
     const auto added = set_unassociated();
@@ -77,6 +79,13 @@ code chaser_check::start() NOEXCEPT
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
+}
+
+void chaser_check::stopping(const code& ec) NOEXCEPT
+{
+    // Allow job completion as soon as all protocols are closed.
+    stop_tracking();
+    chaser::stopping(ec);
 }
 
 bool chaser_check::handle_event(const code&, chase event_,
@@ -118,12 +127,12 @@ bool chaser_check::handle_event(const code&, chase event_,
         }
         case chase::header:
         {
-            POST(do_header, possible_narrow_cast<height_t>(value));
+            POST(do_header, possible_narrow_cast<header_t>(value));
             break;
         }
-        case chase::malleated:
+        case chase::headers:
         {
-            POST(do_malleated, possible_narrow_cast<header_t>(value));
+            POST(do_headers, possible_narrow_cast<height_t>(value));
             break;
         }
         case chase::stop:
@@ -139,7 +148,7 @@ bool chaser_check::handle_event(const code&, chase event_,
     return true;
 }
 
-// track downloaded in order (to move download window)
+// regression
 // ----------------------------------------------------------------------------
 
 void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
@@ -150,16 +159,49 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
     if (branch_point >= position())
         return;
 
-    // Update position, purge outstanding work, and wait.
+    // Update position, purge outstanding work, and wait on track completion.
     set_position(branch_point);
+    stop_tracking();
     maps_.clear();
-    purging_ = true;
     notify(error::success, chase::purge, branch_point);
-
-    // TODO: wait on current branch purge completion, then do set_unstrong.
-    // TODO: while waiting ignore new work, so when complete must bump to
-    // TODO: avoid temporary stall.
 }
+
+void chaser_check::start_tracking() NOEXCEPT
+{
+    // Called from start.
+    ////BC_ASSERT(stranded());
+
+    job_ = std::make_shared<job>(BIND(handle_purged, _1));
+}
+
+void chaser_check::stop_tracking() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Resetting our own pointer allows destruct and call to handle_purged.
+    job_.reset();
+}
+
+void chaser_check::handle_purged(const code& ec) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    boost::asio::post(strand(),
+        std::bind(&chaser_check::do_handle_purged,
+            this, ec));
+}
+
+void chaser_check::do_handle_purged(const code&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    start_tracking();
+    do_bump(height_t{});
+}
+
+// track downloaded in order (to move download window)
+// ----------------------------------------------------------------------------
 
 void chaser_check::do_checked(height_t height) NOEXCEPT
 {
@@ -190,7 +232,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 // add headers
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_header(height_t) NOEXCEPT
+void chaser_check::do_headers(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -199,28 +241,19 @@ void chaser_check::do_header(height_t) NOEXCEPT
         notify(error::success, chase::download, added);
 }
 
-// re-download malleated block (invalid but malleable)
 // The archived malleable block was found to be invalid (treat as malleated).
-// The block/header hash cannot be marked unconfirmable due to malleability, so
-// disassociate the block and then add the block hash back to the current set.
-void chaser_check::do_malleated(header_t link) NOEXCEPT
+void chaser_check::do_header(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
     association out{};
-    if (!query.set_dissasociated(link))
-    {
-        fault(error::set_dissasociated);
-        return;
-    }
-
-    if (!query.get_unassociated(out, link))
+    if (!archive().get_unassociated(out, link))
     {
         fault(error::get_unassociated);
         return;
     }
 
+    // Add even if purging, as this header applies to the subsequent rage.
     const auto map = std::make_shared<associations>(associations{ out });
     if (set_map(map) && !purging())
         notify(error::success, chase::download, one);
@@ -231,7 +264,7 @@ void chaser_check::do_malleated(header_t link) NOEXCEPT
 
 bool chaser_check::purging() const NOEXCEPT
 {
-    return purging_;
+    return !job_;
 }
 
 void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
@@ -262,7 +295,7 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
         return;
 
     const auto map = get_map();
-    handler(error::success, map, bypass());
+    handler(error::success, map, job_, bypass());
 }
 
 // It is possible that this call can be made before a purge has been sent and

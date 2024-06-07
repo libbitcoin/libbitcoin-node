@@ -122,6 +122,11 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
             POST(do_disorganize, possible_narrow_cast<header_t>(value));
             break;
         }
+        case chase::malleated:
+        {
+            POST(do_malleated, possible_narrow_cast<header_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -391,7 +396,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // If header is not a current candidate it has been reorganized out.
     // If header becomes candidate again its unconfirmable state is handled.
     auto& query = archive();
-    if (!query.is_candidate_block(link))
+    if (!query.is_candidate_header(link))
         return;
 
     size_t height{};
@@ -491,6 +496,33 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state_ = state;
 }
 
+// The archived malleable block was found to be invalid (treat as malleated).
+// The block/header hash cannot be marked unconfirmable due to malleability, so
+// disassociate the block and then notify check chaser to reisuse the download.
+// This must be issued here in order to ensure proper bypass/regress ordering.
+TEMPLATE
+void CLASS::do_malleated(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // If not disassociated, validation/confirmation will be reattemted.
+    // This could happen due to shutdown before this step is completed.
+    if (!query.set_dissasociated(link))
+    {
+        fault(error::set_dissasociated);
+        return;
+    }
+
+    // Header is no longer in the candidate chain, so do not announce.
+    if (!query.is_candidate_header(link))
+        return;
+
+    // Announce a singleton header that requires download.
+    // Since it is in the candidate chain, it must presently be missing.
+    notify(error::success, chase::header, link);
+}
+
 // Private
 // ----------------------------------------------------------------------------
 
@@ -545,7 +577,7 @@ bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
 
     // Sum branch work from store.
     database::height_link link{};
-    for (link = query.to_header(*previous); !query.is_candidate_block(link);
+    for (link = query.to_header(*previous); !query.is_candidate_header(link);
         link = query.to_parent(link))
     {
         uint32_t bits{};
