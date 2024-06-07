@@ -80,7 +80,7 @@ void protocol_block_in_31800::do_handle_complete(const code& ec) NOEXCEPT
     if (is_current())
     {
         start_performance();
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3, _4));
+        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
     }
 }
 
@@ -179,7 +179,7 @@ void protocol_block_in_31800::do_get_downloads(count_t) NOEXCEPT
     {
         // Assume performance was stopped due to exhaustion.
         start_performance();
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3, _4));
+        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
     }
 }
 
@@ -222,7 +222,7 @@ void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void protocol_block_in_31800::send_get_data(const map_ptr& map,
-    const job::ptr& job, size_t bypass) NOEXCEPT
+    const job::ptr& job) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -232,7 +232,6 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map,
         return;
     }
 
-    set_bypass(bypass);
     if (map->empty())
         return;
 
@@ -311,7 +310,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     // Transaction/witness commitments are required under checkpoint.
     // This ensures that the block/header hash represents expected txs.
-    const auto bypass = is_bypassed(ctx.height) && !malleable64;
+    // Do not consider milestone for check because regressions can result in
+    // stored unchecked blocks, and the cost of mitigation exceeds the check.
+    const auto bypass = is_under_checkpoint(ctx.height) && !malleable64;
 
     // Performs full check if block is mally64 (mally32 caught either way).
     if (const auto code = check(*block_ptr, ctx, bypass))
@@ -389,7 +390,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (is_idle())
     {
         job_.reset();
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3, _4));
+        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
     }
 
     return true;
@@ -432,7 +433,7 @@ void protocol_block_in_31800::handle_put_hashes(const code& ec,
 }
 
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
-    const map_ptr& map, const job::ptr& job, size_t bypass) NOEXCEPT
+    const map_ptr& map, const job::ptr& job) NOEXCEPT
 {
     LOGV("Got (" << map->size() << ") work for [" << authority() << "].");
 
@@ -455,22 +456,15 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
         return;
     }
 
-    POST(send_get_data, map, job, bypass);
+    POST(send_get_data, map, job);
 }
 
-// bypass
+// checkpoint
 // ----------------------------------------------------------------------------
 
-void protocol_block_in_31800::set_bypass(height_t height) NOEXCEPT
+bool protocol_block_in_31800::is_under_checkpoint(size_t height) const NOEXCEPT
 {
-    BC_ASSERT(stranded());
-    bypass_ = height;
-}
-
-bool protocol_block_in_31800::is_bypassed(size_t height) const NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    return height <= bypass_;
+    return height <= top_checkpoint_height_;
 }
 
 BC_POP_WARNING()
