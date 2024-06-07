@@ -129,8 +129,10 @@ protected:
     /// -----------------------------------------------------------------------
 
     size_t bypass() const NOEXCEPT;
+    size_t checkpoint() const NOEXCEPT;
     void set_bypass(size_t height) NOEXCEPT;
     bool is_bypassed(size_t height) const NOEXCEPT;
+    bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
     /// Position (requires strand).
     /// -----------------------------------------------------------------------
@@ -139,13 +141,14 @@ protected:
     void set_position(size_t height) NOEXCEPT;
 
 private:
-    // These are protected by strand.
-    size_t bypass_{};
-    size_t position_{};
-
     // These are thread safe (mostly).
     full_node& node_;
     network::asio::strand strand_;
+    const size_t top_checkpoint_height_;
+
+    // These are protected by strand.
+    size_t bypass_{};
+    size_t position_{};
 };
 
 #define SUBSCRIBE_EVENTS(method, ...) \

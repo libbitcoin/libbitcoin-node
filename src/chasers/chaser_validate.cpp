@@ -72,27 +72,27 @@ bool chaser_validate::handle_event(const code&, chase event_,
     {
         // Track downloaded.
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        ////case chase::start:
-        ////case chase::bump:
-        ////{
-        ////    POST(do_bump, height_t{});
-        ////    break;
-        ////}
-        ////case chase::checked:
-        ////{
-        ////    POST(do_checked, possible_narrow_cast<height_t>(value));
-        ////    break;
-        ////}
-        ////case chase::regressed:
-        ////{
-        ////    POST(do_regressed, possible_narrow_cast<height_t>(value));
-        ////    break;
-        ////}
-        ////case chase::disorganized:
-        ////{
-        ////    POST(do_regressed, possible_narrow_cast<height_t>(value));
-        ////    break;
-        ////}
+        case chase::start:
+        case chase::bump:
+        {
+            POST(do_bump, height_t{});
+            break;
+        }
+        case chase::checked:
+        {
+            POST(do_checked, possible_narrow_cast<height_t>(value));
+            break;
+        }
+        case chase::regressed:
+        {
+            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            break;
+        }
+        case chase::disorganized:
+        {
+            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            break;
+        }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::bypass:
         {
@@ -151,48 +151,52 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // Validation is always sequential from position, along the candidate
         // index. It does not care about regressions that may be in process.
         const auto link = query.to_candidate(height);
-        const auto ec = query.get_block_state(link);
-        if (ec == database::error::unassociated)
-        {
-            // Wait until the gap is filled.
-            return;
-        }
 
+        const auto ec = query.get_block_state(link);
         if (ec == database::error::integrity)
         {
             fault(error::node_validate);
             return;
         }
 
+        if (ec == database::error::unassociated)
+        {
+            // Wait until the gap is filled.
+            return;
+        }
+
         if (ec == database::error::block_unconfirmable)
         {
             LOGR("Unconfirmable block [" << height << "] " << ec.message());
-            notify(ec, chase::unvalid, link);
             fire(events::block_unconfirmable, height);
+            notify(ec, chase::unvalid, link);
             return;
         }
 
         // error::validation_bypass is not used because fan-out.
         if (ec == database::error::block_valid ||
             ec == database::error::block_confirmable ||
-            (is_bypassed(height) && !query.is_malleable64(link)))
+            (is_under_checkpoint(height) && !query.is_malleable64(link)))
         {
             update_position(height);
-            notify(ec, chase::valid, height);
             fire(events::validate_bypassed, height);
+            notify(ec, chase::valid, height);
             continue;
         }
 
-        // TODO: the quantity of work must be throttled.
-        // This will very rapidly pump all outstanding work into asio queue.
-        if (!enqueue_block(link))
-        {
-            fault(error::node_validate);
-            return;
-        }
+        // TODO: validation.
+        ////// TODO: the quantity of work must be throttled.
+        ////// This will very rapidly pump all outstanding work into asio queue.
+        ////if (!enqueue_block(link))
+        ////{
+        ////    fault(error::node_validate);
+        ////    return;
+        ////}
 
         // Retain last height in validation sequence, update neutrino.
         update_position(height);
+        fire(events::block_validated, height);
+        notify(ec, chase::valid, height);
     }
 }
 

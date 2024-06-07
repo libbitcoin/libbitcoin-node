@@ -34,6 +34,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
+    top_checkpoint_height_(node.config().bitcoin.top_checkpoint().height()),
     reporter(node.log)
 {
 }
@@ -147,7 +148,17 @@ void chaser::set_bypass(height_t height) NOEXCEPT
 bool chaser::is_bypassed(size_t height) const NOEXCEPT
 {
     BC_ASSERT(stranded());
-    return height <= bypass_;
+    return height <= bypass();
+}
+
+bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
+{
+    return height <= checkpoint();
+}
+
+size_t chaser::checkpoint() const NOEXCEPT
+{
+    return top_checkpoint_height_;
 }
 
 // Position.

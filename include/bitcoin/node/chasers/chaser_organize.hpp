@@ -111,9 +111,6 @@ protected:
     /// Height represents a candidate block covered by active milestone.
     virtual inline bool is_under_milestone(size_t height) const NOEXCEPT;
 
-    /// Height represents a candidate block covered by checkpoint.
-    virtual inline bool is_under_checkpoint(size_t height) const NOEXCEPT;
-
 private:
     static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
     static constexpr bool is_block() NOEXCEPT
@@ -185,7 +182,6 @@ private:
     const system::settings& settings_;
     const system::chain::checkpoint& milestone_;
     const system::chain::checkpoints checkpoints_;
-    const size_t top_checkpoint_height_;
 
     // These are protected by strand.
     size_t active_milestone_height_{};

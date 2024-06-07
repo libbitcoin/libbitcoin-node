@@ -49,6 +49,7 @@ protected:
 
 private:
     bool set_organized(header_t link, height_t height) NOEXCEPT;
+    bool reset_organized(header_t link, height_t height) NOEXCEPT;
     bool set_reorganized(header_t link, height_t height) NOEXCEPT;
     bool roll_back(const header_links& popped,
         size_t fork_point, size_t top) NOEXCEPT;

@@ -38,8 +38,7 @@ CLASS::chaser_organize(full_node& node) NOEXCEPT
   : chaser(node),
     settings_(config().bitcoin),
     milestone_(config().bitcoin.milestone),
-    checkpoints_(config().bitcoin.sorted_checkpoints()),
-    top_checkpoint_height_(config().bitcoin.top_checkpoint().height())
+    checkpoints_(config().bitcoin.sorted_checkpoints())
 {
 }
 
@@ -196,7 +195,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
             return;
         }
 
-        // With a candidate reorg that drop strong below a valid header chain,
+        // With a candidate reorg that drops strong below a valid header chain,
         // this will cause a sequence of headers to be bypassed, such that a
         // parent of a block that doesn't exist will not be a candidate, which
         // result in a failure of get_chain_state below, because it depends on
@@ -304,6 +303,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // BUGBUG: the new branch can become ordered and downloaded under the old
     // BUGBUG: milestone while the new is pending in the notification queue.
     // BUGBUG: probably need to provide both fork point and old top.
+    // BUGBUG: because validation and confirmation are strictly ordered, this
+    // BUGBUG: only affects check, and so block check is only bypassed under
+    // BUGBUG: checkpoint. However confirmation writes proceed under milestone.
+    // BUGBUG: These differ in that their state is cheaply detected, whereas
+    // BUGBUG: lack of block check would require read/check of each full block.
 
     // branch_point
     reset_milestone(++index);
@@ -659,13 +663,6 @@ bool CLASS::push(const system::hash_digest& key) NOEXCEPT
 
 // protected
 TEMPLATE
-inline bool CLASS::is_under_checkpoint(size_t height) const NOEXCEPT
-{
-    return height <= top_checkpoint_height_;
-}
-
-// protected
-TEMPLATE
 inline bool CLASS::is_under_milestone(size_t height) const NOEXCEPT
 {
     return height <= active_milestone_height_;
@@ -735,7 +732,7 @@ TEMPLATE
 void CLASS::notify_bypass() const NOEXCEPT
 {
     notify(error::success, chase::bypass,
-        std::max(active_milestone_height_, top_checkpoint_height_));
+        std::max(active_milestone_height_, checkpoint()));
 }
 
 // Logging.

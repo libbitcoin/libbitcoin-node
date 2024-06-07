@@ -175,7 +175,6 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     // Push candidate headers to confirmed chain.
     for (const auto& link: views_reverse(fork))
     {
-        // TODO: skip under bypass and not malleable?
         auto ec = query.get_block_state(link);
         if (ec == database::error::integrity)
         {
@@ -183,24 +182,41 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             return;
         }
 
-        // TODO: rollback required.
         if (ec == database::error::block_unconfirmable)
         {
             notify(ec, chase::unconfirmable, link);
             fire(events::block_unconfirmable, index);
+
+            // chase::reorganized & events::block_reorganized
+            // chase::organized & events::block_organized
+            if (!roll_back(popped, fork_point, index))
+                fault(error::node_roll_back);
+
             return;
         }
 
-        const auto malleable64 = query.is_malleable64(link);
-
-        // TODO: set organized.
         // error::confirmation_bypass is not used.
         if (ec == database::error::block_confirmable ||
-            (is_bypassed(index) && !malleable64))
+            (is_under_checkpoint(index) && !query.is_malleable64(link)))
         {
             notify(ec, chase::confirmable, index);
             fire(events::confirm_bypassed, index);
+
+            // chase::organized & events::block_organized
+            if (!query.set_strong(link) || !set_organized(link, index))
+            {
+                fault(error::set_confirmed);
+                return;
+            }
+
             continue;
+        }
+
+        // Required for block_confirmable.
+        if (!query.set_strong(link))
+        {
+            fault(error::node_confirm);
+            return;
         }
 
         ec = query.block_confirmable(link);
@@ -212,7 +228,13 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         if (ec)
         {
-            // TODO: rollback required.
+            // Roll back current block.
+            if (!query.set_unstrong(link))
+            {
+                fault(error::node_confirm);
+                return;
+            }
+
             // Transactions are set strong upon archive when under bypass. Only
             // malleable blocks are validated under bypass, and not set strong.
             if (is_bypassed(height))
@@ -220,6 +242,13 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 LOGR("Malleated64 block [" << index << "] " << ec.message());
                 notify(ec, chase::malleated, link);
                 fire(events::block_malleated, index);
+
+                // chase::reorganized & events::block_reorganized
+                // chase::organized & events::block_organized
+                // index has not been confirmed, so start prior.
+                if (!roll_back(popped, fork_point, sub1(index)))
+                    fault(error::node_roll_back);
+
                 return;
             }
 
@@ -236,10 +265,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             // chase::reorganized & events::block_reorganized
             // chase::organized & events::block_organized
             if (!roll_back(popped, fork_point, index))
-            {
                 fault(error::node_roll_back);
-                return;
-            }
 
             return;
         }
@@ -281,10 +307,21 @@ bool chaser_confirm::set_organized(header_t link, height_t height) NOEXCEPT
     return true;
 }
 
+bool chaser_confirm::reset_organized(header_t link, height_t height) NOEXCEPT
+{
+    auto& query = archive();
+    if (!query.set_strong(link) || !query.push_confirmed(link))
+        return false;
+
+    notify(error::success, chase::organized, link);
+    fire(events::block_organized, height);
+    return true;
+}
+
 bool chaser_confirm::set_reorganized(header_t link, height_t height) NOEXCEPT
 {
     auto& query = archive();
-    if (!query.set_unstrong(link) || !query.pop_confirmed())
+    if (!query.pop_confirmed() || !query.set_unstrong(link))
         return false;
 
     notify(error::success, chase::reorganized, link);
@@ -301,7 +338,7 @@ bool chaser_confirm::roll_back(const header_links& popped,
             return false;
 
     for (const auto& link: views_reverse(popped))
-        if (!query.set_strong(link) || !set_organized(link, ++fork_point))
+        if (!reset_organized(link, ++fork_point))
             return false;
 
     return true;
