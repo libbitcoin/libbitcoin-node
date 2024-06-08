@@ -317,6 +317,17 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Performs full check if block is mally64 (mally32 caught either way).
     if (const auto code = check(*block_ptr, ctx, bypass))
     {
+        // Uncommitted blocks have no creation cost, just bogus data.
+        if (code == system::error::invalid_transaction_commitment ||
+            code == system::error::invalid_witness_commitment)
+        {
+            LOGR("Uncommitted block [" << encode_hash(hash) << ":"
+                << ctx.height << "] from [" << authority() << "] "
+                << code.message());
+            stop(code);
+            return false;
+        }
+
         // Malleated32 is never associated, so drop peer and continue.
         // Cannot mark unconfirmable as confirmable with same hash may exist.
         // Do not rely on return code because does not catch non-bypass mally.
