@@ -383,7 +383,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         << "] from [" << authority() << "].");
 
     notify(error::success, chase::checked, ctx.height);
-    fire(events::block_archived, ctx.height);
+
+    // TODO: remove modulo restriction.
+    if (is_zero(ctx.height % maximum_concurrency_))
+        fire(events::block_archived, ctx.height);
 
     count(message->cached_size);
     map_->erase(it);
