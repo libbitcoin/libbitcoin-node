@@ -125,13 +125,7 @@ protected:
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
 
-    /// Bypass (requires strand).
-    /// -----------------------------------------------------------------------
-
-    size_t bypass() const NOEXCEPT;
-    size_t checkpoint() const NOEXCEPT;
-    void set_bypass(size_t height) NOEXCEPT;
-    bool is_bypassed(size_t height) const NOEXCEPT;
+    /// The height is at or below the top checkpoint.
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
     /// Position (requires strand).
@@ -147,7 +141,6 @@ private:
     const size_t top_checkpoint_height_;
 
     // These are protected by strand.
-    size_t bypass_{};
     size_t position_{};
 };
 

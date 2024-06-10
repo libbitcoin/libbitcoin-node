@@ -280,7 +280,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     auto& query = archive();
     const chain::block::cptr block_ptr{ message->block_ptr };
-    const auto hash = block_ptr->hash();
+    const auto& hash = block_ptr->get_hash();
     const auto it = map_->find(hash);
 
     if (it == map_->end())
@@ -308,15 +308,22 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    // Transaction/witness commitments are required under checkpoint.
-    // This ensures that the block/header hash represents expected txs.
-    // Do not consider milestone for check because regressions can result in
-    // stored unchecked blocks, and the cost of mitigation exceeds the check.
-    // Do not consider milestone for set_strong because regressions can result
-    // in wrong strong or unstrong and cost of mitigation exceeds the benefit.
-    const auto bypass = is_under_checkpoint(ctx.height) && !malleable64;
+    // set_strong checkpointed blocks as these are not regressable.
+    // checkpointed and malleable64 blocks must be set_strong post-validation.
+    const auto strong = is_under_checkpoint(ctx.height) && !malleable64;
 
-    // Performs full check if block is mally64 (mally32 caught either way).
+    // These are cheap, so do even though checkpoint overlaps bypassed.
+    auto bypass = strong
+        ||  ec == database::error::block_valid
+        ||  ec == database::error::block_confirmable;
+
+    // malleable64 overrides bypass state.
+    if (!bypass && !malleable64 && !query.get_bypass(bypass, link))
+    {
+        stop(fault(database::error::integrity));
+        return false;
+    }
+
     if (const auto code = check(*block_ptr, ctx, bypass))
     {
         // Uncommitted blocks have no creation cost, just bogus data.
@@ -378,8 +385,14 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto size = block_ptr->serialized_size(true);
     const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
-    // Transactions are set_strong here when bypass is true.
-    if (const auto code = query.set_code(*txs_ptr, link, size, false))
+    // TODO: Set strong when bypassed and not malleable64. This requires that
+    // TODO: candidate reorganization must set_unstrong all bypassed and not
+    // TODO: malleable64 (associated) blocks and must set_strong on any later
+    // TODO: reassociation of the same, so that confirm chaser can rely. This
+    // TODO: has to be performed by the organizer, since it owns candidates.
+
+    // Transactions are set_strong here when checkpointed and not malleable64.
+    if (const auto code = query.set_code(*txs_ptr, link, size, strong))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "
@@ -396,10 +409,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         << "] from [" << authority() << "].");
 
     notify(error::success, chase::checked, ctx.height);
-
-    // TODO: remove event restriction.
-    if (is_one(ctx.height) || (is_zero(ctx.height % maximum_concurrency_)))
-        fire(events::block_archived, ctx.height);
+    fire(events::block_archived, ctx.height);
 
     count(message->cached_size);
     map_->erase(it);

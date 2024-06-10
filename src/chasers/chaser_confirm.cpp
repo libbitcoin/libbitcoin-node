@@ -73,11 +73,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
-        case chase::bypass:
-        {
-            POST(set_bypass, possible_narrow_cast<height_t>(value));
-            break;
-        }
         case chase::stop:
         {
             return false;
@@ -152,10 +147,17 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     header_links popped{};
     while (index > fork_point)
     {
-        popped.push_back(query.to_confirmed(index));
-        if (popped.back().is_terminal())
+        const auto link = query.to_confirmed(index);
+        if (link.is_terminal())
         {
             fault(error::to_confirmed);
+            return;
+        }
+
+        popped.push_back(link);
+        if (!query.set_unstrong(link))
+        {
+            fault(error::node_confirm);
             return;
         }
 
@@ -195,28 +197,40 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             return;
         }
 
-        // error::confirmation_bypass is not used.
-        if (ec == database::error::block_confirmable ||
-            (is_under_checkpoint(index) && !query.is_malleable64(link)))
+        // checkpointed blocks are set_strong concurrently by block_in protocol.
+        const auto malleable64 = query.is_malleable64(link);
+        const auto stronged = is_under_checkpoint(index) && !malleable64;
+
+        // These are cheap, so do even though checkpoint overlaps bypassed.
+        auto bypass = stronged || ec == database::error::block_confirmable;
+
+        // malleable64 overrides bypass state.
+        if (!bypass && !malleable64 && !query.get_bypass(bypass, link))
+        {
+            fault(database::error::integrity);
+            return;
+        }
+
+        // Required for block_confirmable and all confirmed blocks.
+        if (!stronged && !query.set_strong(link))
+        {
+            fault(error::set_confirmed);
+            return;
+        }
+
+        if (bypass)
         {
             notify(ec, chase::confirmable, index);
-            fire(events::confirm_bypassed, index);
+            ////fire(events::confirm_bypassed, index);
 
             // chase::organized & events::block_organized
-            if (!query.set_strong(link) || !set_organized(link, index))
+            if (!set_organized(link, index))
             {
                 fault(error::set_confirmed);
                 return;
             }
 
             continue;
-        }
-
-        // Required for block_confirmable.
-        if (!query.set_strong(link))
-        {
-            fault(error::node_confirm);
-            return;
         }
 
         ec = query.block_confirmable(link);
@@ -235,20 +249,19 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 return;
             }
 
-            // Transactions are set strong upon archive when under bypass. Only
-            // malleable blocks are validated under bypass, and not set strong.
-            if (is_bypassed(height))
+            // TODO: Can a validated block be malleable64 (i.e. can we ignore).
+            if (malleable64)
             {
                 LOGR("Malleated64 block [" << index << "] " << ec.message());
                 notify(ec, chase::malleated, link);
                 fire(events::block_malleated, index);
-
+            
                 // chase::reorganized & events::block_reorganized
                 // chase::organized & events::block_organized
                 // index has not been confirmed, so start prior.
                 if (!roll_back(popped, fork_point, sub1(index)))
                     fault(error::node_roll_back);
-
+            
                 return;
             }
 
@@ -296,14 +309,14 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 // Private
 // ----------------------------------------------------------------------------
 
-bool chaser_confirm::set_organized(header_t link, height_t height) NOEXCEPT
+bool chaser_confirm::set_organized(header_t link, height_t) NOEXCEPT
 {
     auto& query = archive();
     if (!query.push_confirmed(link))
         return false;
 
     notify(error::success, chase::organized, link);
-    fire(events::block_organized, height);
+    ////fire(events::block_organized, height);
     return true;
 }
 

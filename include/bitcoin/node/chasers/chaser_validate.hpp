@@ -62,10 +62,6 @@ protected:
         const database::context& ctx) NOEXCEPT;
 
 private:
-#if defined (UNDEFINED)
-    code validate(const database::header_link& link, size_t height) NOEXCEPT;
-#endif // UNDEFINED
-
     // neutrino
     void update_position(size_t height) NOEXCEPT;
     system::hash_digest get_neutrino(size_t height) const NOEXCEPT;

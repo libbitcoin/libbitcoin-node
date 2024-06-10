@@ -40,10 +40,18 @@ const header& chaser_block::get_header(const block& block) const NOEXCEPT
     return block.header();
 }
 
-bool chaser_block::get_block(block::cptr& out, size_t index) const NOEXCEPT
+bool chaser_block::get_block(block::cptr& out, size_t height) const NOEXCEPT
 {
-    out = archive().get_block(archive().to_candidate(index));
+    const auto& query = archive();
+    out = query.get_block(query.to_candidate(height));
     return !is_null(out);
+}
+
+bool chaser_block::get_bypass(const block& block, size_t height) const NOEXCEPT
+{
+    // Milestones are not relevant to block-first organization.
+    // TODO: Can a validated block be malleable64 (i.e. can we ignore here).
+    return is_under_checkpoint(height) && !block.is_malleable64();
 }
 
 code chaser_block::validate(const block& block,
@@ -67,9 +75,7 @@ code chaser_block::validate(const block& block,
 
     // Transaction/witness commitments are required under checkpoint.
     // This ensures that the block/header hash represents expected txs.
-    // Performs full check if block is mally64 (mally32 caught either way).
-    const auto bypass = is_under_checkpoint(state.height()) &&
-        !block.is_malleable64();
+    const auto bypass = get_bypass(block, state.height());
 
     // Transaction commitments and malleated32 are checked under checkpoint.
     if ((ec = block.check(bypass)))
@@ -95,48 +101,60 @@ code chaser_block::validate(const block& block,
     return block.connect(state.context());
 }
 
-// Blocks are accumulated following genesis, not cached until current.
-bool chaser_block::is_storable(const block&, const chain_state&) const NOEXCEPT
+// The archived malleable block was found to be invalid (treat as malleated).
+// The block/header hash cannot be marked unconfirmable due to malleability, so
+// disassociate the block and then disorganize the chain to malleation point.
+// This will disorganize the candidate chain to match the confirmed.
+void chaser_block::do_malleated(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // If not disassociated, validation/confirmation will be reattempted.
+    // This could happen due to shutdown before this step is completed.
+    if (!query.set_dissasociated(link))
+    {
+        fault(error::set_dissasociated);
+        return;
+    }
+
+    // Treat as disorganization, but block is only gapped not invalidated.
+    do_disorganize(link);
+}
+
+bool chaser_block::is_storable(const chain_state&) const NOEXCEPT
 {
     return true;
 }
 
-// Store block to database and push to top of candidate chain.
-// Whole blocks pushed here do not require set_txs_connected(), since the block
-// is already validated, but do require set_block_confirmable() as the
-// confirmation chaser is bypassed (moves straight to confirmation chaser).
-database::header_link chaser_block::push(const block& block,
-    const context& context) const NOEXCEPT
+void chaser_block::update_milestone(const header&, size_t, size_t) NOEXCEPT
 {
-    auto& query = archive();
-    const auto link = chaser_organize<chain::block>::push(block, context);
-    if (!query.set_block_confirmable(link, block.fees()))
-        return {};
-
-    return link;
 }
+
+// Populate methods (private).
+// ----------------------------------------------------------------------------
 
 void chaser_block::set_prevout(const input& input) const NOEXCEPT
 {
     const auto& point = input.point();
 
-    // Scan all blocks for matching tx (linear :/ but legacy scenario)
+    // Scan all tree blocks for matching tx (linear :/ but legacy scenario)
     std::for_each(tree().begin(), tree().end(), [&](const auto& item) NOEXCEPT
     {
-        const auto& txs = *item.second.block->transactions_ptr();
-        const auto it = std::find_if(txs.begin(), txs.end(),
+        const transactions_cptr txs{ item.second.block->transactions_ptr() };
+        const auto it = std::find_if(txs->begin(), txs->end(),
             [&](const auto& tx) NOEXCEPT
             {
                 return tx->hash(false) == point.hash();
             });
 
-        if (it != txs.end())
+        if (it != txs->end())
         {
-            const auto& tx = **it;
-            const auto& outs = *tx.outputs_ptr();
-            if (point.index() < outs.size())
+            const transaction::cptr tx{ *it };
+            const outputs_cptr outs{ tx->outputs_ptr() };
+            if (point.index() < outs->size())
             {
-                input.prevout = outs.at(point.index());
+                input.prevout = outs->at(point.index());
                 return;
             }
         }
@@ -147,7 +165,7 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
 void chaser_block::populate(const block& block) const NOEXCEPT
 {
     block.populate();
-    const auto ins = block.inputs_ptr();
+    const inputs_cptr ins{ block.inputs_ptr() };
     std::for_each(ins->begin(), ins->end(), [&](const auto& in) NOEXCEPT
     {
         if (!in->prevout && !in->point().is_null())

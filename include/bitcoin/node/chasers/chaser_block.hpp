@@ -44,21 +44,27 @@ protected:
     virtual const system::chain::header& get_header(
         const system::chain::block& block) const NOEXCEPT;
 
-    /// Query store for const pointer to Block instance.
+    /// Query store for const pointer to Block instance by candidate height.
     virtual bool get_block(system::chain::block::cptr& out,
-        size_t index) const NOEXCEPT;
+        size_t height) const NOEXCEPT;
+
+    /// True if Block should bypass validation, given its candidate height.
+    virtual bool get_bypass(const system::chain::block& block,
+        size_t height) const NOEXCEPT;
 
     /// Determine if Block is valid.
     virtual code validate(const system::chain::block& block,
-        const system::chain::chain_state& state) const NOEXCEPT;
+        const chain_state& state) const NOEXCEPT;
 
-    /// Determine if Block is top of a storable branch.
-    virtual bool is_storable(const system::chain::block& block,
-        const system::chain::chain_state& state) const NOEXCEPT;
+    /// Handle malleted message (nop).
+    virtual void do_malleated(header_t link) NOEXCEPT;
 
-    // Store Block to database and push to top of candidate chain.
-    virtual database::header_link push(const system::chain::block& block,
-        const system::chain::context& context) const NOEXCEPT;
+    /// Determine if state is top of a storable branch (always true).
+    virtual bool is_storable(const chain_state& state) const NOEXCEPT;
+
+    /// Milestone tracking.
+    virtual void update_milestone(const system::chain::header& header,
+        size_t height, size_t branch_point) NOEXCEPT;
 
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;

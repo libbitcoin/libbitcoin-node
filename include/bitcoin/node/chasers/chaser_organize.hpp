@@ -40,7 +40,7 @@ public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_organize);
 
     /// Initialize chaser state.
-    code start() NOEXCEPT override;
+    virtual code start() NOEXCEPT;
 
     /// Validate and organize next block in sequence relative to caller peer.
     virtual void organize(const typename Block::cptr& block_ptr,
@@ -66,17 +66,41 @@ protected:
     virtual const system::chain::header& get_header(
         const Block& block) const NOEXCEPT = 0;
 
-    /// Query store for const pointer to Block instance.
+    /// Query store for const pointer to Block instance by candidate height.
     virtual bool get_block(typename Block::cptr& out,
-        size_t index) const NOEXCEPT = 0;
+        size_t height) const NOEXCEPT = 0;
+
+    /// True if Block should bypass validation, given its candidate height.
+    virtual bool get_bypass(const Block& block,
+        size_t height) const NOEXCEPT = 0;
 
     /// Determine if Block is valid.
     virtual code validate(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
 
-    /// Determine if Block is top of a storable branch.
-    virtual bool is_storable(const Block& block,
-        const chain_state& state) const NOEXCEPT = 0;
+    /// Disassociate malleated block and notify repeat header in current job.
+    virtual void do_malleated(header_t link) NOEXCEPT = 0;
+
+    /// Determine if state is top of a storable branch.
+    virtual bool is_storable(const chain_state& state) const NOEXCEPT = 0;
+
+    /// Milestone tracking.
+    virtual void update_milestone(const system::chain::header& header,
+        size_t height, size_t branch_point) NOEXCEPT = 0;
+
+    /// Methods
+    /// -----------------------------------------------------------------------
+
+    /// Handle chaser events.
+    virtual bool handle_event(const code&, chase event_,
+        event_value value) NOEXCEPT;
+
+    /// Organize a discovered Block.
+    virtual void do_organize(typename Block::cptr& block_ptr,
+        const organize_handler& handler) NOEXCEPT;
+
+    /// Reorganize following Block unconfirmability.
+    virtual void do_disorganize(header_t header) NOEXCEPT;
 
     /// Properties
     /// -----------------------------------------------------------------------
@@ -87,32 +111,10 @@ protected:
     /// System configuration settings.
     virtual const system::settings& settings() const NOEXCEPT;
 
-    /// Methods
-    /// -----------------------------------------------------------------------
-
-    /// Handle chaser events.
-    virtual bool handle_event(const code&, chase event_,
-        event_value value) NOEXCEPT;
-
-    /// Reorganize following strong branch discovery.
-    virtual void do_organize(typename Block::cptr& block_ptr,
-        const organize_handler& handler) NOEXCEPT;
-
-    /// Reorganize following Block unconfirmability.
-    virtual void do_disorganize(header_t header) NOEXCEPT;
-
-    /// Disassociate malleated block and notify repeat header in current job.
-    virtual void do_malleated(header_t link) NOEXCEPT;
-
-    /// Store Block to database and push to top of candidate chain.
-    virtual database::header_link push(const Block& block,
-        const system::chain::context& context) const NOEXCEPT;
-
-    /// Height represents a candidate block covered by active milestone.
-    virtual inline bool is_under_milestone(size_t height) const NOEXCEPT;
-
 private:
-    static constexpr auto flag_bits = to_bits(sizeof(system::chain::flags));
+    // Template differetiators.
+    // ------------------------------------------------------------------------
+
     static constexpr bool is_block() NOEXCEPT
     {
         return is_same_type<Block, system::chain::block>;
@@ -151,25 +153,11 @@ private:
         size_t branch_point) const NOEXCEPT;
 
     // Move tree Block to database and push to top of candidate chain.
-    bool push(const system::hash_digest& key) NOEXCEPT;
+    bool push_block(const system::hash_digest& key) NOEXCEPT;
 
-    // Bypass methods.
-    // ------------------------------------------------------------------------
-
-    // Set milestone cache if exists in candidate chain, send chase::bypass.
-    bool initialize_bypass() NOEXCEPT;
-
-    // Clear milestone cache if its height is above branch_point.
-    void reset_milestone(size_t branch_point) NOEXCEPT;
-
-    // Set milestone cache if configured milestone matches given checkpoint.
-    void update_milestone(const database::header_link& link,
-        size_t height) NOEXCEPT;
-    void update_milestone(const system::hash_digest& hash,
-        size_t height) NOEXCEPT;
-
-    // Notify chase::bypass subscribers of a change in bypass height.
-    void notify_bypass() const NOEXCEPT;
+    /// Store Block to database and push to top of candidate chain.
+    bool push_block(const Block& block,
+        const system::chain::context& context) const NOEXCEPT;
 
     // Logging.
     // ------------------------------------------------------------------------
@@ -180,11 +168,9 @@ private:
 
     // These are thread safe.
     const system::settings& settings_;
-    const system::chain::checkpoint& milestone_;
-    const system::chain::checkpoints checkpoints_;
+    const system::chain::checkpoints& checkpoints_;
 
     // These are protected by strand.
-    size_t active_milestone_height_{};
     chain_state::ptr state_{};
     block_tree tree_{};
 };

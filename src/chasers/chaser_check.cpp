@@ -120,11 +120,6 @@ bool chaser_check::handle_event(const code&, chase event_,
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        case chase::bypass:
-        {
-            POST(set_bypass, possible_narrow_cast<height_t>(value));
-            break;
-        }
         case chase::header:
         {
             POST(do_header, possible_narrow_cast<header_t>(value));
@@ -176,8 +171,10 @@ void chaser_check::start_tracking() NOEXCEPT
 
 void chaser_check::stop_tracking() NOEXCEPT
 {
-    BC_ASSERT(stranded());
+    // Called by stop (node thread).
+    ////BC_ASSERT(stranded());
 
+    // shared_ptr.reset() is thread safe so can be called at stop.
     // Resetting our own pointer allows destruct and call to handle_purged.
     job_.reset();
 }
@@ -195,10 +192,6 @@ void chaser_check::handle_purged(const code& ec) NOEXCEPT
 void chaser_check::do_handle_purged(const code&) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    // TODO: set_unstrong(link) where link of all associated and not malleable
-    // TODO: from min(candidate_top, bypass) to > branch_point (do_regressed).
-    // TODO: cannot rely on height index. Probably need to notify with range.
 
     start_tracking();
     do_bump(height_t{});
@@ -299,11 +292,9 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
         return;
 
     const auto map = get_map();
-    handler(error::success, map, job_, bypass());
+    handler(error::success, map, job_);
 }
 
-// It is possible that this call can be made before a purge has been sent and
-// received after. This may result in unnecessary work and incorrect bypass.
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {

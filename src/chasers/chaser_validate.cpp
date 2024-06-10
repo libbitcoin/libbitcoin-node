@@ -94,11 +94,6 @@ bool chaser_validate::handle_event(const code&, chase event_,
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        case chase::bypass:
-        {
-            POST(set_bypass, possible_narrow_cast<height_t>(value));
-            break;
-        }
         case chase::stop:
         {
             return false;
@@ -173,13 +168,24 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        // error::validation_bypass is not used because fan-out.
-        if (ec == database::error::block_valid ||
+        // These are cheap, so do even though checkpoint overlaps bypassed.
+        const auto malleable64 = query.is_malleable64(link);
+        auto bypass = (
+            ec == database::error::block_valid ||
             ec == database::error::block_confirmable ||
-            (is_under_checkpoint(height) && !query.is_malleable64(link)))
+            (is_under_checkpoint(height) && !malleable64));
+
+        // malleable64 overrides bypass state because it's set from header only.
+        if (!bypass && !malleable64 && !query.get_bypass(bypass, link))
+        {
+            fault(database::error::integrity);
+            return;
+        }
+
+        if (bypass)
         {
             update_position(height);
-            fire(events::validate_bypassed, height);
+            ////fire(events::validate_bypassed, height);
             notify(ec, chase::valid, height);
             continue;
         }
@@ -350,15 +356,15 @@ void chaser_validate::validate_block(const code& ec,
 
     if (ec)
     {
-        // Transactions are set strong upon archive when under bypass. Only
-        // malleable blocks are validated under bypass, and not set strong.
-        if (is_bypassed(ctx.height))
-        {
-            LOGR("Malleated64 block [" << ctx.height << "] " << ec.message());
-            notify(ec, chase::malleated, link);
-            fire(events::block_malleated, ctx.height);
-            return;
-        }
+        ////// Transactions are set strong upon archive when under bypass. Only
+        ////// malleable blocks are validated under bypass, and not set strong.
+        ////if (is_bypassed(ctx.height))
+        ////{
+        ////    LOGR("Malleated64 block [" << ctx.height << "] " << ec.message());
+        ////    notify(ec, chase::malleated, link);
+        ////    fire(events::block_malleated, ctx.height);
+        ////    return;
+        ////}
 
         if (!query.set_block_unconfirmable(link))
         {
