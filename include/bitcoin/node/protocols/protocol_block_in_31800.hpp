@@ -39,6 +39,9 @@ public:
     protocol_block_in_31800(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : protocol_performer(session, channel),
+        maximum_concurrency_(session->config().node.maximum_concurrency_()),
+        top_checkpoint_height_(
+            session->config().bitcoin.top_checkpoint().height()),
         block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block),
         map_(chaser_check::empty_map())
@@ -77,27 +80,25 @@ private:
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
-    void send_get_data(const map_ptr& map, const job::ptr& job,
-        size_t bypass) NOEXCEPT;
+    void send_get_data(const map_ptr& map, const job::ptr& job) NOEXCEPT;
     network::messages::get_data create_get_data(
         const map_ptr& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
     void do_handle_complete(const code& ec) NOEXCEPT;
+    bool is_under_checkpoint(size_t height) const NOEXCEPT;
     void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map,
-        const job::ptr& job, size_t bypass) NOEXCEPT;
+        const job::ptr& job) NOEXCEPT;
 
-    void set_bypass(height_t height) NOEXCEPT;
-    bool is_bypassed(size_t height) const NOEXCEPT;
-
-    // This is thread safe.
+    // These are thread safe.
+    const size_t maximum_concurrency_;
+    const size_t top_checkpoint_height_;
     const network::messages::inventory::type_id block_type_;
 
     // These are protected by strand.
     map_ptr map_;
     job::ptr job_{};
-    size_t bypass_{};
 };
 
 } // namespace node

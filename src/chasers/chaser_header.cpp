@@ -29,8 +29,17 @@ namespace node {
 using namespace system::chain;
 
 chaser_header::chaser_header(full_node& node) NOEXCEPT
-  : chaser_organize<header>(node)
+  : chaser_organize<header>(node),
+    milestone_(config().bitcoin.milestone)
 {
+}
+
+code chaser_header::start() NOEXCEPT
+{
+    if (!initialize_milestone())
+        return fault(error::store_integrity);
+
+    return chaser_organize<header>::start();
 }
 
 const header& chaser_header::get_header(const header& header) const NOEXCEPT
@@ -38,14 +47,20 @@ const header& chaser_header::get_header(const header& header) const NOEXCEPT
     return header;
 }
 
-bool chaser_header::get_block(system::chain::header::cptr& out,
-    size_t index) const NOEXCEPT
+bool chaser_header::get_block(header::cptr& out, size_t height) const NOEXCEPT
 {
-    out = archive().get_header(archive().to_candidate(index));
+    const auto& query = archive();
+    out = query.get_header(query.to_candidate(height));
     return !is_null(out);
 }
 
-code chaser_header::validate(const system::chain::header& header,
+bool chaser_header::get_bypass(const header&, size_t height) const NOEXCEPT
+{
+    // Malleability is not known for headers, so must be guarded at validation.
+    return is_under_milestone(height) || is_under_checkpoint(height);
+}
+
+code chaser_header::validate(const header& header,
     const chain_state& state) const NOEXCEPT
 {
     code ec{ error::success };
@@ -72,15 +87,124 @@ code chaser_header::validate(const system::chain::header& header,
     return system::error::block_success;
 }
 
-// Cache valid headers until storable.
-bool chaser_header::is_storable(const system::chain::header& header,
-    const chain_state& state) const NOEXCEPT
+// The archived malleable block was found to be invalid (treat as malleated).
+// The block/header hash cannot be marked unconfirmable due to malleability, so
+// disassociate the block and then notify check chaser to reisuse the download.
+// This must be issued here in order to ensure proper bypass/regress ordering.
+void chaser_header::do_malleated(header_t link) NOEXCEPT
 {
-    return
-        checkpoint::is_at(settings().checkpoints, state.height()) ||
-        settings().milestone.equals(state.hash(), state.height()) ||
-        (is_current(header.timestamp()) && state.cumulative_work() >=
-            settings().minimum_work);
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // If not disassociated, validation/confirmation will be reattempted.
+    // This could happen due to shutdown before this step is completed.
+    if (!query.set_dissasociated(link))
+    {
+        fault(error::set_dissasociated);
+        return;
+    }
+
+    // Header is no longer in the candidate chain, so do not announce.
+    if (!query.is_candidate_header(link))
+        return;
+
+    // Announce a singleton header that requires download.
+    // Since it is in the candidate chain, it must presently be missing.
+    notify(error::success, chase::header, link);
+}
+
+// Storable methods (private).
+// ----------------------------------------------------------------------------
+
+bool chaser_header::is_storable(const chain_state& state) const NOEXCEPT
+{
+    return is_checkpoint(state)
+        || is_milestone(state)
+        || (is_current(state) && is_hard(state));
+}
+
+bool chaser_header::is_checkpoint(const chain_state& state) const NOEXCEPT
+{
+    return checkpoint::is_at(settings().checkpoints, state.height());
+}
+
+bool chaser_header::is_milestone(const chain_state& state) const NOEXCEPT
+{
+    return milestone_.equals(state.hash(), state.height());
+}
+
+bool chaser_header::is_current(const chain_state& state) const NOEXCEPT
+{
+    return chaser::is_current(state.timestamp());
+}
+
+bool chaser_header::is_hard(const chain_state& state) const NOEXCEPT
+{
+    return state.cumulative_work() >= settings().minimum_work;
+}
+
+// Milestone methods (private).
+// ----------------------------------------------------------------------------
+
+bool chaser_header::is_under_milestone(size_t height) const NOEXCEPT
+{
+    return height <= active_milestone_height_;
+}
+
+bool chaser_header::initialize_milestone() NOEXCEPT
+{
+    active_milestone_height_ = zero;
+    if (is_zero(milestone_.height()) ||
+        milestone_.hash() == system::null_hash)
+        return true;
+
+    const auto& query = archive();
+    const auto link = query.to_candidate(milestone_.height());
+    if (link.is_terminal())
+        return true;
+
+    const auto hash = query.get_header_key(link);
+    if (hash == system::null_hash)
+        return false;
+
+    if (hash == milestone_.hash())
+        active_milestone_height_ = milestone_.height();
+
+    return true;
+}
+
+void chaser_header::update_milestone(const system::chain::header& header,
+    size_t height, size_t branch_point) NOEXCEPT
+{
+    if (milestone_.equals(header.get_hash(), height))
+    {
+        active_milestone_height_ = height;
+        return;
+    }
+
+    // Use pointer to avoid const/copy.
+    auto previous = &header.previous_block_hash();
+
+    // Scan branch for milestone match.
+    for (auto it = tree().find(*previous); it != tree().end();
+        it = tree().find(*previous))
+    {
+        const auto index = it->second.state->height();
+        if (milestone_.equals(it->second.state->hash(), index))
+        {
+            active_milestone_height_ = index;
+            return;
+        }
+
+        const auto& next = get_header(*it->second.block);
+        previous = &next.previous_block_hash();
+    }
+
+    // The current active milestone is necessarily on the candidate branch.
+    // New branch doesn't have milestone and reorganizes the branch with it.
+    // Can retain a milestone at the branch point (below its definition).
+    if (active_milestone_height_ > branch_point)
+        active_milestone_height_ = branch_point;
 }
 
 } // namespace node

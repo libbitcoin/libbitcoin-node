@@ -39,22 +39,52 @@ public:
 
     chaser_header(full_node& node) NOEXCEPT;
 
+    /// Initialize chaser state.
+    code start() NOEXCEPT override;
+
 protected:
     /// Get header from Block instance.
     virtual const system::chain::header& get_header(
         const system::chain::header& header) const NOEXCEPT;
 
-    /// Query store for const pointer to Block instance.
+    /// Query store for const pointer to Block instance by candidate height.
     virtual bool get_block(system::chain::header::cptr& out,
-        size_t index) const NOEXCEPT;
+        size_t height) const NOEXCEPT;
+
+    /// True if Block should bypass validation, given its candidate height.
+    virtual bool get_bypass(const system::chain::header& header,
+        size_t height) const NOEXCEPT;
 
     /// Determine if Block is valid.
     virtual code validate(const system::chain::header& header,
-        const system::chain::chain_state& state) const NOEXCEPT;
+        const chain_state& state) const NOEXCEPT;
 
-    /// Determine if Block is top of a storable branch.
-    virtual bool is_storable(const system::chain::header& header,
-        const system::chain::chain_state& state) const NOEXCEPT;
+    /// Disassociate malleated block and notify to redownload header.
+    virtual void do_malleated(header_t link) NOEXCEPT;
+
+    /// Determine if state is top of a storable branch.
+    virtual bool is_storable(const chain_state& state) const NOEXCEPT;
+
+    /// Milestone tracking.
+    virtual void update_milestone(const system::chain::header& header,
+        size_t height, size_t branch_point) NOEXCEPT;
+
+    /// Milestone methods.
+    bool initialize_milestone() NOEXCEPT;
+    bool is_under_milestone(size_t height) const NOEXCEPT;
+
+private:
+    // Storable methods.
+    bool is_checkpoint(const chain_state& state) const NOEXCEPT;
+    bool is_milestone(const chain_state& state) const NOEXCEPT;
+    bool is_current(const chain_state& state) const NOEXCEPT;
+    bool is_hard(const chain_state& state) const NOEXCEPT;
+
+    // This is thread safe.
+    const system::chain::checkpoint& milestone_;
+
+    // This is protected by strand.
+    size_t active_milestone_height_{};
 };
 
 } // namespace node

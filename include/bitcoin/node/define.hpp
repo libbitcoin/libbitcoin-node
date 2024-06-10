@@ -60,8 +60,8 @@ typedef database::query<store> query;
 /// Work types.
 typedef network::race_all<const code&> job;
 typedef std::shared_ptr<database::associations> map_ptr;
-typedef std::function<void(const code&, const map_ptr&, const job::ptr&,
-    size_t)> map_handler;
+typedef std::function<void(const code&, const map_ptr&,
+    const job::ptr&)> map_handler;
 
 /// Node events.
 typedef uint64_t object_key;
