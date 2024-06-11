@@ -190,6 +190,9 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             continue;
         }
 
+        // Skipped validation here always succeeds but doesn't set block_valid.
+        // So this will always start reporting after the top block_confirmable.
+
         // TODO: validation.
         ////// TODO: the quantity of work must be throttled.
         ////// This will very rapidly pump all outstanding work into asio queue.
