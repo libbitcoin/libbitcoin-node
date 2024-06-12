@@ -190,6 +190,9 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             continue;
         }
 
+        // Skipped validation here always succeeds but doesn't set block_valid.
+        // So this will always start reporting after the top block_confirmable.
+
         // TODO: validation.
         ////// TODO: the quantity of work must be throttled.
         ////// This will very rapidly pump all outstanding work into asio queue.
@@ -213,7 +216,7 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
     const auto& query = archive();
 
     database::context context{};
-    const auto txs = query.to_txs(link);
+    const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(context, link))
         return false;
 

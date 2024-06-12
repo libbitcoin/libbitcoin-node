@@ -699,7 +699,7 @@ void executor::scan_collisions() const
     while (!cancel_ && (++index < query_.header_records()))
     {
         const header_link link{ possible_narrow_cast<hint>(index) };
-        const auto transactions = query_.to_txs(link);
+        const auto transactions = query_.to_transactions(link);
         for (const auto& transaction: transactions)
         {
             const auto inputs = query_.to_tx_spends(transaction);
@@ -882,7 +882,7 @@ void executor::read_test() const
             // Get confirmed output tx block position.
             auto out_position = max_uint16;
             table::txs::get_position txs{ {}, tx_fk };
-            if (!store_.txs.get(query_.to_txs_link(block_fk), txs))
+            if (!store_.txs.get(query_.to_txs(block_fk), txs))
                 return;
             else
                 out_position = possible_narrow_cast<uint16_t>(txs.position);
@@ -920,7 +920,7 @@ void executor::read_test() const
                 table::txs::get_position in_txs{ {}, in_tx_fk };
                 if (!in_bk_fk.is_terminal())
                 {
-                    if (!store_.txs.get(query_.to_txs_link(in_bk_fk), in_txs))
+                    if (!store_.txs.get(query_.to_txs(in_bk_fk), in_txs))
                         return;
                     else
                         in_position = possible_narrow_cast<uint16_t>(in_txs.position);
@@ -1101,7 +1101,7 @@ void executor::read_test() const
         return;
     }
 
-    const auto txs = query_.to_txs(block);
+    const auto txs = query_.to_transactions(block);
     if (txs.empty())
     {
         logger("!txs");
@@ -1355,7 +1355,7 @@ void executor::read_test() const
         ////    break;
         ////}
 
-        ////const auto txs = query_.to_txs(link);
+        ////const auto txs = query_.to_transactions(link);
         ////if (txs.empty())
         ////{
         ////    logger("Failure: to_txs");
