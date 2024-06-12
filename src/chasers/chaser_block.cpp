@@ -47,45 +47,41 @@ bool chaser_block::get_block(block::cptr& out, size_t height) const NOEXCEPT
     return !is_null(out);
 }
 
-bool chaser_block::get_bypass(const block& block, size_t height) const NOEXCEPT
-{
-    // Milestones are not relevant to block-first organization.
-    // TODO: Can a validated block be malleable64 (i.e. can we ignore here).
-    return is_under_checkpoint(height) && !block.is_malleable64();
-}
-
 code chaser_block::validate(const block& block,
     const chain_state& state) const NOEXCEPT
 {
     code ec{};
     const auto& header = block.header();
+    const auto& setting = settings();
+    const auto ctx = state.context();
 
     // header.check is never bypassed.
     // block.check does not invoke header.check.
     if ((ec = header.check(
-        settings().timestamp_limit_seconds,
-        settings().proof_of_work_limit,
-        settings().forks.scrypt_proof_of_work)))
+        setting.timestamp_limit_seconds,
+        setting.proof_of_work_limit,
+        setting.forks.scrypt_proof_of_work)))
         return ec;
 
     // header.accept is never bypassed.
     // block.accept does not invoke header.accept.
-    if ((ec = header.accept(state.context())))
+    if ((ec = header.accept(ctx)))
         return ec;
 
     // Transaction/witness commitments are required under checkpoint.
     // This ensures that the block/header hash represents expected txs.
-    const auto bypass = get_bypass(block, state.height());
+    const auto checked = is_under_checkpoint(state.height()) &&
+        !block.is_malleable64();
 
-    // Transaction commitments and malleated32 are checked under checkpoint.
-    if ((ec = block.check(bypass)))
+    // Transaction commitments and malleated32 are checked under bypass.
+    if ((ec = block.check(checked)))
         return ec;
 
-    // Witnessed tx commitments are checked under checkpoint (if bip141).
-    if ((ec = block.check(state.context(), bypass)))
+    // Witnessed tx commitments are checked under bypass (if bip141).
+    if ((ec = block.check(ctx, checked)))
         return ec;
 
-    if (bypass)
+    if (checked)
         return system::error::block_success;
 
     // Populate prevouts from self/tree/store (metadata not required).
@@ -93,12 +89,12 @@ code chaser_block::validate(const block& block,
     if (!archive().populate(block))
         return network::error::protocol_violation;
 
-    if ((ec = block.accept(state.context(),
-        settings().subsidy_interval_blocks,
-        settings().initial_subsidy())))
+    if ((ec = block.accept(ctx,
+        setting.subsidy_interval_blocks,
+        setting.initial_subsidy())))
         return ec;
 
-    return block.connect(state.context());
+    return block.connect(ctx);
 }
 
 // The archived malleable block was found to be invalid (treat as malleated).
@@ -125,6 +121,15 @@ void chaser_block::do_malleated(header_t link) NOEXCEPT
 bool chaser_block::is_storable(const chain_state&) const NOEXCEPT
 {
     return true;
+}
+
+
+// Milestone methods.
+// ----------------------------------------------------------------------------
+
+bool chaser_block::is_under_milestone(size_t) const NOEXCEPT
+{
+    return false;
 }
 
 void chaser_block::update_milestone(const header&, size_t, size_t) NOEXCEPT

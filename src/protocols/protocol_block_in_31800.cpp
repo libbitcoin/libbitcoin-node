@@ -308,23 +308,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    // set_strong checkpointed blocks as these are not regressable.
-    // checkpointed and malleable64 blocks must be set_strong post-validation.
-    const auto strong = is_under_checkpoint(ctx.height) && !malleable64;
+    // Header state checked by organize (neither associated nor unconfirmable).
+    const auto checked = !malleable64 && (is_under_checkpoint(ctx.height) ||
+        query.is_milestone(link));
 
-    // These are cheap, so do even though checkpoint overlaps bypassed.
-    auto bypass = strong
-        ||  ec == database::error::block_valid
-        ||  ec == database::error::block_confirmable;
-
-    // malleable64 overrides bypass state.
-    if (!bypass && !malleable64 && !query.get_bypass(bypass, link))
-    {
-        stop(fault(database::error::integrity));
-        return false;
-    }
-
-    if (const auto code = check(*block_ptr, ctx, bypass))
+    if (const auto code = check(*block_ptr, ctx, checked))
     {
         // Uncommitted blocks have no creation cost, just bogus data.
         if (code == system::error::invalid_transaction_commitment ||
@@ -385,14 +373,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto size = block_ptr->serialized_size(true);
     const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
-    // TODO: Set strong when bypassed and not malleable64. This requires that
-    // TODO: candidate reorganization must set_unstrong all bypassed and not
-    // TODO: malleable64 (associated) blocks and must set_strong on any later
-    // TODO: reassociation of the same, so that confirm chaser can rely. This
-    // TODO: has to be performed by the organizer, since it owns candidates.
-
-    // Transactions are set_strong here when checkpointed and not malleable64.
-    if (const auto code = query.set_code(*txs_ptr, link, size, strong))
+    // This invokes set_strong () when checked.
+    if (const auto code = query.set_code(*txs_ptr, link, size, checked))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "

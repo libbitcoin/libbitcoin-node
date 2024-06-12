@@ -262,6 +262,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // A milestone can only be set within a to-be-archived chain of candidate
     // headers/blocks. Once the milestone block is archived it is not useful.
     update_milestone(header, height, branch_point);
+    code ec{};
 
     const auto top_candidate = state_->height();
     if (branch_point > top_candidate)
@@ -303,9 +304,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Store strong tree headers and push to candidate chain.
     for (const auto& key: views_reverse(tree_branch))
     {
-        if (!push_block(key))
+        if ((ec = push_block(key)))
         {
-            handler(fault(error::node_push), height);
+            handler(fault(ec), height);
             return;
         }
 
@@ -316,9 +317,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Push new header as top of candidate chain.
     {
-        if (!push_block(*block_ptr, state->context()))
+        if ((ec = push_block(*block_ptr, state->context())))
         {
-            handler(fault(error::node_push), height);
+            handler(fault(ec), height);
             return;
         }
         
@@ -564,23 +565,45 @@ bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
 }
 
 TEMPLATE
-bool CLASS::push_block(const Block& block,
+code CLASS::push_block(const Block& block,
     const system::chain::context& context) const NOEXCEPT
 {
     auto& query = archive();
-    const auto bypass = get_bypass(block, context.height);
+    const auto milestone = is_under_milestone(context.height);
 
-    // TODO: change this to set_code() and return code.
-    // TODO: add confirm option to set_code() and pass bypass (to both).
-    // TODO: block bypass/confirm is checkpoints, headers is also milestone.
-    return query.push_candidate(query.set_link(block, context, bypass));
+    // headers-first sets milestone and set_strong ms or cp and not mealleable.
+    // blocks-first does not set milestone and set_strong cp not malleable.
+    const auto strong = [&]() NOEXCEPT
+    {
+        if constexpr (is_block())
+        {
+            return is_under_checkpoint(context.height) &&
+                !block.is_malleable64();
+        }
+        else
+        {
+            return false;
+        }
+    };
+
+    database::header_link link{};
+    const auto ec = query.set_code(link, block, context, milestone, strong());
+    if (ec)
+        return ec;
+
+    if (!query.push_candidate(link))
+        return error::push_candidate;
+
+    return ec;
 }
 
 TEMPLATE
-bool CLASS::push_block(const system::hash_digest& key) NOEXCEPT
+code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
 {
     const auto handle = tree_.extract(key);
-    if (!handle) return false;
+    if (!handle)
+        return error::internal_error;
+
     const auto& value = handle.mapped();
     return push_block(*value.block, value.state->context());
 }

@@ -70,10 +70,6 @@ protected:
     virtual bool get_block(typename Block::cptr& out,
         size_t height) const NOEXCEPT = 0;
 
-    /// True if Block should bypass validation, given its candidate height.
-    virtual bool get_bypass(const Block& block,
-        size_t height) const NOEXCEPT = 0;
-
     /// Determine if Block is valid.
     virtual code validate(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
@@ -83,6 +79,9 @@ protected:
 
     /// Determine if state is top of a storable branch.
     virtual bool is_storable(const chain_state& state) const NOEXCEPT = 0;
+
+    /// True if Block is on a milestone-covered branch.
+    virtual bool is_under_milestone(size_t height) const NOEXCEPT = 0;
 
     /// Milestone tracking.
     virtual void update_milestone(const system::chain::header& header,
@@ -153,10 +152,10 @@ private:
         size_t branch_point) const NOEXCEPT;
 
     // Move tree Block to database and push to top of candidate chain.
-    bool push_block(const system::hash_digest& key) NOEXCEPT;
+    code push_block(const system::hash_digest& key) NOEXCEPT;
 
     /// Store Block to database and push to top of candidate chain.
-    bool push_block(const Block& block,
+    code push_block(const Block& block,
         const system::chain::context& context) const NOEXCEPT;
 
     // Logging.
