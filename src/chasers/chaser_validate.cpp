@@ -216,7 +216,7 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
     const auto& query = archive();
 
     database::context context{};
-    const auto txs = query.to_txs(link);
+    const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(context, link))
         return false;
 
