@@ -168,21 +168,16 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        // These are cheap, so do even though checkpoint overlaps bypassed.
-        const auto malleable64 = query.is_malleable64(link);
-        auto bypass = (
-            ec == database::error::block_valid ||
-            ec == database::error::block_confirmable ||
-            (is_under_checkpoint(height) && !malleable64));
-
-        // malleable64 overrides bypass state because it's set from header only.
-        if (!bypass && !malleable64 && !query.get_bypass(bypass, link))
+        const auto valid = [&]() NOEXCEPT
         {
-            fault(database::error::integrity);
-            return;
-        }
+            // Can get malleable64 from block if we have it.
+            return (is_under_checkpoint(height) || query.is_milestone(link)) &&
+                !query.is_malleable64(link);
+        };
 
-        if (bypass)
+        if ((ec == database::error::block_valid) ||
+            (ec == database::error::block_confirmable) ||
+            valid())
         {
             update_position(height);
             ////fire(events::validate_bypassed, height);

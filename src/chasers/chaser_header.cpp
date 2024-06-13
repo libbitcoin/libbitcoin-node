@@ -54,12 +54,6 @@ bool chaser_header::get_block(header::cptr& out, size_t height) const NOEXCEPT
     return !is_null(out);
 }
 
-bool chaser_header::get_bypass(const header&, size_t height) const NOEXCEPT
-{
-    // Malleability is not known for headers, so must be guarded at validation.
-    return is_under_milestone(height) || is_under_checkpoint(height);
-}
-
 code chaser_header::validate(const header& header,
     const chain_state& state) const NOEXCEPT
 {
@@ -143,14 +137,10 @@ bool chaser_header::is_hard(const chain_state& state) const NOEXCEPT
     return state.cumulative_work() >= settings().minimum_work;
 }
 
-// Milestone methods (private).
+// Milestone methods.
 // ----------------------------------------------------------------------------
 
-bool chaser_header::is_under_milestone(size_t height) const NOEXCEPT
-{
-    return height <= active_milestone_height_;
-}
-
+// private
 bool chaser_header::initialize_milestone() NOEXCEPT
 {
     active_milestone_height_ = zero;
@@ -171,6 +161,11 @@ bool chaser_header::initialize_milestone() NOEXCEPT
         active_milestone_height_ = milestone_.height();
 
     return true;
+}
+
+bool chaser_header::is_under_milestone(size_t height) const NOEXCEPT
+{
+    return height <= active_milestone_height_;
 }
 
 void chaser_header::update_milestone(const system::chain::header& header,

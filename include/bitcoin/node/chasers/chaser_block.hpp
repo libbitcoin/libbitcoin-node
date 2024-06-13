@@ -48,10 +48,6 @@ protected:
     virtual bool get_block(system::chain::block::cptr& out,
         size_t height) const NOEXCEPT;
 
-    /// True if Block should bypass validation, given its candidate height.
-    virtual bool get_bypass(const system::chain::block& block,
-        size_t height) const NOEXCEPT;
-
     /// Determine if Block is valid.
     virtual code validate(const system::chain::block& block,
         const chain_state& state) const NOEXCEPT;
@@ -61,6 +57,9 @@ protected:
 
     /// Determine if state is top of a storable branch (always true).
     virtual bool is_storable(const chain_state& state) const NOEXCEPT;
+
+    /// True if Block is on a milestone-covered branch.
+    virtual bool is_under_milestone(size_t height) const NOEXCEPT;
 
     /// Milestone tracking.
     virtual void update_milestone(const system::chain::header& header,
