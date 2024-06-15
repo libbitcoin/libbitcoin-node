@@ -2023,14 +2023,7 @@ bool executor::do_help()
 // --[d]hardware
 bool executor::do_hardware()
 {
-    // Intrinsics can be safely compiled for unsupported platforms.
-    // The "try" functions exclude out checks for instructions not compiled in.
-    // But for instructions comiled in, each use currently invokes the "try".
-    // HOWEVER: win32 compiler vectorization config is tied to these options.
-    // HOWEVER: The process will crash if those are compiled and not present.
-    // So our options are portable, but related compiler optimizations are not.
-    // And in that case this function cannot even be executed. So test for
-    // avx512 or shani here (for example) and only after enable compiler opts.
+    // The "try" functions are safe for instructions not compiled in.
 
     log_.stop();
     logger("Intrinsics...");
