@@ -196,23 +196,24 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         }
 
         // Can get malleable64 from block if we have it.
-        const auto malleable64 = query.is_malleable64(link);
-        const auto checkpoint = is_under_checkpoint(index);
-        const auto always_strong = checkpoint && !malleable64;
+        const auto strong = is_under_checkpoint(index) ||
+            query.is_milestone(link);
+
         const auto confirmed = [&]() NOEXCEPT
         {
-            return !malleable64 && (checkpoint || query.is_milestone(link));
+            return strong && !query.is_malleable64(link);
         };
 
         // Required for block_confirmable and all confirmed blocks.
-        // Only checkpoint && !malleable64 guarantees set_strong is always set.
-        if (!always_strong && !query.is_strong(link) && !query.set_strong(link))
+        // Checkpoint and milestone guarantee set_strong is always set.
+        if (!strong && !query.is_strong(link) && !query.set_strong(link))
         {
             fault(error::set_confirmed);
             return;
         }
 
-        if (ec == database::error::block_confirmable || confirmed())
+        if (ec == database::error::block_confirmable ||
+            confirmed())
         {
             // TODO: compute fees from validation records.
             if ((ec != database::error::block_confirmable) &&
@@ -243,7 +244,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
         if (ec)
         {
-            if (malleable64)
+            if (query.is_malleable64(link))
             {
                 LOGR("Malleated64 block [" << index << "] " << ec.message());
                 notify(ec, chase::malleated, link);

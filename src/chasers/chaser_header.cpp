@@ -112,8 +112,7 @@ void chaser_header::do_malleated(header_t link) NOEXCEPT
 
 bool chaser_header::is_storable(const chain_state& state) const NOEXCEPT
 {
-    return is_checkpoint(state)
-        || is_milestone(state)
+    return is_checkpoint(state) || is_milestone(state)
         || (is_current(state) && is_hard(state));
 }
 
