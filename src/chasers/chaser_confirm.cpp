@@ -196,12 +196,12 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         }
 
         // Can get malleable64 from block if we have it.
-        const auto strong = is_under_checkpoint(index) ||
+        const auto is_strong = is_under_checkpoint(index) ||
             query.is_milestone(link);
 
         const auto confirmed = [&]() NOEXCEPT
         {
-            return strong && !query.is_malleable64(link);
+            return is_strong && !query.is_malleable64(link);
         };
 
         // Required for block_confirmable and all confirmed blocks.

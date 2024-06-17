@@ -171,10 +171,10 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         const auto valid = [&]() NOEXCEPT
         {
             // Can get malleable64 from block if we have it.
-            const auto strong = is_under_checkpoint(height) ||
+            const auto is_strong = is_under_checkpoint(height) ||
                 query.is_milestone(link);
 
-            return strong && !query.is_malleable64(link);
+            return is_strong && !query.is_malleable64(link);
         };
 
         if ((ec == database::error::block_valid) ||
