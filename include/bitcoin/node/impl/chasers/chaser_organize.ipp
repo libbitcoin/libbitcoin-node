@@ -275,6 +275,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     auto index = top_candidate;
     while (index > branch_point)
     {
+        // TODO: if milestone set_unstrong.
         if (!query.pop_candidate())
         {
             handler(fault(error::pop_candidate), height);
@@ -291,6 +292,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Push stored strong headers to candidate chain.
     for (const auto& link: views_reverse(store_branch))
     {
+        // TODO: if milestone set_strong.
         if (!query.push_candidate(link))
         {
             handler(fault(error::push_candidate), height);
@@ -304,6 +306,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Store strong tree headers and push to candidate chain.
     for (const auto& key: views_reverse(tree_branch))
     {
+        // TODO: if milestone set_strong.
         if ((ec = push_block(key)))
         {
             handler(fault(ec), height);
@@ -317,6 +320,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Push new header as top of candidate chain.
     {
+        // TODO: if milestone set_strong.
         if ((ec = push_block(*block_ptr, state->context())))
         {
             handler(fault(ec), height);
@@ -423,6 +427,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
+        // TODO: if !milestone set_unstrong.
         if (!query.pop_candidate())
         {
             fault(error::pop_candidate);
@@ -442,6 +447,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
+        // TODO: if milestone set_strong.
         const auto confirmed = query.to_confirmed(index);
         if (!query.push_candidate(confirmed))
         {
@@ -568,26 +574,14 @@ TEMPLATE
 code CLASS::push_block(const Block& block,
     const system::chain::context& context) const NOEXCEPT
 {
-    auto& query = archive();
+    // set milestone and sets strong if milestone or checkpoint.
+    const auto checkpoint = is_under_checkpoint(context.height);
     const auto milestone = is_under_milestone(context.height);
+    const auto strong = is_block() && (checkpoint || milestone);
 
-    // headers-first sets milestone and set_strong ms or cp and not mealleable.
-    // blocks-first does not set milestone and set_strong cp not malleable.
-    const auto strong = [&]() NOEXCEPT
-    {
-        if constexpr (is_block())
-        {
-            return is_under_checkpoint(context.height) &&
-                !block.is_malleable64();
-        }
-        else
-        {
-            return false;
-        }
-    };
-
+    auto& query = archive();
     database::header_link link{};
-    const auto ec = query.set_code(link, block, context, milestone, strong());
+    const auto ec = query.set_code(link, block, context, milestone, strong);
     if (ec)
         return ec;
 
