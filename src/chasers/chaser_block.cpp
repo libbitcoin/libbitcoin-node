@@ -70,10 +70,9 @@ code chaser_block::validate(const block& block,
 
     // Transaction/witness commitments are required under checkpoint.
     // This ensures that the block/header hash represents expected txs.
-    const auto checked = is_under_checkpoint(state.height()) &&
-        !block.is_malleable64();
+    const auto checked = is_under_checkpoint(state.height());
 
-    // Transaction commitments and malleated32 are checked under bypass.
+    // Transaction commitments and malleation are checked under bypass.
     if ((ec = block.check(checked)))
         return ec;
 
@@ -97,32 +96,15 @@ code chaser_block::validate(const block& block,
     return block.connect(ctx);
 }
 
-// The archived malleable block was found to be invalid (treat as malleated).
-// The block/header hash cannot be marked unconfirmable due to malleability, so
-// disassociate the block and then disorganize the chain to malleation point.
-// This will disorganize the candidate chain to match the confirmed.
-void chaser_block::do_malleated(header_t link) NOEXCEPT
+void chaser_block::do_malleated(header_t) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-    auto& query = archive();
-
-    // If not disassociated, validation/confirmation will be reattempted.
-    // This could happen due to shutdown before this step is completed.
-    if (!query.set_dissasociated(link))
-    {
-        fault(error::set_dissasociated);
-        return;
-    }
-
-    // Treat as disorganization, but block is only gapped not invalidated.
-    do_disorganize(link);
+    // blocks are guarded against malleation before being stored.
 }
 
 bool chaser_block::is_storable(const chain_state&) const NOEXCEPT
 {
     return true;
 }
-
 
 // Milestone methods.
 // ----------------------------------------------------------------------------

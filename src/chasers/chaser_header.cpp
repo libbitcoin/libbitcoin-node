@@ -81,30 +81,15 @@ code chaser_header::validate(const header& header,
     return system::error::block_success;
 }
 
-// The archived malleable block was found to be invalid (treat as malleated).
-// The block/header hash cannot be marked unconfirmable due to malleability, so
-// disassociate the block and then notify check chaser to reisuse the download.
-// This must be issued here in order to ensure proper bypass/regress ordering.
+// A malleable block was found to be invalid due to malleation.
 void chaser_header::do_malleated(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
-    // If not disassociated, validation/confirmation will be reattempted.
-    // This could happen due to shutdown before this step is completed.
-    if (!query.set_dissasociated(link))
-    {
-        fault(error::set_dissasociated);
-        return;
-    }
-
-    // Header is no longer in the candidate chain, so do not announce.
-    if (!query.is_candidate_header(link))
-        return;
-
-    // Announce a singleton header that requires download.
+    // Announce a single header that requires (re)download.
     // Since it is in the candidate chain, it must presently be missing.
-    notify(error::success, chase::header, link);
+    if (archive().is_candidate_header(link))
+        notify(error::success, chase::header, link);
 }
 
 // Storable methods (private).

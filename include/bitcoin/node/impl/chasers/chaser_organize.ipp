@@ -101,7 +101,7 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
         }
         case chase::malleated:
         {
-            // Re-obtain the malleated block if it is still a candidate.
+            // Re-obtain the malleated block if it is still a candidate (virtual).
             POST(do_malleated, possible_narrow_cast<header_t>(value));
             break;
         }
@@ -211,6 +211,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     };
 
+    // blocks-first may return malleation error, in which case another peer may
+    // return the good block of the same hash. headers-first cannot detect
+    // malleation here, so the block_in protocol sends chase::malleated.
     if (const auto ec = validate(*block_ptr, *state))
     {
         handler(ec, height);
@@ -366,8 +369,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Skip already reorganized out, get height.
     // ........................................................................
 
-    // Upon restart chain validation will hit unconfirmable or gapped block.
-    // Gapping occurs with a malleated64 from confirm in blocks first handling.
+    // Upon restart chain validation will hit unconfirmable block.
     if (closed())
         return;
 
@@ -574,14 +576,13 @@ TEMPLATE
 code CLASS::push_block(const Block& block,
     const system::chain::context& context) const NOEXCEPT
 {
-    // set milestone and sets strong if milestone or checkpoint.
-    const auto checkpoint = is_under_checkpoint(context.height);
-    const auto milestone = is_under_milestone(context.height);
-    const auto is_strong = is_block() && (checkpoint || milestone);
+    // set_code invokes set_strong when checked.
+    const auto milestone = is_under_checkpoint(context.height);
+    const auto checked = is_block() && is_under_checkpoint(context.height);
 
     auto& query = archive();
     database::header_link link{};
-    const auto ec = query.set_code(link, block, context, milestone, is_strong);
+    const auto ec = query.set_code(link, block, context, milestone, checked);
     if (ec)
         return ec;
 

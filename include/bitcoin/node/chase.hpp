@@ -69,7 +69,7 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A candidate header has been disassociated due to malleation (header_t).
-    /// Issued by 'header' and handled by 'check'.
+    /// Issued by 'header' and handled by 'check' (redownload).
     header,
 
     /// A new candidate branch exists from given branch point (height_t).
@@ -95,8 +95,8 @@ enum class chase
     /// Issued by 'organize' and handled by 'validate' (disorgs candidates).
     disorganized,
 
-    /// stored block was determined to be malleated (invalid) (header_t).
-    /// Issued by 'validate' and 'confirm', handled by 'chaser' (redownload).
+    /// unarchived block was determined to be malleated (header_t).
+    /// Issued by 'block_in_31800', handled by 'organize' (redownload).
     malleated,
 
     /// Validation.

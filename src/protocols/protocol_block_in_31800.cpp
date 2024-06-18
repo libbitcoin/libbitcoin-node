@@ -275,7 +275,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Preconditions (requested and not malleated).
+    // Preconditions.
     // ........................................................................
 
     auto& query = archive();
@@ -291,80 +291,51 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
-    const auto malleable64 = block_ptr->is_malleable64();
-    if (malleable64 && query.is_malleated64(*block_ptr))
-    {
-        // Disallow known block malleation, drop peer and keep trying.
-        // Malleation is assumed (and archived) when malleable64 is invalid.
-        LOGR("Malleated64 block [" << encode_hash(hash) << "] from ["
-            << authority() << "].");
-        stop(error::malleated_block);
-        return false;
-    }
-
     const auto& link = it->link;
-    const auto& ctx = it->context;
+    const auto height = it->context.height;
 
     // Check block.
     // ........................................................................
 
-    // Header state checked by organize (neither associated nor unconfirmable).
-    const auto is_strong = is_under_checkpoint(ctx.height) ||
+    const auto checked = is_under_checkpoint(height) ||
         query.is_milestone(link);
 
-    const auto checked = is_strong && !malleable64;
-
-    if (const auto code = check(*block_ptr, ctx, checked))
+    // Transaction commitments and malleation are checked under bypass.
+    if (const auto code = check(*block_ptr, it->context, checked))
     {
-        // Uncommitted blocks have no creation cost, just bogus data.
         if (code == system::error::invalid_transaction_commitment ||
             code == system::error::invalid_witness_commitment)
         {
-            LOGR("Uncommitted block [" << encode_hash(hash) << ":"
-                << ctx.height << "] from [" << authority() << "] "
-                << code.message());
+            LOGR("Uncommitted block [" << encode_hash(hash) << ":" << height
+                << "] from [" << authority() << "] " << code.message());
             stop(code);
             return false;
         }
 
-        // Malleated32 is never associated, so drop peer and continue.
-        // Cannot mark unconfirmable as confirmable with same hash may exist.
-        // Do not rely on return code because does not catch non-bypass mally.
-        if (block_ptr->is_malleated32())
+        if (ec == system::error::block_malleated)
         {
-            LOGR("Malleated32 block [" << encode_hash(hash) << ":"
-                << ctx.height << "] from [" << authority() << "] "
-                << code.message());
+            LOGR("Malleated block [" << encode_hash(hash) << ":" << height
+                << "] from [" << authority() << "] " << code.message());
+
+            // event sent in order to re-obtain the correct block.
+            notify(error::success, chase::malleated, link);
             stop(code);
             return false;
         }
 
-        // Malleable64 has not been associated, so drop peer and continue.
-        // Cannot mark unconfirmable as confirmable with same hash may exist.
-        if (block_ptr->is_malleable64())
-        {
-            LOGR("Malleable64 block failed check [" << encode_hash(hash) << ":"
-                << ctx.height << "] from [" << authority() << "] "
-                << code.message());
-            stop(code);
-            return false;
-        }
-
-        // Set invalid non-malleable header to unconfirmable state.
-        // Mark unconfirmable as block is neither malleated32 nor malleable64.
+        // Mark unconfirmable non-malleated block.
         if (!query.set_block_unconfirmable(link))
         {
             LOGF("Failure setting block unconfirmable [" << encode_hash(hash)
-                << ":" << ctx.height << "] from [" << authority() << "].");
+                << ":" << height << "] from [" << authority() << "].");
             fault(error::set_block_unconfirmable);
             return false;
         }
 
-        // Non-malleable block failed block check and was set unconfirmable. 
-        LOGR("Block failed check [" << encode_hash(hash) << ":" << ctx.height
+        LOGR("Block failed check [" << encode_hash(hash) << ":" << height
             << "] from [" << authority() << "] " << code.message());
         notify(error::success, chase::unchecked, link);
-        fire(events::block_unconfirmable, ctx.height);
+        fire(events::block_unconfirmable, height);
         stop(code);
         return false;
     }
@@ -375,12 +346,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto size = block_ptr->serialized_size(true);
     const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
-    // This invokes set_strong() when checked. 
-    if (const auto code = query.set_code(*txs_ptr, link, size, is_strong))
+    // This invokes set_strong when checked. 
+    if (const auto code = query.set_code(*txs_ptr, link, size, checked))
     {
-        LOGF("Failure storing block [" << encode_hash(hash) << ":"
-            << ctx.height << "] from [" << authority() << "] "
-            << code.message());
+        LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
+            << "] from [" << authority() << "] " << code.message());
 
         stop(fault(code));
         return false;
@@ -389,11 +359,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Advance.
     // ........................................................................
 
-    LOGP("Downloaded block [" << encode_hash(hash) << ":" << ctx.height
+    LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
         << "] from [" << authority() << "].");
 
-    notify(error::success, chase::checked, ctx.height);
-    fire(events::block_archived, ctx.height);
+    notify(error::success, chase::checked, height);
+    fire(events::block_archived, height);
 
     count(message->cached_size);
     map_->erase(it);
@@ -406,6 +376,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
+// Header state is checked by organize.
 code protocol_block_in_31800::check(const chain::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
