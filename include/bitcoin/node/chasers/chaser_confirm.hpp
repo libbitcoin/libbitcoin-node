@@ -41,11 +41,22 @@ public:
 
 protected:
     using header_links = std::vector<database::header_link>;
+    typedef network::race_unity<const code&, const database::tx_link&> race;
 
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
     virtual void do_validated(height_t height) NOEXCEPT;
+    virtual void do_organize(size_t height) NOEXCEPT;
+    virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
+    virtual void confirm_tx(const database::context& context,
+        const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
+    virtual void handle_tx(const code& ec, const database::tx_link& tx,
+        const race::ptr& racer) NOEXCEPT;
+    virtual void handle_txs(const code& ec, const database::tx_link& tx,
+        const database::header_link& link, size_t height)NOEXCEPT;
+    virtual void confirm_block(const code& ec,
+        const database::header_link& link, size_t height) NOEXCEPT;
 
 private:
     bool set_organized(const database::header_link& link,
@@ -62,6 +73,12 @@ private:
         height_t fork_top) const NOEXCEPT;
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
+
+    // These are protected by strand.
+    network::threadpool threadpool_;
+    header_links popped_{};
+    header_links fork_{};
+    size_t fork_point_{};
 };
 
 } // namespace node
