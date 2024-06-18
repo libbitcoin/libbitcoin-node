@@ -167,14 +167,6 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        // TODO: validation currency hack, move to base.
-        uint32_t time{};
-        if (!query.get_timestamp(time, link))
-        {
-            fault(error::set_block_valid);
-            return;
-        }
-
         if ((ec == database::error::block_valid) ||
             (ec == database::error::block_confirmable) ||
             is_under_checkpoint(height) || query.is_milestone(link))
@@ -182,7 +174,8 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             update_position(height);
             ////fire(events::validate_bypassed, height);
 
-            if (is_current(time))
+            // Don't confirm until validations are current.
+            if (is_current(link))
                 notify(ec, chase::valid, height);
 
             continue;
@@ -205,7 +198,8 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         update_position(height);
         fire(events::block_validated, height);
 
-        if (is_current(time))
+        // Don't confirm until validations are current.
+        if (is_current(link))
             notify(ec, chase::valid, height);
     }
 }
