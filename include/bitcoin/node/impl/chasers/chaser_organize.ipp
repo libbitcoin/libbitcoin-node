@@ -577,11 +577,11 @@ code CLASS::push_block(const Block& block,
     // set milestone and sets strong if milestone or checkpoint.
     const auto checkpoint = is_under_checkpoint(context.height);
     const auto milestone = is_under_milestone(context.height);
-    const auto strong = is_block() && (checkpoint || milestone);
+    const auto is_strong = is_block() && (checkpoint || milestone);
 
     auto& query = archive();
     database::header_link link{};
-    const auto ec = query.set_code(link, block, context, milestone, strong);
+    const auto ec = query.set_code(link, block, context, milestone, is_strong);
     if (ec)
         return ec;
 

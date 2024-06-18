@@ -309,10 +309,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     // Header state checked by organize (neither associated nor unconfirmable).
-    const auto strong = is_under_checkpoint(ctx.height) ||
+    const auto is_strong = is_under_checkpoint(ctx.height) ||
         query.is_milestone(link);
 
-    const auto checked = strong && !malleable64;
+    const auto checked = is_strong && !malleable64;
 
     if (const auto code = check(*block_ptr, ctx, checked))
     {
@@ -376,7 +376,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
 
     // This invokes set_strong() when checked. 
-    if (const auto code = query.set_code(*txs_ptr, link, size, strong))
+    if (const auto code = query.set_code(*txs_ptr, link, size, is_strong))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":"
             << ctx.height << "] from [" << authority() << "] "

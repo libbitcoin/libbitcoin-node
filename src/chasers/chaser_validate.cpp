@@ -31,7 +31,6 @@ namespace node {
 #define CLASS chaser_validate
 
 using namespace system;
-using namespace system::chain;
 using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
@@ -133,7 +132,7 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
+    auto& query = archive();
 
     // TODO: update specialized fault codes.
 
@@ -168,18 +167,9 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        const auto valid = [&]() NOEXCEPT
-        {
-            // Can get malleable64 from block if we have it.
-            const auto strong = is_under_checkpoint(height) ||
-                query.is_milestone(link);
-
-            return strong && !query.is_malleable64(link);
-        };
-
         if ((ec == database::error::block_valid) ||
             (ec == database::error::block_confirmable) ||
-            valid())
+            is_under_checkpoint(height) || query.is_milestone(link))
         {
             update_position(height);
             ////fire(events::validate_bypassed, height);
@@ -187,10 +177,6 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             continue;
         }
 
-        // Skipped validation here always succeeds but doesn't set block_valid.
-        // So this will always start reporting after the top block_confirmable.
-
-        // TODO: validation.
         ////// TODO: the quantity of work must be throttled.
         ////// This will very rapidly pump all outstanding work into asio queue.
         ////if (!enqueue_block(link))
@@ -198,6 +184,11 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         ////    fault(error::node_validate);
         ////    return;
         ////}
+        if (!query.set_block_valid(link))
+        {
+            fault(error::set_block_valid);
+            return;
+        }
 
         // Retain last height in validation sequence, update neutrino.
         update_position(height);
@@ -220,8 +211,8 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
     // race_unity: last to finish with success, or first error code.
     const auto racer = std::make_shared<race>(txs.size());
     racer->start(BIND(handle_txs, _1, _2, link, context));
+    ////fire(events::block_buffered, context.height);
 
-    fire(events::block_buffered, context.height);
     for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
             std::bind(&chaser_validate::validate_tx,
@@ -267,26 +258,7 @@ void chaser_validate::validate_tx(const database::context& context,
         {}              // work_required
     };
 
-    const auto set_connected = [&query, &ctx, &link, &context](
-        const transaction& tx) NOEXCEPT
-    {
-        const auto bip16 = ctx.is_enabled(flags::bip16_rule);
-        const auto bip141 = ctx.is_enabled(flags::bip141_rule);
-        const auto sigops = tx.signature_operations(bip16, bip141);
-
-        // TODO: cache fee and sigops from validation stage.
-        return query.set_tx_connected(link, context, tx.fee(), sigops) ?
-            error::success : error::store_integrity;
-    };
-
-    const auto set_disconnected = [&query, &link, &context](
-        const code& invalid) NOEXCEPT
-    {
-        return query.set_tx_disconnected(link, context) ? invalid :
-            error::store_integrity;
-    };
-
-    code invalid{};
+    code invalid{ system::error::missing_previous_output };
     const auto tx = query.get_transaction(link);
     if (!tx)
     {
@@ -294,20 +266,29 @@ void chaser_validate::validate_tx(const database::context& context,
     }
     else if (!query.populate(*tx))
     {
-        ec = set_disconnected(system::error::missing_previous_output);
+        ec = query.set_tx_disconnected(link, context) ? invalid :
+            error::store_integrity;
+
         fire(events::tx_invalidated, ctx.height);
     }
     else if (((invalid = tx->accept(ctx))) || ((invalid = tx->connect(ctx))))
     {
-        ec = set_disconnected(invalid);
-        fire(events::tx_invalidated, ctx.height);
+        ec = query.set_tx_disconnected(link, context) ? invalid :
+            error::store_integrity;
 
+        fire(events::tx_invalidated, ctx.height);
         LOGR("Invalid tx [" << encode_hash(tx->hash(false)) << "] in block ("
             << ctx .height << ") " << invalid.message());
     }
     else
     {
-        ec = set_connected(*tx);
+        const auto bip16 = ctx.is_enabled(chain::flags::bip16_rule);
+        const auto bip141 = ctx.is_enabled(chain::flags::bip141_rule);
+        const auto sigops = tx->signature_operations(bip16, bip141);
+
+        // TODO: cache fee and sigops from validation stage.
+        ec = query.set_tx_connected(link, context, tx->fee(), sigops) ?
+            error::success : error::store_integrity;
     }
 
     POST(handle_tx, ec, link, racer);
@@ -340,8 +321,8 @@ void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
     if (ec)
     {
         // Log tx here as it's the first failed one.
-        LOG_ONLY(const auto hash = encode_hash(archive().get_tx_key(tx));)
-        LOGR("Error validating tx [" << hash << "] " << ec.message());
+        LOGR("Error validating tx [" << encode_hash(archive().get_tx_key(tx))
+            << "] " << ec.message());
     }
 
     validate_block(ec, link, ctx);
@@ -354,18 +335,14 @@ void chaser_validate::validate_block(const code& ec,
     BC_ASSERT(stranded());
     auto& query = archive();
 
+    if (ec == database::error::integrity)
+    {
+        fault(error::node_validate);
+        return;
+    }
+
     if (ec)
     {
-        ////// Transactions are set strong upon archive when under bypass. Only
-        ////// malleable blocks are validated under bypass, and not set strong.
-        ////if (is_bypassed(ctx.height))
-        ////{
-        ////    LOGR("Malleated64 block [" << ctx.height << "] " << ec.message());
-        ////    notify(ec, chase::malleated, link);
-        ////    fire(events::block_malleated, ctx.height);
-        ////    return;
-        ////}
-
         if (!query.set_block_unconfirmable(link))
         {
             fault(error::set_block_unconfirmable);
