@@ -173,7 +173,11 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         {
             update_position(height);
             ////fire(events::validate_bypassed, height);
-            notify(ec, chase::valid, height);
+
+            // Don't confirm until validations are current.
+            if (is_current(link))
+                notify(ec, chase::valid, height);
+
             continue;
         }
 
@@ -193,7 +197,10 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // Retain last height in validation sequence, update neutrino.
         update_position(height);
         fire(events::block_validated, height);
-        notify(ec, chase::valid, height);
+
+        // Don't confirm until validations are current.
+        if (is_current(link))
+            notify(ec, chase::valid, height);
     }
 }
 

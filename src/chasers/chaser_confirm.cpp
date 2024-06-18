@@ -69,12 +69,12 @@ bool chaser_confirm::handle_event(const code&, chase event_,
             POST(do_validated, possible_narrow_cast<height_t>(value));
             break;
         }
-        ////case chase::valid:
-        ////{
-        ////    // value is individual height.
-        ////    POST(do_validated, possible_narrow_cast<height_t>(value));
-        ////    break;
-        ////}
+        case chase::valid:
+        {
+            // value is individual height.
+            POST(do_validated, possible_narrow_cast<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;

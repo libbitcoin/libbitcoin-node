@@ -55,7 +55,7 @@ protected:
     virtual code validate(const system::chain::header& header,
         const chain_state& state) const NOEXCEPT;
 
-    /// Disassociate malleated block and notify to redownload header.
+    /// Notify check chaser to redownload the block.
     virtual void do_malleated(header_t link) NOEXCEPT;
 
     /// Determine if state is top of a storable branch.

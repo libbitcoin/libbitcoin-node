@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser.hpp>
 
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -133,6 +134,14 @@ bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
 {
     return height <= top_checkpoint_height_;
+}
+
+// get_timestamp error results in false (ok).
+bool chaser::is_current(const database::header_link& link) const NOEXCEPT
+{
+    uint32_t timestamp{};
+    return archive().get_timestamp(timestamp, link) &&
+        node_.is_current(timestamp);
 }
 
 // Position.

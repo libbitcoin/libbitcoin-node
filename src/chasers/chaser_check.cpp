@@ -238,7 +238,7 @@ void chaser_check::do_headers(height_t) NOEXCEPT
         notify(error::success, chase::download, added);
 }
 
-// The archived malleable block was found to be invalid (treat as malleated).
+// A malleable block was found to be malleated, so re-download.
 void chaser_check::do_header(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -246,6 +246,7 @@ void chaser_check::do_header(header_t link) NOEXCEPT
     association out{};
     if (!archive().get_unassociated(out, link))
     {
+        // False return may be the result of existing association (still error).
         fault(error::get_unassociated);
         return;
     }

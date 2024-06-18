@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HPP
 
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -124,6 +125,9 @@ protected:
 
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;
+
+    /// Header's timestamp is within configured span from current time.
+    bool is_current(const database::header_link& link) const NOEXCEPT;
 
     /// The height is at or below the top checkpoint.
     bool is_under_checkpoint(size_t height) const NOEXCEPT;

@@ -122,7 +122,6 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
     { events::block_validated,     "block_validated....." },
     { events::block_confirmed,     "block_confirmed....." },
     { events::block_unconfirmable, "block_unconfirmable." },
-    { events::block_malleated,     "block_malleated....." },
     { events::validate_bypassed,   "validate_bypassed..." },
     { events::confirm_bypassed,    "confirm_bypassed...." },
 

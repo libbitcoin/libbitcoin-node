@@ -52,7 +52,7 @@ protected:
     virtual code validate(const system::chain::block& block,
         const chain_state& state) const NOEXCEPT;
 
-    /// Handle malleted message (nop).
+    /// Notify check chaser to redownload the block (nop).
     virtual void do_malleated(header_t link) NOEXCEPT;
 
     /// Determine if state is top of a storable branch (always true).
