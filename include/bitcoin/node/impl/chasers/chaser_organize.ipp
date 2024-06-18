@@ -348,7 +348,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         // arrivals. This bumps validation for current strong headers.
         notify(error::success, chase::bump, add1(branch_point));
 
-        // This is just to prevent stall, the check chaser races ahead.
+        // This is to prevent download stall, the check chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
         notify(error::success, chase_object(), branch_point);
     }
