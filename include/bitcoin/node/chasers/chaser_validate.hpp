@@ -50,7 +50,7 @@ protected:
     virtual void do_bump(height_t height) NOEXCEPT;
 
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
-    virtual void validate_tx(const database::context& context,
+    virtual void validate_tx(const database::context& ctx,
         const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
     virtual void handle_tx(const code& ec, const database::tx_link& tx,
         const race::ptr& racer) NOEXCEPT;
