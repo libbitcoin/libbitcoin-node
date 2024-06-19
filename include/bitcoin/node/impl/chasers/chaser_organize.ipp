@@ -574,15 +574,15 @@ bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
 
 TEMPLATE
 code CLASS::push_block(const Block& block,
-    const system::chain::context& context) const NOEXCEPT
+    const system::chain::context& ctx) const NOEXCEPT
 {
     // set_code invokes set_strong when checked.
-    const auto milestone = is_under_checkpoint(context.height);
-    const auto checked = is_block() && is_under_checkpoint(context.height);
+    const auto milestone = is_under_checkpoint(ctx.height);
+    const auto checked = is_block() && is_under_checkpoint(ctx.height);
 
     auto& query = archive();
     database::header_link link{};
-    const auto ec = query.set_code(link, block, context, milestone, checked);
+    const auto ec = query.set_code(link, block, ctx, milestone, checked);
     if (ec)
         return ec;
 

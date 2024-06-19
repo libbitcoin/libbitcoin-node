@@ -156,7 +156,7 @@ private:
 
     /// Store Block to database and push to top of candidate chain.
     code push_block(const Block& block,
-        const system::chain::context& context) const NOEXCEPT;
+        const system::chain::context& ctx) const NOEXCEPT;
 
     // Logging.
     // ------------------------------------------------------------------------

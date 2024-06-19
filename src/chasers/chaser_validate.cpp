@@ -210,27 +210,26 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
-    database::context context{};
+    context ctx{};
     const auto txs = query.to_transactions(link);
-    if (txs.empty() || !query.get_context(context, link))
+    if (txs.empty() || !query.get_context(ctx, link))
         return false;
 
-    // race_unity: last to finish with success, or first error code.
     const auto racer = std::make_shared<race>(txs.size());
-    racer->start(BIND(handle_txs, _1, _2, link, context));
-    ////fire(events::block_buffered, context.height);
+    racer->start(BIND(handle_txs, _1, _2, link, ctx));
+    ////fire(events::block_buffered, ctx.height);
 
     for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
             std::bind(&chaser_validate::validate_tx,
-                this, context, *tx, racer));
+                this, ctx, *tx, racer));
 
     return true;
 }
 
 // START WORK UNIT
-void chaser_validate::validate_tx(const database::context& context,
-    const tx_link& link, const race::ptr& racer) NOEXCEPT
+void chaser_validate::validate_tx(const context& ctx, const tx_link& link,
+    const race::ptr& racer) NOEXCEPT
 {
     if (closed())
     {
@@ -239,7 +238,7 @@ void chaser_validate::validate_tx(const database::context& context,
     }
 
     auto& query = archive();
-    auto ec = query.get_tx_state(link, context);
+    auto ec = query.get_tx_state(link, ctx);
 
     // These states bypass validation.
     if (ec == database::error::integrity ||
@@ -255,14 +254,14 @@ void chaser_validate::validate_tx(const database::context& context,
     //// database::error::unknown_state
     //// database::error::unvalidated
 
-    const chain::context ctx
+    const chain::context ctx_
     {
-        context.flags,  // [accept & connect]
-        {},             // timestamp
-        {},             // mtp
-        context.height, // [accept]
-        {},             // minimum_block_version
-        {}              // work_required
+        ctx.flags,  // [accept & connect]
+        {},         // timestamp
+        {},         // mtp
+        ctx.height, // [accept]
+        {},         // minimum_block_version
+        {}          // work_required
     };
 
     code invalid{ system::error::missing_previous_output };
@@ -273,28 +272,28 @@ void chaser_validate::validate_tx(const database::context& context,
     }
     else if (!query.populate(*tx))
     {
-        ec = query.set_tx_disconnected(link, context) ? invalid :
+        ec = query.set_tx_disconnected(link, ctx) ? invalid :
             error::store_integrity;
 
         fire(events::tx_invalidated, ctx.height);
     }
-    else if (((invalid = tx->accept(ctx))) || ((invalid = tx->connect(ctx))))
+    else if (((invalid = tx->accept(ctx_))) || ((invalid = tx->connect(ctx_))))
     {
-        ec = query.set_tx_disconnected(link, context) ? invalid :
+        ec = query.set_tx_disconnected(link, ctx) ? invalid :
             error::store_integrity;
 
         fire(events::tx_invalidated, ctx.height);
         LOGR("Invalid tx [" << encode_hash(tx->hash(false)) << "] in block ("
-            << ctx .height << ") " << invalid.message());
+            << ctx.height << ") " << invalid.message());
     }
     else
     {
-        const auto bip16 = ctx.is_enabled(chain::flags::bip16_rule);
-        const auto bip141 = ctx.is_enabled(chain::flags::bip141_rule);
+        const auto bip16 = ctx_.is_enabled(chain::flags::bip16_rule);
+        const auto bip141 = ctx_.is_enabled(chain::flags::bip141_rule);
         const auto sigops = tx->signature_operations(bip16, bip141);
 
         // TODO: cache fee and sigops from validation stage.
-        ec = query.set_tx_connected(link, context, tx->fee(), sigops) ?
+        ec = query.set_tx_connected(link, ctx, tx->fee(), sigops) ?
             error::success : error::store_integrity;
     }
 
@@ -319,7 +318,7 @@ void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
 
 // SYNCHRONIZE WORK UNITS
 void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
-    const header_link& link, const database::context& ctx) NOEXCEPT
+    const header_link& link, const context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (closed())
@@ -337,7 +336,7 @@ void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
 
 // SUMMARIZE WORK
 void chaser_validate::validate_block(const code& ec,
-    const header_link& link, const database::context& ctx) NOEXCEPT
+    const header_link& link, const context& ctx) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();

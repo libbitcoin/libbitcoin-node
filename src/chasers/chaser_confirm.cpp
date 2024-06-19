@@ -207,18 +207,18 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         return;
     }
 
-    const auto is_strong = is_under_checkpoint(height) ||
+    const auto checked = is_under_checkpoint(height) ||
         query.is_milestone(link);
 
     // Required for block_confirmable and all confirmed blocks.
     // Checkpoint and milestone guarantee set_strong is always set.
-    if (!is_strong && !query.set_strong(link))
+    if (!checked && !query.set_strong(link))
     {
         fault(error::set_confirmed);
         return;
     }
 
-    if (ec == database::error::block_confirmable || is_strong)
+    if (ec == database::error::block_confirmable || checked)
     {
         // TODO: compute fees from validation records.
         if ((ec != database::error::block_confirmable) &&
@@ -240,8 +240,6 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         return;
     }
 
-    // TODO: the quantity of work must be throttled.
-    // This will very rapidly pump all outstanding work into asio queue.
     if (!enqueue_block(link))
     {
         fault(error::node_validate);
@@ -261,22 +259,22 @@ bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
         return false;
 
     code ec{};
+    const auto height = ctx.height;
     if ((ec = query.unspent_duplicates(txs.front(), ctx)))
     {
-        POST(confirm_block, ec, link, ctx.height);
+        POST(confirm_block, ec, link, height);
         return true;
     }
 
     if (is_one(txs.size()))
     {
-        POST(confirm_block, ec, link, ctx.height);
+        POST(confirm_block, ec, link, height);
         return true;
     }
 
-    // race_unity: last to finish with success, or first error code.
     const auto racer = std::make_shared<race>(sub1(txs.size()));
-    racer->start(BIND(handle_txs, _1, _2, link, ctx.height));
-    ////fire(events::block_buffered, ctx.height);
+    racer->start(BIND(handle_txs, _1, _2, link, height));
+    ////fire(events::block_buffered, height);
 
     for (auto tx = std::next(txs.begin()); tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
@@ -287,8 +285,8 @@ bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
 }
 
 // START WORK UNIT
-void chaser_confirm::confirm_tx(const database::context& ctx,
-    const tx_link& link, const race::ptr& racer) NOEXCEPT
+void chaser_confirm::confirm_tx(const context& ctx, const tx_link& link,
+    const race::ptr& racer) NOEXCEPT
 {
     const auto ec = archive().tx_confirmable(link, ctx);
     POST(handle_tx, ec, link, racer);
