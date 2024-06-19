@@ -278,8 +278,9 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     auto index = top_candidate;
     while (index > branch_point)
     {
-        // TODO: if milestone set_unstrong.
-        if (!query.pop_candidate())
+        const auto candidate = query.to_candidate(index);
+        if ((is_under_milestone(index) && !query.set_unstrong(candidate)) ||
+            !query.pop_candidate())
         {
             handler(fault(error::pop_candidate), height);
             return;
@@ -295,8 +296,8 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Push stored strong headers to candidate chain.
     for (const auto& link: views_reverse(store_branch))
     {
-        // TODO: if milestone set_strong.
-        if (!query.push_candidate(link))
+        if ((is_under_milestone(index) && !query.set_strong(link)) ||
+            !query.push_candidate(link))
         {
             handler(fault(error::push_candidate), height);
             return;
@@ -309,7 +310,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // Store strong tree headers and push to candidate chain.
     for (const auto& key: views_reverse(tree_branch))
     {
-        // TODO: if milestone set_strong.
         if ((ec = push_block(key)))
         {
             handler(fault(ec), height);
@@ -323,7 +323,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Push new header as top of candidate chain.
     {
-        // TODO: if milestone set_strong.
         if ((ec = push_block(*block_ptr, state->context())))
         {
             handler(fault(ec), height);
@@ -429,8 +428,9 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        // TODO: if !milestone set_unstrong.
-        if (!query.pop_candidate())
+        const auto candidate = query.to_candidate(index);
+        if ((is_under_milestone(index) && !query.set_unstrong(candidate)) ||
+            !query.pop_candidate())
         {
             fault(error::pop_candidate);
             return;
@@ -449,9 +449,8 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
-        // TODO: if milestone set_strong.
-        const auto confirmed = query.to_confirmed(index);
-        if (!query.push_candidate(confirmed))
+        // Confirmed are already set_strong and must stay that way.
+        if (!query.push_candidate(query.to_confirmed(index)))
         {
             fault(error::push_candidate);
             return;
