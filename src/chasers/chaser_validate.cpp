@@ -196,7 +196,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
 
         // Retain last height in validation sequence, update neutrino.
         update_position(height);
-        fire(events::block_validated, height);
+        ////fire(events::block_validated, height);
 
         // Don't confirm until validations are current.
         if (is_current(link))

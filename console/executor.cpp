@@ -972,67 +972,69 @@ void executor::read_test() const
         outs.size() % keys.size() % span.count());
 
     // Write it all...
-    ////logger(
-    ////    "output_script_hash, "
-    ////    "output_fk, "
-    ////    "spend_fk, "
-    ////    "input_fk, "
-    ////
-    ////    "ouput_tx_fk, "
-    ////    "ouput_tx_hash, "
-    ////    "ouput_tx_pos, "
-    ////
-    ////    "ouput_bk_fk, "
-    ////    "ouput_bk_hash, "
-    ////    "ouput_bk_height, "
-    ////
-    ////    "input_tx_fk, "
-    ////    "input_tx_hash, "
-    ////    "input_tx_pos, "
-    ////
-    ////    "input_bk_fk, "
-    ////    "input_bk_hash, "
-    ////    "sinput_bk_height, "
-    ////
-    ////    "output_script "
-    ////    "input_script, "
-    ////);
-    ////
-    ////for (const auto& row: outs)
-    ////{
-    ////    if (cancel_) break;
-    ////
-    ////    const auto input = !row.input ? "{unspent}" :
-    ////        row.input->script().to_string(chain::flags::all_rules);
-    ////
-    ////    const auto output = !row.output ? "{error}" :
-    ////        row.output->script().to_string(chain::flags::all_rules);
-    ////
-    ////    logger(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
-    ////        encode_hash(row.address) %
-    ////        row.output_fk %
-    ////        row.spend_fk%
-    ////        row.input_fk%
-    ////
-    ////        row.tx_fk %
-    ////        encode_hash(row.tx_hash) %
-    ////        row.tx_position %
-    ////
-    ////        row.bk_fk %
-    ////        encode_hash(row.bk_hash) %
-    ////        row.bk_height %
-    ////
-    ////        row.in_tx_fk %
-    ////        encode_hash(row.in_tx_hash) %
-    ////        row.in_tx_position %
-    ////
-    ////        row.in_bk_fk %
-    ////        encode_hash(row.in_bk_hash) %
-    ////        row.in_bk_height %
-    ////    
-    ////        output%
-    ////        input);
-    ////}
+#if defined(UNDEFINED)
+    logger(
+        "output_script_hash, "
+        "output_fk, "
+        "spend_fk, "
+        "input_fk, "
+    
+        "ouput_tx_fk, "
+        "ouput_tx_hash, "
+        "ouput_tx_pos, "
+    
+        "ouput_bk_fk, "
+        "ouput_bk_hash, "
+        "ouput_bk_height, "
+    
+        "input_tx_fk, "
+        "input_tx_hash, "
+        "input_tx_pos, "
+    
+        "input_bk_fk, "
+        "input_bk_hash, "
+        "sinput_bk_height, "
+    
+        "output_script "
+        "input_script, "
+    );
+    
+    for (const auto& row: outs)
+    {
+        if (cancel_) break;
+    
+        const auto input = !row.input ? "{unspent}" :
+            row.input->script().to_string(chain::flags::all_rules);
+    
+        const auto output = !row.output ? "{error}" :
+            row.output->script().to_string(chain::flags::all_rules);
+    
+        logger(format("%1%, %2%, %3%, %4%, %5%, %6%, %7%, %8%, %9%, %10%, %11%, %12%, %13%, %14%, %15%, %16%, %17%, %18%") %
+            encode_hash(row.address) %
+            row.output_fk %
+            row.spend_fk%
+            row.input_fk%
+    
+            row.tx_fk %
+            encode_hash(row.tx_hash) %
+            row.tx_position %
+    
+            row.bk_fk %
+            encode_hash(row.bk_hash) %
+            row.bk_height %
+    
+            row.in_tx_fk %
+            encode_hash(row.in_tx_hash) %
+            row.in_tx_position %
+    
+            row.in_bk_fk %
+            encode_hash(row.in_bk_hash) %
+            row.in_bk_height %
+        
+            output%
+            input);
+    }
+#endif // UNDEFINED
 }
 
 #if defined(UNDEFINED)
