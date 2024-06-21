@@ -47,6 +47,7 @@ protected:
         event_value value) NOEXCEPT;
 
     virtual void do_validated(height_t height) NOEXCEPT;
+#if defined(DISABLED)
     virtual void do_organize(size_t height) NOEXCEPT;
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void confirm_tx(const database::context& ctx,
@@ -57,6 +58,7 @@ protected:
         const database::header_link& link, size_t height)NOEXCEPT;
     virtual void confirm_block(const code& ec,
         const database::header_link& link, size_t height) NOEXCEPT;
+#endif // DISABLED
 
 private:
     bool set_organized(const database::header_link& link,

@@ -91,6 +91,191 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 // confirm
 // ----------------------------------------------------------------------------
 
+void chaser_confirm::do_validated(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // TODO: update specialized fault codes.
+
+    // Compute relative work.
+    // ........................................................................
+
+    bool strong{};
+    uint256_t work{};
+    header_links fork{};
+
+    if (!get_fork_work(work, fork, height))
+    {
+        fault(error::get_fork_work);
+        return;
+    }
+
+    if (!get_is_strong(strong, work, height))
+    {
+        fault(error::get_is_strong);
+        return;
+    }
+
+    if (!strong)
+        return;
+
+    // Reorganize confirmed chain.
+    // ........................................................................
+
+    auto& query = archive();
+    const auto top = query.get_top_confirmed();
+    const auto fork_point = height - fork.size();
+    if (top < fork_point)
+    {
+        fault(error::invalid_fork_point);
+        return;
+    }
+
+    // Pop down to the fork point.
+    auto index = top;
+    header_links popped{};
+    while (index > fork_point)
+    {
+        const auto link = query.to_confirmed(index);
+        if (link.is_terminal())
+        {
+            fault(error::to_confirmed);
+            return;
+        }
+
+        popped.push_back(link);
+        if (!query.set_unstrong(link))
+        {
+            fault(error::node_confirm);
+            return;
+        }
+
+        if (!query.pop_confirmed())
+        {
+            fault(error::pop_confirmed);
+            return;
+        }
+
+        notify(error::success, chase::reorganized, popped.back());
+        fire(events::block_reorganized, index--);
+    }
+
+    // Above may shrink indexes and below may cancel.
+    // This may result in an inability to restore.
+    // TODO: copy height indexes in backup.
+
+    // fork_point + 1
+    ++index;
+
+    // Push candidate headers to confirmed chain.
+    for (const auto& link: views_reverse(fork))
+    {
+        if (closed())
+            return;
+
+        auto ec = query.get_block_state(link);
+        if (ec == database::error::integrity)
+        {
+            fault(ec);
+            return;
+        }
+
+        if (ec == database::error::block_unconfirmable)
+        {
+            notify(ec, chase::unconfirmable, link);
+            fire(events::block_unconfirmable, index);
+
+            if (!roll_back(popped, link, fork_point, index))
+                fault(error::node_roll_back);
+
+            return;
+        }
+
+        const auto checked = is_under_checkpoint(index) ||
+            query.is_milestone(link);
+
+        // Required for block_confirmable and all confirmed blocks.
+        if (!checked && !query.set_strong(link))
+        {
+            fault(error::set_confirmed);
+            return;
+        }
+
+        if (ec == database::error::block_confirmable || checked)
+        {
+            // TODO: compute fees from validation records.
+            if ((ec != database::error::block_confirmable) &&
+                !query.set_block_confirmable(link, uint64_t{}))
+            {
+                fault(error::block_confirmable);
+                return;
+            }
+
+            notify(ec, chase::confirmable, index);
+            ////fire(events::confirm_bypassed, index);
+
+            if (!set_organized(link, index))
+            {
+                fault(error::set_confirmed);
+                return;
+            }
+
+            continue;
+        }
+
+        ec = query.block_confirmable(link);
+        if (ec == database::error::integrity)
+        {
+            fault(error::node_confirm);
+            return;
+        }
+
+        if (ec)
+        {
+            if (!query.set_block_unconfirmable(link))
+            {
+                fault(error::set_block_unconfirmable);
+                return;
+            }
+
+            LOGR("Unconfirmable block [" << index << "] " << ec.message());
+            notify(ec, chase::unconfirmable, link);
+            fire(events::block_unconfirmable, index);
+
+            if (!roll_back(popped, link, fork_point, index))
+            {
+                fault(error::node_roll_back);
+            }
+
+            return;
+        }
+
+        // TODO: compute fees from validation records.
+        if (!query.set_block_confirmable(link, uint64_t{}))
+        {
+            fault(error::block_confirmable);
+            return;
+        }
+
+        notify(error::success, chase::confirmable, index);
+        fire(events::block_confirmed, index);
+
+        if (!set_organized(link, index))
+        {
+            fault(error::set_confirmed);
+            return;
+        }
+
+        LOGV("Block confirmed and organized: " << index);
+        ++index;
+    }
+}
+
+#if defined(DISABLED)
+
 // Blocks are either confirmed (blocks first) or validated/confirmed
 // (headers first) at this point. An unconfirmable block may not land here.
 // Candidate chain reorganizations will result in reported heights moving
@@ -391,6 +576,8 @@ void chaser_confirm::confirm_block(const code& ec, const header_link& link,
         do_validated(next);
     }
 }
+
+#endif // DISABLED
 
 // Private
 // ----------------------------------------------------------------------------
