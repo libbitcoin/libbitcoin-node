@@ -576,7 +576,7 @@ code CLASS::push_block(const Block& block,
     const system::chain::context& ctx) const NOEXCEPT
 {
     // set_code invokes set_strong when checked.
-    const auto milestone = is_under_checkpoint(ctx.height);
+    const auto milestone = is_under_milestone(ctx.height);
     const auto checked = is_block() && is_under_checkpoint(ctx.height);
 
     auto& query = archive();
