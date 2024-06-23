@@ -107,18 +107,26 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     uint256_t work{};
     header_links fork{};
 
+    // Scan down from height to first confirmed, accumulate links and sum work.
     if (!get_fork_work(work, fork, height))
     {
         fault(error::get_fork_work);
         return;
     }
 
-    if (!get_is_strong(strong, work, height))
+    // No longer a candidate fork (heights are not candidates).
+    if (fork.empty())
+        return;
+
+    // fork_point is the highest common block.
+    const auto fork_point = height - fork.size();
+    if (!get_is_strong(strong, work, fork_point))
     {
         fault(error::get_is_strong);
         return;
     }
 
+    // Not yet a strong fork (confirmed branch has at least as much work).
     if (!strong)
         return;
 
@@ -127,7 +135,6 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
     auto& query = archive();
     const auto top = query.get_top_confirmed();
-    const auto fork_point = height - fork.size();
     if (top < fork_point)
     {
         fault(error::invalid_fork_point);
@@ -222,51 +229,51 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 fault(error::set_confirmed);
                 return;
             }
-
-            continue;
         }
-
-        ec = query.block_confirmable(link);
-        if (ec == database::error::integrity)
+        else
         {
-            fault(error::node_confirm);
-            return;
-        }
-
-        if (ec)
-        {
-            if (!query.set_block_unconfirmable(link))
+            ec = query.block_confirmable(link);
+            if (ec == database::error::integrity)
             {
-                fault(error::set_block_unconfirmable);
+                fault(error::node_confirm);
                 return;
             }
 
-            LOGR("Unconfirmable block [" << index << "] " << ec.message());
-            notify(ec, chase::unconfirmable, link);
-            fire(events::block_unconfirmable, index);
-
-            if (!roll_back(popped, link, fork_point, index))
+            if (ec)
             {
-                fault(error::node_roll_back);
+                if (!query.set_block_unconfirmable(link))
+                {
+                    fault(error::set_block_unconfirmable);
+                    return;
+                }
+
+                LOGR("Unconfirmable block [" << index << "] " << ec.message());
+                notify(ec, chase::unconfirmable, link);
+                fire(events::block_unconfirmable, index);
+
+                if (!roll_back(popped, link, fork_point, index))
+                {
+                    fault(error::node_roll_back);
+                }
+
+                return;
             }
 
-            return;
-        }
+            // TODO: compute fees from validation records.
+            if (!query.set_block_confirmable(link, uint64_t{}))
+            {
+                fault(error::block_confirmable);
+                return;
+            }
 
-        // TODO: compute fees from validation records.
-        if (!query.set_block_confirmable(link, uint64_t{}))
-        {
-            fault(error::block_confirmable);
-            return;
-        }
+            notify(error::success, chase::confirmable, index);
+            fire(events::block_confirmed, index);
 
-        notify(error::success, chase::confirmable, index);
-        fire(events::block_confirmed, index);
-
-        if (!set_organized(link, index))
-        {
-            fault(error::set_confirmed);
-            return;
+            if (!set_organized(link, index))
+            {
+                fault(error::set_confirmed);
+                return;
+            }
         }
 
         LOGV("Block confirmed and organized: " << index);
@@ -637,31 +644,33 @@ bool chaser_confirm::roll_back(const header_links& popped,
     return true;
 }
 
-bool chaser_confirm::get_fork_work(uint256_t& fork_work,
-    header_links& fork, height_t fork_top) const NOEXCEPT
+bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
+    height_t fork_top) const NOEXCEPT
 {
     const auto& query = archive();
+    header_link link{};
+    fork_work = zero;
     fork.clear();
 
-    // Walk down candidate index from fork_top to fork point (first confirmed).
-    for (auto link = query.to_candidate(fork_top);
-        !query.is_confirmed_block(link);
+    // Walk down candidates from fork_top to fork point (highest common).
+    for (link = query.to_candidate(fork_top);
+        !link.is_terminal() && !query.is_confirmed_block(link);
         link = query.to_candidate(--fork_top))
     {
-        // Terminal candidate from validated link implies candidate regression.
-        // This is ok, just means that the fork is no longer a candidate.
-        if (link.is_terminal())
-        {
-            fork_work = zero;
-            return true;
-        }
-
         uint32_t bits{};
         if (!query.get_bits(bits, link))
             return false;
 
+        fork_work += chain::header::proof(bits);
         fork.push_back(link);
-        fork_work += system::chain::header::proof(bits);
+    }
+
+    // Terminal candidate from validated link implies candidate regression.
+    // This is ok, it just means that the fork is no longer a candidate.
+    if (link.is_terminal())
+    {
+        fork_work = zero;
+        fork.clear();
     }
 
     return true;
@@ -682,7 +691,7 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
             return false;
 
         // Not strong when confirmed_work equals or exceeds fork_work.
-        confirmed_work += system::chain::header::proof(bits);
+        confirmed_work += chain::header::proof(bits);
         if (confirmed_work >= fork_work)
         {
             strong = false;
