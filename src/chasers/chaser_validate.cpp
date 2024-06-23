@@ -177,30 +177,30 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             // Don't confirm until validations are current.
             if (is_current(link))
                 notify(ec, chase::valid, height);
-
-            continue;
         }
-
-        ////// TODO: the quantity of work must be throttled.
-        ////// This will very rapidly pump all outstanding work into asio queue.
-        ////if (!enqueue_block(link))
-        ////{
-        ////    fault(error::node_validate);
-        ////    return;
-        ////}
-        if (!query.set_block_valid(link))
+        else
         {
-            fault(error::set_block_valid);
-            return;
+            ////// TODO: the quantity of work must be throttled.
+            ////// Will very rapidly pump outstanding work in asio queue.
+            ////if (!enqueue_block(link))
+            ////{
+            ////    fault(error::node_validate);
+            ////    return;
+            ////}
+            if (!query.set_block_valid(link))
+            {
+                fault(error::set_block_valid);
+                return;
+            }
+
+            // Retain last height in validation sequence, update neutrino.
+            update_position(height);
+            ////fire(events::block_validated, height);
+
+            // Don't confirm until validations are current.
+            if (is_current(link))
+                notify(ec, chase::valid, height);
         }
-
-        // Retain last height in validation sequence, update neutrino.
-        update_position(height);
-        ////fire(events::block_validated, height);
-
-        // Don't confirm until validations are current.
-        if (is_current(link))
-            notify(ec, chase::valid, height);
     }
 }
 
