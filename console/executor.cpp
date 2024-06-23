@@ -733,11 +733,48 @@ void executor::scan_collisions() const
     spend.shrink_to_fit();
 }
 
-////// arbitrary testing (const).
-////void executor::read_test() const
-////{
-////    logger("No read test implemented.");
-////}
+// arbitrary testing (const).
+void executor::read_test() const
+{
+    auto start = fine_clock::now();
+    auto count = query_.header_records();
+    uint32_t block{ one };
+    
+    logger("Find strong blocks.");
+    while (!cancel_ && (block < count) && query_.is_strong_block(block))
+    {
+        ++block;
+    }
+    
+    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top strong block is [%1%] in [%2%] ms.") % sub1(block) % span.count());
+    start = fine_clock::now();
+    count = query_.header_records();
+    uint32_t milestone{ 295'001 };
+
+    logger("Find milestone blocks.");
+    while (!cancel_ && (milestone < count) && query_.is_milestone(milestone))
+    {
+        ++milestone;
+    }
+
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top milestone block is [%1%] in [%2%] ms.") % sub1(milestone) % span.count());
+    start = fine_clock::now();
+    uint32_t tx{ one };
+    
+    logger("Find strong txs.");
+    count = query_.tx_records();
+    while (!cancel_ && (tx < count) && query_.is_strong_tx(tx) )
+    {
+        ++tx;
+    }
+    
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top strong tx is [%1%] in [%2%] ms.") % sub1(tx) % span.count());
+}
+
+#if defined(UNDEFINED)
 
 void executor::read_test() const
 {
@@ -1036,8 +1073,6 @@ void executor::read_test() const
     }
 #endif // UNDEFINED
 }
-
-#if defined(UNDEFINED)
 
 void executor::read_test() const
 {
