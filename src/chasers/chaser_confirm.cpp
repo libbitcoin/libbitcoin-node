@@ -154,7 +154,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         }
 
         popped.push_back(link);
-        if (!query.set_unstrong(link))
+        if (!query.set_unstrong_parallel(link))
         {
             fault(error::node_confirm);
             return;
@@ -205,7 +205,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             query.is_milestone(link);
 
         // Required for block_confirmable and all confirmed blocks.
-        if (!checked && !query.set_strong(link))
+        if (!checked && !query.set_strong_parallel(link))
         {
             fault(error::set_confirmed);
             return;
@@ -349,7 +349,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         }
 
         popped_.push_back(link);
-        if (!query.set_unstrong(link))
+        if (!query.set_unstrong_parallel(link))
         {
             fault(error::node_confirm);
             return;
@@ -404,7 +404,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
 
     // Required for block_confirmable and all confirmed blocks.
     // Checkpoint and milestone guarantee set_strong is always set.
-    if (!checked && !query.set_strong(link))
+    if (!checked && !query.set_strong_parallel(link))
     {
         fault(error::set_confirmed);
         return;
@@ -604,7 +604,7 @@ bool chaser_confirm::reset_organized(const header_link& link,
     height_t height) NOEXCEPT
 {
     auto& query = archive();
-    if (!query.set_strong(link) || !query.push_confirmed(link))
+    if (!query.set_strong_parallel(link) || !query.push_confirmed(link))
         return false;
 
     notify(error::success, chase::organized, link);
@@ -616,7 +616,7 @@ bool chaser_confirm::set_reorganized(const header_link& link,
     height_t height) NOEXCEPT
 {
     auto& query = archive();
-    if (!query.pop_confirmed() || !query.set_unstrong(link))
+    if (!query.pop_confirmed() || !query.set_unstrong_parallel(link))
         return false;
 
     notify(error::success, chase::reorganized, link);
@@ -630,7 +630,7 @@ bool chaser_confirm::roll_back(const header_links& popped,
     auto& query = archive();
 
     // The current block is set_strong but not confirmed.
-    if (!query.set_unstrong(link))
+    if (!query.set_unstrong_parallel(link))
         return false;
 
     for (auto height = top; height > fork_point; --height)
