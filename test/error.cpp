@@ -34,34 +34,7 @@ BOOST_AUTO_TEST_CASE(error_t__code__success__false_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "success");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__internal_error__true_exected_message)
-{
-    constexpr auto value = error::internal_error;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "internal error");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__unexpected_event__true_exected_message)
-{
-    constexpr auto value = error::unexpected_event;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "unexpected event");
-}
-
 // database
-
-BOOST_AUTO_TEST_CASE(error_t__code__store_integrity__true_exected_message)
-{
-    constexpr auto value = error::store_integrity;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "store integrity");
-}
 
 BOOST_AUTO_TEST_CASE(error_t__code__store_uninitialized__true_exected_message)
 {
@@ -148,6 +121,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__suspended_service__true_exected_message)
 
 // blockchain
 
+BOOST_AUTO_TEST_CASE(error_t__code__branch_error__true_exected_message)
+{
+    constexpr auto value = error::branch_error;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "branch error");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__orphan_block__true_exected_message)
 {
     constexpr auto value = error::orphan_block;
@@ -184,41 +166,23 @@ BOOST_AUTO_TEST_CASE(error_t__code__duplicate_header__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "duplicate header");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__malleated_block__true_exected_message)
-{
-    constexpr auto value = error::malleated_block;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "malleated block");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__insufficient_work__true_exected_message)
-{
-    constexpr auto value = error::insufficient_work;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "insufficient work");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__validation_bypass__true_exected_message)
-{
-    constexpr auto value = error::validation_bypass;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "validation bypass");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__confirmation_bypass__true_exected_message)
-{
-    constexpr auto value = error::confirmation_bypass;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "confirmation bypass");
-}
+////BOOST_AUTO_TEST_CASE(error_t__code__validation_bypass__true_exected_message)
+////{
+////    constexpr auto value = error::validation_bypass;
+////    const auto ec = code(value);
+////    BOOST_REQUIRE(ec);
+////    BOOST_REQUIRE(ec == value);
+////    BOOST_REQUIRE_EQUAL(ec.message(), "validation bypass");
+////}
+////
+////BOOST_AUTO_TEST_CASE(error_t__code__confirmation_bypass__true_exected_message)
+////{
+////    constexpr auto value = error::confirmation_bypass;
+////    const auto ec = code(value);
+////    BOOST_REQUIRE(ec);
+////    BOOST_REQUIRE(ec == value);
+////    BOOST_REQUIRE_EQUAL(ec.message(), "confirmation bypass");
+////}
 
 // query
 
@@ -230,15 +194,6 @@ BOOST_AUTO_TEST_CASE(error_t__code__set_block_unconfirmable__true_exected_messag
     BOOST_REQUIRE(ec == value);
     BOOST_REQUIRE_EQUAL(ec.message(), "set_block_unconfirmable");
 }
-
-////BOOST_AUTO_TEST_CASE(error_t__code__set_block_link__true_exected_message)
-////{
-////    constexpr auto value = error::set_block_link;
-////    const auto ec = code(value);
-////    BOOST_REQUIRE(ec);
-////    BOOST_REQUIRE(ec == value);
-////    BOOST_REQUIRE_EQUAL(ec.message(), "set_block_link");
-////}
 
 BOOST_AUTO_TEST_CASE(error_t__code__get_height__true_exected_message)
 {
@@ -294,15 +249,6 @@ BOOST_AUTO_TEST_CASE(error_t__code__push_candidate__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "push_candidate");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__set_header_link__true_exected_message)
-{
-    constexpr auto value = error::set_header_link;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "set_header_link");
-}
-
 BOOST_AUTO_TEST_CASE(error_t__code__invalid_fork_point__true_exected_message)
 {
     constexpr auto value = error::invalid_fork_point;
@@ -328,15 +274,6 @@ BOOST_AUTO_TEST_CASE(error_t__code__get_block__true_exected_message)
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
     BOOST_REQUIRE_EQUAL(ec.message(), "get_block");
-}
-
-BOOST_AUTO_TEST_CASE(error_t__code__set_dissasociated__true_exected_message)
-{
-    constexpr auto value = error::set_dissasociated;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "set_dissasociated");
 }
 
 BOOST_AUTO_TEST_CASE(error_t__code__get_unassociated__true_exected_message)
@@ -375,31 +312,58 @@ BOOST_AUTO_TEST_CASE(error_t__code__pop_confirmed__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "pop_confirmed");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__set_confirmed__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__get_block_confirmable__true_exected_message)
 {
-    constexpr auto value = error::set_confirmed;
+    constexpr auto value = error::get_block_confirmable;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "set_confirmed");
+    BOOST_REQUIRE_EQUAL(ec.message(), "get_block_confirmable");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__block_confirmable__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__get_block_state__true_exected_message)
 {
-    constexpr auto value = error::block_confirmable;
+    constexpr auto value = error::get_block_state;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "block_confirmable");
+    BOOST_REQUIRE_EQUAL(ec.message(), "get_block_state");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__set_txs_connected__true_exected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__set_strong__true_exected_message)
 {
-    constexpr auto value = error::set_txs_connected;
+    constexpr auto value = error::set_strong;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "set_txs_connected");
+    BOOST_REQUIRE_EQUAL(ec.message(), "set_strong");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__set_unstrong__true_exected_message)
+{
+    constexpr auto value = error::set_unstrong;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "set_unstrong");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__set_organized__true_exected_message)
+{
+    constexpr auto value = error::set_organized;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "set_organized");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__set_block_confirmable__true_exected_message)
+{
+    constexpr auto value = error::set_block_confirmable;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "set_block_confirmable");
 }
 
 BOOST_AUTO_TEST_CASE(error_t__code__set_block_valid__true_exected_message)
@@ -412,15 +376,6 @@ BOOST_AUTO_TEST_CASE(error_t__code__set_block_valid__true_exected_message)
 }
 
 // query composite
-
-BOOST_AUTO_TEST_CASE(error_t__code__node_push__true_exected_message)
-{
-    constexpr auto value = error::node_push;
-    const auto ec = code(value);
-    BOOST_REQUIRE(ec);
-    BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "node_push");
-}
 
 BOOST_AUTO_TEST_CASE(error_t__code__node_confirm__true_exected_message)
 {

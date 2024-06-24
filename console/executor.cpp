@@ -303,7 +303,7 @@ void executor::scan_flags() const
 {
     const auto start = logger::now();
     constexpr auto flag_bits = to_bits(sizeof(chain::flags));
-    const auto error = code{ error::store_integrity }.message();
+    const auto error = code{ database::error::integrity }.message();
     const auto top = query_.get_top_candidate();
     uint32_t flags{};
 
@@ -2660,7 +2660,7 @@ bool executor::do_run()
         {
             ec = error::success;
             if (!restore_store(true))
-                ec = error::store_integrity;
+                ec = database::error::integrity;
         }
 
         if (ec)

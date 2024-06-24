@@ -28,11 +28,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 {
     // general
     { success, "success" },
-    { internal_error, "internal error" },
-    { unexpected_event, "unexpected event" },
 
     // database
-    { store_integrity, "store integrity" },
     { store_uninitialized, "store not initialized" },
     { store_reload, "store reload" },
     { store_snapshot, "store snapshot" },
@@ -46,40 +43,38 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { suspended_service, "sacrificed service" },
 
     // blockchain
+    { branch_error, "branch error" },
     { orphan_block, "orphan block" },
     { orphan_header, "orphan header" },
     { duplicate_block, "duplicate block" },
     { duplicate_header, "duplicate header" },
-    { malleated_block, "malleated block" },
-    { insufficient_work, "insufficient work" },
-    { validation_bypass, "validation bypass" },
-    { confirmation_bypass, "confirmation bypass" },
+    ////{ validation_bypass, "validation bypass" },
+    ////{ confirmation_bypass, "confirmation bypass" },
 
     /// query
     { set_block_unconfirmable, "set_block_unconfirmable" },
-    ////{ set_block_link, "set_block_link" },
     { get_height, "get_height" },
     { get_branch_work, "get_branch_work" },
     { get_is_strong, "get_is_strong" },
     { invalid_branch_point, "invalid_branch_point" },
     { pop_candidate, "pop_candidate" },
     { push_candidate, "push_candidate" },
-    { set_header_link, "set_header_link" },
     { invalid_fork_point, "invalid_fork_point" },
     { get_candidate_chain_state, "get_candidate_chain_state" },
     { get_block, "get_block" },
-    { set_dissasociated, "set_dissasociated" },
     { get_unassociated, "get_unassociated" },
     { get_fork_work, "get_fork_work" },
     { to_confirmed, "to_confirmed" },
     { pop_confirmed, "pop_confirmed" },
-    { set_confirmed, "set_confirmed" },
-    { block_confirmable, "block_confirmable" },
-    { set_txs_connected, "set_txs_connected" },
+    { get_block_confirmable, "get_block_confirmable" },
+    { get_block_state, "get_block_state" },
+    { set_strong, "set_strong" },
+    { set_unstrong, "set_unstrong" },
+    { set_organized, "set_organized" },
+    { set_block_confirmable, "set_block_confirmable" },
     { set_block_valid, "set_block_valid" },
 
     /// query composite
-    { node_push, "node_push" },
     { node_confirm, "node_confirm" },
     { node_validate, "node_validate" },
     { node_roll_back, "node_roll_back" }

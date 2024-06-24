@@ -268,7 +268,7 @@ get_data protocol_block_in_31800::create_get_data(
 // ----------------------------------------------------------------------------
 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
-    const block::cptr& message) NOEXCEPT
+    const block::cptr message) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -279,7 +279,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     auto& query = archive();
-    const chain::block::cptr block_ptr{ message->block_ptr };
+    const auto& block_ptr = message->block_ptr;
     const auto& hash = block_ptr->get_hash();
     const auto it = map_->find(hash);
 
@@ -321,7 +321,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             LOGR("Malleated block [" << encode_hash(hash) << ":" << height
                 << "] from [" << authority() << "] " << code.message());
 
-            // event sent in order to re-obtain the correct block.
+            // event sent to re-obtain the correct block.
             notify(error::success, chase::malleated, link);
             stop(code);
             return false;

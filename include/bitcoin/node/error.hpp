@@ -38,11 +38,8 @@ enum error_t : uint8_t
 {
     /// general
     success,
-    internal_error,
-    unexpected_event,
 
     /// database
-    store_integrity,
     store_uninitialized,
     store_reload,
     store_snapshot,
@@ -56,40 +53,36 @@ enum error_t : uint8_t
     suspended_service,
 
     /// blockchain
+    branch_error,
     orphan_block,
     orphan_header,
     duplicate_block,
     duplicate_header,
-    malleated_block,
-    insufficient_work,
-    validation_bypass,
-    confirmation_bypass,
+    ////validation_bypass,
+    ////confirmation_bypass,
 
-    /// query
+    /// chasers
     set_block_unconfirmable,
-    ////set_block_link,
     get_height,
     get_branch_work,
     get_is_strong,
     invalid_branch_point,
     pop_candidate,
     push_candidate,
-    set_header_link,
     invalid_fork_point,
     get_candidate_chain_state,
     get_block,
-    set_dissasociated,
     get_unassociated,
     get_fork_work,
     to_confirmed,
     pop_confirmed,
-    set_confirmed,
-    block_confirmable,
-    set_txs_connected,
+    get_block_confirmable,
+    get_block_state,
+    set_strong,
+    set_unstrong,
+    set_organized,
+    set_block_confirmable,
     set_block_valid,
-
-    /// query composite
-    node_push,
     node_confirm,
     node_validate,
     node_roll_back

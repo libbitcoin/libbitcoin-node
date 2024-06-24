@@ -72,7 +72,7 @@ protected:
 
     /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
-        const network::messages::block::cptr& message) NOEXCEPT;
+        const network::messages::block::cptr message) NOEXCEPT;
 
 private:
     using type_id = network::messages::inventory::type_id;

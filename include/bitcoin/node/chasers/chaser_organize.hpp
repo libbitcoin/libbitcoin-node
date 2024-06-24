@@ -70,6 +70,10 @@ protected:
     virtual bool get_block(typename Block::cptr& out,
         size_t height) const NOEXCEPT = 0;
 
+    /// Determine if Block is a duplicate (success for not duplicate).
+    virtual code duplicate(size_t& height,
+        const system::hash_digest& hash) const NOEXCEPT = 0;
+
     /// Determine if Block is valid.
     virtual code validate(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
@@ -95,7 +99,7 @@ protected:
         event_value value) NOEXCEPT;
 
     /// Organize a discovered Block.
-    virtual void do_organize(typename Block::cptr& block_ptr,
+    virtual void do_organize(typename Block::cptr block_ptr,
         const organize_handler& handler) NOEXCEPT;
 
     /// Reorganize following Block unconfirmability.
