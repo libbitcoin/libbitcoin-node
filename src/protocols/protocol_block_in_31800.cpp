@@ -301,6 +301,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         query.is_milestone(link);
 
     // Transaction commitments and malleation are checked under bypass.
+    // Invalidity is only stored in the case where a strong header has been
+    // stored, later to be found out as invalid. The invalidity prevents repeat
+    // processing of the same invalid chain but is not logically necessary. It
+    // is not stored in the case where the block is malleated32/64.
     if (const auto code = check(*block_ptr, it->context, checked))
     {
         if (code == system::error::invalid_transaction_commitment ||
@@ -382,7 +386,7 @@ code protocol_block_in_31800::check(const chain::block& block,
 {
     code ec{};
 
-    // Transaction commitments and malleated32 are checked under bypass.
+    // Transaction commitments and malleated are checked under bypass.
     if ((ec = block.check(bypass)))
         return ec;
 
