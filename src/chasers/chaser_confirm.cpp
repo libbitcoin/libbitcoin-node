@@ -98,8 +98,6 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     if (closed())
         return;
 
-    // TODO: update specialized fault codes.
-
     // Compute relative work.
     // ........................................................................
 
@@ -118,7 +116,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     if (fork.empty())
         return;
 
-    // fork_point is the highest common block.
+    // fork_point is the highest candidate-confirmed common block.
     const auto fork_point = height - fork.size();
     if (!get_is_strong(strong, work, fork_point))
     {
@@ -156,7 +154,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         popped.push_back(link);
         if (!query.set_unstrong_parallel(link))
         {
-            fault(error::node_confirm);
+            fault(error::set_unstrong);
             return;
         }
 
@@ -183,13 +181,13 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         if (closed())
             return;
 
+        // database::error::unassociated
+        // database::error::block_unconfirmable
+        // database::error::block_confirmable
+        // database::error::block_valid
+        // database::error::unknown_state
+        // database::error::unvalidated
         auto ec = query.get_block_state(link);
-        if (ec == database::error::integrity)
-        {
-            fault(ec);
-            return;
-        }
-
         if (ec == database::error::block_unconfirmable)
         {
             notify(ec, chase::unconfirmable, link);
@@ -207,7 +205,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         // Required for block_confirmable and all confirmed blocks.
         if (!checked && !query.set_strong_parallel(link))
         {
-            fault(error::set_confirmed);
+            fault(error::set_strong);
             return;
         }
 
@@ -217,7 +215,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             if ((ec != database::error::block_confirmable) &&
                 !query.set_block_confirmable(link, uint64_t{}))
             {
-                fault(error::block_confirmable);
+                fault(error::set_block_confirmable);
                 return;
             }
 
@@ -226,7 +224,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
             if (!set_organized(link, index))
             {
-                fault(error::set_confirmed);
+                fault(error::set_organized);
                 return;
             }
         }
@@ -235,7 +233,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             ec = query.block_confirmable(link);
             if (ec == database::error::integrity)
             {
-                fault(error::node_confirm);
+                fault(error::get_block_confirmable);
                 return;
             }
 
@@ -252,9 +250,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
                 fire(events::block_unconfirmable, index);
 
                 if (!roll_back(popped, link, fork_point, index))
-                {
                     fault(error::node_roll_back);
-                }
 
                 return;
             }
@@ -262,7 +258,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
             // TODO: compute fees from validation records.
             if (!query.set_block_confirmable(link, uint64_t{}))
             {
-                fault(error::block_confirmable);
+                fault(error::set_block_confirmable);
                 return;
             }
 
@@ -271,7 +267,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
             if (!set_organized(link, index))
             {
-                fault(error::set_confirmed);
+                fault(error::set_organized);
                 return;
             }
         }
@@ -351,7 +347,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         popped_.push_back(link);
         if (!query.set_unstrong_parallel(link))
         {
-            fault(error::node_confirm);
+            fault(error::set_unstrong);
             return;
         }
 
@@ -379,12 +375,6 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
     auto& query = archive();
     const auto& link = fork_.back();
     const auto ec = query.get_block_state(link);
-    if (ec == database::error::integrity)
-    {
-        fault(ec);
-        return;
-    }
-
     if (ec == database::error::block_unconfirmable)
     {
         notify(ec, chase::unconfirmable, link);
@@ -406,7 +396,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
     // Checkpoint and milestone guarantee set_strong is always set.
     if (!checked && !query.set_strong_parallel(link))
     {
-        fault(error::set_confirmed);
+        fault(error::set_strong);
         return;
     }
 
@@ -416,7 +406,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         if ((ec != database::error::block_confirmable) &&
             !query.set_block_confirmable(link, uint64_t{}))
         {
-            fault(error::block_confirmable);
+            fault(error::set_block_confirmable);
             return;
         }
 
@@ -425,7 +415,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
 
         if (!set_organized(link, height))
         {
-            fault(error::set_confirmed);
+            fault(error::set_organized);
         }
 
         fork_.clear();
@@ -434,7 +424,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
 
     if (!enqueue_block(link))
     {
-        fault(error::node_validate);
+        fault(error::node_confirm);
         return;
     }
 }
@@ -492,8 +482,8 @@ void chaser_confirm::handle_tx(const code& ec, const tx_link& tx,
 
     // handle_txs will only get invoked once, with a first error code, so
     // invoke fault here ensure that non-validation codes are not lost.
-    if (ec == error::store_integrity || ec == database::error::integrity)
-        fault(error::node_validate);
+    if (ec == database::error::integrity)
+        fault(error::node_confirm);
 
     // TODO: need to sort out bypass, validity, and fault codes.
     // Always allow the racer to finish, invokes handle_txs exactly once.
@@ -553,7 +543,7 @@ void chaser_confirm::confirm_block(const code& ec, const header_link& link,
     // TODO: compute fees from validation records.
     if (!query.set_block_confirmable(link, uint64_t{}))
     {
-        fault(error::block_confirmable);
+        fault(error::set_block_confirmable);
         return;
     }
 
@@ -561,7 +551,7 @@ void chaser_confirm::confirm_block(const code& ec, const header_link& link,
     fire(events::block_confirmed, height);
     if (!set_organized(link, height))
     {
-        fault(error::set_confirmed);
+        fault(error::set_organized);
         return;
     }
 
@@ -576,9 +566,9 @@ void chaser_confirm::confirm_block(const code& ec, const header_link& link,
     }
 
     // Prevent stall by bumping, as the event may have been missed.
-    const auto error = query.get_block_state(query.to_candidate(next));
-    if ((error == database::error::block_valid) ||
-        (error == database::error::block_confirmable))
+    const auto code = query.get_block_state(query.to_candidate(next));
+    if ((code == database::error::block_valid) ||
+        (code == database::error::block_confirmable))
     {
         do_validated(next);
     }

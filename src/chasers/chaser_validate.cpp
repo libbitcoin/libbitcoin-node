@@ -146,13 +146,13 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         // index. It does not care about regressions that may be in process.
         const auto link = query.to_candidate(height);
 
+        // database::error::unassociated
+        // database::error::block_unconfirmable
+        // database::error::block_confirmable
+        // database::error::block_valid
+        // database::error::unknown_state
+        // database::error::unvalidated
         const auto ec = query.get_block_state(link);
-        if (ec == database::error::integrity)
-        {
-            fault(error::node_validate);
-            return;
-        }
-
         if (ec == database::error::unassociated)
         {
             // Wait until the gap is filled.
@@ -268,19 +268,19 @@ void chaser_validate::validate_tx(const context& ctx, const tx_link& link,
     const auto tx = query.get_transaction(link);
     if (!tx)
     {
-        ec = error::store_integrity;
+        ec = database::error::integrity;
     }
     else if (!query.populate(*tx))
     {
         ec = query.set_tx_disconnected(link, ctx) ? invalid :
-            error::store_integrity;
+            database::error::integrity;
 
         fire(events::tx_invalidated, ctx.height);
     }
     else if (((invalid = tx->accept(ctx_))) || ((invalid = tx->connect(ctx_))))
     {
         ec = query.set_tx_disconnected(link, ctx) ? invalid :
-            error::store_integrity;
+            database::error::integrity;
 
         fire(events::tx_invalidated, ctx.height);
         LOGR("Invalid tx [" << encode_hash(tx->hash(false)) << "] in block ("
@@ -294,7 +294,7 @@ void chaser_validate::validate_tx(const context& ctx, const tx_link& link,
 
         // TODO: cache fee and sigops from validation stage.
         ec = query.set_tx_connected(link, ctx, tx->fee(), sigops) ?
-            error::success : error::store_integrity;
+            database::error::success : database::error::integrity;
     }
 
     POST(handle_tx, ec, link, racer);
@@ -308,7 +308,7 @@ void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
 
     // handle_txs will only get invoked once, with a first error code, so
     // invoke fault here ensure that non-validation codes are not lost.
-    if (ec == error::store_integrity || ec == database::error::integrity)
+    if (ec == database::error::integrity)
         fault(error::node_validate);
 
     // TODO: need to sort out bypass, validity, and fault codes.

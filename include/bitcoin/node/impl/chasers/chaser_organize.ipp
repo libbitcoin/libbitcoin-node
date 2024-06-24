@@ -119,13 +119,12 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
 }
 
 TEMPLATE
-void CLASS::do_organize(typename Block::cptr& block_ptr,
+void CLASS::do_organize(typename Block::cptr block_ptr,
     const organize_handler& handler) NOEXCEPT
 {
     using namespace system;
     BC_ASSERT(stranded());
 
-    // block_ptr is 
     const auto& hash = block_ptr->get_hash();
     const auto& header = get_header(*block_ptr);
     auto& query = archive();
@@ -146,45 +145,12 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
-    const auto id = query.to_header(hash);
-    if (!id.is_terminal())
+    code ec{};
+    size_t height{};
+    if ((ec = duplicate(height, hash)))
     {
-        size_t height{};
-        if (!query.get_height(height, id))
-        {
-            handler(fault(error::get_height), {});
-            return;
-        }
-
-        // block_unconfirmable is not set when merkle tree is malleable, in
-        // which case the header may be archived in an undetermined state. Not
-        // setting block_unconfirmable only delays ineviable invalidity 
-        // discovery and consequential deorganization at that block. Though
-        // this may cycle until a strong candidate chain is located.
-        const auto ec = query.get_header_state(id);
-        if (ec == database::error::block_unconfirmable)
-        {
-            // This eventually stops the peer, but the full set of headers may
-            // still cycle through to become strong, despite this being stored
-            // as block_unconfirmable from a block validate or confirm failure.
-            // Block validation will then fail and this cycle will continue
-            // until a strong candidate chain is located. The cycle occurs
-            // because peers continue to send the same headers, which may 
-            // indicate a local failure or peer failures.
-            handler(ec, height);
-            return;
-        }
-
-        // With a candidate reorg that drops strong below a valid header chain,
-        // this will cause a sequence of headers to be bypassed, such that a
-        // parent of a block that doesn't exist will not be a candidate, which
-        // result in a failure of get_chain_state below, because it depends on
-        // candidate state. So get_chain_state needs to be chain independent.
-        if (!is_block() || ec != database::error::unassociated)
-        {
-            handler(error_duplicate(), height);
-            return;
-        }
+        handler(ec, height);
+        return;
     }
 
     // Obtain header chain state.
@@ -200,11 +166,11 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
 
     // Roll chain state forward from archived parent to current header.
     const auto state = std::make_shared<chain_state>(*parent, header, settings_);
+    height = state->height();
 
     // Validation and currency.
     // ........................................................................
 
-    const auto height = state->height();
     if (chain::checkpoint::is_conflict(checkpoints_, hash, height))
     {
         handler(system::error::checkpoint_conflict, height);
@@ -214,7 +180,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // blocks-first may return malleation error, in which case another peer may
     // return the good block of the same hash. headers-first cannot detect
     // malleation here, so the block_in protocol sends chase::malleated.
-    if (const auto ec = validate(*block_ptr, *state))
+    if ((ec = validate(*block_ptr, *state)))
     {
         handler(ec, height);
         return;
@@ -244,6 +210,7 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
         return;
     }
 
+    // branch_point is the highest tree-candidate common block.
     if (!get_is_strong(strong, work, branch_point))
     {
         handler(fault(error::get_is_strong), height);
@@ -265,7 +232,6 @@ void CLASS::do_organize(typename Block::cptr& block_ptr,
     // A milestone can only be set within a to-be-archived chain of candidate
     // headers/blocks. Once the milestone block is archived it is not useful.
     update_milestone(header, height, branch_point);
-    code ec{};
 
     const auto top_candidate = state_->height();
     if (branch_point > top_candidate)
@@ -596,7 +562,7 @@ code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
 {
     const auto handle = tree_.extract(key);
     if (!handle)
-        return error::internal_error;
+        return error::branch_error;
 
     const auto& value = handle.mapped();
     return push_block(*value.block, value.state->context());

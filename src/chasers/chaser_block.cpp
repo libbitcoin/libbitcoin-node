@@ -47,6 +47,40 @@ bool chaser_block::get_block(block::cptr& out, size_t height) const NOEXCEPT
     return !is_null(out);
 }
 
+code chaser_block::duplicate(size_t& height,
+    const system::hash_digest& hash) const NOEXCEPT
+{
+    height = max_size_t;
+    const auto& query = archive();
+    const auto id = query.to_header(hash);
+    if (!id.is_terminal())
+    {
+        // database::error::unassociated
+        // database::error::block_unconfirmable
+        // database::error::block_confirmable
+        // database::error::block_valid
+        // database::error::unknown_state
+        // database::error::unvalidated
+        const auto ec = query.get_block_state(id);
+
+        // Most header states are duplicates, one implies fail.
+        if (ec == database::error::block_unconfirmable)
+        {
+            height = query.get_height(id);
+            return ec;
+        }
+
+        // unassociated is only non-duplicate.
+        if (ec != database::error::unassociated)
+        {
+            height = query.get_height(id);
+            return error::duplicate_block;
+        }
+    }
+
+    return error::success;
+}
+
 code chaser_block::validate(const block& block,
     const chain_state& state) const NOEXCEPT
 {

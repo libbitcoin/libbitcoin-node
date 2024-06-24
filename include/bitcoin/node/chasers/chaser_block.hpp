@@ -48,6 +48,10 @@ protected:
     virtual bool get_block(system::chain::block::cptr& out,
         size_t height) const NOEXCEPT;
 
+    /// Determine if Block is a duplicate (success for not duplicate).
+    virtual code duplicate(size_t& height,
+        const system::hash_digest& hash) const NOEXCEPT;
+
     /// Determine if Block is valid.
     virtual code validate(const system::chain::block& block,
         const chain_state& state) const NOEXCEPT;

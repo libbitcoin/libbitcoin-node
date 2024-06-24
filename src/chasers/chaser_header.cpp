@@ -37,7 +37,7 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 code chaser_header::start() NOEXCEPT
 {
     if (!initialize_milestone())
-        return fault(error::store_integrity);
+        return fault(database::error::integrity);
 
     return chaser_organize<header>::start();
 }
@@ -52,6 +52,40 @@ bool chaser_header::get_block(header::cptr& out, size_t height) const NOEXCEPT
     const auto& query = archive();
     out = query.get_header(query.to_candidate(height));
     return !is_null(out);
+}
+
+code chaser_header::duplicate(size_t& height,
+    const system::hash_digest& hash) const NOEXCEPT
+{
+    // With a candidate reorg that drops strong below a valid header chain,
+    // this will cause a sequence of headers to be bypassed, such that a
+    // parent of a block that doesn't exist will not be a candidate, which
+    // result in a failure of get_chain_state, because it depends on candidate
+    // state. So get_chain_state needs to be chain independent.
+
+    height = max_size_t;
+    const auto& query = archive();
+    const auto id = query.to_header(hash);
+    if (!id.is_terminal())
+    {
+        // database::error::block_unconfirmable
+        // database::error::block_confirmable
+        // database::error::block_valid
+        // database::error::unknown_state
+        // database::error::unvalidated
+        const auto ec = query.get_header_state(id);
+
+        // All header states are duplicates, one implies fail.
+        if (ec == database::error::block_unconfirmable)
+        {
+            height = query.get_height(id);
+            return ec;
+        }
+
+        return error::duplicate_header;
+    }
+
+    return error::success;
 }
 
 code chaser_header::validate(const header& header,
