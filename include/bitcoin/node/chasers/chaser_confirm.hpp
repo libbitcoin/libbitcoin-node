@@ -23,7 +23,7 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
-#define SEQUENTIAL
+////#define SEQUENTIAL
 
 namespace libbitcoin {
 namespace node {
