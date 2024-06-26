@@ -23,6 +23,8 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
+#define SEQUENTIAL
+
 namespace libbitcoin {
 namespace node {
 
@@ -47,7 +49,9 @@ protected:
         event_value value) NOEXCEPT;
 
     virtual void do_validated(height_t height) NOEXCEPT;
-#if defined(UNDEFINED)
+#if defined(SEQUENTIAL)
+    virtual void do_organize(size_t height) NOEXCEPT;
+#else
     virtual void do_organize(size_t height) NOEXCEPT;
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void confirm_tx(const database::context& ctx,
@@ -58,7 +62,8 @@ protected:
         const database::header_link& link, size_t height)NOEXCEPT;
     virtual void confirm_block(const code& ec,
         const database::header_link& link, size_t height) NOEXCEPT;
-#endif // UNDEFINED
+    virtual void next_block(size_t height) NOEXCEPT;
+#endif // SEQUENTIAL
 
 private:
     bool set_organized(const database::header_link& link,
@@ -67,9 +72,8 @@ private:
         height_t height) NOEXCEPT;
     bool set_reorganized(const database::header_link& link,
         height_t height) NOEXCEPT;
-    bool roll_back(const header_links& popped,
-        const database::header_link& link, size_t fork_point,
-        size_t top) NOEXCEPT;
+    bool roll_back(header_links& popped, const database::header_link& link,
+        size_t fork_point, size_t top) NOEXCEPT;
 
     bool get_fork_work(uint256_t& fork_work, header_links& fork,
         height_t fork_top) const NOEXCEPT;
