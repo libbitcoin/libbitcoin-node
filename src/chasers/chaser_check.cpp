@@ -348,10 +348,8 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 
     // Inventory size gets set only once.
     if (is_zero(inventory_))
-    {
-        inventory_ = get_inventory_size();
-        if (is_zero(inventory_)) return zero;
-    }
+        if (is_zero((inventory_ = get_inventory_size())))
+            return zero;
 
     // Due to previous downloads, validation can race ahead of last request.
     // The last request (requested_) stops at the last gap in the window, but
@@ -394,11 +392,11 @@ size_t chaser_check::get_inventory_size() const NOEXCEPT
     if (is_zero(peers) || !is_current())
         return zero;
 
-    const auto step = config().node.maximum_concurrency_();
-    const auto fork = archive().get_fork();
-    const auto scan = archive().get_unassociated_count_above(fork, step);
-    const auto span = std::min(step, scan);
-    const auto inventory = std::min(span, messages::max_inventory);
+    const auto& query = archive();
+    const auto fork = query.get_fork();
+    const auto window = config().node.maximum_concurrency_();
+    const auto step = std::min(window, messages::max_inventory);
+    const auto inventory = query.get_unassociated_count_above(fork, step);
     return system::ceilinged_divide(inventory, peers);
 }
 
