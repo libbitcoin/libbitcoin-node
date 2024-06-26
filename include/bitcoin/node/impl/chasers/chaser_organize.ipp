@@ -306,6 +306,7 @@ void CLASS::do_organize(typename Block::cptr block_ptr,
     // Checking currency before notify also avoids excessive work backlog.
     if (is_block() || is_current(header.timestamp()))
     {
+        // TODO: this should probably be sent only once for the process.
         // If at start the fork point is top of both chains, and next candidate
         // is already downloaded, then new header will arrive and download will
         // be skipped, resulting in stall until restart at which time the start
