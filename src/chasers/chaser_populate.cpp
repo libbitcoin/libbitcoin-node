@@ -54,7 +54,7 @@ code chaser_populate::start() NOEXCEPT
 }
 
 bool chaser_populate::handle_event(const code&, chase event_,
-    event_value value) NOEXCEPT
+    event_value) NOEXCEPT
 {
     if (closed())
         return false;
