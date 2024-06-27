@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>

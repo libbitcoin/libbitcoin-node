@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 
+#include <functional>
 #include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
