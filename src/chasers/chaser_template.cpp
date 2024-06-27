@@ -62,9 +62,8 @@ bool chaser_template::handle_event(const code&, chase event_,
     {
         case chase::transaction:
         {
-            // HACK: transaction_t
-            BC_ASSERT(std::holds_alternative<uint32_t>(value));
-            POST(do_transaction, std::get<uint32_t>(value));
+            BC_ASSERT(std::holds_alternative<transaction_t>(value));
+            POST(do_transaction, std::get<transaction_t>(value));
             break;
         }
         case chase::stop:

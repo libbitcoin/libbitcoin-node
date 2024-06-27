@@ -72,14 +72,8 @@ using count_t = size_t;
 using height_t = size_t;
 using channel_t = uint64_t;
 using object_t = object_key;
-
-// HACK: xcode sees header_t unique from uint32_t if defined from links.
-// HACK: but clag/gcc/msvc do not, so is a conflict there to add it.
-using header_t = uint32_t;
-using transaction_t = uint32_t;
-static_assert(sizeof(header_t) == sizeof(database::header_link::integer));
-static_assert(sizeof(transaction_t) == sizeof(database::tx_link::integer));
-
+using header_t = database::header_link::integer;
+using transaction_t = database::tx_link::integer;
 typedef system::chain::block::cptr block_t;
 ////typedef struct
 ////{

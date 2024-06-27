@@ -126,9 +126,8 @@ bool chaser_check::handle_event(const code&, chase event_,
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::header:
         {
-            // HACK: header_t
-            BC_ASSERT(std::holds_alternative<uint32_t>(value));
-            POST(do_header, std::get<uint32_t>(value));
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_header, std::get<header_t>(value));
             break;
         }
         case chase::headers:
