@@ -183,6 +183,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         }
         else
         {
+            // Validation is currently bypassed in all cases.
             ////// TODO: the quantity of work must be throttled.
             ////// Will very rapidly pump outstanding work in asio queue.
             ////if (!enqueue_block(link))
@@ -364,6 +365,8 @@ void chaser_validate::validate_block(const code& ec,
         return;
     }
 
+    // TODO: move fee setter to set_block_valid (transitory) and propagate to
+    // TODO: set_block_confirmable (final). Bypassed do not have the fee cache.
     if (!query.set_block_valid(link))
     {
         fault(error::set_block_valid);

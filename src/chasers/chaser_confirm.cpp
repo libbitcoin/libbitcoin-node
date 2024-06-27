@@ -369,11 +369,9 @@ void chaser_confirm::confirm_block(const code& ec, const header_link& link,
         return;
     }
 
-    // TODO: could compute fees from validation records, but
-    // TODO: validation records don't exist for checked blocks.
-    // TODO: so set this in block_in protocol for all checked blocks.
-    const auto fees = uint64_t{};
-    if (!query.set_block_confirmable(link, fees))
+    // TODO: move fee setter to set_block_valid (transitory) and propagate to
+    // TODO: set_block_confirmable (final). Bypassed do not have the fee cache.
+    if (!query.set_block_confirmable(link, uint64_t{}))
     {
         fault(error::set_block_confirmable);
         return;
