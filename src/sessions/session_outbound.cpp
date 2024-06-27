@@ -82,7 +82,8 @@ bool session_outbound::handle_event(const code&, chase event_,
         case chase::starved:
         {
             // When a channel becomes starved notify other(s) to split work.
-            do_starved(possible_narrow_cast<object_t>(value));
+            BC_ASSERT(std::holds_alternative<object_t>(value));
+            do_starved(std::get<object_t>(value));
             break;
         }
         case chase::stop:

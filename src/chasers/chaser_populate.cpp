@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2024 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/chasers/chaser_template.hpp>
+#include <bitcoin/node/chasers/chaser_populate.hpp>
 
-#include <bitcoin/system.hpp>
+#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -26,44 +26,44 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS chaser_template
+#define CLASS chaser_populate
 
-using namespace system;
+////using namespace system;
+////using namespace system::chain;
+////using namespace database;
+////using namespace network;
 using namespace std::placeholders;
 
-BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+////// Shared pointers required for lifetime in handler parameters.
+////BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+////BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+////BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-chaser_template::chaser_template(full_node& node) NOEXCEPT
+chaser_populate::chaser_populate(full_node& node) NOEXCEPT
   : chaser(node)
 {
 }
 
-// start
+// start/stop
 // ----------------------------------------------------------------------------
 
-// TODO: initialize template state.
-code chaser_template::start() NOEXCEPT
+code chaser_populate::start() NOEXCEPT
 {
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
 
-// event handlers
-// ----------------------------------------------------------------------------
-
-bool chaser_template::handle_event(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_populate::handle_event(const code&, chase event_,
+    event_value) NOEXCEPT
 {
     if (closed())
         return false;
 
-    // TODO: also handle confirmed/unconfirmed.
     switch (event_)
     {
-        case chase::transaction:
+        case chase::checked:
         {
-            BC_ASSERT(std::holds_alternative<transaction_t>(value));
-            POST(do_transaction, std::get<transaction_t>(value));
+            POST(do_checked, height_t{});
             break;
         }
         case chase::stop:
@@ -79,13 +79,14 @@ bool chaser_template::handle_event(const code&, chase event_,
     return true;
 }
 
-// TODO: handle transaction graph change (may issue 'candidate').
-void chaser_template::do_transaction(transaction_t) NOEXCEPT
+void chaser_populate::do_checked(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 }
 
-BC_POP_WARNING()
+////BC_POP_WARNING()
+////BC_POP_WARNING()
+////BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

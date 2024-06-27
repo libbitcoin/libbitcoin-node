@@ -96,13 +96,15 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
         case chase::unconfirmable:
         {
             // Roll back the candidate chain to confirmed top (via fork point).
-            POST(do_disorganize, possible_narrow_cast<header_t>(value));
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_disorganize, std::get<header_t>(value));
             break;
         }
         case chase::malleated:
         {
             // Re-obtain the malleated block if it is still a candidate (virtual).
-            POST(do_malleated, possible_narrow_cast<header_t>(value));
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_malleated, std::get<header_t>(value));
             break;
         }
         case chase::stop:

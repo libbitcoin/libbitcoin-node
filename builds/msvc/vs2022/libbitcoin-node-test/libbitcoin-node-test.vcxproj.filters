@@ -36,6 +36,9 @@
     <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_populate.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser_template.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>

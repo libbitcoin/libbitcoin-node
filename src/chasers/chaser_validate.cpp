@@ -79,17 +79,20 @@ bool chaser_validate::handle_event(const code&, chase event_,
         }
         case chase::checked:
         {
-            POST(do_checked, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_checked, std::get<height_t>(value));
             break;
         }
         case chase::regressed:
         {
-            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_regressed, std::get<height_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_regressed, std::get<height_t>(value));
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -180,6 +183,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         }
         else
         {
+            // Validation is currently bypassed in all cases.
             ////// TODO: the quantity of work must be throttled.
             ////// Will very rapidly pump outstanding work in asio queue.
             ////if (!enqueue_block(link))
@@ -361,6 +365,8 @@ void chaser_validate::validate_block(const code& ec,
         return;
     }
 
+    // TODO: move fee setter to set_block_valid (transitory) and propagate to
+    // TODO: set_block_confirmable (final). Bypassed do not have the fee cache.
     if (!query.set_block_valid(link))
     {
         fault(error::set_block_valid);

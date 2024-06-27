@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_check.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -106,28 +107,33 @@ bool chaser_check::handle_event(const code&, chase event_,
         }
         case chase::checked:
         {
-            POST(do_checked, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_checked, std::get<height_t>(value));
             break;
         }
         case chase::regressed:
         {
-            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_regressed, std::get<height_t>(value));
             break;
         }
         case chase::disorganized:
         {
-            POST(do_regressed, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_regressed, std::get<height_t>(value));
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::header:
         {
-            POST(do_header, possible_narrow_cast<header_t>(value));
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_header, std::get<header_t>(value));
             break;
         }
         case chase::headers:
         {
-            POST(do_headers, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_headers, std::get<height_t>(value));
             break;
         }
         case chase::stop:

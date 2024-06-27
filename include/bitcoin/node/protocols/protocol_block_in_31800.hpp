@@ -39,7 +39,6 @@ public:
     protocol_block_in_31800(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : protocol_performer(session, channel),
-        maximum_concurrency_(session->config().node.maximum_concurrency_()),
         top_checkpoint_height_(
             session->config().bitcoin.top_checkpoint().height()),
         block_type_(session->config().network.witness_node() ?
@@ -92,7 +91,6 @@ private:
         const job::ptr& job) NOEXCEPT;
 
     // These are thread safe.
-    const size_t maximum_concurrency_;
     const size_t top_checkpoint_height_;
     const network::messages::inventory::type_id block_type_;
 
