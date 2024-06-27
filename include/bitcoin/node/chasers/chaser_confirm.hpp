@@ -49,9 +49,6 @@ protected:
         event_value value) NOEXCEPT;
 
     virtual void do_validated(height_t height) NOEXCEPT;
-#if defined(SEQUENTIAL)
-    virtual void do_organize(size_t height) NOEXCEPT;
-#else
     virtual void do_organize(size_t height) NOEXCEPT;
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void confirm_tx(const database::context& ctx,
@@ -63,7 +60,6 @@ protected:
     virtual void confirm_block(const code& ec,
         const database::header_link& link, size_t height) NOEXCEPT;
     virtual void next_block(size_t height) NOEXCEPT;
-#endif // SEQUENTIAL
 
 private:
     bool set_organized(const database::header_link& link,

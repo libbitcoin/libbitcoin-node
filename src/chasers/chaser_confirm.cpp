@@ -184,117 +184,6 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     do_organize(add1(fork_point_));
 }
 
-#if defined(SEQUENTIAL)
-
-void chaser_confirm::do_organize(size_t height) NOEXCEPT
-{
-    auto& query = archive();
-
-    // Push candidate headers to confirmed chain.
-    for (const auto& link: views_reverse(fork_))
-    {
-        if (closed())
-            return;
-
-        // database::error::unassociated
-        // database::error::block_unconfirmable
-        // database::error::block_confirmable
-        // database::error::block_valid
-        // database::error::unknown_state
-        // database::error::unvalidated
-        auto ec = query.get_block_state(link);
-        if (ec == database::error::block_unconfirmable)
-        {
-            notify(ec, chase::unconfirmable, link);
-            fire(events::block_unconfirmable, height);
-
-            if (!roll_back(popped_, link, fork_point_, height))
-                fault(error::node_roll_back);
-
-            return;
-        }
-
-        const auto checked = is_under_checkpoint(height) ||
-            query.is_milestone(link);
-
-        // Required for block_confirmable and all confirmed blocks.
-        if (!checked && !query.set_strong(link))
-        {
-            fault(error::set_strong);
-            return;
-        }
-
-        if (ec == database::error::block_confirmable || checked)
-        {
-            // TODO: compute fees from validation records.
-            if ((ec != database::error::block_confirmable) &&
-                !query.set_block_confirmable(link, uint64_t{}))
-            {
-                fault(error::set_block_confirmable);
-                return;
-            }
-
-            notify(ec, chase::confirmable, height);
-            ////fire(events::confirm_bypassed, height);
-
-            if (!set_organized(link, height))
-            {
-                fault(error::set_organized);
-                return;
-            }
-        }
-        else
-        {
-            ec = query.block_confirmable(link);
-            if (ec == database::error::integrity)
-            {
-                fault(error::get_block_confirmable);
-                return;
-            }
-
-            if (ec)
-            {
-                if (!query.set_block_unconfirmable(link))
-                {
-                    fault(error::set_block_unconfirmable);
-                    return;
-                }
-
-                LOGR("Unconfirmable block [" << height << "] " << ec.message());
-                notify(ec, chase::unconfirmable, link);
-                fire(events::block_unconfirmable, height);
-
-                if (!roll_back(popped_, link, fork_point_, height))
-                    fault(error::node_roll_back);
-
-                return;
-            }
-
-            // TODO: compute fees from validation records.
-            if (!query.set_block_confirmable(link, uint64_t{}))
-            {
-                fault(error::set_block_confirmable);
-                return;
-            }
-
-            notify(error::success, chase::confirmable, height);
-            fire(events::block_confirmed, height);
-
-            if (!set_organized(link, height))
-            {
-                fault(error::set_organized);
-                return;
-            }
-        }
-
-        LOGV("Block confirmed and organized: " << height);
-        ++height;
-    }
-}
-
-#else
-
-// CONCURRENT
 void chaser_confirm::do_organize(size_t height) NOEXCEPT
 {
     if (fork_.empty())
@@ -511,8 +400,6 @@ void chaser_confirm::next_block(size_t height) NOEXCEPT
         do_validated(height);
     }
 }
-
-#endif // SEQUENTIAL
 
 // Private
 // ----------------------------------------------------------------------------
