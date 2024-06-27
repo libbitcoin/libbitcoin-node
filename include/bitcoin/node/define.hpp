@@ -65,14 +65,28 @@ typedef std::function<void(const code&, const map_ptr&,
     const job::ptr&)> map_handler;
 
 /// Node events.
-typedef uint64_t object_key;
+using object_key = uint64_t;
+
+/// Use for event_value variants (all unsigned integral integers).
+using count_t = size_t;
+using height_t = size_t;
+using channel_t = uint64_t;
+using object_t = object_key;
+
+// HACK: macOS sees header_t as other than uint32_t if defined from links.
+using header_t = uint32_t;
+using transaction_t = uint32_t;
+static_assert(sizeof(header_t) == sizeof(database::header_link::integer));
+static_assert(sizeof(transaction_t) == sizeof(database::tx_link::integer));
+
+typedef system::chain::block::cptr block_t;
 ////typedef struct
 ////{
 ////    size_t height;
 ////    database::header_link link;
 ////    system::chain::block::cptr block;
 ////} xblock_t;
-typedef system::chain::block::cptr block_t;
+
 typedef std::conditional_t<
     is_same_type<std::size_t, uint64_t>,
         std::variant<uint32_t, size_t, block_t>,
@@ -86,14 +100,6 @@ typedef event_subscriber::completer event_completer;
 ////static_assert(sizeof(block_t) == 16u);
 ////static_assert(sizeof(xblock_t) == 32u);
 ////static_assert(sizeof(event_value) == 24u);
-
-/// Use for event_value variants (all unsigned integral integers).
-using count_t = size_t;
-using height_t = size_t;
-using channel_t = uint64_t;
-using object_t = object_key;
-using header_t = database::header_link::integer;
-using transaction_t = database::tx_link::integer;
 
 } // namespace node
 } // namespace libbitcoin
