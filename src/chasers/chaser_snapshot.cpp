@@ -82,7 +82,8 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             if (!enabled_bytes_ || ec) break;
 
             // Checked blocks are out of order, so this is probalistic.
-            POST(do_archive, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_archive, std::get<height_t>(value));
             break;
         }
         case chase::confirmable:
@@ -91,7 +92,8 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             if (!enabled_valid_ || ec) break;
 
             // Confirmable covers all validation except set_confirmed (link).
-            POST(do_confirm, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_confirm, std::get<height_t>(value));
             break;
         }
         default:

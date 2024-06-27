@@ -66,13 +66,15 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         case chase::blocks:
         {
             // TODO: value is branch point.
-            POST(do_validated, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_validated, std::get<height_t>(value));
             break;
         }
         case chase::valid:
         {
             // value is individual height.
-            POST(do_validated, possible_narrow_cast<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_validated, std::get<height_t>(value));
             break;
         }
         case chase::stop:
@@ -307,7 +309,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
     // database::error::block_valid
     // database::error::unknown_state
     // database::error::unvalidated
-    auto ec = query.get_block_state(link);
+    const auto ec = query.get_block_state(link);
     if (ec == database::error::block_unconfirmable)
     {
         notify(ec, chase::unconfirmable, link);
@@ -323,7 +325,7 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         query.is_milestone(link);
 
     // Required for block_confirmable and all confirmed blocks.
-    if (!checked && !query.set_strong_parallel(link))
+    if (!checked && !query.set_strong(link))
     {
         fault(error::set_strong);
         return;

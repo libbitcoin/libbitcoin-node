@@ -62,7 +62,8 @@ bool chaser_template::handle_event(const code&, chase event_,
     {
         case chase::transaction:
         {
-            POST(do_transaction, possible_narrow_cast<transaction_t>(value));
+            BC_ASSERT(std::holds_alternative<transaction_t>(value));
+            POST(do_transaction, std::get<transaction_t>(value));
             break;
         }
         case chase::stop:
