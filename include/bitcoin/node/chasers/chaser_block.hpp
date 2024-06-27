@@ -41,33 +41,33 @@ public:
 
 protected:
     /// Get header from Block instance.
-    virtual const system::chain::header& get_header(
-        const system::chain::block& block) const NOEXCEPT;
+    const system::chain::header& get_header(
+        const system::chain::block& block) const NOEXCEPT override;
 
     /// Query store for const pointer to Block instance by candidate height.
-    virtual bool get_block(system::chain::block::cptr& out,
-        size_t height) const NOEXCEPT;
+    bool get_block(system::chain::block::cptr& out,
+        size_t height) const NOEXCEPT override;
 
     /// Determine if Block is a duplicate (success for not duplicate).
-    virtual code duplicate(size_t& height,
-        const system::hash_digest& hash) const NOEXCEPT;
+    code duplicate(size_t& height,
+        const system::hash_digest& hash) const NOEXCEPT override;
 
     /// Determine if Block is valid.
-    virtual code validate(const system::chain::block& block,
-        const chain_state& state) const NOEXCEPT;
+    code validate(const system::chain::block& block,
+        const chain_state& state) const NOEXCEPT override;
 
     /// Notify check chaser to redownload the block (nop).
-    virtual void do_malleated(header_t link) NOEXCEPT;
+    void do_malleated(header_t link) NOEXCEPT override;
 
     /// Determine if state is top of a storable branch (always true).
-    virtual bool is_storable(const chain_state& state) const NOEXCEPT;
+    bool is_storable(const chain_state& state) const NOEXCEPT override;
 
     /// True if Block is on a milestone-covered branch.
-    virtual bool is_under_milestone(size_t height) const NOEXCEPT;
+    bool is_under_milestone(size_t height) const NOEXCEPT override;
 
     /// Milestone tracking.
-    virtual void update_milestone(const system::chain::header& header,
-        size_t height, size_t branch_point) NOEXCEPT;
+    void update_milestone(const system::chain::header& header,
+        size_t height, size_t branch_point) NOEXCEPT override;
 
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
