@@ -331,11 +331,10 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         return;
     }
 
-    if (ec == database::error::block_confirmable || checked)
+    if (checked || ec == database::error::block_confirmable)
     {
         // TODO: compute fees from validation records.
-        if ((ec != database::error::block_confirmable) &&
-            !query.set_block_confirmable(link, uint64_t{}))
+        if (checked && !query.set_block_confirmable(link, uint64_t{}))
         {
             fault(error::set_block_confirmable);
             return;
