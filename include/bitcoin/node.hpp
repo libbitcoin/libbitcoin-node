@@ -31,6 +31,7 @@
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
+#include <bitcoin/node/chasers/chaser_populate.hpp>
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>
 #include <bitcoin/node/chasers/chaser_storage.hpp>
 #include <bitcoin/node/chasers/chaser_template.hpp>
