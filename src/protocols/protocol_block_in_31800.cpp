@@ -318,7 +318,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        if (ec == system::error::block_malleated)
+        if (code == system::error::block_malleated)
         {
             LOGR("Malleated block [" << encode_hash(hash) << ":" << height
                 << "] from [" << authority() << "] " << code.message());
