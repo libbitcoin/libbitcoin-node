@@ -81,7 +81,7 @@ private:
 
     void send_get_data(const map_ptr& map, const job::ptr& job) NOEXCEPT;
     network::messages::get_data create_get_data(
-        const map_ptr& map) const NOEXCEPT;
+        const database::associations& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
     void do_handle_complete(const code& ec) NOEXCEPT;
