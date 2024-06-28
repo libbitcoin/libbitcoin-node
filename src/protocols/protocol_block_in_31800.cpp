@@ -30,6 +30,7 @@ namespace node {
 #define CLASS protocol_block_in_31800
 
 using namespace system;
+using namespace database;
 using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
@@ -246,24 +247,23 @@ void protocol_block_in_31800::send_get_data(const map_ptr& map,
 
     job_ = job;
     map_ = map;
-    SEND(create_get_data(map_), handle_send, _1);
+    SEND(create_get_data(*map_), handle_send, _1);
 }
 
 get_data protocol_block_in_31800::create_get_data(
-    const map_ptr& map) const NOEXCEPT
+    const associations& map) const NOEXCEPT
 {
-    get_data getter{};
-    getter.items.reserve(map->size());
+    get_data data{};
+    data.items.reserve(map.size());
 
     // bip144: get_data uses witness constant but inventory does not.
     // clang emplace_back bug (no matching constructor), using push_back.
-    std::for_each(map->pos_begin(), map->pos_end(),
-        [&](const auto& item) NOEXCEPT
-        {
-            getter.items.push_back({ block_type_, item.hash });
-        });
+    std::for_each(map.pos_begin(), map.pos_end(), [&](const auto& item) NOEXCEPT
+    {
+        data.items.push_back({ block_type_, item.hash });
+    });
 
-    return getter;
+    return data;
 }
 
 // check block
@@ -318,7 +318,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        if (ec == system::error::block_malleated)
+        if (code == system::error::block_malleated)
         {
             LOGR("Malleated block [" << encode_hash(hash) << ":" << height
                 << "] from [" << authority() << "] " << code.message());
