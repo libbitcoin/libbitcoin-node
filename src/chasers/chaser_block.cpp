@@ -102,20 +102,20 @@ code chaser_block::validate(const block& block,
     if ((ec = header.accept(ctx)))
         return ec;
 
-    // Transaction/witness commitments are required under checkpoint.
-    // This ensures that the block/header hash represents expected txs.
-    const auto checked = is_under_checkpoint(state.height());
+    if (is_under_checkpoint(state.height()))
+    {
+        // Only identity is required under checkpoint.
+        if (((ec = block.identify())) || ((ec = block.identify(ctx))))
+            return ec;
 
-    // Transaction commitments and malleation are checked under bypass.
-    if ((ec = block.check(checked)))
-        return ec;
-
-    // Witnessed tx commitments are checked under bypass (if bip141).
-    if ((ec = block.check(ctx, checked)))
-        return ec;
-
-    if (checked)
         return system::error::block_success;
+    }
+    else
+    {
+        // Identity is not assured if invalid (but is not required).
+        if (((ec = block.check())) || ((ec = block.check(ctx))))
+            return ec;
+    }
 
     // Populate prevouts from self/tree/store (metadata not required).
     populate(block);

@@ -377,14 +377,29 @@ code protocol_block_in_31800::check(const chain::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     code ec{};
+    if (bypass)
+    {
+        // Only identity is required under bypass.
+        if (((ec = block.identify())) || ((ec = block.identify(ctx))))
+            return ec;
+    }
+    else
+    {
+        // Identity is not correct if error::invalid_transaction_commitment.
+        if ((ec = block.check()))
+        {
+            // Identity is not correct if error::block_malleated.
+            if ((ec != system::error::invalid_transaction_commitment) &&
+                block.is_malleated())
+                return system::error::block_malleated;
 
-    // Transaction commitments and malleated are checked under bypass.
-    if ((ec = block.check(bypass)))
-        return ec;
+            return ec;
+        }
 
-    // Witnessed tx commitments are checked under bypass (if bip141).
-    if ((ec = block.check(ctx, bypass)))
-        return ec;
+        // Identity is not correct if error::invalid_witness_commitment.
+        if ((ec = block.check(ctx)))
+            return ec;
+    }
 
     return system::error::block_success;
 }
