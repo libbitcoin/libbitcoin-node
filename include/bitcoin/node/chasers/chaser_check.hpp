@@ -61,7 +61,6 @@ protected:
         event_value value) NOEXCEPT;
 
     virtual void do_bump(height_t height) NOEXCEPT;
-    virtual void do_header(header_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_headers(height_t branch_point) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;

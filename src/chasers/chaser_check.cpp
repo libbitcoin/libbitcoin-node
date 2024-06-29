@@ -112,11 +112,6 @@ bool chaser_check::handle_event(const code&, chase event_,
             break;
         }
         case chase::regressed:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
-            break;
-        }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
@@ -124,12 +119,6 @@ bool chaser_check::handle_event(const code&, chase event_,
             break;
         }
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        case chase::header:
-        {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_header, std::get<header_t>(value));
-            break;
-        }
         case chase::headers:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
@@ -242,25 +231,6 @@ void chaser_check::do_headers(height_t) NOEXCEPT
     const auto added = set_unassociated();
     if (!is_zero(added))
         notify(error::success, chase::download, added);
-}
-
-// A malleable block was found to be malleated, so re-download.
-void chaser_check::do_header(header_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    association out{};
-    if (!archive().get_unassociated(out, link))
-    {
-        // False return may be the result of existing association (still error).
-        fault(error::get_unassociated);
-        return;
-    }
-
-    // Add even if purging, as this header applies to the subsequent rage.
-    const auto map = std::make_shared<associations>(associations{ out });
-    if (set_map(map) && !purging())
-        notify(error::success, chase::download, one);
 }
 
 // get/put hashes

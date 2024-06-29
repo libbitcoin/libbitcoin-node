@@ -78,9 +78,6 @@ protected:
     virtual code validate(const Block& block,
         const chain_state& state) const NOEXCEPT = 0;
 
-    /// Notify check chaser to redownload the block.
-    virtual void do_malleated(header_t link) NOEXCEPT = 0;
-
     /// Determine if state is top of a storable branch.
     virtual bool is_storable(const chain_state& state) const NOEXCEPT = 0;
 
