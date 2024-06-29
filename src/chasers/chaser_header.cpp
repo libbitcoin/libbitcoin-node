@@ -115,17 +115,6 @@ code chaser_header::validate(const header& header,
     return system::error::block_success;
 }
 
-// A malleable block was found to be invalid due to malleation.
-void chaser_header::do_malleated(header_t link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Announce a single header that requires (re)download.
-    // Since it is in the candidate chain, it must presently be missing.
-    if (archive().is_candidate_header(link))
-        notify(error::success, chase::header, link);
-}
-
 // Storable methods (private).
 // ----------------------------------------------------------------------------
 

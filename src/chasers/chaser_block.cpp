@@ -130,11 +130,6 @@ code chaser_block::validate(const block& block,
     return block.connect(ctx);
 }
 
-void chaser_block::do_malleated(header_t) NOEXCEPT
-{
-    // blocks are guarded against malleation before being stored.
-}
-
 bool chaser_block::is_storable(const chain_state&) const NOEXCEPT
 {
     return true;

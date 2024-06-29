@@ -302,15 +302,16 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto checked = is_under_checkpoint(height) ||
         query.is_milestone(link);
 
-    // Transaction commitments and malleation are checked under bypass.
-    // Invalidity is only stored in the case where a strong header has been
-    // stored, later to be found out as invalid. The invalidity prevents repeat
-    // processing of the same invalid chain but is not logically necessary. It
-    // is not stored in the case where the block is malleated32/64.
+    // Tx commitments and malleation are checked under bypass. Invalidity is
+    // only stored when a strong header has been stored, later to be found out
+    // as invalid and not malleable. Stored invalidity prevents repeat
+    // processing of the same invalid chain but is not logically necessary.
     if (const auto code = check(*block_ptr, it->context, checked))
     {
+        // These imply that we don't have actual block represented by the hash.
         if (code == system::error::invalid_transaction_commitment ||
-            code == system::error::invalid_witness_commitment)
+            code == system::error::invalid_witness_commitment ||
+            code == system::error::block_malleated)
         {
             LOGR("Uncommitted block [" << encode_hash(hash) << ":" << height
                 << "] from [" << authority() << "] " << code.message());
@@ -318,18 +319,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        if (code == system::error::block_malleated)
-        {
-            LOGR("Malleated block [" << encode_hash(hash) << ":" << height
-                << "] from [" << authority() << "] " << code.message());
-
-            // event sent to re-obtain the correct block.
-            notify(error::success, chase::malleated, link);
-            stop(code);
-            return false;
-        }
-
-        // Mark unconfirmable non-malleated block.
+        // Actual block represented by the hash is unconfirmable.
         if (!query.set_block_unconfirmable(link))
         {
             LOGF("Failure setting block unconfirmable [" << encode_hash(hash)

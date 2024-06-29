@@ -100,13 +100,6 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
             POST(do_disorganize, std::get<header_t>(value));
             break;
         }
-        case chase::malleated:
-        {
-            // Re-obtain the malleated block if it is still a candidate (virtual).
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_malleated, std::get<header_t>(value));
-            break;
-        }
         case chase::stop:
         {
             return false;
@@ -179,9 +172,8 @@ void CLASS::do_organize(typename Block::cptr block_ptr,
         return;
     };
 
-    // blocks-first may return malleation error, in which case another peer may
-    // return the good block of the same hash. headers-first cannot detect
-    // malleation here, so the block_in protocol sends chase::malleated.
+    // Headers are late validated, with malleations ignored upon download.
+    // Blocks are fully validated (not confirmed), so malleation is non-issue.
     if ((ec = validate(*block_ptr, *state)))
     {
         handler(ec, height);

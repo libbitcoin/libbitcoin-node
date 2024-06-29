@@ -59,9 +59,6 @@ protected:
     code validate(const system::chain::header& header,
         const chain_state& state) const NOEXCEPT override;
 
-    /// Notify check chaser to redownload the block.
-    void do_malleated(header_t link) NOEXCEPT override;
-
     /// Determine if state is top of a storable branch.
     bool is_storable(const chain_state& state) const NOEXCEPT override;
 
