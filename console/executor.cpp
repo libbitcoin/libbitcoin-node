@@ -840,7 +840,7 @@ void executor::read_test() const
         chain::input::cptr input{};
     };
 
-    std::vector<out> outs{};
+    std_vector<out> outs{};
     outs.reserve(target_count);
     using namespace database;
 
