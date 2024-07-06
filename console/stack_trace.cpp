@@ -136,7 +136,7 @@ inline DWORD get_machine(HANDLE process) THROWS
     if (EnumProcessModules(process, NULL, 0u, &bytes) == FALSE)
         throw(std::logic_error("EnumProcessModules"));
 
-    std::vector<HMODULE> handles{};
+    std_vector<HMODULE> handles{};
     handles.resize(bytes / sizeof(HMODULE));
     const auto handles_buffer_size = possible_narrow_cast<DWORD>(
         handles.size() * sizeof(HMODULE));
@@ -146,7 +146,7 @@ inline DWORD get_machine(HANDLE process) THROWS
         &bytes) == FALSE)
         throw(std::logic_error("EnumProcessModules"));
 
-    std::vector<module_data> modules{};
+    std_vector<module_data> modules{};
     std::transform(handles.begin(), handles.end(),
         std::back_inserter(modules), [process](const auto& handle) THROWS
         {

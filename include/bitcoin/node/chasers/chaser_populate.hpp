@@ -19,6 +19,9 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_POPULATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_POPULATE_HPP
 
+#include <bitcoin/system.hpp>
+#include <bitcoin/database.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -39,14 +42,23 @@ public:
     /// Initialize chaser state.
     code start() NOEXCEPT override;
 
+    /// Populate a candidate block for validation.
+    virtual void populate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height,
+        network::result_handler&& complete) NOEXCEPT;
+
 protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_checked(height_t height) NOEXCEPT;
+    virtual void do_populate(const system::chain::block::cptr& block,
+        database::header_link::integer link, size_t height,
+        const network::result_handler& complete) NOEXCEPT;
 
 private:
-    // TODO:
+    // These are protected by strand.
+    network::threadpool threadpool_;
+    network::asio::strand independent_strand_;
 };
 
 } // namespace node

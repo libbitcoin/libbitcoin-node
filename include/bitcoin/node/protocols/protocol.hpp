@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
  // Individual session.hpp inclusion to prevent cycle (can't forward declare).
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session.hpp>
@@ -95,6 +96,18 @@ protected:
 
     /// Get the subscription key (for notify_one).
     virtual object_key events_key() const NOEXCEPT;
+
+    /// Blocks.
+    /// -----------------------------------------------------------------------
+
+    /// Populate a candidate block for validation.
+    virtual void populate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height,
+        network::result_handler&& complete) NOEXCEPT;
+
+    /// Validate a populated candidate block.
+    virtual void validate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height) NOEXCEPT;
 
     /// Properties.
     /// -----------------------------------------------------------------------

@@ -42,8 +42,8 @@ public:
     /// Initialize chaser state.
     virtual code start() NOEXCEPT;
 
-    /// Validate and organize next block in sequence relative to caller peer.
-    virtual void organize(const typename Block::cptr& block_ptr,
+    /// Validate and organize next Block in sequence relative to calling peer.
+    virtual void organize(const typename Block::cptr& block,
         organize_handler&& handler) NOEXCEPT;
 
 protected:
@@ -54,7 +54,7 @@ protected:
         chain_state::ptr state;
     };
     using block_tree = std::unordered_map<system::hash_digest, block_state>;
-    using header_links = std::vector<database::header_link>;
+    using header_links = std_vector<database::header_link>;
 
     /// Protected constructor for abstract base.
     chaser_organize(full_node& node) NOEXCEPT;
@@ -96,7 +96,7 @@ protected:
         event_value value) NOEXCEPT;
 
     /// Organize a discovered Block.
-    virtual void do_organize(typename Block::cptr block_ptr,
+    virtual void do_organize(typename Block::cptr block,
         const organize_handler& handler) NOEXCEPT;
 
     /// Reorganize following Block unconfirmability.
@@ -136,7 +136,7 @@ private:
     // ------------------------------------------------------------------------
 
     // Store Block into logical tree cache.
-    void cache(const typename Block::cptr& block_ptr,
+    void cache(const typename Block::cptr& block,
         const chain_state::ptr& state) NOEXCEPT;
 
     // Obtain chain state for given previous hash, nullptr if not found.

@@ -88,16 +88,20 @@ enum class chase
     /// Issued by 'organize' and handled by 'validate' (disorgs candidates).
     disorganized,
 
-    /// Validation.
+    /// Check/Identify.
     /// -----------------------------------------------------------------------
 
     /// A block has been downloaded, checked and stored (height_t).
-    /// Issued by 'block_in_31800' and handled by 'connect'.
+    /// Issued by 'block_in_31800' or 'populate' and handled by 'connect'.
+    /// Populate is bypassed for checkpoint/milestone blocks.
     checked,
 
     /// A downloaded block has failed check (header_t).
     /// Issued by 'block_in_31800' and handled by 'header'.
     unchecked,
+
+    /// Accept/Connect.
+    /// -----------------------------------------------------------------------
 
     /// A branch has become valid (height_t).
     /// Issued by 'validate' and handled by 'confirm'.
@@ -107,7 +111,7 @@ enum class chase
     /// Issued by 'validate' and handled by 'header'.
     unvalid,
 
-    /// Confirmation.
+    /// Confirm (block).
     /// -----------------------------------------------------------------------
 
     /// A connected block has become confirmable (header_t).
@@ -118,7 +122,7 @@ enum class chase
     /// Issued by 'confirm' and handled by 'header' (and 'block').
     unconfirmable,
 
-    /// Confirmed Chain.
+    /// Confirm (chain).
     /// -----------------------------------------------------------------------
 
     /// A confirmable block has been confirmed (header_t).

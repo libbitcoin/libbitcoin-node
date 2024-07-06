@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 
 #include <bitcoin/database.hpp>
+#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -39,11 +40,18 @@ public:
 
     code start() NOEXCEPT override;
 
+    /// Validate a populated candidate block.
+    virtual void validate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height) NOEXCEPT;
+
 protected:
     typedef network::race_unity<const code&, const database::tx_link&> race;
 
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
+
+    virtual void do_validate(const system::chain::block::cptr& block,
+        database::header_link::integer link, size_t height) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;

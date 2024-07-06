@@ -269,6 +269,7 @@ get_data protocol_block_in_31800::create_get_data(
 // check block
 // ----------------------------------------------------------------------------
 
+// Messages are allocated in a thread of the channel and 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr message) NOEXCEPT
 {
@@ -281,8 +282,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     auto& query = archive();
-    const auto& block_ptr = message->block_ptr;
-    const auto& hash = block_ptr->get_hash();
+    const auto& block = message->block_ptr;
+    const auto& hash = block->get_hash();
     const auto it = map_->find(hash);
 
     if (it == map_->end())
@@ -306,7 +307,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // only stored when a strong header has been stored, later to be found out
     // as invalid and not malleable. Stored invalidity prevents repeat
     // processing of the same invalid chain but is not logically necessary.
-    if (const auto code = check(*block_ptr, it->context, checked))
+    if (const auto code = check(*block, it->context, checked))
     {
         // These imply that we don't have actual block represented by the hash.
         if (code == system::error::invalid_transaction_commitment ||
@@ -339,8 +340,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    const auto size = block_ptr->serialized_size(true);
-    const chain::transactions_cptr txs_ptr{ block_ptr->transactions_ptr() };
+    const auto size = block->serialized_size(true);
+    const chain::transactions_cptr txs_ptr{ block->transactions_ptr() };
 
     // This invokes set_strong when checked. 
     if (const auto code = query.set_code(*txs_ptr, link, size, checked))
@@ -358,7 +359,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
         << "] from [" << authority() << "].");
 
-    notify(error::success, chase::checked, height);
+    // protocol bind captures self, keeping channel alive until closure delete.
+    ////populate(block, link, height, BIND(complete, _1, block, height));
+    notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
     count(message->cached_size);
@@ -372,19 +375,44 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
+void protocol_block_in_31800::complete(const code& ec,
+    const chain::block::cptr& block, size_t height) const NOEXCEPT
+{
+    if (block->is_valid())
+    {
+        notify(ec, chase::checked, height);
+        fire(events::block_archived, height);
+    }
+}
+
 // Header state is checked by organize.
 code protocol_block_in_31800::check(const chain::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     code ec{};
+    if (bypass)
+    {
+        // Only identity is required under bypass.
+        if (((ec = block.identify())) || ((ec = block.identify(ctx))))
+            return ec;
+    }
+    else
+    {
+        // Identity is not correct if error::invalid_transaction_commitment.
+        if ((ec = block.check()))
+        {
+            // Identity is not correct if error::block_malleated.
+            if ((ec != system::error::invalid_transaction_commitment) &&
+                block.is_malleated())
+                return system::error::block_malleated;
 
-    // Transaction commitments and malleated are checked under bypass.
-    if ((ec = block.check(bypass)))
-        return ec;
+            return ec;
+        }
 
-    // Witnessed tx commitments are checked under bypass (if bip141).
-    if ((ec = block.check(ctx, bypass)))
-        return ec;
+        // Identity is not correct if error::invalid_witness_commitment.
+        if ((ec = block.check(ctx)))
+            return ec;
+    }
 
     return system::error::block_success;
 }

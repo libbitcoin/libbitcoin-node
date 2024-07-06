@@ -93,6 +93,18 @@ public:
     /// Unsubscribe from chaser events.
     virtual void unsubscribe_events(object_key key) NOEXCEPT;
 
+    /// Blocks.
+    /// -----------------------------------------------------------------------
+
+    /// Populate a candidate block for validation.
+    virtual void populate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height,
+        network::result_handler&& complete) NOEXCEPT;
+
+    /// Validate a populated candidate block.
+    virtual void validate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height) NOEXCEPT;
+
     /// Suspensions.
     /// -----------------------------------------------------------------------
 
@@ -156,6 +168,7 @@ private:
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
+    ////chaser_populate chaser_populate_;
     chaser_validate chaser_validate_;
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;

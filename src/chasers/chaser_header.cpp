@@ -91,7 +91,7 @@ code chaser_header::duplicate(size_t& height,
 code chaser_header::validate(const header& header,
     const chain_state& state) const NOEXCEPT
 {
-    code ec{ error::success };
+    code ec{};
 
     // header.check is never bypassed.
     if ((ec = header.check(

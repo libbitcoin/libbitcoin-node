@@ -42,7 +42,7 @@ public:
     code start() NOEXCEPT override;
 
 protected:
-    using header_links = std::vector<database::header_link>;
+    using header_links = std_vector<database::header_link>;
     typedef network::race_unity<const code&, const database::tx_link&> race;
 
     virtual bool handle_event(const code& ec, chase event_,

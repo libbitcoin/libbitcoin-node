@@ -74,32 +74,18 @@ using channel_t = uint64_t;
 using object_t = object_key;
 using header_t = database::header_link::integer;
 using transaction_t = database::tx_link::integer;
-typedef system::chain::block::cptr block_t;
-////typedef struct
-////{
-////    size_t height;
-////    database::header_link link;
-////    system::chain::block::cptr block;
-////} xblock_t;
 
 /// std::variant types must be distinct, and xcode size_t is neither uint32_t 
 /// nor uint64_t, so this ensures we have the distinct set of necessary types.
 using event_value =
     iif<is_same_type<std::size_t, uint64_t>,
-        std::variant<uint32_t, size_t, block_t>,
+        std::variant<uint32_t, size_t>,
         iif<is_same_type<std::size_t, uint32_t>,
-            std::variant<uint64_t, size_t, block_t>,
-                std::variant<uint64_t, uint32_t, size_t, block_t>>>;
-////using xevent_value =
-////    iif<is_same_type<std::size_t, uint64_t>,
-////        std::variant<uint32_t, size_t, xblock_t>,
-////        iif<is_same_type<std::size_t, uint32_t>,
-////            std::variant<uint64_t, size_t, xblock_t>,
-////                std::variant<uint64_t, uint32_t, size_t, xblock_t>>>;
+            std::variant<uint64_t, size_t>,
+                std::variant<uint64_t, uint32_t, size_t>>>;
 
 /// Event desubscriber.
 typedef network::desubscriber<object_key, chase, event_value> event_subscriber;
-////typedef network::desubscriber<object_key, chase, xevent_value> xevent_subscriber;
 typedef event_subscriber::handler event_notifier;
 typedef event_subscriber::completer event_completer;
 
