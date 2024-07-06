@@ -18,6 +18,8 @@
  */
 #include <bitcoin/node/chasers/chaser_populate.hpp>
 
+#include <functional>
+#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -28,19 +30,17 @@ namespace node {
 
 #define CLASS chaser_populate
 
-////using namespace system;
-////using namespace system::chain;
-////using namespace database;
-////using namespace network;
+using namespace system;
+using namespace system::chain;
+using namespace database;
 using namespace std::placeholders;
 
-////// Shared pointers required for lifetime in handler parameters.
-////BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
-////BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
-////BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_populate::chaser_populate(full_node& node) NOEXCEPT
-  : chaser(node)
+  : chaser(node),
+    threadpool_(std::max(node.config().node.threads, 1_u32)),
+    independent_strand_(threadpool_.service().get_executor())
 {
 }
 
@@ -61,11 +61,6 @@ bool chaser_populate::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        case chase::checked:
-        {
-            POST(do_checked, height_t{});
-            break;
-        }
         case chase::stop:
         {
             return false;
@@ -79,14 +74,44 @@ bool chaser_populate::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_populate::do_checked(height_t) NOEXCEPT
+// populate
+// ----------------------------------------------------------------------------
+
+// Could also pass ctx.
+void chaser_populate::populate(const block::cptr& block,
+    const header_link& link, size_t height,
+    network::result_handler&& complete) NOEXCEPT
 {
-    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    // Unordered, but we may prefer to first populate from cache :|.
+    /*bool*/ ////archive().populate(*block);
+
+    boost::asio::post(independent_strand_,
+        BIND(do_populate, block, link, height, std::move(complete)));
 }
 
-////BC_POP_WARNING()
-////BC_POP_WARNING()
-////BC_POP_WARNING()
+void chaser_populate::do_populate(const block::cptr& block,
+    header_link::integer link, size_t height,
+    const network::result_handler& complete) NOEXCEPT
+{
+    BC_ASSERT(independent_strand_.running_in_this_thread());
+
+    // Previous blocks may not be archived.
+    /*bool*/ ////archive().populate(*block);
+
+    // Use all closure parameters to ensure they aren't optimized out.
+    if (block->is_valid() && is_nonzero(height) &&
+        link != header_link::terminal)
+    {
+        // Sends notification and deletes captured block in creating strand.
+        // Notify coincident with delete ensures there is no cleanup backlog.
+        complete(error::success);
+    }
+}
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

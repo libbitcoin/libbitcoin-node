@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 
 #include <memory>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -72,6 +73,18 @@ public:
 
     /// Unsubscribe from chaser events.
     virtual void unsubscribe_events(object_key key) NOEXCEPT;
+
+    /// Blocks.
+    /// -----------------------------------------------------------------------
+
+    /// Populate a candidate block for validation.
+    virtual void populate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height,
+        network::result_handler&& complete) NOEXCEPT;
+
+    /// Validate a populated candidate block.
+    virtual void validate(const system::chain::block::cptr& block,
+        const database::header_link& link, size_t height) NOEXCEPT;
 
     /// Methods.
     /// -----------------------------------------------------------------------

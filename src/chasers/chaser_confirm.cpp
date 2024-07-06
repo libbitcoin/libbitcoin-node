@@ -287,8 +287,7 @@ bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
 
     for (auto tx = std::next(txs.begin()); tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
-            std::bind(&chaser_confirm::confirm_tx,
-                this, ctx, *tx, racer));
+            BIND(confirm_tx, ctx, *tx, racer));
 
     return true;
 }

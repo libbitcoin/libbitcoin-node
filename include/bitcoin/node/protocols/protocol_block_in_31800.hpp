@@ -76,6 +76,10 @@ protected:
 private:
     using type_id = network::messages::inventory::type_id;
 
+    // HACK
+    void complete(const code& ec, const system::chain::block::cptr& block,
+        size_t height) const NOEXCEPT;
+
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
@@ -97,6 +101,8 @@ private:
     // These are protected by strand.
     map_ptr map_;
     job::ptr job_{};
+
+    std_vector<system::chain::block::cptr> blocks_{};
 };
 
 } // namespace node

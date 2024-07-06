@@ -19,6 +19,8 @@
 #include <bitcoin/node/sessions/session.hpp>
 
 #include <functional>
+#include <utility>
+#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -30,6 +32,7 @@ namespace node {
 #define CLASS session
 
 using namespace system::chain;
+using namespace database;
 using namespace network;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -98,6 +101,21 @@ void session::subscribe_events(event_notifier&& handler,
 void session::unsubscribe_events(object_key key) NOEXCEPT
 {
     node_.unsubscribe_events(key);
+}
+
+// Blocks.
+// ----------------------------------------------------------------------------
+
+void session::populate(const block::cptr& block, const header_link& link,
+    size_t height, network::result_handler&& complete) NOEXCEPT
+{
+    node_.populate(block, link, height, std::move(complete));
+}
+
+void session::validate(const block::cptr& block, const header_link& link,
+    size_t height) NOEXCEPT
+{
+    node_.validate(block, link, height);
 }
 
 // Methods.

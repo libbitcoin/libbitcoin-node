@@ -69,13 +69,13 @@ code CLASS::start() NOEXCEPT
 }
 
 TEMPLATE
-void CLASS::organize(const typename Block::cptr& block_ptr,
+void CLASS::organize(const typename Block::cptr& block,
     organize_handler&& handler) NOEXCEPT
 {
     if (closed())
         return;
 
-    POST(do_organize, block_ptr, std::move(handler));
+    POST(do_organize, block, std::move(handler));
 }
 
 // Methods
@@ -114,14 +114,14 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
 }
 
 TEMPLATE
-void CLASS::do_organize(typename Block::cptr block_ptr,
+void CLASS::do_organize(typename Block::cptr block,
     const organize_handler& handler) NOEXCEPT
 {
     using namespace system;
     BC_ASSERT(stranded());
 
-    const auto& hash = block_ptr->get_hash();
-    const auto& header = get_header(*block_ptr);
+    const auto& hash = block->get_hash();
+    const auto& header = get_header(*block);
     auto& query = archive();
 
     // Skip existing/orphan, get state.
@@ -174,7 +174,7 @@ void CLASS::do_organize(typename Block::cptr block_ptr,
 
     // Headers are late validated, with malleations ignored upon download.
     // Blocks are fully validated (not confirmed), so malleation is non-issue.
-    if ((ec = validate(*block_ptr, *state)))
+    if ((ec = validate(*block, *state)))
     {
         handler(ec, height);
         return;
@@ -184,7 +184,7 @@ void CLASS::do_organize(typename Block::cptr block_ptr,
     if (!is_storable(*state))
     {
         log_state_change(*parent, *state);
-        cache(block_ptr, state);
+        cache(block, state);
         handler(error::success, height);
         return;
     }
@@ -215,7 +215,7 @@ void CLASS::do_organize(typename Block::cptr block_ptr,
     if (!strong)
     {
         log_state_change(*parent, *state);
-        cache(block_ptr, state);
+        cache(block, state);
         handler(error::success, height);
         return;
     }
@@ -283,7 +283,7 @@ void CLASS::do_organize(typename Block::cptr block_ptr,
 
     // Push new header as top of candidate chain.
     {
-        if ((ec = push_block(*block_ptr, state->context())))
+        if ((ec = push_block(*block, state->context())))
         {
             handler(fault(ec), height);
             return;
@@ -368,18 +368,18 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // ........................................................................
     // Forward order is required to advance chain state for tree.
 
-    typename Block::cptr block_ptr{};
+    typename Block::cptr block{};
     for (auto index = add1(fork_point); index < height; ++index)
     {
-        if (!get_block(block_ptr, index))
+        if (!get_block(block, index))
         {
             fault(error::get_block);
             return;
         }
 
-        const auto& header = get_header(*block_ptr);
+        const auto& header = get_header(*block);
         state.reset(new chain::chain_state{ *state, header, settings_ });
-        cache(block_ptr, state);
+        cache(block, state);
     }
 
     // Pop candidates from top candidate down to above fork point.
@@ -439,10 +439,10 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-void CLASS::cache(const typename Block::cptr& block_ptr,
+void CLASS::cache(const typename Block::cptr& block,
     const chain_state::ptr& state) NOEXCEPT
 {
-    tree_.insert({ block_ptr->hash(), { block_ptr, state } });
+    tree_.insert({ block->hash(), { block, state } });
 }
 
 TEMPLATE

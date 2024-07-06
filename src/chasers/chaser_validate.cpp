@@ -109,6 +109,28 @@ bool chaser_validate::handle_event(const code&, chase event_,
     return true;
 }
 
+// validate
+// ----------------------------------------------------------------------------
+
+// Could also pass ctx.
+void chaser_validate::validate(const chain::block::cptr& block,
+    const header_link& link, size_t height) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_validate, block, link, height);
+}
+
+void chaser_validate::do_validate(const chain::block::cptr& block,
+    database::header_link::integer link, size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (block->is_valid() && link != header_link::terminal)
+        fire(events::block_validated, height);
+}
+
 // track downloaded in order (to validate)
 // ----------------------------------------------------------------------------
 
@@ -225,8 +247,7 @@ bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
 
     for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
-            std::bind(&chaser_validate::validate_tx,
-                this, ctx, *tx, racer));
+            BIND(validate_tx, ctx, *tx, racer));
 
     return true;
 }
