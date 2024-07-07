@@ -55,7 +55,19 @@ namespace std {
 std::ostream& operator<<(std::ostream& stream,
     const system::data_slice& slice) NOEXCEPT;
 
-// vector<Type> -> join(<<Type)
+// std::vector<Type> -> join(<<Type)
+template <typename Type>
+std::ostream& operator<<(std::ostream& stream,
+    const std::vector<Type>& values) NOEXCEPT
+{
+    // Ok when testing serialize because only used for error message out.
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+    stream << system::serialize(values);
+    BC_POP_WARNING()
+    return stream;
+}
+
+// std_vector<Type> -> join(<<Type)
 template <typename Type>
 std::ostream& operator<<(std::ostream& stream,
     const std_vector<Type>& values) NOEXCEPT
