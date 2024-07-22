@@ -271,7 +271,7 @@ get_data protocol_block_in_31800::create_get_data(
 
 // Messages are allocated in a thread of the channel and 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
-    const block::cptr message) NOEXCEPT
+    const block::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -282,7 +282,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     auto& query = archive();
-    const auto& block = message->block_ptr;
+    const chain::block::cptr block{ message->block_ptr };
     const auto& hash = block->get_hash();
     const auto it = map_->find(hash);
 
@@ -315,7 +315,18 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             code == system::error::block_malleated)
         {
             LOGR("Uncommitted block [" << encode_hash(hash) << ":" << height
-                << "] from [" << authority() << "] " << code.message());
+                << "] from [" << authority() << "] " << code.message()
+                << " txs(" << block->transactions() << ")"
+                << " segregated(" << block->is_segregated() << ").");
+            stop(code);
+            return false;
+        }
+
+        if (code == system::error::forward_reference)
+        {
+            LOGR("Disordered block [" << encode_hash(hash) << ":" << height
+                << " txs(" << block->transactions() << ")"
+                << " segregated(" << block->is_segregated() << ").");
             stop(code);
             return false;
         }
