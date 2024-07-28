@@ -102,6 +102,18 @@ protected:
         channel->attach<protocol_transaction_out>(self)->start();
         channel->attach<protocol_observer>(self)->start();
     }
+
+    network::channel::ptr create_channel(const network::socket::ptr& socket,
+        bool quiet) NOEXCEPT override
+    {
+        // TODO: replace message memory resource (affects only block messages).
+        static network::memory memory{};
+
+        // Channel id must be created using create_key().
+        const auto id = network::session::create_key();
+        return std::make_shared<network::channel>(memory, network::session::log,
+            socket, network::session::settings(), id, quiet);
+    }
 };
 
 } // namespace node
