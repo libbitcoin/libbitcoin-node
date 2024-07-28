@@ -375,7 +375,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
-    count(message->cached_size);
+    count(size);
     map_->erase(it);
     if (is_idle())
     {
