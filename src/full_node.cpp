@@ -24,6 +24,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/memory.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
@@ -40,6 +41,7 @@ full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
     config_(configuration),
+    memory_(),
     query_(query),
     chaser_block_(*this),
     chaser_header_(*this),
@@ -241,22 +243,6 @@ void full_node::unsubscribe_events(object_key key) NOEXCEPT
     notify_one(key, network::error::service_stopped, chase::stop, {});
 }
 
-// private
-// At one object/session/ns, this overflows in ~585 years (and handled).
-// Could just use channel.identifier() if we didn't have subscribed chasers.
-object_key full_node::create_key() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (is_zero(++keys_))
-    {
-        BC_ASSERT_MSG(false, "overflow");
-        LOGF("Session object overflow.");
-    }
-
-    return keys_;
-}
-
 // Blocks.
 // ----------------------------------------------------------------------------
 
@@ -384,6 +370,11 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     const auto time = wall_clock::from_time_t(timestamp);
     const auto current = wall_clock::now() - config_.node.currency_window();
     return time >= current;
+}
+
+network::memory& full_node::get_memory() NOEXCEPT
+{
+    return memory_;
 }
 
 // Session attachments.

@@ -248,6 +248,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/configuration.cpp"
     "../../src/error.cpp"
     "../../src/full_node.cpp"
+    "../../src/memory.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
     "../../src/chasers/chaser.cpp"

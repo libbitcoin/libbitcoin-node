@@ -23,6 +23,8 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/memory.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -139,6 +141,9 @@ public:
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
 
+    /// Get the memory resource.
+    virtual network::memory& get_memory() NOEXCEPT;
+
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------
@@ -153,7 +158,6 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
-    object_key create_key() NOEXCEPT;
     void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
     void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;
@@ -162,6 +166,7 @@ private:
 
     // These are thread safe.
     const configuration& config_;
+    memory memory_;
     query& query_;
 
     // These are protected by strand.
@@ -176,7 +181,6 @@ private:
     chaser_snapshot chaser_snapshot_;
     chaser_storage chaser_storage_;
     event_subscriber event_subscriber_;
-    object_key keys_{};
 };
 
 } // namespace node

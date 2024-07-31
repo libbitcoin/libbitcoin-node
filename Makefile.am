@@ -38,6 +38,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/configuration.cpp \
     src/error.cpp \
     src/full_node.cpp \
+    src/memory.cpp \
     src/parser.cpp \
     src/settings.cpp \
     src/chasers/chaser.cpp \
@@ -130,6 +131,7 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/error.hpp \
     include/bitcoin/node/events.hpp \
     include/bitcoin/node/full_node.hpp \
+    include/bitcoin/node/memory.hpp \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
