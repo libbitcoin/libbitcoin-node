@@ -158,7 +158,6 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
-    object_key create_key() NOEXCEPT;
     void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
     void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;
@@ -182,7 +181,6 @@ private:
     chaser_snapshot chaser_snapshot_;
     chaser_storage chaser_storage_;
     event_subscriber event_subscriber_;
-    object_key keys_{};
 };
 
 } // namespace node

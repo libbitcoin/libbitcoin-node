@@ -243,22 +243,6 @@ void full_node::unsubscribe_events(object_key key) NOEXCEPT
     notify_one(key, network::error::service_stopped, chase::stop, {});
 }
 
-// private
-// At one object/session/ns, this overflows in ~585 years (and handled).
-// Could just use channel.identifier() if we didn't have subscribed chasers.
-object_key full_node::create_key() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (is_zero(++keys_))
-    {
-        BC_ASSERT_MSG(false, "overflow");
-        LOGF("Session object overflow.");
-    }
-
-    return keys_;
-}
-
 // Blocks.
 // ----------------------------------------------------------------------------
 
