@@ -131,6 +131,11 @@ void session::performance(object_key, uint64_t,
         std::bind(handler, system::error::not_implemented));
 }
 
+network::memory& session::get_memory() const NOEXCEPT
+{
+    return node_.get_memory();
+}
+
 // Suspensions.
 // ----------------------------------------------------------------------------
 

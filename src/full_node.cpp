@@ -24,6 +24,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/memory.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
@@ -40,6 +41,7 @@ full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
     config_(configuration),
+    memory_(),
     query_(query),
     chaser_block_(*this),
     chaser_header_(*this),
@@ -384,6 +386,11 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     const auto time = wall_clock::from_time_t(timestamp);
     const auto current = wall_clock::now() - config_.node.currency_window();
     return time >= current;
+}
+
+network::memory& full_node::get_memory() NOEXCEPT
+{
+    return memory_;
 }
 
 // Session attachments.

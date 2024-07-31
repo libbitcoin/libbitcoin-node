@@ -23,6 +23,8 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/memory.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -139,6 +141,9 @@ public:
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
 
+    /// Get the memory resource.
+    virtual network::memory& get_memory() NOEXCEPT;
+
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------
@@ -162,6 +167,7 @@ private:
 
     // These are thread safe.
     const configuration& config_;
+    memory memory_;
     query& query_;
 
     // These are protected by strand.
