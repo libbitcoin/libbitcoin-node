@@ -16,23 +16,36 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_MEMORY_HPP
-#define LIBBITCOIN_NODE_MEMORY_HPP
+#include <bitcoin/node/block_arena.hpp>
 
-#include <bitcoin/network.hpp>
+#include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class memory
-  : public network::memory
+
+block_arena::block_arena() NOEXCEPT
 {
-public:
-    using base = network::memory;
-    using base::base;
-};
+}
+
+BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+
+void* block_arena::do_allocate(size_t bytes, size_t) THROWS
+{
+    return ::operator new(bytes);
+}
+
+void block_arena::do_deallocate(void* ptr, size_t, size_t) NOEXCEPT
+{
+    ::operator delete(ptr);
+}
+
+BC_POP_WARNING()
+
+bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
+{
+    // Do not cross the streams.
+    return &other == this;
+}
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif

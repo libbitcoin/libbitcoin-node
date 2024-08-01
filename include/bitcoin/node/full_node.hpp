@@ -21,10 +21,10 @@
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/block_memory.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/memory.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -166,7 +166,7 @@ private:
 
     // These are thread safe.
     const configuration& config_;
-    memory memory_;
+    block_memory memory_;
     query& query_;
 
     // These are protected by strand.

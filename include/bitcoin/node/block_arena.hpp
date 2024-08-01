@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2024 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -16,12 +16,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/memory.hpp>
+#ifndef LIBBITCOIN_NODE_BLOCK_ARENA_HPP
+#define LIBBITCOIN_NODE_BLOCK_ARENA_HPP
 
-#include <bitcoin/network.hpp>
+#include <bitcoin/system.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
+class BCN_API block_arena final
+  : public arena
+{
+public:
+    block_arena() NOEXCEPT;
+
+private:
+    void* do_allocate(size_t bytes, size_t align) THROWS override;
+    void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
+    bool do_is_equal(const arena& other) const NOEXCEPT override;
+};
 } // namespace node
 } // namespace libbitcoin
+
+#endif

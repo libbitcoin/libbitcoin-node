@@ -245,10 +245,11 @@ add_definitions(
 # Define ${CANONICAL_LIB_NAME} project.
 #------------------------------------------------------------------------------
 add_library( ${CANONICAL_LIB_NAME}
+    "../../src/block_arena.cpp"
+    "../../src/block_memory.cpp"
     "../../src/configuration.cpp"
     "../../src/error.cpp"
     "../../src/full_node.cpp"
-    "../../src/memory.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
     "../../src/chasers/chaser.cpp"
