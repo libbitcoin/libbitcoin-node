@@ -16,13 +16,14 @@
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/block_arena.hpp>
+#include <bitcoin/node/block_memory.hpp>
 #include <bitcoin/node/chase.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
 #include <bitcoin/node/events.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/memory.hpp>
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>

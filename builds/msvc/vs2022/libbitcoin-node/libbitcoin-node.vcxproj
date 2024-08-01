@@ -73,6 +73,8 @@
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
+    <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
@@ -87,7 +89,6 @@
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
-    <ClCompile Include="..\..\..\..\src\memory.cpp" />
     <ClCompile Include="..\..\..\..\src\parser.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in.cpp" />
@@ -109,6 +110,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
@@ -128,7 +131,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\memory.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in.hpp" />

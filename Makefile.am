@@ -35,10 +35,11 @@ lib_LTLIBRARIES = src/libbitcoin-node.la
 src_libbitcoin_node_la_CPPFLAGS = -I${srcdir}/include -DSYSCONFDIR=\"${sysconfdir}\" ${bitcoin_database_BUILD_CPPFLAGS} ${bitcoin_network_BUILD_CPPFLAGS}
 src_libbitcoin_node_la_LIBADD = ${bitcoin_database_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
+    src/block_arena.cpp \
+    src/block_memory.cpp \
     src/configuration.cpp \
     src/error.cpp \
     src/full_node.cpp \
-    src/memory.cpp \
     src/parser.cpp \
     src/settings.cpp \
     src/chasers/chaser.cpp \
@@ -125,13 +126,14 @@ include_bitcoin_HEADERS = \
 
 include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
+    include/bitcoin/node/block_arena.hpp \
+    include/bitcoin/node/block_memory.hpp \
     include/bitcoin/node/chase.hpp \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
     include/bitcoin/node/error.hpp \
     include/bitcoin/node/events.hpp \
     include/bitcoin/node/full_node.hpp \
-    include/bitcoin/node/memory.hpp \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp

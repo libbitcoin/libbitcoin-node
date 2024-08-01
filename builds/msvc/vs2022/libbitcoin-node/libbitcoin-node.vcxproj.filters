@@ -48,6 +48,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\block_arena.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\block_memory.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
@@ -88,9 +94,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\full_node.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\memory.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\parser.cpp">
@@ -152,6 +155,12 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp">
       <Filter>include\bitcoin</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
@@ -207,9 +216,6 @@
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\memory.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
