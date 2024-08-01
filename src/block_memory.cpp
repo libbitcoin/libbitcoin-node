@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2011-2023 libbitcoin developers (see AUTHORS)
+ * Copyright (c) 2011-2024 libbitcoin developers (see AUTHORS)
  *
  * This file is part of libbitcoin.
  *
@@ -18,14 +18,11 @@
  */
 #include <bitcoin/node/block_memory.hpp>
 
+#include <memory>
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-block_memory::block_memory() NOEXCEPT
-{
-}
 
 arena* block_memory::get_arena() NOEXCEPT
 {
@@ -34,7 +31,9 @@ arena* block_memory::get_arena() NOEXCEPT
 
 retainer::ptr block_memory::get_retainer() NOEXCEPT
 {
-    return {};
+    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+    return std::make_shared<retainer>(arena_.get_mutex());
+    BC_POP_WARNING()
 }
 
 } // namespace node
