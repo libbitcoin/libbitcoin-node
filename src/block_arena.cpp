@@ -18,28 +18,37 @@
  */
 #include <bitcoin/node/block_arena.hpp>
 
+#include <shared_mutex>
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {
 
+// TODO: initialize memory.
 block_arena::block_arena() NOEXCEPT
 {
 }
 
-BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+// TODO: block on mutex until exclusive and then free memory.
+block_arena::~block_arena() NOEXCEPT
+{
+}
 
+// TODO: if aligned size is insufficient block on mutex until memory remapped.
 void* block_arena::do_allocate(size_t bytes, size_t) THROWS
 {
+    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
     return ::operator new(bytes);
+    BC_POP_WARNING()
 }
 
+// TODO: change to nop.
 void block_arena::do_deallocate(void* ptr, size_t, size_t) NOEXCEPT
 {
+    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
     ::operator delete(ptr);
+    BC_POP_WARNING()
 }
-
-BC_POP_WARNING()
 
 bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
 {

@@ -26,19 +26,17 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
+/// Thread safe block memory.
 class BCN_API block_memory final
   : public network::memory
 {
 public:
-    block_memory() NOEXCEPT;
-
     arena* get_arena() NOEXCEPT override;
     retainer::ptr get_retainer() NOEXCEPT override;
 
 private:
     block_arena arena_{};
-    std::shared_mutex mutex_{};
 };
 
 } // namespace node
