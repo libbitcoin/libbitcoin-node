@@ -35,7 +35,7 @@ block_arena::~block_arena() NOEXCEPT
 }
 
 // TODO: if aligned size is insufficient block on mutex until memory remapped.
-void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
+void* block_arena::do_allocate(size_t bytes, size_t) THROWS
 {
     BC_PUSH_WARNING(NO_NEW_OR_DELETE)
     return ::operator new(bytes);

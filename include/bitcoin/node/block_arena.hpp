@@ -31,6 +31,8 @@ class BCN_API block_arena final
   : public arena
 {
 public:
+    DELETE_COPY_MOVE(block_arena);
+
     inline std::shared_mutex& get_mutex() NOEXCEPT
     {
         return mutex_;
