@@ -898,6 +898,11 @@ options_metadata parser::load_settings() THROWS
         "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
     )
     (
+        "node.allocation_bytes",
+        value<uint64_t>(&configured.node.allocation_bytes),
+        "Blocks preallocated memory buffer, defaults to 1'073'741'824."
+    )
+    (
         "node.maximum_height",
         value<uint32_t>(&configured.node.maximum_height),
         "Maximum block height to populate, defaults to 0 (unlimited)."

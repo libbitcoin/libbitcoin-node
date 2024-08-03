@@ -24,6 +24,11 @@
 namespace libbitcoin {
 namespace node {
 
+block_memory::block_memory(size_t size) NOEXCEPT
+  : arena_{ size }
+{
+}
+
 arena* block_memory::get_arena() NOEXCEPT
 {
     return &arena_;

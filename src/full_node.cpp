@@ -40,7 +40,7 @@ full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : p2p(configuration.network, log),
     config_(configuration),
-    memory_(),
+    memory_(configuration.node.allocation()),
     query_(query),
     chaser_block_(*this),
     chaser_header_(*this),

@@ -32,11 +32,15 @@ class BCN_API block_memory final
   : public network::memory
 {
 public:
+    DELETE_COPY_MOVE_DESTRUCT(block_memory);
+
+    block_memory(size_t size) NOEXCEPT;
+
     arena* get_arena() NOEXCEPT override;
     retainer::ptr get_retainer() NOEXCEPT override;
 
 private:
-    block_arena arena_{ system::power2(34_size) };
+    block_arena arena_;
 };
 
 } // namespace node

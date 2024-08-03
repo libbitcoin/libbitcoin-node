@@ -74,6 +74,7 @@ public:
     /// Properties.
     bool headers_first;
     float allowed_deviation;
+    uint64_t allocation_bytes;
     uint64_t snapshot_bytes;
     uint32_t snapshot_valid;
     uint32_t maximum_height;
@@ -83,6 +84,7 @@ public:
     uint32_t threads;
 
     /// Helpers.
+    virtual size_t allocation() const NOEXCEPT;
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
