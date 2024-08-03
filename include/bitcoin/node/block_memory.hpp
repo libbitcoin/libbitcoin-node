@@ -36,7 +36,7 @@ public:
     retainer::ptr get_retainer() NOEXCEPT override;
 
 private:
-    block_arena arena_{};
+    block_arena arena_{ system::power2(34_size) };
 };
 
 } // namespace node

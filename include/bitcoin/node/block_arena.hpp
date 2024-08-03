@@ -35,10 +35,10 @@ public:
 
     inline std::shared_mutex& get_mutex() NOEXCEPT
     {
-        return mutex_;
+        return remap_mutex_;
     }
 
-    block_arena() NOEXCEPT;
+    block_arena(size_t size) NOEXCEPT;
     ~block_arena() NOEXCEPT;
 
 private:
@@ -46,9 +46,17 @@ private:
     void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
     bool do_is_equal(const arena& other) const NOEXCEPT override;
 
-    // This is thread safe.
-    std::shared_mutex mutex_{};
+    // These are thread safe.
+    const uint64_t capacity_;
+    std::shared_mutex field_mutex_{};
+    std::shared_mutex remap_mutex_{};
+
+    // These are protected by mutex.
+    uint8_t* memory_map_;
+    uint64_t offset_{};
+
 };
+
 } // namespace node
 } // namespace libbitcoin
 
