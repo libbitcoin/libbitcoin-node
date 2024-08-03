@@ -31,7 +31,7 @@ arena* block_memory::get_arena() NOEXCEPT
 
 retainer::ptr block_memory::get_retainer() NOEXCEPT
 {
-    BC_PUSH_WARNING(NO_NEW_OR_DELETE)
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return std::make_shared<retainer>(arena_.get_mutex());
     BC_POP_WARNING()
 }
