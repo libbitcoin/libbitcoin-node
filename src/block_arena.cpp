@@ -52,7 +52,7 @@ block_arena::~block_arena() NOEXCEPT
     if (!is_null(memory_map_))
     {
         std::unique_lock remap_lock(remap_mutex_);
-        free(memory_map_);
+        free(const_cast<uint8_t*>(memory_map_));
     }
 }
 
@@ -78,7 +78,7 @@ void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
     }
 
     offset_ = aligned + bytes;
-    return memory_map_ + aligned;
+    return const_cast<uint8_t*>(memory_map_ + aligned);
 }
 
 void block_arena::do_deallocate(void*, size_t, size_t) NOEXCEPT

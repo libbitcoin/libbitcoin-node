@@ -48,11 +48,11 @@ private:
 
     // These are thread safe.
     const size_t capacity_;
+    const uint8_t* memory_map_;
     std::shared_mutex field_mutex_{};
     std::shared_mutex remap_mutex_{};
 
-    // These are protected by mutex.
-    uint8_t* memory_map_;
+    // This is protected by mutex.
     size_t offset_{};
 
 };
