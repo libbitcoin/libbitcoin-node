@@ -19,26 +19,42 @@
 #include <bitcoin/node/block_memory.hpp>
 
 #include <memory>
+#include <thread>
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-block_memory::block_memory(size_t size) NOEXCEPT
-  : arena_{ size }
+block_memory::block_memory(size_t size, size_t threads) NOEXCEPT
+  : count_{}, arenas_{}
 {
+    arenas_.reserve(threads);
+    for (auto index = zero; index < threads; ++index)
+        arenas_.emplace_back(size);
 }
 
 arena* block_memory::get_arena() NOEXCEPT
 {
-    return &arena_;
+    return get_block_arena();
 }
 
 retainer::ptr block_memory::get_retainer() NOEXCEPT
 {
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    return std::make_shared<retainer>(arena_.get_mutex());
+    return std::make_shared<retainer>(get_block_arena()->get_mutex());
     BC_POP_WARNING()
+}
+
+// protected
+
+block_arena* block_memory::get_block_arena() NOEXCEPT
+{
+    static thread_local auto index = count_.fetch_add(one);
+
+    if (index >= arenas_.size())
+        return nullptr;
+
+    return &arenas_.at(index);
 }
 
 } // namespace node

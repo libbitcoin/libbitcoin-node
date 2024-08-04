@@ -26,20 +26,23 @@
 namespace libbitcoin {
 namespace node {
 
-/// Thread safe block memory arena.
+/// Thread UNSAFE linear memory arena.
 class BCN_API block_arena final
   : public arena
 {
 public:
-    DELETE_COPY_MOVE(block_arena);
+    DELETE_COPY(block_arena);
+    
+    block_arena(size_t size=zero) NOEXCEPT;
+    block_arena(block_arena&& other) NOEXCEPT;
+    ~block_arena() NOEXCEPT;
+
+    block_arena& operator=(block_arena&& other) NOEXCEPT;
 
     inline std::shared_mutex& get_mutex() NOEXCEPT
     {
-        return remap_mutex_;
+        return mutex_;
     }
-
-    block_arena(size_t size) NOEXCEPT;
-    ~block_arena() NOEXCEPT;
 
 private:
     void* do_allocate(size_t bytes, size_t align) THROWS override;
@@ -47,13 +50,12 @@ private:
     bool do_is_equal(const arena& other) const NOEXCEPT override;
 
     // These are thread safe.
-    const size_t capacity_;
-    const uint8_t* memory_map_;
-    std::shared_mutex field_mutex_{};
-    std::shared_mutex remap_mutex_{};
+    std::shared_mutex mutex_{};
+    uint8_t* memory_map_;
+    size_t capacity_;
 
-    // This is protected by mutex.
-    size_t offset_{};
+    // This is unprotected, caller must guard.
+    size_t offset_;
 
 };
 

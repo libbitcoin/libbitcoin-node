@@ -42,18 +42,39 @@ BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
 // en.cppreference.com/w/c/memory/malloc
 
 block_arena::block_arena(size_t size) NOEXCEPT
-  : capacity_{ size },
-    memory_map_{ system::pointer_cast<uint8_t>(malloc(size)) }
+  : memory_map_{ system::pointer_cast<uint8_t>(malloc(size)) },
+    capacity_{ size },
+    offset_{}
 {
+}
+
+block_arena::block_arena(block_arena&& other) NOEXCEPT
+  : memory_map_{ other.memory_map_ },
+    capacity_{ other.capacity_ },
+    offset_{ other.offset_ }
+{
+    // Prevents free(memory_map_) as responsibility is passed to this object.
+    other.memory_map_ = nullptr;
 }
 
 block_arena::~block_arena() NOEXCEPT
 {
     if (!is_null(memory_map_))
     {
-        std::unique_lock remap_lock(remap_mutex_);
-        free(const_cast<uint8_t*>(memory_map_));
+        std::unique_lock lock(mutex_);
+        free(memory_map_);
     }
+}
+
+block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
+{
+    memory_map_ = other.memory_map_;
+    capacity_ = other.capacity_;
+    offset_ = other.offset_;
+
+    // Prevents free(memory_map_) as responsibility is passed to this object.
+    other.memory_map_ = nullptr;
+    return *this;
 }
 
 void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
@@ -64,13 +85,10 @@ void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
     BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
     BC_ASSERT_MSG(!is_add_overflow(bytes, sub1(align)), "align overflow");
 
-    std::unique_lock field_lock(field_mutex_);
-
     auto aligned = to_aligned(offset_, align);
     if (bytes > system::floored_subtract(capacity_, aligned))
     {
-        // TODO: Could loop over a try lock here and log deadlock warning.
-        std::unique_lock remap_lock(remap_mutex_);
+        std::unique_lock lock(mutex_);
         aligned = offset_ = zero;
 
         if (bytes > capacity_)
@@ -78,7 +96,7 @@ void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
     }
 
     offset_ = aligned + bytes;
-    return const_cast<uint8_t*>(memory_map_ + aligned);
+    return memory_map_ + aligned;
 }
 
 void block_arena::do_deallocate(void*, size_t, size_t) NOEXCEPT
