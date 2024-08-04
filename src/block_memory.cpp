@@ -25,17 +25,19 @@
 namespace libbitcoin {
 namespace node {
 
-block_memory::block_memory(size_t size, size_t threads) NOEXCEPT
+block_memory::block_memory(size_t bytes, size_t threads) NOEXCEPT
   : count_{}, arenas_{}
 {
     arenas_.reserve(threads);
     for (auto index = zero; index < threads; ++index)
-        arenas_.emplace_back(size);
+        arenas_.emplace_back(bytes);
 }
 
 arena* block_memory::get_arena() NOEXCEPT
 {
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return get_block_arena();
+    BC_POP_WARNING()
 }
 
 retainer::ptr block_memory::get_retainer() NOEXCEPT
@@ -47,12 +49,13 @@ retainer::ptr block_memory::get_retainer() NOEXCEPT
 
 // protected
 
-block_arena* block_memory::get_block_arena() NOEXCEPT
+block_arena* block_memory::get_block_arena() THROWS
 {
     static thread_local auto index = count_.fetch_add(one);
 
+    // More threads are requesting an arena than specified at construct.
     if (index >= arenas_.size())
-        return nullptr;
+        throw allocation_exception();
 
     return &arenas_.at(index);
 }

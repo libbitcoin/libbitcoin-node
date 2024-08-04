@@ -36,9 +36,8 @@ class BCN_API block_memory final
 public:
     DELETE_COPY_MOVE_DESTRUCT(block_memory);
 
-    /// Store the size for each thread's arena initilization.
     /// Default allocate each arena to preclude allcation and locking.
-    block_memory(size_t size, size_t threads) NOEXCEPT;
+    block_memory(size_t bytes, size_t threads) NOEXCEPT;
 
     /// Each thread obtains an arena of the same size.
     arena* get_arena() NOEXCEPT override;
@@ -47,13 +46,13 @@ public:
     retainer::ptr get_retainer() NOEXCEPT override;
 
 protected:
-    block_arena* get_block_arena() NOEXCEPT;
+    block_arena* get_block_arena() THROWS;
 
 private:
-    // These are thread safe.
+    // This is thread safe.
     std::atomic_size_t count_;
 
-    // This is protected by thread_local member.
+    // This is protected by constructor init and thread_local indexation.
     std::vector<block_arena> arenas_;
 };
 
