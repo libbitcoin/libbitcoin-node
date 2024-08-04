@@ -166,10 +166,10 @@ private:
 
     // These are thread safe.
     const configuration& config_;
-    block_memory memory_;
     query& query_;
 
     // These are protected by strand.
+    block_memory memory_;
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
