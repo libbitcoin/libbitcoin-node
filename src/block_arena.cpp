@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/block_arena.hpp>
 
-#include <stdlib.h>
 #include <shared_mutex>
 #include <bitcoin/system.hpp>
 
@@ -85,18 +84,25 @@ void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
     BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
     BC_ASSERT_MSG(!is_add_overflow(bytes, sub1(align)), "align overflow");
 
-    auto aligned = to_aligned(offset_, align);
-    if (bytes > system::floored_subtract(capacity_, aligned))
-    {
-        std::unique_lock lock(mutex_);
-        aligned = offset_ = zero;
+    auto aligned_offset = to_aligned(offset_, align);
+    auto padding = aligned_offset - offset_;
+    auto allocation = padding + bytes;
 
+    // Wraps if allocation would overflow.
+    if (allocation > get_capacity())
+    {
+        // Block until arena retainers are all released.
+        std::unique_lock lock(mutex_);
+        aligned_offset = offset_ = zero;
+        allocation = bytes;
+
+        // Throws if necessary allocation exceeds buffer.
         if (bytes > capacity_)
             throw allocation_exception();
     }
 
-    offset_ = aligned + bytes;
-    return memory_map_ + aligned;
+    offset_ += allocation;
+    return memory_map_ + aligned_offset;
 }
 
 void block_arena::do_deallocate(void*, size_t, size_t) NOEXCEPT
@@ -107,6 +113,11 @@ bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
 {
     // Do not cross the streams.
     return &other == this;
+}
+
+size_t block_arena::do_get_capacity() const NOEXCEPT
+{
+    return system::floored_subtract(capacity_, offset_);
 }
 
 BC_POP_WARNING()

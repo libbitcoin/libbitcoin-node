@@ -39,6 +39,7 @@ public:
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
+    /// Get memory block retainer mutex.
     inline std::shared_mutex& get_mutex() NOEXCEPT
     {
         return mutex_;
@@ -48,6 +49,7 @@ private:
     void* do_allocate(size_t bytes, size_t align) THROWS override;
     void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
     bool do_is_equal(const arena& other) const NOEXCEPT override;
+    size_t do_get_capacity() const NOEXCEPT override;
 
     // These are thread safe.
     std::shared_mutex mutex_{};
