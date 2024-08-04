@@ -298,7 +298,8 @@ map_ptr chaser_check::get_map() NOEXCEPT
 
 bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
 {
-    BC_ASSERT(stranded());
+    // Called from start.
+    ////BC_ASSERT(stranded());
     BC_ASSERT(map->size() <= messages::max_inventory);
 
     if (map->empty())

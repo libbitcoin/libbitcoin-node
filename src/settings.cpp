@@ -77,6 +77,7 @@ namespace node {
 settings::settings() NOEXCEPT
   : headers_first{ true },
     allowed_deviation{ 1.5 },
+    allocation_bytes{ 1'073'741'824 },
     snapshot_bytes{ 107'374'182'400 },
     snapshot_valid{ 100'000 },
     maximum_height{ 0 },
@@ -91,6 +92,11 @@ settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
     // TODO: testnet, etc. maximum_concurrency, snapshot_bytes.
+}
+
+size_t settings::allocation() const NOEXCEPT
+{
+    return system::limit<size_t>(allocation_bytes);
 }
 
 size_t settings::maximum_height_() const NOEXCEPT

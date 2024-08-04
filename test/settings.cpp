@@ -59,10 +59,15 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.snapshot_bytes, 107'374'182'400_u64);
     BOOST_REQUIRE_EQUAL(node.snapshot_valid, 100'000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
+
+    BOOST_REQUIRE_EQUAL(node.allocation(), system::limit<size_t>(1'073'741'824_u64));
+    BOOST_REQUIRE_EQUAL(node.allocation_bytes, 1'073'741'824_u64);
+
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
+
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(60)));
