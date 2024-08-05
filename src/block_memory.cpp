@@ -18,12 +18,14 @@
  */
 #include <bitcoin/node/block_memory.hpp>
 
+#include <atomic>
 #include <memory>
-#include <thread>
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {
+
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 block_memory::block_memory(size_t bytes, size_t threads) NOEXCEPT
   : count_{}, arenas_{}
@@ -35,30 +37,28 @@ block_memory::block_memory(size_t bytes, size_t threads) NOEXCEPT
 
 arena* block_memory::get_arena() NOEXCEPT
 {
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     return get_block_arena();
-    BC_POP_WARNING()
 }
 
-retainer::ptr block_memory::get_retainer() NOEXCEPT
+retainer::ptr block_memory::get_retainer(size_t allocation) NOEXCEPT
 {
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    return std::make_shared<retainer>(get_block_arena()->get_mutex());
-    BC_POP_WARNING()
+    return std::make_shared<retainer>(get_block_arena()->get_mutex(),
+        allocation);
 }
 
 // protected
-
-block_arena* block_memory::get_block_arena() THROWS
+block_arena* block_memory::get_block_arena() const THROWS
 {
-    static thread_local auto index = count_.fetch_add(one);
+    static thread_local auto index = count_.fetch_add(one,
+        std::memory_order_relaxed);
 
     // More threads are requesting an arena than specified at construct.
-    if (index >= arenas_.size())
-        throw allocation_exception();
+    BC_ASSERT(index < arenas_.size());
 
     return &arenas_.at(index);
 }
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

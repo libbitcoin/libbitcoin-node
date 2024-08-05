@@ -373,7 +373,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // protocol bind captures self, keeping channel alive until closure delete.
     ////populate(block, link, height, BIND(complete, _1, block, height));
     notify(ec, chase::checked, height);
-    fire(events::block_archived, height);
+    fire(events::block_archived, height /*block->get_retainer()->allocation()*/);
+
+    ////LOGA("Height: " << height << " size: " << size
+    ////    << " bytes: " << block->get_retainer()->allocation());
 
     count(size);
     map_->erase(it);

@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_BLOCK_MEMORY_HPP
 
 #include <atomic>
-#include <shared_mutex>
-#include <thread>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/block_arena.hpp>
 #include <bitcoin/node/define.hpp>
@@ -43,17 +41,17 @@ public:
     arena* get_arena() NOEXCEPT override;
 
     /// Each thread obtains its arena's retainer.
-    retainer::ptr get_retainer() NOEXCEPT override;
+    retainer::ptr get_retainer(size_t allocation=zero) NOEXCEPT override;
 
 protected:
-    block_arena* get_block_arena() THROWS;
+    block_arena* get_block_arena() const THROWS;
 
 private:
     // This is thread safe.
-    std::atomic_size_t count_;
+    mutable std::atomic_size_t count_;
 
     // This is protected by constructor init and thread_local indexation.
-    std::vector<block_arena> arenas_;
+    mutable std::vector<block_arena> arenas_;
 };
 
 } // namespace node
