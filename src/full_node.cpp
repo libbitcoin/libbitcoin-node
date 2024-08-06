@@ -45,7 +45,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
-    ////chaser_populate_(*this),
+    chaser_populate_(*this),
     chaser_validate_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
@@ -85,7 +85,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         chaser_header_.stopping(ec);
         chaser_block_.stopping(ec);
         chaser_check_.stopping(ec);
-        ////chaser_populate_.stopping(ec);
+        chaser_populate_.stopping(ec);
         chaser_validate_.stopping(ec);
         chaser_confirm_.stopping(ec);
         chaser_transaction_.stopping(ec);
@@ -99,7 +99,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
             chaser_header_.start() :
             chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
-        ////((ec = chaser_populate_.start())) ||
+        ((ec = chaser_populate_.start())) ||
         ((ec = chaser_validate_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
@@ -245,10 +245,11 @@ void full_node::unsubscribe_events(object_key key) NOEXCEPT
 // Blocks.
 // ----------------------------------------------------------------------------
 
-void full_node::populate(const chain::block::cptr&, const header_link&, size_t,
-    network::result_handler&&) NOEXCEPT
+void full_node::populate(const chain::block::cptr& block,
+    const header_link& link, size_t height,
+    network::result_handler&& complete) NOEXCEPT
 {
-    ////chaser_populate_.populate(block, link, height, std::move(complete));
+    chaser_populate_.populate(block, link, height, std::move(complete));
 }
 
 void full_node::validate(const chain::block::cptr& block,

@@ -173,7 +173,7 @@ private:
     chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
-    ////chaser_populate chaser_populate_;
+    chaser_populate chaser_populate_;
     chaser_validate chaser_validate_;
     chaser_confirm chaser_confirm_;
     chaser_transaction chaser_transaction_;
