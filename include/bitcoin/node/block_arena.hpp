@@ -27,6 +27,7 @@ namespace libbitcoin {
 namespace node {
 
 /// Thread UNSAFE linear memory arena.
+/// Caller must manage capacity to ensure buffer is not overflowed.
 class BCN_API block_arena final
   : public arena
 {
@@ -45,16 +46,20 @@ public:
         return mutex_;
     }
 
+    void* require(size_t bytes) NOEXCEPT override;
+
 private:
     void* do_allocate(size_t bytes, size_t align) THROWS override;
     void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
     bool do_is_equal(const arena& other) const NOEXCEPT override;
-    size_t do_get_capacity() const NOEXCEPT override;
 
-    // These are thread safe.
+    // Number of bytes remaining to be allocated.
+    size_t capacity() const NOEXCEPT;
+
+    // These are thread safe (set only construct).
     std::shared_mutex mutex_{};
     uint8_t* memory_map_;
-    size_t capacity_;
+    size_t size_;
 
     // This is unprotected, caller must guard.
     size_t offset_;
