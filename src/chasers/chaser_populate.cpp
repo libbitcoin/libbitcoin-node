@@ -102,10 +102,10 @@ void chaser_populate::do_populate(const block::cptr& block,
     /*bool*/ ////archive().populate(*block);
 
     // Use all closure parameters to ensure they aren't optimized out.
+    // Captured block is not deleted until closure over this method deletes.
     if (block->is_valid() && is_nonzero(height) &&
         link != header_link::terminal)
     {
-        // Sends notification and deletes captured block in creating strand.
         // Notify coincident with delete ensures there is no cleanup backlog.
         complete(error::success);
     }
