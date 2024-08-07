@@ -53,7 +53,9 @@ block_arena* block_memory::get_block_arena() const THROWS
         std::memory_order_relaxed);
 
     // More threads are requesting an arena than specified at construct.
-    BC_ASSERT(index < arenas_.size());
+    ////BC_ASSERT(index < arenas_.size());
+    if (index >= arenas_.size())
+        throw allocation_exception{};
 
     return &arenas_.at(index);
 }

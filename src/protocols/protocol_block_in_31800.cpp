@@ -370,13 +370,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
         << "] from [" << authority() << "].");
 
-    // protocol bind captures self, keeping channel alive until closure delete.
-    ////populate(block, link, height, BIND(complete, _1, block, height));
-    notify(ec, chase::checked, height);
-    fire(events::block_archived, height /*block->get_retainer()->allocation()*/);
-
-    ////LOGA("Height: " << height << " size: " << size
-    ////    << " bytes: " << block->get_retainer()->allocation());
+    populate(block, link, height, BIND(complete, _1, block, height));
+    ////notify(ec, chase::checked, height);
+    ////fire(events::block_archived, height);
 
     count(size);
     map_->erase(it);
@@ -396,6 +392,7 @@ void protocol_block_in_31800::complete(const code& ec,
     {
         notify(ec, chase::checked, height);
         fire(events::block_archived, height);
+        ////const auto bytes = block->get_retainer()->allocation();
     }
 }
 

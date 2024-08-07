@@ -22,6 +22,8 @@
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {
+    
+BC_DEBUG_ONLY(constexpr auto max_align = alignof(std::max_align_t);)
 
 template <typename Type, if_unsigned_integer<Type> = true>
 constexpr Type to_aligned(Type value, Type alignment) NOEXCEPT
@@ -42,14 +44,14 @@ BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
 
 block_arena::block_arena(size_t size) NOEXCEPT
   : memory_map_{ system::pointer_cast<uint8_t>(malloc(size)) },
-    capacity_{ size },
+    size_{ size },
     offset_{}
 {
 }
 
 block_arena::block_arena(block_arena&& other) NOEXCEPT
   : memory_map_{ other.memory_map_ },
-    capacity_{ other.capacity_ },
+    size_{ other.size_ },
     offset_{ other.offset_ }
 {
     // Prevents free(memory_map_) as responsibility is passed to this object.
@@ -68,7 +70,7 @@ block_arena::~block_arena() NOEXCEPT
 block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
 {
     memory_map_ = other.memory_map_;
-    capacity_ = other.capacity_;
+    size_ = other.size_;
     offset_ = other.offset_;
 
     // Prevents free(memory_map_) as responsibility is passed to this object.
@@ -76,30 +78,39 @@ block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
     return *this;
 }
 
+// private
+size_t block_arena::capacity() const NOEXCEPT
+{
+    return system::floored_subtract(size_, offset_);
+}
+
+// Bytes includes any expected alignment.
+void* block_arena::require(size_t bytes) NOEXCEPT
+{
+    if (bytes > capacity())
+    {
+        std::unique_lock lock{ mutex_ };
+        offset_ = zero;
+    }
+
+    return memory_map_ + offset_;
+}
+
 void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
 {
     using namespace system;
     BC_ASSERT_MSG(is_nonzero(align), "align zero");
-    BC_ASSERT_MSG(align <= alignof(std::max_align_t), "align overflow");
+    BC_ASSERT_MSG(align <= max_align, "align overflow");
     BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
-    BC_ASSERT_MSG(!is_add_overflow(bytes, sub1(align)), "align overflow");
+    BC_ASSERT_MSG(!is_add_overflow(bytes, sub1(align)), "alignment overflow");
 
-    auto aligned_offset = to_aligned(offset_, align);
-    auto padding = aligned_offset - offset_;
-    auto allocation = padding + bytes;
+    const auto aligned_offset = to_aligned(offset_, align);
+    const auto padding = aligned_offset - offset_;
+    const auto allocation = padding + bytes;
 
-    // Wraps if allocation would overflow.
-    if (allocation > get_capacity())
-    {
-        // Block until arena retainers are all released.
-        std::unique_lock lock(mutex_);
-        aligned_offset = offset_ = zero;
-        allocation = bytes;
-
-        // Throws if necessary allocation exceeds buffer.
-        if (bytes > capacity_)
-            throw allocation_exception();
-    }
+    ////BC_ASSERT_MSG(allocation <= capacity(), "buffer overflow");
+    if (allocation > capacity())
+        throw allocation_exception{};
 
     offset_ += allocation;
     return memory_map_ + aligned_offset;
@@ -113,11 +124,6 @@ bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
 {
     // Do not cross the streams.
     return &other == this;
-}
-
-size_t block_arena::do_get_capacity() const NOEXCEPT
-{
-    return system::floored_subtract(capacity_, offset_);
 }
 
 BC_POP_WARNING()
