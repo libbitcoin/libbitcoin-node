@@ -392,7 +392,7 @@ void protocol_block_in_31800::complete(const code& ec,
     {
         notify(ec, chase::checked, height);
         fire(events::block_archived, height);
-        ////const auto bytes = block->get_retainer()->allocation();
+        ////const auto bytes = block->get_allocation();
     }
 }
 

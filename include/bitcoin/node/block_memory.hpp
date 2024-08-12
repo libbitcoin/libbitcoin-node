@@ -40,9 +40,6 @@ public:
     /// Each thread obtains an arena of the same size.
     arena* get_arena() NOEXCEPT override;
 
-    /// Each thread obtains its arena's retainer.
-    retainer::ptr get_retainer(size_t allocation=zero) NOEXCEPT override;
-
 protected:
     block_arena* get_block_arena() const THROWS;
 

@@ -40,12 +40,6 @@ public:
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
-    /// Get memory block retainer mutex.
-    inline std::shared_mutex& get_mutex() NOEXCEPT
-    {
-        return mutex_;
-    }
-
     void* require(size_t bytes) NOEXCEPT override;
 
 private:
@@ -57,7 +51,6 @@ private:
     size_t capacity() const NOEXCEPT;
 
     // These are thread safe (set only construct).
-    std::shared_mutex mutex_{};
     uint8_t* memory_map_;
     size_t size_;
 
