@@ -40,12 +40,6 @@ arena* block_memory::get_arena() NOEXCEPT
     return get_block_arena();
 }
 
-retainer::ptr block_memory::get_retainer(size_t allocation) NOEXCEPT
-{
-    return std::make_shared<retainer>(get_block_arena()->get_mutex(),
-        allocation);
-}
-
 // protected
 block_arena* block_memory::get_block_arena() const THROWS
 {

@@ -61,10 +61,7 @@ block_arena::block_arena(block_arena&& other) NOEXCEPT
 block_arena::~block_arena() NOEXCEPT
 {
     if (!is_null(memory_map_))
-    {
-        std::unique_lock lock(mutex_);
         free(memory_map_);
-    }
 }
 
 block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
@@ -88,10 +85,7 @@ size_t block_arena::capacity() const NOEXCEPT
 void* block_arena::require(size_t bytes) NOEXCEPT
 {
     if (bytes > capacity())
-    {
-        std::unique_lock lock{ mutex_ };
         offset_ = zero;
-    }
 
     return memory_map_ + offset_;
 }
