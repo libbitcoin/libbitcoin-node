@@ -82,12 +82,10 @@ size_t block_arena::capacity() const NOEXCEPT
 }
 
 // Bytes includes any expected alignment.
-void* block_arena::require(size_t bytes) NOEXCEPT
+void* block_arena::initialize() NOEXCEPT
 {
-    if (bytes > capacity())
-        offset_ = zero;
-
-    return memory_map_ + offset_;
+    offset_ = zero;
+    return memory_map_;
 }
 
 void* block_arena::do_allocate(size_t bytes, size_t align) THROWS

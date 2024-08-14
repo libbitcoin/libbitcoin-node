@@ -40,7 +40,7 @@ public:
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
-    void* require(size_t bytes) NOEXCEPT override;
+    void* initialize() NOEXCEPT override;
 
 private:
     void* do_allocate(size_t bytes, size_t align) THROWS override;
