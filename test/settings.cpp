@@ -60,8 +60,8 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.snapshot_valid, 100'000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
 
-    BOOST_REQUIRE_EQUAL(node.allocation(), system::limit<size_t>(30'000'000_u64));
-    BOOST_REQUIRE_EQUAL(node.allocation_bytes, 30'000'000_u64);
+    BOOST_REQUIRE_EQUAL(node.allocation(), system::limit<size_t>(52'000'000_u64));
+    BOOST_REQUIRE_EQUAL(node.allocation_bytes, 52'000'000_u64);
 
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
