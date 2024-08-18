@@ -900,7 +900,7 @@ options_metadata parser::load_settings() THROWS
     (
         "node.allocation_bytes",
         value<uint64_t>(&configured.node.allocation_bytes),
-        "Preallocated block buffer for each network thread, defaults to 30'000'000."
+        "Preallocated block buffer for each network thread, defaults to 52000000."
     )
     (
         "node.maximum_height",

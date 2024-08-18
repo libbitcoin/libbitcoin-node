@@ -77,7 +77,7 @@ namespace node {
 settings::settings() NOEXCEPT
   : headers_first{ true },
     allowed_deviation{ 1.5 },
-    allocation_bytes{ 30'000'000 },
+    allocation_bytes{ 52'000'000 },
     snapshot_bytes{ 107'374'182'400 },
     snapshot_valid{ 100'000 },
     maximum_height{ 0 },
