@@ -35,6 +35,7 @@ namespace node {
 
 BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
 BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
+BC_PUSH_WARNING(THROW_FROM_NOEXCEPT)
 
 // "If size is zero, the behavior of malloc is implementation-defined. For
 // example, a null pointer may be returned. Alternatively, a non-null pointer
@@ -43,9 +44,8 @@ BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
 // en.cppreference.com/w/c/memory/malloc
 
 block_arena::block_arena(size_t size) NOEXCEPT
-  : memory_map_{ system::pointer_cast<uint8_t>(malloc(size)) },
-    size_{ size },
-    offset_{}
+  : size_{ size },
+    offset_{ size }
 {
 }
 
@@ -60,8 +60,7 @@ block_arena::block_arena(block_arena&& other) NOEXCEPT
 
 block_arena::~block_arena() NOEXCEPT
 {
-    if (!is_null(memory_map_))
-        free(memory_map_);
+    release(memory_map_, offset_);
 }
 
 block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
@@ -75,17 +74,36 @@ block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
     return *this;
 }
 
-// private
-size_t block_arena::capacity() const NOEXCEPT
+void* block_arena::start() NOEXCEPT
 {
-    return system::floored_subtract(size_, offset_);
-}
+    release(memory_map_, offset_);
+    memory_map_ = system::pointer_cast<uint8_t>(std::malloc(size_));
+    if (is_null(memory_map_))
+        throw allocation_exception{};
 
-// Bytes includes any expected alignment.
-void* block_arena::initialize() NOEXCEPT
-{
     offset_ = zero;
     return memory_map_;
+}
+
+size_t block_arena::detach() NOEXCEPT
+{
+    const auto size = offset_;
+    const auto map = std::realloc(memory_map_, size);
+
+    // Memory map must not move.
+    if (map != memory_map_)
+        throw allocation_exception{};
+
+    memory_map_ = nullptr;
+    offset_ = size_;
+    return size;
+}
+
+void block_arena::release(void* ptr, size_t) NOEXCEPT
+{
+    // Does not affect member state.
+    if (!is_null(ptr))
+        std::free(ptr);
 }
 
 void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
@@ -118,6 +136,13 @@ bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
     return &other == this;
 }
 
+// private
+size_t block_arena::capacity() const NOEXCEPT
+{
+    return system::floored_subtract(size_, offset_);
+}
+
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 
