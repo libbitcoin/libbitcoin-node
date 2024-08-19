@@ -40,7 +40,9 @@ public:
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
-    void* initialize() NOEXCEPT override;
+    void* start() NOEXCEPT override;
+    size_t detach() NOEXCEPT override;
+    void release(void* ptr, size_t bytes) NOEXCEPT override;
 
 private:
     void* do_allocate(size_t bytes, size_t align) THROWS override;
@@ -51,7 +53,7 @@ private:
     size_t capacity() const NOEXCEPT;
 
     // These are thread safe (set only construct).
-    uint8_t* memory_map_;
+    uint8_t* memory_map_{ nullptr };
     size_t size_;
 
     // This is unprotected, caller must guard.
