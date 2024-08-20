@@ -898,9 +898,9 @@ options_metadata parser::load_settings() THROWS
         "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
     )
     (
-        "node.allocation_bytes",
-        value<uint64_t>(&configured.node.allocation_bytes),
-        "Preallocated block buffer for each network thread, defaults to 52000000."
+        "node.allocation_multiple",
+        value<uint16_t>(&configured.node.allocation_multiple),
+        "Per thread block deserialization buffer multiple of wire size, defaults to 20."
     )
     (
         "node.maximum_height",

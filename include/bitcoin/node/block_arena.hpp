@@ -26,38 +26,71 @@
 namespace libbitcoin {
 namespace node {
 
-/// Thread UNSAFE linear memory arena.
-/// Caller must manage capacity to ensure buffer is not overflowed.
+/// Thread UNSAFE linked-linear memory arena.
 class BCN_API block_arena final
   : public arena
 {
 public:
     DELETE_COPY(block_arena);
     
-    block_arena(size_t size=zero) NOEXCEPT;
+    block_arena(size_t multiple) NOEXCEPT;
     block_arena(block_arena&& other) NOEXCEPT;
     ~block_arena() NOEXCEPT;
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
-    void* start() NOEXCEPT override;
-    size_t detach() NOEXCEPT override;
-    void release(void* ptr, size_t bytes) NOEXCEPT override;
+    /// Start an allocation of linked chunks.
+    void* start(size_t wire_size) THROWS override;
+
+    /// Finalize allocation and reset allocator, return total allocation.
+    size_t detach() THROWS override;
+
+    /// Release all chunks chained to the address.
+    void release(void* address) NOEXCEPT override;
+
+protected:
+    struct record{ void* next; size_t size; };
+
+    /// Link a memory chunk to the allocated list.
+    void* link_new_chunk(size_t minimum=zero) THROWS;
+
+    /// Trim chunk to offset_, invalidates capacity.
+    void trim_to_offset() THROWS;
+
+    /// Close out chunk with link to next.
+    void set_record(uint8_t* next_address, size_t own_size) NOEXCEPT;
+
+    /// Get size of address chunk and address of next chunk (or nullptr).
+    record get_record(uint8_t* address) const NOEXCEPT;
+
+    /// Number of bytes remaining to be allocated.
+    size_t capacity() const NOEXCEPT;
+
+    /// Reset members (does not free).
+    size_t reset(size_t chunk_size=zero) NOEXCEPT;
 
 private:
+    static constexpr size_t record_size = sizeof(record);
+    constexpr size_t to_aligned(size_t value, size_t align) NOEXCEPT
+    {
+        using namespace system;
+        BC_ASSERT_MSG(is_nonzero(align), "align zero");
+        BC_ASSERT_MSG(!is_add_overflow(value, sub1(align)), "overflow");
+        BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
+        BC_ASSERT_MSG(align <= alignof(std::max_align_t), "align overflow");
+        return (value + sub1(align)) & ~sub1(align);
+    }
+
     void* do_allocate(size_t bytes, size_t align) THROWS override;
     void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
     bool do_is_equal(const arena& other) const NOEXCEPT override;
 
-    // Number of bytes remaining to be allocated.
-    size_t capacity() const NOEXCEPT;
-
-    // These are thread safe (set only construct).
-    uint8_t* memory_map_{ nullptr };
-    size_t size_;
-
-    // This is unprotected, caller must guard.
+    // These are unprotected, caller must guard.
+    uint8_t* memory_map_;
+    size_t multiple_;
     size_t offset_;
+    size_t total_;
+    size_t size_;
 
 };
 

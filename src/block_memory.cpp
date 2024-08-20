@@ -27,12 +27,12 @@ namespace node {
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-block_memory::block_memory(size_t bytes, size_t threads) NOEXCEPT
+block_memory::block_memory(size_t multiple, size_t threads) NOEXCEPT
   : count_{}, arenas_{}
 {
     arenas_.reserve(threads);
     for (auto index = zero; index < threads; ++index)
-        arenas_.emplace_back(bytes);
+        arenas_.emplace_back(multiple);
 }
 
 arena* block_memory::get_arena() NOEXCEPT

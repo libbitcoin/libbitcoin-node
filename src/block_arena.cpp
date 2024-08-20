@@ -18,41 +18,37 @@
  */
 #include <bitcoin/node/block_arena.hpp>
 
+#include <algorithm>
 #include <shared_mutex>
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {
-    
-BC_DEBUG_ONLY(constexpr auto max_align = alignof(std::max_align_t);)
-
-template <typename Type, if_unsigned_integer<Type> = true>
-constexpr Type to_aligned(Type value, Type alignment) NOEXCEPT
-{
-    return (value + sub1(alignment)) & ~sub1(alignment);
-}
-
 namespace node {
 
+using namespace system;
+
 BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
+BC_PUSH_WARNING(NO_REINTERPRET_CAST)
 BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
-BC_PUSH_WARNING(THROW_FROM_NOEXCEPT)
 
-// "If size is zero, the behavior of malloc is implementation-defined. For
-// example, a null pointer may be returned. Alternatively, a non-null pointer
-// may be returned; but such a pointer should not be dereferenced, and should
-// be passed to free to avoid memory leaks."
-// en.cppreference.com/w/c/memory/malloc
+// construct/destruct/assign
+// ----------------------------------------------------------------------------
 
-block_arena::block_arena(size_t size) NOEXCEPT
-  : size_{ size },
-    offset_{ size }
+block_arena::block_arena(size_t multiple) NOEXCEPT
+  : memory_map_{ nullptr },
+    multiple_{ multiple },
+    offset_{ zero },
+    total_{ zero },
+    size_{ zero }
 {
 }
 
 block_arena::block_arena(block_arena&& other) NOEXCEPT
   : memory_map_{ other.memory_map_ },
-    size_{ other.size_ },
-    offset_{ other.offset_ }
+    multiple_{ other.multiple_ },
+    offset_{ other.offset_ },
+    total_{ other.total_ },
+    size_{ other.size_ }
 {
     // Prevents free(memory_map_) as responsibility is passed to this object.
     other.memory_map_ = nullptr;
@@ -60,70 +56,134 @@ block_arena::block_arena(block_arena&& other) NOEXCEPT
 
 block_arena::~block_arena() NOEXCEPT
 {
-    release(memory_map_, offset_);
+    release(memory_map_);
 }
 
 block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
 {
     memory_map_ = other.memory_map_;
-    size_ = other.size_;
+    multiple_ = other.multiple_;
     offset_ = other.offset_;
+    total_ = other.total_;
+    size_ = other.size_;
 
     // Prevents free(memory_map_) as responsibility is passed to this object.
     other.memory_map_ = nullptr;
     return *this;
 }
 
-void* block_arena::start() NOEXCEPT
+// public
+// ----------------------------------------------------------------------------
+
+void* block_arena::start(size_t wire_size) THROWS
 {
-    release(memory_map_, offset_);
-    memory_map_ = system::pointer_cast<uint8_t>(std::malloc(size_));
+    if (is_multiply_overflow(wire_size, multiple_))
+        throw allocation_exception{};
+
+    release(memory_map_);
+    reset(multiple_ * wire_size);
+    return link_new_chunk();
+}
+
+size_t block_arena::detach() THROWS
+{
+    trim_to_offset();
+    set_record(nullptr, offset_);
+    return reset();
+}
+
+void block_arena::release(void* address) NOEXCEPT
+{
+    while (!is_null(address))
+    {
+        const auto value = get_record(pointer_cast<uint8_t>(address));
+        std::free(address/*, value.size */);
+        address = value.next;
+    }
+}
+
+// protected
+// ----------------------------------------------------------------------------
+
+void* block_arena::link_new_chunk(size_t minimum) THROWS
+{
+    // Ensure next allocation accomodates record plus current request.
+    BC_ASSERT(!is_add_overflow(minimum, record_size));
+    size_ = std::max(size_, minimum + record_size);
+
+    // Allocate size to temporary.
+    const auto map = pointer_cast<uint8_t>(std::malloc(size_));
+    if (is_null(map))
+        throw allocation_exception{};
+
+    // Set previous chunk record pointer to new allocation and own size.
+    set_record(map, offset_);
+    offset_ = record_size;
+    return memory_map_ = map;
+}
+
+void block_arena::trim_to_offset() THROWS
+{
+    // Memory map must not move. Move by realloc is allowed but not expected
+    // for truncation. If moves then this should drop into mmap/munmap/mremap.
+    ////const auto map = std::realloc(memory_map_, offset_);
+    ////if (map != memory_map_)
+    ////    throw allocation_exception{};
+}
+
+void block_arena::set_record(uint8_t* next_address, size_t own_size) NOEXCEPT
+{
+    // Don't set previous when current is the first chunk.
     if (is_null(memory_map_))
-        throw allocation_exception{};
+        return;
 
-    offset_ = zero;
-    return memory_map_;
+    reinterpret_cast<record&>(*memory_map_) = { next_address, own_size };
+    total_ += own_size;
 }
 
-size_t block_arena::detach() NOEXCEPT
+block_arena::record block_arena::get_record(uint8_t* address) const NOEXCEPT
 {
-    const auto size = offset_;
-    const auto map = std::realloc(memory_map_, size);
+    return reinterpret_cast<const record&>(*address);
+}
 
-    // Memory map must not move.
-    if (map != memory_map_)
-        throw allocation_exception{};
+size_t block_arena::capacity() const NOEXCEPT
+{
+    return floored_subtract(size_, offset_);
+}
 
+size_t block_arena::reset(size_t chunk_size) NOEXCEPT
+{
+    // Chunk resets to nullptr/full with no total allocation.
+    const auto total = total_;
     memory_map_ = nullptr;
-    offset_ = size_;
-    return size;
+    offset_ = chunk_size;
+    size_ = chunk_size;
+    total_ = zero;
+    return total;
 }
 
-void block_arena::release(void* ptr, size_t) NOEXCEPT
-{
-    // Does not affect member state.
-    if (!is_null(ptr))
-        std::free(ptr);
-}
+// protected interface
+// ----------------------------------------------------------------------------
 
 void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
 {
-    using namespace system;
-    BC_ASSERT_MSG(is_nonzero(align), "align zero");
-    BC_ASSERT_MSG(align <= max_align, "align overflow");
-    BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
-    BC_ASSERT_MSG(!is_add_overflow(bytes, sub1(align)), "alignment overflow");
-
     const auto aligned_offset = to_aligned(offset_, align);
     const auto padding = aligned_offset - offset_;
+
+    BC_ASSERT(!system::is_add_overflow(padding, bytes));
     const auto allocation = padding + bytes;
 
-    ////BC_ASSERT_MSG(allocation <= capacity(), "buffer overflow");
     if (allocation > capacity())
-        throw allocation_exception{};
-
-    offset_ += allocation;
-    return memory_map_ + aligned_offset;
+    {
+        trim_to_offset();
+        link_new_chunk(allocation);
+        return do_allocate(bytes, align);
+    }
+    else
+    {
+        offset_ += allocation;
+        return memory_map_ + aligned_offset;
+    }
 }
 
 void block_arena::do_deallocate(void*, size_t, size_t) NOEXCEPT
@@ -134,12 +194,6 @@ bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
 {
     // Do not cross the streams.
     return &other == this;
-}
-
-// private
-size_t block_arena::capacity() const NOEXCEPT
-{
-    return system::floored_subtract(size_, offset_);
 }
 
 BC_POP_WARNING()
