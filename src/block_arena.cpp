@@ -25,6 +25,8 @@
 namespace libbitcoin {
 namespace node {
 
+using namespace system;
+
 BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
 BC_PUSH_WARNING(NO_REINTERPRET_CAST)
 BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
@@ -32,19 +34,21 @@ BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
 // construct/destruct/assign
 // ----------------------------------------------------------------------------
 
-block_arena::block_arena(size_t size) NOEXCEPT
+block_arena::block_arena(size_t multiple) NOEXCEPT
   : memory_map_{ nullptr },
-    size_{ std::max(size, record_size) },
-    offset_{ size_ },
-    total_{ zero }
+    multiple_{ multiple },
+    offset_{ zero },
+    total_{ zero },
+    size_{ zero }
 {
 }
 
 block_arena::block_arena(block_arena&& other) NOEXCEPT
   : memory_map_{ other.memory_map_ },
-    size_{ other.size_ },
+    multiple_{ other.multiple_ },
     offset_{ other.offset_ },
-    total_{ other.total_ }
+    total_{ other.total_ },
+    size_{ other.size_ }
 {
     // Prevents free(memory_map_) as responsibility is passed to this object.
     other.memory_map_ = nullptr;
@@ -58,9 +62,10 @@ block_arena::~block_arena() NOEXCEPT
 block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
 {
     memory_map_ = other.memory_map_;
-    size_ = other.size_;
+    multiple_ = other.multiple_;
     offset_ = other.offset_;
     total_ = other.total_;
+    size_ = other.size_;
 
     // Prevents free(memory_map_) as responsibility is passed to this object.
     other.memory_map_ = nullptr;
@@ -70,11 +75,14 @@ block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
 // public
 // ----------------------------------------------------------------------------
 
-void* block_arena::start() THROWS
+void* block_arena::start(size_t wire_size) THROWS
 {
+    if (is_multiply_overflow(wire_size, multiple_))
+        throw allocation_exception{};
+
     release(memory_map_);
-    reset();
-    return attach(zero);
+    reset(multiple_ * wire_size);
+    return link_new_chunk();
 }
 
 size_t block_arena::detach() THROWS
@@ -88,20 +96,18 @@ void block_arena::release(void* address) NOEXCEPT
 {
     while (!is_null(address))
     {
-        const auto value = get_record(system::pointer_cast<uint8_t>(address));
+        const auto value = get_record(pointer_cast<uint8_t>(address));
         std::free(address/*, value.size */);
         address = value.next;
-    } 
+    }
 }
 
 // protected
 // ----------------------------------------------------------------------------
 
-void* block_arena::attach(size_t minimum) THROWS
+void* block_arena::link_new_chunk(size_t minimum) THROWS
 {
-    using namespace system;
-
-    // Ensure next allocation accomodates record plus request (expandable).
+    // Ensure next allocation accomodates record plus current request.
     BC_ASSERT(!is_add_overflow(minimum, record_size));
     size_ = std::max(size_, minimum + record_size);
 
@@ -120,9 +126,9 @@ void block_arena::trim_to_offset() THROWS
 {
     // Memory map must not move. Move by realloc is allowed but not expected
     // for truncation. If moves then this should drop into mmap/munmap/mremap.
-    const auto map = std::realloc(memory_map_, offset_);
-    if (map != memory_map_)
-        throw allocation_exception{};
+    ////const auto map = std::realloc(memory_map_, offset_);
+    ////if (map != memory_map_)
+    ////    throw allocation_exception{};
 }
 
 void block_arena::set_record(uint8_t* next_address, size_t own_size) NOEXCEPT
@@ -142,14 +148,16 @@ block_arena::record block_arena::get_record(uint8_t* address) const NOEXCEPT
 
 size_t block_arena::capacity() const NOEXCEPT
 {
-    return system::floored_subtract(size_, offset_);
+    return floored_subtract(size_, offset_);
 }
 
-size_t block_arena::reset() NOEXCEPT
+size_t block_arena::reset(size_t chunk_size) NOEXCEPT
 {
+    // Chunk resets to nullptr/full with no total allocation.
     const auto total = total_;
     memory_map_ = nullptr;
-    offset_ = size_;
+    offset_ = chunk_size;
+    size_ = chunk_size;
     total_ = zero;
     return total;
 }
@@ -161,13 +169,14 @@ void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
 {
     const auto aligned_offset = to_aligned(offset_, align);
     const auto padding = aligned_offset - offset_;
-    const auto allocation = padding + bytes;
+
     BC_ASSERT(!system::is_add_overflow(padding, bytes));
+    const auto allocation = padding + bytes;
 
     if (allocation > capacity())
     {
         trim_to_offset();
-        attach(allocation);
+        link_new_chunk(allocation);
         return do_allocate(bytes, align);
     }
     else

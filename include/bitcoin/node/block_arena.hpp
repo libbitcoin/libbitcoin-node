@@ -33,14 +33,14 @@ class BCN_API block_arena final
 public:
     DELETE_COPY(block_arena);
     
-    block_arena(size_t size=zero) NOEXCEPT;
+    block_arena(size_t multiple) NOEXCEPT;
     block_arena(block_arena&& other) NOEXCEPT;
     ~block_arena() NOEXCEPT;
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
     /// Start an allocation of linked chunks.
-    void* start() THROWS override;
+    void* start(size_t wire_size) THROWS override;
 
     /// Finalize allocation and reset allocator, return total allocation.
     size_t detach() THROWS override;
@@ -51,8 +51,8 @@ public:
 protected:
     struct record{ void* next; size_t size; };
 
-    /// Attach a memory chunk to the allocated list.
-    void* attach(size_t minimum) THROWS;
+    /// Link a memory chunk to the allocated list.
+    void* link_new_chunk(size_t minimum=zero) THROWS;
 
     /// Trim chunk to offset_, invalidates capacity.
     void trim_to_offset() THROWS;
@@ -67,7 +67,7 @@ protected:
     size_t capacity() const NOEXCEPT;
 
     /// Reset members (does not free).
-    size_t reset() NOEXCEPT;
+    size_t reset(size_t chunk_size=zero) NOEXCEPT;
 
 private:
     static constexpr size_t record_size = sizeof(record);
@@ -85,11 +85,12 @@ private:
     void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
     bool do_is_equal(const arena& other) const NOEXCEPT override;
 
-    // This are unprotected, caller must guard.
+    // These are unprotected, caller must guard.
     uint8_t* memory_map_;
-    size_t size_;
+    size_t multiple_;
     size_t offset_;
     size_t total_;
+    size_t size_;
 
 };
 

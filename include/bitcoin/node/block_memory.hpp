@@ -27,17 +27,17 @@
 namespace libbitcoin {
 namespace node {
 
-/// Thread SAFE linear arena allocator.
+/// Thread SAFE linked-linear arena allocator.
 class BCN_API block_memory final
   : public network::memory
 {
 public:
     DELETE_COPY_MOVE_DESTRUCT(block_memory);
 
-    /// Default allocate each arena to preclude locking.
-    block_memory(size_t bytes, size_t threads) NOEXCEPT;
+    /// Per thread multiple of wire size for each linear allocation chunk.
+    block_memory(size_t multiple, size_t threads) NOEXCEPT;
 
-    /// Each thread obtains an arena of the same size.
+    /// Each thread obtains an arena.
     arena* get_arena() NOEXCEPT override;
 
 protected:
