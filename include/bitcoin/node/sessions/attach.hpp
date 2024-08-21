@@ -106,7 +106,6 @@ protected:
     network::channel::ptr create_channel(const network::socket::ptr& socket,
         bool quiet) NOEXCEPT override
     {
-        // This memory arena is NOT thread safe.
         return std::make_shared<network::channel>(session::get_memory(),
             network::session::log, socket, network::session::settings(),
             network::session::create_key(), quiet);

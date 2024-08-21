@@ -26,7 +26,7 @@
 namespace libbitcoin {
 namespace node {
 
-/// Thread UNSAFE linked-linear memory arena.
+/// Thread UNSAFE detachable linked-linear memory arena.
 class BCN_API block_arena final
   : public arena
 {
