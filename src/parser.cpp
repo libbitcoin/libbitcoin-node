@@ -900,7 +900,7 @@ options_metadata parser::load_settings() THROWS
     (
         "node.allocation_multiple",
         value<uint16_t>(&configured.node.allocation_multiple),
-        "Per thread block deserialization buffer multiple of wire size, defaults to 20."
+        "Block deserialization buffer multiple of wire size, defaults to 20 (0 disables)."
     )
     (
         "node.maximum_height",
