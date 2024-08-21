@@ -35,20 +35,18 @@ public:
     DELETE_COPY_MOVE_DESTRUCT(block_memory);
 
     /// Per thread multiple of wire size for each linear allocation chunk.
+    /// Returns default_arena if multiple is zero or threads exceeded.
     block_memory(size_t multiple, size_t threads) NOEXCEPT;
 
     /// Each thread obtains an arena.
     arena* get_arena() NOEXCEPT override;
 
-protected:
-    block_arena* get_block_arena() const THROWS;
-
 private:
     // This is thread safe.
-    mutable std::atomic_size_t count_;
+    std::atomic_size_t count_{};
 
     // This is protected by constructor init and thread_local indexation.
-    mutable std::vector<block_arena> arenas_;
+    std::vector<block_arena> arenas_{};
 };
 
 } // namespace node
