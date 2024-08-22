@@ -40,37 +40,46 @@ public:
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
     /// Start an allocation of linked chunks.
-    void* start(size_t wire_size) THROWS override;
+    NODISCARD void* start(size_t wire_size) THROWS override;
 
     /// Finalize allocation and reset allocator, return total allocation.
-    size_t detach() THROWS override;
+    size_t detach() NOEXCEPT override;
 
     /// Release all chunks chained to the address.
     void release(void* address) NOEXCEPT override;
 
 protected:
-    struct record{ void* next; size_t size; };
-
-    /// Link a memory chunk to the allocated list.
-    void* link_new_chunk(size_t minimum=zero) THROWS;
-
-    /// Trim chunk to offset_, invalidates capacity.
-    void trim_to_offset() THROWS;
+    /// Link a memory chunk to the allocated stack.
+    void push(size_t minimum=zero) THROWS;
 
     /// Close out chunk with link to next.
-    void set_record(uint8_t* next_address, size_t own_size) NOEXCEPT;
+    INLINE void set_link(uint8_t* next_address) NOEXCEPT
+    {
+        // Don't set previous when current is the first chunk.
+        if (!is_null(memory_map_))
+        {
+            BC_PUSH_WARNING(NO_REINTERPRET_CAST)
+            reinterpret_cast<void*&>(*memory_map_) = next_address;
+            BC_POP_WARNING()
+        }
+    }
 
     /// Get size of address chunk and address of next chunk (or nullptr).
-    record get_record(uint8_t* address) const NOEXCEPT;
+    INLINE void* get_link(uint8_t* address) const NOEXCEPT
+    {
+        BC_ASSERT(!is_null(address));
+        BC_PUSH_WARNING(NO_REINTERPRET_CAST)
+        return reinterpret_cast<void*&>(*address);
+        BC_POP_WARNING()
+    }
 
     /// Number of bytes remaining to be allocated.
-    size_t capacity() const NOEXCEPT;
-
-    /// Reset members (does not free).
-    size_t reset(size_t chunk_size=zero) NOEXCEPT;
+    INLINE size_t capacity() const NOEXCEPT
+    {
+        return system::floored_subtract(size_, offset_);
+    }
 
 private:
-    static constexpr size_t record_size = sizeof(record);
     constexpr size_t to_aligned(size_t value, size_t align) NOEXCEPT
     {
         using namespace system;
