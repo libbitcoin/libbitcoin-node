@@ -27,10 +27,6 @@ namespace node {
 
 using namespace system;
 
-BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
-BC_PUSH_WARNING(NO_REINTERPRET_CAST)
-BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
-
 // construct/destruct/assign
 // ----------------------------------------------------------------------------
 
@@ -80,86 +76,58 @@ void* block_arena::start(size_t wire_size) THROWS
     if (is_multiply_overflow(wire_size, multiple_))
         throw allocation_exception{};
 
-    release(memory_map_);
-    reset(multiple_ * wire_size);
-    return link_new_chunk();
+    size_ = wire_size * multiple_;
+    memory_map_ = nullptr;
+    offset_ = zero;
+    total_ = zero;
+    push();
+    return memory_map_;
 }
 
-size_t block_arena::detach() THROWS
+size_t block_arena::detach() NOEXCEPT
 {
-    trim_to_offset();
-    set_record(nullptr, offset_);
-    return reset();
+    set_link(nullptr);
+    memory_map_ = nullptr;
+    return total_ + offset_;
 }
 
 void block_arena::release(void* address) NOEXCEPT
 {
     while (!is_null(address))
     {
-        const auto value = get_record(pointer_cast<uint8_t>(address));
-        std::free(address/*, value.size */);
-        address = value.next;
+        const auto link = get_link(pointer_cast<uint8_t>(address));
+
+        BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
+        std::free(address);
+        BC_POP_WARNING()
+
+        address = link;
     }
 }
 
 // protected
 // ----------------------------------------------------------------------------
 
-void* block_arena::link_new_chunk(size_t minimum) THROWS
+void block_arena::push(size_t minimum) THROWS
 {
-    // Ensure next allocation accomodates record plus current request.
-    BC_ASSERT(!is_add_overflow(minimum, record_size));
-    size_ = std::max(size_, minimum + record_size);
+    static constexpr size_t link_size = sizeof(void*);
 
-    // Allocate size to temporary.
+    // Ensure next allocation accomodates link plus current request.
+    BC_ASSERT(!is_add_overflow(minimum, link_size));
+    size_ = std::max(size_, minimum + link_size);
+
+    BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
     const auto map = pointer_cast<uint8_t>(std::malloc(size_));
+    BC_POP_WARNING()
+
     if (is_null(map))
         throw allocation_exception{};
 
-    // Set previous chunk record pointer to new allocation and own size.
-    set_record(map, offset_);
-    offset_ = record_size;
-    return memory_map_ = map;
-}
-
-void block_arena::trim_to_offset() THROWS
-{
-    // Memory map must not move. Move by realloc is allowed but not expected
-    // for truncation. If moves then this should drop into mmap/munmap/mremap.
-    ////const auto map = std::realloc(memory_map_, offset_);
-    ////if (map != memory_map_)
-    ////    throw allocation_exception{};
-}
-
-void block_arena::set_record(uint8_t* next_address, size_t own_size) NOEXCEPT
-{
-    // Don't set previous when current is the first chunk.
-    if (is_null(memory_map_))
-        return;
-
-    reinterpret_cast<record&>(*memory_map_) = { next_address, own_size };
-    total_ += own_size;
-}
-
-block_arena::record block_arena::get_record(uint8_t* address) const NOEXCEPT
-{
-    return reinterpret_cast<const record&>(*address);
-}
-
-size_t block_arena::capacity() const NOEXCEPT
-{
-    return floored_subtract(size_, offset_);
-}
-
-size_t block_arena::reset(size_t chunk_size) NOEXCEPT
-{
-    // Chunk resets to nullptr/full with no total allocation.
-    const auto total = total_;
-    memory_map_ = nullptr;
-    offset_ = chunk_size;
-    size_ = chunk_size;
-    total_ = zero;
-    return total;
+    // Set previous chunk's link pointer to the new allocation.
+    set_link(map);
+    memory_map_ = map;
+    total_ += offset_;
+    offset_ = link_size;
 }
 
 // protected interface
@@ -167,6 +135,7 @@ size_t block_arena::reset(size_t chunk_size) NOEXCEPT
 
 void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
 {
+    BC_ASSERT(!is_null(memory_map_));
     const auto aligned_offset = to_aligned(offset_, align);
     const auto padding = aligned_offset - offset_;
 
@@ -175,14 +144,16 @@ void* block_arena::do_allocate(size_t bytes, size_t align) THROWS
 
     if (allocation > capacity())
     {
-        trim_to_offset();
-        link_new_chunk(allocation);
+        push(allocation);
         return do_allocate(bytes, align);
     }
     else
     {
         offset_ += allocation;
+
+        BC_PUSH_WARNING(NO_POINTER_ARITHMETIC)
         return memory_map_ + aligned_offset;
+        BC_POP_WARNING()
     }
 }
 
@@ -195,10 +166,6 @@ bool block_arena::do_is_equal(const arena& other) const NOEXCEPT
     // Do not cross the streams.
     return &other == this;
 }
-
-BC_POP_WARNING()
-BC_POP_WARNING()
-BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
