@@ -22,6 +22,8 @@ BOOST_AUTO_TEST_SUITE(block_arena_tests)
 
 using namespace system;
 
+constexpr auto link_size = sizeof(void*);
+
 class accessor
   : public block_arena
 {
@@ -94,7 +96,7 @@ public:
 
     void* malloc(size_t bytes) THROWS override
     {
-        stack.emplace_back(bytes);
+        stack.emplace_back(bytes, 0xff_u8);
         return stack.back().data();
     }
 
@@ -105,6 +107,7 @@ public:
 
     void push_(size_t minimum=zero) THROWS
     {
+        pushed_minimum = minimum;
         push(minimum);
     }
 
@@ -130,6 +133,19 @@ public:
 
     data_stack stack{};
     std::vector<void*> freed{};
+    size_t pushed_minimum{};
+};
+
+class accessor_null_malloc
+    : public accessor
+{
+public:
+    using accessor::accessor;
+
+    void* malloc(size_t) THROWS override
+    {
+        return nullptr;
+    }
 };
 
 // construct
@@ -205,46 +221,153 @@ BOOST_AUTO_TEST_CASE(block_arena__start__multiple_overflow__throws_allocation_ex
     BC_POP_WARNING()
 }
 
-BOOST_AUTO_TEST_CASE(block_arena__start__zero__minimal_allocation)
+BOOST_AUTO_TEST_CASE(block_arena__start__zero__link_size_allocation)
 {
     constexpr auto size = zero;
     constexpr auto multiple = 42u;
     accessor instance{ multiple };
     const auto memory = instance.start(size);
-    BOOST_REQUIRE_NE(memory, nullptr);
-    BOOST_REQUIRE_LT(size, sizeof(void*));
     BOOST_REQUIRE_EQUAL(instance.stack.size(), one);
-    BOOST_REQUIRE_EQUAL(instance.stack.front().size(), sizeof(void*));
+    BOOST_REQUIRE_EQUAL(instance.stack.front().data(), memory);
+    BOOST_REQUIRE_EQUAL(instance.stack.front().size(), link_size);
+    BOOST_REQUIRE_EQUAL(instance.get_multiple(), multiple);
+
+    // Push minimum only ensures block allocation sufficient for current do_allocate.
+    // The explicit start call allocation is zero minimum because there is no do_allocate.
+    BOOST_REQUIRE_EQUAL(instance.pushed_minimum, zero);
 }
 
-BOOST_AUTO_TEST_CASE(block_arena__start__at_least_pointer_size__expected)
+BOOST_AUTO_TEST_CASE(block_arena__start__at_least_link_size__expected_allocation)
 {
     constexpr auto size = 42u;
     constexpr auto multiple = 10u;
+    static_assert(size >= link_size);
+
     accessor instance{ multiple };
     const auto memory = instance.start(size);
-    BOOST_REQUIRE_NE(memory, nullptr);
-    BOOST_REQUIRE_GE(size, sizeof(void*));
     BOOST_REQUIRE_EQUAL(instance.stack.size(), one);
+    BOOST_REQUIRE_EQUAL(instance.stack.front().data(), memory);
     BOOST_REQUIRE_EQUAL(instance.stack.front().size(), size * multiple);
-    BOOST_REQUIRE_EQUAL(instance.stack.front().data(), instance.get_memory_map());
+    BOOST_REQUIRE_EQUAL(instance.get_multiple(), multiple);
+    BOOST_REQUIRE_EQUAL(instance.pushed_minimum, zero);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__start__at_least_link_size__expected_sizes)
+{
+    constexpr auto size = 42u;
+    constexpr auto multiple = 10u;
+    static_assert(size >= link_size);
+
+    accessor instance{ multiple };
+    const auto memory = instance.start(size);
+    BOOST_REQUIRE_EQUAL(instance.stack.size(), one);
+    BOOST_REQUIRE_EQUAL(instance.pushed_minimum, zero);
+
+    const auto& chunk = instance.stack.front();
+    BOOST_REQUIRE_EQUAL(chunk.data(), memory);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), chunk.data());
+    BOOST_REQUIRE_EQUAL(instance.get_size(), size * multiple);
+    BOOST_REQUIRE_EQUAL(instance.get_offset(), link_size);
+
+    // Total is total bytes consumed by do_allocate between start and detach, and
+    // is used only to indicate the necessary allocation required for the object.
+    // Actual allocation will generally exceed total due to chunk granularity.
+    // Total not updated until allocated chunk closed out by next push or detach.
+    BOOST_REQUIRE_EQUAL(instance.get_total(), zero);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__start__always__sets_nullptr_link)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    static_assert(size * multiple >= link_size);
+
+    accessor instance{ multiple };
+    const auto memory = instance.start(size);
+    BOOST_REQUIRE_EQUAL(instance.stack.size(), one);
+    const auto& chunk = instance.stack.front();
+    BOOST_REQUIRE_EQUAL(chunk.data(), memory);
+    BOOST_REQUIRE_EQUAL(chunk.size(), size * multiple);
+
+    // malloc is not required to zeroize, the data_chunk mock fills 0xff.
+    const data_chunk foo(link_size, 0x00_u8);
+    const data_chunk bar(size * multiple - link_size, 0xff_u8);
+    const auto buffer = splice(foo, bar);
+    BOOST_REQUIRE_EQUAL(chunk, buffer);
 }
 
 // detach
 
-BOOST_AUTO_TEST_CASE(block_arena__detach__unstarted__zero)
+BOOST_AUTO_TEST_CASE(block_arena__detach__unstarted__zero_nullptr)
 {
-    accessor instance{ 42 };
-    const auto size = instance.detach();
-    BOOST_REQUIRE_EQUAL(size, zero);
+    accessor instance{ 10 };
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
+    BOOST_REQUIRE_EQUAL(instance.detach(), zero);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__detach__started__link_size_nullptr)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    static_assert(size * multiple >= link_size);
+
+    accessor instance{ multiple };
+    const auto memory = instance.start(size);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), memory);
+
+    // The only used portion of the allocation is the link.
+    BOOST_REQUIRE_EQUAL(instance.detach(), link_size);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__detach__unaligned_allocations__expected)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    static_assert(size * multiple >= link_size);
+
+    accessor instance{ multiple };
+    const auto memory = pointer_cast<uint8_t>(instance.start(size));
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), memory);
+    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(3, 1)), std::next(memory, link_size));
+    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(4, 1)), std::next(memory, link_size + 3u));
+    BOOST_REQUIRE_EQUAL(instance.detach(), link_size + 3u + 4u);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__detach__multiple_blocks__expected)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    static_assert(size * multiple >= link_size);
+
+    accessor instance{ multiple };
+    const auto memory = pointer_cast<uint8_t>(instance.start(size));
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), memory);
+
+    // 18 - 8 - 10 = 0 (exact fit)
+    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(10, 1)), std::next(memory, link_size));
+
+    // Overflowed to new block, so does not extend opening block.
+    const auto used = pointer_cast<uint8_t>(instance.allocate(5, 1));
+    BOOST_REQUIRE_NE(used, std::next(memory, link_size + 10u));
+
+    // Extends current (new) block.
+    const auto block = instance.get_memory_map();
+    BOOST_REQUIRE_EQUAL(used, std::next(block, link_size));
+
+    // Total size is a link for each block and the 15 unaligned bytes allocated.
+    BOOST_REQUIRE_EQUAL(instance.detach(), 2u * link_size + 10u + 5u);
+    BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
 }
 
 // release
 
-BOOST_AUTO_TEST_CASE(block_arena__release__nullptr__nop)
+BOOST_AUTO_TEST_CASE(block_arena__release__nullptr__does_not_throw)
 {
-    accessor instance{ 42 };
-    instance.release(nullptr);
+    accessor instance{ 10 };
+    BOOST_REQUIRE_NO_THROW(instance.release(nullptr));
 }
 
 // to_aligned
@@ -257,17 +380,54 @@ BOOST_AUTO_TEST_CASE(block_arena__to_aligned__zero_one__zero)
 
 // push
 
-BOOST_AUTO_TEST_CASE(block_arena__push__)
+BOOST_AUTO_TEST_CASE(block_arena__push__null_malloc__throws_allocation_exception)
 {
+    accessor_null_malloc instance{ 10 };
+
+    BC_PUSH_WARNING(DISCARDING_NON_DISCARDABLE)
+    BOOST_REQUIRE_THROW(instance.push_(42), allocation_exception);
+    BC_POP_WARNING()
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__push__zero_size__sets_minimum_plus_link)
+{
+    constexpr auto minimum = 7u;
+    constexpr auto expected = minimum + link_size;
+
     accessor instance{ 42 };
-    instance.push_();
+    BOOST_REQUIRE_EQUAL(instance.get_size(), zero);
+
+    instance.push_(minimum);
+    BOOST_REQUIRE_EQUAL(instance.get_size(), expected);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__push__size_minimum_plus_link__unchanged)
+{
+    constexpr auto minimum = 7u;
+    constexpr auto expected = minimum + link_size;
+
+    accessor instance{ 42 };
+    instance.set_size(expected);
+    instance.push_(minimum);
+    BOOST_REQUIRE_EQUAL(instance.get_size(), expected);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__push__size_above_minimum_plus_link__unchanged)
+{
+    constexpr auto minimum = 7u;
+    constexpr auto expected = add1(minimum + link_size);
+
+    accessor instance{ 42 };
+    instance.set_size(expected);
+    instance.push_(minimum);
+    BOOST_REQUIRE_EQUAL(instance.get_size(), expected);
 }
 
 // set_link
 
 BOOST_AUTO_TEST_CASE(block_arena__set_link__nullptr__nop)
 {
-    accessor instance{ 42 };
+    accessor instance{ 10 };
     instance.set_link_(nullptr);
 }
 
@@ -275,8 +435,8 @@ BOOST_AUTO_TEST_CASE(block_arena__set_link__nullptr__nop)
 
 BOOST_AUTO_TEST_CASE(block_arena__get_link__unstarted__zero_filled)
 {
-    accessor instance{ 42 };
-    instance.stack.emplace_back(sizeof(void*));
+    accessor instance{ 10 };
+    instance.stack.emplace_back(link_size);
     const auto link = instance.get_link_(instance.stack.front().data());
     BOOST_REQUIRE_EQUAL(link, nullptr);
 }
@@ -285,7 +445,7 @@ BOOST_AUTO_TEST_CASE(block_arena__get_link__unstarted__zero_filled)
 
 BOOST_AUTO_TEST_CASE(block_arena__capacity__unstarted__zero)
 {
-    accessor instance{ 42 };
+    accessor instance{ 10 };
     const auto capacity = instance.capacity_();
     BOOST_REQUIRE_EQUAL(capacity, zero);
 }
@@ -294,7 +454,7 @@ BOOST_AUTO_TEST_CASE(block_arena__capacity__unstarted__zero)
 
 BOOST_AUTO_TEST_CASE(block_arena__do_allocate__do_deallocate__expected)
 {
-    accessor instance{ 42 };
+    accessor instance{ 10 };
     const auto block = instance.start(0);
     BOOST_REQUIRE_NE(block, nullptr);
 

@@ -85,7 +85,6 @@ void* block_arena::start(size_t wire_size) THROWS
 
 size_t block_arena::detach() NOEXCEPT
 {
-    set_link(nullptr);
     memory_map_ = nullptr;
     return total_ + offset_;
 }
@@ -118,6 +117,9 @@ void block_arena::push(size_t minimum) THROWS
     // Set previous chunk's link pointer to the new allocation.
     set_link(map);
     memory_map_ = map;
+
+    // Set current chunk's link pointer to nullptr.
+    set_link(nullptr);
     total_ += offset_;
     offset_ = link_size;
 }
