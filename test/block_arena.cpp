@@ -126,6 +126,14 @@ public:
         return capacity();
     }
 
+    void do_deallocate(void* ptr, size_t size, size_t offset) NOEXCEPT override
+    {
+        deallocated_ptr = ptr;
+        deallocated_size = size;
+        deallocated_offset = offset;
+        block_arena::do_deallocate(ptr, size, offset);
+    }
+
     // These can be directly invoked via public methods.
     //void* do_allocate(size_t bytes, size_t align) THROWS override;
     //void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
@@ -134,6 +142,9 @@ public:
     data_stack stack{};
     std::vector<void*> freed{};
     size_t pushed_minimum{};
+    void* deallocated_ptr{};
+    size_t deallocated_size{};
+    size_t deallocated_offset{};
 };
 
 class accessor_null_malloc
@@ -325,14 +336,16 @@ BOOST_AUTO_TEST_CASE(block_arena__detach__unaligned_allocations__expected)
 {
     constexpr auto size = 9u;
     constexpr auto multiple = 2u;
-    static_assert(size * multiple >= link_size);
+    constexpr auto first = 3u;
+    constexpr auto second = 4u;
+    static_assert(size * multiple >= link_size + first + second);
 
     accessor instance{ multiple };
     const auto memory = pointer_cast<uint8_t>(instance.start(size));
     BOOST_REQUIRE_EQUAL(instance.get_memory_map(), memory);
-    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(3, 1)), std::next(memory, link_size));
-    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(4, 1)), std::next(memory, link_size + 3u));
-    BOOST_REQUIRE_EQUAL(instance.detach(), link_size + 3u + 4u);
+    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(first, one)), std::next(memory, link_size));
+    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(second, one)), std::next(memory, link_size + first));
+    BOOST_REQUIRE_EQUAL(instance.detach(), link_size + first + second);
     BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
 }
 
@@ -340,25 +353,27 @@ BOOST_AUTO_TEST_CASE(block_arena__detach__multiple_blocks__expected)
 {
     constexpr auto size = 9u;
     constexpr auto multiple = 2u;
-    static_assert(size * multiple >= link_size);
+    constexpr auto overflow = multiple * size - link_size;
+    static_assert(size * multiple >= link_size + overflow);
+    constexpr auto more = 5u;
 
     accessor instance{ multiple };
     const auto memory = pointer_cast<uint8_t>(instance.start(size));
     BOOST_REQUIRE_EQUAL(instance.get_memory_map(), memory);
 
     // 18 - 8 - 10 = 0 (exact fit)
-    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(10, 1)), std::next(memory, link_size));
+    BOOST_REQUIRE_EQUAL(pointer_cast<uint8_t>(instance.allocate(overflow, 1)), std::next(memory, link_size));
 
     // Overflowed to new block, so does not extend opening block.
-    const auto used = pointer_cast<uint8_t>(instance.allocate(5, 1));
-    BOOST_REQUIRE_NE(used, std::next(memory, link_size + 10u));
+    const auto used = pointer_cast<uint8_t>(instance.allocate(more, 1));
+    BOOST_REQUIRE_NE(used, std::next(memory, link_size + overflow));
 
     // Extends current (new) block.
     const auto block = instance.get_memory_map();
     BOOST_REQUIRE_EQUAL(used, std::next(block, link_size));
 
     // Total size is a link for each block and the 15 unaligned bytes allocated.
-    BOOST_REQUIRE_EQUAL(instance.detach(), 2u * link_size + 10u + 5u);
+    BOOST_REQUIRE_EQUAL(instance.detach(), two * link_size + overflow + more);
     BOOST_REQUIRE_EQUAL(instance.get_memory_map(), nullptr);
 }
 
@@ -370,12 +385,121 @@ BOOST_AUTO_TEST_CASE(block_arena__release__nullptr__does_not_throw)
     BOOST_REQUIRE_NO_THROW(instance.release(nullptr));
 }
 
+BOOST_AUTO_TEST_CASE(block_arena__release__single_block_undetached__expected)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    accessor instance{ multiple };
+    const auto memory = instance.start(size);
+    BOOST_REQUIRE_NO_THROW(instance.release(memory));
+    BOOST_REQUIRE_EQUAL(instance.freed.size(), one);
+    BOOST_REQUIRE_EQUAL(instance.freed.front(), memory);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__release__single_block_detached__expected)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    accessor instance{ multiple };
+    const auto memory = instance.start(size);
+    BOOST_REQUIRE_EQUAL(instance.detach(), link_size);
+    BOOST_REQUIRE_NO_THROW(instance.release(memory));
+    BOOST_REQUIRE_EQUAL(instance.freed.size(), one);
+    BOOST_REQUIRE_EQUAL(instance.freed.front(), memory);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__release__three_blocks_detached__expected)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    constexpr auto overflow = multiple * size - link_size;
+    constexpr auto first = 5u;
+
+    accessor instance{ multiple };
+    const auto memory = pointer_cast<uint8_t>(instance.start(size));
+
+    // Does not reallocate.
+    const auto position0 = pointer_cast<uint8_t>(instance.allocate(first, 1));
+    const auto memory0 = instance.get_memory_map();
+    BOOST_REQUIRE_EQUAL(memory0, memory);
+    BOOST_REQUIRE_EQUAL(position0, std::next(memory0, link_size));
+
+    // Reallocates.
+    const auto position1 = pointer_cast<uint8_t>(instance.allocate(add1(overflow), 1));
+    const auto memory1 = instance.get_memory_map();
+    BOOST_REQUIRE_NE(memory1, memory0);
+    BOOST_REQUIRE_EQUAL(position1, std::next(memory1, link_size));
+
+    // Reallocates.
+    const auto position2 = pointer_cast<uint8_t>(instance.allocate(add1(overflow), 1));
+    const auto memory2 = instance.get_memory_map();
+    BOOST_REQUIRE_NE(memory2, memory1);
+    BOOST_REQUIRE_EQUAL(position2, std::next(memory2, link_size));
+
+    BOOST_REQUIRE_EQUAL(instance.detach(), 3u * link_size + first + 2u * add1(overflow));
+    BOOST_REQUIRE_NO_THROW(instance.release(memory));
+    BOOST_REQUIRE_EQUAL(instance.freed.size(), 3u);
+    BOOST_REQUIRE_EQUAL(instance.freed.at(0), memory0);
+    BOOST_REQUIRE_EQUAL(instance.freed.at(1), memory1);
+    BOOST_REQUIRE_EQUAL(instance.freed.at(2), memory2);
+}
+
 // to_aligned
 
-BOOST_AUTO_TEST_CASE(block_arena__to_aligned__zero_one__zero)
+BOOST_AUTO_TEST_CASE(block_arena__to_aligned__ones__expected)
 {
-    constexpr auto aligned = accessor::to_aligned_(0, 1);
-    BOOST_REQUIRE_EQUAL(aligned, zero);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(0, 1), 0u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(1, 1), 1u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(2, 1), 2u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(3, 1), 3u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(4, 1), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(5, 1), 5u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(6, 1), 6u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(7, 1), 7u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(8, 1), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(9, 1), 9u);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__to_aligned__twos__expected)
+{
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(0, 2), 0u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(1, 2), 2u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(2, 2), 2u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(3, 2), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(4, 2), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(5, 2), 6u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(6, 2), 6u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(7, 2), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(8, 2), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(10, 2), 10u);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__to_aligned__fours__expected)
+{
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(0, 4), 0u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(1, 4), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(2, 4), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(3, 4), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(4, 4), 4u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(5, 4), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(6, 4), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(7, 4), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(8, 4), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(12, 4), 12u);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__to_aligned__eights__expected)
+{
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(0, 8), 0u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(1, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(2, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(3, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(4, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(5, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(6, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(7, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(8, 8), 8u);
+    BOOST_REQUIRE_EQUAL(accessor::to_aligned_(16, 8), 16u);
 }
 
 // push
@@ -423,15 +547,22 @@ BOOST_AUTO_TEST_CASE(block_arena__push__size_above_minimum_plus_link__unchanged)
     BOOST_REQUIRE_EQUAL(instance.get_size(), expected);
 }
 
-// set_link
+// set_link/get_link
 
 BOOST_AUTO_TEST_CASE(block_arena__set_link__nullptr__nop)
 {
-    accessor instance{ 10 };
-    instance.set_link_(nullptr);
-}
+    constexpr auto size = 9u;
+    constexpr auto multiple = 2u;
+    accessor instance{ multiple };
+    auto memory = instance.start(size);
+    BOOST_REQUIRE_EQUAL(instance.stack.size(), one);
 
-// get_link
+    uint8_t value{};
+    auto pointer = &value;
+    instance.set_link_(pointer);
+    const auto block = pointer_cast<uint8_t>(memory);
+    BOOST_REQUIRE_EQUAL(pointer, pointer_cast<uint8_t>(instance.get_link_(block)));
+}
 
 BOOST_AUTO_TEST_CASE(block_arena__get_link__unstarted__zero_filled)
 {
@@ -446,20 +577,59 @@ BOOST_AUTO_TEST_CASE(block_arena__get_link__unstarted__zero_filled)
 BOOST_AUTO_TEST_CASE(block_arena__capacity__unstarted__zero)
 {
     accessor instance{ 10 };
-    const auto capacity = instance.capacity_();
-    BOOST_REQUIRE_EQUAL(capacity, zero);
+    BOOST_REQUIRE_EQUAL(instance.capacity_(), zero);
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__capacity__started__expected)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 10u;
+    constexpr auto expected = multiple * size - link_size;
+    accessor instance{ multiple };
+    const auto memory = instance.start(size);
+    BOOST_REQUIRE_EQUAL(instance.capacity_(), expected);
+    BOOST_REQUIRE_EQUAL(memory, instance.get_memory_map());
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__capacity__allocated_full__zero)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 10u;
+    constexpr auto overflow = multiple * size - link_size;
+    accessor instance{ multiple };
+    const auto memory = pointer_cast<uint8_t>(instance.start(size));
+    const auto position = pointer_cast<uint8_t>(instance.allocate(overflow, 1));
+    BOOST_REQUIRE_EQUAL(instance.capacity_(), zero);
+    BOOST_REQUIRE_EQUAL(position, std::next(memory, link_size));
+}
+
+BOOST_AUTO_TEST_CASE(block_arena__capacity__allocated_overflow__expanded_zero)
+{
+    constexpr auto size = 9u;
+    constexpr auto multiple = 10u;
+    constexpr auto overflow = multiple * size - link_size;
+    accessor instance{ multiple };
+    const auto memory = pointer_cast<uint8_t>(instance.start(size));
+    const auto position = pointer_cast<uint8_t>(instance.allocate(overflow, 1));
+    BOOST_REQUIRE_EQUAL(instance.capacity_(), zero);
+    BOOST_REQUIRE_EQUAL(position, std::next(memory, link_size));
 }
 
 // do_allocate/do_deallocate
 
 BOOST_AUTO_TEST_CASE(block_arena__do_allocate__do_deallocate__expected)
 {
-    accessor instance{ 10 };
-    const auto block = instance.start(0);
+    accessor instance{ 5 };
+    const auto block = instance.start(10);
     BOOST_REQUIRE_NE(block, nullptr);
 
-    const auto memory = instance.allocate(24, 4);
-    instance.deallocate(memory, 24, 4);
+    constexpr auto size = 24u;
+    constexpr auto offset = 4u;
+    const auto memory = instance.allocate(size, offset);
+    instance.deallocate(memory, size, offset);
+    BOOST_REQUIRE_EQUAL(instance.deallocated_ptr, memory);
+    BOOST_REQUIRE_EQUAL(instance.deallocated_size, size);
+    BOOST_REQUIRE_EQUAL(instance.deallocated_offset, offset);
 }
 
 // do_is_equal
