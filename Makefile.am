@@ -80,8 +80,11 @@ check_PROGRAMS = test/libbitcoin-node-test
 test_libbitcoin_node_test_CPPFLAGS = -I${srcdir}/include ${bitcoin_database_BUILD_CPPFLAGS} ${bitcoin_network_BUILD_CPPFLAGS}
 test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_framework_LIBS} ${bitcoin_database_LIBS} ${bitcoin_network_LIBS}
 test_libbitcoin_node_test_SOURCES = \
+    test/block_arena.cpp \
+    test/block_memory.cpp \
     test/configuration.cpp \
     test/error.cpp \
+    test/full_node.cpp \
     test/main.cpp \
     test/node.cpp \
     test/settings.cpp \
