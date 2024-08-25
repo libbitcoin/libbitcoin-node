@@ -52,7 +52,6 @@ block_arena::block_arena(block_arena&& other) NOEXCEPT
 
 block_arena::~block_arena() NOEXCEPT
 {
-    release(memory_map_);
 }
 
 block_arena& block_arena::operator=(block_arena&& other) NOEXCEPT
@@ -96,11 +95,7 @@ void block_arena::release(void* address) NOEXCEPT
     while (!is_null(address))
     {
         const auto link = get_link(pointer_cast<uint8_t>(address));
-
-        BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
-        std::free(address);
-        BC_POP_WARNING()
-
+        free(address);
         address = link;
     }
 }
@@ -115,10 +110,7 @@ void block_arena::push(size_t minimum) THROWS
     // Ensure next allocation accomodates link plus current request.
     BC_ASSERT(!is_add_overflow(minimum, link_size));
     size_ = std::max(size_, minimum + link_size);
-
-    BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
-    const auto map = pointer_cast<uint8_t>(std::malloc(size_));
-    BC_POP_WARNING()
+    const auto map = pointer_cast<uint8_t>(malloc(size_));
 
     if (is_null(map))
         throw allocation_exception{};

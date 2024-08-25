@@ -320,8 +320,11 @@ target_link_libraries( ${CANONICAL_LIB_NAME}
 #------------------------------------------------------------------------------
 if (with-tests)
     add_executable( libbitcoin-node-test
+        "../../test/block_arena.cpp"
+        "../../test/block_memory.cpp"
         "../../test/configuration.cpp"
         "../../test/error.cpp"
+        "../../test/full_node.cpp"
         "../../test/main.cpp"
         "../../test/node.cpp"
         "../../test/settings.cpp"

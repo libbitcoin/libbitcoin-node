@@ -28,7 +28,7 @@ namespace libbitcoin {
 namespace node {
 
 /// Thread SAFE linked-linear arena allocator.
-class BCN_API block_memory final
+class BCN_API block_memory
   : public network::memory
 {
 public:
@@ -41,9 +41,9 @@ public:
     /// Each thread obtains an arena.
     arena* get_arena() NOEXCEPT override;
 
-private:
+protected:
     // This is thread safe.
-    std::atomic_size_t count_{};
+    std::atomic_size_t count_{ zero };
 
     // This is protected by constructor init and thread_local indexation.
     std::vector<block_arena> arenas_{};

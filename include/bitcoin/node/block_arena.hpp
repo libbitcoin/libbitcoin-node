@@ -27,7 +27,7 @@ namespace libbitcoin {
 namespace node {
 
 /// Thread UNSAFE detachable linked-linear memory arena.
-class BCN_API block_arena final
+class BCN_API block_arena
   : public arena
 {
 public:
@@ -35,7 +35,7 @@ public:
     
     block_arena(size_t multiple) NOEXCEPT;
     block_arena(block_arena&& other) NOEXCEPT;
-    ~block_arena() NOEXCEPT;
+    virtual ~block_arena() NOEXCEPT;
 
     block_arena& operator=(block_arena&& other) NOEXCEPT;
 
@@ -49,6 +49,33 @@ public:
     void release(void* address) NOEXCEPT override;
 
 protected:
+    /// Determine alignment offset.
+    static constexpr size_t to_aligned(size_t value, size_t align) NOEXCEPT
+    {
+        using namespace system;
+        BC_ASSERT_MSG(is_nonzero(align), "align zero");
+        BC_ASSERT_MSG(!is_add_overflow(value, sub1(align)), "overflow");
+        BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
+        BC_ASSERT_MSG(align <= alignof(std::max_align_t), "align overflow");
+        return (value + sub1(align)) & ~sub1(align);
+    }
+
+    /// Malloc throws if memory is not allocated.
+    virtual INLINE void* malloc(size_t bytes) THROWS
+    {
+        BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
+        return std::malloc(bytes);
+        BC_POP_WARNING()
+    }
+
+    /// Free does not throw, behavior is undefined if address is incorrect.
+    virtual INLINE void free(void* address) NOEXCEPT
+    {
+        BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
+        std::free(address);
+        BC_POP_WARNING()
+    }
+
     /// Link a memory chunk to the allocated stack.
     void push(size_t minimum=zero) THROWS;
 
@@ -79,17 +106,6 @@ protected:
         return system::floored_subtract(size_, offset_);
     }
 
-private:
-    constexpr size_t to_aligned(size_t value, size_t align) NOEXCEPT
-    {
-        using namespace system;
-        BC_ASSERT_MSG(is_nonzero(align), "align zero");
-        BC_ASSERT_MSG(!is_add_overflow(value, sub1(align)), "overflow");
-        BC_ASSERT_MSG(power2(floored_log2(align)) == align, "align power");
-        BC_ASSERT_MSG(align <= alignof(std::max_align_t), "align overflow");
-        return (value + sub1(align)) & ~sub1(align);
-    }
-
     void* do_allocate(size_t bytes, size_t align) THROWS override;
     void do_deallocate(void* ptr, size_t bytes, size_t align) NOEXCEPT override;
     bool do_is_equal(const arena& other) const NOEXCEPT override;
@@ -100,7 +116,6 @@ private:
     size_t offset_;
     size_t total_;
     size_t size_;
-
 };
 
 } // namespace node
