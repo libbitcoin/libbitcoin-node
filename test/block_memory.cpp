@@ -114,16 +114,17 @@ BOOST_AUTO_TEST_CASE(block_memory__get_arena__two_threads__independent_not_defau
     {
         count1 = instance.get_count();
         arena1 = instance.get_arena();
-    });
 
-    std::thread thread2([&]() NOEXCEPT
-    {
-        count2 = instance.get_count();
-        arena2 = instance.get_arena();
+        std::thread thread2([&]() NOEXCEPT
+        {
+            count2 = instance.get_count();
+            arena2 = instance.get_arena();
+        });
+            
+        thread2.join();
     });
 
     thread1.join();
-    thread2.join();
 
     BOOST_REQUIRE_NE(arena2, default_arena::get());
     BOOST_REQUIRE_NE(arena1, default_arena::get());
