@@ -778,6 +778,32 @@ void executor::read_test() const
 
 void executor::read_test() const
 {
+    const auto from = 481'824_u32;
+    const auto top = 840'000_u32; ////query_.get_top_associated();
+    const auto start = fine_clock::now();
+
+    // segwit activation
+    uint32_t block{ from };
+    size_t total{};
+
+    logger("Get all coinbases.");
+    while (!cancel_ && (block <= top))
+    {
+        const auto count = query_.get_tx_count(query_.to_candidate(block++));
+        if (is_zero(count))
+            return;
+
+        total += system::ceilinged_log2(count);
+    }
+
+    const auto average = total / (top - from);
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Total block depths [%1%] to [%2%] avg [%3%] in [%4%] ms.")
+        % total % top % average % span.count());
+}
+
+void executor::read_test() const
+{
     constexpr auto start_tx = 15'000_u32;
     constexpr auto target_count = 3000_size;
 
