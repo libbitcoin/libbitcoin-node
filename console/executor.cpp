@@ -736,74 +736,6 @@ void executor::scan_collisions() const
 // arbitrary testing (const).
 void executor::read_test() const
 {
-    auto start = fine_clock::now();
-    auto count = query_.header_records();
-    uint32_t block{ one };
-    
-    logger("Find strong blocks.");
-    while (!cancel_ && (block < count) && query_.is_strong_block(block))
-    {
-        ++block;
-    }
-    
-    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Top strong block is [%1%] in [%2%] ms.") % sub1(block) % span.count());
-    start = fine_clock::now();
-    count = query_.header_records();
-    uint32_t milestone{ 295'001 };
-
-    logger("Find milestone blocks.");
-    while (!cancel_ && (milestone < count) && query_.is_milestone(milestone))
-    {
-        ++milestone;
-    }
-
-    span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Top milestone block is [%1%] in [%2%] ms.") % sub1(milestone) % span.count());
-    start = fine_clock::now();
-    uint32_t tx{ one };
-    
-    logger("Find strong txs.");
-    count = query_.tx_records();
-    while (!cancel_ && (tx < count) && query_.is_strong_tx(tx) )
-    {
-        ++tx;
-    }
-    
-    span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Top strong tx is [%1%] in [%2%] ms.") % sub1(tx) % span.count());
-}
-
-#if defined(UNDEFINED)
-
-void executor::read_test() const
-{
-    const auto from = 481'824_u32;
-    const auto top = 840'000_u32; ////query_.get_top_associated();
-    const auto start = fine_clock::now();
-
-    // segwit activation
-    uint32_t block{ from };
-    size_t total{};
-
-    logger("Get all coinbases.");
-    while (!cancel_ && (block <= top))
-    {
-        const auto count = query_.get_tx_count(query_.to_candidate(block++));
-        if (is_zero(count))
-            return;
-
-        total += system::ceilinged_log2(count);
-    }
-
-    const auto average = total / (top - from);
-    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Total block depths [%1%] to [%2%] avg [%3%] in [%4%] ms.")
-        % total % top % average % span.count());
-}
-
-void executor::read_test() const
-{
     constexpr auto start_tx = 15'000_u32;
     constexpr auto target_count = 3000_size;
 
@@ -1035,7 +967,7 @@ void executor::read_test() const
         outs.size() % keys.size() % span.count());
 
     // Write it all...
-#if defined(UNDEFINED)
+#if !defined(UNDEFINED)
     logger(
         "output_script_hash, "
         "output_fk, "
@@ -1056,7 +988,7 @@ void executor::read_test() const
     
         "input_bk_fk, "
         "input_bk_hash, "
-        "sinput_bk_height, "
+        "input_bk_height, "
     
         "output_script "
         "input_script, "
@@ -1098,6 +1030,73 @@ void executor::read_test() const
             input);
     }
 #endif // UNDEFINED
+}
+
+#if defined(UNDEFINED)
+void executor::read_test() const
+{
+    auto start = fine_clock::now();
+    auto count = query_.header_records();
+    uint32_t block{ one };
+
+    logger("Find strong blocks.");
+    while (!cancel_ && (block < count) && query_.is_strong_block(block))
+    {
+        ++block;
+    }
+
+    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top strong block is [%1%] in [%2%] ms.") % sub1(block) % span.count());
+    start = fine_clock::now();
+    count = query_.header_records();
+    uint32_t milestone{ 295'001 };
+
+    logger("Find milestone blocks.");
+    while (!cancel_ && (milestone < count) && query_.is_milestone(milestone))
+    {
+        ++milestone;
+    }
+
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top milestone block is [%1%] in [%2%] ms.") % sub1(milestone) % span.count());
+    start = fine_clock::now();
+    uint32_t tx{ one };
+
+    logger("Find strong txs.");
+    count = query_.tx_records();
+    while (!cancel_ && (tx < count) && query_.is_strong_tx(tx))
+    {
+        ++tx;
+    }
+
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top strong tx is [%1%] in [%2%] ms.") % sub1(tx) % span.count());
+}
+
+void executor::read_test() const
+{
+    const auto from = 481'824_u32;
+    const auto top = 840'000_u32; ////query_.get_top_associated();
+    const auto start = fine_clock::now();
+
+    // segwit activation
+    uint32_t block{ from };
+    size_t total{};
+
+    logger("Get all coinbases.");
+    while (!cancel_ && (block <= top))
+    {
+        const auto count = query_.get_tx_count(query_.to_candidate(block++));
+        if (is_zero(count))
+            return;
+
+        total += system::ceilinged_log2(count);
+    }
+
+    const auto average = total / (top - from);
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Total block depths [%1%] to [%2%] avg [%3%] in [%4%] ms.")
+        % total % top % average % span.count());
 }
 
 void executor::read_test() const
