@@ -123,13 +123,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.neutrino_buckets = 0;
     configured.database.neutrino_size =  1;
     configured.database.neutrino_rate = 5;
-
-    ////configured.database.buffer_buckets = 100;
-    ////configured.database.buffer_size = 1;
-    ////configured.database.buffer_rate = 5;
-
-    ////configured.database.bootstrap_size = 1;
-    ////configured.database.bootstrap_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS
