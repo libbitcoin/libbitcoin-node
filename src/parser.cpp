@@ -55,8 +55,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.outbound_connections = 100;
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
-    configured.network.services_minimum = service::node_network;
-    configured.network.services_maximum = service::node_network | 
+
+    // services_minimum must be node_witness to be a witness node.
+    configured.network.services_minimum = service::node_network |
+        service::node_witness;
+    configured.network.services_maximum = service::node_network |
         service::node_witness;
 
     // database
@@ -123,13 +126,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.neutrino_buckets = 0;
     configured.database.neutrino_size =  1;
     configured.database.neutrino_rate = 5;
-
-    ////configured.database.buffer_buckets = 100;
-    ////configured.database.buffer_size = 1;
-    ////configured.database.buffer_rate = 5;
-
-    ////configured.database.bootstrap_size = 1;
-    ////configured.database.bootstrap_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS
@@ -486,7 +482,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.services_minimum",
         value<uint64_t>(&configured.network.services_minimum),
-        "The minimum services exposed by network connections, defaults to 1 (full node)."
+        "The minimum services exposed by network connections, defaults to 9 (full node, witness)."
     )
     (
         "network.invalid_services",

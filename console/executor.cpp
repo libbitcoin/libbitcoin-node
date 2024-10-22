@@ -736,71 +736,38 @@ void executor::scan_collisions() const
 // arbitrary testing (const).
 void executor::read_test() const
 {
-    auto start = fine_clock::now();
-    auto count = query_.header_records();
-    uint32_t block{ one };
-    
-    logger("Find strong blocks.");
-    while (!cancel_ && (block < count) && query_.is_strong_block(block))
-    {
-        ++block;
-    }
-    
-    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Top strong block is [%1%] in [%2%] ms.") % sub1(block) % span.count());
-    start = fine_clock::now();
-    count = query_.header_records();
-    uint32_t milestone{ 295'001 };
+    logger("Wire size computation.");
+    const auto start = fine_clock::now();
 
-    logger("Find milestone blocks.");
-    while (!cancel_ && (milestone < count) && query_.is_milestone(milestone))
+    ////constexpr auto last = 500'000_size;
+    const auto last = query_.get_top_candidate();
+
+    size_t size{};
+    for (auto height = zero; !cancel_ && height <= last; ++height)
     {
-        ++milestone;
+        const auto link = query_.to_candidate(height);
+        if (link.is_terminal())
+        {
+            logger(format("Max candidate height is (%1%).") % sub1(height));
+            return;
+        }
+
+        const auto bytes = query_.get_block_size(link);
+        if (is_zero(bytes))
+        {
+            logger(format("Block (%1%) is not associated.") % height);
+            return;
+        }
+
+        size += bytes;
     }
 
-    span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Top milestone block is [%1%] in [%2%] ms.") % sub1(milestone) % span.count());
-    start = fine_clock::now();
-    uint32_t tx{ one };
-    
-    logger("Find strong txs.");
-    count = query_.tx_records();
-    while (!cancel_ && (tx < count) && query_.is_strong_tx(tx) )
-    {
-        ++tx;
-    }
-    
-    span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Top strong tx is [%1%] in [%2%] ms.") % sub1(tx) % span.count());
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
+        size % last % span.count());
 }
 
 #if defined(UNDEFINED)
-
-void executor::read_test() const
-{
-    const auto from = 481'824_u32;
-    const auto top = 840'000_u32; ////query_.get_top_associated();
-    const auto start = fine_clock::now();
-
-    // segwit activation
-    uint32_t block{ from };
-    size_t total{};
-
-    logger("Get all coinbases.");
-    while (!cancel_ && (block <= top))
-    {
-        const auto count = query_.get_tx_count(query_.to_candidate(block++));
-        if (is_zero(count))
-            return;
-
-        total += system::ceilinged_log2(count);
-    }
-
-    const auto average = total / (top - from);
-    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Total block depths [%1%] to [%2%] avg [%3%] in [%4%] ms.")
-        % total % top % average % span.count());
-}
 
 void executor::read_test() const
 {
@@ -1035,7 +1002,7 @@ void executor::read_test() const
         outs.size() % keys.size() % span.count());
 
     // Write it all...
-#if defined(UNDEFINED)
+#if !defined(UNDEFINED)
     logger(
         "output_script_hash, "
         "output_fk, "
@@ -1056,7 +1023,7 @@ void executor::read_test() const
     
         "input_bk_fk, "
         "input_bk_hash, "
-        "sinput_bk_height, "
+        "input_bk_height, "
     
         "output_script "
         "input_script, "
@@ -1102,33 +1069,68 @@ void executor::read_test() const
 
 void executor::read_test() const
 {
-    logger("Wire size computation.");
-    const auto start = fine_clock::now();
-    constexpr auto last = 500'000_size;
+    auto start = fine_clock::now();
+    auto count = query_.header_records();
+    uint32_t block{ one };
 
-    size_t size{};
-    for (auto height = zero; !cancel_ && height <= last; ++height)
+    logger("Find strong blocks.");
+    while (!cancel_ && (block < count) && query_.is_strong_block(block))
     {
-        const auto link = query_.to_candidate(height);
-        if (link.is_terminal())
-        {
-            logger(format("Max candidate height is (%1%).") % sub1(height));
-            return;
-        }
-
-        const auto bytes = query_.get_block_size(link);
-        if (is_zero(bytes))
-        {
-            logger(format("Block (%1%) is not associated.") % height);
-            return;
-        }
-
-        size += bytes;
+        ++block;
     }
 
+    auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top strong block is [%1%] in [%2%] ms.") % sub1(block) % span.count());
+    start = fine_clock::now();
+    count = query_.header_records();
+    uint32_t milestone{ 295'001 };
+
+    logger("Find milestone blocks.");
+    while (!cancel_ && (milestone < count) && query_.is_milestone(milestone))
+    {
+        ++milestone;
+    }
+
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top milestone block is [%1%] in [%2%] ms.") % sub1(milestone) % span.count());
+    start = fine_clock::now();
+    uint32_t tx{ one };
+
+    logger("Find strong txs.");
+    count = query_.tx_records();
+    while (!cancel_ && (tx < count) && query_.is_strong_tx(tx))
+    {
+        ++tx;
+    }
+
+    span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Top strong tx is [%1%] in [%2%] ms.") % sub1(tx) % span.count());
+}
+
+void executor::read_test() const
+{
+    const auto from = 481'824_u32;
+    const auto top = 840'000_u32; ////query_.get_top_associated();
+    const auto start = fine_clock::now();
+
+    // segwit activation
+    uint32_t block{ from };
+    size_t total{};
+
+    logger("Get all coinbases.");
+    while (!cancel_ && (block <= top))
+    {
+        const auto count = query_.get_tx_count(query_.to_candidate(block++));
+        if (is_zero(count))
+            return;
+
+        total += system::ceilinged_log2(count);
+    }
+
+    const auto average = total / (top - from);
     const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
-        size % last % span.count());
+    logger(format("Total block depths [%1%] to [%2%] avg [%3%] in [%4%] ms.")
+        % total % top % average % span.count());
 }
 
 void executor::read_test() const
