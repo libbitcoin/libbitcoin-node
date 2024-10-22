@@ -80,7 +80,6 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_header.cpp" />
-    <ClCompile Include="..\..\..\..\src\chasers\chaser_populate.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_snapshot.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_storage.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_template.cpp" />
@@ -119,7 +118,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_organize.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_populate.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_snapshot.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_storage.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_template.hpp" />

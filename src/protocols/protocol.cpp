@@ -114,21 +114,6 @@ object_key protocol::events_key() const NOEXCEPT
     return key_;
 }
 
-// Blocks.
-// ----------------------------------------------------------------------------
-
-void protocol::populate(const block::cptr& block, const header_link& link,
-    size_t height, network::result_handler&& complete) NOEXCEPT
-{
-    session_->populate(block, link, height, std::move(complete));
-}
-
-void protocol::validate(const block::cptr& block, const header_link& link,
-    size_t height) NOEXCEPT
-{
-    session_->validate(block, link, height);
-}
-
 // Methods.
 // ----------------------------------------------------------------------------
 

@@ -77,7 +77,6 @@
     <ClCompile Include="..\..\..\..\test\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp" />
-    <ClCompile Include="..\..\..\..\test\chasers\chaser_populate.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_template.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_transaction.cpp" />
     <ClCompile Include="..\..\..\..\test\chasers\chaser_validate.cpp" />
