@@ -45,7 +45,6 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
-    chaser_populate_(*this),
     chaser_validate_(*this),
     chaser_confirm_(*this),
     chaser_transaction_(*this),
@@ -78,28 +77,12 @@ void full_node::start(result_handler&& handler) NOEXCEPT
 void full_node::do_start(const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    code ec;
-
-    subscribe_close([&](const code& ec) NOEXCEPT
-    {
-        chaser_header_.stopping(ec);
-        chaser_block_.stopping(ec);
-        chaser_check_.stopping(ec);
-        chaser_populate_.stopping(ec);
-        chaser_validate_.stopping(ec);
-        chaser_confirm_.stopping(ec);
-        chaser_transaction_.stopping(ec);
-        chaser_template_.stopping(ec);
-        chaser_snapshot_.stopping(ec);
-        chaser_storage_.stopping(ec);
-        return false;
-    });
+    code ec{};
 
     if (((ec = (config().node.headers_first ?
             chaser_header_.start() :
             chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
-        ((ec = chaser_populate_.start())) ||
         ((ec = chaser_validate_.start())) ||
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
@@ -139,6 +122,17 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
 
 void full_node::close() NOEXCEPT
 {
+    // Block on chaser stop (including dedicated threadpool joins).
+    ////chaser_header_.stop();
+    ////chaser_block_.stop();
+    ////chaser_check_.stop();
+    ////chaser_validate_.stop();
+    ////chaser_confirm_.stop();
+    ////chaser_transaction_.stop();
+    ////chaser_template_.stop();
+    ////chaser_snapshot_.stop();
+    ////chaser_storage_.stop();
+
     // Base (p2p) invokes do_close().
     p2p::close();
 }
@@ -147,6 +141,18 @@ void full_node::close() NOEXCEPT
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // Initiate chaser stopping (including dedicated threadpools).
+    ////chaser_header_.stopping(network::error::service_stopped);
+    ////chaser_block_.stopping(network::error::service_stopped);
+    ////chaser_check_.stopping(network::error::service_stopped);
+    ////chaser_validate_.stopping(network::error::service_stopped);
+    ////chaser_confirm_.stopping(network::error::service_stopped);
+    ////chaser_transaction_.stopping(network::error::service_stopped);
+    ////chaser_template_.stopping(network::error::service_stopped);
+    ////chaser_snapshot_.stopping(network::error::service_stopped);
+    ////chaser_storage_.stopping(network::error::service_stopped);
+
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();
 }
@@ -240,22 +246,6 @@ void full_node::do_subscribe_events(const event_notifier& handler,
 void full_node::unsubscribe_events(object_key key) NOEXCEPT
 {
     notify_one(key, network::error::service_stopped, chase::stop, {});
-}
-
-// Blocks.
-// ----------------------------------------------------------------------------
-
-void full_node::populate(const chain::block::cptr& block,
-    const header_link& link, size_t height,
-    network::result_handler&& complete) NOEXCEPT
-{
-    chaser_populate_.populate(block, link, height, std::move(complete));
-}
-
-void full_node::validate(const chain::block::cptr& block,
-    const header_link& link, size_t height) NOEXCEPT
-{
-    chaser_validate_.validate(block, link, height);
 }
 
 // Suspensions.

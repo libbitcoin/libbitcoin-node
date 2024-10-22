@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(block_arena__start__multiple_overflow__throws_allocation_ex
     accessor instance{ two };
 
     BC_PUSH_WARNING(DISCARDING_NON_DISCARDABLE)
-    BOOST_REQUIRE_THROW(instance.start(max_size_t), allocation_exception);
+    BOOST_REQUIRE_THROW(static_cast<void>(instance.start(max_size_t)), allocation_exception);
     BC_POP_WARNING()
 }
 

@@ -370,7 +370,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
         << "] from [" << authority() << "].");
 
-    populate(block, link, height, BIND(complete, _1, block, height));
     ////notify(ec, chase::checked, height);
     ////fire(events::block_archived, height);
 

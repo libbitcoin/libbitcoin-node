@@ -103,21 +103,6 @@ void session::unsubscribe_events(object_key key) NOEXCEPT
     node_.unsubscribe_events(key);
 }
 
-// Blocks.
-// ----------------------------------------------------------------------------
-
-void session::populate(const block::cptr& block, const header_link& link,
-    size_t height, network::result_handler&& complete) NOEXCEPT
-{
-    node_.populate(block, link, height, std::move(complete));
-}
-
-void session::validate(const block::cptr& block, const header_link& link,
-    size_t height) NOEXCEPT
-{
-    node_.validate(block, link, height);
-}
-
 // Methods.
 // ----------------------------------------------------------------------------
 

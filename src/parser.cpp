@@ -440,7 +440,7 @@ options_metadata parser::load_settings() THROWS
     (
         "bitcoin.milestone",
         value<chain::checkpoint>(&configured.bitcoin.milestone),
-        "A block presumed to be valid but not required to be present, defaults to 00000000000000000001a0a448d6cf2546b06801389cc030b2b18c6491266815:804000."
+        "A block presumed to be valid but not required to be present, defaults to 0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5:840000."
     )
     (
         "bitcoin.minimum_work",
