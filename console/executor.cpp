@@ -738,9 +738,7 @@ void executor::read_test() const
 {
     logger("Wire size computation.");
     const auto start = fine_clock::now();
-
-    ////constexpr auto last = 500'000_size;
-    const auto last = query_.get_top_candidate();
+    const auto last = metadata_.configured.node.maximum_height;
 
     size_t size{};
     for (auto height = zero; !cancel_ && height <= last; ++height)
@@ -1344,22 +1342,12 @@ void executor::read_test() const
     ////    return;
     ////}
     ////
-    ////database::context context{};
-    ////if (!query_.get_context(context, bk_link))
+    ////chain::context ctx{};
+    ////if (!query_.get_context(ctx, bk_link))
     ////{
-    ////    logger("!query_.get_context(context, bk_link)");
+    ////    logger("!query_.get_context(ctx, bk_link)");
     ////    return;
     ////}
-    ////
-    ////const chain::context ctx
-    ////{
-    ////    context.flags,
-    ////    {},
-    ////    context.mtp,
-    ////    context.height,
-    ////    {},
-    ////    {}
-    ////};
     ////
     ////if (!query_.populate_with_metadata(*tx))
     ////{
