@@ -47,6 +47,10 @@ void chaser::stopping(const code&) NOEXCEPT
 {
 }
 
+void chaser::stop() NOEXCEPT
+{
+}
+
 bool chaser::closed() const NOEXCEPT
 {
     return node_.closed();
