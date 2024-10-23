@@ -35,16 +35,20 @@ using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
 
+// TODO: update specialized fault codes, reintegrate neutrino.
+
 // Shared pointer is required to keep the race object alive in bind closure.
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// High thread priority ensures download does not overflow validation backlog.
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
-    subsidy_interval_blocks_(node.config().bitcoin.subsidy_interval_blocks),
-    threadpool_(std::max(node.config().node.threads, 1_u32))
+    subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
+    threadpool_(std::max(node.config().node.threads, 1_u32),
+        network::thread_priority::high)
 {
 }
 
@@ -53,6 +57,22 @@ code chaser_validate::start() NOEXCEPT
     update_position(archive().get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
+}
+
+void chaser_validate::stopping(const code& ec) NOEXCEPT
+{
+    // Stop threadpool keep-alive, all work must self-terminate to affect join.
+    threadpool_.stop();
+    chaser::stopping(ec);
+}
+
+void chaser_validate::stop() NOEXCEPT
+{
+    if (!threadpool_.join())
+    {
+        BC_ASSERT_MSG(false, "failed to join threadpool");
+        std::abort();
+    }
 }
 
 bool chaser_validate::handle_event(const code&, chase event_,
@@ -109,28 +129,6 @@ bool chaser_validate::handle_event(const code&, chase event_,
     return true;
 }
 
-// validate
-// ----------------------------------------------------------------------------
-
-// Could also pass ctx.
-void chaser_validate::validate(const chain::block::cptr& block,
-    const header_link& link, size_t height) NOEXCEPT
-{
-    if (closed())
-        return;
-
-    POST(do_validate, block, link, height);
-}
-
-void chaser_validate::do_validate(const chain::block::cptr& block,
-    database::header_link::integer link, size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (block->is_valid() && link != header_link::terminal)
-        fire(events::block_validated, height);
-}
-
 // track downloaded in order (to validate)
 // ----------------------------------------------------------------------------
 
@@ -157,250 +155,118 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
-
-    // TODO: update specialized fault codes.
+    const auto& query = archive();
 
     // Validate checked blocks starting immediately after last validated.
+    // Bypass until next event if validation backlog is full.
     for (auto height = add1(position()); !closed(); ++height)
     {
-        // Precondition (associated).
-        // ....................................................................
-
-        // Validation is always sequential from position, along the candidate
-        // index. It does not care about regressions that may be in process.
         const auto link = query.to_candidate(height);
-
-        // database::error::unassociated
-        // database::error::block_unconfirmable
-        // database::error::block_confirmable
-        // database::error::block_valid
-        // database::error::unknown_state
-        // database::error::unvalidated
         const auto ec = query.get_block_state(link);
-        if (ec == database::error::unassociated)
-        {
-            // Wait until the gap is filled.
-            return;
-        }
 
+        // Wait until the gap is filled.
+        if (ec == database::error::unassociated)
+            return;
+
+        // complete_block always follows and decrements.
+        ++validation_backlog_;
+
+        // Causes a reorganization (should have been encountered by headers).
         if (ec == database::error::block_unconfirmable)
         {
-            LOGR("Unconfirmable block [" << height << "] " << ec.message());
-            fire(events::block_unconfirmable, height);
-            notify(ec, chase::unvalid, link);
+            complete_block(ec, link, height);
             return;
         }
+
+        set_position(height);
 
         if ((ec == database::error::block_valid) ||
             (ec == database::error::block_confirmable) ||
             is_under_checkpoint(height) || query.is_milestone(link))
         {
-            update_position(height);
-            ////fire(events::validate_bypassed, height);
-
-            // Don't confirm until validations are current.
-            if (is_current(link))
-                notify(ec, chase::valid, height);
+            complete_block(error::success, link, height);
+            continue;
         }
-        else
-        {
-            // Validation is currently bypassed in all cases.
-            ////// TODO: the quantity of work must be throttled.
-            ////// Will very rapidly pump outstanding work in asio queue.
-            ////if (!enqueue_block(link))
-            ////{
-            ////    fault(error::node_validate);
-            ////    return;
-            ////}
-            if (!query.set_block_valid(link))
-            {
-                fault(error::set_block_valid);
-                return;
-            }
 
-            // Retain last height in validation sequence, update neutrino.
-            update_position(height);
-            ////fire(events::block_validated, height);
-
-            // Don't confirm until validations are current.
-            if (is_current(link))
-                notify(ec, chase::valid, height);
-        }
-    }
-}
-
-// DISTRUBUTE WORK UNITS
-bool chaser_validate::enqueue_block(const header_link& link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    const auto& query = archive();
-
-    context ctx{};
-    const auto txs = query.to_transactions(link);
-    if (txs.empty() || !query.get_context(ctx, link))
-        return false;
-
-    const auto racer = std::make_shared<race>(txs.size());
-    racer->start(BIND(handle_txs, _1, _2, link, ctx));
-    ////fire(events::block_buffered, ctx.height);
-
-    for (auto tx = txs.begin(); !closed() && tx != txs.end(); ++tx)
+        // Report backlog, should generally not exceed dowload window.
+        fire(events::block_buffered, validation_backlog_);
         boost::asio::post(threadpool_.service(),
-            BIND(validate_tx, ctx, *tx, racer));
-
-    return true;
+            BIND(validate_block, link));
+    }
 }
 
-// START WORK UNIT
-void chaser_validate::validate_tx(const context& ctx, const tx_link& link,
-    const race::ptr& racer) NOEXCEPT
+void chaser_validate::validate_block(const header_link& link) NOEXCEPT
 {
     if (closed())
-    {
-        POST(handle_tx, network::error::service_stopped, link, racer);
         return;
-    }
 
     auto& query = archive();
-    auto ec = query.get_tx_state(link, ctx);
-
-    // These states bypass validation.
-    if (ec == database::error::integrity ||
-        ec == database::error::tx_connected ||
-        ec == database::error::tx_disconnected)
+    const auto block = query.get_block(link);
+    if (!block)
     {
-        POST(handle_tx, ec, link, racer);
+        POST(complete_block, database::error::integrity, link, zero);
         return;
     }
 
-    // These other states imply validation is required.
-    //// database::error::tx_preconnected
-    //// database::error::unknown_state
-    //// database::error::unvalidated
-
-    const chain::context ctx_
+    chain::context ctx{};
+    if (!query.get_context(ctx, link))
     {
-        ctx.flags,  // [accept & connect]
-        {},         // timestamp
-        {},         // mtp
-        ctx.height, // [accept]
-        {},         // minimum_block_version
-        {}          // work_required
-    };
-
-    code invalid{ system::error::missing_previous_output };
-    const auto tx = query.get_transaction(link);
-    if (!tx)
-    {
-        ec = database::error::integrity;
-    }
-    else if (!query.populate(*tx))
-    {
-        ec = query.set_tx_disconnected(link, ctx) ? invalid :
-            database::error::integrity;
-
-        fire(events::tx_invalidated, ctx.height);
-    }
-    else if (((invalid = tx->accept(ctx_))) || ((invalid = tx->connect(ctx_))))
-    {
-        ec = query.set_tx_disconnected(link, ctx) ? invalid :
-            database::error::integrity;
-
-        fire(events::tx_invalidated, ctx.height);
-        LOGR("Invalid tx [" << encode_hash(tx->hash(false)) << "] in block ("
-            << ctx.height << ") " << invalid.message());
-    }
-    else
-    {
-        const auto bip16 = ctx_.is_enabled(chain::flags::bip16_rule);
-        const auto bip141 = ctx_.is_enabled(chain::flags::bip141_rule);
-        const auto sigops = tx->signature_operations(bip16, bip141);
-
-        // TODO: cache fee and sigops from validation stage.
-        ec = query.set_tx_connected(link, ctx, tx->fee(), sigops) ?
-            database::error::success : database::error::integrity;
-    }
-
-    POST(handle_tx, ec, link, racer);
-}
-
-// FINISH WORK UNIT
-void chaser_validate::handle_tx(const code& ec, const tx_link& tx,
-    const race::ptr& racer) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // handle_txs will only get invoked once, with a first error code, so
-    // invoke fault here ensure that non-validation codes are not lost.
-    if (ec == database::error::integrity)
-        fault(error::node_validate);
-
-    // TODO: need to sort out bypass, validity, and fault codes.
-    // Always allow the racer to finish, invokes handle_txs exactly once.
-    racer->finish(ec, tx);
-}
-
-// SYNCHRONIZE WORK UNITS
-void chaser_validate::handle_txs(const code& ec, const tx_link& tx,
-    const header_link& link, const context& ctx) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    if (closed())
-        return;
-
-    if (ec)
-    {
-        // Log tx here as it's the first failed one.
-        LOGR("Error validating tx [" << encode_hash(archive().get_tx_key(tx))
-            << "] " << ec.message());
-    }
-
-    validate_block(ec, link, ctx);
-}
-
-// SUMMARIZE WORK
-void chaser_validate::validate_block(const code& ec,
-    const header_link& link, const context& ctx) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    auto& query = archive();
-
-    if (ec == database::error::integrity)
-    {
-        fault(error::node_validate);
+        POST(complete_block, database::error::integrity, link, zero);
         return;
     }
 
-    if (ec)
+    // TODO: performance test with and without self-population.
+    ////block->populate();
+    if (!query.populate(*block))
+    {
+        POST(complete_block, database::error::integrity, link, ctx.height);
+        return;
+    }
+
+    code ec{};
+    if (((ec = block->accept(ctx, subsidy_interval_, initial_subsidy_))) ||
+        ((ec = block->connect(ctx))))
     {
         if (!query.set_block_unconfirmable(link))
         {
-            fault(error::set_block_unconfirmable);
+            ec = database::error::integrity;
+        }
+    }
+    else if (!query.set_block_valid(link))
+    {
+        ec = database::error::integrity;
+    }
+    else
+    {
+        fire(events::block_validated, ctx.height);
+    }
+
+    POST(complete_block, ec, link, ctx.height);
+}
+
+void chaser_validate::complete_block(const code& ec, const header_link& link,
+    size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    --validation_backlog_;
+
+    if (ec)
+    {
+        if (ec == database::error::integrity)
+        {
+            fault(ec);
             return;
         }
 
-        LOGR("Unconfirmable block [" << ctx.height << "] " << ec.message());
-        notify(ec, chase::unconfirmable, link);
-        fire(events::block_unconfirmable, ctx.height);
+        LOGR("Unconfirmable block [" << height << "] " << ec.message());
+        fire(events::block_unconfirmable, height);
+        notify(ec, chase::unvalid, link);
         return;
     }
 
-    // TODO: move fee setter to set_block_valid (transitory) and propagate to
-    // TODO: set_block_confirmable (final). Bypassed do not have the fee cache.
-    if (!query.set_block_valid(link))
-    {
-        fault(error::set_block_valid);
-        return;
-    }
-
-    // TODO: collect fees and sigops for block validate with no block.
-
-    // fire event first so that log is ordered.
-    fire(events::block_validated, ctx.height);
-    notify(ec, chase::valid, ctx.height);
-
-    LOGV("Block.txs accepted and connected: " << ctx.height);
+    // Trigger confirmation now that validations are current.
+    if (is_current(link))
+        notify(ec, chase::valid, possible_wide_cast<height_t>(height));
 }
 
 // neutrino

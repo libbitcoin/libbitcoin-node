@@ -38,7 +38,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    threadpool_(std::max(node.config().node.threads, 1_u32))
+    threadpool_(one)
 {
 }
 
@@ -48,11 +48,27 @@ code chaser_confirm::start() NOEXCEPT
     return error::success;
 }
 
+void chaser_confirm::stopping(const code& ec) NOEXCEPT
+{
+    // Stop threadpool keep-alive, all work must self-terminate to affect join.
+    threadpool_.stop();
+    chaser::stopping(ec);
+}
+
+void chaser_confirm::stop() NOEXCEPT
+{
+    if (!threadpool_.join())
+    {
+        BC_ASSERT_MSG(false, "failed to join threadpool");
+        std::abort();
+    }
+}
+
 // Protected
 // ----------------------------------------------------------------------------
 
 bool chaser_confirm::handle_event(const code&, chase event_,
-    event_value value) NOEXCEPT
+    event_value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -67,15 +83,15 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         case chase::blocks:
         {
             // TODO: value is branch point.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_validated, std::get<height_t>(value));
+            ////BC_ASSERT(std::holds_alternative<height_t>(value));
+            ////POST(do_validated, std::get<height_t>(value));
             break;
         }
         case chase::valid:
         {
             // value is individual height.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_validated, std::get<height_t>(value));
+            ////BC_ASSERT(std::holds_alternative<height_t>(value));
+            ////POST(do_validated, std::get<height_t>(value));
             break;
         }
         case chase::stop:
