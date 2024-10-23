@@ -35,6 +35,15 @@ using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
 
+// In this build we are evaluating an unconfigurable backlog of blocks based
+// on their cumulative tx count. Value loosely approximates 100 full blocks.
+// Since validation is being deferred until download is current, there is no
+// material issue with starving the CPU. The backlog here is filled when the
+// validator is starved, but that should consume the CPU. Splitting download,
+// populate, and validate mitigates thrashing that is otherwise likely on low
+// resource machines. This can be made more dynamic to optimize big machines.
+constexpr auto validation_window = 5'000_size * 100_size;
+
 // TODO: update specialized fault codes, reintegrate neutrino.
 
 // Shared pointer is required to keep the race object alive in bind closure.
@@ -42,7 +51,6 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// High thread priority ensures download does not overflow validation backlog.
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
@@ -159,17 +167,20 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
 
     // Validate checked blocks starting immediately after last validated.
     // Bypass until next event if validation backlog is full.
-    for (auto height = add1(position()); !closed(); ++height)
+    for (auto height = add1(position());
+        (validation_backlog_ < validation_window) && !closed(); ++height)
     {
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
 
-        // Wait until the gap is filled.
-        if (ec == database::error::unassociated)
+        // TODO: make currency requirement more flexible/configurable.
+        // TODO: machines with high/fast RAM/SSD can handle much more.
+        // Wait until the gap is filled at a current height.
+        if (ec == database::error::unassociated || !is_current(link))
             return;
 
         // complete_block always follows and decrements.
-        ++validation_backlog_;
+        validation_backlog_ += query.get_tx_count(link);
 
         // Causes a reorganization (should have been encountered by headers).
         if (ec == database::error::block_unconfirmable)
@@ -248,7 +259,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    --validation_backlog_;
+
+    // Probably cheaper to requery this than to pass it.
+    validation_backlog_ -= archive().get_tx_count(link);
 
     if (ec)
     {
@@ -267,6 +280,10 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // Trigger confirmation now that validations are current.
     if (is_current(link))
         notify(ec, chase::valid, possible_wide_cast<height_t>(height));
+
+    // Prevent stall.
+    if (is_zero(validation_backlog_))
+        do_bump(height_t{});
 }
 
 // neutrino
