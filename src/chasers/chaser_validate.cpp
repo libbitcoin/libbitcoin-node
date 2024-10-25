@@ -35,14 +35,15 @@ using namespace system::neutrino;
 using namespace database;
 using namespace std::placeholders;
 
+// TODO: dynamically manage the blocklog size to establish desired CPU usage.
 // In this build we are evaluating an unconfigurable backlog of blocks based
-// on their cumulative tx count. Value loosely approximates 100 full blocks.
+// on their cumulative tx count. Value loosely approximates 1024 full blocks.
 // Since validation is being deferred until download is current, there is no
 // material issue with starving the CPU. The backlog here is filled when the
 // validator is starved, but that should consume the CPU. Splitting download,
 // populate, and validate mitigates thrashing that is otherwise likely on low
 // resource machines. This can be made more dynamic to optimize big machines.
-constexpr auto validation_window = 5'000_size * 100_size;
+constexpr auto validation_window = 5'000_size * 1024_size;
 
 // TODO: update specialized fault codes, reintegrate neutrino.
 
@@ -84,7 +85,7 @@ void chaser_validate::stop() NOEXCEPT
 }
 
 bool chaser_validate::handle_event(const code&, chase event_,
-    event_value value) NOEXCEPT
+    event_value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -99,30 +100,30 @@ bool chaser_validate::handle_event(const code&, chase event_,
     {
         // Track downloaded.
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        case chase::start:
-        case chase::bump:
-        {
-            POST(do_bump, height_t{});
-            break;
-        }
-        case chase::checked:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_checked, std::get<height_t>(value));
-            break;
-        }
-        case chase::regressed:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
-            break;
-        }
-        case chase::disorganized:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
-            break;
-        }
+        ////case chase::start:
+        ////case chase::bump:
+        ////{
+        ////    POST(do_bump, height_t{});
+        ////    break;
+        ////}
+        ////case chase::checked:
+        ////{
+        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
+        ////    POST(do_checked, std::get<height_t>(value));
+        ////    break;
+        ////}
+        ////case chase::regressed:
+        ////{
+        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
+        ////    POST(do_regressed, std::get<height_t>(value));
+        ////    break;
+        ////}
+        ////case chase::disorganized:
+        ////{
+        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
+        ////    POST(do_regressed, std::get<height_t>(value));
+        ////    break;
+        ////}
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::stop:
         {
@@ -173,10 +174,10 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
 
-        // TODO: make currency requirement more flexible/configurable.
-        // TODO: machines with high/fast RAM/SSD can handle much more.
+        // TODO: Block until ungapped to current and then start at top validated.
+
         // Wait until the gap is filled at a current height.
-        if (ec == database::error::unassociated || !is_current(link))
+        if (ec == database::error::unassociated)
             return;
 
         // complete_block always follows and decrements.
