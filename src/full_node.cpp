@@ -122,19 +122,19 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
 
 void full_node::close() NOEXCEPT
 {
-    // Block on chaser stop (including dedicated threadpool joins).
-    ////chaser_header_.stop();
-    ////chaser_block_.stop();
-    ////chaser_check_.stop();
-    ////chaser_validate_.stop();
-    ////chaser_confirm_.stop();
-    ////chaser_transaction_.stop();
-    ////chaser_template_.stop();
-    ////chaser_snapshot_.stop();
-    ////chaser_storage_.stop();
-
     // Base (p2p) invokes do_close().
     p2p::close();
+
+    // Block on chaser stop (including dedicated threadpool joins).
+    chaser_header_.stop();
+    chaser_block_.stop();
+    chaser_check_.stop();
+    chaser_validate_.stop();
+    chaser_confirm_.stop();
+    chaser_transaction_.stop();
+    chaser_template_.stop();
+    chaser_snapshot_.stop();
+    chaser_storage_.stop();
 }
 
 // Base (p2p) invokes do_close().
@@ -143,15 +143,15 @@ void full_node::do_close() NOEXCEPT
     BC_ASSERT(stranded());
 
     // Initiate chaser stopping (including dedicated threadpools).
-    ////chaser_header_.stopping(network::error::service_stopped);
-    ////chaser_block_.stopping(network::error::service_stopped);
-    ////chaser_check_.stopping(network::error::service_stopped);
-    ////chaser_validate_.stopping(network::error::service_stopped);
-    ////chaser_confirm_.stopping(network::error::service_stopped);
-    ////chaser_transaction_.stopping(network::error::service_stopped);
-    ////chaser_template_.stopping(network::error::service_stopped);
-    ////chaser_snapshot_.stopping(network::error::service_stopped);
-    ////chaser_storage_.stopping(network::error::service_stopped);
+    chaser_header_.stopping(network::error::service_stopped);
+    chaser_block_.stopping(network::error::service_stopped);
+    chaser_check_.stopping(network::error::service_stopped);
+    chaser_validate_.stopping(network::error::service_stopped);
+    chaser_confirm_.stopping(network::error::service_stopped);
+    chaser_transaction_.stopping(network::error::service_stopped);
+    chaser_template_.stopping(network::error::service_stopped);
+    chaser_snapshot_.stopping(network::error::service_stopped);
+    chaser_storage_.stopping(network::error::service_stopped);
 
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
     p2p::do_close();

@@ -370,8 +370,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
         << "] from [" << authority() << "].");
 
-    ////notify(ec, chase::checked, height);
-    ////fire(events::block_archived, height);
+    notify(ec, chase::checked, height);
+    fire(events::block_archived, height);
 
     count(size);
     map_->erase(it);
@@ -382,19 +382,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     }
 
     return true;
-}
-
-void protocol_block_in_31800::complete(const code& ec,
-    const chain::block::cptr& block, size_t height) const NOEXCEPT
-{
-    if (block->is_valid())
-    {
-        ////const auto wire = block->serialized_size(true);
-        ////const auto allocated = block->get_allocation();
-        ////const auto ratio = static_cast<size_t>((100.0 * allocated) / wire);
-        notify(ec, chase::checked, height);
-        fire(events::block_archived, height);
-    }
 }
 
 // Header state is checked by organize.

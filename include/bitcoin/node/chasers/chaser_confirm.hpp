@@ -40,6 +40,8 @@ public:
     chaser_confirm(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
+    void stop() NOEXCEPT override;
 
 protected:
     using header_links = std_vector<database::header_link>;

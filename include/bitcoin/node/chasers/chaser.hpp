@@ -43,6 +43,12 @@ public:
 
     /// Should be called from node strand.
     virtual code start() NOEXCEPT = 0;
+
+    /// Override to capture non-blocking stopping.
+    virtual void stopping(const code& ec) NOEXCEPT;
+
+    /// Override to capture blocking stop.
+    virtual void stop() NOEXCEPT;
     
 protected:
     /// Abstract base class protected construct.
@@ -67,10 +73,6 @@ protected:
 
     /// Methods.
     /// -----------------------------------------------------------------------
-
-    /// Override to capture node stopping, allow full_node to invoke.
-    friend full_node;
-    virtual void stopping(const code& ec) NOEXCEPT;
 
     /// Node threadpool is stopped and may still be joining.
     virtual bool closed() const NOEXCEPT;
