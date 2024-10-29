@@ -10,6 +10,7 @@ libbitcoin-node.pc
 
 bin
 obj
+build
 .*.swp
 *~
 /*.kdev4
@@ -25,10 +26,11 @@ obj
 /configure
 /libtool
 .dirstamp
+
 node_test/
+/builds/msvc/vs2022/bn/hosts.cache
 *.lock
 *.vsidx
-/builds/msvc/vs2022/bn/hosts.cache
 *.txt
 *.data
 *.head
