@@ -365,14 +365,15 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
     // Either condition means blocks shouldn't be getting downloaded (yet).
-    const auto peers = config().network.outbound_connections;
+    const size_t peers = config().network.outbound_connections;
     if (is_zero(peers) || !is_current())
         return zero;
 
     const auto& query = archive();
     const auto fork = query.get_fork();
-    const auto window = config().node.maximum_concurrency_();
-    const auto step = std::min(window, messages::max_inventory);
+
+    const auto span = system::ceilinged_multiply(messages::max_inventory, peers);
+    const auto step = std::min(maximum_concurrency_, span);
     const auto inventory = query.get_unassociated_count_above(fork, step);
     return system::ceilinged_divide(inventory, peers);
 }
