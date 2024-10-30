@@ -95,6 +95,11 @@ bool chaser_check::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // TODO: allow required messages.
+    ////// Stop generating query during suspension.
+    ////if (suspended())
+    ////    return true;
+
     switch (event_)
     {
         // Track downloaded.

@@ -57,6 +57,10 @@ bool chaser_template::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // Stop generating query during suspension.
+    if (suspended())
+        return true;
+
     // TODO: also handle confirmed/unconfirmed.
     switch (event_)
     {

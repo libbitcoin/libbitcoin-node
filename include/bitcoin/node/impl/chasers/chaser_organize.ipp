@@ -89,6 +89,11 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
     if (closed())
         return false;
 
+    // TODO: allow required messages.
+    ////// Stop generating query during suspension.
+    ////if (suspended())
+    ////    return true;
+
     switch (event_)
     {
         case chase::unchecked:
