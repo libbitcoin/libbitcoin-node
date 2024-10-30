@@ -1,0 +1,4 @@
+{
+    "cmake.sourceDirectory": "/home/nixmini/Repository/Source/libbitcoin-node/builds/cmake",
+    "cmake.useCMakePresets": "always"
+}
