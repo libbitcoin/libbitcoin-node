@@ -215,7 +215,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         }
 
         // Report backlog, should generally not exceed dowload window.
-        fire(events::block_buffered, validation_backlog_);
+        ////fire(events::block_buffered, validation_backlog_);
         boost::asio::post(threadpool_.service(), BIND(validate_block, link));
     }
 }
