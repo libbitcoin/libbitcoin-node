@@ -223,16 +223,33 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
 
     if (!bypass)
     {
-        // database::error::unassociated
-        // database::error::block_unconfirmable
-        // database::error::block_confirmable
-        // database::error::block_valid
-        // database::error::unknown_state
-        // database::error::unvalidated
         const auto ec = query.get_block_state(link);
 
-        // Previously unconfirmable block.
-        if (ec == database::error::block_unconfirmable)
+        if (ec == database::error::block_valid)
+        {
+            if (!query.set_strong(link))
+            {
+                fault(error::set_strong);
+                return;
+            }
+
+            enqueue_block(link);
+            return;
+        }
+        else if (ec == database::error::block_confirmable)
+        {
+            // Required of all confirmed, and before checking confirmable.
+            // Checked blocks are set at download, cannot be unset (reorged).
+            // Milestone blocks are set/unset strong by header organization.
+            if (!query.set_strong(link))
+            {
+                fault(error::set_strong);
+                return;
+            }
+
+            // falls through (previously confirmable, reported as bypass)
+        }
+        else if (ec == database::error::block_unconfirmable)
         {
             notify(ec, chase::unconfirmable, link);
             fire(events::block_unconfirmable, height);
@@ -244,47 +261,35 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
             reset();
             return;
         }
-
-        // Previously evaluated and set confirmable block.
-        if (ec == database::error::block_confirmable)
+        else 
         {
-            // Required of all confirmed, and before checking confirmable.
-            // Checked blocks are set at download, cannot be unset (reorged).
-            // Milestone blocks are set/unset strong by header organization.
-            if (!query.set_strong(link))
-            {
-                fault(error::set_strong);
-                return;
-            }
-
-            confirmable = true;
-        }
-    }
-
-    if (bypass || confirmable)
-    {
-        notify(error::success, chase::confirmable, height);
-        ////fire(events::confirm_bypassed, height);
-
-        if (!set_organized(link, height))
-        {
-            fault(error::set_organized);
+            // With or without an error code, shouldn't be here.
+            // database::error::block_valid         [canonical state  ]
+            // database::error::block_confirmable   [resurrected state]
+            // database::error::block_unconfirmable [shouldn't be here] ?
+            // database::error::unknown_state       [shouldn't be here]
+            // database::error::unassociated        [shouldn't be here]
+            // database::error::unvalidated         [shouldn't be here]
+            fault(error::node_confirm);
             return;
         }
-
-        POST(next_block, add1(height));
-        return;
     }
 
-    if (!enqueue_block(link))
+    notify(error::success, chase::confirmable, height);
+    fire(events::confirm_bypassed, height);
+
+    if (!set_organized(link, height))
     {
-        fault(error::node_confirm);
+        fault(error::set_organized);
         return;
     }
+
+    POST(next_block, add1(height));
+    return;
 }
 
 // DISTRUBUTE WORK UNITS
-bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
+void chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -292,31 +297,32 @@ bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
     context ctx{};
     const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(ctx, link))
-        return false;
+    {
+        POST(confirm_block, database::error::integrity, link, size_t{});
+        return;
+    }
 
     code ec{};
     const auto height = ctx.height;
     if ((ec = query.unspent_duplicates(txs.front(), ctx)))
     {
         POST(confirm_block, ec, link, height);
-        return true;
+        return;
     }
 
     if (is_one(txs.size()))
     {
         POST(confirm_block, ec, link, height);
-        return true;
+        return;
     }
 
     const auto racer = std::make_shared<race>(sub1(txs.size()));
     racer->start(BIND(handle_txs, _1, _2, link, height));
-    ////fire(events::block_buffered, height);
+    fire(events::block_buffered, height);
 
     for (auto tx = std::next(txs.begin()); tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
             BIND(confirm_tx, ctx, *tx, racer));
-
-    return true;
 }
 
 // START WORK UNIT
