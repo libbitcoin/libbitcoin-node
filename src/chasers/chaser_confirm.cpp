@@ -36,9 +36,13 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// threads and priority_validation currently overloading validation settings.
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    threadpool_(one)
+    concurrent_(node.config().node.concurrent_confirmation),
+    threadpool_(std::max(node.config().node.threads, 1_u32),
+        node.config().node.priority_validation ?
+        network::thread_priority::high : network::thread_priority::normal)
 {
 }
 
@@ -68,30 +72,38 @@ void chaser_confirm::stop() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool chaser_confirm::handle_event(const code&, chase event_,
-    event_value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     if (closed())
         return false;
 
-    // Stop generating message/query traffic from the validation messages.
+    // Stop generating query during suspension.
     if (suspended())
         return true;
 
+    // An unconfirmable block height must not land here. 
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {
         case chase::blocks:
         {
             // TODO: value is branch point.
-            ////BC_ASSERT(std::holds_alternative<height_t>(value));
-            ////POST(do_validated, std::get<height_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_validated, std::get<height_t>(value));
             break;
         }
         case chase::valid:
         {
-            // value is individual height.
-            ////BC_ASSERT(std::holds_alternative<height_t>(value));
-            ////POST(do_validated, std::get<height_t>(value));
+            // value is validated block height.
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+
+            // TODO: height may be premature due to concurrent download.
+            const auto height = std::get<height_t>(value);
+            if (concurrent_ /*|| is_current(archive().to_candidate(height))*/)
+            {
+                POST(do_validated, height);
+            }
+
             break;
         }
         case chase::stop:
@@ -110,10 +122,9 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 // confirm
 // ----------------------------------------------------------------------------
 // Blocks are either confirmed (blocks first) or validated/confirmed
-// (headers first) at this point. An unconfirmable block may not land here.
-// Candidate chain reorganizations will result in reported heights moving
-// in any direction. Each is treated as independent and only one representing
-// a stronger chain is considered.
+// (headers first) here. Candidate chain reorganizations will result in
+// reported heights moving in any direction. Each is treated as independent and
+// only one representing a stronger chain is considered.
 
 // Compute relative work, set fork_ and fork_point_.
 void chaser_confirm::do_validated(height_t height) NOEXCEPT

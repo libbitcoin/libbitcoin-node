@@ -65,6 +65,9 @@ private:
         const system::chain::block& block) NOEXCEPT;
 
     // These are thread safe.
+    const bool prepopulate_;
+    const bool concurrent_;
+    const size_t maximum_backlog_;
     const uint64_t initial_subsidy_;
     const uint32_t subsidy_interval_;
 

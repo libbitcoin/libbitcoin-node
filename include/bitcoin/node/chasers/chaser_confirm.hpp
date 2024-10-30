@@ -53,6 +53,7 @@ protected:
     virtual void do_validated(height_t height) NOEXCEPT;
     virtual void do_reorganize(size_t height) NOEXCEPT;
     virtual void do_organize(size_t height) NOEXCEPT;
+
     virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
     virtual void confirm_tx(const database::context& ctx,
         const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
@@ -83,6 +84,9 @@ private:
         height_t fork_top) const NOEXCEPT;
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
+
+    // This is thread safe.
+    const bool concurrent_;
 
     // These are protected by strand.
     network::threadpool threadpool_;
