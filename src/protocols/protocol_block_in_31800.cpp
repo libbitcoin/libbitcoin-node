@@ -352,7 +352,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     const auto size = block->serialized_size(true);
-    const chain::transactions_cptr txs_ptr{ block->transactions_ptr() };
+    const auto& txs_ptr = block->transactions_ptr();
 
     // This invokes set_strong when checked. 
     if (const auto code = query.set_code(*txs_ptr, link, size, checked))
