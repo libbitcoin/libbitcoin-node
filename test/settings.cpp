@@ -55,21 +55,24 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
 
     const node::settings node{};
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
+    BOOST_REQUIRE_EQUAL(node.priority_validation, false);
+    BOOST_REQUIRE_EQUAL(node.concurrent_validation, false);
+    BOOST_REQUIRE_EQUAL(node.concurrent_confirmation, false);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
-    BOOST_REQUIRE_EQUAL(node.snapshot_bytes, 107'374'182'400_u64);
-    BOOST_REQUIRE_EQUAL(node.snapshot_valid, 100'000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
     BOOST_REQUIRE_EQUAL(node.allocation_multiple, 20_u16);
-
+    BOOST_REQUIRE_EQUAL(node.snapshot_bytes, 200'000'000'000_u64);
+    BOOST_REQUIRE_EQUAL(node.snapshot_valid, 250'000_u32);
+    BOOST_REQUIRE_EQUAL(node.snapshot_confirm, 500'000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
-
+    BOOST_REQUIRE_EQUAL(node.threads, 1_u32);
+    BOOST_REQUIRE_EQUAL(node.prepopulate, true);
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(60)));
-    BOOST_REQUIRE_EQUAL(node.threads, 1_u32);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

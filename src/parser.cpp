@@ -884,6 +884,26 @@ options_metadata parser::load_settings() THROWS
         "The number of threads in the validation threadpool, defaults to 16."
     )
     (
+        "node.prepopulate",
+        value<bool>(&configured.node.prepopulate),
+        "Populate block prevous from self before query [testing], defaults to true."
+    )
+    (
+        "node.priority_validation",
+        value<bool>(&configured.node.priority_validation),
+        "Set the validation threadpool to high priority, defaults to false."
+    )
+    (
+        "node.concurrent_validation",
+        value<bool>(&configured.node.concurrent_validation),
+        "Perform validation concurrently with download, defaults to false."
+    )
+    (
+        "node.concurrent_confirmation",
+        value<bool>(&configured.node.concurrent_confirmation),
+        "Perform confirmation concurrently with download, defaults to false."
+    )
+    (
         "node.headers_first",
         value<bool>(&configured.node.headers_first),
         "Obtain current header chain before obtaining associated blocks, defaults to true."
@@ -911,12 +931,17 @@ options_metadata parser::load_settings() THROWS
     (
         "node.snapshot_bytes",
         value<uint64_t>(&configured.node.snapshot_bytes),
-        "Downloaded bytes that triggers snapshot, defaults to '107374182400' (0 disables)."
+        "Downloaded bytes that triggers snapshot, defaults to '200000000000' (0 disables)."
     )
     (
         "node.snapshot_valid",
         value<uint32_t>(&configured.node.snapshot_valid),
-        "Completed validations that trigger snapshot, defaults to '100000' (0 disables)."
+        "Completed validations that trigger snapshot, defaults to '250000' (0 disables)."
+    )
+    (
+        "node.snapshot_confirm",
+        value<uint32_t>(&configured.node.snapshot_confirm),
+        "Completed confirmations that trigger snapshot, defaults to '500000' (0 disables)."
     )
     (
         "node.sample_period_seconds",

@@ -73,15 +73,20 @@ public:
 
     /// Properties.
     bool headers_first;
+    bool priority_validation;
+    bool concurrent_validation;
+    bool concurrent_confirmation;
     float allowed_deviation;
     uint16_t allocation_multiple;
     uint64_t snapshot_bytes;
     uint32_t snapshot_valid;
+    uint32_t snapshot_confirm;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
     uint32_t threads;
+    bool prepopulate;
 
     /// Helpers.
     virtual size_t maximum_height_() const NOEXCEPT;

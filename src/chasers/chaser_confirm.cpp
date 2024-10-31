@@ -36,9 +36,13 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// threads and priority_validation currently overloading validation settings.
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    threadpool_(std::max(node.config().node.threads, 1_u32))
+    concurrent_(node.config().node.concurrent_confirmation),
+    threadpool_(std::max(node.config().node.threads, 1_u32),
+        node.config().node.priority_validation ?
+        network::thread_priority::high : network::thread_priority::normal)
 {
 }
 
@@ -46,6 +50,22 @@ code chaser_confirm::start() NOEXCEPT
 {
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
+}
+
+void chaser_confirm::stopping(const code& ec) NOEXCEPT
+{
+    // Stop threadpool keep-alive, all work must self-terminate to affect join.
+    threadpool_.stop();
+    chaser::stopping(ec);
+}
+
+void chaser_confirm::stop() NOEXCEPT
+{
+    if (!threadpool_.join())
+    {
+        BC_ASSERT_MSG(false, "failed to join threadpool");
+        std::abort();
+    }
 }
 
 // Protected
@@ -57,10 +77,11 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
-    // Stop generating message/query traffic from the validation messages.
+    // Stop generating query during suspension.
     if (suspended())
         return true;
 
+    // An unconfirmable block height must not land here. 
     // These can come out of order, advance in order synchronously.
     switch (event_)
     {
@@ -73,9 +94,16 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         }
         case chase::valid:
         {
-            // value is individual height.
+            // value is validated block height.
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_validated, std::get<height_t>(value));
+
+            // TODO: height may be premature due to concurrent download.
+            const auto height = std::get<height_t>(value);
+            if (concurrent_ /*|| is_current(archive().to_candidate(height))*/)
+            {
+                POST(do_validated, height);
+            }
+
             break;
         }
         case chase::stop:
@@ -94,10 +122,9 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 // confirm
 // ----------------------------------------------------------------------------
 // Blocks are either confirmed (blocks first) or validated/confirmed
-// (headers first) at this point. An unconfirmable block may not land here.
-// Candidate chain reorganizations will result in reported heights moving
-// in any direction. Each is treated as independent and only one representing
-// a stronger chain is considered.
+// (headers first) here. Candidate chain reorganizations will result in
+// reported heights moving in any direction. Each is treated as independent and
+// only one representing a stronger chain is considered.
 
 // Compute relative work, set fork_ and fork_point_.
 void chaser_confirm::do_validated(height_t height) NOEXCEPT
@@ -189,23 +216,39 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         return;
 
     auto& query = archive();
-    bool confirmable = false;
     const auto& link = fork_.back();
     const auto bypass = is_under_checkpoint(height) ||
         query.is_milestone(link);
 
     if (!bypass)
     {
-        // database::error::unassociated
-        // database::error::block_unconfirmable
-        // database::error::block_confirmable
-        // database::error::block_valid
-        // database::error::unknown_state
-        // database::error::unvalidated
         const auto ec = query.get_block_state(link);
 
-        // Previously unconfirmable block.
-        if (ec == database::error::block_unconfirmable)
+        if (ec == database::error::block_valid)
+        {
+            if (!query.set_strong(link))
+            {
+                fault(error::set_strong);
+                return;
+            }
+
+            enqueue_block(link);
+            return;
+        }
+        else if (ec == database::error::block_confirmable)
+        {
+            // Required of all confirmed, and before checking confirmable.
+            // Checked blocks are set at download, cannot be unset (reorged).
+            // Milestone blocks are set/unset strong by header organization.
+            if (!query.set_strong(link))
+            {
+                fault(error::set_strong);
+                return;
+            }
+
+            // falls through (previously confirmable, reported as bypass)
+        }
+        else if (ec == database::error::block_unconfirmable)
         {
             notify(ec, chase::unconfirmable, link);
             fire(events::block_unconfirmable, height);
@@ -217,47 +260,35 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
             reset();
             return;
         }
-
-        // Previously evaluated and set confirmable block.
-        if (ec == database::error::block_confirmable)
+        else 
         {
-            // Required of all confirmed, and before checking confirmable.
-            // Checked blocks are set at download, cannot be unset (reorged).
-            // Milestone blocks are set/unset strong by header organization.
-            if (!query.set_strong(link))
-            {
-                fault(error::set_strong);
-                return;
-            }
-
-            confirmable = true;
-        }
-    }
-
-    if (bypass || confirmable)
-    {
-        notify(error::success, chase::confirmable, height);
-        ////fire(events::confirm_bypassed, height);
-
-        if (!set_organized(link, height))
-        {
-            fault(error::set_organized);
+            // With or without an error code, shouldn't be here.
+            // database::error::block_valid         [canonical state  ]
+            // database::error::block_confirmable   [resurrected state]
+            // database::error::block_unconfirmable [shouldn't be here] ?
+            // database::error::unknown_state       [shouldn't be here]
+            // database::error::unassociated        [shouldn't be here]
+            // database::error::unvalidated         [shouldn't be here]
+            fault(error::node_confirm);
             return;
         }
-
-        POST(next_block, add1(height));
-        return;
     }
 
-    if (!enqueue_block(link))
+    notify(error::success, chase::confirmable, height);
+    fire(events::confirm_bypassed, height);
+
+    if (!set_organized(link, height))
     {
-        fault(error::node_confirm);
+        fault(error::set_organized);
         return;
     }
+
+    POST(next_block, add1(height));
+    return;
 }
 
 // DISTRUBUTE WORK UNITS
-bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
+void chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -265,31 +296,32 @@ bool chaser_confirm::enqueue_block(const header_link& link) NOEXCEPT
     context ctx{};
     const auto txs = query.to_transactions(link);
     if (txs.empty() || !query.get_context(ctx, link))
-        return false;
+    {
+        POST(confirm_block, database::error::integrity, link, size_t{});
+        return;
+    }
 
     code ec{};
     const auto height = ctx.height;
     if ((ec = query.unspent_duplicates(txs.front(), ctx)))
     {
         POST(confirm_block, ec, link, height);
-        return true;
+        return;
     }
 
     if (is_one(txs.size()))
     {
         POST(confirm_block, ec, link, height);
-        return true;
+        return;
     }
 
     const auto racer = std::make_shared<race>(sub1(txs.size()));
     racer->start(BIND(handle_txs, _1, _2, link, height));
-    ////fire(events::block_buffered, height);
+    fire(events::block_buffered, height);
 
     for (auto tx = std::next(txs.begin()); tx != txs.end(); ++tx)
         boost::asio::post(threadpool_.service(),
             BIND(confirm_tx, ctx, *tx, racer));
-
-    return true;
 }
 
 // START WORK UNIT

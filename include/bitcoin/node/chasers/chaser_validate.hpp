@@ -39,10 +39,8 @@ public:
     chaser_validate(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
-
-    /// Validate a populated candidate block.
-    virtual void validate(const system::chain::block::cptr& block,
-        const database::header_link& link, size_t height) NOEXCEPT;
+    void stopping(const code& ec) NOEXCEPT override;
+    void stop() NOEXCEPT override;
 
 protected:
     typedef network::race_unity<const code&, const database::tx_link&> race;
@@ -50,24 +48,13 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_validate(const system::chain::block::cptr& block,
-        database::header_link::integer link, size_t height) NOEXCEPT;
-
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
-    virtual bool enqueue_block(const database::header_link& link) NOEXCEPT;
-    virtual void validate_tx(const database::context& ctx,
-        const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
-    virtual void handle_tx(const code& ec, const database::tx_link& tx,
-        const race::ptr& racer) NOEXCEPT;
-    virtual void handle_txs(const code& ec, const database::tx_link& tx,
-        const database::header_link& link,
-        const database::context& ctx) NOEXCEPT;
-    virtual void validate_block(const code& ec,
-        const database::header_link& link,
-        const database::context& ctx) NOEXCEPT;
+    virtual void validate_block(const database::header_link& link) NOEXCEPT;
+    virtual void complete_block(const code& ec,
+        const database::header_link& link, size_t height) NOEXCEPT;
 
 private:
     // neutrino
@@ -78,12 +65,16 @@ private:
         const system::chain::block& block) NOEXCEPT;
 
     // These are thread safe.
+    const bool prepopulate_;
+    const bool concurrent_;
+    const size_t maximum_backlog_;
     const uint64_t initial_subsidy_;
-    const uint32_t subsidy_interval_blocks_;
+    const uint32_t subsidy_interval_;
 
     // These are protected by strand.
     network::threadpool threadpool_;
     system::hash_digest neutrino_{};
+    size_t validation_backlog_{};
 };
 
 } // namespace node

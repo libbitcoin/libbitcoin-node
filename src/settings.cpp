@@ -76,15 +76,20 @@ namespace node {
 
 settings::settings() NOEXCEPT
   : headers_first{ true },
+    priority_validation{ false },
+    concurrent_validation{ false },
+    concurrent_confirmation{ false },
     allowed_deviation{ 1.5 },
     allocation_multiple{ 20 },
-    snapshot_bytes{ 107'374'182'400 },
-    snapshot_valid{ 100'000 },
+    snapshot_bytes{ 200'000'000'000 },
+    snapshot_valid{ 250'000 },
+    snapshot_confirm{ 500'000 },
     maximum_height{ 0 },
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
     currency_window_minutes{ 60 },
-    threads{ 1 }
+    threads{ 1 },
+    prepopulate{ true }
 {
 }
 

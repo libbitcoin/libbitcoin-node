@@ -1,10 +1,4 @@
 {
-<<<<<<< HEAD
-    "cmake.sourceDirectory": "/home/nixmini/Repository/Source/libbitcoin-node/builds/cmake",
-    "cmake.useCMakePresets": "always"
-}
-=======
     "cmake.sourceDirectory": "${workspaceFolder}/builds/cmake",
     "cmake.useCMakePresets": "always"
 }
->>>>>>> e3e1a43d (Regenerate artifacts.)

@@ -89,6 +89,11 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
     if (closed())
         return false;
 
+    // TODO: allow required messages.
+    ////// Stop generating query during suspension.
+    ////if (suspended())
+    ////    return true;
+
     switch (event_)
     {
         case chase::unchecked:
@@ -195,7 +200,7 @@ void CLASS::do_organize(typename Block::cptr block,
     bool strong{};
     uint256_t work{};
     hashes tree_branch{};
-    size_t branch_point{};
+    height_t branch_point{};
     header_links store_branch{};
 
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
