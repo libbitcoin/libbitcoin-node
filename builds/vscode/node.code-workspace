@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
 	"folders": [
 		{
 			"path": "../../../libbitcoin-system"
@@ -14,4 +15,12 @@
 		}
 	],
 	"settings": {}
+=======
+    "folders": [
+        {
+	    "path": "../../../libbitcoin-node"
+	}
+    ],
+    "settings": {}
+>>>>>>> e3e1a43d (Regenerate artifacts.)
 }
