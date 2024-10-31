@@ -216,7 +216,6 @@ void chaser_confirm::do_organize(size_t height) NOEXCEPT
         return;
 
     auto& query = archive();
-    bool confirmable = false;
     const auto& link = fork_.back();
     const auto bypass = is_under_checkpoint(height) ||
         query.is_milestone(link);
