@@ -496,7 +496,7 @@ jobs:
             packages: ""
 
           - os: ubuntu-22.04
-            preset: "nix-gnu-release-static-size"
+            preset: "nix-gnu-release-static"
             cxx: "clang++-15"
             link: "static"
             optimization: "size"
@@ -511,7 +511,7 @@ jobs:
             packages: ""
 
           - os: ubuntu-22.04
-            preset: "nix-gnu-release-shared-size"
+            preset: "nix-gnu-release-shared"
             cxx: "g++-11"
             link: "dynamic"
             optimization: "size"

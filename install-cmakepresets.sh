@@ -354,13 +354,10 @@ handle_custom_options()
         ($PRESET_ID != "gnu-release") &&
         ($PRESET_ID != "static") &&
         ($PRESET_ID != "shared") &&
-        ($PRESET_ID != "gnu-optimized-size") &&
         ($PRESET_ID != "nix-gnu-debug-static") &&
         ($PRESET_ID != "nix-gnu-debug-shared") &&
         ($PRESET_ID != "nix-gnu-release-static") &&
-        ($PRESET_ID != "nix-gnu-release-shared") &&
-        ($PRESET_ID != "nix-gnu-release-static-size") &&
-        ($PRESET_ID != "nix-gnu-release-shared-size")]]; then
+        ($PRESET_ID != "nix-gnu-release-shared")]]; then
         display_error "Unsupported preset: $PRESET_ID"
         display_error "Supported values are:"
         display_error "  nix-base"
@@ -368,13 +365,10 @@ handle_custom_options()
         display_error "  gnu-release"
         display_error "  static"
         display_error "  shared"
-        display_error "  gnu-optimized-size"
         display_error "  nix-gnu-debug-static"
         display_error "  nix-gnu-debug-shared"
         display_error "  nix-gnu-release-static"
         display_error "  nix-gnu-release-shared"
-        display_error "  nix-gnu-release-static-size"
-        display_error "  nix-gnu-release-shared-size"
         display_error ""
         display_help
         exit 1
@@ -387,11 +381,7 @@ handle_custom_options()
     display_message "REPO_PRESET[libbitcoin-database]=${REPO_PRESET[libbitcoin-database]}"
     REPO_PRESET[libbitcoin-network]="$BASE_PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-network]=${REPO_PRESET[libbitcoin-network]}"
-    if [[ $WITH_ICU ]]; then
-        REPO_PRESET[libbitcoin-system]="$BASE_PRESET_ID-with_icu"
-    else
-        REPO_PRESET[libbitcoin-system]="$BASE_PRESET_ID-without_icu"
-    fi
+    REPO_PRESET[libbitcoin-system]="$BASE_PRESET_ID"
     display_message "REPO_PRESET[libbitcoin-system]=${REPO_PRESET[libbitcoin-system]}"
 
     CUMULATIVE_FILTERED_ARGS=""
