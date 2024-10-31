@@ -246,6 +246,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
 
     if (!query.populate(*block))
     {
+        // This could instead be a case of invalid milestone.
         POST(complete_block, database::error::integrity, link, ctx.height);
         return;
     }
