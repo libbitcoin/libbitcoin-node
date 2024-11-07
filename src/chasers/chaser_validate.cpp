@@ -223,18 +223,18 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     const auto block = query.get_block(link);
     if (!block)
     {
-        ////POST(complete_block, database::error::integrity, link, zero);
+        ////POST(complete_block, error::validate1, link, zero);
         boost::asio::post(strand_,
-            BIND(complete_block, database::error::integrity, link, zero));
+            BIND(complete_block, error::validate1, link, zero));
         return;
     }
 
     chain::context ctx{};
     if (!query.get_context(ctx, link))
     {
-        ////POST(complete_block, database::error::integrity, link, zero);
+        ////POST(complete_block, error::validate2, link, zero);
         boost::asio::post(strand_,
-            BIND(complete_block, database::error::integrity, link, zero));
+            BIND(complete_block, error::validate2, link, zero));
         return;
     }
 
@@ -245,9 +245,9 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     if (!query.populate(*block))
     {
         // This could instead be a case of invalid milestone.
-        ////POST(complete_block, database::error::integrity, link, ctx.height);
+        ////POST(complete_block, error::validate3, link, ctx.height);
         boost::asio::post(strand_,
-            BIND(complete_block, database::error::integrity, link, ctx.height));
+            BIND(complete_block, error::validate3, link, ctx.height));
         return;
     }
 
@@ -257,12 +257,12 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     {
         if (!query.set_block_unconfirmable(link))
         {
-            ec = database::error::integrity;
+            ec = error::validate4;
         }
     }
     else if (!query.set_block_valid(link))
     {
-        ec = database::error::integrity;
+        ec = error::validate5;
     }
     else
     {
@@ -284,7 +284,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
     if (ec)
     {
-        if (ec == database::error::integrity)
+        if (ec == error::validate6)
         {
             fault(ec);
             return;

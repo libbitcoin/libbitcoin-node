@@ -42,7 +42,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     concurrent_(node.config().node.concurrent_confirmation),
-    threadpool_(one, node.config().node.priority_validation ?
+    threadpool_(std::max(ceilinged_add(node.config().node.threads,
+        node.config().network.threads), 1_u32),
+        node.config().node.priority_validation ?
         network::thread_priority::highest : network::thread_priority::high),
     strand_(threadpool_.service().get_executor())
 {
@@ -151,7 +153,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     // Scan from validated height to first confirmed, save links, and sum work.
     if (!get_fork_work(work, fork, height))
     {
-        fault(error::get_fork_work);
+        fault(error::confirm1);
         return;
     }
 
@@ -163,7 +165,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
     const auto fork_point = height - fork.size();
     if (!get_is_strong(strong, work, fork_point))
     {
-        fault(error::get_is_strong);
+        fault(error::confirm2);
         return;
     }
 
@@ -180,7 +182,7 @@ void chaser_confirm::do_reorganize(header_links& fork, size_t fork_point) NOEXCE
     auto top = query.get_top_confirmed();
     if (top < fork_point)
     {
-        fault(error::invalid_fork_point);
+        fault(error::confirm3);
         return;
     }
 
@@ -190,20 +192,20 @@ void chaser_confirm::do_reorganize(header_links& fork, size_t fork_point) NOEXCE
         const auto top_link = query.to_confirmed(top);
         if (top_link.is_terminal())
         {
-            fault(error::to_confirmed);
+            fault(error::confirm4);
             return;
         }
 
         popped.push_back(top_link);
         if (!query.set_unstrong(top_link))
         {
-            fault(error::set_unstrong);
+            fault(error::confirm5);
             return;
         }
 
         if (!query.pop_confirmed())
         {
-            fault(error::pop_confirmed);
+            fault(error::confirm6);
             return;
         }
 
@@ -238,7 +240,7 @@ void chaser_confirm::do_organize(header_links& fork,
             // Checkpoint and milestone are already set_strong.
             if (!set_organized(link, height))
             {
-                fault(database::error::integrity);
+                fault(error::confirm7);
                 return;
             }
         }
@@ -249,7 +251,7 @@ void chaser_confirm::do_organize(header_links& fork,
             {
                 if (!query.set_strong(link))
                 {
-                    fault(database::error::integrity);
+                    fault(error::confirm8);
                     return;
                 }
  
@@ -258,7 +260,7 @@ void chaser_confirm::do_organize(header_links& fork,
                 {
                     if (ec == database::error::integrity)
                     {
-                        fault(database::error::integrity);
+                        fault(error::confirm9);
                         return;
                     }
 
@@ -269,18 +271,18 @@ void chaser_confirm::do_organize(header_links& fork,
 
                     if (!query.set_unstrong(link))
                     {
-                        fault(database::error::integrity);
+                        fault(error::confirm10);
                         return;
                     }
 
                     if (!query.set_block_unconfirmable(link))
                     {
-                        fault(database::error::integrity);
+                        fault(error::confirm11);
                         return;
                     }
 
                     if (!roll_back(popped, fork_point, sub1(height)))
-                        fault(database::error::integrity);
+                        fault(error::confirm12);
 
                     return;
                 }
@@ -288,7 +290,7 @@ void chaser_confirm::do_organize(header_links& fork,
                 // TODO: fees.
                 if (!query.set_block_confirmable(link, {}))
                 {
-                    fault(database::error::integrity);
+                    fault(error::confirm13);
                     return;
                 }
 
@@ -297,7 +299,7 @@ void chaser_confirm::do_organize(header_links& fork,
                 LOGV("Block confirmed and organized: " << height);
 
                 if (!set_organized(link, height))
-                    fault(database::error::integrity);
+                    fault(error::confirm14);
 
                 return;
             }
@@ -305,7 +307,7 @@ void chaser_confirm::do_organize(header_links& fork,
             {
                 if (!query.set_strong(link))
                 {
-                    fault(database::error::integrity);
+                    fault(error::confirm15);
                     return;
                 }
 
@@ -314,37 +316,34 @@ void chaser_confirm::do_organize(header_links& fork,
                 LOGV("Block previously confirmable organized: " << height);
 
                 if (!set_organized(link, height))
-                    fault(database::error::integrity);
-
-                return;
-            }
-            else if (ec == database::error::block_unconfirmable)
-            {
-                notify(ec, chase::unconfirmable, link);
-                fire(events::block_unconfirmable, height);
-                LOGV("Block confirmation failed: " << height);
-
-                if (!roll_back(popped, fork_point, sub1(height)))
-                    fault(database::error::integrity);
+                    fault(error::confirm16);
 
                 return;
             }
             else
             {
+                ///////////////////////////////////////////////////////////////
+                // TODO: do not start branch unless block valid or confirmable.
+                ///////////////////////////////////////////////////////////////
+
                 // With or without an error code, shouldn't be here.
                 // database::error::block_valid         [canonical state  ]
                 // database::error::block_confirmable   [resurrected state]
-                // database::error::block_unconfirmable [shouldn't be here] ?
+                // database::error::block_unconfirmable [shouldn't be here]
                 // database::error::unknown_state       [shouldn't be here]
                 // database::error::unassociated        [shouldn't be here]
                 // database::error::unvalidated         [shouldn't be here]
-                fault(database::error::integrity);
+                ////fault(error::confirm17);
                 return;
             }
         }
 
         fork.pop_back();
     }
+    
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: terminal stall will happen here as validation completes.
+    ///////////////////////////////////////////////////////////////////////////
 }
 
 // Private

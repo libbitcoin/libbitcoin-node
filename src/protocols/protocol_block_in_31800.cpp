@@ -336,7 +336,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         {
             LOGF("Failure setting block unconfirmable [" << encode_hash(hash)
                 << ":" << height << "] from [" << authority() << "].");
-            fault(error::set_block_unconfirmable);
+            fault(error::protocol1);
             return false;
         }
 

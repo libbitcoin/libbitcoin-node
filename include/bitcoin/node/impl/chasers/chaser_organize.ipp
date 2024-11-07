@@ -57,8 +57,8 @@ code CLASS::start() NOEXCEPT
 
     if (!state_)
     {
-        fault(error::get_candidate_chain_state);
-        return error::get_candidate_chain_state;
+        fault(error::organize1);
+        return error::organize1;
     }
 
     LOGN("Candidate top [" << system::encode_hash(state_->hash()) << ":"
@@ -205,14 +205,14 @@ void CLASS::do_organize(typename Block::cptr block,
 
     if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
     {
-        handler(fault(error::get_branch_work), height);
+        handler(fault(error::organize2), height);
         return;
     }
 
     // branch_point is the highest tree-candidate common block.
     if (!get_is_strong(strong, work, branch_point))
     {
-        handler(fault(error::get_is_strong), height);
+        handler(fault(error::organize3), height);
         return;
     }
 
@@ -235,7 +235,7 @@ void CLASS::do_organize(typename Block::cptr block,
     const auto top_candidate = state_->height();
     if (branch_point > top_candidate)
     {
-        handler(fault(error::invalid_branch_point), height);
+        handler(fault(error::organize4), height);
         return;
     }
 
@@ -247,7 +247,7 @@ void CLASS::do_organize(typename Block::cptr block,
         if ((is_under_milestone(index) && !query.set_unstrong(candidate)) ||
             !query.pop_candidate())
         {
-            handler(fault(error::pop_candidate), height);
+            handler(fault(error::organize5), height);
             return;
         }
 
@@ -264,7 +264,7 @@ void CLASS::do_organize(typename Block::cptr block,
         if ((is_under_milestone(index) && !query.set_strong(link)) ||
             !query.push_candidate(link))
         {
-            handler(fault(error::push_candidate), height);
+            handler(fault(error::organize6), height);
             return;
         }
 
@@ -347,7 +347,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     size_t height{};
     if (!query.get_height(height, link) || is_zero(height))
     {
-        fault(error::get_height);
+        fault(error::organize7);
         return;
     }
 
@@ -355,7 +355,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork_point = query.get_fork();
     if (height <= fork_point)
     {
-        fault(error::invalid_fork_point);
+        fault(error::organize8);
         return;
     }
 
@@ -365,7 +365,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
-        fault(error::get_candidate_chain_state);
+        fault(error::organize9);
         return;
     }
 
@@ -378,7 +378,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!get_block(block, index))
         {
-            fault(error::get_block);
+            fault(error::organize10);
             return;
         }
 
@@ -398,7 +398,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         if ((is_under_milestone(index) && !query.set_unstrong(candidate)) ||
             !query.pop_candidate())
         {
-            fault(error::pop_candidate);
+            fault(error::organize11);
             return;
         }
 
@@ -418,7 +418,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         // Confirmed are already set_strong and must stay that way.
         if (!query.push_candidate(query.to_confirmed(index)))
         {
-            fault(error::push_candidate);
+            fault(error::organize12);
             return;
         }
 
@@ -428,7 +428,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state = query.get_candidate_chain_state(settings_, top_confirmed);
     if (!state)
     {
-        fault(error::get_candidate_chain_state);
+        fault(error::organize13);
         return;
     }
 
@@ -552,7 +552,7 @@ code CLASS::push_block(const Block& block,
         return ec;
 
     if (!query.push_candidate(link))
-        return error::push_candidate;
+        return error::organize14;
 
     return ec;
 }
@@ -562,7 +562,7 @@ code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
 {
     const auto handle = tree_.extract(key);
     if (!handle)
-        return error::branch_error;
+        return error::organize15;
 
     const auto& value = handle.mapped();
     return push_block(*value.block, value.state->context());
