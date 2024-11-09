@@ -224,7 +224,7 @@ void chaser_confirm::do_organize(header_links& fork,
     auto& query = archive();
 
     // height tracks each fork link, starting at fork_point+1.
-    size_t height = fork_point;
+    auto height = fork_point;
 
     while (!fork.empty())
     {
