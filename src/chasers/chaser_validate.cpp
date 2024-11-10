@@ -87,6 +87,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
+    // TODO: resume needs to ensure a bump.
     // Stop generating query during suspension.
     if (suspended())
         return true;
