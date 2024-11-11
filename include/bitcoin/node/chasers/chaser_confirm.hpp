@@ -50,10 +50,14 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
+    ////virtual void do_checking(height_t height) NOEXCEPT;
+    virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
-    virtual void do_reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
-    virtual void do_organize(header_links& fork, const header_links& popped,
-        size_t fork_point) NOEXCEPT;
+    virtual void do_bump(height_t branch_point) NOEXCEPT;
+
+    ////virtual void do_reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
+    ////virtual void do_organize(header_links& fork, const header_links& popped,
+    ////    size_t fork_point) NOEXCEPT;
 
 private:
     bool set_organized(const database::header_link& link,

@@ -91,6 +91,9 @@ enum class chase
     /// Check/Identify.
     /// -----------------------------------------------------------------------
 
+    /////// A set of blocks is being checked, top block provided (height_t).
+    ////checking,
+
     /// A block has been downloaded, checked and stored (height_t).
     /// Issued by 'block_in_31800' or 'populate' and handled by 'connect'.
     /// Populate is bypassed for checkpoint/milestone blocks.
