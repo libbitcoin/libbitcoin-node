@@ -203,6 +203,11 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     for (auto height = add1(position()); !closed(); ++height)
     {
         const auto link = query.to_candidate(height);
+        auto ec = query.get_block_state(link);
+
+        // Don't report bypassed block is confirmable until associated.
+        if (ec == database::error::unassociated)
+            return;
 
         if (is_under_checkpoint(height) || query.is_milestone(link))
         {
@@ -211,85 +216,81 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             LOGV("Block confirmation bypassed: " << height);
             ////return;
         }
-        else
+        else if (ec == database::error::block_valid)
         {
-            auto ec = query.get_block_state(link);
-            if (ec == database::error::block_valid)
+            if (!query.set_strong(link))
             {
-                if (!query.set_strong(link))
-                {
-                    fault(error::confirm2);
-                    return;
-                }
-         
-                if ((ec = query.block_confirmable(link)))
-                {
-                    if (ec == database::error::integrity)
-                    {
-                        fault(error::confirm3);
-                        return;
-                    }
-
-                    if (!query.set_block_unconfirmable(link))
-                    {
-                        fault(error::confirm4);
-                        return;
-                    }
-
-                    if (!query.set_unstrong(link))
-                    {
-                        fault(error::confirm5);
-                        return;
-                    }
-
-                    // Blocks between link and fork point will be set_unstrong
-                    // by header reorganization, picked up by do_regressed.
-                    notify(ec, chase::unconfirmable, link);
-                    fire(events::block_unconfirmable, height);
-                    LOGR("Unconfirmable block [" << height << "] "
-                        << ec.message());
-                    return;
-                }
-        
-                // TODO: fees.
-                if (!query.set_block_confirmable(link, {}))
-                {
-                    fault(error::confirm6);
-                    return;
-                }
-        
-                notify(error::success, chase::confirmable, height);
-                fire(events::block_confirmed, height);
-                LOGV("Block confirmed: " << height);
-                ////return;
-            }
-            else if (ec == database::error::block_confirmable)
-            {
-                if (!query.set_strong(link))
-                {
-                    fault(error::confirm7);
-                    return;
-                }
-        
-                notify(error::success, chase::confirmable, height);
-                fire(events::confirm_bypassed, height);
-                LOGV("Block previously confirmable: " << height);
-                ////return;
-            }
-            else
-            {
-                // With or without an error code, shouldn't be here.
-                // database::error::block_valid         [canonical state  ]
-                // database::error::block_confirmable   [resurrected state]
-                // database::error::block_unconfirmable [shouldn't be here]
-                // database::error::unknown_state       [shouldn't be here]
-                // database::error::unassociated        [shouldn't be here]
-                // database::error::unvalidated         [shouldn't be here]
+                fault(error::confirm2);
                 return;
             }
+         
+            if ((ec = query.block_confirmable(link)))
+            {
+                if (ec == database::error::integrity)
+                {
+                    fault(error::confirm3);
+                    return;
+                }
 
-            set_position(height);
+                if (!query.set_block_unconfirmable(link))
+                {
+                    fault(error::confirm4);
+                    return;
+                }
+
+                if (!query.set_unstrong(link))
+                {
+                    fault(error::confirm5);
+                    return;
+                }
+
+                // Blocks between link and fork point will be set_unstrong
+                // by header reorganization, picked up by do_regressed.
+                notify(ec, chase::unconfirmable, link);
+                fire(events::block_unconfirmable, height);
+                LOGR("Unconfirmable block [" << height << "] "
+                    << ec.message());
+                return;
+            }
+        
+            // TODO: fees.
+            if (!query.set_block_confirmable(link, {}))
+            {
+                fault(error::confirm6);
+                return;
+            }
+        
+            notify(error::success, chase::confirmable, height);
+            fire(events::block_confirmed, height);
+            LOGV("Block confirmed: " << height);
+            ////return;
         }
+        else if (ec == database::error::block_confirmable)
+        {
+            if (!query.set_strong(link))
+            {
+                fault(error::confirm7);
+                return;
+            }
+        
+            notify(error::success, chase::confirmable, height);
+            fire(events::confirm_bypassed, height);
+            LOGV("Block previously confirmable: " << height);
+            ////return;
+        }
+        else
+        {
+            // With or without an error code, shouldn't be here.
+            // database::error::block_valid         [canonical state  ]
+            // database::error::block_confirmable   [resurrected state]
+            // database::error::block_unconfirmable [shouldn't be here]
+            // database::error::unknown_state       [shouldn't be here]
+            // database::error::unassociated        [shouldn't be here]
+            // database::error::unvalidated         [shouldn't be here]
+            return;
+        }
+
+        set_position(height);
     }
 }
 
