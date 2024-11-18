@@ -42,13 +42,8 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// maximum_backlog is the limit of ASIO backlog in blocks.
-// There is almost no cost the the backlog, as it's on an independent
-// threadpool and contains only the header link value. It's better to avoid
-// a costly query to get the tx count (for example) and allow the amount of
-// actual work that is queued to vary significantly. The maximum_concurrency
-// setting is overloaded for the purpose of limiting the backlog.
-
+// Multiple higher priority thread strand (base class strand uses network pool).
+// Higher priority than downloader (net) ensures locality to downloader writes.
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     prepopulate_(node.config().node.prepopulate),
@@ -58,7 +53,8 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     threadpool_(std::max(node.config().node.threads, 1_u32),
         node.config().node.priority_validation ?
-        network::thread_priority::high : network::thread_priority::normal)
+        network::thread_priority::high : network::thread_priority::normal),
+    strand_(threadpool_.service().get_executor())
 {
 }
 
@@ -96,18 +92,17 @@ bool chaser_validate::handle_event(const code&, chase event_,
         return true;
 
     // These come out of order, advance in order asynchronously.
-    // Asynchronous completion results in out of order notification.
+    // Asynchronous completion again results in out of order notification.
     switch (event_)
     {
-        // Track downloaded.
-        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::start:
         case chase::bump:
         {
-            // TODO: currency?
-            if (concurrent_ /*|| is_current(archive().to_candidate(height))*/)
+            if (concurrent_ || mature_)
             {
-                POST(do_bump, height_t{});
+                ////POST(do_bump, height_t{});
+                boost::asio::post(strand_,
+                    BIND(do_bump, height_t{}));
             }
 
             break;
@@ -117,11 +112,11 @@ bool chaser_validate::handle_event(const code&, chase event_,
             // value is checked block height.
             BC_ASSERT(std::holds_alternative<height_t>(value));
 
-            // TODO: height may be premature due to concurrent download.
-            const auto height = std::get<height_t>(value);
-            if (concurrent_ /*|| is_current(archive().to_candidate(height))*/)
+            if (concurrent_ || mature_)
             {
-                POST(do_checked, height);
+                ////POST(do_checked, std::get<height_t>(value));
+                boost::asio::post(strand_,
+                    BIND(do_checked, std::get<height_t>(value)));
             }
 
             break;
@@ -129,16 +124,19 @@ bool chaser_validate::handle_event(const code&, chase event_,
         case chase::regressed:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
+            ////POST(do_regressed, std::get<height_t>(value));
+            boost::asio::post(strand_,
+                BIND(do_regressed, std::get<height_t>(value)));
             break;
         }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
+            ////POST(do_regressed, std::get<height_t>(value));
+            boost::asio::post(strand_,
+                BIND(do_regressed, std::get<height_t>(value)));
             break;
         }
-        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::stop:
         {
             return false;
@@ -180,7 +178,6 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
-    // Validate checked blocks starting immediately after last validated.
     // Bypass until next event if validation backlog is full.
     for (auto height = add1(position());
         (validation_backlog_ < maximum_backlog_) && !closed(); ++height)
@@ -188,16 +185,13 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
 
-        // TODO: Block until ungapped to current and then start at top validated.
-
-        // Wait until the gap is filled at a current height.
+        // Wait until the gap is filled at a current height (or next top).
         if (ec == database::error::unassociated)
             return;
 
         // The size of the job is not relevant to the backlog cost.
         ++validation_backlog_;
 
-        // Causes a reorganization (should have been encountered by headers).
         if (ec == database::error::block_unconfirmable)
         {
             complete_block(ec, link, height);
@@ -214,9 +208,9 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             continue;
         }
 
-        // Report backlog, should generally not exceed dowload window.
-        ////fire(events::block_buffered, validation_backlog_);
-        boost::asio::post(threadpool_.service(), BIND(validate_block, link));
+        // concurrent by block
+        boost::asio::post(threadpool_.service(),
+            BIND(validate_block, link));
     }
 }
 
@@ -229,14 +223,18 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     const auto block = query.get_block(link);
     if (!block)
     {
-        POST(complete_block, database::error::integrity, link, zero);
+        ////POST(complete_block, database::error::integrity, link, zero);
+        boost::asio::post(strand_,
+            BIND(complete_block, database::error::integrity, link, zero));
         return;
     }
 
     chain::context ctx{};
     if (!query.get_context(ctx, link))
     {
-        POST(complete_block, database::error::integrity, link, zero);
+        ////POST(complete_block, database::error::integrity, link, zero);
+        boost::asio::post(strand_,
+            BIND(complete_block, database::error::integrity, link, zero));
         return;
     }
 
@@ -247,7 +245,9 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     if (!query.populate(*block))
     {
         // This could instead be a case of invalid milestone.
-        POST(complete_block, database::error::integrity, link, ctx.height);
+        ////POST(complete_block, database::error::integrity, link, ctx.height);
+        boost::asio::post(strand_,
+            BIND(complete_block, database::error::integrity, link, ctx.height));
         return;
     }
 
@@ -269,7 +269,9 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
         fire(events::block_validated, ctx.height);
     }
 
-    POST(complete_block, ec, link, ctx.height);
+    ////POST(complete_block, ec, link, ctx.height);
+    boost::asio::post(strand_,
+        BIND(complete_block, ec, link, ctx.height));
 }
 
 void chaser_validate::complete_block(const code& ec, const header_link& link,
@@ -303,6 +305,11 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
 // neutrino
 // ----------------------------------------------------------------------------
+// Since neutrino filters must be computed in block order, and require full
+// block and previous output deserialization, configuration of this option
+// implies either ordered validation or re-deserialization of 115% of the store
+// in another chaser or populated block caching in that chaser (which implies a
+// controlled/narrow window of concurrent validation).
 
 // Returns null_hash if not found, intended for genesis block.
 hash_digest chaser_validate::get_neutrino(size_t height) const NOEXCEPT

@@ -73,8 +73,10 @@ private:
 
     // These are protected by strand.
     network::threadpool threadpool_;
+    network::asio::strand strand_;
     system::hash_digest neutrino_{};
     size_t validation_backlog_{};
+    bool mature_{};
 };
 
 } // namespace node
