@@ -341,8 +341,8 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 
     // Defer new work issuance until gaps filled and confirmation caught up.
     if (position() < requested_ ||
-        requested_ >= maximum_height_ ||
-        confirmed_ < requested_)
+        requested_ >= maximum_height_
+        /*||confirmed_ < requested_*/)
         return {};
 
     // Inventory size gets set only once.
