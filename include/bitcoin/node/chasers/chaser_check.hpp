@@ -68,6 +68,7 @@ protected:
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
+    virtual void do_confirmable(height_t height) NOEXCEPT;
 
 private:
     typedef std::deque<map_ptr> maps;
@@ -89,6 +90,7 @@ private:
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
+    size_t confirmed_{};
     job::ptr job_{};
     maps maps_{};
 };

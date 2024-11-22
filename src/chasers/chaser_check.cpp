@@ -130,6 +130,12 @@ bool chaser_check::handle_event(const code&, chase event_,
             POST(do_headers, std::get<height_t>(value));
             break;
         }
+        case chase::confirmable:
+        {
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_confirmable, std::get<height_t>(value));
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -141,6 +147,15 @@ bool chaser_check::handle_event(const code&, chase event_,
     }
 
     return true;
+}
+
+void chaser_check::do_confirmable(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    confirmed_ = height;
+
+    if (confirmed_ == requested_)
+        do_headers(height_t{});
 }
 
 // regression
@@ -223,7 +238,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
         query.to_candidate(add1(position()))))
             set_position(add1(position()));
 
-    set_unassociated();
+    do_headers(height_t{});
 }
 
 // add headers
@@ -324,8 +339,10 @@ size_t chaser_check::set_unassociated() NOEXCEPT
     if (closed() || purging())
         return {};
 
-    // Defer new work issuance until all gaps are filled.
-    if (position() < requested_ || requested_ >= maximum_height_)
+    // Defer new work issuance until gaps filled and confirmation caught up.
+    if (position() < requested_ ||
+        requested_ >= maximum_height_
+        /*||confirmed_ < requested_*/)
         return {};
 
     // Inventory size gets set only once.
@@ -364,6 +381,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
         << count << ") last ("
         << requested_ << ").");
 
+    ////notify(error::success, chase::checking, requested_);
     return count;
 }
 

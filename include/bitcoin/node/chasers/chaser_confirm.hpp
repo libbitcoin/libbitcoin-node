@@ -50,25 +50,16 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
+    ////virtual void do_checking(height_t height) NOEXCEPT;
+    virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
-    virtual void do_reorganize(size_t height) NOEXCEPT;
-    virtual void do_organize(size_t height) NOEXCEPT;
+    virtual void do_bump(height_t branch_point) NOEXCEPT;
 
-    virtual void enqueue_block(const database::header_link& link) NOEXCEPT;
-    virtual void confirm_tx(const database::context& ctx,
-        const database::tx_link& link, const race::ptr& racer) NOEXCEPT;
-    virtual void handle_tx(const code& ec, const database::tx_link& tx,
-        const race::ptr& racer) NOEXCEPT;
-    virtual void handle_txs(const code& ec, const database::tx_link& tx,
-        const database::header_link& link, size_t height)NOEXCEPT;
-    virtual void confirm_block(const code& ec,
-        const database::header_link& link, size_t height) NOEXCEPT;
-    virtual void next_block(size_t height) NOEXCEPT;
+    ////virtual void do_reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
+    ////virtual void do_organize(header_links& fork, const header_links& popped,
+    ////    size_t fork_point) NOEXCEPT;
 
 private:
-    void reset() NOEXCEPT;
-    bool busy() const NOEXCEPT;
-
     bool set_organized(const database::header_link& link,
         height_t height) NOEXCEPT;
     bool reset_organized(const database::header_link& link,
@@ -77,8 +68,6 @@ private:
         height_t height) NOEXCEPT;
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
-    bool roll_back(const header_links& popped, size_t fork_point,
-        size_t top, const database::header_link& link) NOEXCEPT;
 
     bool get_fork_work(uint256_t& fork_work, header_links& fork,
         height_t fork_top) const NOEXCEPT;
@@ -90,9 +79,8 @@ private:
 
     // These are protected by strand.
     network::threadpool threadpool_;
-    header_links popped_{};
-    header_links fork_{};
-    size_t fork_point_{};
+    network::asio::strand strand_;
+    bool mature_{};
 };
 
 } // namespace node
