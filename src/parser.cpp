@@ -45,6 +45,14 @@ parser::parser(const configuration& defaults) NOEXCEPT
 parser::parser(system::chain::selection context) NOEXCEPT
   : configured(context)
 {
+    // node
+
+    configured.node.snapshot_bytes = 0;
+    configured.node.snapshot_valid = 0;
+    configured.node.snapshot_confirm = 0;
+
+    // network
+
     using level = network::messages::level;
     using service = network::messages::service;
 
@@ -217,7 +225,7 @@ options_metadata parser::load_options() THROWS
         BN_READ_VARIABLE ",t",
         value<bool>(&configured.test)->
             default_value(false)->zero_tokens(),
-        "Run built-in read test and display (validate block 523,354 if exists)."
+        "Run built-in read test and display."
     )
     (
         BN_WRITE_VARIABLE ",w",
@@ -931,17 +939,17 @@ options_metadata parser::load_settings() THROWS
     (
         "node.snapshot_bytes",
         value<uint64_t>(&configured.node.snapshot_bytes),
-        "Downloaded bytes that triggers snapshot, defaults to '200000000000' (0 disables)."
+        "Downloaded bytes that triggers snapshot, defaults to '0' (0 disables)."
     )
     (
         "node.snapshot_valid",
         value<uint32_t>(&configured.node.snapshot_valid),
-        "Completed validations that trigger snapshot, defaults to '250000' (0 disables)."
+        "Completed validations that trigger snapshot, defaults to '0' (0 disables)."
     )
     (
         "node.snapshot_confirm",
         value<uint32_t>(&configured.node.snapshot_confirm),
-        "Completed confirmations that trigger snapshot, defaults to '500000' (0 disables)."
+        "Completed confirmations that trigger snapshot, defaults to '0' (0 disables)."
     )
     (
         "node.sample_period_seconds",
