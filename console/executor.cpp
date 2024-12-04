@@ -30,6 +30,9 @@
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
+// This file is just an ad-hoc user interface wrapper on the node.
+// It will be factored and cleaned up for final release.
+
 namespace libbitcoin {
 namespace node {
 
