@@ -123,8 +123,8 @@ private:
     void scan_buckets() const;
     void scan_collisions() const;
     void scan_slabs() const;
-    void read_test() const;
-    void write_test();
+    void read_test(bool dump) const;
+    void write_test(bool dump);
 
     rotator_t create_log_sink() const;
     system::ofstream create_event_sink() const;
