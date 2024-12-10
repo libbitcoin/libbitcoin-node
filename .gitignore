@@ -34,3 +34,4 @@ node_test/
 *.txt
 *.data
 *.head
+/.vs
