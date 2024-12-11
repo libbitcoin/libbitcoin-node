@@ -125,6 +125,7 @@ void CLASS::do_organize(typename Block::cptr block,
     using namespace system;
     BC_ASSERT(stranded());
 
+    // shared_ptr copy keeps block ref in scope until completion of set_code.
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
     auto& query = archive();
@@ -564,6 +565,7 @@ code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
     if (!handle)
         return error::organize15;
 
+    // handle keeps the block reference in scope until completion of set_code.
     const auto& value = handle.mapped();
     return push_block(*value.block, value.state->context());
 }
