@@ -351,8 +351,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
+    // This must not be a reference to the shared pointer, as otherwise the
+    // shared_ptr may be taken out of scope before the tx write completes.
+    // set_code() uses weak references to many elements of the transaction ref.
+    const auto txs_ptr = block->transactions_ptr();
     const auto size = block->serialized_size(true);
-    const auto& txs_ptr = block->transactions_ptr();
 
     // This invokes set_strong when checked. 
     if (const auto code = query.set_code(*txs_ptr, link, size, checked))

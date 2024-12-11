@@ -112,6 +112,16 @@ console_bn_LDADD = src/libbitcoin-node.la ${bitcoin_database_LIBS} ${bitcoin_net
 console_bn_SOURCES = \
     console/executor.cpp \
     console/executor.hpp \
+    console/executor_commands.cpp \
+    console/executor_dumps.cpp \
+    console/executor_events.cpp \
+    console/executor_logging.cpp \
+    console/executor_options.cpp \
+    console/executor_runner.cpp \
+    console/executor_scans.cpp \
+    console/executor_store.cpp \
+    console/executor_test_reader.cpp \
+    console/executor_test_writer.cpp \
     console/localize.hpp \
     console/main.cpp \
     console/stack_trace.cpp \
