@@ -39,8 +39,8 @@
 #pragma comment(lib, "dbghelp.lib")
 
 // Must define pdb_path() and handle_stack_trace when using dump_stack_trace.
-extern std::wstring pdb_path() NOEXCEPT;
-extern void handle_stack_trace(const std::string& trace) NOEXCEPT;
+extern std::wstring pdb_path();
+extern void handle_stack_trace(const std::string& trace);
 
 constexpr size_t depth_limit{ 10 };
 
@@ -55,7 +55,7 @@ struct module_data
     void* dll_base;
 };
 
-inline STACKFRAME64 get_stack_frame(const CONTEXT& context) NOEXCEPT
+inline STACKFRAME64 get_stack_frame(const CONTEXT& context)
 {
     STACKFRAME64 frame{};
 
@@ -78,7 +78,7 @@ inline STACKFRAME64 get_stack_frame(const CONTEXT& context) NOEXCEPT
     return frame;
 }
 
-static std::string get_undecorated(HANDLE process, DWORD64 address) NOEXCEPT
+static std::string get_undecorated(HANDLE process, DWORD64 address)
 {
     // Including null terminator.
     constexpr DWORD maximum_characters{ 1024 };

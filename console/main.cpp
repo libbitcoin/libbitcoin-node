@@ -50,7 +50,7 @@ int wmain(int argc, wchar_t* argv[])
 }
 
 // This is invoked by dump_stack_trace.
-void handle_stack_trace(const std::string& trace) NOEXCEPT
+void handle_stack_trace(const std::string& trace)
 {
     if (trace.empty())
     {
@@ -64,7 +64,7 @@ void handle_stack_trace(const std::string& trace) NOEXCEPT
 }
 
 // This is invoked by dump_stack_trace.
-std::wstring pdb_path() NOEXCEPT
+std::wstring pdb_path()
 {
     return bc::system::to_extended_path(symbols_path);
 }
