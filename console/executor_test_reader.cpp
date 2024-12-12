@@ -40,11 +40,10 @@ using namespace system;
 using namespace std::chrono;
 using namespace std::placeholders;
 
-#if defined(UNDEFINED)
-
 void executor::read_test(bool dump) const
 {
-    constexpr auto start_tx = 1'000'000'000_u32;
+    using namespace database;
+    constexpr auto start_tx = 1'000'000_u32;
     constexpr auto target_count = 100_size;
 
     // Set ensures unique addresses.
@@ -58,7 +57,10 @@ void executor::read_test(bool dump) const
     {
         const auto outputs = query_.get_outputs(tx++);
         if (outputs->empty())
+        {
+            // fault, tx with no outputs.
             return;
+        }
 
         for (const auto& put: *outputs)
         {
@@ -96,37 +98,66 @@ void executor::read_test(bool dump) const
 
     std_vector<out> outs{};
     outs.reserve(target_count);
-    using namespace database;
 
     start = fine_clock::now();
     for (auto& key: keys)
     {
+        if (cancel_)
+            return;
+
         size_t found{};
         auto address_it = store_.address.it(key);
-        if (cancel_ || address_it.self().is_terminal())
+        if (address_it.self().is_terminal())
+        {
+            // fault, missing address.
             return;
+        }
 
         do
         {
+            if (cancel_)
+                break;
+
             table::address::record address{};
-            if (cancel_ || !store_.address.get(address_it.self(), address))
+            if (!store_.address.get(address_it.self(), address))
+            {
+                // fault, missing address.
                 return;
+            }
 
             const auto out_fk = address.output_fk;
             table::output::get_parent output{};
             if (!store_.output.get(out_fk, output))
+            {
+                // fault, missing output.
                 return;
+            }
 
             const auto tx_fk = output.parent_fk;
+            if (!store_.tx.exists(query_.get_tx_key(tx_fk)))
+            {
+                // fault, missing tx.
+                return;
+            }
+
+            // There may be not-strong txs but we just won't count those.
             const auto block_fk = query_.to_block(tx_fk);
+            if (block_fk.is_terminal())
+                continue;
 
             table::header::get_height header{};
             if (!store_.header.get(block_fk, header))
+            {
+                // fault, missing block.
                 return;
+            }
 
             table::txs::get_position txs{ {}, tx_fk };
             if (!store_.txs.get(query_.to_txs(block_fk), txs))
+            {
+                // fault, missing txs.
                 return;
+            }
 
             spend_link sp_fk{};
             input_link in_fk{};
@@ -139,7 +170,10 @@ void executor::read_test(bool dump) const
                 sp_fk = spenders.front();
                 table::spend::record spend{};
                 if (!store_.spend.get(sp_fk, spend))
+                {
+                    // fault, missing spender.
                     return;
+                }
 
                 in_fk = spend.input_fk;
                 sp_tx_fk = spend.parent_fk;
@@ -170,8 +204,9 @@ void executor::read_test(bool dump) const
         }
         while (address_it.advance());
 
-        logger(format("Fetched [%1%] unique payments to address [%2%].") %
-            found% encode_hash(key));
+        // This affects the clock, so disabled.
+        ////logger(format("Fetched [%1%] unique payments to address [%2%].") %
+        ////    found % encode_hash(key));
     }
 
     span = duration_cast<milliseconds>(fine_clock::now() - start);
@@ -205,7 +240,8 @@ void executor::read_test(bool dump) const
 
     for (const auto& row: outs)
     {
-        if (cancel_) break;
+        if (cancel_)
+            break;
 
         const auto output = !row.output ? "{error}" :
             row.output->script().to_string(chain::flags::all_rules);
@@ -234,6 +270,8 @@ void executor::read_test(bool dump) const
             input);
     }
 }
+
+#if defined(UNDEFINED)
 
 // arbitrary testing (const).
 void executor::read_test(bool dump) const
@@ -763,7 +801,6 @@ void executor::read_test(bool dump) const
     logger(format("STOP (%1% secs)") % span.count());
 }
 
-#endif // UNDEFINED
 
 // TODO: create a block/tx dumper.
 void executor::read_test(bool) const
@@ -840,6 +877,8 @@ void executor::read_test(bool) const
     const auto span = duration_cast<milliseconds>(logger::now() - start);
     logger(format("Validated block 511280 in %1% msec.") % span.count());
 }
+
+#endif // UNDEFINED
 
 } // namespace node
 } // namespace libbitcoin
