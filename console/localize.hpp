@@ -232,22 +232,31 @@ namespace node {
 #define BN_CHANNEL_STOP_TARGET \
     "Stop target: %1%"
 
-#define BN_LOG_TABLE \
-    "compiled:%1% enabled:%2%."
-#define BN_LOG_TABLE_HEADER \
-    "Log system configuration..."
-#define BN_LOG_INITIALIZE_FAILURE \
-    "Failed to initialize logging."
-#define BN_USING_CONFIG_FILE \
-    "Using config file: %1%"
-#define BN_USING_DEFAULT_CONFIG \
-    "Using default configuration settings."
 #define BN_VERSION_MESSAGE \
     "Version Information...\n" \
     "libbitcoin-node:       %1%\n" \
     "libbitcoin-database:   %2%\n" \
     "libbitcoin-network:    %3%\n" \
     "libbitcoin-system:     %4%"
+
+#define BN_HARDWARE_HEADER \
+    "Hardware configuration..."
+#define BN_HARDWARE_TABLE1 \
+    "platform:%1%."
+#define BN_HARDWARE_TABLE2 \
+    "platform:%1% compiled:%2%."
+
+#define BN_LOG_TABLE_HEADER \
+    "Log system configuration..."
+#define BN_LOG_TABLE \
+    "compiled:%1% enabled:%2%."
+
+#define BN_LOG_INITIALIZE_FAILURE \
+    "Failed to initialize logging."
+#define BN_USING_CONFIG_FILE \
+    "Using config file: %1%"
+#define BN_USING_DEFAULT_CONFIG \
+    "Using default configuration settings."
 #define BN_LOG_HEADER \
     "====================== startup ======================="
 #define BN_NODE_FOOTER \

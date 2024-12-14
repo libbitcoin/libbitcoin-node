@@ -141,7 +141,9 @@ bool executor::do_run()
     // Stopped by stopper.
     capture_.start();
     dump_version();
+    dump_hardware();
     dump_options();
+    logger(BN_NODE_INTERRUPT);
 
     // Create node.
     metadata_.configured.network.initialize();

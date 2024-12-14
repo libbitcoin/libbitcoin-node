@@ -61,20 +61,19 @@ void executor::dump_version() const
 // The "try" functions are safe for instructions not compiled in.
 void executor::dump_hardware() const
 {
-    logger("Intrinsics...");
-    logger(format("arm..... platform:%1%.") % with_arm);
-    logger(format("intel... platform:%1%.") % with_xcpu);
-    logger(format("avx512.. platform:%1% compiled:%2%.") % system::try_avx512() % with_avx512);
-    logger(format("avx2.... platform:%1% compiled:%2%.") % system::try_avx2() % with_avx2);
-    logger(format("sse41... platform:%1% compiled:%2%.") % system::try_sse41() % with_sse41);
-    logger(format("shani... platform:%1% compiled:%2%.") % system::try_shani() % with_shani);
-    logger(format("neon.... platform:%1% compiled:%2%.") % system::try_neon() % with_neon);
+    logger(BN_HARDWARE_HEADER);
+    logger(format("arm..... " BN_HARDWARE_TABLE1) % with_arm);
+    logger(format("intel... " BN_HARDWARE_TABLE1) % with_xcpu);
+    logger(format("avx512.. " BN_HARDWARE_TABLE2) % system::try_avx512() % with_avx512);
+    logger(format("avx2.... " BN_HARDWARE_TABLE2) % system::try_avx2() % with_avx2);
+    logger(format("sse41... " BN_HARDWARE_TABLE2) % system::try_sse41() % with_sse41);
+    logger(format("shani... " BN_HARDWARE_TABLE2) % system::try_shani() % with_shani);
+    logger(format("neon.... " BN_HARDWARE_TABLE2) % system::try_neon() % with_neon);
 }
 
 // logging compilation and initial values.
 void executor::dump_options() const
 {
-    logger(BN_NODE_INTERRUPT);
     logger(BN_LOG_TABLE_HEADER);
     logger(format("[a]pplication.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
     logger(format("[n]ews......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
