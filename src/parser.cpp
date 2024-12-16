@@ -1052,8 +1052,8 @@ options_metadata parser::load_settings() THROWS
         "log.verbose",
         value<bool>(&configured.log.verbose),
         "Enable verbose logging, defaults to false."
+    )
 #endif
-        )
     (
         "log.maximum_size",
         value<uint32_t>(&configured.log.maximum_size),
