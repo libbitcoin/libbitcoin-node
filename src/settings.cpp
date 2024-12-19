@@ -88,8 +88,7 @@ settings::settings() NOEXCEPT
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
     currency_window_minutes{ 60 },
-    threads{ 1 },
-    prepopulate{ true }
+    threads{ 1 }
 {
 }
 

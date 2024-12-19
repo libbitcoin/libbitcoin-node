@@ -892,11 +892,6 @@ options_metadata parser::load_settings() THROWS
         "The number of threads in the validation threadpool, defaults to 16."
     )
     (
-        "node.prepopulate",
-        value<bool>(&configured.node.prepopulate),
-        "Populate block prevous from self before query [testing], defaults to true."
-    )
-    (
         "node.priority_validation",
         value<bool>(&configured.node.priority_validation),
         "Set the validation threadpool to high priority, defaults to false."
