@@ -46,7 +46,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Higher priority than downloader (net) ensures locality to downloader writes.
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
-    prepopulate_(node.config().node.prepopulate),
     concurrent_(node.config().node.concurrent_validation),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
@@ -239,10 +238,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
         return;
     }
 
-    // TODO: hardwire after performance evaluation with and without.
-    if (prepopulate_)
-        block->populate();
-
+    block->populate();
     if (!query.populate(*block))
     {
         // This could instead be a case of invalid milestone.

@@ -86,7 +86,6 @@ public:
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
     uint32_t threads;
-    bool prepopulate;
 
     /// Helpers.
     virtual size_t maximum_height_() const NOEXCEPT;

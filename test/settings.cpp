@@ -69,7 +69,6 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
     BOOST_REQUIRE_EQUAL(node.threads, 1_u32);
-    BOOST_REQUIRE_EQUAL(node.prepopulate, true);
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(60)));
