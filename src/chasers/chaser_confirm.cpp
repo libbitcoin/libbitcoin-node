@@ -182,6 +182,9 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         do_bump(height);
 }
 
+// TODO: This is a simplified variant of the full implementation below.
+// This variant doesn't implement the relative work check and instead confirms
+// one block at a time, just like validation.
 void chaser_confirm::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
