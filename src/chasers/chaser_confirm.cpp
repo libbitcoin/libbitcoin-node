@@ -86,7 +86,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         return true;
 
     // An unconfirmable block height must not land here. 
-    // These can come out of order, advance in order synchronously.
+    // These come out of order, advance in order synchronously.
     switch (event_)
     {
         ////case chase::blocks:
@@ -127,14 +127,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
             break;
         }
-        ////case chase::checking:
-        ////{
-        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
-        ////    ////POST(do_checking, std::get<height_t>(value));
-        ////    boost::asio::post(strand_,
-        ////        BIND(do_checking, std::get<height_t>(value)));
-        ////    break;
-        ////}
         case chase::regressed:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
@@ -163,10 +155,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
     return true;
 }
-
-////void chaser_confirm::do_checking(height_t height) NOEXCEPT
-////{
-////}
 
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {

@@ -381,7 +381,6 @@ size_t chaser_check::set_unassociated() NOEXCEPT
         << count << ") last ("
         << requested_ << ").");
 
-    ////notify(error::success, chase::checking, requested_);
     return count;
 }
 
