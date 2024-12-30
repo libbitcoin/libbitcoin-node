@@ -212,6 +212,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
          
+            // Confirmation query.
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
@@ -275,6 +276,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // database::error::unknown_state       [shouldn't be here]
             // database::error::unassociated        [shouldn't be here]
             // database::error::unvalidated         [shouldn't be here]
+            fault(error::confirm8);
             return;
         }
 
