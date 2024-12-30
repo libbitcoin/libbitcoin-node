@@ -43,7 +43,7 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     concurrent_(node.config().node.concurrent_confirmation),
     threadpool_(1_u32, node.config().node.priority_validation ?
-        network::thread_priority::highest : network::thread_priority::high),
+        network::thread_priority::high : network::thread_priority::normal),
     strand_(threadpool_.service().get_executor())
 {
 }
