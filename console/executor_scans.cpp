@@ -432,7 +432,7 @@ void executor::scan_collisions() const
         const auto transactions = query_.to_transactions(link);
         for (const auto& transaction: transactions)
         {
-            const auto inputs = query_.to_tx_spends(transaction);
+            const auto inputs = query_.to_spends(transaction);
             for (const auto& in: inputs)
             {
                 ++total;
