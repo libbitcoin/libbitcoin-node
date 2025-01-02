@@ -241,8 +241,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     block->populate();
     if (!query.populate(*block))
     {
-        // This could instead be a case of invalid milestone.
-        ////POST(complete_block, error::validate3, link, ctx.height);
+         ////POST(complete_block, error::validate3, link, ctx.height);
         boost::asio::post(strand_,
             BIND(complete_block, error::validate3, link, ctx.height));
         return;
@@ -253,9 +252,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
         ((ec = block->connect(ctx))))
     {
         if (!query.set_block_unconfirmable(link))
-        {
             ec = error::validate4;
-        }
     }
     else if (!query.set_block_valid(link))
     {

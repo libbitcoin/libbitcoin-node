@@ -43,7 +43,7 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     concurrent_(node.config().node.concurrent_confirmation),
     threadpool_(1_u32, node.config().node.priority_validation ?
-        network::thread_priority::highest : network::thread_priority::high),
+        network::thread_priority::high : network::thread_priority::normal),
     strand_(threadpool_.service().get_executor())
 {
 }
@@ -86,7 +86,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         return true;
 
     // An unconfirmable block height must not land here. 
-    // These can come out of order, advance in order synchronously.
+    // These come out of order, advance in order synchronously.
     switch (event_)
     {
         ////case chase::blocks:
@@ -127,14 +127,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
             break;
         }
-        ////case chase::checking:
-        ////{
-        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
-        ////    ////POST(do_checking, std::get<height_t>(value));
-        ////    boost::asio::post(strand_,
-        ////        BIND(do_checking, std::get<height_t>(value)));
-        ////    break;
-        ////}
         case chase::regressed:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
@@ -164,10 +156,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
-////void chaser_confirm::do_checking(height_t height) NOEXCEPT
-////{
-////}
-
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -194,6 +182,9 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         do_bump(height);
 }
 
+// TODO: This is a simplified variant of the full implementation below.
+// This variant doesn't implement the relative work check and instead confirms
+// one block at a time, just like validation.
 void chaser_confirm::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -224,6 +215,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
          
+            // Confirmation query.
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
@@ -287,6 +279,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // database::error::unknown_state       [shouldn't be here]
             // database::error::unassociated        [shouldn't be here]
             // database::error::unvalidated         [shouldn't be here]
+            fault(error::confirm8);
             return;
         }
 
