@@ -56,7 +56,7 @@ void executor::read_test(bool dump) const
     while (!cancel_ && keys.size() < target_count)
     {
         const auto outputs = query_.get_outputs(tx++);
-        if (outputs->empty())
+        if (is_null(outputs))
         {
             // fault, tx with no outputs.
             return;
