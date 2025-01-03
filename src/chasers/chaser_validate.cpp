@@ -347,10 +347,14 @@ bool chaser_validate::update_neutrino(const header_link& link,
     if (!query.neutrino_enabled())
         return true;
 
+    // Filters are computed during validate, in parallel.
+    // Validation skipped under checkpoint/milestone to only compute filter.
     data_chunk filter{};
     if (!compute_filter(filter, block))
         return false;
 
+    // TODO: move filter header computation to confirmation chaser (ordered).
+    // TODO: this requires distinct storage array[n, 256] for filter headers.
     neutrino_ = compute_filter_header(neutrino_, filter);
     return query.set_filter(link, neutrino_, filter);
 }
