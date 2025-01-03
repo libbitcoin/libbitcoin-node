@@ -38,8 +38,8 @@ namespace node {
 // --initchain
 #define BN_INITIALIZING_CHAIN \
     "Initializing %1% directory..."
-#define BN_INITCHAIN_EXISTS \
-    "Failed because the directory %1% already exists."
+#define BN_INITCHAIN_DIRECTORY_ERROR \
+    "Failed creating directory %1% with error '%2%'."
 #define BN_INITCHAIN_CREATING \
     "Please wait while creating the database..."
 #define BN_INITCHAIN_CREATED \

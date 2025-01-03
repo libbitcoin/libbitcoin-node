@@ -59,9 +59,9 @@ bool executor::check_store_path(bool create) const
     if (create)
     {
         logger(format(BN_INITIALIZING_CHAIN) % store);
-        if (!database::file::create_directory(store))
+        if (auto ec = database::file::create_directory_ex(store))
         {
-            logger(format(BN_INITCHAIN_EXISTS) % store);
+            logger(format(BN_INITCHAIN_DIRECTORY_ERROR) % store % ec.message());
             return false;
         }
     }
