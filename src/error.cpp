@@ -72,6 +72,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { validate4, "validate4" },
     { validate5, "validate5" },
     { validate6, "validate6" },
+    { validate7, "validate7" },
     { confirm1, "confirm1" },
     { confirm2, "confirm2" },
     { confirm3, "confirm3" },
