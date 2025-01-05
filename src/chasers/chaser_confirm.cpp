@@ -207,8 +207,10 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm2);
                 return;
             }
-         
+
+            /////////////////////////////////////////
             // Confirmation query.
+            /////////////////////////////////////////
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
@@ -243,6 +245,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm6);
                 return;
             }
+
+            if (!set_organized(link, height))
+            {
+                fault(error::confirm7);
+                return;
+            }
         
             notify(error::success, chase::confirmable, height);
             fire(events::block_confirmed, height);
@@ -253,7 +261,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         {
             if (!query.set_strong(link))
             {
-                fault(error::confirm7);
+                fault(error::confirm8);
                 return;
             }
         
@@ -271,7 +279,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // database::error::unknown_state       [shouldn't be here]
             // database::error::unassociated        [shouldn't be here]
             // database::error::unvalidated         [shouldn't be here]
-            fault(error::confirm8);
+            fault(error::confirm9);
             return;
         }
 
@@ -286,7 +294,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 // first) here. Candidate chain reorganizations will result in reported heights
 // moving in any direction. Each is treated as independent and only one
 // representing a stronger chain is considered.
-
+////
 ////// Compute relative work, set fork and fork_point, and invoke reorganize.
 ////void chaser_confirm::do_validated(height_t height) NOEXCEPT
 ////{
