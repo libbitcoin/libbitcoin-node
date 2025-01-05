@@ -156,6 +156,9 @@ private:
 #define SUBSCRIBE_EVENTS(method, ...) \
     subscribe_events(BIND(method, __VA_ARGS__))
 
+#define PARALLEL(method, ...) \
+    boost::asio::post(threadpool_.service(), BIND(method, __VA_ARGS__));
+
 } // namespace node
 } // namespace libbitcoin
 
