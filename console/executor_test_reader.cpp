@@ -105,7 +105,7 @@ void executor::read_test(bool dump) const
         if (cancel_)
             return;
 
-        size_t found{};
+        ////size_t found{};
         auto address_it = store_.address.it(key);
         if (address_it.self().is_terminal())
         {
@@ -179,7 +179,7 @@ void executor::read_test(bool dump) const
                 sp_tx_fk = spend.parent_fk;
             }
 
-            ++found;
+            ////++found;
             outs.push_back(out
             {
                 key,
