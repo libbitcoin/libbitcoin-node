@@ -206,52 +206,51 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     if (closed())
         return;
 
+    code ec{};
+    chain::context ctx{};
     auto& query = archive();
     const auto block = query.get_block(link);
+
     if (!block)
     {
-        POST(complete_block, error::validate1, link, zero);
-        return;
+        ec = error::validate1;
     }
-
-    chain::context ctx{};
-    if (!query.get_context(ctx, link))
+    else if (!query.get_context(ctx, link))
     {
-        POST(complete_block, error::validate2, link, zero);
-        return;
+        ec = error::validate2;
     }
-
-    if (!block->populate())
+    else if (!block->populate())
     {
-        // input.metadata.locked set invalid for relative locktime (bip68).
-        // Otherwise internal spends do not require confirmability checks.
-        POST(complete_block, error::validate3, link, ctx.height);
-        return;
+        ec = system::error::relative_time_locked;
     }
     else if (!query.populate(*block))
     {
-        // Prepopulated prevouts are bypassed here, including metadata.
-        // .input.metadata.parent (tx link) and .coinbase (bool) are set here.
-        POST(complete_block, error::validate4, link, ctx.height);
-        return;
+        ec = system::error::missing_previous_output;
     }
-
-    code ec{};
-    if (((ec = block->accept(ctx, subsidy_interval_, initial_subsidy_))) ||
-        ((ec = block->connect(ctx))))
+    else if ((ec = block->accept(ctx, subsidy_interval_, initial_subsidy_)))
     {
         if (!query.set_block_unconfirmable(link))
-            ec = error::validate5;
+            ec = error::validate3;
+    }
+    else if ((ec = block->connect(ctx)))
+    {
+        if (!query.set_block_unconfirmable(link))
+            ec = error::validate4;
     }
     else if (!query.set_block_valid(link, block->fees()))
     {
+        ec = error::validate5;
+    }
+    else if (false) ////!archive().set_prevouts(ctx.height, *block)
+    {
         ec = error::validate6;
+    }
+    else if (filters_ && query.set_filter_body(link, *block))
+    {
+        ec = error::validate7;
     }
     else
     {
-        set_neutrino(link, *block);
-        set_prevouts(ctx.height, *block);
-
         fire(events::block_validated, ctx.height);
     }
 
@@ -268,7 +267,14 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
     if (ec)
     {
-        if (ec == error::validate7)
+        // Differentiated fault codes for troubleshooting.
+        if (ec == error::validate1 ||
+            ec == error::validate2 ||
+            ec == error::validate3 ||
+            ec == error::validate4 ||
+            ec == error::validate5 ||
+            ec == error::validate6 ||
+            ec == error::validate7)
         {
             fault(ec);
             return;
@@ -285,36 +291,6 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // Prevent stall by posting internal event, avoid hitting external handlers.
     if (is_zero(backlog_))
         handle_event(ec, chase::bump, height_t{});
-}
-
-// setters
-// ----------------------------------------------------------------------------
-// unstranded (concurrent by block)
-
-bool chaser_validate::set_neutrino(const header_link& link,
-    const chain::block& block) NOEXCEPT
-{
-    if (!filters_)
-        return true;
-
-    // Avoid computing the filter if already stored.
-    auto& query = archive();
-    if (!query.to_filter(link).is_terminal())
-        return true;
-
-    // Only fails if prevouts are not fully populated.
-    data_chunk filter{};
-    if (!neutrino::compute_filter(filter, block))
-        return false;
-
-    return query.set_filter_body(link, filter);
-}
-
-bool chaser_validate::set_prevouts(size_t, const chain::block&) NOEXCEPT
-{
-    // TODO: need to be able to differentiate internal vs. store.
-    // This tells us what to cache, skip internal and set store populated.
-    return {};
 }
 
 // Strand.

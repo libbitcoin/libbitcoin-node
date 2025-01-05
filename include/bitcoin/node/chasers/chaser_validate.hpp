@@ -66,12 +66,6 @@ private:
         return backlog_ < maximum_backlog_;
     }
 
-    bool set_neutrino(const database::header_link& link,
-        const system::chain::block& block) NOEXCEPT;
-
-    bool set_prevouts(size_t height,
-        const system::chain::block& block) NOEXCEPT;
-
     // These are thread safe.
     const bool concurrent_;
     const size_t maximum_backlog_;
