@@ -49,7 +49,9 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 
 code chaser_confirm::start() NOEXCEPT
 {
-    reset_position(archive().get_fork());
+    const auto& query = archive();
+    filters_ = query.neutrino_enabled();
+    reset_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -69,9 +71,6 @@ void chaser_confirm::stop() NOEXCEPT
         std::abort();
     }
 }
-
-// Protected
-// ----------------------------------------------------------------------------
 
 bool chaser_confirm::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
@@ -147,6 +146,9 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
+// track validation
+// ----------------------------------------------------------------------------
+
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -164,11 +166,11 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
     reset_position(branch_point);
 }
 
+// Candidate block validated at given height, if next then confirm/advance.
 void chaser_confirm::do_validated(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Candidate block was validated at the given height, confirm/advance.
     if (height == add1(position()))
         do_bump(height);
 }
@@ -618,11 +620,11 @@ bool chaser_confirm::update_neutrino(const header_link& link) NOEXCEPT
     BC_ASSERT(archive().get_height(link) == 
         add1(archive().get_height(neutrino_.link)));
 
-    auto& query = archive();
-    if (!query.neutrino_enabled())
+    if (!filters_)
         return true;
 
     data_chunk filter{};
+    auto& query = archive();
     if (!query.get_filter_body(filter, link))
         return false;
 
@@ -637,9 +639,9 @@ void chaser_confirm::reset_position(size_t confirmed_height) NOEXCEPT
 {
     set_position(confirmed_height);
 
-    const auto& query = archive();
-    if (query.neutrino_enabled())
+    if (filters_)
     {
+        const auto& query = archive();
         neutrino_.link = query.to_confirmed(confirmed_height);
         query.get_filter_head(neutrino_.head, neutrino_.link);
     }

@@ -94,6 +94,7 @@ private:
     // These are protected by strand.
     network::threadpool threadpool_;
     neutrino_header neutrino_{};
+    bool filters_{};
     bool mature_{};
 };
 

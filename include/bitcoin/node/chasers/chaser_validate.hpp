@@ -61,7 +61,15 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
+    inline bool unfilled() const NOEXCEPT
+    {
+        return backlog_ < maximum_backlog_;
+    }
+
     bool set_neutrino(const database::header_link& link,
+        const system::chain::block& block) NOEXCEPT;
+
+    bool set_prevouts(size_t height,
         const system::chain::block& block) NOEXCEPT;
 
     // These are thread safe.
@@ -74,6 +82,7 @@ private:
     // These are protected by strand.
     network::threadpool threadpool_;
     size_t backlog_{};
+    bool filters_{};
     bool mature_{};
 };
 

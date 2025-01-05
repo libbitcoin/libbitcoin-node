@@ -54,7 +54,9 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
 
 code chaser_validate::start() NOEXCEPT
 {
-    set_position(archive().get_fork());
+    const auto& query = archive();
+    filters_ = query.neutrino_enabled();
+    set_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -137,7 +139,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
     return true;
 }
 
-// track downloaded in order (to validate)
+// track downloaded
 // ----------------------------------------------------------------------------
 
 void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
@@ -151,11 +153,11 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
     set_position(branch_point);
 }
 
+// Candidate block checked at given height, if next then validate/advance.
 void chaser_validate::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Candidate block was checked at the given height, validate/advance.
     if (height == add1(position()))
         do_bump(height);
 }
@@ -166,8 +168,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     const auto& query = archive();
 
     // Bypass until next event if validation backlog is full.
-    for (auto height = add1(position());
-        (backlog_ < maximum_backlog_) && !closed(); ++height)
+    for (auto height = add1(position()); unfilled() && !closed(); ++height)
     {
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
@@ -195,12 +196,11 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             continue;
         }
 
-        // concurrent by block
-        boost::asio::post(threadpool_.service(),
-            BIND(validate_block, link));
+        PARALLEL(validate_block, link);
     }
 }
 
+// unstranded (concurrent by block)
 void chaser_validate::validate_block(const header_link& link) NOEXCEPT
 {
     if (closed())
@@ -221,13 +221,9 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
         return;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: need to be able to differente populated here vs. store.
-    // TODO: as this tells us what not to cache.
-    ///////////////////////////////////////////////////////////////////////////
     if (!block->populate())
     {
-        // Any input.metadata.locked is invalid for relative locktime (bip68).
+        // input.metadata.locked set invalid for relative locktime (bip68).
         // Otherwise internal spends do not require confirmability checks.
         POST(complete_block, error::validate3, link, ctx.height);
         return;
@@ -253,10 +249,8 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     }
     else
     {
-        ///////////////////////////////////////////////////////////////////////
-        // TODO: cache external spends.
-        ///////////////////////////////////////////////////////////////////////
         set_neutrino(link, *block);
+        set_prevouts(ctx.height, *block);
 
         fire(events::block_validated, ctx.height);
     }
@@ -293,26 +287,34 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         handle_event(ec, chase::bump, height_t{});
 }
 
-// neutrino
+// setters
 // ----------------------------------------------------------------------------
+// unstranded (concurrent by block)
 
-// This can only fail if prevouts are not fully populated or set_filter fails.
 bool chaser_validate::set_neutrino(const header_link& link,
     const chain::block& block) NOEXCEPT
 {
-    auto& query = archive();
-    if (!query.neutrino_enabled())
+    if (!filters_)
         return true;
 
     // Avoid computing the filter if already stored.
+    auto& query = archive();
     if (!query.to_filter(link).is_terminal())
         return true;
 
+    // Only fails if prevouts are not fully populated.
     data_chunk filter{};
     if (!neutrino::compute_filter(filter, block))
         return false;
 
     return query.set_filter_body(link, filter);
+}
+
+bool chaser_validate::set_prevouts(size_t, const chain::block&) NOEXCEPT
+{
+    // TODO: need to be able to differentiate internal vs. store.
+    // This tells us what to cache, skip internal and set store populated.
+    return {};
 }
 
 // Strand.
