@@ -55,7 +55,6 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
 code chaser_validate::start() NOEXCEPT
 {
     const auto& query = archive();
-    filters_ = query.neutrino_enabled();
     set_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
@@ -200,7 +199,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     }
 }
 
-// unstranded (concurrent by block)
+// Unstranded (concurrent by block).
 void chaser_validate::validate_block(const header_link& link) NOEXCEPT
 {
     if (closed())
@@ -241,11 +240,11 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     {
         ec = error::validate5;
     }
-    else if (false) ////!archive().set_prevouts(ctx.height, *block)
+    else if (!query.set_prevouts(ctx.height, *block))
     {
         ec = error::validate6;
     }
-    else if (filters_ && query.set_filter_body(link, *block))
+    else if (query.set_filter_body(link, *block))
     {
         ec = error::validate7;
     }
@@ -254,6 +253,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
         fire(events::block_validated, ctx.height);
     }
 
+    // Return to strand to handle result.
     POST(complete_block, ec, link, ctx.height);
 }
 

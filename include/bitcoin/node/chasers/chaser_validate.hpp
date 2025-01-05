@@ -76,7 +76,6 @@ private:
     // These are protected by strand.
     network::threadpool threadpool_;
     size_t backlog_{};
-    bool filters_{};
     bool mature_{};
 };
 
