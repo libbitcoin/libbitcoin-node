@@ -41,9 +41,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Higher priority than validator ensures locality to validator reads.
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    concurrent_(node.config().node.concurrent_confirmation),
     threadpool_(one, node.config().node.priority_()),
-    independent_strand_(threadpool_.service().get_executor())
+    independent_strand_(threadpool_.service().get_executor()),
+    concurrent_(node.config().node.concurrent_confirmation)
 {
 }
 

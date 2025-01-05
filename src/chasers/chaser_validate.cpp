@@ -43,12 +43,12 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Higher priority than downloader (net) ensures locality to downloader writes.
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
-    concurrent_(node.config().node.concurrent_validation),
-    maximum_backlog_(node.config().node.maximum_concurrency_()),
-    initial_subsidy_(node.config().bitcoin.initial_subsidy()),
-    subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     threadpool_(node.config().node.threads_(), node.config().node.priority_()),
-    independent_strand_(threadpool_.service().get_executor())
+    independent_strand_(threadpool_.service().get_executor()),
+    subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
+    initial_subsidy_(node.config().bitcoin.initial_subsidy()),
+    maximum_backlog_(node.config().node.maximum_concurrency_()),
+    concurrent_(node.config().node.concurrent_validation)
 {
 }
 

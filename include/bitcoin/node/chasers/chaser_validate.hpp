@@ -66,17 +66,17 @@ private:
         return backlog_ < maximum_backlog_;
     }
 
-    // These are thread safe.
-    const bool concurrent_;
-    const size_t maximum_backlog_;
-    const uint64_t initial_subsidy_;
-    const uint32_t subsidy_interval_;
-    network::asio::strand independent_strand_;
-
     // These are protected by strand.
-    network::threadpool threadpool_;
-    size_t backlog_{};
     bool mature_{};
+    size_t backlog_{};
+    network::threadpool threadpool_;
+
+    // These are thread safe.
+    network::asio::strand independent_strand_;
+    const uint32_t subsidy_interval_;
+    const uint64_t initial_subsidy_;
+    const size_t maximum_backlog_;
+    const bool concurrent_;
 };
 
 } // namespace node
