@@ -98,6 +98,11 @@ settings::settings(chain::selection) NOEXCEPT
     // TODO: testnet, etc. maximum_concurrency, snapshot_bytes.
 }
 
+size_t settings::threads_() const NOEXCEPT
+{
+    return std::max<size_t>(threads, one);
+}
+
 size_t settings::maximum_height_() const NOEXCEPT
 {
     return to_bool(maximum_height) ? maximum_height : max_size_t;
@@ -116,6 +121,12 @@ network::steady_clock::duration settings::sample_period() const NOEXCEPT
 network::wall_clock::duration settings::currency_window() const NOEXCEPT
 {
     return network::minutes(currency_window_minutes);
+}
+
+network::thread_priority settings::priority_() const NOEXCEPT
+{
+    return priority_validation ? network::thread_priority::high :
+        network::thread_priority::normal;
 }
 
 } // namespace node
