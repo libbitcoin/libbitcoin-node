@@ -88,10 +88,12 @@ public:
     uint32_t threads;
 
     /// Helpers.
+    virtual size_t threads_() const NOEXCEPT;
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
+    virtual network::thread_priority priority_() const NOEXCEPT;
 };
 
 } // namespace node

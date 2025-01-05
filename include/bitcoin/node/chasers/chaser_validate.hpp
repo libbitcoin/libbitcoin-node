@@ -56,12 +56,20 @@ protected:
     virtual void complete_block(const code& ec,
         const database::header_link& link, size_t height) NOEXCEPT;
 
+    // Override base class strand because it sits on the network thread pool.
+    network::asio::strand& strand() NOEXCEPT override;
+    bool stranded() const NOEXCEPT override;
+
 private:
-    // neutrino
-    void update_position(size_t height) NOEXCEPT;
-    system::hash_digest get_neutrino(size_t height) const NOEXCEPT;
-    bool update_neutrino(const database::header_link& link) NOEXCEPT;
-    bool update_neutrino(const database::header_link& link,
+    inline bool unfilled() const NOEXCEPT
+    {
+        return backlog_ < maximum_backlog_;
+    }
+
+    bool set_neutrino(const database::header_link& link,
+        const system::chain::block& block) NOEXCEPT;
+
+    bool set_prevouts(size_t height,
         const system::chain::block& block) NOEXCEPT;
 
     // These are thread safe.
@@ -69,12 +77,12 @@ private:
     const size_t maximum_backlog_;
     const uint64_t initial_subsidy_;
     const uint32_t subsidy_interval_;
+    network::asio::strand independent_strand_;
 
     // These are protected by strand.
     network::threadpool threadpool_;
-    network::asio::strand strand_;
-    system::hash_digest neutrino_{};
-    size_t validation_backlog_{};
+    size_t backlog_{};
+    bool filters_{};
     bool mature_{};
 };
 

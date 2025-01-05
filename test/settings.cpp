@@ -68,10 +68,15 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);
-    BOOST_REQUIRE_EQUAL(node.threads, 1_u32);
-    BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE_EQUAL(node.currency_window_minutes, 60_u32);
+    BOOST_REQUIRE_EQUAL(node.threads, 1_u32);
+
+    BOOST_REQUIRE_EQUAL(node.threads_(), one);
+    BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
+    BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50'000_size);
+    BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(60)));
+    BOOST_REQUIRE(node.priority_() == network::thread_priority::normal);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

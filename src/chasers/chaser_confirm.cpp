@@ -42,15 +42,16 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     concurrent_(node.config().node.concurrent_confirmation),
-    threadpool_(1_u32, node.config().node.priority_validation ?
-        network::thread_priority::high : network::thread_priority::normal),
-    strand_(threadpool_.service().get_executor())
+    threadpool_(one, node.config().node.priority_()),
+    independent_strand_(threadpool_.service().get_executor())
 {
 }
 
 code chaser_confirm::start() NOEXCEPT
 {
-    set_position(archive().get_fork());
+    const auto& query = archive();
+    filters_ = query.neutrino_enabled();
+    reset_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -70,9 +71,6 @@ void chaser_confirm::stop() NOEXCEPT
         std::abort();
     }
 }
-
-// Protected
-// ----------------------------------------------------------------------------
 
 bool chaser_confirm::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
@@ -106,9 +104,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         {
             if (concurrent_ || mature_)
             {
-                ////POST(do_bump, height_t{});
-                boost::asio::post(strand_,
-                    BIND(do_bump, height_t{}));
+                POST(do_bump, height_t{});
             }
 
             break;
@@ -120,9 +116,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
             if (concurrent_ || mature_)
             {
-                ////POST(do_validated, std::get<height_t>(value));
-                boost::asio::post(strand_,
-                    BIND(do_validated, std::get<height_t>(value)));
+                POST(do_validated, std::get<height_t>(value));
             }
 
             break;
@@ -130,17 +124,13 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         case chase::regressed:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            ////POST(do_regressed, std::get<height_t>(value));
-            boost::asio::post(strand_,
-                BIND(do_regressed, std::get<height_t>(value)));
+            POST(do_regressed, std::get<height_t>(value));
             break;
         }
         case chase::disorganized:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            ////POST(do_regressed, std::get<height_t>(value));
-            boost::asio::post(strand_,
-                BIND(do_regressed, std::get<height_t>(value)));
+            POST(do_regressed, std::get<height_t>(value));
             break;
         }
         case chase::stop:
@@ -156,6 +146,9 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
+// track validation
+// ----------------------------------------------------------------------------
+
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -170,14 +163,14 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
         }
     }
 
-    set_position(branch_point);
+    reset_position(branch_point);
 }
 
+// Candidate block validated at given height, if next then confirm/advance.
 void chaser_confirm::do_validated(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Candidate block was validated at the given height, confirm/advance.
     if (height == add1(position()))
         do_bump(height);
 }
@@ -244,9 +237,8 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                     << ec.message());
                 return;
             }
-        
-            // TODO: fees.
-            if (!query.set_block_confirmable(link, {}))
+
+            if (!query.set_block_confirmable(link))
             {
                 fault(error::confirm6);
                 return;
@@ -283,6 +275,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
+        update_neutrino(link);
         set_position(height);
     }
 }
@@ -615,6 +608,56 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
+}
+
+// neutrino
+// ----------------------------------------------------------------------------
+
+// This can only fail if prevouts are not fully populated.
+bool chaser_confirm::update_neutrino(const header_link& link) NOEXCEPT
+{
+    // neutrino_.link is only used for this assertion, should compile away.
+    BC_ASSERT(archive().get_height(link) == 
+        add1(archive().get_height(neutrino_.link)));
+
+    if (!filters_)
+        return true;
+
+    data_chunk filter{};
+    auto& query = archive();
+    if (!query.get_filter_body(filter, link))
+        return false;
+
+    neutrino_.link = link;
+    neutrino_.head = neutrino::compute_filter_header(neutrino_.head, filter);
+    return query.set_filter_head(link, neutrino_.head);
+}
+
+// Expects confirmed height.
+// Use for startup and regression, to read current filter header from store.
+void chaser_confirm::reset_position(size_t confirmed_height) NOEXCEPT
+{
+    set_position(confirmed_height);
+
+    if (filters_)
+    {
+        const auto& query = archive();
+        neutrino_.link = query.to_confirmed(confirmed_height);
+        query.get_filter_head(neutrino_.head, neutrino_.link);
+    }
+}
+
+// Strand.
+// ----------------------------------------------------------------------------
+
+network::asio::strand& chaser_confirm::strand() NOEXCEPT
+{
+    return independent_strand_;
+}
+
+bool chaser_confirm::stranded() const NOEXCEPT
+{
+    return independent_strand_.running_in_this_thread();
 }
 
 BC_POP_WARNING()

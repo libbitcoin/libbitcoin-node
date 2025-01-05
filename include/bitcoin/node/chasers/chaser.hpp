@@ -107,6 +107,15 @@ protected:
     virtual void notify_one(object_key key, const code& ec, chase event_,
         event_value value) const NOEXCEPT;
 
+    /// Strand.
+    /// -----------------------------------------------------------------------
+
+    /// The chaser's strand (on the network threadpool).
+    virtual network::asio::strand& strand() NOEXCEPT;
+
+    /// True if the current thread is on the chaser strand.
+    virtual bool stranded() const NOEXCEPT;
+
     /// Properties.
     /// -----------------------------------------------------------------------
 
@@ -115,12 +124,6 @@ protected:
 
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
-
-    /// The chaser's strand.
-    network::asio::strand& strand() NOEXCEPT;
-
-    /// True if the current thread is on the chaser strand.
-    bool stranded() const NOEXCEPT;
 
     /// Top candidate is within configured span from current time.
     bool is_current() const NOEXCEPT;
@@ -152,6 +155,9 @@ private:
 
 #define SUBSCRIBE_EVENTS(method, ...) \
     subscribe_events(BIND(method, __VA_ARGS__))
+
+#define PARALLEL(method, ...) \
+    boost::asio::post(threadpool_.service(), BIND(method, __VA_ARGS__));
 
 } // namespace node
 } // namespace libbitcoin

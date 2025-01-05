@@ -102,6 +102,19 @@ void chaser::notify_one(object_key key, const code& ec, chase event_,
     node_.notify_one(key, ec, event_, value);
 }
 
+// Strand.
+// ----------------------------------------------------------------------------
+
+asio::strand& chaser::strand() NOEXCEPT
+{
+    return strand_;
+}
+
+bool chaser::stranded() const NOEXCEPT
+{
+    return strand_.running_in_this_thread();
+}
+
 // Properties.
 // ----------------------------------------------------------------------------
 
@@ -113,16 +126,6 @@ const node::configuration& chaser::config() const NOEXCEPT
 query& chaser::archive() const NOEXCEPT
 {
     return node_.archive();
-}
-
-asio::strand& chaser::strand() NOEXCEPT
-{
-    return strand_;
-}
-
-bool chaser::stranded() const NOEXCEPT
-{
-    return strand_.running_in_this_thread();
 }
 
 bool chaser::is_current() const NOEXCEPT
