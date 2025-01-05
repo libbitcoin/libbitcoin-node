@@ -613,7 +613,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 // neutrino
 // ----------------------------------------------------------------------------
 
-// This can only fail if prevouts are not fully populated.
 bool chaser_confirm::update_neutrino(const header_link& link) NOEXCEPT
 {
     // neutrino_.link is only used for this assertion, should compile away.
