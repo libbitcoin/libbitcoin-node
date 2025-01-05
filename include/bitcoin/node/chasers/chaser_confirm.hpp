@@ -59,7 +59,20 @@ protected:
     ////virtual void do_organize(header_links& fork, const header_links& popped,
     ////    size_t fork_point) NOEXCEPT;
 
+    // Override base class strand because it sits on the network thread pool.
+    network::asio::strand& strand() NOEXCEPT override;
+    bool stranded() const NOEXCEPT override;
+
 private:
+    struct neutrino_header
+    {
+        system::hash_digest head{};
+        database::header_link link{};
+    };
+
+    void reset_position(size_t confirmed_height) NOEXCEPT;
+    bool update_neutrino(const database::header_link& link) NOEXCEPT;
+
     bool set_organized(const database::header_link& link,
         height_t height) NOEXCEPT;
     bool reset_organized(const database::header_link& link,
@@ -74,12 +87,13 @@ private:
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
 
-    // This is thread safe.
+    // These are thread safe.
     const bool concurrent_;
+    network::asio::strand independent_strand_;
 
     // These are protected by strand.
     network::threadpool threadpool_;
-    network::asio::strand strand_;
+    neutrino_header neutrino_{};
     bool mature_{};
 };
 
