@@ -41,9 +41,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Higher priority than validator ensures locality to validator reads.
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    concurrent_(node.config().node.concurrent_confirmation),
     threadpool_(one, node.config().node.priority_()),
-    independent_strand_(threadpool_.service().get_executor())
+    independent_strand_(threadpool_.service().get_executor()),
+    concurrent_(node.config().node.concurrent_confirmation)
 {
 }
 
@@ -207,8 +207,10 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm2);
                 return;
             }
-         
+
+            /////////////////////////////////////////
             // Confirmation query.
+            /////////////////////////////////////////
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
@@ -243,6 +245,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm6);
                 return;
             }
+
+            if (!set_organized(link, height))
+            {
+                fault(error::confirm7);
+                return;
+            }
         
             notify(error::success, chase::confirmable, height);
             fire(events::block_confirmed, height);
@@ -253,7 +261,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         {
             if (!query.set_strong(link))
             {
-                fault(error::confirm7);
+                fault(error::confirm8);
                 return;
             }
         
@@ -271,7 +279,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // database::error::unknown_state       [shouldn't be here]
             // database::error::unassociated        [shouldn't be here]
             // database::error::unvalidated         [shouldn't be here]
-            fault(error::confirm8);
+            fault(error::confirm9);
             return;
         }
 
@@ -286,7 +294,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 // first) here. Candidate chain reorganizations will result in reported heights
 // moving in any direction. Each is treated as independent and only one
 // representing a stronger chain is considered.
-
+////
 ////// Compute relative work, set fork and fork_point, and invoke reorganize.
 ////void chaser_confirm::do_validated(height_t height) NOEXCEPT
 ////{
@@ -613,7 +621,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 // neutrino
 // ----------------------------------------------------------------------------
 
-// This can only fail if prevouts are not fully populated.
 bool chaser_confirm::update_neutrino(const header_link& link) NOEXCEPT
 {
     // neutrino_.link is only used for this assertion, should compile away.

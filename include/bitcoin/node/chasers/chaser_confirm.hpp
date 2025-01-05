@@ -87,15 +87,15 @@ private:
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
 
-    // These are thread safe.
-    const bool concurrent_;
-    network::asio::strand independent_strand_;
-
     // These are protected by strand.
-    network::threadpool threadpool_;
-    neutrino_header neutrino_{};
-    bool filters_{};
     bool mature_{};
+    bool filters_{};
+    neutrino_header neutrino_{};
+    network::threadpool threadpool_;
+
+    // These are thread safe.
+    network::asio::strand independent_strand_;
+    const bool concurrent_;
 };
 
 } // namespace node
