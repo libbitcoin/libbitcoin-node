@@ -175,7 +175,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
         do_bump(height);
 }
 
-// TODO: This is a simplified variant of the full implementation below.
+// TODO: This is simplified single thread variant of full implementation below.
 // This variant doesn't implement the relative work check and instead confirms
 // one block at a time, just like validation.
 void chaser_confirm::do_bump(height_t) NOEXCEPT
@@ -208,9 +208,10 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
 
-            /////////////////////////////////////////
+            //////////////////////////////////////////
             // Confirmation query.
-            /////////////////////////////////////////
+            // This will pull from new prevouts table.
+            //////////////////////////////////////////
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
@@ -283,7 +284,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        update_neutrino(link);
+        if (!update_neutrino(link))
+        {
+            fault(error::confirm10);
+            return;
+        }
+
         set_position(height);
     }
 }

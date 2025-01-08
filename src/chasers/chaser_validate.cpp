@@ -240,7 +240,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     {
         ec = error::validate5;
     }
-    else if (!query.set_prevouts(ctx.height, *block))
+    else if (!query.set_prevouts(link, *block))
     {
         ec = error::validate6;
     }
