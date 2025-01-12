@@ -244,8 +244,9 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     {
         ec = error::validate6;
     }
-    else if (query.set_filter_body(link, *block))
+    else if (!query.set_filter_body(link, *block))
     {
+        // TODO: this should not bypass checkpoint/milestone if enabled.
         ec = error::validate7;
     }
     else
