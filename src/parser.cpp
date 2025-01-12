@@ -80,32 +80,32 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.header_size = 20'397'669;
     configured.database.header_rate = 5;
 
-    configured.database.txs_buckets = 524'493;
-    configured.database.txs_size = 999'581'257;
-    configured.database.txs_rate = 5;
-
-    configured.database.tx_buckets = 551'320'125;
-    configured.database.tx_size = 15'435'744'998;
-    configured.database.tx_rate = 5;
-
-    configured.database.point_buckets = 546'188'501;
-    configured.database.point_size = 8'389'074'978;
-    configured.database.point_rate = 5;
-
-    configured.database.spend_buckets = 1'459'791'875;
-    configured.database.spend_size = 15'364'630'530;
-    configured.database.spend_rate = 5;
-
-    configured.database.puts_size = 6'059'682'874;
-    configured.database.puts_rate = 5;
-
     configured.database.input_size = 90'116'786'234;
     configured.database.input_rate = 5;
 
     configured.database.output_size = 24'315'563'831;
     configured.database.output_rate = 5;
 
-    // metadata
+    configured.database.point_buckets = 546'188'501;
+    configured.database.point_size = 8'389'074'978;
+    configured.database.point_rate = 5;
+
+    configured.database.puts_size = 6'059'682'874;
+    configured.database.puts_rate = 5;
+
+    configured.database.spend_buckets = 1'459'791'875;
+    configured.database.spend_size = 15'364'630'530;
+    configured.database.spend_rate = 5;
+
+    configured.database.tx_buckets = 551'320'125;
+    configured.database.tx_size = 15'435'744'998;
+    configured.database.tx_rate = 5;
+
+    configured.database.txs_buckets = 524'493;
+    configured.database.txs_size = 999'581'257;
+    configured.database.txs_rate = 5;
+
+    // indexes
 
     configured.database.candidate_size = 2'523'423;
     configured.database.candidate_rate = 5;
@@ -117,6 +117,12 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.strong_tx_size = 2'987'563'554;
     configured.database.strong_tx_rate = 5;
 
+    // caches
+
+    configured.database.prevout_buckets = 850'000;
+    configured.database.prevout_size = 5'000'000;
+    configured.database.prevout_rate = 5;
+
     configured.database.validated_tx_buckets = 551'320'125;
     configured.database.validated_tx_size = 47'068'879;
     configured.database.validated_tx_rate = 5;
@@ -125,7 +131,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.validated_bk_size = 8'290;
     configured.database.validated_bk_rate = 5;
 
-    // optional
+    // optionals
 
     configured.database.address_buckets = 0;
     configured.database.address_size = 1;
@@ -815,6 +821,23 @@ options_metadata parser::load_settings() THROWS
         "database.strong_tx_rate",
         value<uint16_t>(&configured.database.strong_tx_rate),
         "The percentage expansion of the strong_tx table body, defaults to '5'."
+    )
+
+    /* prevout */
+    (
+        "database.prevout_buckets",
+        value<uint32_t>(&configured.database.prevout_buckets),
+        "The minimum number of buckets in the prevout table head, defaults to '850000'."
+    )
+    (
+        "database.prevout_size",
+        value<uint64_t>(&configured.database.prevout_size),
+        "The minimum allocation of the prevout table body, defaults to '5000000'."
+    )
+    (
+        "database.prevout_rate",
+        value<uint16_t>(&configured.database.prevout_rate),
+        "The percentage expansion of the prevout table and body, defaults to '5'."
     )
 
     /* validated_tx */
