@@ -117,8 +117,11 @@ code chaser_block::validate(const block& block,
             return ec;
     }
 
-    // Populate prevouts from self/tree/store (metadata not required).
-    populate(block);
+    // Populate prevouts from self/tree (metadata not required).
+    if (!populate(block, ctx))
+        return system::error::relative_time_locked;
+
+    // Populate prevouts from store (metadata not required).
     if (!archive().populate(block))
         return network::error::protocol_violation;
 
@@ -178,15 +181,20 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
 }
 
 // metadata is mutable so can be set on a const object.
-void chaser_block::populate(const block& block) const NOEXCEPT
+bool chaser_block::populate(const block& block,
+    const system::chain::context& ctx) const NOEXCEPT
 {
-    block.populate();
+    if (!block.populate(ctx))
+        return false;
+
     const inputs_cptr ins{ block.inputs_ptr() };
     std::for_each(ins->begin(), ins->end(), [&](const auto& in) NOEXCEPT
     {
         if (!in->prevout && !in->point().is_null())
             set_prevout(*in);
     });
+
+    return true;
 }
 
 } // namespace node
