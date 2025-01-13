@@ -52,7 +52,13 @@ protected:
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
-    virtual void validate_block(const database::header_link& link) NOEXCEPT;
+    virtual void validate_block(const database::header_link& link,
+        bool bypass) NOEXCEPT;
+    virtual code validate(bool bypass, const system::chain::block& block,
+        const database::header_link& link,
+        const system::chain::context& ctx) NOEXCEPT;
+    virtual code populate(bool bypass, const system::chain::block& block,
+        const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec,
         const database::header_link& link, size_t height) NOEXCEPT;
 
@@ -77,6 +83,7 @@ private:
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
     const bool concurrent_;
+    const bool filter_;
 };
 
 } // namespace node
