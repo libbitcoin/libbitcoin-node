@@ -120,7 +120,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     // caches
 
     configured.database.prevout_buckets = 850'000;
-    configured.database.prevout_size = 5'000'000;
+    configured.database.prevout_size = 2'000'000'000;
     configured.database.prevout_rate = 5;
 
     configured.database.validated_tx_buckets = 551'320'125;
@@ -678,86 +678,6 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the header table body, defaults to '5'."
     )
 
-    /* txs */
-    (
-        "database.txs_buckets",
-        value<uint32_t>(&configured.database.txs_buckets),
-        "The number of buckets in the txs table head, defaults to '524493'."
-    )
-    (
-        "database.txs_size",
-        value<uint64_t>(&configured.database.txs_size),
-        "The minimum allocation of the txs table body, defaults to '999581257'."
-    )
-    (
-        "database.txs_rate",
-        value<uint16_t>(&configured.database.txs_rate),
-        "The percentage expansion of the txs table body, defaults to '5'."
-    )
-
-    /* tx */
-    (
-        "database.tx_buckets",
-        value<uint32_t>(&configured.database.tx_buckets),
-        "The number of buckets in the tx table head, defaults to '551320125'."
-    )
-    (
-        "database.tx_size",
-        value<uint64_t>(&configured.database.tx_size),
-        "The minimum allocation of the tx table body, defaults to '15435744998'."
-    )
-    (
-        "database.tx_rate",
-        value<uint16_t>(&configured.database.tx_rate),
-        "The percentage expansion of the tx table body, defaults to '5'."
-    )
-
-    /* point */
-    (
-        "database.point_buckets",
-        value<uint32_t>(&configured.database.point_buckets),
-        "The number of buckets in the point table head, defaults to '546188501'."
-    )
-    (
-        "database.point_size",
-        value<uint64_t>(&configured.database.point_size),
-        "The minimum allocation of the point table body, defaults to '8389074978'."
-    )
-    (
-        "database.point_rate",
-        value<uint16_t>(&configured.database.point_rate),
-        "The percentage expansion of the point table body, defaults to '5'."
-    )
-
-    /* spend */
-    (
-        "database.spend_buckets",
-        value<uint32_t>(&configured.database.spend_buckets),
-        "The number of buckets in the spend table head, defaults to '1459791875'."
-    )
-    (
-        "database.spend_size",
-        value<uint64_t>(&configured.database.spend_size),
-        "The minimum allocation of the spend table body, defaults to '15364630530'."
-    )
-    (
-        "database.spend_rate",
-        value<uint16_t>(&configured.database.spend_rate),
-        "The percentage expansion of the spend table body, defaults to '5'."
-    )
-
-    /* puts */
-    (
-        "database.puts_size",
-        value<uint64_t>(&configured.database.puts_size),
-        "The minimum allocation of the puts table body, defaults to '6059682874'."
-    )
-    (
-        "database.puts_rate",
-        value<uint16_t>(&configured.database.puts_rate),
-        "The percentage expansion of the puts table body, defaults to '5'."
-    )
-
     /* input */
     (
         "database.input_size",
@@ -780,6 +700,86 @@ options_metadata parser::load_settings() THROWS
         "database.output_rate",
         value<uint16_t>(&configured.database.output_rate),
         "The percentage expansion of the output table body, defaults to '5'."
+    )
+
+    /* point */
+    (
+        "database.point_buckets",
+        value<uint32_t>(&configured.database.point_buckets),
+        "The number of buckets in the point table head, defaults to '546188501'."
+    )
+    (
+        "database.point_size",
+        value<uint64_t>(&configured.database.point_size),
+        "The minimum allocation of the point table body, defaults to '8389074978'."
+    )
+    (
+        "database.point_rate",
+        value<uint16_t>(&configured.database.point_rate),
+        "The percentage expansion of the point table body, defaults to '5'."
+    )
+
+    /* puts */
+    (
+        "database.puts_size",
+        value<uint64_t>(&configured.database.puts_size),
+        "The minimum allocation of the puts table body, defaults to '6059682874'."
+    )
+    (
+        "database.puts_rate",
+        value<uint16_t>(&configured.database.puts_rate),
+        "The percentage expansion of the puts table body, defaults to '5'."
+    )
+
+    /* spend */
+    (
+        "database.spend_buckets",
+        value<uint32_t>(&configured.database.spend_buckets),
+        "The number of buckets in the spend table head, defaults to '1459791875'."
+    )
+    (
+        "database.spend_size",
+        value<uint64_t>(&configured.database.spend_size),
+        "The minimum allocation of the spend table body, defaults to '15364630530'."
+    )
+    (
+        "database.spend_rate",
+        value<uint16_t>(&configured.database.spend_rate),
+        "The percentage expansion of the spend table body, defaults to '5'."
+    )
+
+    /* tx */
+    (
+        "database.tx_buckets",
+        value<uint32_t>(&configured.database.tx_buckets),
+        "The number of buckets in the tx table head, defaults to '551320125'."
+    )
+    (
+        "database.tx_size",
+        value<uint64_t>(&configured.database.tx_size),
+        "The minimum allocation of the tx table body, defaults to '15435744998'."
+    )
+    (
+        "database.tx_rate",
+        value<uint16_t>(&configured.database.tx_rate),
+        "The percentage expansion of the tx table body, defaults to '5'."
+    )
+
+    /* txs */
+    (
+        "database.txs_buckets",
+        value<uint32_t>(&configured.database.txs_buckets),
+        "The number of buckets in the txs table head, defaults to '524493'."
+    )
+    (
+        "database.txs_size",
+        value<uint64_t>(&configured.database.txs_size),
+        "The minimum allocation of the txs table body, defaults to '999581257'."
+    )
+    (
+        "database.txs_rate",
+        value<uint16_t>(&configured.database.txs_rate),
+        "The percentage expansion of the txs table body, defaults to '5'."
     )
 
     /* candidate */
@@ -832,7 +832,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.prevout_size",
         value<uint64_t>(&configured.database.prevout_size),
-        "The minimum allocation of the prevout table body, defaults to '5000000'."
+        "The minimum allocation of the prevout table body, defaults to '2000000000'."
     )
     (
         "database.prevout_rate",
