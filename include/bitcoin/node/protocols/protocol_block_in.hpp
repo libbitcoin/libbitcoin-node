@@ -51,6 +51,7 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    /// Squash duplicates and provide constant time retrieval.
     using hashmap = std::unordered_set<system::hash_digest>;
 
     struct track
