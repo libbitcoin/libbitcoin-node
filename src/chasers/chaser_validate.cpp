@@ -48,7 +48,8 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
-    concurrent_(node.config().node.concurrent_validation)
+    concurrent_(node.config().node.concurrent_validation),
+    filter_(node.archive().neutrino_enabled())
 {
 }
 
@@ -187,20 +188,24 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
 
         set_position(height);
 
-        if ((ec == database::error::block_valid) ||
+        const auto bypass =
+            (ec == database::error::block_valid) ||
             (ec == database::error::block_confirmable) ||
-            is_under_checkpoint(height) || query.is_milestone(link))
+            is_under_checkpoint(height) || query.is_milestone(link);
+
+        if (bypass && !filter_)
         {
             complete_block(error::success, link, height);
             continue;
         }
 
-        PARALLEL(validate_block, link);
+        PARALLEL(validate_block, link, bypass);
     }
 }
 
 // Unstranded (concurrent by block).
-void chaser_validate::validate_block(const header_link& link) NOEXCEPT
+void chaser_validate::validate_block(const header_link& link,
+    bool bypass) NOEXCEPT
 {
     if (closed())
         return;
@@ -218,36 +223,19 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     {
         ec = error::validate2;
     }
-    else if (!block->populate(ctx))
-    {
-        ec = system::error::relative_time_locked;
-    }
-    else if (!query.populate(*block))
-    {
-        ec = system::error::missing_previous_output;
-    }
-    else if ((ec = block->accept(ctx, subsidy_interval_, initial_subsidy_)))
+    else if ((ec = populate(bypass, *block, ctx)))
     {
         if (!query.set_block_unconfirmable(link))
             ec = error::validate3;
     }
-    else if ((ec = block->connect(ctx)))
+    else if ((ec = validate(bypass, *block, link, ctx)))
     {
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    else if (!query.set_block_valid(link, block->fees()))
-    {
-        ec = error::validate5;
-    }
-    else if (!query.set_prevouts(link, *block))
-    {
-        ec = error::validate6;
-    }
     else if (!query.set_filter_body(link, *block))
     {
-        // TODO: this should not bypass checkpoint/milestone if enabled.
-        ec = error::validate7;
+        ec = error::validate5;
     }
     else
     {
@@ -256,6 +244,54 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
 
     // Return to strand to handle result.
     POST(complete_block, ec, link, ctx.height);
+}
+
+code chaser_validate::populate(bool bypass, const system::chain::block& block,
+    const system::chain::context& ctx) NOEXCEPT
+{
+    const auto& query = archive();
+
+    // Relative locktime check is unnecessary under bypass, but cheap.
+    if (!block.populate(ctx))
+        return system::error::relative_time_locked;
+
+    if (bypass)
+    {
+        if (!query.populate_without_metadata(block))
+            return system::error::missing_previous_output;
+    }
+    else
+    {
+        if (!query.populate(block))
+            return system::error::missing_previous_output;
+    }
+    
+    return error::success;
+}
+
+code chaser_validate::validate(bool bypass, const system::chain::block& block,
+    const database::header_link& link,
+    const system::chain::context& ctx) NOEXCEPT
+{
+    code ec{};
+    if (bypass)
+        return ec;
+
+    auto& query = archive();
+
+    if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
+        return ec;
+
+    if ((ec = block.connect(ctx)))
+        return ec;
+
+    if (!query.set_block_valid(link, block.fees()))
+        return error::validate6;
+
+    if (!query.set_prevouts(link, block))
+        return error::validate7;
+
+    return ec;
 }
 
 void chaser_validate::complete_block(const code& ec, const header_link& link,
