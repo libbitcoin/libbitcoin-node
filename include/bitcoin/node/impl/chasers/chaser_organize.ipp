@@ -139,7 +139,7 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
-    const auto it = tree_.find(hash);
+    const auto it = tree_.find(system::hash_cref(hash));
     if (it != tree_.end())
     {
         handler(error_duplicate(), it->second.state->height());
@@ -448,7 +448,8 @@ TEMPLATE
 void CLASS::cache(const typename Block::cptr& block,
     const chain_state::ptr& state) NOEXCEPT
 {
-    tree_.insert({ block->hash(), { block, state } });
+    tree_.emplace(system::hash_cref(block->get_hash()),
+        block_state{ block, state });
 }
 
 TEMPLATE
@@ -463,7 +464,7 @@ CLASS::chain_state::ptr CLASS::get_chain_state(
         return state_;
 
     // Previous block may be cached because it is not yet strong.
-    const auto it = tree_.find(previous_hash);
+    const auto it = tree_.find(system::hash_cref(previous_hash));
     if (it != tree_.end())
         return it->second.state;
 
@@ -484,8 +485,8 @@ bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
     work = header.proof();
 
     // Sum all branch work from tree.
-    for (auto it = tree_.find(*previous); it != tree_.end();
-        it = tree_.find(*previous))
+    for (auto it = tree_.find(system::hash_cref(*previous)); it != tree_.end();
+        it = tree_.find(system::hash_cref(*previous)))
     {
         const auto& next = get_header(*it->second.block);
         previous = &next.previous_block_hash();
@@ -561,7 +562,7 @@ code CLASS::push_block(const Block& block,
 TEMPLATE
 code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
 {
-    const auto handle = tree_.extract(key);
+    const auto handle = tree_.extract(system::hash_cref(key));
     if (!handle)
         return error::organize15;
 
