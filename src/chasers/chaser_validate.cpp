@@ -221,33 +221,37 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     else if (!block->populate(ctx))
     {
         ec = system::error::relative_time_locked;
+        if (!query.set_block_unconfirmable(link))
+            ec = error::validate3;
     }
     else if (!query.populate(*block))
     {
         ec = system::error::missing_previous_output;
+        if (!query.set_block_unconfirmable(link))
+            ec = error::validate4;
     }
     else if ((ec = block->accept(ctx, subsidy_interval_, initial_subsidy_)))
     {
         if (!query.set_block_unconfirmable(link))
-            ec = error::validate3;
+            ec = error::validate5;
     }
     else if ((ec = block->connect(ctx)))
     {
         if (!query.set_block_unconfirmable(link))
-            ec = error::validate4;
+            ec = error::validate6;
     }
     else if (!query.set_block_valid(link, block->fees()))
     {
-        ec = error::validate5;
+        ec = error::validate7;
     }
     else if (!query.set_prevouts(link, *block))
     {
-        ec = error::validate6;
+        ec = error::validate8;
     }
     else if (!query.set_filter_body(link, *block))
     {
         // TODO: this should not bypass checkpoint/milestone if enabled.
-        ec = error::validate7;
+        ec = error::validate9;
     }
     else
     {
@@ -275,7 +279,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
             ec == error::validate4 ||
             ec == error::validate5 ||
             ec == error::validate6 ||
-            ec == error::validate7)
+            ec == error::validate7 ||
+            ec == error::validate8 ||
+            ec == error::validate9)
         {
             fault(ec);
             return;
