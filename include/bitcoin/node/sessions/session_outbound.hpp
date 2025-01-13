@@ -54,6 +54,7 @@ private:
     const float allowed_deviation_;
 
     // This is protected by strand.
+    // TODO: optimize, default bucket count is around 8.
     std::unordered_map<object_key, double> speeds_{};
 };
 

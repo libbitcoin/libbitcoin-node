@@ -56,6 +56,7 @@ protected:
 
     struct track
     {
+        // TODO: optimize, default bucket count is around 8.
         hashmap ids{};
         size_t announced{};
         system::hash_digest last{};

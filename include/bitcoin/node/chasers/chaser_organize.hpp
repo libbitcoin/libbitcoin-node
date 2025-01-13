@@ -172,6 +172,8 @@ private:
 
     // These are protected by strand.
     chain_state::ptr state_{};
+
+    // TODO: optimize, default bucket count is around 8.
     block_tree tree_{};
 };
 
