@@ -218,7 +218,7 @@ void chaser_validate::validate_block(const header_link& link) NOEXCEPT
     {
         ec = error::validate2;
     }
-    else if (!block->populate())
+    else if (!block->populate(ctx))
     {
         ec = system::error::relative_time_locked;
     }
