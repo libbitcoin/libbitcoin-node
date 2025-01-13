@@ -53,7 +53,7 @@ protected:
         typename Block::cptr block;
         chain_state::ptr state;
     };
-    using block_tree = std::unordered_map<system::hash_digest, block_state>;
+    using block_tree = std::unordered_map<system::hash_cref, block_state>;
     using header_links = std_vector<database::header_link>;
 
     /// Protected constructor for abstract base.
