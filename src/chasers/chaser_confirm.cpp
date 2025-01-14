@@ -208,10 +208,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
 
-            //////////////////////////////////////////
             // Confirmation query.
-            // This will pull from new prevouts table.
-            //////////////////////////////////////////
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
