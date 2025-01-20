@@ -198,34 +198,21 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             notify(error::success, chase::confirmable, height);
             fire(events::confirm_bypassed, height);
             LOGV("Block confirmation bypassed: " << height);
-            ////return;
         }
         else if (ec == database::error::block_valid)
         {
-            if (!query.set_strong(link))
-            {
-                fault(error::confirm2);
-                return;
-            }
-
             // Confirmation query.
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
                 {
-                    fault(error::confirm3);
+                    fault(error::confirm2);
                     return;
                 }
 
                 if (!query.set_block_unconfirmable(link))
                 {
-                    fault(error::confirm4);
-                    return;
-                }
-
-                if (!query.set_unstrong(link))
-                {
-                    fault(error::confirm5);
+                    fault(error::confirm3);
                     return;
                 }
 
@@ -240,33 +227,23 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 
             if (!query.set_block_confirmable(link))
             {
-                fault(error::confirm6);
+                fault(error::confirm4);
                 return;
             }
 
-            if (!set_organized(link, height))
+            if (!query.set_strong(link))
             {
-                fault(error::confirm7);
+                fault(error::confirm5);
                 return;
             }
-        
-            notify(error::success, chase::confirmable, height);
-            fire(events::block_confirmed, height);
-            LOGV("Block confirmed: " << height);
-            ////return;
         }
         else if (ec == database::error::block_confirmable)
         {
             if (!query.set_strong(link))
             {
-                fault(error::confirm8);
+                fault(error::confirm6);
                 return;
             }
-        
-            notify(error::success, chase::confirmable, height);
-            fire(events::confirm_bypassed, height);
-            LOGV("Block previously confirmable: " << height);
-            ////return;
         }
         else
         {
@@ -277,17 +254,27 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // database::error::unknown_state       [shouldn't be here]
             // database::error::unassociated        [shouldn't be here]
             // database::error::unvalidated         [shouldn't be here]
-            fault(error::confirm9);
+            fault(error::confirm4);
+            return;
+        }
+
+        if (!set_organized(link, height))
+        {
+            fault(error::confirm7);
             return;
         }
 
         if (!update_neutrino(link))
         {
-            fault(error::confirm10);
+            fault(error::confirm8);
             return;
         }
 
         set_position(height);
+
+        notify(error::success, chase::confirmable, height);
+        fire(events::block_confirmed, height);
+        LOGV("Block confirmed: " << height);
     }
 }
 
