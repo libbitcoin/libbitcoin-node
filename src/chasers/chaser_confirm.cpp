@@ -50,8 +50,7 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 code chaser_confirm::start() NOEXCEPT
 {
     const auto& query = archive();
-    filters_ = query.neutrino_enabled();
-    reset_position(query.get_fork());
+    set_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -163,7 +162,7 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
         }
     }
 
-    reset_position(branch_point);
+    set_position(branch_point);
 }
 
 // Candidate block validated at given height, if next then confirm/advance.
@@ -266,17 +265,17 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        if (!set_organized(link, height))
+        if (!query.set_filter_head(link))
         {
             fault(error::confirm8);
             return;
         }
 
-        ////if (!update_neutrino(link))
-        ////{
-        ////    fault(error::confirm9);
-        ////    return;
-        ////}
+        if (!set_organized(link, height))
+        {
+            fault(error::confirm9);
+            return;
+        }
 
         set_position(height);
 
@@ -614,42 +613,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
-}
-
-// neutrino
-// ----------------------------------------------------------------------------
-
-bool chaser_confirm::update_neutrino(const header_link& link) NOEXCEPT
-{
-    // neutrino_.link is only used for this assertion, should compile away.
-    BC_ASSERT(archive().get_height(link) == 
-        add1(archive().get_height(neutrino_.link)));
-
-    if (!filters_)
-        return true;
-
-    data_chunk filter{};
-    auto& query = archive();
-    if (!query.get_filter_body(filter, link))
-        return false;
-
-    neutrino_.link = link;
-    neutrino_.head = neutrino::compute_filter_header(neutrino_.head, filter);
-    return query.set_filter_head(link, neutrino_.head);
-}
-
-// Expects confirmed height.
-// Use for startup and regression, to read current filter header from store.
-void chaser_confirm::reset_position(size_t confirmed_height) NOEXCEPT
-{
-    set_position(confirmed_height);
-
-    if (filters_)
-    {
-        const auto& query = archive();
-        neutrino_.link = query.to_confirmed(confirmed_height);
-        query.get_filter_head(neutrino_.head, neutrino_.link);
-    }
 }
 
 // Strand.
