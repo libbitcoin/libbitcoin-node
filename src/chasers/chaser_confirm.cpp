@@ -190,14 +190,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 
         if (ec == database::error::unassociated)
         {
-            // Don't report bypassed block is confirmable until ssociated.
+            // Wait until the gap is filled.
             return;
         }
         else if (is_under_checkpoint(height) || query.is_milestone(link))
         {
-            notify(error::success, chase::confirmable, height);
-            ////fire(events::confirm_bypassed, height);
-            LOGV("Block confirmation bypassed: " << height);
+            // Fall through (report confirmed).
         }
         else if (ec == database::error::unvalidated)
         {
@@ -221,12 +219,9 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                     return;
                 }
 
-                // Blocks between link and fork point will be set_unstrong
-                // by header reorganization, picked up by do_regressed.
                 notify(ec, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, height);
-                LOGR("Unconfirmable block [" << height << "] "
-                    << ec.message());
+                LOGR("Unconfirmable block [" << height << "] " << ec.message());
                 return;
             }
 
@@ -252,8 +247,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else
         {
-            LOGR("Fault block [" << height << "] " << ec.message());
-
             // With or without an error code, shouldn't be here.
             // database::error::unassociated        [wait state       ]
             // database::error::unvalidated         [wait state       ]
@@ -281,7 +274,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 
         notify(error::success, chase::confirmable, height);
         fire(events::block_confirmed, height);
-        LOGV("Block confirmed: " << height);
+        ////LOGV("Block confirmed: " << height);
     }
 }
 

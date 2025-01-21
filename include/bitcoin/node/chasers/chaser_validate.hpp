@@ -59,6 +59,8 @@ protected:
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
+    virtual void tracked_complete_block(const code& ec,
+        const database::header_link& link, size_t height) NOEXCEPT;
     virtual void complete_block(const code& ec,
         const database::header_link& link, size_t height) NOEXCEPT;
 
