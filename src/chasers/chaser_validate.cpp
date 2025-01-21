@@ -285,10 +285,10 @@ code chaser_validate::validate(bool bypass, const system::chain::block& block,
     if ((ec = block.connect(ctx)))
         return ec;
 
-    if (!query.set_block_valid(link, block.fees()))
+    if (!query.set_prevouts(link, block))
         return error::validate6;
 
-    if (!query.set_prevouts(link, block))
+    if (!query.set_block_valid(link, block.fees()))
         return error::validate7;
 
     return ec;
