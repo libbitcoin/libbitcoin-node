@@ -40,6 +40,7 @@ using namespace system;
 using namespace std::chrono;
 using namespace std::placeholders;
 
+// arbitrary testing (const).
 void executor::read_test(bool dump) const
 {
     using namespace database;
@@ -273,7 +274,14 @@ void executor::read_test(bool dump) const
 
 #if defined(UNDEFINED)
 
-// arbitrary testing (const).
+void executor::read_test(bool) const
+{
+    database::header_link link{ 350'017_u32 };
+    const auto ec = query_.block_confirmable(link);
+    logger(format("block_confirmable [%1%] at height [%2%].") % ec.message() %
+        query_.get_height(link));
+}
+
 void executor::read_test(bool dump) const
 {
     logger("Wire size computation.");
