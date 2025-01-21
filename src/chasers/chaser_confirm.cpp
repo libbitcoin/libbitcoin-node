@@ -189,15 +189,21 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         auto ec = query.get_block_state(link);
 
-        // Don't report bypassed block is confirmable until associated.
         if (ec == database::error::unassociated)
+        {
+            // Don't report bypassed block is confirmable until ssociated.
             return;
-
-        if (is_under_checkpoint(height) || query.is_milestone(link))
+        }
+        else if (is_under_checkpoint(height) || query.is_milestone(link))
         {
             notify(error::success, chase::confirmable, height);
-            fire(events::confirm_bypassed, height);
+            ////fire(events::confirm_bypassed, height);
             LOGV("Block confirmation bypassed: " << height);
+        }
+        else if (ec == database::error::unvalidated)
+        {
+            // Wait until this block is validated.
+            return;
         }
         else if (ec == database::error::block_valid)
         {
@@ -247,26 +253,28 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else
         {
+            LOGR("Fault block [" << height << "] " << ec.message());
+
             // With or without an error code, shouldn't be here.
+            // database::error::unassociated        [wait state       ]
+            // database::error::unvalidated         [wait state       ]
             // database::error::block_valid         [canonical state  ]
             // database::error::block_confirmable   [resurrected state]
             // database::error::block_unconfirmable [shouldn't be here]
             // database::error::unknown_state       [shouldn't be here]
-            // database::error::unassociated        [shouldn't be here]
-            // database::error::unvalidated         [shouldn't be here]
-            fault(error::confirm4);
+            fault(error::confirm7);
             return;
         }
 
         if (!set_organized(link, height))
         {
-            fault(error::confirm7);
+            fault(error::confirm8);
             return;
         }
 
         ////if (!update_neutrino(link))
         ////{
-        ////    fault(error::confirm8);
+        ////    fault(error::confirm9);
         ////    return;
         ////}
 
