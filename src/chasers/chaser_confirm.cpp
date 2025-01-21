@@ -264,11 +264,11 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        if (!update_neutrino(link))
-        {
-            fault(error::confirm8);
-            return;
-        }
+        ////if (!update_neutrino(link))
+        ////{
+        ////    fault(error::confirm8);
+        ////    return;
+        ////}
 
         set_position(height);
 
