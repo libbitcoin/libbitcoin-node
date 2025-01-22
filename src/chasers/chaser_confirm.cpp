@@ -50,8 +50,7 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 code chaser_confirm::start() NOEXCEPT
 {
     const auto& query = archive();
-    filters_ = query.neutrino_enabled();
-    reset_position(query.get_fork());
+    set_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
@@ -163,7 +162,7 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
         }
     }
 
-    reset_position(branch_point);
+    set_position(branch_point);
 }
 
 // Candidate block validated at given height, if next then confirm/advance.
@@ -189,108 +188,93 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         auto ec = query.get_block_state(link);
 
-        // Don't report bypassed block is confirmable until associated.
         if (ec == database::error::unassociated)
-            return;
-
-        if (is_under_checkpoint(height) || query.is_milestone(link))
         {
-            notify(error::success, chase::confirmable, height);
-            fire(events::confirm_bypassed, height);
-            LOGV("Block confirmation bypassed: " << height);
-            ////return;
+            // Wait until the gap is filled.
+            return;
+        }
+        else if (is_under_checkpoint(height) || query.is_milestone(link))
+        {
+            // Fall through (report confirmed).
+        }
+        else if (ec == database::error::unvalidated)
+        {
+            // Wait until this block is validated.
+            return;
         }
         else if (ec == database::error::block_valid)
         {
-            if (!query.set_strong(link))
-            {
-                fault(error::confirm2);
-                return;
-            }
-
-            //////////////////////////////////////////
             // Confirmation query.
-            // This will pull from new prevouts table.
-            //////////////////////////////////////////
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
                 {
-                    fault(error::confirm3);
+                    fault(error::confirm2);
                     return;
                 }
 
                 if (!query.set_block_unconfirmable(link))
                 {
-                    fault(error::confirm4);
+                    fault(error::confirm3);
                     return;
                 }
 
-                if (!query.set_unstrong(link))
-                {
-                    fault(error::confirm5);
-                    return;
-                }
-
-                // Blocks between link and fork point will be set_unstrong
-                // by header reorganization, picked up by do_regressed.
                 notify(ec, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, height);
-                LOGR("Unconfirmable block [" << height << "] "
-                    << ec.message());
+                LOGR("Unconfirmable block [" << height << "] " << ec.message());
                 return;
             }
 
             if (!query.set_block_confirmable(link))
             {
-                fault(error::confirm6);
+                fault(error::confirm4);
                 return;
             }
 
-            if (!set_organized(link, height))
+            if (!query.set_strong(link))
             {
-                fault(error::confirm7);
+                fault(error::confirm5);
                 return;
             }
-        
-            notify(error::success, chase::confirmable, height);
-            fire(events::block_confirmed, height);
-            LOGV("Block confirmed: " << height);
-            ////return;
         }
         else if (ec == database::error::block_confirmable)
         {
             if (!query.set_strong(link))
             {
-                fault(error::confirm8);
+                fault(error::confirm6);
                 return;
             }
-        
-            notify(error::success, chase::confirmable, height);
-            fire(events::confirm_bypassed, height);
-            LOGV("Block previously confirmable: " << height);
-            ////return;
         }
         else
         {
             // With or without an error code, shouldn't be here.
+            // database::error::unassociated        [wait state       ]
+            // database::error::unvalidated         [wait state       ]
             // database::error::block_valid         [canonical state  ]
             // database::error::block_confirmable   [resurrected state]
             // database::error::block_unconfirmable [shouldn't be here]
             // database::error::unknown_state       [shouldn't be here]
-            // database::error::unassociated        [shouldn't be here]
-            // database::error::unvalidated         [shouldn't be here]
+            fault(error::confirm7);
+            return;
+        }
+
+        if (!query.set_filter_head(link))
+        {
+            fault(error::confirm8);
+            return;
+        }
+
+        if (!set_organized(link, height))
+        {
             fault(error::confirm9);
             return;
         }
 
-        if (!update_neutrino(link))
-        {
-            fault(error::confirm10);
-            return;
-        }
-
         set_position(height);
+
+        notify(error::success, chase::confirmable, height);
+        fire(events::block_confirmed, height);
+        ////LOGV("Block confirmed: " << height);
     }
 }
 
@@ -622,42 +606,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
-}
-
-// neutrino
-// ----------------------------------------------------------------------------
-
-bool chaser_confirm::update_neutrino(const header_link& link) NOEXCEPT
-{
-    // neutrino_.link is only used for this assertion, should compile away.
-    BC_ASSERT(archive().get_height(link) == 
-        add1(archive().get_height(neutrino_.link)));
-
-    if (!filters_)
-        return true;
-
-    data_chunk filter{};
-    auto& query = archive();
-    if (!query.get_filter_body(filter, link))
-        return false;
-
-    neutrino_.link = link;
-    neutrino_.head = neutrino::compute_filter_header(neutrino_.head, filter);
-    return query.set_filter_head(link, neutrino_.head);
-}
-
-// Expects confirmed height.
-// Use for startup and regression, to read current filter header from store.
-void chaser_confirm::reset_position(size_t confirmed_height) NOEXCEPT
-{
-    set_position(confirmed_height);
-
-    if (filters_)
-    {
-        const auto& query = archive();
-        neutrino_.link = query.to_confirmed(confirmed_height);
-        query.get_filter_head(neutrino_.head, neutrino_.link);
-    }
 }
 
 // Strand.

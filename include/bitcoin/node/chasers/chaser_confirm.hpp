@@ -70,9 +70,6 @@ private:
         database::header_link link{};
     };
 
-    void reset_position(size_t confirmed_height) NOEXCEPT;
-    bool update_neutrino(const database::header_link& link) NOEXCEPT;
-
     bool set_organized(const database::header_link& link,
         height_t height) NOEXCEPT;
     bool reset_organized(const database::header_link& link,
@@ -89,8 +86,6 @@ private:
 
     // These are protected by strand.
     bool mature_{};
-    bool filters_{};
-    neutrino_header neutrino_{};
     network::threadpool threadpool_;
 
     // These are thread safe.

@@ -173,20 +173,16 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
 
-        // Wait until the gap is filled at a current height (or next top).
         if (ec == database::error::unassociated)
+        {
+            // Wait until the gap is filled.
             return;
-
-        // The size of the job is not relevant to the backlog cost.
-        ++backlog_;
-
-        if (ec == database::error::block_unconfirmable)
+        }
+        else if (ec == database::error::block_unconfirmable)
         {
             complete_block(ec, link, height);
             return;
         }
-
-        set_position(height);
 
         const auto bypass =
             (ec == database::error::block_valid) ||
@@ -196,10 +192,14 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         if (bypass && !filter_)
         {
             complete_block(error::success, link, height);
-            continue;
+        }
+        else
+        {
+            ++backlog_;
+            PARALLEL(validate_block, link, bypass);
         }
 
-        PARALLEL(validate_block, link, bypass);
+        set_position(height);
     }
 }
 
@@ -237,13 +237,9 @@ void chaser_validate::validate_block(const header_link& link,
     {
         ec = error::validate5;
     }
-    else
-    {
-        fire(events::block_validated, ctx.height);
-    }
 
     // Return to strand to handle result.
-    POST(complete_block, ec, link, ctx.height);
+    POST(tracked_complete_block, ec, link, ctx.height);
 }
 
 code chaser_validate::populate(bool bypass, const system::chain::block& block,
@@ -285,22 +281,29 @@ code chaser_validate::validate(bool bypass, const system::chain::block& block,
     if ((ec = block.connect(ctx)))
         return ec;
 
-    if (!query.set_block_valid(link, block.fees()))
+    if (!query.set_prevouts(link, block))
         return error::validate6;
 
-    if (!query.set_prevouts(link, block))
+    if (!query.set_block_valid(link, block.fees()))
         return error::validate7;
 
     return ec;
+}
+
+// The size of the job is not relevant to the backlog cost.
+void chaser_validate::tracked_complete_block(const code& ec,
+    const header_link& link, size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    --backlog_;
+    complete_block(ec, link, height);
 }
 
 void chaser_validate::complete_block(const code& ec, const header_link& link,
     size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    // The size of the job is not relevant to the backlog cost.
-    --backlog_;
 
     if (ec)
     {
@@ -317,13 +320,15 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
             return;
         }
 
-        LOGR("Unconfirmable block [" << height << "] " << ec.message());
-        fire(events::block_unconfirmable, height);
         notify(ec, chase::unvalid, link);
+        fire(events::block_unconfirmable, height);
+        LOGR("Unconfirmable block [" << height << "] " << ec.message());
         return;
     }
 
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
+    fire(events::block_validated, height);
+    ////LOGV("Block validated: " << height);
 
     // Prevent stall by posting internal event, avoid hitting external handlers.
     if (is_zero(backlog_))
