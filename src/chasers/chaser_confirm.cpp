@@ -43,7 +43,8 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     threadpool_(one, node.config().node.priority_()),
     independent_strand_(threadpool_.service().get_executor()),
-    concurrent_(node.config().node.concurrent_confirmation)
+    concurrent_(node.config().node.concurrent_confirmation),
+    prevout_(node.archive().prevout_enabled())
 {
 }
 
@@ -204,12 +205,26 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else if (ec == database::error::block_valid)
         {
+            // Set before if not using prevout table.
+            if (!prevout_ && !query.set_strong(link))
+            {
+                fault(error::confirm5);
+                return;
+            }
+
             // Confirmation query.
             if ((ec = query.block_confirmable(link)))
             {
                 if (ec == database::error::integrity)
                 {
                     fault(error::confirm2);
+                    return;
+                }
+
+                // Unset from set before if not using prevout table.
+                if (!prevout_ && !query.set_unstrong(link))
+                {
+                    fault(error::confirm5);
                     return;
                 }
 
@@ -231,7 +246,8 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
 
-            if (!query.set_strong(link))
+            // Set after if using prevout table.
+            if (prevout_ && !query.set_strong(link))
             {
                 fault(error::confirm5);
                 return;
@@ -239,6 +255,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else if (ec == database::error::block_confirmable)
         {
+            // Set in either case.
             if (!query.set_strong(link))
             {
                 fault(error::confirm6);
