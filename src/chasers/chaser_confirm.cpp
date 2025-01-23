@@ -208,7 +208,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // Set before if not using prevout table.
             if (!prevout_ && !query.set_strong(link))
             {
-                fault(error::confirm5);
+                fault(error::confirm2);
                 return;
             }
 
@@ -242,14 +242,14 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 
             if (!query.set_block_confirmable(link))
             {
-                fault(error::confirm4);
+                fault(error::confirm3);
                 return;
             }
 
             // Set after if using prevout table.
             if (prevout_ && !query.set_strong(link))
             {
-                fault(error::confirm5);
+                fault(error::confirm4);
                 return;
             }
         }
@@ -258,7 +258,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // Set in either case.
             if (!query.set_strong(link))
             {
-                fault(error::confirm6);
+                fault(error::confirm5);
                 return;
             }
         }
@@ -271,21 +271,21 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // database::error::block_confirmable   [resurrected state]
             // database::error::block_unconfirmable [shouldn't be here]
             // database::error::unknown_state       [shouldn't be here]
-            fault(error::confirm7);
+            fault(error::confirm6);
             return;
         }
 
         if (!query.set_filter_head(link))
         {
-            fault(error::confirm8);
+            fault(error::confirm7);
             return;
         }
 
-        if (!set_organized(link, height))
-        {
-            fault(error::confirm9);
-            return;
-        }
+////if (!set_organized(link, height))
+////{
+////    fault(error::confirm8);
+////    return;
+////}
 
         set_position(height);
 

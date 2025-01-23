@@ -351,14 +351,16 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    // This must not be a reference to the shared pointer, as otherwise the
-    // shared_ptr may be taken out of scope before the tx write completes.
-    // set_code() uses weak references to many elements of the transaction ref.
-    const auto txs_ptr = block->transactions_ptr();
-    const auto size = block->serialized_size(true);
+    // IMPORTANT: ~block() releases all memory for parts of itself, as a
+    // consequence of the custom memory allocator. Therefore, while shared_ptr
+    // to an element of the block would normally be valid after ~block(), the
+    // object pointed to will have been deallocated by ~block(). Therefore a
+    // reference to `block` must be passed to set_code (i.e. not a copy of or
+    // reference to `lock->transactions_ptr()`.
 
     // This invokes set_strong when checked. 
-    if (const auto code = query.set_code(*txs_ptr, link, size, checked))
+    const auto bytes = block->serialized_size(true);
+    if (const auto code = query.set_code(*block, link, checked, bytes))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << authority() << "] " << code.message());
@@ -376,7 +378,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
-    count(size);
+    count(bytes);
     map_->erase(it);
     if (is_idle())
     {
