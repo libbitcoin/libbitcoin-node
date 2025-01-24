@@ -358,8 +358,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // reference to `block` must be passed to set_code.
 
     // This invokes set_strong when checked. 
-    const auto bytes = block->serialized_size(true);
-    if (const auto code = query.set_code(*block, link, checked, bytes))
+    if (const auto code = query.set_code(*block, link, checked))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << authority() << "] " << code.message());
@@ -377,7 +376,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
-    count(bytes);
+    // block->serialized_size may keep block in scope during set_code above.
+    // However the compiler may reorder this calculation since block is const.
+    count(block->serialized_size(true));
     map_->erase(it);
     if (is_idle())
     {
