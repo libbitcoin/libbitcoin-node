@@ -355,8 +355,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // consequence of the custom memory allocator. Therefore, while shared_ptr
     // to an element of the block would normally be valid after ~block(), the
     // object pointed to will have been deallocated by ~block(). Therefore a
-    // reference to `block` must be passed to set_code (i.e. not a copy of or
-    // reference to `lock->transactions_ptr()`.
+    // reference to `block` must be passed to set_code.
 
     // This invokes set_strong when checked. 
     const auto bytes = block->serialized_size(true);
