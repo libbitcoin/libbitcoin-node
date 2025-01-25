@@ -156,10 +156,14 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 
     for (auto height = position(); height > branch_point; --height)
     {
-        if (!query.set_unstrong(query.to_candidate(height)))
+        const auto link = query.to_candidate(height);
+        if (!query.set_unstrong(link))
         {
-            fault(error::confirm1);
-            return;
+            if (query.get_block_state(link) != database::error::unassociated);
+            {
+                fault(error::confirm1);
+                return;
+            }
         }
     }
 
