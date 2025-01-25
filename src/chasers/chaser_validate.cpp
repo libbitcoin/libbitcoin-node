@@ -322,7 +322,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
-        LOGR("Unconfirmable block [" << height << "] " << ec.message());
+        LOGR("Invalid block [" << height << "] " << ec.message());
         return;
     }
 
