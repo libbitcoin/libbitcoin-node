@@ -159,7 +159,7 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
         const auto link = query.to_candidate(height);
         if (!query.set_unstrong(link))
         {
-            if (query.get_block_state(link) != database::error::unassociated);
+            if (query.get_block_state(link) != database::error::unassociated)
             {
                 fault(error::confirm1);
                 return;
@@ -217,24 +217,26 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             }
 
             // Confirmation query.
-            if ((ec = query.block_confirmable(link)))
+            if ((ec = query.block_confirmable(link)) &&
+                (ec != database::error::unconfirmed_spend))
             {
-                if (ec == database::error::integrity)
+                if (database::error::error_category::contains(ec))
                 {
-                    fault(error::confirm2);
+                    LOGR("Confirm fault [" << height << "] " << ec.message());
+                    fault(ec);
                     return;
                 }
 
                 // Unset from set before if not using prevout table.
                 if (!prevout_ && !query.set_unstrong(link))
                 {
-                    fault(error::confirm5);
+                    fault(error::confirm3);
                     return;
                 }
 
                 if (!query.set_block_unconfirmable(link))
                 {
-                    fault(error::confirm3);
+                    fault(error::confirm4);
                     return;
                 }
 
@@ -243,17 +245,23 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 LOGR("Unconfirmable block [" << height << "] " << ec.message());
                 return;
             }
+            ///////////////////////////////////////////////////////////////////
+            else if (ec == database::error::unconfirmed_spend)
+            {
+                LOGR("unconfirmed_spend [" << height << "].");
+            }
+            ///////////////////////////////////////////////////////////////////
 
             if (!query.set_block_confirmable(link))
             {
-                fault(error::confirm3);
+                fault(error::confirm5);
                 return;
             }
 
             // Set after if using prevout table.
             if (prevout_ && !query.set_strong(link))
             {
-                fault(error::confirm4);
+                fault(error::confirm6);
                 return;
             }
         }
@@ -262,32 +270,29 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // Set in either case.
             if (!query.set_strong(link))
             {
-                fault(error::confirm5);
+                fault(error::confirm7);
                 return;
             }
         }
-        else
+        else if (ec == database::error::block_unconfirmable)
         {
-            // With or without an error code, shouldn't be here.
-            // database::error::unassociated        [wait state       ]
-            // database::error::unvalidated         [wait state       ]
-            // database::error::block_valid         [canonical state  ]
-            // database::error::block_confirmable   [resurrected state]
-            // database::error::block_unconfirmable [shouldn't be here]
-            // database::error::unknown_state       [shouldn't be here]
-            fault(error::confirm6);
+            return;
+        }
+        else //// if (ec == database::error::unknown_state)
+        {
+            fault(error::confirm8);
             return;
         }
 
         if (!query.set_filter_head(link))
         {
-            fault(error::confirm7);
+            fault(error::confirm9);
             return;
         }
 
 ////if (!set_organized(link, height))
 ////{
-////    fault(error::confirm8);
+////    fault(error::confirm10);
 ////    return;
 ////}
 
