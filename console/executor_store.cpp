@@ -236,6 +236,7 @@ bool executor::hot_backup_store(bool details)
                 full_node::store::tables.at(table));
     }))
     {
+        // system::error::not_a_stream when disk is full.
         logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
         return false;
     }
@@ -258,6 +259,7 @@ bool executor::cold_backup_store(bool details)
                 full_node::store::tables.at(table));
     }))
     {
+        // system::error::not_a_stream when disk is full.
         logger(format(BN_NODE_BACKUP_FAIL) % ec.message());
         return false;
     }
