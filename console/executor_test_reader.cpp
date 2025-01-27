@@ -41,6 +41,7 @@ using namespace std::chrono;
 using namespace std::placeholders;
 
 // arbitrary testing (const).
+
 void executor::read_test(bool dump) const
 {
     using namespace database;
@@ -809,18 +810,29 @@ void executor::read_test(bool dump) const
     logger(format("STOP (%1% secs)") % span.count());
 }
 
-
 // TODO: create a block/tx dumper.
 void executor::read_test(bool) const
 {
-    constexpr auto hash511280 = base16_hash(
-        "00000000000000000030b12ee5a31aaf553f49cdafa52698f70f0f0706f46d3d");
-
+    constexpr auto link = 600'000_size;
     const auto start = logger::now();
-    const auto link = query_.to_header(hash511280);
-    if (link.is_terminal())
+
+    const auto height = query_.get_height(link);
+    if (height.is_terminal())
     {
-        logger("link.is_terminal()");
+        logger("height.is_terminal()");
+        return;
+    }
+
+    if (height != link)
+    {
+        logger("height != link");
+        return;
+    }
+
+    code ec{};
+    if ((ec = query_.block_confirmable(link)))
+    {
+        logger(format("query_.block_confirmable: %1%") % ec.message());
         return;
     }
 
@@ -855,24 +867,36 @@ void executor::read_test(bool) const
     state.timestamp = block->header().timestamp();
     state.minimum_block_version = 0;
     state.work_required = 0;
+
+    if (!block->populate(state))
+    {
+        logger("!block->populate(state)");
+        return;
+    }
+
     if (!query_.populate(*block))
     {
         logger("!query_.populate(*block)");
         return;
     }
 
-    code ec{};
     if ((ec = block->check()))
     {
-        logger(format("Block check: %1%") % ec.message());
+        logger(format("Block check(): %1%") % ec.message());
         return;
     }
 
-    const auto& coin = metadata_.configured.bitcoin;
-    if ((ec = block->accept(state, coin.subsidy_interval_blocks,
-        coin.initial_subsidy())))
+    if ((ec = block->check(state)))
     {
-        logger(format("Block accept: %1%") % ec.message());
+        logger(format("Block check(state): %1%") % ec.message());
+        return;
+    }
+
+    if ((ec = block->accept(state,
+        metadata_.configured.bitcoin.subsidy_interval_blocks,
+        metadata_.configured.bitcoin.initial_subsidy())))
+    {
+        logger(format("Block accept(state): %1%") % ec.message());
         return;
     }
 
@@ -882,8 +906,39 @@ void executor::read_test(bool) const
         return;
     }
 
+    logger(format("segregated [%1%]") % to_int(block->is_segregated()));
+    logger(format("segregated count [%1%]") % block->segregated());
+
     const auto span = duration_cast<milliseconds>(logger::now() - start);
-    logger(format("Validated block 511280 in %1% msec.") % span.count());
+    logger(format("Validated block [%1%] in %2% msec.") % link % span.count());
+
+    ////constexpr auto tx_hash = base16_hash(
+    ////    "eb2179db6c40bceb02cebcc5c99cf783ed6385b00767c7a5419fe530eaba8bff");
+    ////const auto tx_link = query_.to_tx(tx_hash);
+    ////const auto tx = query_.get_transaction(tx_link);
+    ////const auto result = query_.populate(*tx);
+    ////const auto size = tx->serialized_size(false);
+    ////const auto weight = tx->serialized_size(true);
+    ////const auto version = tx->version();
+    ////const auto locktime = tx->locktime();
+    ////const auto fee = tx->fee();
+    ////const auto sequence = tx->inputs_ptr()->at(0)->sequence();
+    ////const auto& in = tx->inputs_ptr()->at(0)->script();
+    ////const auto& out = tx->inputs_ptr()->at(0)->prevout->script();
+    ////const auto connect = tx->connect(state);
+
+    ////logger(format("tx_hash  [%1%]") % encode_hash(tx_hash));
+    ////logger(format("tx_link  [%1%]") % tx_link.value);
+    ////logger(format("result   [%1%]") % to_int(result));
+    ////logger(format("size     [%1%]") % size);
+    ////logger(format("weight   [%1%]") % weight);
+    ////logger(format("version  [%1%]") % version);
+    ////logger(format("locktime [%1%]") % locktime);
+    ////logger(format("fee      [%1%]") % fee);
+    ////logger(format("sequence [%1%]") % sequence);
+    ////logger(format("in       [%1%]") % in.to_string(chain::flags::no_rules));
+    ////logger(format("out      [%1%]") % out.to_string(chain::flags::no_rules));
+    ////logger(format("connect  [%1%]") % connect.message());
 }
 
 #endif // UNDEFINED
