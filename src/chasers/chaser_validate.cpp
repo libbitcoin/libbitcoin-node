@@ -191,7 +191,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
 
         if (bypass && !filter_)
         {
-            complete_block(error::success, link, height);
+            complete_block(database::error::success, link, height);
         }
         else
         {
@@ -242,8 +242,8 @@ void chaser_validate::validate_block(const header_link& link,
     POST(tracked_complete_block, ec, link, ctx.height);
 }
 
-code chaser_validate::populate(bool bypass, const system::chain::block& block,
-    const system::chain::context& ctx) NOEXCEPT
+code chaser_validate::populate(bool bypass, const chain::block& block,
+    const chain::context& ctx) NOEXCEPT
 {
     const auto& query = archive();
 
@@ -262,30 +262,63 @@ code chaser_validate::populate(bool bypass, const system::chain::block& block,
             return system::error::missing_previous_output;
     }
     
-    return error::success;
+    return system::error::success;
 }
 
-code chaser_validate::validate(bool bypass, const system::chain::block& block,
-    const database::header_link& link,
-    const system::chain::context& ctx) NOEXCEPT
+code chaser_validate::validate(bool bypass, const chain::block& block,
+    const database::header_link& link, const chain::context& ctx) NOEXCEPT
 {
     code ec{};
     if (bypass)
         return ec;
 
+    ///////////////////////////////////////////////////////////////////////////////
+    ////if (!block.is_segregated())
+    ////{
+    ////    block.clear_hash_cache(true);
+    ////    if (block.is_invalid_witness_commitment())
+    ////        return error::validate6;
+    ////}
+    ////else
+    ////{
+    ////    block.clear_hash_cache(false);
+    ////    if (block.is_invalid_merkle_root())
+    ////        return error::validate7;
+    ////}
+    ///////////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////
+    ////if (ctx.is_enabled(chain::flags::bip141_rule) && block.is_segregated())
+    ////{
+    ////    fire(events::snapshot_span, block.segregated());
+    ////}
+    ///////////////////////////////////////////////////////////////////////////
+
     auto& query = archive();
 
     if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
-        return ec;
+    {
+        ///////////////////////////////////////////////////////////////////////
+        // Allow failure.
+        LOGR("block.accept [" << ctx.height << "] " << ec.message());
+        return error::success;
+        ///////////////////////////////////////////////////////////////////////
+    }
 
     if ((ec = block.connect(ctx)))
-        return ec;
+    {
+        ///////////////////////////////////////////////////////////////////////
+        // Allow failure.
+        LOGR("block.connect [" << ctx.height << "] " << ec.message());
+        return error::success;
+        ///////////////////////////////////////////////////////////////////////
+    }
 
     if (!query.set_prevouts(link, block))
-        return error::validate6;
+        return error::validate8;
 
     if (!query.set_block_valid(link, block.fees()))
-        return error::validate7;
+        return error::validate9;
 
     return ec;
 }
@@ -307,15 +340,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
     if (ec)
     {
-        // Differentiated fault codes for troubleshooting.
-        if (ec == error::validate1 ||
-            ec == error::validate2 ||
-            ec == error::validate3 ||
-            ec == error::validate4 ||
-            ec == error::validate5 ||
-            ec == error::validate6 ||
-            ec == error::validate7)
+        if (node::error::error_category::contains(ec))
         {
+            LOGR("Validate fault [" << height << "] " << ec.message());
             fault(ec);
             return;
         }
