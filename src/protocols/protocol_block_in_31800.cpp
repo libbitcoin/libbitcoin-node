@@ -281,10 +281,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Preconditions.
     // ........................................................................
 
-    auto& query = archive();
-    const chain::block::cptr block{ message->block_ptr };
+    // Intentional pointer copy.
+    const auto block = message->block_ptr;
     const auto& hash = block->get_hash();
     const auto it = map_->find(hash);
+    auto& query = archive();
 
     if (it == map_->end())
     {
@@ -350,12 +351,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     // Commit block.txs.
     // ........................................................................
-
-    // IMPORTANT: ~block() releases all memory for parts of itself, as a
-    // consequence of the custom memory allocator. Therefore, while shared_ptr
-    // to an element of the block would normally be valid after ~block(), the
-    // object pointed to will have been deallocated by ~block(). Therefore a
-    // reference to `block` must be passed to set_code.
 
     // This invokes set_strong when checked. 
     if (const auto code = query.set_code(*block, link, checked))
