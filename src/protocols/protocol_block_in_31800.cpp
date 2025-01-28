@@ -281,10 +281,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Preconditions.
     // ........................................................................
 
-    auto& query = archive();
-    const chain::block::cptr block{ message->block_ptr };
+    // Intentional pointer copy.
+    const auto block = message->block_ptr;
     const auto& hash = block->get_hash();
     const auto it = map_->find(hash);
+    auto& query = archive();
 
     if (it == map_->end())
     {
@@ -322,14 +323,15 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        if (code == system::error::forward_reference)
-        {
-            LOGR("Disordered block [" << encode_hash(hash) << ":" << height
-                << " txs(" << block->transactions() << ")"
-                << " segregated(" << block->is_segregated() << ").");
-            stop(code);
-            return false;
-        }
+        // TODO: why were we not setting this block as unconfirmable?
+        ////if (code == system::error::forward_reference)
+        ////{
+        ////    LOGR("Disordered block [" << encode_hash(hash) << ":" << height
+        ////        << " txs(" << block->transactions() << ")"
+        ////        << " segregated(" << block->is_segregated() << ").");
+        ////    stop(code);
+        ////    return false;
+        ////}
 
         // Actual block represented by the hash is unconfirmable.
         if (!query.set_block_unconfirmable(link))
@@ -351,15 +353,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    // IMPORTANT: ~block() releases all memory for parts of itself, as a
-    // consequence of the custom memory allocator. Therefore, while shared_ptr
-    // to an element of the block would normally be valid after ~block(), the
-    // object pointed to will have been deallocated by ~block(). Therefore a
-    // reference to `block` must be passed to set_code.
-
     // This invokes set_strong when checked. 
-    const auto bytes = block->serialized_size(true);
-    if (const auto code = query.set_code(*block, link, checked, bytes))
+    if (const auto code = query.set_code(*block, link, checked))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << authority() << "] " << code.message());
@@ -377,7 +372,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
-    count(bytes);
+    // block->serialized_size may keep block in scope during set_code above.
+    // However the compiler may reorder this calculation since block is const.
+    count(block->serialized_size(true));
     map_->erase(it);
     if (is_idle())
     {
