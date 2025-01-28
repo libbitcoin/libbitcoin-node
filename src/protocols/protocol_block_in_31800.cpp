@@ -323,14 +323,15 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        if (code == system::error::forward_reference)
-        {
-            LOGR("Disordered block [" << encode_hash(hash) << ":" << height
-                << " txs(" << block->transactions() << ")"
-                << " segregated(" << block->is_segregated() << ").");
-            stop(code);
-            return false;
-        }
+        // TODO: why were we not setting this block as unconfirmable?
+        ////if (code == system::error::forward_reference)
+        ////{
+        ////    LOGR("Disordered block [" << encode_hash(hash) << ":" << height
+        ////        << " txs(" << block->transactions() << ")"
+        ////        << " segregated(" << block->is_segregated() << ").");
+        ////    stop(code);
+        ////    return false;
+        ////}
 
         // Actual block represented by the hash is unconfirmable.
         if (!query.set_block_unconfirmable(link))
