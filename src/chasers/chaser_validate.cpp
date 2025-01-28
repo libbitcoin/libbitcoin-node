@@ -272,47 +272,13 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if (bypass)
         return ec;
 
-    ///////////////////////////////////////////////////////////////////////////////
-    ////if (!block.is_segregated())
-    ////{
-    ////    block.clear_hash_cache(true);
-    ////    if (block.is_invalid_witness_commitment())
-    ////        return error::validate6;
-    ////}
-    ////else
-    ////{
-    ////    block.clear_hash_cache(false);
-    ////    if (block.is_invalid_merkle_root())
-    ////        return error::validate7;
-    ////}
-    ///////////////////////////////////////////////////////////////////////////////
-
-    ///////////////////////////////////////////////////////////////////////////
-    ////if (ctx.is_enabled(chain::flags::bip141_rule) && block.is_segregated())
-    ////{
-    ////    fire(events::snapshot_span, block.segregated());
-    ////}
-    ///////////////////////////////////////////////////////////////////////////
-
     auto& query = archive();
 
     if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
-    {
-        ///////////////////////////////////////////////////////////////////////
-        // Allow failure.
-        LOGR("block.accept [" << ctx.height << "] " << ec.message());
-        return error::success;
-        ///////////////////////////////////////////////////////////////////////
-    }
+        return ec;
 
     if ((ec = block.connect(ctx)))
-    {
-        ///////////////////////////////////////////////////////////////////////
-        // Allow failure.
-        LOGR("block.connect [" << ctx.height << "] " << ec.message());
-        return error::success;
-        ///////////////////////////////////////////////////////////////////////
-    }
+        return ec;
 
     if (!query.set_prevouts(link, block))
         return error::validate8;

@@ -217,8 +217,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             }
 
             // Confirmation query.
-            if ((ec = query.block_confirmable(link)) &&
-                (ec != database::error::unconfirmed_spend))
+            if ((ec = query.block_confirmable(link)))
             {
                 if (database::error::error_category::contains(ec))
                 {
@@ -245,12 +244,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 LOGR("Unconfirmable block [" << height << "] " << ec.message());
                 return;
             }
-            ///////////////////////////////////////////////////////////////////
-            else if (ec == database::error::unconfirmed_spend)
-            {
-                LOGR("unconfirmed_spend [" << height << "].");
-            }
-            ///////////////////////////////////////////////////////////////////
 
             if (!query.set_block_confirmable(link))
             {
