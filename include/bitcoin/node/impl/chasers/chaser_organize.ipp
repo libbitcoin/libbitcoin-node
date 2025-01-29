@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_IPP
 
 #include <algorithm>
+#include <ranges>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -260,7 +261,7 @@ void CLASS::do_organize(typename Block::cptr block,
         notify(error::success, chase::regressed, branch_point);
 
     // Push stored strong headers to candidate chain.
-    for (const auto& link: views_reverse(store_branch))
+    for (const auto& link: std::views::reverse(store_branch))
     {
         if ((is_under_milestone(index) && !query.set_strong(link)) ||
             !query.push_candidate(link))
@@ -274,7 +275,7 @@ void CLASS::do_organize(typename Block::cptr block,
     }
 
     // Store strong tree headers and push to candidate chain.
-    for (const auto& key: views_reverse(tree_branch))
+    for (const auto& key: std::views::reverse(tree_branch))
     {
         if ((ec = push_block(key)))
         {
