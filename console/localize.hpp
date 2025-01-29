@@ -80,11 +80,12 @@ namespace node {
     "   candidate :%8%\n" \
     "   confirmed :%9%\n" \
     "   spend     :%10%\n" \
-    "   strong_tx :%11%\n" \
-    "   valid_tx  :%12%\n" \
-    "   valid_bk  :%13%\n" \
-    "   address   :%14%\n" \
-    "   neutrino  :%15%"
+    "   prevout   :%11%\n" \
+    "   strong_tx :%12%\n" \
+    "   valid_tx  :%13%\n" \
+    "   valid_bk  :%14%\n" \
+    "   address   :%15%\n" \
+    "   neutrino  :%16%"
 #define BN_MEASURE_RECORDS \
     "Table records...\n" \
     "   header    :%1%\n" \
@@ -93,8 +94,9 @@ namespace node {
     "   candidate :%4%\n" \
     "   confirmed :%5%\n" \
     "   spend     :%6%\n" \
-    "   strong_tx :%7%\n" \
-    "   address   :%8%"
+    "   prevout   :%7%\n" \
+    "   strong_tx :%8%\n" \
+    "   address   :%9%"
 #define BN_MEASURE_SLABS \
     "Table slabs..."
 #define BN_MEASURE_SLABS_ROW \
@@ -110,11 +112,12 @@ namespace node {
     "   tx        :%3%\n" \
     "   point     :%4%\n" \
     "   spend     :%5%\n" \
-    "   strong_tx :%6%\n" \
-    "   valid_tx  :%7%\n" \
-    "   valid_bk  :%8%\n" \
-    "   address   :%9%\n" \
-    "   neutrino  :%10%"
+    "   prevout   :%6%\n" \
+    "   strong_tx :%7%\n" \
+    "   valid_tx  :%8%\n" \
+    "   valid_bk  :%9%\n" \
+    "   address   :%10%\n" \
+    "   neutrino  :%11%"
 #define BN_MEASURE_COLLISION_RATES \
     "Collision rates...\n" \
     "   header    :%1%\n" \
@@ -122,11 +125,12 @@ namespace node {
     "   tx        :%3%\n" \
     "   point     :%4%\n" \
     "   spend     :%5%\n" \
-    "   strong_tx :%6%\n" \
-    "   valid_tx  :%7%\n" \
-    "   valid_bk  :%8%\n" \
-    "   address   :%9%\n" \
-    "   neutrino  :%10%"
+    "   prevout   :%6%\n" \
+    "   strong_tx :%7%\n" \
+    "   valid_tx  :%8%\n" \
+    "   valid_bk  :%9%\n" \
+    "   address   :%10%\n" \
+    "   neutrino  :%11%"
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \
