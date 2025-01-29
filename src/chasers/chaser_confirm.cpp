@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 
 #include <functional>
+#include <ranges>
 #include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -561,7 +562,7 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
         if (!set_reorganized(query.to_confirmed(height), height))
             return false;
 
-    for (const auto& fk: views_reverse(popped))
+    for (const auto& fk: std::views::reverse(popped))
         if (!reset_organized(fk, ++fork_point))
             return false;
 
