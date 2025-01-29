@@ -60,6 +60,7 @@ enum error_t : uint8_t
 
     /// faults (terminal, code error and store corruption assumed)
     protocol1,
+    protocol2,
     header1,
     organize1,
     organize2,

@@ -50,6 +50,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 
     /// faults
     { protocol1, "protocol1" },
+    { protocol2, "protocol2" },
     { header1, "header1" },
     { organize1, "organize1" },
     { organize2, "organize2" },
