@@ -69,7 +69,7 @@ jobs:
             packages: ""
 
           - os: ubuntu-24.04
-            cxx: "g++-12"
+            cxx: "g++"
             link: "static"
             optimization: "size"
             assert: "ndebug"
@@ -79,7 +79,7 @@ jobs:
             icu: "--build-icu --with-icu"
             llvm: ""
             secp256k1: "--build-secp256k1"
-            cc: "gcc-12"
+            cc: "gcc"
             flags: "-Os -g --coverage -fPIE"
             options: "--enable-isystem"
             packager: "apt"
@@ -220,9 +220,9 @@ jobs:
       - name: Coveralls Calculation
         if: ${{ matrix.coverage == 'cov' }}
         run: |
-          lcov --directory . --capture --ignore-errors version --output-file coverage.info
-          lcov --remove coverage.info "/usr/*" "${{ env.LIBBITCOIN_SRC_PATH }}prefix/*" "${{ github.workspace }}/examples/*" "${{ github.workspace }}/test/*" --output-file --ignore-errors version coverage.info
-          lcov --list --ignore-errors version coverage.info
+          lcov --ignore-errors version,gcov,mismatch --directory . --capture --output-file coverage.info
+          lcov --ignore-errors unused --remove coverage.info "/usr/*" "${{ env.LIBBITCOIN_SRC_PATH }}prefix/*" "${{ github.workspace }}/examples/*" "${{ github.workspace }}/test/*" --output-file coverage.info
+          lcov --list coverage.info
 
       - name: Coveralls.io Upload
         if: ${{ matrix.coverage == 'cov' }}
@@ -494,9 +494,9 @@ jobs:
       - name: Coveralls Calculation
         if: ${{ matrix.coverage == 'cov' }}
         run: |
-          lcov --directory . --capture --ignore-errors version --output-file coverage.info
-          lcov --remove coverage.info "/usr/*" "${{ env.LIBBITCOIN_SRC_PATH }}prefix/*" "${{ github.workspace }}/examples/*" "${{ github.workspace }}/test/*" --output-file --ignore-errors version coverage.info
-          lcov --list --ignore-errors version coverage.info
+          lcov --ignore-errors version,gcov,mismatch --directory . --capture --output-file coverage.info
+          lcov --ignore-errors unused --remove coverage.info "/usr/*" "${{ env.LIBBITCOIN_SRC_PATH }}prefix/*" "${{ github.workspace }}/examples/*" "${{ github.workspace }}/test/*" --output-file coverage.info
+          lcov --list coverage.info
 
       - name: Coveralls.io Upload
         if: ${{ matrix.coverage == 'cov' }}
@@ -731,9 +731,9 @@ jobs:
       - name: Coveralls Calculation
         if: ${{ matrix.coverage == 'cov' }}
         run: |
-          lcov --directory . --capture --ignore-errors version --output-file coverage.info
-          lcov --remove coverage.info "/usr/*" "${{ env.LIBBITCOIN_SRC_PATH }}prefix/*" "${{ github.workspace }}/examples/*" "${{ github.workspace }}/test/*" --output-file --ignore-errors version coverage.info
-          lcov --list --ignore-errors version coverage.info
+          lcov --ignore-errors version,gcov,mismatch --directory . --capture --output-file coverage.info
+          lcov --ignore-errors unused --remove coverage.info "/usr/*" "${{ env.LIBBITCOIN_SRC_PATH }}prefix/*" "${{ github.workspace }}/examples/*" "${{ github.workspace }}/test/*" --output-file coverage.info
+          lcov --list coverage.info
 
       - name: Coveralls.io Upload
         if: ${{ matrix.coverage == 'cov' }}
