@@ -72,8 +72,8 @@ public:
     settings(system::chain::selection context) NOEXCEPT;
 
     /// Properties.
+    bool priority;
     bool headers_first;
-    bool priority_validation;
     float allowed_deviation;
     uint16_t allocation_multiple;
     uint64_t snapshot_bytes;

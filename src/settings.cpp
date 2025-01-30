@@ -75,8 +75,8 @@ std::filesystem::path settings::events_file() const NOEXCEPT
 namespace node {
 
 settings::settings() NOEXCEPT
-  : headers_first{ true },
-    priority_validation{ true },
+  : priority{ true },
+    headers_first{ true },
     allowed_deviation{ 1.5 },
     allocation_multiple{ 20 },
     snapshot_bytes{ 200'000'000'000 },
@@ -123,7 +123,7 @@ network::wall_clock::duration settings::currency_window() const NOEXCEPT
 
 network::thread_priority settings::priority_() const NOEXCEPT
 {
-    return priority_validation ? network::thread_priority::high :
+    return priority ? network::thread_priority::high :
         network::thread_priority::normal;
 }
 
