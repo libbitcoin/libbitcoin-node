@@ -48,7 +48,6 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
-    concurrent_(node.config().node.concurrent_validation),
     filter_(node.archive().neutrino_enabled())
 {
 }
@@ -95,23 +94,14 @@ bool chaser_validate::handle_event(const code&, chase event_,
         case chase::start:
         case chase::bump:
         {
-            if (concurrent_ || mature_)
-            {
-                POST(do_bump, height_t{});
-            }
-
+            POST(do_bump, height_t{});
             break;
         }
         case chase::checked:
         {
             // value is checked block height.
             BC_ASSERT(std::holds_alternative<height_t>(value));
-
-            if (concurrent_ || mature_)
-            {
-                POST(do_checked, std::get<height_t>(value));
-            }
-
+            POST(do_checked, std::get<height_t>(value));
             break;
         }
         case chase::regressed:
@@ -316,6 +306,16 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
+
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        // Stop the network in case of an unexpected invalidity (debugging).
+        // This is considered a bug, not an invalid block arrival (for now).
+        // This usually manifests as accept failure invalid_witness (!checked),
+        // in which case the witness data is simply not present, but bip141 is
+        // active and the output indicates a witness transaction.
+        fault(ec);
+        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
         return;
     }
 
