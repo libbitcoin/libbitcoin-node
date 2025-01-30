@@ -240,6 +240,13 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                     return;
                 }
 
+                // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                // Failure here was previously result of bug in hashmap, which
+                // caused both iteration across full prevout table and missing
+                // prevout tx records intermittently in confirmation query.
+                // This would prevent subsequent confirmation progress. This
+                // has been resolved.
+                // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                 notify(ec, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, height);
                 LOGR("Unconfirmable block [" << height << "] " << ec.message());

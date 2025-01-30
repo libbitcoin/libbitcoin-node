@@ -304,6 +304,21 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto checked = is_under_checkpoint(height) ||
         query.is_milestone(link);
 
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // Failed on block [363353] with block_internal_double_spend (!checked).
+    // The block object remains in scope during the call, but the pointer owns
+    // the memory. There is a local pointer object copied above, but it may be
+    // deleted once it is no longer referenced. This makes the block reference
+    // below weak. The message pointer object is also held by the calling
+    // closure, however it can be deleted by the compiler due to subsequent
+    // non-use. The copied block pointer holds the block object, but it may be
+    // also deleted if not referenced. Passing a block pointer into check,
+    // allowing block->check() to be called would resolve that issue, but not
+    // the issue of calling set_code (see below). But it's not clear how ~block
+    // could have occured here with query.set_code(*block) pending below.
+    // It hasn't failed when using a prevout table, which seems unrelated.
+    // But if it's a race to overwrite freed block memory, it's very possible.
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // Tx commitments and malleation are checked under bypass. Invalidity is
     // only stored when a strong header has been stored, later to be found out
     // as invalid and not malleable. Stored invalidity prevents repeat
@@ -315,6 +330,11 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             code == system::error::invalid_witness_commitment ||
             code == system::error::block_malleated)
         {
+            // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            // These references to block didn't keep it in scope.
+            // But because block is const they could precede the check. Could
+            // be a compiler optimization as these are called by check(true).
+            // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             LOGR("Uncommitted block [" << encode_hash(hash) << ":" << height
                 << "] from [" << authority() << "] " << code.message()
                 << " txs(" << block->transactions() << ")"
@@ -323,22 +343,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        // TODO: why were we not setting this block as unconfirmable?
-        ////if (code == system::error::forward_reference)
-        ////{
-        ////    LOGR("Disordered block [" << encode_hash(hash) << ":" << height
-        ////        << " txs(" << block->transactions() << ")"
-        ////        << " segregated(" << block->is_segregated() << ").");
-        ////    stop(code);
-        ////    return false;
-        ////}
-
         // Actual block represented by the hash is unconfirmable.
         if (!query.set_block_unconfirmable(link))
         {
             LOGF("Failure setting block unconfirmable [" << encode_hash(hash)
                 << ":" << height << "] from [" << authority() << "].");
-            fault(error::protocol1);
+            stop(fault(error::protocol1));
             return false;
         }
 
@@ -353,6 +363,18 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // For early segwit blocks this often fails to set the witness.
+    // There is no failure code, the witness is just empty and stored empty.
+    // That causes a validation failure with invalid_witness (!checked).
+    // It may have also failed in a way that invalidates confirmation queries.
+    // Passing a block pointer here would only hold the block in scope until
+    // it iterates transactions, with no subsequent reference. Then transaction
+    // pointers could hold themselves in scope, however block owns their memory
+    // and ~block() frees that memory even if the transaction pointer is alive.
+    // It hasn't failed when using a prevout table, which seems unrelated.
+    // But if it's a race to overwrite freed block memory, it's very possible.
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // This invokes set_strong when checked. 
     if (const auto code = query.set_code(*block, link, checked))
     {
@@ -360,6 +382,23 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             << "] from [" << authority() << "] " << code.message());
 
         stop(fault(code));
+        return false;
+    }
+
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // TODO: verify that ~block() free during contained object access is the
+    // problem by switching to the default memory allocator w/non-prevout run
+    // and the code below disabled.
+    // TODO: pass shared_ptr in to check(block) and set_code(block) from here.
+    // This may guarantee the pointer (vs. block&) lifetime until return.
+    // This is an attempt to keep the shared pointer in scope.
+    // Given that block is const this could also be reordered prior to check().
+    // But this is not called in this scope, only by message deserialization.
+    // Passing the block pointer through the store
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    if (!block->is_valid())
+    {
+        stop(fault(error::protocol2));
         return false;
     }
 
@@ -372,8 +411,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // block->serialized_size may keep block in scope during set_code above.
     // However the compiler may reorder this calculation since block is const.
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     count(block->serialized_size(true));
     map_->erase(it);
     if (is_idle())
