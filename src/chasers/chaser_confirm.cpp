@@ -44,7 +44,6 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     threadpool_(one, node.config().node.priority_()),
     independent_strand_(threadpool_.service().get_executor()),
-    concurrent_(node.config().node.concurrent_confirmation),
     prevout_(node.archive().prevout_enabled())
 {
 }
@@ -92,34 +91,21 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         ////{
         ////    BC_ASSERT(std::holds_alternative<height_t>(value));
         ////
-        ////    if (concurrent_ || mature_)
-        ////    {
-        ////        // TODO: value is branch point.
-        ////        POST(do_validated, std::get<height_t>(value));
-        ////    }
-        ////
+        ////    // TODO: value is branch point.
+        ////    POST(do_validated, std::get<height_t>(value));
         ////    break;
         ////}
         case chase::start:
         case chase::bump:
         {
-            if (concurrent_ || mature_)
-            {
-                POST(do_bump, height_t{});
-            }
-
+            POST(do_bump, height_t{});
             break;
         }
         case chase::valid:
         {
             // value is validated block height.
             BC_ASSERT(std::holds_alternative<height_t>(value));
-
-            if (concurrent_ || mature_)
-            {
-                POST(do_validated, std::get<height_t>(value));
-            }
-
+            POST(do_validated, std::get<height_t>(value));
             break;
         }
         case chase::regressed:

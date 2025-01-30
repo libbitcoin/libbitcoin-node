@@ -908,17 +908,7 @@ options_metadata parser::load_settings() THROWS
     (
         "node.priority_validation",
         value<bool>(&configured.node.priority_validation),
-        "Set the validation threadpool to high priority, defaults to false."
-    )
-    (
-        "node.concurrent_validation",
-        value<bool>(&configured.node.concurrent_validation),
-        "Perform validation concurrently with download, defaults to false."
-    )
-    (
-        "node.concurrent_confirmation",
-        value<bool>(&configured.node.concurrent_confirmation),
-        "Perform confirmation concurrently with download, defaults to false."
+        "Set the validation threadpool to high priority, defaults to true."
     )
     (
         "node.headers_first",

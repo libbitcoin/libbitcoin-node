@@ -85,12 +85,10 @@ private:
         size_t fork_point) const NOEXCEPT;
 
     // These are protected by strand.
-    bool mature_{};
     network::threadpool threadpool_;
 
     // These are thread safe.
     network::asio::strand independent_strand_;
-    const bool concurrent_;
     bool prevout_;
 };
 

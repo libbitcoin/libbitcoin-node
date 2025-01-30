@@ -48,7 +48,6 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
-    concurrent_(node.config().node.concurrent_validation),
     filter_(node.archive().neutrino_enabled())
 {
 }
@@ -95,23 +94,14 @@ bool chaser_validate::handle_event(const code&, chase event_,
         case chase::start:
         case chase::bump:
         {
-            if (concurrent_ || mature_)
-            {
-                POST(do_bump, height_t{});
-            }
-
+            POST(do_bump, height_t{});
             break;
         }
         case chase::checked:
         {
             // value is checked block height.
             BC_ASSERT(std::holds_alternative<height_t>(value));
-
-            if (concurrent_ || mature_)
-            {
-                POST(do_checked, std::get<height_t>(value));
-            }
-
+            POST(do_checked, std::get<height_t>(value));
             break;
         }
         case chase::regressed:

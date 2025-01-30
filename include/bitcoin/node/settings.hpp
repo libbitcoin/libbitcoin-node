@@ -74,8 +74,6 @@ public:
     /// Properties.
     bool headers_first;
     bool priority_validation;
-    bool concurrent_validation;
-    bool concurrent_confirmation;
     float allowed_deviation;
     uint16_t allocation_multiple;
     uint64_t snapshot_bytes;

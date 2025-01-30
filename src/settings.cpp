@@ -76,9 +76,7 @@ namespace node {
 
 settings::settings() NOEXCEPT
   : headers_first{ true },
-    priority_validation{ false },
-    concurrent_validation{ false },
-    concurrent_confirmation{ false },
+    priority_validation{ true },
     allowed_deviation{ 1.5 },
     allocation_multiple{ 20 },
     snapshot_bytes{ 200'000'000'000 },

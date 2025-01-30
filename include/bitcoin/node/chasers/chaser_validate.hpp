@@ -75,7 +75,6 @@ private:
     }
 
     // These are protected by strand.
-    bool mature_{};
     size_t backlog_{};
     network::threadpool threadpool_;
 
@@ -84,7 +83,6 @@ private:
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
-    const bool concurrent_;
     const bool filter_;
 };
 
