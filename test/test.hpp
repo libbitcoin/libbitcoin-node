@@ -21,7 +21,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <array>
 #include <iostream>
 #include <vector>
 #include <filesystem>
