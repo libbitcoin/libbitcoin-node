@@ -305,14 +305,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
 
-        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         // Stop the network in case of an unexpected invalidity (debugging).
         // This is considered a bug, not an invalid block arrival (for now).
-        // This usually manifests as accept failure invalid_witness (!checked),
-        // in which case the witness data is simply not present, but bip141 is
-        // active and the output indicates a witness transaction.
-        fault(ec);
-        // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        ////fault(ec);
 
         return;
     }
