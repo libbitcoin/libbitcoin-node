@@ -94,13 +94,13 @@ public:
         return to_aligned(value, align);
     }
 
-    void* malloc(size_t bytes) THROWS override
+    void* malloc_(size_t bytes) THROWS override
     {
         stack.emplace_back(bytes, 0xff_u8);
         return stack.back().data();
     }
 
-    void free(void* address) NOEXCEPT override
+    void free_(void* address) NOEXCEPT override
     {
         freed.push_back(address);
     }
@@ -153,7 +153,7 @@ class accessor_null_malloc
 public:
     using accessor::accessor;
 
-    void* malloc(size_t) THROWS override
+    void* malloc_(size_t) THROWS override
     {
         return nullptr;
     }

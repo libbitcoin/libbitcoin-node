@@ -18,8 +18,6 @@
  */
 #include <bitcoin/node/full_node.hpp>
 
-#include <functional>
-#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>

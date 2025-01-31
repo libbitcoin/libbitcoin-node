@@ -26,7 +26,6 @@
 #include <algorithm>
 #include <exception>
 #include <iterator>
-#include <memory>
 #include <new>
 #include <sstream>
 

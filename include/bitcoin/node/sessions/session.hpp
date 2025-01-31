@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_HPP
 
-#include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>

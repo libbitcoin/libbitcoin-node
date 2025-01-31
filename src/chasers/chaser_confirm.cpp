@@ -18,9 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 
-#include <functional>
 #include <ranges>
-#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>

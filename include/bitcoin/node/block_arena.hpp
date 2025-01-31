@@ -61,7 +61,7 @@ protected:
     }
 
     /// Malloc throws if memory is not allocated.
-    virtual INLINE void* malloc(size_t bytes) THROWS
+    virtual INLINE ALLOCATOR void* malloc_(size_t bytes) THROWS
     {
         BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
         return std::malloc(bytes);
@@ -69,7 +69,7 @@ protected:
     }
 
     /// Free does not throw, behavior is undefined if address is incorrect.
-    virtual INLINE void free(void* address) NOEXCEPT
+    virtual INLINE void free_(void* address) NOEXCEPT
     {
         BC_PUSH_WARNING(NO_MALLOC_OR_FREE)
         std::free(address);

@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/chasers/chaser_storage.hpp>
 
-#include <memory>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>

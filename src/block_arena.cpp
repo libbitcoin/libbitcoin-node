@@ -94,7 +94,7 @@ void block_arena::release(void* address) NOEXCEPT
     while (!is_null(address))
     {
         const auto link = get_link(pointer_cast<uint8_t>(address));
-        free(address);
+        free_(address);
         address = link;
     }
 }
@@ -109,7 +109,7 @@ void block_arena::push(size_t minimum) THROWS
     // Ensure next allocation accomodates link plus current request.
     BC_ASSERT(!is_add_overflow(minimum, link_size));
     size_ = std::max(size_, minimum + link_size);
-    const auto map = pointer_cast<uint8_t>(malloc(size_));
+    const auto map = pointer_cast<uint8_t>(malloc_(size_));
 
     if (is_null(map))
         throw allocation_exception{};
