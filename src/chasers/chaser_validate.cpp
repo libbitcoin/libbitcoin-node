@@ -168,7 +168,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         }
         else if (ec == database::error::block_unconfirmable)
         {
-            complete_block(ec, link, height);
+            complete_block(ec, link, height, true);
             return;
         }
 
@@ -179,7 +179,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
 
         if (bypass && !filter_)
         {
-            complete_block(database::error::success, link, height);
+            complete_block(database::error::success, link, height, true);
         }
         else
         {
@@ -227,7 +227,7 @@ void chaser_validate::validate_block(const header_link& link,
     }
 
     // Return to strand to handle result.
-    POST(tracked_complete_block, ec, link, ctx.height);
+    POST(tracked_complete_block, ec, link, ctx.height, bypass);
 }
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
@@ -279,16 +279,16 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
 // The size of the job is not relevant to the backlog cost.
 void chaser_validate::tracked_complete_block(const code& ec,
-    const header_link& link, size_t height) NOEXCEPT
+    const header_link& link, size_t height, bool bypassed) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     --backlog_;
-    complete_block(ec, link, height);
+    complete_block(ec, link, height, bypassed);
 }
 
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height) NOEXCEPT
+    size_t height, bool bypassed) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -318,8 +318,12 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     }
 
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
-    fire(events::block_validated, height);
-    ////LOGV("Block validated: " << height);
+
+    if (!bypassed)
+    {
+        fire(events::block_validated, height);
+        ////LOGV("Block validated: " << height);
+    }
 
     // Prevent stall by posting internal event, avoid hitting external handlers.
     if (is_zero(backlog_))

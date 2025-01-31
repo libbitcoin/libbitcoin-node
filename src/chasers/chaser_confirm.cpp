@@ -177,6 +177,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     {
         const auto link = query.to_candidate(height);
         auto ec = query.get_block_state(link);
+        auto bypassed = true;
 
         if (ec == database::error::unassociated)
         {
@@ -224,13 +225,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                     return;
                 }
 
-                // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                // Failure here was previously result of bug in hashmap, which
-                // caused both iteration across full prevout table and missing
-                // prevout tx records intermittently in confirmation query.
-                // This would prevent subsequent confirmation progress. This
-                // has been resolved.
-                // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                 notify(ec, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, height);
                 LOGR("Unconfirmable block [" << height << "] " << ec.message());
@@ -249,6 +243,9 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm6);
                 return;
             }
+
+            // Confirmable query executed successfully.
+            bypassed = false;
         }
         else if (ec == database::error::block_confirmable)
         {
@@ -284,8 +281,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         set_position(height);
 
         notify(error::success, chase::confirmable, height);
-        fire(events::block_confirmed, height);
-        ////LOGV("Block confirmed: " << height);
+
+        if (!bypassed)
+        {
+            fire(events::block_confirmed, height);
+            ////LOGV("Block confirmed: " << height);
+        }
     }
 }
 

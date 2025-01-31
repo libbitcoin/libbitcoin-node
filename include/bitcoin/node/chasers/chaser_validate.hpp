@@ -60,9 +60,9 @@ protected:
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
     virtual void tracked_complete_block(const code& ec,
-        const database::header_link& link, size_t height) NOEXCEPT;
+        const database::header_link& link, size_t height, bool bypassed) NOEXCEPT;
     virtual void complete_block(const code& ec,
-        const database::header_link& link, size_t height) NOEXCEPT;
+        const database::header_link& link, size_t height, bool bypassed) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
