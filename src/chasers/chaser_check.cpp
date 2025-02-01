@@ -148,33 +148,6 @@ bool chaser_check::handle_event(const code&, chase event_,
     return true;
 }
 
-void chaser_check::do_confirmable(height_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    confirmed_ = height;
-
-    if (confirmed_ == requested_)
-        do_headers(height_t{});
-}
-
-// regression
-// ----------------------------------------------------------------------------
-
-void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Inconsequential regression, work isn't there yet.
-    if (branch_point >= position())
-        return;
-
-    // Update position, purge outstanding work, and wait on track completion.
-    set_position(branch_point);
-    stop_tracking();
-    maps_.clear();
-    notify(error::success, chase::purge, branch_point);
-}
-
 void chaser_check::start_tracking() NOEXCEPT
 {
     // Called from start.
@@ -211,8 +184,39 @@ void chaser_check::do_handle_purged(const code&) NOEXCEPT
     do_bump(height_t{});
 }
 
+// regression
+// ----------------------------------------------------------------------------
+
+void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Inconsequential regression, work isn't there yet.
+    if (branch_point >= position())
+        return;
+
+    // Update position, purge outstanding work, and wait on track completion.
+    set_position(branch_point);
+    stop_tracking();
+    maps_.clear();
+    notify(error::success, chase::purge, branch_point);
+}
+
 // track downloaded in order (to move download window)
 // ----------------------------------------------------------------------------
+
+void chaser_check::do_confirmable(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Confirmations are ordered, but notification order isn't guaranteed.
+    if (confirmed_ > height)
+        confirmed_ = height;
+
+    // The full set of requested hashes has been confirmed.
+    if (confirmed_ == requested_)
+        do_headers(height_t{});
+}
 
 void chaser_check::do_checked(height_t height) NOEXCEPT
 {
