@@ -86,7 +86,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.puts_rate = 5;
 
     configured.database.spend_buckets = 1'751'471'741;
-    configured.database.spend_size = 16'000'000'000;
+    configured.database.spend_size = 34'000'000'000;
     configured.database.spend_rate = 5;
 
     configured.database.tx_buckets = 688'193'037;
@@ -710,7 +710,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.spend_size",
         value<uint64_t>(&configured.database.spend_size),
-        "The minimum allocation of the spend table body, defaults to '16000000000'."
+        "The minimum allocation of the spend table body, defaults to '34000000000'."
     )
     (
         "database.spend_rate",
