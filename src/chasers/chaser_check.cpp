@@ -209,13 +209,12 @@ void chaser_check::do_confirmable(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Confirmations are ordered, but notification order isn't guaranteed.
-    if (confirmed_ > height)
-        confirmed_ = height;
+    // Confirmations are ordered and notification order is guaranteed.
+    confirmed_ = height;
 
     // The full set of requested hashes has been confirmed.
     if (confirmed_ == requested_)
-        do_headers(height_t{});
+        do_headers(height);
 }
 
 void chaser_check::do_checked(height_t height) NOEXCEPT
@@ -234,14 +233,17 @@ void chaser_check::do_bump(height_t) NOEXCEPT
         return;
 
     const auto& query = archive();
+    auto height = position();
 
     // TODO: query.is_associated() is expensive (hashmap search).
     // Skip checked blocks starting immediately after last checked.
-    while (!closed() && query.is_associated(
-        query.to_candidate(add1(position()))))
-            set_position(add1(position()));
+    while (!closed() &&
+        query.is_associated(query.to_candidate((height = add1(height)))))
+    {
+        set_position(height);
+    }
 
-    do_headers(height_t{});
+    do_headers(sub1(height));
 }
 
 // add headers
