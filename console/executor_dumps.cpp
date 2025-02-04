@@ -92,7 +92,6 @@ void executor::dump_body_sizes() const
         query_.header_body_size() %
         query_.txs_body_size() %
         query_.tx_body_size() %
-        query_.point_body_size() %
         query_.input_body_size() %
         query_.output_body_size() %
         query_.puts_body_size() %
@@ -112,7 +111,6 @@ void executor::dump_records() const
     logger(format(BN_MEASURE_RECORDS) %
         query_.header_records() %
         query_.tx_records() %
-        query_.point_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
         query_.spend_records() %
@@ -127,7 +125,6 @@ void executor::dump_buckets() const
         query_.header_buckets() %
         query_.txs_buckets() %
         query_.tx_buckets() %
-        query_.point_buckets() %
         query_.spend_buckets() %
         query_.prevout_buckets() %
         query_.strong_tx_buckets() %
@@ -144,7 +141,6 @@ void executor::dump_collisions() const
         (to_double(query_.header_records()) / query_.header_buckets()) %
         (to_double(query_.header_records()) / query_.txs_buckets()) %
         (to_double(query_.tx_records()) / query_.tx_buckets()) %
-        (to_double(query_.point_records()) / query_.point_buckets()) %
         (to_double(query_.spend_records()) / query_.spend_buckets()) %
         (to_double(query_.prevout_records()) / query_.prevout_buckets()) %
         (to_double(query_.strong_tx_records()) / query_.strong_tx_buckets()) %
