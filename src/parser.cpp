@@ -82,8 +82,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
-    // Full size too big for mini, so reduced to compressed size.
-    configured.database.point_buckets = 546'188'501;
     configured.database.point_size = 8'389'074'978;
     configured.database.point_rate = 5;
 
@@ -695,11 +693,6 @@ options_metadata parser::load_settings() THROWS
     )
 
     /* point */
-    (
-        "database.point_buckets",
-        value<uint32_t>(&configured.database.point_buckets),
-        "The number of buckets in the point table head, defaults to '546188501'."
-    )
     (
         "database.point_size",
         value<uint64_t>(&configured.database.point_size),

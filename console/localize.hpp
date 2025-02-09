@@ -110,27 +110,25 @@ namespace node {
     "   header    :%1%\n" \
     "   txs       :%2%\n" \
     "   tx        :%3%\n" \
-    "   point     :%4%\n" \
-    "   spend     :%5%\n" \
-    "   prevout   :%6%\n" \
-    "   strong_tx :%7%\n" \
-    "   valid_tx  :%8%\n" \
-    "   valid_bk  :%9%\n" \
-    "   address   :%10%\n" \
-    "   neutrino  :%11%"
+    "   spend     :%4%\n" \
+    "   prevout   :%5%\n" \
+    "   strong_tx :%6%\n" \
+    "   valid_tx  :%7%\n" \
+    "   valid_bk  :%8%\n" \
+    "   address   :%9%\n" \
+    "   neutrino  :%10%"
 #define BN_MEASURE_COLLISION_RATES \
     "Collision rates...\n" \
     "   header    :%1%\n" \
     "   txs       :%2%\n" \
     "   tx        :%3%\n" \
-    "   point     :%4%\n" \
-    "   spend     :%5%\n" \
-    "   prevout   :%6%\n" \
-    "   strong_tx :%7%\n" \
-    "   valid_tx  :%8%\n" \
-    "   valid_bk  :%9%\n" \
-    "   address   :%10%\n" \
-    "   neutrino  :%11%"
+    "   spend     :%4%\n" \
+    "   prevout   :%5%\n" \
+    "   strong_tx :%6%\n" \
+    "   valid_tx  :%7%\n" \
+    "   valid_bk  :%8%\n" \
+    "   address   :%9%\n" \
+    "   neutrino  :%10%"
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \
