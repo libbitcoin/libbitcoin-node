@@ -193,29 +193,6 @@ void executor::scan_buckets() const
     filled = zero;
     bucket = max_size_t;
     start = logger::now();
-    while (!cancel_ && (++bucket < query_.point_buckets()))
-    {
-        const auto top = query_.top_point(bucket);
-        if (!top.is_terminal())
-            ++filled;
-
-        if (is_zero(bucket % tx_frequency))
-            logger(format("point" BN_READ_ROW) % bucket %
-                duration_cast<seconds>(logger::now() - start).count());
-    }
-
-    if (cancel_)
-        logger(BN_OPERATION_CANCELED);
-
-    span = duration_cast<seconds>(logger::now() - start);
-    logger(format("point" BN_READ_ROW) % (to_double(filled) / bucket) %
-        span.count());
-
-    // ------------------------------------------------------------------------
-
-    filled = zero;
-    bucket = max_size_t;
-    start = logger::now();
     while (!cancel_ && (++bucket < query_.spend_buckets()))
     {
         const auto top = query_.top_spend(bucket);
@@ -381,42 +358,6 @@ void executor::scan_collisions() const
     strong_tx.clear();
     strong_tx.shrink_to_fit();
     
-    // point
-    // ------------------------------------------------------------------------
-
-    index = max_size_t;
-    start = logger::now();
-    const auto point_buckets = query_.point_buckets();
-    const auto point_records = query_.point_records();
-    std_vector<size_t> point(point_buckets, empty);
-    while (!cancel_ && (++index < point_records))
-    {
-        const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
-        ++point.at(hash(query_.get_point_key(link.value)) % point_buckets);
-    
-        if (is_zero(index % tx_frequency))
-            logger(format("point" BN_READ_ROW) % index %
-                duration_cast<seconds>(logger::now() - start).count());
-    }
-    
-    if (cancel_)
-        logger(BN_OPERATION_CANCELED);
-    
-    // ........................................................................
-    
-    const auto point_count = count(point);
-    span = duration_cast<seconds>(logger::now() - start);
-    logger(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        index % span.count() % point_buckets % point_count %
-        (to_double(point_count) / point_buckets));
-    
-    for (const auto& entry: dump(point))
-        logger(format("point: %1% frequency: %2%") %
-            entry.first % entry.second);
-    
-    point.clear();
-    point.shrink_to_fit();
-
     // spend
     // ------------------------------------------------------------------------
 
@@ -435,7 +376,7 @@ void executor::scan_collisions() const
             for (const auto& in: inputs)
             {
                 ++total;
-                ++spend.at(hash(query_.to_spend_key(in)) % spend_buckets);
+                ++spend.at(hash(query_.get_spend_key(in)) % spend_buckets);
 
                 if (is_zero(index % put_frequency))
                     logger(format("spend" BN_READ_ROW) % total %
