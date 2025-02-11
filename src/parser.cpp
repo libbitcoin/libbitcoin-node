@@ -88,7 +88,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.puts_size = 6'300'000'000;
     configured.database.puts_rate = 5;
 
-    configured.database.spend_buckets = 1'751'471'741;
+    configured.database.spend_buckets =  1'750'905'073;
     configured.database.spend_size = 10'000'000'000;
     configured.database.spend_rate = 5;
 
@@ -720,7 +720,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.spend_buckets",
         value<uint32_t>(&configured.database.spend_buckets),
-        "The number of buckets in the spend table head, defaults to '1751471741'."
+        "The number of buckets in the spend table head, defaults to '1750905073'."
     )
     (
         "database.spend_size",
