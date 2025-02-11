@@ -372,11 +372,11 @@ void executor::scan_collisions() const
         const auto transactions = query_.to_transactions(link);
         for (const auto& transaction: transactions)
         {
-            const auto inputs = query_.to_spends(transaction);
-            for (const auto& in: inputs)
+            const auto points = query_.to_points(transaction);
+            for (const auto& point: points)
             {
                 ++total;
-                ++spend.at(hash(query_.get_spend_key(in)) % spend_buckets);
+                ++spend.at(hash(query_.to_spend_key(point)) % spend_buckets);
 
                 if (is_zero(index % put_frequency))
                     logger(format("spend" BN_READ_ROW) % total %
