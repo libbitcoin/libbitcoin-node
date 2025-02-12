@@ -85,7 +85,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.point_size = 32'000'000'000;
     configured.database.point_rate = 5;
 
-    configured.database.puts_size = 6'300'000'000;
+    configured.database.puts_size = 3'700'000'000;
     configured.database.puts_rate = 5;
 
     configured.database.spend_buckets =  1'750'905'073;
@@ -93,7 +93,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.spend_rate = 5;
 
     configured.database.tx_buckets = 688'193'037;
-    configured.database.tx_size = 16'150'000'000;
+    configured.database.tx_size = 17'050'000'000;
     configured.database.tx_rate = 5;
 
     configured.database.txs_buckets = 566'667;
@@ -708,7 +708,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.puts_size",
         value<uint64_t>(&configured.database.puts_size),
-        "The minimum allocation of the puts table body, defaults to '6300000000'."
+        "The minimum allocation of the puts table body, defaults to '3700000000'."
     )
     (
         "database.puts_rate",
@@ -742,7 +742,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.tx_size",
         value<uint64_t>(&configured.database.tx_size),
-        "The minimum allocation of the tx table body, defaults to '16150000000'."
+        "The minimum allocation of the tx table body, defaults to '17050000000'."
     )
     (
         "database.tx_rate",
