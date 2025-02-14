@@ -87,8 +87,8 @@ void executor::read_test(bool dump) const
         size_t tx_position;
         hash_digest tx_hash;
 
-        uint32_t sp_tx_fk;
-        hash_digest sp_tx_hash;
+        uint32_t pt_tx_fk;
+        hash_digest pt_tx_hash;
 
         uint64_t input_fk;
         chain::input::cptr input{};
@@ -160,24 +160,24 @@ void executor::read_test(bool dump) const
                 return;
             }
 
-            spend_link sp_fk{};
+            point_link pt_fk{};
             input_link in_fk{};
-            tx_link sp_tx_fk{};
+            tx_link pt_tx_fk{};
 
             // Get first spender only (may or may not be confirmed).
-            const auto spenders = query_.to_spenders(out_fk);
-            if (!spenders.empty())
+            const auto points = query_.to_spenders(out_fk);
+            if (!points.empty())
             {
-                sp_fk = spenders.front();
-                table::spend::record spend{};
-                if (!store_.spend.get(sp_fk, spend))
+                pt_fk = points.front();
+                table::point::record point{};
+                if (!store_.point.get(pt_fk, point))
                 {
-                    // fault, missing spender.
+                    // fault, missing point.
                     return;
                 }
 
-                in_fk = spend.input_fk;
-                sp_tx_fk = spend.parent_fk;
+                in_fk = point.input_fk;
+                pt_tx_fk = point.parent_fk;
             }
 
             ////++found;
@@ -193,11 +193,11 @@ void executor::read_test(bool dump) const
                 txs.position,
                 query_.get_tx_key(tx_fk),
 
-                sp_tx_fk,
-                query_.get_tx_key(sp_tx_fk),
+                pt_tx_fk,
+                query_.get_tx_key(pt_tx_fk),
 
                 in_fk,
-                query_.get_input(sp_fk),
+                query_.get_input(pt_fk),
 
                 out_fk,
                 query_.get_output(out_fk)
@@ -261,8 +261,8 @@ void executor::read_test(bool dump) const
             row.tx_position %
             encode_hash(row.tx_hash) %
 
-            row.sp_tx_fk %
-            encode_hash(row.sp_tx_hash) %
+            row.pt_tx_fk %
+            encode_hash(row.pt_tx_hash) %
 
             row.output_fk %
             output %
