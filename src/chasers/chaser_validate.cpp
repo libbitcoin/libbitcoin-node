@@ -37,8 +37,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Multiple higher priority thread strand (base class strand uses network pool).
-// Higher priority than downloader (net) ensures locality to downloader writes.
+// Independent threadpool and strand (base class strand uses network pool).
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
     threadpool_(node.config().node.threads_(), node.config().node.priority_()),

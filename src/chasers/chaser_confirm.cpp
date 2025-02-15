@@ -36,8 +36,7 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Single higher priority thread strand (base class strand uses network pool).
-// Higher priority than validator ensures locality to validator reads.
+// Independent threadpool and strand (base class strand uses network pool).
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     threadpool_(one, node.config().node.priority_()),
