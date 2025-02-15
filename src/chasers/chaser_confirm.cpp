@@ -231,13 +231,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
 
-            // This is not necessary and may overflow the table link. Faster to
-            // never do it and redo a tiny number of blocks in case of reorg.
-            ////if (!query.set_block_confirmable(link))
-            ////{
-            ////    fault(error::confirm5);
-            ////    return;
-            ////}
+            // Otherwise we will reconfirm entire chain on restart.
+            if (!query.set_block_confirmable(link))
+            {
+                fault(error::confirm5);
+                return;
+            }
 
             // Set after if using prevout table.
             if (prevout_ && !query.set_strong(link))
