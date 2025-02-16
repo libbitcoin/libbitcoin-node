@@ -115,7 +115,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     // database (caches)
 
     configured.database.prevout_buckets = 850'001;
-    configured.database.prevout_size = 2'600'000'000;
+    configured.database.prevout_size = 5'250'000'000;
     configured.database.prevout_rate = 5;
 
     configured.database.validated_tx_buckets = 0;
@@ -817,7 +817,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.prevout_size",
         value<uint64_t>(&configured.database.prevout_size),
-        "The minimum allocation of the prevout table body, defaults to '2600000000'."
+        "The minimum allocation of the prevout table body, defaults to '5250000000'."
     )
     (
         "database.prevout_rate",

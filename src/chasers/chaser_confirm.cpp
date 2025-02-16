@@ -36,13 +36,11 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Single higher priority thread strand (base class strand uses network pool).
-// Higher priority than validator ensures locality to validator reads.
+// Independent threadpool and strand (base class strand uses network pool).
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     threadpool_(one, node.config().node.priority_()),
-    independent_strand_(threadpool_.service().get_executor()),
-    prevout_(node.archive().prevout_enabled())
+    independent_strand_(threadpool_.service().get_executor())
 {
 }
 
@@ -195,13 +193,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else if (ec == database::error::block_valid)
         {
-            // Set before if not using prevout table.
-            if (!prevout_ && !query.set_strong(link))
-            {
-                fault(error::confirm2);
-                return;
-            }
-
             // Confirmation query.
             if ((ec = query.block_confirmable(link)))
             {
@@ -213,7 +204,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 }
 
                 // Unset from set before if not using prevout table.
-                if (!prevout_ && !query.set_unstrong(link))
+                if (!query.set_unstrong(link))
                 {
                     fault(error::confirm3);
                     return;
@@ -231,16 +222,15 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
 
-            // This is not necessary and may overflow the table link. Faster to
-            // never do it and redo a tiny number of blocks in case of reorg.
-            ////if (!query.set_block_confirmable(link))
-            ////{
-            ////    fault(error::confirm5);
-            ////    return;
-            ////}
+            // Otherwise we will reconfirm entire chain on restart.
+            if (!query.set_block_confirmable(link))
+            {
+                fault(error::confirm5);
+                return;
+            }
 
             // Set after if using prevout table.
-            if (prevout_ && !query.set_strong(link))
+            if (!query.set_strong(link))
             {
                 fault(error::confirm6);
                 return;
