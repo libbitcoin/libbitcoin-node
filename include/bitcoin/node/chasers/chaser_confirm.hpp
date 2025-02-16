@@ -89,7 +89,6 @@ private:
 
     // These are thread safe.
     network::asio::strand independent_strand_;
-    bool prevout_;
 };
 
 } // namespace node
