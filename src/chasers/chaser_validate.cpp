@@ -270,11 +270,11 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if ((ec = block.connect(ctx)))
         return ec;
 
-    if (!query.set_prevouts(link, block))
-        return error::validate8;
+    if ((ec = query.set_prevouts(link, block)))
+        return ec;
 
     if (!query.set_block_valid(link, block.fees()))
-        return error::validate9;
+        return error::validate6;
 
     return ec;
 }
