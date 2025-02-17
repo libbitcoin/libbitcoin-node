@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
+#include <atomic>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -182,7 +183,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         }
         else
         {
-            ++backlog_;
+            backlog_.fetch_add(one, std::memory_order_relaxed);
             PARALLEL(validate_block, link, bypass);
         }
 
@@ -225,8 +226,10 @@ void chaser_validate::validate_block(const header_link& link,
         ec = error::validate5;
     }
 
+    backlog_.fetch_sub(one, std::memory_order_relaxed);
+
     // Return to strand to handle result.
-    POST(tracked_complete_block, ec, link, ctx.height, bypass);
+    complete_block(ec, link, ctx.height, bypass);
 }
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
@@ -276,21 +279,10 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     return ec;
 }
 
-// The size of the job is not relevant to the backlog cost.
-void chaser_validate::tracked_complete_block(const code& ec,
-    const header_link& link, size_t height, bool bypassed) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    --backlog_;
-    complete_block(ec, link, height, bypassed);
-}
-
+// Completes off strand.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
     size_t height, bool bypassed) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (ec)
     {
         if (node::error::error_category::contains(ec))
@@ -307,7 +299,6 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         // Stop the network in case of an unexpected invalidity (debugging).
         // This is considered a bug, not an invalid block arrival (for now).
         ////fault(ec);
-
         return;
     }
 
@@ -320,7 +311,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     }
 
     // Prevent stall by posting internal event, avoid hitting external handlers.
-    if (is_zero(backlog_))
+    if (is_zero(backlog_.load(std::memory_order_relaxed)))
         handle_event(ec, chase::bump, height_t{});
 }
 
