@@ -129,10 +129,11 @@ bool chaser_check::handle_event(const code&, chase event_,
             POST(do_headers, std::get<height_t>(value));
             break;
         }
-        case chase::confirmable:
+        ////case chase::confirmable:
+        case chase::valid:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_confirmable, std::get<height_t>(value));
+            POST(do_advanced, std::get<height_t>(value));
             break;
         }
         case chase::stop:
@@ -205,15 +206,15 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 // track downloaded in order (to move download window)
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_confirmable(height_t height) NOEXCEPT
+void chaser_check::do_advanced(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     // Confirmations are ordered and notification order is guaranteed.
-    confirmed_ = height;
+    advanced_ = height;
 
     // The full set of requested hashes has been confirmed.
-    if (confirmed_ == requested_)
+    if (advanced_ == requested_)
         do_headers(height);
 }
 
@@ -345,8 +346,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
         return {};
 
     // Defer new work issuance until gaps filled and confirmation caught up.
-    if (position() < requested_ ||
-        confirmed_ < requested_)
+    if (position() < requested_ || advanced_ < requested_)
         return {};
 
     // Inventory size gets set only once.

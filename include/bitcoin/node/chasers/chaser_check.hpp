@@ -61,13 +61,13 @@ protected:
 
     virtual void do_bump(height_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
+    virtual void do_advanced(height_t height) NOEXCEPT;
     virtual void do_headers(height_t branch_point) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_handle_purged(const code& ec) NOEXCEPT;
     virtual void do_get_hashes(const map_handler& handler) NOEXCEPT;
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
-    virtual void do_confirmable(height_t height) NOEXCEPT;
 
 private:
     typedef std::deque<map_ptr> maps;
@@ -89,7 +89,7 @@ private:
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
-    size_t confirmed_{};
+    size_t advanced_{};
     job::ptr job_{};
     maps maps_{};
 };

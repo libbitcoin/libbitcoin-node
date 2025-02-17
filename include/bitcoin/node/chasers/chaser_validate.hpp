@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 
+#include <atomic>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -59,8 +60,6 @@ protected:
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual void tracked_complete_block(const code& ec,
-        const database::header_link& link, size_t height, bool bypassed) NOEXCEPT;
     virtual void complete_block(const code& ec,
         const database::header_link& link, size_t height, bool bypassed) NOEXCEPT;
 
@@ -74,11 +73,11 @@ private:
         return backlog_ < maximum_backlog_;
     }
 
-    // These are protected by strand.
-    size_t backlog_{};
+    // This is protected by strand.
     network::threadpool threadpool_;
 
     // These are thread safe.
+    std::atomic<size_t> backlog_{};
     network::asio::strand independent_strand_;
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
