@@ -172,6 +172,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
             return;
         }
 
+        // block_unknown allowed here (debug reset).
         const auto bypass =
             (ec == database::error::block_valid) ||
             (ec == database::error::block_confirmable) ||
