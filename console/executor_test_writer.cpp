@@ -46,6 +46,20 @@ void executor::write_test(bool)
 
 #if defined(UNDEFINED)
 
+void executor::write_test(bool)
+{
+    for (database::header_link link{ 793'008_u32 }; link < 885'000_u32; ++link)
+    {
+        if (!query_.set_block_unknown(link))
+        {
+            logger(format("set_block_unknown fault [%1%].") % link.value);
+            return;
+        }
+    }
+
+    logger(format("set_block_unknown complete."));
+}
+
 void executor::write_test()
 {
     code ec{};
