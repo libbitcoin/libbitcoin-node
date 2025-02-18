@@ -71,7 +71,7 @@ code chaser_header::duplicate(size_t& height,
         // database::error::block_unconfirmable
         // database::error::block_confirmable
         // database::error::block_valid
-        // database::error::unknown_state
+        // database::error::unknown_state (debugging)
         // database::error::unvalidated
         const auto ec = query.get_header_state(id);
 
