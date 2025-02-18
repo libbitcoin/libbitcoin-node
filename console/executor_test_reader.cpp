@@ -169,15 +169,15 @@ void executor::read_test(bool dump) const
             if (!points.empty())
             {
                 pt_fk = points.front();
-                table::point::record point{};
-                if (!store_.point.get(pt_fk, point))
+                table::ins::record ins{};
+                if (!store_.ins.get(pt_fk, ins))
                 {
-                    // fault, missing point.
+                    // fault, missing ins.
                     return;
                 }
 
-                in_fk = point.input_fk;
-                pt_tx_fk = point.parent_fk;
+                in_fk = ins.input_fk;
+                pt_tx_fk = ins.parent_fk;
             }
 
             ////++found;
