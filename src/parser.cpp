@@ -82,8 +82,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
-    configured.database.point_size = 32'000'000'000;
+    configured.database.point_size = 21'100'000'000;
     configured.database.point_rate = 5;
+
+    configured.database.ins_size = 10'500'000'000;
+    configured.database.ins_rate = 5;
 
     configured.database.puts_size = 3'700'000'000;
     configured.database.puts_rate = 5;
@@ -696,12 +699,24 @@ options_metadata parser::load_settings() THROWS
     (
         "database.point_size",
         value<uint64_t>(&configured.database.point_size),
-        "The minimum allocation of the point table body, defaults to '32000000000'."
+        "The minimum allocation of the point table body, defaults to '21100000000'."
     )
     (
         "database.point_rate",
         value<uint16_t>(&configured.database.point_rate),
         "The percentage expansion of the point table body, defaults to '5'."
+    )
+
+    /* ins */
+    (
+        "database.ins_size",
+        value<uint64_t>(&configured.database.ins_size),
+        "The minimum allocation of the point table body, defaults to '10500000000'."
+    )
+    (
+        "database.ins_rate",
+        value<uint16_t>(&configured.database.ins_rate),
+        "The percentage expansion of the ins table body, defaults to '5'."
     )
 
     /* puts */
