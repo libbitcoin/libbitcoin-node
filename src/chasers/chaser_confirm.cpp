@@ -264,11 +264,11 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-////if (!set_organized(link, height))
-////{
-////    fault(error::confirm10);
-////    return;
-////}
+        if (!set_organized(link, height))
+        {
+            fault(error::confirm10);
+            return;
+        }
 
         set_position(height);
 
