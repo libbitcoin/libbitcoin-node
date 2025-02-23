@@ -73,7 +73,7 @@ code chaser_check::start() NOEXCEPT
 {
     start_tracking();
     set_position(archive().get_fork());
-    requested_ = position();
+    requested_ = advanced_ = position();
     const auto added = set_unassociated();
     LOGN("Fork point (" << requested_ << ") unassociated (" << added << ").");
 
