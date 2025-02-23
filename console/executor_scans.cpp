@@ -193,14 +193,14 @@ void executor::scan_buckets() const
     filled = zero;
     bucket = max_size_t;
     start = logger::now();
-    while (!cancel_ && (++bucket < query_.spend_buckets()))
+    while (!cancel_ && (++bucket < query_.point_buckets()))
     {
-        const auto top = query_.top_spend(bucket);
+        const auto top = query_.top_point(bucket);
         if (!top.is_terminal())
             ++filled;
 
         if (is_zero(bucket % put_frequency))
-            logger(format("spend" BN_READ_ROW) % bucket %
+            logger(format("point" BN_READ_ROW) % bucket %
                 duration_cast<seconds>(logger::now() - start).count());
     }
 
@@ -208,7 +208,7 @@ void executor::scan_buckets() const
         logger(BN_OPERATION_CANCELED);
 
     span = duration_cast<seconds>(logger::now() - start);
-    logger(format("spend" BN_READ_ROW) % (to_double(filled) / bucket) %
+    logger(format("point" BN_READ_ROW) % (to_double(filled) / bucket) %
         span.count());
 }
 
@@ -358,13 +358,13 @@ void executor::scan_collisions() const
     strong_tx.clear();
     strong_tx.shrink_to_fit();
     
-    // spend
+    // point
     // ------------------------------------------------------------------------
 
     auto total = zero;
     index = max_size_t;
     start = logger::now();
-    const auto spend_buckets = query_.spend_buckets();
+    const auto spend_buckets = query_.point_buckets();
     std_vector<size_t> spend(spend_buckets, empty);
     while (!cancel_ && (++index < query_.header_records()))
     {
@@ -376,7 +376,7 @@ void executor::scan_collisions() const
             for (const auto& point: points)
             {
                 ++total;
-                ++spend.at(hash(query_.to_spend_key(point)) % spend_buckets);
+                ++spend.at(hash(query_.get_point_key(point)) % spend_buckets);
 
                 if (is_zero(index % put_frequency))
                     logger(format("spend" BN_READ_ROW) % total %

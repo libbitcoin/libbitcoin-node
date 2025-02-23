@@ -79,13 +79,12 @@ namespace node {
     "   puts      :%7%\n" \
     "   candidate :%8%\n" \
     "   confirmed :%9%\n" \
-    "   spend     :%10%\n" \
-    "   prevout   :%11%\n" \
-    "   strong_tx :%12%\n" \
-    "   valid_tx  :%13%\n" \
-    "   valid_bk  :%14%\n" \
-    "   address   :%15%\n" \
-    "   neutrino  :%16%"
+    "   prevout   :%10%\n" \
+    "   strong_tx :%11%\n" \
+    "   valid_tx  :%12%\n" \
+    "   valid_bk  :%13%\n" \
+    "   address   :%14%\n" \
+    "   neutrino  :%15%"
 #define BN_MEASURE_RECORDS \
     "Table records...\n" \
     "   header    :%1%\n" \
@@ -93,10 +92,9 @@ namespace node {
     "   point     :%3%\n" \
     "   candidate :%4%\n" \
     "   confirmed :%5%\n" \
-    "   spend     :%6%\n" \
-    "   prevout   :%7%\n" \
-    "   strong_tx :%8%\n" \
-    "   address   :%9%"
+    "   prevout   :%6%\n" \
+    "   strong_tx :%7%\n" \
+    "   address   :%8%"
 #define BN_MEASURE_SLABS \
     "Table slabs..."
 #define BN_MEASURE_SLABS_ROW \
@@ -110,7 +108,7 @@ namespace node {
     "   header    :%1%\n" \
     "   txs       :%2%\n" \
     "   tx        :%3%\n" \
-    "   spend     :%4%\n" \
+    "   point     :%4%\n" \
     "   prevout   :%5%\n" \
     "   strong_tx :%6%\n" \
     "   valid_tx  :%7%\n" \
@@ -122,7 +120,7 @@ namespace node {
     "   header    :%1%\n" \
     "   txs       :%2%\n" \
     "   tx        :%3%\n" \
-    "   spend     :%4%\n" \
+    "   point     :%4%\n" \
     "   prevout   :%5%\n" \
     "   strong_tx :%6%\n" \
     "   valid_tx  :%7%\n" \
