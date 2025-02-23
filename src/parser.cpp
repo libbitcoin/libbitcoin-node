@@ -82,6 +82,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
+    configured.database.point_buckets = 1'750'905'073;
     configured.database.point_size = 21'100'000'000;
     configured.database.point_rate = 5;
 
@@ -90,10 +91,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     configured.database.puts_size = 3'700'000'000;
     configured.database.puts_rate = 5;
-
-    configured.database.spend_buckets =  1'750'905'073;
-    configured.database.spend_size = 10'000'000'000;
-    configured.database.spend_rate = 5;
 
     configured.database.tx_buckets = 688'193'037;
     configured.database.tx_size = 17'050'000'000;
@@ -697,6 +694,11 @@ options_metadata parser::load_settings() THROWS
 
     /* point */
     (
+        "database.point_buckets",
+        value<uint32_t>(&configured.database.point_buckets),
+        "The number of buckets in the spend table head, defaults to '1750905073'."
+    )
+    (
         "database.point_size",
         value<uint64_t>(&configured.database.point_size),
         "The minimum allocation of the point table body, defaults to '21100000000'."
@@ -729,23 +731,6 @@ options_metadata parser::load_settings() THROWS
         "database.puts_rate",
         value<uint16_t>(&configured.database.puts_rate),
         "The percentage expansion of the puts table body, defaults to '5'."
-    )
-
-    /* spend */
-    (
-        "database.spend_buckets",
-        value<uint32_t>(&configured.database.spend_buckets),
-        "The number of buckets in the spend table head, defaults to '1750905073'."
-    )
-    (
-        "database.spend_size",
-        value<uint64_t>(&configured.database.spend_size),
-        "The minimum allocation of the spend table body, defaults to '10000000000'."
-    )
-    (
-        "database.spend_rate",
-        value<uint16_t>(&configured.database.spend_rate),
-        "The percentage expansion of the spend table body, defaults to '5'."
     )
 
     /* tx */
