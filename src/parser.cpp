@@ -76,24 +76,24 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.header_size = 21'000'000;
     configured.database.header_rate = 5;
 
-    configured.database.input_size = 93'050'000'000;
+    configured.database.input_size = 92'500'000'000;
     configured.database.input_rate = 5;
 
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
     configured.database.point_bits = 31;
-    configured.database.point_size = 21'100'000'000;
+    configured.database.point_size = 25'700'000'000;
     configured.database.point_rate = 5;
 
-    configured.database.ins_size = 10'500'000'000;
+    configured.database.ins_size = 8'550'000'000;
     configured.database.ins_rate = 5;
 
     configured.database.puts_size = 3'700'000'000;
     configured.database.puts_rate = 5;
 
     configured.database.tx_bits = 30;
-    configured.database.tx_size = 17'050'000'000;
+    configured.database.tx_size = 17'000'000'000;
     configured.database.tx_rate = 5;
 
     configured.database.txs_bits = 20;
@@ -672,7 +672,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.input_size",
         value<uint64_t>(&configured.database.input_size),
-        "The minimum allocation of the input table body, defaults to '93050000000'."
+        "The minimum allocation of the input table body, defaults to '92500000000'."
     )
     (
         "database.input_rate",
@@ -701,7 +701,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.point_size",
         value<uint64_t>(&configured.database.point_size),
-        "The minimum allocation of the point table body, defaults to '21100000000'."
+        "The minimum allocation of the point table body, defaults to '25700000000'."
     )
     (
         "database.point_rate",
@@ -713,7 +713,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.ins_size",
         value<uint64_t>(&configured.database.ins_size),
-        "The minimum allocation of the point table body, defaults to '10500000000'."
+        "The minimum allocation of the point table body, defaults to '8550000000'."
     )
     (
         "database.ins_rate",
@@ -742,7 +742,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.tx_size",
         value<uint64_t>(&configured.database.tx_size),
-        "The minimum allocation of the tx table body, defaults to '17050000000'."
+        "The minimum allocation of the tx table body, defaults to '17000000000'."
     )
     (
         "database.tx_rate",

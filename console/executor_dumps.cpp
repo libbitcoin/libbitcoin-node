@@ -95,6 +95,7 @@ void executor::dump_body_sizes() const
         query_.point_body_size() %
         query_.input_body_size() %
         query_.output_body_size() %
+        query_.ins_body_size() %
         query_.puts_body_size() %
         query_.candidate_body_size() %
         query_.confirmed_body_size() %
@@ -112,6 +113,8 @@ void executor::dump_records() const
         query_.header_records() %
         query_.tx_records() %
         query_.point_records() %
+        query_.ins_records() %
+        query_.puts_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
         query_.prevout_records() %
