@@ -89,8 +89,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.ins_size = 8'550'000'000;
     configured.database.ins_rate = 5;
 
-    configured.database.puts_size = 3'700'000'000;
-    configured.database.puts_rate = 5;
+    configured.database.outs_size = 3'700'000'000;
+    configured.database.outs_rate = 5;
 
     configured.database.tx_bits = 30;
     configured.database.tx_size = 17'000'000'000;
@@ -721,15 +721,15 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the ins table body, defaults to '5'."
     )
 
-    /* puts */
+    /* outs */
     (
-        "database.puts_size",
-        value<uint64_t>(&configured.database.puts_size),
+        "database.outs_size",
+        value<uint64_t>(&configured.database.outs_size),
         "The minimum allocation of the puts table body, defaults to '3700000000'."
     )
     (
-        "database.puts_rate",
-        value<uint16_t>(&configured.database.puts_rate),
+        "database.outs_rate",
+        value<uint16_t>(&configured.database.outs_rate),
         "The percentage expansion of the puts table body, defaults to '5'."
     )
 
