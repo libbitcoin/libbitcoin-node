@@ -281,8 +281,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Preconditions.
     // ........................................................................
 
-    // Intentional pointer copy.
-    const auto block = message->block_ptr;
+    // message lifetime is guaranteed, and therefore block_ptr is as well.
+    const auto& block = message->block_ptr;
     const auto& hash = block->get_hash();
     const auto it = map_->find(hash);
     auto& query = archive();
@@ -353,11 +353,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return false;
     }
 
-    // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // This is an attempt to keep the shared pointer in scope.
-    // Given that block is const this could also be reordered prior to check().
-    // But this is not called in this scope, only by message deserialization.
-    // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     if (!block->is_valid())
     {
         stop(fault(error::protocol2));
@@ -372,11 +367,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
-
-    // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    // block->serialized_size may keep block in scope during set_code above.
-    // However the compiler may reorder this calculation since block is const.
-    // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     count(block->serialized_size(true));
     map_->erase(it);
     if (is_idle())
