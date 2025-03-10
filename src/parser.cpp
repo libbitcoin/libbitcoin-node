@@ -71,6 +71,12 @@ parser::parser(system::chain::selection context) NOEXCEPT
         service::node_witness;
 
     // database (archive)
+    // Bits cannot be set to the word boundary (32 or 64) as this
+    // consumes the sentinel into the value domain. The bucket must
+    // be able to hold a sentinel that is larger than the bucket count.
+    // This presents a waste problem in the case of 32, since it will
+    // cause an overflow into 5 byte links and 8 byte buckets. In this
+    // case modulo bucketization will become more efficient.
 
     configured.database.header_bits = 20;
     configured.database.header_size = 21'000'000;
