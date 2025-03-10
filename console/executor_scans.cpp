@@ -241,15 +241,6 @@ void executor::scan_collisions() const
         return map;
     };
 
-    constexpr auto hash = [](const auto& key)
-    {
-        constexpr auto length = array_count<decltype(key)>;
-        constexpr auto size = std::min(length, sizeof(size_t));
-        size_t value{};
-        std::copy_n(key.begin(), size, system::byte_cast(value).begin());
-        return value;
-    };
-
     logger(BN_OPERATION_INTERRUPT);
 
     // header & txs (txs is a proxy for validated_bk)
@@ -264,8 +255,9 @@ void executor::scan_collisions() const
     while (!cancel_ && (++index < header_records))
     {
         const header_link link{ possible_narrow_cast<hint>(index) };
-        ++header.at(hash(query_.get_header_key(link.value)) % header_buckets);
-        ++txs.at(hash((header_link::bytes)link) % header_buckets);
+        const auto key = query_.get_header_key(link.value);
+        ++header.at(std::hash<hash_digest>{}(key) % header_buckets);
+        ++txs.at(std::hash<header_link::bytes>{}(link) % header_buckets);
 
         if (is_zero(index % block_frequency))
             logger(format("header/txs" BN_READ_ROW) % index %
@@ -317,8 +309,9 @@ void executor::scan_collisions() const
     while (!cancel_ && (++index < tx_records))
     {
         const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
-        ++tx.at(hash(query_.get_tx_key(link.value)) % tx_buckets);
-        ++strong_tx.at(hash((tx_link::bytes)link) % tx_buckets);
+        const auto key = query_.get_tx_key(link.value);
+        ++tx.at(std::hash<hash_digest>{}(key) % tx_buckets);
+        ++strong_tx.at(std::hash<tx_link::bytes>{}(link) % tx_buckets);
     
         if (is_zero(index % tx_frequency))
             logger(format("tx & strong_tx" BN_READ_ROW) % index %
@@ -375,8 +368,9 @@ void executor::scan_collisions() const
             const auto points = query_.to_points(transaction);
             for (const auto& point: points)
             {
+                const auto key = query_.get_point(point);
+                ++spend.at(std::hash<chain::point>{}(key) % point_buckets);
                 ++total;
-                ++spend.at(hash(query_.get_point_key(point)) % point_buckets);
 
                 if (is_zero(total % put_frequency))
                     logger(format("point" BN_READ_ROW) % total %
