@@ -364,8 +364,8 @@ void executor::scan_collisions() const
     auto total = zero;
     index = max_size_t;
     start = logger::now();
-    const auto spend_buckets = query_.point_buckets();
-    std_vector<size_t> spend(spend_buckets, empty);
+    const auto point_buckets = query_.point_buckets();
+    std_vector<size_t> spend(point_buckets, empty);
     while (!cancel_ && (++index < query_.header_records()))
     {
         const header_link link{ possible_narrow_cast<hint>(index) };
@@ -376,10 +376,10 @@ void executor::scan_collisions() const
             for (const auto& point: points)
             {
                 ++total;
-                ++spend.at(hash(query_.get_point_key(point)) % spend_buckets);
+                ++spend.at(hash(query_.get_point_key(point)) % point_buckets);
 
-                if (is_zero(index % put_frequency))
-                    logger(format("spend" BN_READ_ROW) % total %
+                if (is_zero(total % put_frequency))
+                    logger(format("point" BN_READ_ROW) % total %
                         duration_cast<seconds>(logger::now() - start).count());
             }
         }
@@ -390,18 +390,18 @@ void executor::scan_collisions() const
 
     // ........................................................................
 
-    const auto spend_count = count(spend);
+    const auto point_count = count(spend);
     span = duration_cast<seconds>(logger::now() - start);
-    logger(format("spend: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        total % span.count() % spend_buckets % spend_count %
-        (to_double(spend_count) / spend_buckets));
+    logger(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
+        total % span.count() % point_buckets % point_count %
+        (to_double(point_count) / point_buckets));
 
     for (const auto& entry: dump(spend))
-        logger(format("spend: %1% frequency: %2%") %
+        logger(format("point: %1% frequency: %2%") %
             entry.first % entry.second);
 
-    spend.clear();
-    spend.shrink_to_fit();
+    ////point.clear();
+    ////point.shrink_to_fit();
 }
 
 } // namespace node
