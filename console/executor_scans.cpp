@@ -256,8 +256,10 @@ void executor::scan_collisions() const
     {
         const header_link link{ possible_narrow_cast<hint>(index) };
         const auto key = query_.get_header_key(link.value);
-        ++header.at(std::hash<hash_digest>{}(key) % header_buckets);
-        ++txs.at(std::hash<header_link::bytes>{}(link) % header_buckets);
+        ++header.at(database::keys::hash(key) % header_buckets);
+        ++txs.at(database::keys::hash(
+            link.operator data_array<header_link::size>()) %
+            header_buckets);
 
         if (is_zero(index % block_frequency))
             logger(format("header/txs" BN_READ_ROW) % index %
@@ -310,8 +312,9 @@ void executor::scan_collisions() const
     {
         const tx_link link{ possible_narrow_cast<tx_link::integer>(index) };
         const auto key = query_.get_tx_key(link.value);
-        ++tx.at(std::hash<hash_digest>{}(key) % tx_buckets);
-        ++strong_tx.at(std::hash<tx_link::bytes>{}(link) % tx_buckets);
+        ++tx.at(database::keys::hash(key) % tx_buckets);
+        ++strong_tx.at(database::keys::hash(
+            link.operator data_array<tx_link::size>()) % tx_buckets);
     
         if (is_zero(index % tx_frequency))
             logger(format("tx & strong_tx" BN_READ_ROW) % index %
@@ -369,7 +372,7 @@ void executor::scan_collisions() const
             for (const auto& point: points)
             {
                 const auto key = query_.get_point(point);
-                ++spend.at(std::hash<chain::point>{}(key) % point_buckets);
+                ++spend.at(database::keys::hash(key) % point_buckets);
                 ++total;
 
                 if (is_zero(total % put_frequency))
