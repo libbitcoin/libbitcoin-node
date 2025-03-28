@@ -366,7 +366,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         << "] from [" << authority() << "].");
 
     notify(ec, chase::checked, height);
-    fire(events::block_archived, height);
+    ////fire(events::block_archived, height);
+    fire(events::block_archived, archive().positive_search_count());
     count(block->serialized_size(true));
     map_->erase(it);
     if (is_idle())
