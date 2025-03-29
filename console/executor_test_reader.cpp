@@ -40,6 +40,14 @@ using namespace std::chrono;
 using namespace std::placeholders;
 
 // arbitrary testing (const).
+void executor::read_test(bool) const
+{
+    logger(format("Point table body searches: %1% / (%2% + %1%)") %
+        store_.point.positive_search_count() %
+        store_.point.negative_search_count());
+}
+
+#if defined(UNDEFINED)
 
 void executor::read_test(bool dump) const
 {
@@ -271,8 +279,6 @@ void executor::read_test(bool dump) const
             input);
     }
 }
-
-#if defined(UNDEFINED)
 
 void executor::read_test(bool) const
 {
