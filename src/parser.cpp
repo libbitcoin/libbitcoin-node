@@ -71,14 +71,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
         service::node_witness;
 
     // database (archive)
-    // Bits cannot be set to the word boundary (32 or 64) as this
-    // consumes the sentinel into the value domain. The bucket must
-    // be able to hold a sentinel that is larger than the bucket count.
-    // This presents a waste problem in the case of 32, since it will
-    // cause an overflow into 5 byte links and 8 byte buckets. In this
-    // case modulo bucketization will become more efficient.
 
-    configured.database.header_bits = 20;
+    configured.database.header_buckets = power2(20u);
     configured.database.header_size = 21'000'000;
     configured.database.header_rate = 5;
 
@@ -88,7 +82,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
-    configured.database.point_bits = 31;
+    configured.database.point_buckets = power2(31u);
     configured.database.point_size = 25'700'000'000;
     configured.database.point_rate = 5;
 
@@ -98,11 +92,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.outs_size = 3'700'000'000;
     configured.database.outs_rate = 5;
 
-    configured.database.tx_bits = 30;
+    configured.database.tx_buckets = power2(30u);
     configured.database.tx_size = 17'000'000'000;
     configured.database.tx_rate = 5;
 
-    configured.database.txs_bits = 20;
+    configured.database.txs_buckets = power2(20u);
     configured.database.txs_size = 1'050'000'000;
     configured.database.txs_rate = 5;
 
@@ -114,7 +108,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.confirmed_size = 2'575'500;
     configured.database.confirmed_rate = 5;
 
-    configured.database.strong_tx_bits = 30;
+    configured.database.strong_tx_buckets = power2(30u);
     configured.database.strong_tx_size = 3'150'000'000;
     configured.database.strong_tx_rate = 5;
 
@@ -124,21 +118,21 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.prevout_size = 5'250'000'000;
     configured.database.prevout_rate = 5;
 
-    configured.database.validated_tx_bits = 0;
+    configured.database.validated_tx_buckets = power2(0u);
     configured.database.validated_tx_size = 1;
     configured.database.validated_tx_rate = 5;
 
-    configured.database.validated_bk_bits = 21;
+    configured.database.validated_bk_buckets = power2(21u);
     configured.database.validated_bk_size = 3'400'000;
     configured.database.validated_bk_rate = 5;
 
     // database (optionals)
 
-    configured.database.address_bits = 0;
+    configured.database.address_buckets = power2(0u);
     configured.database.address_size = 1;
     configured.database.address_rate = 5;
 
-    configured.database.neutrino_bits = 0;
+    configured.database.neutrino_buckets = power2(0u);
     configured.database.neutrino_size = 1;
     configured.database.neutrino_rate = 5;
 }
@@ -659,9 +653,9 @@ options_metadata parser::load_settings() THROWS
 
     /* header */
     (
-        "database.header_bits",
-        value<uint32_t>(&configured.database.header_bits),
-        "The log2 number of buckets in the header table head, defaults to '20'."
+        "database.header_buckets",
+        value<uint32_t>(&configured.database.header_buckets),
+        "The log2 number of buckets in the header table head, defaults to '2^20'."
     )
     (
         "database.header_size",
@@ -700,9 +694,9 @@ options_metadata parser::load_settings() THROWS
 
     /* point */
     (
-        "database.point_bits",
-        value<uint32_t>(&configured.database.point_bits),
-        "The log2 number of buckets in the spend table head, defaults to '31'."
+        "database.point_buckets",
+        value<uint32_t>(&configured.database.point_buckets),
+        "The log2 number of buckets in the spend table head, defaults to '2^31'."
     )
     (
         "database.point_size",
@@ -741,9 +735,9 @@ options_metadata parser::load_settings() THROWS
 
     /* tx */
     (
-        "database.tx_bits",
-        value<uint32_t>(&configured.database.tx_bits),
-        "The log2 number of buckets in the tx table head, defaults to '30'."
+        "database.tx_buckets",
+        value<uint32_t>(&configured.database.tx_buckets),
+        "The log2 number of buckets in the tx table head, defaults to '2^30'."
     )
     (
         "database.tx_size",
@@ -758,9 +752,9 @@ options_metadata parser::load_settings() THROWS
 
     /* txs */
     (
-        "database.txs_bits",
-        value<uint32_t>(&configured.database.txs_bits),
-        "The log2 number of buckets in the txs table head, defaults to '20'."
+        "database.txs_buckets",
+        value<uint32_t>(&configured.database.txs_buckets),
+        "The log2 number of buckets in the txs table head, defaults to '2^20'."
     )
     (
         "database.txs_size",
@@ -799,9 +793,9 @@ options_metadata parser::load_settings() THROWS
 
     /* strong_tx */
     (
-        "database.strong_tx_bits",
-        value<uint32_t>(&configured.database.strong_tx_bits),
-        "The log2 number of buckets in the strong_tx table head, defaults to '30'."
+        "database.strong_tx_buckets",
+        value<uint32_t>(&configured.database.strong_tx_buckets),
+        "The log2 number of buckets in the strong_tx table head, defaults to '2^30'."
     )
     (
         "database.strong_tx_size",
@@ -833,9 +827,9 @@ options_metadata parser::load_settings() THROWS
 
     /* validated_tx */
     (
-        "database.validated_tx_bits",
-        value<uint32_t>(&configured.database.validated_tx_bits),
-        "The number of buckets in the validated_tx table head, defaults to '0' (0 disables)."
+        "database.validated_tx_buckets",
+        value<uint32_t>(&configured.database.validated_tx_buckets),
+        "The number of buckets in the validated_tx table head, defaults to '1' (0|1 disables)."
     )
     (
         "database.validated_tx_size",
@@ -850,9 +844,9 @@ options_metadata parser::load_settings() THROWS
 
     /* validated_bk */
     (
-        "database.validated_bk_bits",
-        value<uint32_t>(&configured.database.validated_bk_bits),
-        "The log2 number of buckets in the validated_bk table head, defaults to '21'."
+        "database.validated_bk_buckets",
+        value<uint32_t>(&configured.database.validated_bk_buckets),
+        "The log2 number of buckets in the validated_bk table head, defaults to '2^21'."
     )
     (
         "database.validated_bk_size",
@@ -867,9 +861,9 @@ options_metadata parser::load_settings() THROWS
 
     /* address */
     (
-        "database.address_bits",
-        value<uint32_t>(&configured.database.address_bits),
-        "The log2 number of buckets in the address table head, defaults to '0' (0 disables)."
+        "database.address_buckets",
+        value<uint32_t>(&configured.database.address_buckets),
+        "The log2 number of buckets in the address table head, defaults to '1' (0|1 disables)."
     )
     (
         "database.address_size",
@@ -884,9 +878,9 @@ options_metadata parser::load_settings() THROWS
 
     /* neutrino */
     (
-        "database.neutrino_bits",
-        value<uint32_t>(&configured.database.neutrino_bits),
-        "The log2 number of buckets in the neutrino table head, defaults to '0' (0 disables)."
+        "database.neutrino_buckets",
+        value<uint32_t>(&configured.database.neutrino_buckets),
+        "The log2 number of buckets in the neutrino table head, defaults to '1' (0|1 disables)."
     )
     (
         "database.neutrino_size",
