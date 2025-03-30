@@ -274,11 +274,11 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if ((ec = block.connect(ctx)))
         return ec;
 
-    if ((ec = query.set_prevouts(link, block)))
-        return ec;
+    if (!query.set_prevouts(link, block))
+        return error::validate6;
 
     if (!query.set_block_valid(link, block.fees()))
-        return error::validate6;
+        return error::validate7;
 
     return ec;
 }
@@ -289,6 +289,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 {
     if (ec)
     {
+        // Node errors are fatal.
         if (node::error::error_category::contains(ec))
         {
             LOGR("Validate fault [" << height << "] " << ec.message());
