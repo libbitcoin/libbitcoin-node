@@ -238,18 +238,21 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 {
     const auto& query = archive();
 
-    // Relative locktime check is unnecessary under bypass, but cheap.
-    if (!block.populate(ctx))
-        return system::error::relative_time_locked;
-
     if (bypass)
     {
+        block.populate();
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
     }
     else
     {
-        if (!query.populate(block))
+        // Internal maturity and time locks are verified here because they are
+        // the only necessary confirmation checks for internal spends.
+        if (const auto ec = block.populate_with_metadata(ctx))
+            return ec;
+
+        // Metadata identifies internal spends alowing confirmation bypass.
+        if (!query.populate_with_metadata(block))
             return system::error::missing_previous_output;
     }
     
