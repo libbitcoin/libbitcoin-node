@@ -68,8 +68,7 @@ protected:
 
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
-    bool populate(const system::chain::block& block,
-        const system::chain::context& ctx) const NOEXCEPT;
+    bool populate(const system::chain::block& block) const NOEXCEPT;
 };
 
 } // namespace node

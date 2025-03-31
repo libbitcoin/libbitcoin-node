@@ -117,12 +117,11 @@ code chaser_block::validate(const block& block,
             return ec;
     }
 
-    // Populate prevouts from self/tree (metadata not required).
-    if (!populate(block, ctx))
-        return system::error::relative_time_locked;
+    // Populate prevouts from self/tree (no metadata for accept/connect).
+    populate(block);
 
-    // Populate prevouts from store (metadata not required).
-    if (!archive().populate(block))
+    // Populate prevouts from store (no metadata for accept/connect).
+    if (!archive().populate_without_metadata(block))
         return network::error::protocol_violation;
 
     if ((ec = block.accept(ctx,
@@ -156,6 +155,8 @@ void chaser_block::update_milestone(const header&, size_t, size_t) NOEXCEPT
 void chaser_block::set_prevout(const input& input) const NOEXCEPT
 {
     const auto& point = input.point();
+    if (input.prevout || point.is_null())
+        return;
 
     // Scan all tree blocks for matching tx (linear :/ but legacy scenario)
     std::for_each(tree().begin(), tree().end(), [&](const auto& item) NOEXCEPT
@@ -173,6 +174,7 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
             const outputs_cptr outs{ tx->outputs_ptr() };
             if (point.index() < outs->size())
             {
+                // prevout is mutable so can be set on a const object.
                 input.prevout = outs->at(point.index());
                 return;
             }
@@ -180,18 +182,14 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
     });
 }
 
-// metadata is mutable so can be set on a const object.
-bool chaser_block::populate(const block& block,
-    const system::chain::context& ctx) const NOEXCEPT
+bool chaser_block::populate(const block& block) const NOEXCEPT
 {
-    if (!block.populate(ctx))
-        return false;
+    block.populate();
 
-    const inputs_cptr ins{ block.inputs_ptr() };
-    std::for_each(ins->begin(), ins->end(), [&](const auto& in) NOEXCEPT
+    const auto& ins = *block.inputs_ptr();
+    std::for_each(ins.begin(), ins.end(), [&](const auto& in) NOEXCEPT
     {
-        if (!in->prevout && !in->point().is_null())
-            set_prevout(*in);
+        set_prevout(*in);
     });
 
     return true;

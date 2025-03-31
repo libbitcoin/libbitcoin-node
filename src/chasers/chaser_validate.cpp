@@ -238,18 +238,21 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 {
     const auto& query = archive();
 
-    // Relative locktime check is unnecessary under bypass, but cheap.
-    if (!block.populate(ctx))
-        return system::error::relative_time_locked;
-
     if (bypass)
     {
+        block.populate();
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
     }
     else
     {
-        if (!query.populate(block))
+        // Internal maturity and time locks are verified here because they are
+        // the only necessary confirmation checks for internal spends.
+        if (const auto ec = block.populate_with_metadata(ctx))
+            return ec;
+
+        // Metadata identifies internal spends alowing confirmation bypass.
+        if (!query.populate_with_metadata(block))
             return system::error::missing_previous_output;
     }
     
@@ -271,11 +274,11 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if ((ec = block.connect(ctx)))
         return ec;
 
-    if ((ec = query.set_prevouts(link, block)))
-        return ec;
+    if (!query.set_prevouts(link, block))
+        return error::validate6;
 
     if (!query.set_block_valid(link, block.fees()))
-        return error::validate6;
+        return error::validate7;
 
     return ec;
 }
@@ -286,6 +289,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 {
     if (ec)
     {
+        // Node errors are fatal.
         if (node::error::error_category::contains(ec))
         {
             LOGR("Validate fault [" << height << "] " << ec.message());

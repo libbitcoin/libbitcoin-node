@@ -164,7 +164,7 @@ void chaser_confirm::do_validated(height_t height) NOEXCEPT
 
 // TODO: This is simplified single thread variant of full implementation below.
 // This variant doesn't implement the relative work check and instead confirms
-// one block at a time, just like validation.
+// one block at a time, just like validation though sequentially.
 void chaser_confirm::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -229,7 +229,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 return;
             }
 
-            // Set after if using prevout table.
+            // Set after block_confirmable when using the prevout table.
             if (!query.set_strong(link))
             {
                 fault(error::confirm6);
