@@ -366,7 +366,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         << "] from [" << authority() << "].");
 
     notify(ec, chase::checked, height);
-    fire(events::block_archived, height);
+
+    // Troubleshooting: match this by value/10,000 with template_issued value/10,000.
+    ///////////////////////////////////////////////////////////////////////////
+    fire(events::block_archived, (height * 10'000u) + block->segregated());
+    ///////////////////////////////////////////////////////////////////////////
+
     ////fire(events::block_archived, archive().positive_search_count());
     ////fire(events::block_buffered, archive().negative_search_count());
     count(block->serialized_size(true));
