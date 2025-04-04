@@ -114,17 +114,21 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // database (caches)
 
+    configured.database.duplicate_buckets = 10;
+    configured.database.duplicate_size = 44;
+    configured.database.duplicate_rate = 5;
+
     configured.database.prevout_buckets = 850'001;
     configured.database.prevout_size = 5'250'000'000;
     configured.database.prevout_rate = 5;
 
-    configured.database.validated_tx_buckets = 1;
-    configured.database.validated_tx_size = 1;
-    configured.database.validated_tx_rate = 5;
-
     configured.database.validated_bk_buckets = 740'001;
     configured.database.validated_bk_size = 3'400'000;
     configured.database.validated_bk_rate = 5;
+
+    configured.database.validated_tx_buckets = 1;
+    configured.database.validated_tx_size = 1;
+    configured.database.validated_tx_rate = 5;
 
     // database (optionals)
 
@@ -132,9 +136,15 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.address_size = 1;
     configured.database.address_rate = 5;
 
-    configured.database.neutrino_buckets = 1;
-    configured.database.neutrino_size = 1;
-    configured.database.neutrino_rate = 5;
+    // also disabled by filter_tx
+    configured.database.filter_bk_buckets = 0;
+    configured.database.filter_bk_size = 1;
+    configured.database.filter_bk_rate = 5;
+
+    // also disabled by filter_bk
+    configured.database.filter_tx_buckets = 0;
+    configured.database.filter_tx_size = 1;
+    configured.database.filter_tx_rate = 5;
 }
 
 options_metadata parser::load_options() THROWS
@@ -808,6 +818,23 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the strong_tx table body, defaults to '5'."
     )
 
+    /* duplicate */
+    (
+        "database.duplicate_buckets",
+        value<uint16_t>(&configured.database.duplicate_buckets),
+        "The minimum number of buckets in the duplicate table head, defaults to '10'."
+    )
+    (
+        "database.duplicate_size",
+        value<uint64_t>(&configured.database.duplicate_size),
+        "The minimum allocation of the duplicate table body, defaults to '44'."
+    )
+    (
+        "database.duplicate_rate",
+        value<uint16_t>(&configured.database.duplicate_rate),
+        "The percentage expansion of the duplicate table, defaults to '5'."
+    )
+
     /* prevout */
     (
         "database.prevout_buckets",
@@ -822,24 +849,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.prevout_rate",
         value<uint16_t>(&configured.database.prevout_rate),
-        "The percentage expansion of the prevout table and body, defaults to '5'."
-    )
-
-    /* validated_tx */
-    (
-        "database.validated_tx_buckets",
-        value<uint32_t>(&configured.database.validated_tx_buckets),
-        "The number of buckets in the validated_tx table head, defaults to '1' (0|1 disables)."
-    )
-    (
-        "database.validated_tx_size",
-        value<uint64_t>(&configured.database.validated_tx_size),
-        "The minimum allocation of the validated_tx table body, defaults to '1'."
-    )
-    (
-        "database.validated_tx_rate",
-        value<uint16_t>(&configured.database.validated_tx_rate),
-        "The percentage expansion of the validated_tx table body, defaults to '5'."
+        "The percentage expansion of the prevout table, defaults to '5'."
     )
 
     /* validated_bk */
@@ -859,6 +869,23 @@ options_metadata parser::load_settings() THROWS
         "The percentage expansion of the validated_bk table body, defaults to '5'."
     )
 
+    /* validated_tx */
+    (
+        "database.validated_tx_buckets",
+        value<uint32_t>(&configured.database.validated_tx_buckets),
+        "The number of buckets in the validated_tx table head, defaults to '1'."
+    )
+    (
+        "database.validated_tx_size",
+        value<uint64_t>(&configured.database.validated_tx_size),
+        "The minimum allocation of the validated_tx table body, defaults to '1'."
+    )
+    (
+        "database.validated_tx_rate",
+        value<uint16_t>(&configured.database.validated_tx_rate),
+        "The percentage expansion of the validated_tx table body, defaults to '5'."
+    )
+
     /* address */
     (
         "database.address_buckets",
@@ -873,24 +900,41 @@ options_metadata parser::load_settings() THROWS
     (
         "database.address_rate",
         value<uint16_t>(&configured.database.address_rate),
-        "The percentage expansion of the address table body, defaults to '0'."
+        "The percentage expansion of the address table body, defaults to '5'."
     )
 
-    /* neutrino */
+    /* filter_bk */
     (
-        "database.neutrino_buckets",
-        value<uint32_t>(&configured.database.neutrino_buckets),
-        "The log2 number of buckets in the neutrino table head, defaults to '1' (0|1 disables)."
+        "database.filter_bk_buckets",
+        value<uint32_t>(&configured.database.filter_bk_buckets),
+        "The log2 number of buckets in the filter_bk table head, defaults to '0' (0 disables)."
     )
     (
-        "database.neutrino_size",
-        value<uint64_t>(&configured.database.neutrino_size),
-        "The minimum allocation of the neutrino table body, defaults to '1'."
+        "database.filter_bk_size",
+        value<uint64_t>(&configured.database.filter_bk_size),
+        "The minimum allocation of the filter_bk table body, defaults to '1'."
     )
     (
-        "database.neutrino_rate",
-        value<uint16_t>(&configured.database.neutrino_rate),
-        "The percentage expansion of the neutrino table body, defaults to '0'."
+        "database.filter_bk_rate",
+        value<uint16_t>(&configured.database.filter_bk_rate),
+        "The percentage expansion of the filter_bk table body, defaults to '5'."
+    )
+
+    /* filter_tx */
+    (
+        "database.filter_tx_buckets",
+        value<uint32_t>(&configured.database.filter_tx_buckets),
+        "The log2 number of buckets in the filter_tx table head, defaults to '0' (0 disables)."
+    )
+    (
+        "database.filter_tx_size",
+        value<uint64_t>(&configured.database.filter_tx_size),
+        "The minimum allocation of the filter_tx table body, defaults to '1'."
+    )
+    (
+        "database.filter_tx_rate",
+        value<uint16_t>(&configured.database.filter_tx_rate),
+        "The percentage expansion of the filter_tx table body, defaults to '5'."
     )
 
     /* [node] */

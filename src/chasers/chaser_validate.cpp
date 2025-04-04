@@ -46,7 +46,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
-    filter_(node.archive().neutrino_enabled())
+    filter_(node.archive().filter_enabled())
 {
 }
 
@@ -227,10 +227,10 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    else if (!query.set_filter_body(link, *block))
-    {
-        ec = error::validate5;
-    }
+    ////else if (!query.set_filter_body(link, *block))
+    ////{
+    ////    ec = error::validate5;
+    ////}
 
     backlog_.fetch_sub(one, std::memory_order_relaxed);
 

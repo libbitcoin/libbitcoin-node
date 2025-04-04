@@ -77,27 +77,30 @@ namespace node {
     "   input     :%5%\n" \
     "   output    :%6%\n" \
     "   ins       :%7%\n" \
-    "   puts      :%8%\n" \
+    "   outs      :%8%\n" \
     "   candidate :%9%\n" \
     "   confirmed :%10%\n" \
-    "   prevout   :%11%\n" \
-    "   strong_tx :%12%\n" \
-    "   valid_tx  :%13%\n" \
+    "   duplicate :%11%\n" \
+    "   prevout   :%12%\n" \
+    "   strong_tx :%13%\n" \
     "   valid_bk  :%14%\n" \
-    "   address   :%15%\n" \
-    "   neutrino  :%16%"
+    "   valid_tx  :%15%\n" \
+    "   filter_bk :%16%\n" \
+    "   filter_tx :%17%\n" \
+    "   address   :%18%"
 #define BN_MEASURE_RECORDS \
     "Table records...\n" \
     "   header    :%1%\n" \
     "   tx        :%2%\n" \
     "   point     :%3%\n" \
     "   ins       :%4%\n" \
-    "   puts      :%5%\n" \
+    "   outs      :%5%\n" \
     "   candidate :%6%\n" \
     "   confirmed :%7%\n" \
-    "   prevout   :%8%\n" \
+    "   duplicate :%8%\n" \
     "   strong_tx :%9%\n" \
-    "   address   :%10%"
+    "   filter_bk :%10%\n" \
+    "   address   :%11%"
 #define BN_MEASURE_SLABS \
     "Table slabs..."
 #define BN_MEASURE_SLABS_ROW \
@@ -112,24 +115,24 @@ namespace node {
     "   txs       :%2%\n" \
     "   tx        :%3%\n" \
     "   point     :%4%\n" \
-    "   prevout   :%5%\n" \
-    "   strong_tx :%6%\n" \
-    "   valid_tx  :%7%\n" \
+    "   duplicate :%5%\n" \
+    "   prevout   :%6%\n" \
+    "   strong_tx :%7%\n" \
     "   valid_bk  :%8%\n" \
-    "   address   :%9%\n" \
-    "   neutrino  :%10%"
+    "   valid_tx  :%9%\n" \
+    "   filter_bk :%10%\n" \
+    "   filter_tx :%11%\n" \
+    "   address   :%12%"
 #define BN_MEASURE_COLLISION_RATES \
     "Collision rates...\n" \
     "   header    :%1%\n" \
     "   txs       :%2%\n" \
     "   tx        :%3%\n" \
     "   point     :%4%\n" \
-    "   prevout   :%5%\n" \
-    "   strong_tx :%6%\n" \
+    "   strong_tx :%5%\n" \
+    "   valid_bk  :%6%\n" \
     "   valid_tx  :%7%\n" \
-    "   valid_bk  :%8%\n" \
-    "   address   :%9%\n" \
-    "   neutrino  :%10%"
+    "   address   :%8%"
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \
