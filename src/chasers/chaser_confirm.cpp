@@ -258,11 +258,11 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             return;
         }
 
-        if (!query.set_filter_head(link))
-        {
-            fault(error::confirm9);
-            return;
-        }
+        ////if (!query.set_filter_head(link))
+        ////{
+        ////    fault(error::confirm9);
+        ////    return;
+        ////}
 
         if (!set_organized(link, height))
         {

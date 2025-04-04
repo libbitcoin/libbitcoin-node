@@ -99,12 +99,14 @@ void executor::dump_body_sizes() const
         query_.outs_body_size() %
         query_.candidate_body_size() %
         query_.confirmed_body_size() %
+        query_.duplicate_body_size() %
         query_.prevout_body_size() %
         query_.strong_tx_body_size() %
-        query_.validated_tx_body_size() %
         query_.validated_bk_body_size() %
-        query_.address_body_size() %
-        query_.neutrino_body_size());
+        query_.validated_tx_body_size() %
+        query_.filter_bk_body_size() %
+        query_.filter_tx_body_size() %
+        query_.address_body_size());
 }
 
 void executor::dump_records() const
@@ -117,8 +119,9 @@ void executor::dump_records() const
         query_.outs_records() %
         query_.candidate_records() %
         query_.confirmed_records() %
-        query_.prevout_records() %
+        query_.duplicate_records() %
         query_.strong_tx_records() %
+        query_.filter_bk_records() %
         query_.address_records());
 }
 
@@ -129,12 +132,14 @@ void executor::dump_buckets() const
         query_.txs_buckets() %
         query_.tx_buckets() %
         query_.point_buckets() %
+        query_.duplicate_buckets() %
         query_.prevout_buckets() %
         query_.strong_tx_buckets() %
-        query_.validated_tx_buckets() %
         query_.validated_bk_buckets() %
-        query_.address_buckets() %
-        query_.neutrino_buckets());
+        query_.validated_tx_buckets() %
+        query_.filter_bk_buckets() %
+        query_.filter_tx_buckets() %
+        query_.address_buckets());
 }
 
 // txs, validated_tx, validated_bk collision rates assume 1:1 records.
@@ -145,14 +150,11 @@ void executor::dump_collisions() const
         (to_double(query_.header_records()) / query_.txs_buckets()) %
         (to_double(query_.tx_records()) / query_.tx_buckets()) %
         (to_double(query_.point_records()) / query_.point_buckets()) %
-        (to_double(query_.prevout_records()) / query_.prevout_buckets()) %
         (to_double(query_.strong_tx_records()) / query_.strong_tx_buckets()) %
-        (to_double(query_.tx_records()) / query_.validated_tx_buckets()) %
         (to_double(query_.header_records()) / query_.validated_bk_buckets()) %
-        (query_.address_enabled() ? (to_double(query_.address_records()) /
-            query_.address_buckets()) : 0) %
-        (query_.neutrino_enabled() ? (to_double(query_.header_records()) /
-            query_.neutrino_buckets()) : 0));
+        (to_double(query_.tx_records()) / query_.validated_tx_buckets()) %
+        (query_.address_enabled() ?
+            (to_double(query_.address_records()) / query_.address_buckets()) : zero));
 }
 
 void executor::dump_progress() const
@@ -160,11 +162,9 @@ void executor::dump_progress() const
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(
-            query_.get_top_confirmed()))) %
+        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
         query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(
-            query_.get_top_candidate()))) %
+        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
         query_.get_top_associated() %
         (query_.get_top_candidate() - query_.get_unassociated_count()) %
         query_.get_confirmed_size() %
