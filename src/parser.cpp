@@ -70,9 +70,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.services_maximum = service::node_network |
         service::node_witness;
 
+    // SCALE: LF2.2 @ 850K.
+
     // database (archive)
 
-    configured.database.header_buckets = 566'667;
+    configured.database.header_buckets = 386'364;
     configured.database.header_size = 21'000'000;
     configured.database.header_rate = 5;
 
@@ -82,7 +84,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
-    configured.database.point_buckets = 1'751'471'741;
+    configured.database.point_buckets = 1'194'185'278;
     configured.database.point_size = 25'700'000'000;
     configured.database.point_rate = 5;
 
@@ -92,11 +94,11 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.outs_size = 3'700'000'000;
     configured.database.outs_rate = 5;
 
-    configured.database.tx_buckets = 688'193'037;
+    configured.database.tx_buckets = 469'222'525;
     configured.database.tx_size = 17'000'000'000;
     configured.database.tx_rate = 5;
 
-    configured.database.txs_buckets = 566'667;
+    configured.database.txs_buckets = 386'364;
     configured.database.txs_size = 1'050'000'000;
     configured.database.txs_rate = 5;
 
@@ -108,8 +110,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.confirmed_size = 2'575'500;
     configured.database.confirmed_rate = 5;
 
-    configured.database.strong_tx_buckets = 688'193'037;
-    configured.database.strong_tx_size = 3'150'000'000;
+    configured.database.strong_tx_buckets = 469'222'525;
+    configured.database.strong_tx_size = 2'900'000'000;
     configured.database.strong_tx_rate = 5;
 
     // database (caches)
@@ -122,7 +124,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.prevout_size = 5'250'000'000;
     configured.database.prevout_rate = 5;
 
-    configured.database.validated_bk_buckets = 740'001;
+    configured.database.validated_bk_buckets = 504'546;
     configured.database.validated_bk_size = 3'400'000;
     configured.database.validated_bk_rate = 5;
 
@@ -665,7 +667,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.header_buckets",
         value<uint32_t>(&configured.database.header_buckets),
-        "The log2 number of buckets in the header table head, defaults to '566667'."
+        "The log2 number of buckets in the header table head, defaults to '386364'."
     )
     (
         "database.header_size",
@@ -706,7 +708,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.point_buckets",
         value<uint32_t>(&configured.database.point_buckets),
-        "The log2 number of buckets in the spend table head, defaults to '1751471741'."
+        "The log2 number of buckets in the spend table head, defaults to '1194185278'."
     )
     (
         "database.point_size",
@@ -747,7 +749,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.tx_buckets",
         value<uint32_t>(&configured.database.tx_buckets),
-        "The log2 number of buckets in the tx table head, defaults to '688193037'."
+        "The log2 number of buckets in the tx table head, defaults to '469222525'."
     )
     (
         "database.tx_size",
@@ -764,7 +766,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.txs_buckets",
         value<uint32_t>(&configured.database.txs_buckets),
-        "The log2 number of buckets in the txs table head, defaults to '566667'."
+        "The log2 number of buckets in the txs table head, defaults to '386364'."
     )
     (
         "database.txs_size",
@@ -805,12 +807,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.strong_tx_buckets",
         value<uint32_t>(&configured.database.strong_tx_buckets),
-        "The log2 number of buckets in the strong_tx table head, defaults to '688193037'."
+        "The log2 number of buckets in the strong_tx table head, defaults to '469222525'."
     )
     (
         "database.strong_tx_size",
         value<uint64_t>(&configured.database.strong_tx_size),
-        "The minimum allocation of the strong_tx table body, defaults to '3150000000'."
+        "The minimum allocation of the strong_tx table body, defaults to '2900000000'."
     )
     (
         "database.strong_tx_rate",
@@ -856,7 +858,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_buckets",
         value<uint32_t>(&configured.database.validated_bk_buckets),
-        "The log2 number of buckets in the validated_bk table head, defaults to '740001'."
+        "The log2 number of buckets in the validated_bk table head, defaults to '504546'."
     )
     (
         "database.validated_bk_size",
