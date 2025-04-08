@@ -366,7 +366,7 @@ void executor::scan_collisions() const
     // TODO: expose filter type from hashhead to table.
     ///////////////////////////////////////////////////////////////////////////
     constexpr size_t m = 32;
-    using bloom_t = bloom<m, 4>;
+    using bloom_t = bloom<m, 7>;
     using sieve_t = sieve<m, 4>;
     ///////////////////////////////////////////////////////////////////////////
 
@@ -383,10 +383,11 @@ void executor::scan_collisions() const
     size_t coinbases{};
     size_t window{};
 
-    while (!cancel_ && (++index <= query_.get_top_candidate()))
+    const auto top = query_.get_top_associated();
+    for (index = zero; index <= top && !cancel_; ++index)
     {
         ++coinbases;
-        const header_link link{ possible_narrow_cast<hint>(index) };
+        const auto link = query_.to_candidate(index);
         const auto transactions = query_.to_transactions(link);
         for (const auto& transaction: transactions)
         {
