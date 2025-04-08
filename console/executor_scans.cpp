@@ -366,9 +366,8 @@ void executor::scan_collisions() const
     // TODO: expose filter type from hashhead to table.
     ///////////////////////////////////////////////////////////////////////////
     constexpr size_t m = 32;
-    constexpr size_t k = 4;
-    using bloom_t = bloom<m, k>;
-    using sieve_t = sieve<m, k>;
+    using bloom_t = bloom<m, 4>;
+    using sieve_t = sieve<m, 4>;
     ///////////////////////////////////////////////////////////////////////////
 
     constexpr auto empty_bloom = unmask_right<bloom_t::type>(m);
@@ -384,7 +383,7 @@ void executor::scan_collisions() const
     size_t coinbases{};
     size_t window{};
 
-    while (!cancel_ && (++index < query_.header_records()))
+    while (!cancel_ && (++index <= query_.get_top_candidate()))
     {
         ++coinbases;
         const header_link link{ possible_narrow_cast<hint>(index) };
@@ -394,8 +393,9 @@ void executor::scan_collisions() const
             const auto points = query_.to_points(transaction);
             for (const auto& point: points)
             {
+                // If and only if coinbase bucket is one.
                 const auto key = query_.get_point(point);
-                const auto bucket = database::keys::hash(key) % point_buckets;
+                const auto bucket = database::keys::bucket(key, point_buckets);
                 const auto entropy = database::keys::thumb(key);
                 ++spend.at(bucket);
                 ++inserts;
@@ -418,11 +418,13 @@ void executor::scan_collisions() const
                 if (is_zero(inserts % put_frequency))
                 {
                     logger(format("point: %1% bloom fps %2% rate %3$.7f in %4% secs.") %
-                        inserts % bloom_collisions % (to_double(bloom_subtotal) / window) %
+                        inserts % bloom_collisions %
+                        (to_double(bloom_subtotal) / window) %
                         duration_cast<seconds>(logger::now() - start).count());
 
                     logger(format("point: %1% sieve fps %2% rate %3$.7f in %4% secs.") %
-                        inserts% sieve_collisions % (to_double(sieve_subtotal) / window) %
+                        inserts% sieve_collisions % 
+                        (to_double(sieve_subtotal) / window) %
                         duration_cast<seconds>(logger::now() - start).count());
 
                     bloom_subtotal = zero;
