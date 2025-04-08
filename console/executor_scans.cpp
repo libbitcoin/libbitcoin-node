@@ -357,13 +357,28 @@ void executor::scan_collisions() const
     // point
     // ------------------------------------------------------------------------
 
-    auto total = zero;
     index = max_size_t;
     start = logger::now();
     const auto point_buckets = query_.point_buckets();
     std_vector<size_t> spend(point_buckets, empty);
+    auto inserts = zero;
+
+    // TODO: expose filter type from hashhead to table.
+    ///////////////////////////////////////////////////////////////////////////
+    constexpr size_t m = 32;
+    constexpr size_t k = 6;
+    using filter_t = bloom<m, k>;
+    constexpr auto empty_filter = unmask_right<filter_t::type>(m);
+    ///////////////////////////////////////////////////////////////////////////
+    std_vector<filter_t::type> filter(point_buckets, empty_filter);
+    size_t collisions{};
+    size_t coinbases{};
+    size_t subtotal{};
+    size_t window{};
+
     while (!cancel_ && (++index < query_.header_records()))
     {
+        ++coinbases;
         const header_link link{ possible_narrow_cast<hint>(index) };
         const auto transactions = query_.to_transactions(link);
         for (const auto& transaction: transactions)
@@ -372,12 +387,30 @@ void executor::scan_collisions() const
             for (const auto& point: points)
             {
                 const auto key = query_.get_point(point);
-                ++spend.at(database::keys::hash(key) % point_buckets);
-                ++total;
+                const auto bucket = database::keys::hash(key) % point_buckets;
+                const auto entropy = database::keys::thumb(key);
+                ++spend.at(bucket);
+                ++inserts;
 
-                if (is_zero(total % put_frequency))
-                    logger(format("point" BN_READ_ROW) % total %
+                const auto prev = filter.at(bucket);
+                const auto next = filter_t::screen(prev, entropy);
+                filter.at(bucket) = next;
+
+                // All coinbases should collide with the first.
+                const auto coll = to_int(filter_t::is_collision(prev, next));
+                collisions += coll;
+                subtotal += coll;
+                ++window;
+
+                if (is_zero(inserts % put_frequency))
+                {
+                    logger(format("point: %1% fps %2% rate %3$.7f in %4% secs.") %
+                        inserts % collisions % (to_double(subtotal) / window) %
                         duration_cast<seconds>(logger::now() - start).count());
+
+                    subtotal = zero;
+                    window = zero;
+                }
             }
         }
     }
@@ -390,15 +423,24 @@ void executor::scan_collisions() const
     const auto point_count = count(spend);
     span = duration_cast<seconds>(logger::now() - start);
     logger(format("point: %1% in %2%s buckets %3% filled %4% rate %5%") %
-        total % span.count() % point_buckets % point_count %
+        inserts % span.count() % point_buckets % point_count %
         (to_double(point_count) / point_buckets));
+
+    const auto spends = inserts - coinbases;
+    const auto spend_collisions = collisions - coinbases;
+    logger(format("bloom: %1% fps of %2% spends (ex %3% cbs) rate %4%") %
+        spend_collisions % spends % coinbases %
+        (to_double(spend_collisions) / spends));
 
     for (const auto& entry: dump(spend))
         logger(format("point: %1% frequency: %2%") %
             entry.first % entry.second);
 
-    ////point.clear();
-    ////point.shrink_to_fit();
+
+    ////spend.clear();
+    ////spend.shrink_to_fit();
+    ////filter.clear();
+    ////filter.shrink_to_fit();
 }
 
 } // namespace node
