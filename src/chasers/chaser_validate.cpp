@@ -220,9 +220,9 @@ void chaser_validate::validate_block(const header_link& link,
     else if ((ec = validate(bypass, *block, link, ctx)))
     {
         // Troubleshooting: match this by value/10,000 with block_archived value/10,000.
-        ///////////////////////////////////////////////////////////////////////////
-        ////fire(events::template_issued, (ctx.height * 10'000u) + block->segregated());
-        ///////////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////
+        fire(events::template_issued, (ctx.height * 10'000u) + block->segregated());
+        ///////////////////////////////////////////////////////////////////////
 
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
