@@ -366,8 +366,9 @@ void executor::scan_collisions() const
     // TODO: expose filter type from hashhead to table.
     ///////////////////////////////////////////////////////////////////////////
     constexpr size_t m = 32;
-    using bloom_t = bloom<m, 7>;
-    using sieve_t = sieve<m, 4>;
+    constexpr size_t k = add1(floored_log2(m));
+    using bloom_t = bloom<m, k>;
+    ////using sieve_t = sieve<m, 3>;
     ///////////////////////////////////////////////////////////////////////////
 
     constexpr auto empty_bloom = unmask_right<bloom_t::type>(m);
@@ -375,10 +376,10 @@ void executor::scan_collisions() const
     size_t bloom_collisions{};
     size_t bloom_subtotal{};
 
-    constexpr auto empty_sieve = unmask_right<sieve_t::type>(m);
-    std_vector<sieve_t::type> sieve_filter(point_buckets, empty_sieve);
-    size_t sieve_collisions{};
-    size_t sieve_subtotal{};
+    ////constexpr auto empty_sieve = unmask_right<sieve_t::type>(m);
+    ////std_vector<sieve_t::type> sieve_filter(point_buckets, empty_sieve);
+    ////size_t sieve_collisions{};
+    ////size_t sieve_subtotal{};
 
     size_t coinbases{};
     size_t window{};
@@ -409,12 +410,12 @@ void executor::scan_collisions() const
                 bloom_collisions += coll;
                 bloom_subtotal += coll;
 
-                prev = sieve_filter.at(bucket);
-                next = sieve_t::screen(prev, entropy);
-                sieve_filter.at(bucket) = next;
-                coll = to_int(sieve_t::is_collision(prev, next));
-                sieve_collisions += coll;
-                sieve_subtotal += coll;
+                ////prev = sieve_filter.at(bucket);
+                ////next = sieve_t::screen(prev, entropy);
+                ////sieve_filter.at(bucket) = next;
+                ////coll = to_int(sieve_t::is_collision(prev, next));
+                ////sieve_collisions += coll;
+                ////sieve_subtotal += coll;
 
                 if (is_zero(inserts % put_frequency))
                 {
@@ -423,13 +424,13 @@ void executor::scan_collisions() const
                         (to_double(bloom_subtotal) / window) %
                         duration_cast<seconds>(logger::now() - start).count());
 
-                    logger(format("point: %1% sieve fps %2% rate %3$.7f in %4% secs.") %
-                        inserts% sieve_collisions % 
-                        (to_double(sieve_subtotal) / window) %
-                        duration_cast<seconds>(logger::now() - start).count());
+                    ////logger(format("point: %1% sieve fps %2% rate %3$.7f in %4% secs.") %
+                    ////    inserts % sieve_collisions % 
+                    ////    (to_double(sieve_subtotal) / window) %
+                    ////    duration_cast<seconds>(logger::now() - start).count());
 
+                    ////sieve_subtotal = zero;
                     bloom_subtotal = zero;
-                    sieve_subtotal = zero;
                     window = zero;
                 }
             }
@@ -453,10 +454,10 @@ void executor::scan_collisions() const
         bloom_spend_collisions % spends % coinbases %
         (to_double(bloom_spend_collisions) / spends));
 
-    const auto sieve_spend_collisions = sieve_collisions - coinbases;
-    logger(format("sieve: %1% fps of %2% spends (ex %3% cbs) rate %4%") %
-        sieve_spend_collisions % spends % coinbases %
-        (to_double(sieve_spend_collisions) / spends));
+    ////const auto sieve_spend_collisions = sieve_collisions - coinbases;
+    ////logger(format("sieve: %1% fps of %2% spends (ex %3% cbs) rate %4%") %
+    ////    sieve_spend_collisions % spends % coinbases %
+    ////    (to_double(sieve_spend_collisions) / spends));
 
     for (const auto& entry: dump(spend))
         logger(format("point: %1% frequency: %2%") %
