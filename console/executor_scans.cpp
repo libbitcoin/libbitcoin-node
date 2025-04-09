@@ -366,7 +366,7 @@ void executor::scan_collisions() const
     // TODO: expose filter type from hashhead to table.
     ///////////////////////////////////////////////////////////////////////////
     constexpr size_t m = 32;
-    constexpr size_t k = add1(floored_log2(m));
+    constexpr size_t k = floored_log2(m);
     using bloom_t = bloom<m, k>;
     ////using sieve_t = sieve<m, 3>;
     ///////////////////////////////////////////////////////////////////////////
