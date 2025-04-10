@@ -195,8 +195,8 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             }
 
             // Fall through (report confirmed).
-            if (query.filter_enabled())
-                fire(events::tx_validated, height);
+            ////if (query.filter_enabled())
+            ////    fire(events::tx_validated, height);
         }
         else if (ec == database::error::unvalidated)
         {
@@ -235,16 +235,14 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             }
 
             // Set before changing block state.
-            if (query.set_filter_head(link))
-            {
-                if (query.filter_enabled())
-                    fire(events::tx_validated, height);
-            }
-            else
+            if (!query.set_filter_head(link))
             {
                 fault(error::confirm5);
                 return;
             }
+
+            ////if (query.filter_enabled())
+            ////    fire(events::tx_validated, height);
 
             // Otherwise we will reconfirm entire chain on restart.
             if (!query.set_block_confirmable(link))
