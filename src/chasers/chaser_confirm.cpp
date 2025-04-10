@@ -190,13 +190,13 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 
             if (!query.set_filter_head(link))
             {
-                fault(error::confirm9);
+                fault(error::confirm2);
                 return;
             }
 
             // Fall through (report confirmed).
-            if (query.filter_enabled())
-                fire(events::tx_validated, height);
+            ////if (query.filter_enabled())
+            ////    fire(events::tx_validated, height);
         }
         else if (ec == database::error::unvalidated)
         {
@@ -235,28 +235,26 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             }
 
             // Set before changing block state.
-            if (query.set_filter_head(link))
+            if (!query.set_filter_head(link))
             {
-                if (query.filter_enabled())
-                    fire(events::tx_validated, height);
-            }
-            else
-            {
-                fault(error::confirm9);
+                fault(error::confirm5);
                 return;
             }
+
+            ////if (query.filter_enabled())
+            ////    fire(events::tx_validated, height);
 
             // Otherwise we will reconfirm entire chain on restart.
             if (!query.set_block_confirmable(link))
             {
-                fault(error::confirm5);
+                fault(error::confirm6);
                 return;
             }
 
             // Set after block_confirmable when using the prevout table.
             if (!query.set_strong(link))
             {
-                fault(error::confirm6);
+                fault(error::confirm7);
                 return;
             }
 
@@ -268,7 +266,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // Set in either case.
             if (!query.set_strong(link))
             {
-                fault(error::confirm7);
+                fault(error::confirm8);
                 return;
             }
         }
@@ -278,7 +276,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else //// if (ec == database::error::unknown_state)
         {
-            fault(error::confirm8);
+            fault(error::confirm9);
             return;
         }
 
