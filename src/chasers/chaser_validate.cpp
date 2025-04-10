@@ -227,10 +227,16 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    ////else if (!query.set_filter_body(link, *block))
-    ////{
-    ////    ec = error::validate5;
-    ////}
+    else if (query.set_filter_body(link, *block))
+    {
+        if (query.filter_enabled())
+            fire(events::tx_archived, ctx.height);
+    }
+    else
+    {
+        ec = error::validate5;
+    }
+
 
     backlog_.fetch_sub(one, std::memory_order_relaxed);
 

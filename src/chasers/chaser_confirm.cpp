@@ -184,7 +184,19 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else if (is_under_checkpoint(height) || query.is_milestone(link))
         {
+            // Dont update position until this block is filtered.
+            if (!query.is_filtereable(link))
+                return;
+
+            if (!query.set_filter_head(link))
+            {
+                fault(error::confirm9);
+                return;
+            }
+
             // Fall through (report confirmed).
+            if (query.filter_enabled())
+                fire(events::tx_validated, height);
         }
         else if (ec == database::error::unvalidated)
         {
@@ -219,6 +231,18 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 notify(ec, chase::unconfirmable, link);
                 fire(events::block_unconfirmable, height);
                 LOGR("Unconfirmable block [" << height << "] " << ec.message());
+                return;
+            }
+
+            // Set before changing block state.
+            if (query.set_filter_head(link))
+            {
+                if (query.filter_enabled())
+                    fire(events::tx_validated, height);
+            }
+            else
+            {
+                fault(error::confirm9);
                 return;
             }
 
@@ -257,12 +281,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             fault(error::confirm8);
             return;
         }
-
-        ////if (!query.set_filter_head(link))
-        ////{
-        ////    fault(error::confirm9);
-        ////    return;
-        ////}
 
         if (!set_organized(link, height))
         {
