@@ -190,7 +190,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 
             if (!query.set_filter_head(link))
             {
-                fault(error::confirm9);
+                fault(error::confirm2);
                 return;
             }
 
@@ -242,21 +242,21 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             }
             else
             {
-                fault(error::confirm9);
+                fault(error::confirm5);
                 return;
             }
 
             // Otherwise we will reconfirm entire chain on restart.
             if (!query.set_block_confirmable(link))
             {
-                fault(error::confirm5);
+                fault(error::confirm6);
                 return;
             }
 
             // Set after block_confirmable when using the prevout table.
             if (!query.set_strong(link))
             {
-                fault(error::confirm6);
+                fault(error::confirm7);
                 return;
             }
 
@@ -268,7 +268,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
             // Set in either case.
             if (!query.set_strong(link))
             {
-                fault(error::confirm7);
+                fault(error::confirm8);
                 return;
             }
         }
@@ -278,7 +278,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else //// if (ec == database::error::unknown_state)
         {
-            fault(error::confirm8);
+            fault(error::confirm9);
             return;
         }
 
