@@ -227,15 +227,6 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    else if (!query.set_filter_body(link, *block))
-    {
-        ec = error::validate5;
-    }
-    ////else
-    ////{
-    ////    if (query.filter_enabled())
-    ////        fire(events::tx_archived, ctx.height);
-    ////}
 
 
     backlog_.fetch_sub(one, std::memory_order_relaxed);
@@ -273,25 +264,29 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 code chaser_validate::validate(bool bypass, const chain::block& block,
     const database::header_link& link, const chain::context& ctx) NOEXCEPT
 {
-    code ec{};
-    if (bypass)
-        return ec;
-
     auto& query = archive();
 
-    if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
-        return ec;
+    if (!bypass)
+    {
+        code ec{};
+        if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
+            return ec;
 
-    if ((ec = block.connect(ctx)))
-        return ec;
+        if ((ec = block.connect(ctx)))
+            return ec;
 
-    if (!query.set_prevouts(link, block))
+        if (!query.set_prevouts(link, block))
+            return error::validate5;
+    }
+
+    if (!query.set_filter_body(link, block))
         return error::validate6;
 
-    if (!query.set_block_valid(link, block.fees()))
+    // This must be set after prevouts and filter due to confirmation ordering.
+    if (!bypass && !query.set_block_valid(link, block.fees()))
         return error::validate7;
 
-    return ec;
+    return error::success;
 }
 
 // Completes off strand.

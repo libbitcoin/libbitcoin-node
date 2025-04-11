@@ -184,7 +184,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         }
         else if (is_under_checkpoint(height) || query.is_milestone(link))
         {
-            // Dont update position until this block is filtered.
+            // Don't update position until this block is filtered.
             if (!query.is_filtereable(link))
                 return;
 
@@ -193,10 +193,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm2);
                 return;
             }
-
-            // Fall through (report confirmed).
-            ////if (query.filter_enabled())
-            ////    fire(events::tx_validated, height);
         }
         else if (ec == database::error::unvalidated)
         {
@@ -240,9 +236,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
                 fault(error::confirm5);
                 return;
             }
-
-            ////if (query.filter_enabled())
-            ////    fire(events::tx_validated, height);
 
             // Otherwise we will reconfirm entire chain on restart.
             if (!query.set_block_confirmable(link))
