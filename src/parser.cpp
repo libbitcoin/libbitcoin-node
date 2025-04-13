@@ -125,7 +125,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.prevout_rate = 5;
 
     configured.database.validated_bk_buckets = 504'546;
-    configured.database.validated_bk_size = 3'400'000;
+    configured.database.validated_bk_size = 3'700'000;
     configured.database.validated_bk_rate = 5;
 
     configured.database.validated_tx_buckets = 1;
