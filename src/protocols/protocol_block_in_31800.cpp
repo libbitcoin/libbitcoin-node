@@ -343,7 +343,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    // This invokes set_strong when checked. 
+    // This populates duplicate table always.
+    // This populates strong_tx table when checked.
+    // This populates address table when table is enabled.
     if (const auto code = query.set_code(*block, link, checked))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
