@@ -201,7 +201,10 @@ void chaser_validate::validate_block(const header_link& link,
     code ec{};
     chain::context ctx{};
     auto& query = archive();
-    const auto block = query.get_block(link);
+
+    // TODO: implement allocator parameter resulting in full allocation to the
+    // shared_ptr<block>, to optimize deallocation (12% of milestone/filter).
+    auto block = query.get_block(link);
 
     if (!block)
     {
@@ -226,7 +229,9 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-
+    
+    // Just being explicit that block should be released in its creation thread.
+    block.reset();
 
     backlog_.fetch_sub(one, std::memory_order_relaxed);
 
