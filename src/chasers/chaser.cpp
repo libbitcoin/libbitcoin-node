@@ -138,17 +138,22 @@ bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
     return node_.is_current(timestamp);
 }
 
-bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
-{
-    return height <= top_checkpoint_height_;
-}
-
 // get_timestamp error results in false (ok).
 bool chaser::is_current(const database::header_link& link) const NOEXCEPT
 {
     uint32_t timestamp{};
     return archive().get_timestamp(timestamp, link) &&
         node_.is_current(timestamp);
+}
+
+bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
+{
+    return height <= checkpoint();
+}
+
+size_t chaser::checkpoint() const NOEXCEPT
+{
+    return top_checkpoint_height_;
 }
 
 // Position.
