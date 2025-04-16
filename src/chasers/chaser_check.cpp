@@ -129,7 +129,6 @@ bool chaser_check::handle_event(const code&, chase event_,
             POST(do_headers, std::get<height_t>(value));
             break;
         }
-        ////case chase::confirmable:
         case chase::valid:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
