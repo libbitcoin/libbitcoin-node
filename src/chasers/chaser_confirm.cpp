@@ -36,11 +36,8 @@ using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Independent threadpool and strand (base class strand uses network pool).
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
-  : chaser(node),
-    threadpool_(one, node.config().node.priority_()),
-    independent_strand_(threadpool_.service().get_executor())
+  : chaser(node)
 {
 }
 
@@ -52,35 +49,16 @@ code chaser_confirm::start() NOEXCEPT
     return error::success;
 }
 
-void chaser_confirm::stopping(const code& ec) NOEXCEPT
-{
-    // Stop threadpool keep-alive, all work must self-terminate to affect join.
-    threadpool_.stop();
-    chaser::stopping(ec);
-}
-
-void chaser_confirm::stop() NOEXCEPT
-{
-    if (!threadpool_.join())
-    {
-        BC_ASSERT_MSG(false, "failed to join threadpool");
-        std::abort();
-    }
-}
-
 bool chaser_confirm::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
         return false;
 
-    // TODO: resume needs to ensure a bump.
     // Stop generating query during suspension.
     if (suspended())
         return true;
 
-    // An unconfirmable block height must not land here. 
-    // These come out of order, advance in order synchronously.
     switch (event_)
     {
         ////case chase::blocks:
@@ -105,13 +83,9 @@ bool chaser_confirm::handle_event(const code&, chase event_,
             break;
         }
         case chase::regressed:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
-            break;
-        }
         case chase::disorganized:
         {
+            // value is regression branch_point.
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(do_regressed, std::get<height_t>(value));
             break;
@@ -135,417 +109,255 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
     for (auto height = position(); height > branch_point; --height)
     {
-        const auto link = query.to_candidate(height);
-        if (!query.set_unstrong(link))
+        if (!set_regressed(height))
         {
-            if (query.get_block_state(link) != database::error::unassociated)
-            {
-                fault(error::confirm1);
-                return;
-            }
+            fault(error::confirm1);
+            return;
         }
     }
 
+    // Update position and wait.
     set_position(branch_point);
 }
 
-// Candidate block validated at given height, if next then confirm/advance.
 void chaser_confirm::do_validated(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    if (height == add1(position()))
-        do_bump(height);
+    do_bump(height);
 }
 
-// TODO: This is simplified single thread variant of full implementation below.
-// This variant doesn't implement the relative work check and instead confirms
-// one block at a time, just like validation though sequentially.
+// confirm (not cancellable)
+// ----------------------------------------------------------------------------
+
+// Compute relative work, set fork and fork_point, and invoke reorganize.
 void chaser_confirm::do_bump(height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed())
+        return;
+
+    // position is top of the set of contiguously valid blocks starting from
+    // the provided top checkpoint or position, considers milestones and state.
+    const auto& query = archive();
+    set_position(query.get_top_valid_from(std::max(position(), checkpoint())));
+
+    // Scan from candidate height to first confirmed, return links and work.
+    uint256_t work{};
+    header_links fork{};
+    if (!get_fork_work(work, fork, position()))
+    {
+        fault(error::confirm2);
+        return;
+    }
+
+    // No longer a candidate fork (may have been reorganized).
+    if (fork.empty())
+        return;
+
+    // Determine if fork has more work than confirmed branch.
+    bool strong{};
+    const auto fork_point = position() - fork.size();
+    if (!get_is_strong(strong, work, fork_point))
+    {
+        fault(error::confirm3);
+        return;
+    }
+
+    if (strong)
+        reorganize(fork, fork_point);
+}
+
+// Pop confirmed chain from top down to above fork point, save popped.
+void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    auto height = query.get_top_confirmed();
+    if (height < fork_point)
+    {
+        fault(error::confirm4);
+        return;
+    }
+
+    header_links popped{};
+    while (height > fork_point)
+    {
+        const auto link = query.to_confirmed(height);
+        if (link.is_terminal())
+        {
+            fault(error::confirm5);
+            return;
+        }
+
+        popped.push_back(link);
+        if (!set_reorganized(link, height--))
+        {
+            fault(error::confirm6);
+            return;
+        }
+    }
+
+    // Top is now fork_point.
+    organize(fork, popped, fork_point);
+}
+
+// Push candidates (fork) from above fork point to confirmed chain.
+// Restore popped from fork point if any candidate fails to confirm.
+// Fork is always shortest candidate chain stronger than confirmed chain.
+// No bump required upon complete since fully stranded (no message loss).
+void chaser_confirm::organize(header_links& fork, const header_links& popped,
+    size_t fork_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // Keep working past window if possible.
-    for (auto height = add1(position()); !closed(); ++height)
+    auto height = fork_point;
+    while (!fork.empty())
     {
-        const auto link = query.to_candidate(height);
-        auto ec = query.get_block_state(link);
-        auto bypassed = true;
+        ++height;
+        auto bypassed = false;
+        const auto& link = fork.back();
 
-        if (ec == database::error::unassociated)
+        if (is_under_checkpoint(height) || query.is_milestone(link))
         {
-            // Wait until the gap is filled.
-            return;
-        }
-        else if (is_under_checkpoint(height) || query.is_milestone(link))
-        {
-            // Don't update position until this block is filtered.
-            if (!query.is_filtereable(link))
-                return;
-
+            // Block state must be valid or confirmable or this will fail.
+            bypassed = true;
             if (!query.set_filter_head(link))
-            {
-                fault(error::confirm2);
-                return;
-            }
-        }
-        else if (ec == database::error::unvalidated)
-        {
-            // Wait until this block is validated.
-            return;
-        }
-        else if (ec == database::error::block_valid)
-        {
-            // Confirmation query.
-            if ((ec = query.block_confirmable(link)))
-            {
-                if (database::error::error_category::contains(ec))
-                {
-                    LOGR("Confirm fault [" << height << "] " << ec.message());
-                    fault(ec);
-                    return;
-                }
-
-                // Unset from set before if not using prevout table.
-                if (!query.set_unstrong(link))
-                {
-                    fault(error::confirm3);
-                    return;
-                }
-
-                if (!query.set_block_unconfirmable(link))
-                {
-                    fault(error::confirm4);
-                    return;
-                }
-
-                notify(ec, chase::unconfirmable, link);
-                fire(events::block_unconfirmable, height);
-                LOGR("Unconfirmable block [" << height << "] " << ec.message());
-                return;
-            }
-
-            // Set before changing block state.
-            if (!query.set_filter_head(link))
-            {
-                fault(error::confirm5);
-                return;
-            }
-
-            // Otherwise we will reconfirm entire chain on restart.
-            if (!query.set_block_confirmable(link))
-            {
-                fault(error::confirm6);
-                return;
-            }
-
-            // Set after block_confirmable when using the prevout table.
-            if (!query.set_strong(link))
             {
                 fault(error::confirm7);
                 return;
             }
-
-            // Confirmable query executed successfully.
-            bypassed = false;
         }
-        else if (ec == database::error::block_confirmable)
+        else
         {
-            // Set in either case.
-            if (!query.set_strong(link))
+            auto ec = query.get_block_state(link);
+            if (ec == database::error::block_valid)
             {
-                fault(error::confirm8);
+                // Confirmation query.
+                if ((ec = query.block_confirmable(link)))
+                {
+                    if (database::error::error_category::contains(ec))
+                    {
+                        LOGF("Confirm [" << height << "] " << ec.message());
+                        fault(ec);
+                        return;
+                    }
+
+                    if (!query.set_unstrong(link))
+                    {
+                        fault(error::confirm8);
+                        return;
+                    }
+
+                    if (!query.set_block_unconfirmable(link))
+                    {
+                        fault(error::confirm9);
+                        return;
+                    }
+
+                    if (!roll_back(popped, fork_point, sub1(height)))
+                        fault(error::confirm10);
+
+                    notify(ec, chase::unconfirmable, link);
+                    fire(events::block_unconfirmable, height);
+                    LOGR("Unconfirmable [" << height << "] " << ec.message());
+                    return;
+                }
+
+                // Set before changing block state.
+                if (!query.set_filter_head(link))
+                {
+                    fault(error::confirm11);
+                    return;
+                }
+
+                // Prevents reconfirm of entire chain.
+                if (!query.set_block_confirmable(link))
+                {
+                    fault(error::confirm12);
+                    return;
+                }
+
+                notify(error::success, chase::confirmable, height);
+                ////fire(events::block_confirmed, height);
+                LOGV("Block confirmable: " << height);
+            }
+            else if (ec == database::error::block_confirmable)
+            {
+                // Nothing to check, state and filter set, just organize.
+            }
+            else
+            {
+                // TODO: roll back here?
+                // TODO: may need to lock against candidate reorganization
+                // TODO: during confirmation to prevent inconsistency, not just
+                // TODO: here but in all candidate iteration during confirm.
+                // All fork blocks should be block_valid or block_confirmable,
+                // unless there has been an intervening candidate reorganization
+                // resulting in a candidate blcok by height not being valid,
+                // before the reorganization and disorganization events have
+                // been received here. So this method always checks and does
+                // not fault when block state is unexpected.
                 return;
             }
         }
-        else if (ec == database::error::block_unconfirmable)
-        {
-            return;
-        }
-        else //// if (ec == database::error::unknown_state)
-        {
-            fault(error::confirm9);
-            return;
-        }
 
-        if (!set_organized(link, height))
+        // Set strong (if not bypassed) and push to confirmed index.
+        if (!set_organized(link, height, bypassed))
         {
-            fault(error::confirm10);
+            fault(error::confirm13);
             return;
         }
 
-        set_position(height);
-
-        notify(error::success, chase::confirmable, height);
-
-        if (!bypassed)
-        {
-            fire(events::block_confirmed, height);
-            ////LOGV("Block confirmed: " << height);
-        }
+        fork.pop_back();
     }
 }
 
-// confirm
+// private setters
 // ----------------------------------------------------------------------------
-// Blocks are either confirmed (blocks first) or validated/confirmed (headers
-// first) here. Candidate chain reorganizations will result in reported heights
-// moving in any direction. Each is treated as independent and only one
-// representing a stronger chain is considered.
-////
-////// Compute relative work, set fork and fork_point, and invoke reorganize.
-////void chaser_confirm::do_validated(height_t height) NOEXCEPT
-////{
-////    BC_ASSERT(stranded());
-////
-////    if (closed())
-////        return;
-////
-////    bool strong{};
-////    uint256_t work{};
-////    header_links fork{};
-////
-////    // Scan from validated height to first confirmed, save links, and sum work.
-////    if (!get_fork_work(work, fork, height))
-////    {
-////        fault(error::confirm1);
-////        return;
-////    }
-////
-////    // No longer a candidate fork (may have been reorganized).
-////    if (fork.empty())
-////        return;
-////
-////    // fork_point is the highest candidate <-> confirmed common block.
-////    const auto fork_point = height - fork.size();
-////    if (!get_is_strong(strong, work, fork_point))
-////    {
-////        fault(error::confirm2);
-////        return;
-////    }
-////
-////    // Fork is strong (has more work than confirmed branch).
-////    if (strong)
-////        do_reorganize(fork, fork_point);
-////}
-////
-////// Pop confirmed chain from top down to above fork point, save popped.
-////void chaser_confirm::do_reorganize(header_links& fork, size_t fork_point) NOEXCEPT
-////{
-////    auto& query = archive();
-////
-////    auto top = query.get_top_confirmed();
-////    if (top < fork_point)
-////    {
-////        fault(error::confirm3);
-////        return;
-////    }
-////
-////    header_links popped{};
-////    while (top > fork_point)
-////    {
-////        const auto top_link = query.to_confirmed(top);
-////        if (top_link.is_terminal())
-////        {
-////            fault(error::confirm4);
-////            return;
-////        }
-////
-////        popped.push_back(top_link);
-////        if (!query.set_unstrong(top_link))
-////        {
-////            fault(error::confirm5);
-////            return;
-////        }
-////
-////        if (!query.pop_confirmed())
-////        {
-////            fault(error::confirm6);
-////            return;
-////        }
-////
-////        notify(error::success, chase::reorganized, top_link);
-////        fire(events::block_reorganized, top--);
-////    }
-////
-////    // Top is now fork_point.
-////    do_organize(fork, popped, fork_point);
-////}
-////
-////// Push candidate headers from above fork point to confirmed chain.
-////void chaser_confirm::do_organize(header_links& fork,
-////    const header_links& popped, size_t fork_point) NOEXCEPT
-////{
-////    auto& query = archive();
-////
-////    // height tracks each fork link, starting at fork_point+1.
-////    auto height = fork_point;
-////
-////    while (!fork.empty())
-////    {
-////        ++height;
-////        const auto& link = fork.back();
-////
-////        if (is_under_checkpoint(height) || query.is_milestone(link))
-////        {
-////            notify(error::success, chase::confirmable, height);
-////            fire(events::confirm_bypassed, height);
-////            LOGV("Block confirmation bypassed and organized: " << height);
-////
-////            // Checkpoint and milestone are already set_strong.
-////            if (!set_organized(link, height))
-////            {
-////                fault(error::confirm7);
-////                return;
-////            }
-////        }
-////        else
-////        {
-////            auto ec = query.get_block_state(link);
-////            if (ec == database::error::block_valid)
-////            {
-////                if (!query.set_strong(link))
-////                {
-////                    fault(error::confirm8);
-////                    return;
-////                }
-//// 
-////                // This spawns threads internally, blocking until complete.
-////                if ((ec = query.block_confirmable(link)))
-////                {
-////                    if (ec == database::error::integrity)
-////                    {
-////                        fault(error::confirm9);
-////                        return;
-////                    }
-////
-////                    notify(ec, chase::unconfirmable, link);
-////                    fire(events::block_unconfirmable, height);
-////                    LOGR("Unconfirmable block [" << height << "] "
-////                        << ec.message());
-////
-////                    if (!query.set_unstrong(link))
-////                    {
-////                        fault(error::confirm10);
-////                        return;
-////                    }
-////
-////                    if (!query.set_block_unconfirmable(link))
-////                    {
-////                        fault(error::confirm11);
-////                        return;
-////                    }
-////
-////                    if (!roll_back(popped, fork_point, sub1(height)))
-////                        fault(error::confirm12);
-////
-////                    return;
-////                }
-////
-////                // TODO: fees.
-////                if (!query.set_block_confirmable(link, {}))
-////                {
-////                    fault(error::confirm13);
-////                    return;
-////                }
-////
-////                notify(ec, chase::confirmable, height);
-////                fire(events::block_confirmed, height);
-////                LOGV("Block confirmed and organized: " << height);
-////
-////                if (!set_organized(link, height))
-////                    fault(error::confirm14);
-////
-////                return;
-////            }
-////            else if (ec == database::error::block_confirmable)
-////            {
-////                if (!query.set_strong(link))
-////                {
-////                    fault(error::confirm15);
-////                    return;
-////                }
-////
-////                notify(error::success, chase::confirmable, height);
-////                fire(events::confirm_bypassed, height);
-////                LOGV("Block previously confirmable organized: " << height);
-////
-////                if (!set_organized(link, height))
-////                    fault(error::confirm16);
-////
-////                return;
-////            }
-////            else
-////            {
-////                ///////////////////////////////////////////////////////////////
-////                // TODO: do not start branch unless block valid or confirmable.
-////                ///////////////////////////////////////////////////////////////
-////
-////                // With or without an error code, shouldn't be here.
-////                // database::error::block_valid         [canonical state  ]
-////                // database::error::block_confirmable   [resurrected state]
-////                // database::error::block_unconfirmable [shouldn't be here]
-////                // database::error::unknown_state       [shouldn't be here]
-////                // database::error::unassociated        [shouldn't be here]
-////                // database::error::unvalidated         [shouldn't be here]
-////                ////fault(error::confirm17);
-////                return;
-////            }
-////        }
-////
-////        fork.pop_back();
-////    }
-////    
-////    ///////////////////////////////////////////////////////////////////////////
-////    // TODO: terminal stall will happen here as validation completes.
-////    ///////////////////////////////////////////////////////////////////////////
-////}
+// These affect only confirmed chain and strong tx state (not candidate).
 
-// Private
-// ----------------------------------------------------------------------------
-
-bool chaser_confirm::set_organized(const header_link& link, height_t) NOEXCEPT
+bool chaser_confirm::set_regressed(height_t candidate_height) NOEXCEPT
 {
     auto& query = archive();
-    if (!query.push_confirmed(link))
-        return false;
-
-    notify(error::success, chase::organized, link);
-    ////fire(events::block_organized, height);
-    return true;
-}
-
-bool chaser_confirm::reset_organized(const header_link& link,
-    height_t height) NOEXCEPT
-{
-    auto& query = archive();
-    if (!query.set_strong(link) || !query.push_confirmed(link))
-        return false;
-
-    notify(error::success, chase::organized, link);
-    fire(events::block_organized, height);
-    return true;
+    const auto link = query.to_candidate(candidate_height);
+    return query.set_unstrong(link) || (query.get_block_state(link) ==
+        database::error::unassociated);
 }
 
 bool chaser_confirm::set_reorganized(const header_link& link,
-    height_t height) NOEXCEPT
+    height_t confirmed_height) NOEXCEPT
 {
     auto& query = archive();
     if (!query.pop_confirmed() || !query.set_unstrong(link))
         return false;
 
     notify(error::success, chase::reorganized, link);
-    fire(events::block_reorganized, height);
+    fire(events::block_reorganized, confirmed_height);
+    LOGV("Block reorganized: " << confirmed_height);
     return true;
 }
 
-// Roll back to the specified new top. Header organization may then return the
-// node to a previously-stronger branch - no need to do that here.
+bool chaser_confirm::set_organized(const header_link& link,
+    height_t confirmed_height, bool bypassed) NOEXCEPT
+{
+    auto& query = archive();
+    if ((!bypassed && !query.set_strong(link)) || !query.push_confirmed(link))
+        return false;
+
+    notify(error::success, chase::organized, link);
+    fire(events::block_organized, confirmed_height);
+    LOGV("Block organized: " << confirmed_height);
+    return true;
+}
+
+// Rollback to the fork point, then forward through previously popped.
+// Rollback cannot apply to bypassed blocks, so always set/unset strong.
 bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
     size_t top) NOEXCEPT
 {
@@ -556,11 +368,15 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
             return false;
 
     for (const auto& fk: std::views::reverse(popped))
-        if (!reset_organized(fk, ++fork_point))
+        if (!set_organized(fk, ++fork_point, true))
             return false;
 
     return true;
 }
+
+// private getters
+// ----------------------------------------------------------------------------
+// These are subject to intervening/concurrent candidate chain reorganization.
 
 bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
     height_t fork_top) const NOEXCEPT
@@ -571,9 +387,8 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
     fork.clear();
 
     // Walk down candidates from fork_top to fork point (highest common).
-    for (link = query.to_candidate(fork_top);
-        !link.is_terminal() && !query.is_confirmed_block(link);
-        link = query.to_candidate(--fork_top))
+    for (link = query.to_candidate(fork_top); !link.is_terminal() &&
+        !query.is_confirmed_block(link); link = query.to_candidate(--fork_top))
     {
         uint32_t bits{};
         if (!query.get_bits(bits, link))
@@ -583,7 +398,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
         fork.push_back(link);
     }
 
-    // Terminal candidate from validated link implies candidate regression.
+    // Terminal candidate from previously valid height implies regression.
     // This is ok, it just means that the fork is no longer a candidate.
     if (link.is_terminal())
     {
@@ -619,19 +434,6 @@ bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
 
     strong = true;
     return true;
-}
-
-// Strand.
-// ----------------------------------------------------------------------------
-
-network::asio::strand& chaser_confirm::strand() NOEXCEPT
-{
-    return independent_strand_;
-}
-
-bool chaser_confirm::stranded() const NOEXCEPT
-{
-    return independent_strand_.running_in_this_thread();
 }
 
 BC_POP_WARNING()

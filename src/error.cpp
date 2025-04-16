@@ -88,11 +88,9 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm10, "confirm10" },
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
-    { confirm13, "confirm13" },
-    { confirm14, "confirm14" },
-    { confirm15, "confirm15" },
-    { confirm16, "confirm16" },
-    { confirm17, "confirm17" }
+    { confirm13, "confirm13" }
+    ////{ confirm14, "confirm14" },
+    ////{ confirm15, "confirm15" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

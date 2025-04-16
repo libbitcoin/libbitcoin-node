@@ -137,6 +137,9 @@ protected:
     /// The height is at or below the top checkpoint.
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
+    /// The height of the top checkpoint.
+    size_t checkpoint() const NOEXCEPT;
+
     /// Position (requires strand).
     /// -----------------------------------------------------------------------
 

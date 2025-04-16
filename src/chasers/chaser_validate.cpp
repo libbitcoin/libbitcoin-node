@@ -80,13 +80,10 @@ bool chaser_validate::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
-    // TODO: resume needs to ensure a bump.
     // Stop generating query during suspension.
     if (suspended())
         return true;
 
-    // These come out of order, advance in order asynchronously.
-    // Asynchronous completion again results in out of order notification.
     switch (event_)
     {
         case chase::start:
@@ -103,13 +100,9 @@ bool chaser_validate::handle_event(const code&, chase event_,
             break;
         }
         case chase::regressed:
-        {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
-            break;
-        }
         case chase::disorganized:
         {
+            // value is regression branch_point.
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(do_regressed, std::get<height_t>(value));
             break;
@@ -146,9 +139,13 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
+    // Don't spend processing time until the gap is filled.
     if (height == add1(position()))
         do_bump(height);
 }
+
+// validate (cancellable)
+// ----------------------------------------------------------------------------
 
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
@@ -184,6 +181,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         }
         else
         {
+            // Increment the backlog and lauch job.
             backlog_.fetch_add(one, std::memory_order_relaxed);
             PARALLEL(validate_block, link, bypass);
         }
@@ -202,7 +200,10 @@ void chaser_validate::validate_block(const header_link& link,
     code ec{};
     chain::context ctx{};
     auto& query = archive();
-    const auto block = query.get_block(link);
+
+    // TODO: implement allocator parameter resulting in full allocation to the
+    // shared_ptr<block>, to optimize deallocation (12% of milestone/filter).
+    auto block = query.get_block(link);
 
     if (!block)
     {
@@ -227,11 +228,12 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
+    
+    // Just being explicit that block should be released in its creation thread.
+    block.reset();
 
-
+    // Decrement the backlog and return to strand to handle result.
     backlog_.fetch_sub(one, std::memory_order_relaxed);
-
-    // Return to strand to handle result.
     complete_block(ec, link, ctx.height, bypass);
 }
 
@@ -298,7 +300,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         // Node errors are fatal.
         if (node::error::error_category::contains(ec))
         {
-            LOGR("Validate fault [" << height << "] " << ec.message());
+            LOGF("Validate [" << height << "] " << ec.message());
             fault(ec);
             return;
         }
@@ -326,7 +328,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         handle_event(ec, chase::bump, height_t{});
 }
 
-// Strand.
+// strand
 // ----------------------------------------------------------------------------
 
 network::asio::strand& chaser_validate::strand() NOEXCEPT

@@ -23,8 +23,6 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
-////#define SEQUENTIAL
-
 namespace libbitcoin {
 namespace node {
 
@@ -40,8 +38,6 @@ public:
     chaser_confirm(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
-    void stopping(const code& ec) NOEXCEPT override;
-    void stop() NOEXCEPT override;
 
 protected:
     using header_links = std_vector<database::header_link>;
@@ -50,45 +46,29 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    ////virtual void do_checking(height_t height) NOEXCEPT;
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
-    virtual void do_bump(height_t branch_point) NOEXCEPT;
+    virtual void do_bump(height_t height) NOEXCEPT;
 
-    ////virtual void do_reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
-    ////virtual void do_organize(header_links& fork, const header_links& popped,
-    ////    size_t fork_point) NOEXCEPT;
-
-    // Override base class strand because it sits on the network thread pool.
-    network::asio::strand& strand() NOEXCEPT override;
-    bool stranded() const NOEXCEPT override;
+    virtual void reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
+    virtual void organize(header_links& fork, const header_links& popped,
+        size_t fork_point) NOEXCEPT;
 
 private:
-    struct neutrino_header
-    {
-        system::hash_digest head{};
-        database::header_link link{};
-    };
-
-    bool set_organized(const database::header_link& link,
-        height_t height) NOEXCEPT;
-    bool reset_organized(const database::header_link& link,
-        height_t height) NOEXCEPT;
+    // setters
+    bool set_regressed(height_t candidate_height) NOEXCEPT;
     bool set_reorganized(const database::header_link& link,
-        height_t height) NOEXCEPT;
+        height_t confirmed_height) NOEXCEPT;
+    bool set_organized(const database::header_link& link,
+        height_t confirmed_height, bool bypassed) NOEXCEPT;
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
 
+    // getters
     bool get_fork_work(uint256_t& fork_work, header_links& fork,
         height_t fork_top) const NOEXCEPT;
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
-
-    // These are protected by strand.
-    network::threadpool threadpool_;
-
-    // These are thread safe.
-    network::asio::strand independent_strand_;
 };
 
 } // namespace node
