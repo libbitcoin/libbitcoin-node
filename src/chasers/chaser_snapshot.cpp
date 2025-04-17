@@ -36,7 +36,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
   : chaser(node),
-    top_checkpoint_(node.config().bitcoin.top_checkpoint().height()),
     snapshot_bytes_(node.config().node.snapshot_bytes),
     snapshot_valid_(node.config().node.snapshot_valid),
     snapshot_confirm_(node.config().node.snapshot_confirm),
@@ -58,11 +57,11 @@ code chaser_snapshot::start() NOEXCEPT
         bytes_ = archive().store_body_size();
 
     if (enabled_valid_)
-        valid_ = std::max(archive().get_top_confirmed(), top_checkpoint_);
-        ////valid_ = std::max(archive().get_top_validated(), top_checkpoint_);
+        valid_ = std::max(archive().get_top_confirmed(), checkpoint());
+        ////valid_ = std::max(archive().get_top_validated(), checkpoint());
 
     if (enabled_confirm_)
-        confirm_ = std::max(archive().get_top_confirmed(), top_checkpoint_);
+        confirm_ = std::max(archive().get_top_confirmed(), checkpoint());
 
     if (enabled_bytes_ || enabled_valid_)
     {
@@ -201,10 +200,10 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 
     if (enabled_valid_)
         valid_ = height;
-        ////valid_ = std::max(query.get_top_validated(), top_checkpoint_);
+        ////valid_ = std::max(query.get_top_validated(), checkpoint());
 
     if (enabled_confirm_)
-        valid_ = std::max(query.get_top_confirmed(), top_checkpoint_);
+        valid_ = std::max(query.get_top_confirmed(), checkpoint());
 }
 
 bool chaser_snapshot::update_bytes() NOEXCEPT
