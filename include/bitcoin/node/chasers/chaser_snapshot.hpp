@@ -53,7 +53,6 @@ private:
     void do_snapshot(height_t height) NOEXCEPT;
 
     // These are thread safe.
-    const size_t top_checkpoint_;
     const uint64_t snapshot_bytes_;
     const size_t snapshot_valid_;
     const size_t snapshot_confirm_;

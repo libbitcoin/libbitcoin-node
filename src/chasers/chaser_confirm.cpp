@@ -140,10 +140,9 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     if (closed())
         return;
 
-    // position is top of the set of contiguously valid blocks starting from
-    // the provided top checkpoint or position, considers milestones and state.
-    const auto& query = archive();
-    set_position(query.get_top_valid_from(std::max(position(), checkpoint())));
+    // position is top of the set of contiguously valid associated blocks
+    // scanning from the provided position, considering milestones and state.
+    set_position(archive().get_top_valid_from(position(), checkpoint()));
 
     // Scan from candidate height to first confirmed, return links and work.
     uint256_t work{};
@@ -158,7 +157,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     if (fork.empty())
         return;
 
-    // Determine if fork has more work than confirmed branch.
     bool strong{};
     const auto fork_point = position() - fork.size();
     if (!get_is_strong(strong, work, fork_point))
@@ -167,16 +165,19 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         return;
     }
 
-    if (strong)
-        reorganize(fork, fork_point);
+    // Fork does not have more work than the confirmed branch.
+    if (!strong)
+        return;
+
+    reorganize(fork, fork_point);
 }
 
 // Pop confirmed chain from top down to above fork point, save popped.
 void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
 
+    const auto& query = archive();
     auto height = query.get_top_confirmed();
     if (height < fork_point)
     {
@@ -214,8 +215,8 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
     size_t fork_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
+    auto& query = archive();
     auto height = fork_point;
     while (!fork.empty())
     {
@@ -324,6 +325,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 
 bool chaser_confirm::set_regressed(height_t candidate_height) NOEXCEPT
 {
+    BC_ASSERT(stranded());
     auto& query = archive();
     const auto link = query.to_candidate(candidate_height);
     return query.set_unstrong(link) || (query.get_block_state(link) ==
@@ -333,6 +335,7 @@ bool chaser_confirm::set_regressed(height_t candidate_height) NOEXCEPT
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
 {
+    BC_ASSERT(stranded());
     auto& query = archive();
     if (!query.pop_confirmed() || !query.set_unstrong(link))
         return false;
@@ -346,6 +349,7 @@ bool chaser_confirm::set_reorganized(const header_link& link,
 bool chaser_confirm::set_organized(const header_link& link,
     height_t confirmed_height, bool bypassed) NOEXCEPT
 {
+    BC_ASSERT(stranded());
     auto& query = archive();
     if ((!bypassed && !query.set_strong(link)) || !query.push_confirmed(link))
         return false;
@@ -361,8 +365,8 @@ bool chaser_confirm::set_organized(const header_link& link,
 bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
     size_t top) NOEXCEPT
 {
+    BC_ASSERT(stranded());
     const auto& query = archive();
-
     for (auto height = top; height > fork_point; --height)
         if (!set_reorganized(query.to_confirmed(height), height))
             return false;
@@ -381,6 +385,7 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
 bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
     height_t fork_top) const NOEXCEPT
 {
+    BC_ASSERT(stranded());
     const auto& query = archive();
     header_link link{};
     fork_work = zero;
@@ -413,6 +418,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
 bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {
+    BC_ASSERT(stranded());
     uint256_t confirmed_work{};
     const auto& query = archive();
 
