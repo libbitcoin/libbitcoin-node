@@ -126,7 +126,6 @@ bool chaser_validate::handle_event(const code&, chase event_,
 void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     if (branch_point >= position())
         return;
 
@@ -237,6 +236,7 @@ void chaser_validate::validate_block(const header_link& link,
     complete_block(ec, link, ctx.height, bypass);
 }
 
+// Unstranded (concurrent by block).
 code chaser_validate::populate(bool bypass, const chain::block& block,
     const chain::context& ctx) NOEXCEPT
 {
@@ -263,6 +263,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     return system::error::success;
 }
 
+// Unstranded (concurrent by block).
 code chaser_validate::validate(bool bypass, const chain::block& block,
     const database::header_link& link, const chain::context& ctx) NOEXCEPT
 {
@@ -291,7 +292,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     return error::success;
 }
 
-// Completes off strand.
+// May or may not be stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
     size_t height, bool bypassed) NOEXCEPT
 {
@@ -328,7 +329,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         handle_event(ec, chase::bump, height_t{});
 }
 
-// strand
+// strand - overridden due to independent priority thread pool
 // ----------------------------------------------------------------------------
 
 network::asio::strand& chaser_validate::strand() NOEXCEPT
