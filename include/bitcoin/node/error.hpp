@@ -98,8 +98,8 @@ enum error_t : uint8_t
     confirm10,
     confirm11,
     confirm12,
-    confirm13
-    ////confirm14,
+    confirm13,
+    confirm14
     ////confirm15
 };
 

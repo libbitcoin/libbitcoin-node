@@ -294,16 +294,20 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
             }
             else
             {
-                // TODO: roll back here?
-                // TODO: may need to lock against candidate reorganization
-                // TODO: during confirmation to prevent inconsistency, not just
-                // TODO: here but in all candidate iteration during confirm.
+                // BUGBUG: resolving this scenario generally requires candidate
+                // BUGBUG: reorganization interlock so that such reorganization
+                // BUGBUG: cannot occur during this confirmation loop. This
+                // BUGBUG: should be a low-conflict interaction given confirm
+                // BUGBUG: does not ensue until header chain is current and the
+                // BUGBUG: very low frequency of additional blocks and very,
+                // BUGBUG: very rare occurrence of candidate chain reorg/disorg.
                 // All fork blocks should be block_valid or block_confirmable,
                 // unless there has been an intervening candidate reorganization
-                // resulting in a candidate blcok by height not being valid,
+                // resulting in a candidate block by height not being valid,
                 // before the reorganization and disorganization events have
                 // been received here. So this method always checks and does
                 // not fault when block state is unexpected.
+                fault(error::confirm13);
                 return;
             }
         }
@@ -311,7 +315,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         // Set strong (if not bypassed) and push to confirmed index.
         if (!set_organized(link, height, bypassed))
         {
-            fault(error::confirm13);
+            fault(error::confirm14);
             return;
         }
 
