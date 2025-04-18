@@ -110,15 +110,6 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    for (auto height = position(); height > branch_point; --height)
-    {
-        if (!set_regressed(height))
-        {
-            fault(error::confirm1);
-            return;
-        }
-    }
-
     // Update position and wait.
     set_position(branch_point);
 }
@@ -169,6 +160,8 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     if (!strong)
         return;
 
+    // BUGBUG: reorganize/organize operations that span a disk full recovery
+    // BUGBUG: may be inconsistent due to orphaned or incomplete set_strong.
     reorganize(fork, fork_point);
 }
 
@@ -313,6 +306,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         }
 
         // Set strong (if not bypassed) and push to confirmed index.
+        // This must not preceed set_block_confirmable (double spend).
         if (!set_organized(link, height, bypassed))
         {
             fault(error::confirm14);
@@ -326,15 +320,6 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 // private setters
 // ----------------------------------------------------------------------------
 // These affect only confirmed chain and strong tx state (not candidate).
-
-bool chaser_confirm::set_regressed(height_t candidate_height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    auto& query = archive();
-    const auto link = query.to_candidate(candidate_height);
-    return query.set_unstrong(link) || (query.get_block_state(link) ==
-        database::error::unassociated);
-}
 
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT

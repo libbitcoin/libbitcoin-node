@@ -245,8 +245,12 @@ void CLASS::do_organize(typename Block::cptr block,
     auto index = top_candidate;
     while (index > branch_point)
     {
+        // Assume any confirmable block has been been set strong.
+        // Milestone blocks are not set confirmable but are set_strong.
         const auto candidate = query.to_candidate(index);
-        if ((is_under_milestone(index) && !query.set_unstrong(candidate)) ||
+        const auto confirmable = query.is_confirmable(candidate);
+        const auto unstrong = confirmable || is_under_milestone(index);
+        if ((unstrong && !query.set_unstrong(candidate)) ||
             !query.pop_candidate())
         {
             handler(fault(error::organize5), height);
@@ -396,8 +400,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
+        // Assume any confirmable block has been been set strong.
+        // Milestone blocks are not set confirmable but are set_strong.
         const auto candidate = query.to_candidate(index);
-        if ((is_under_milestone(index) && !query.set_unstrong(candidate)) ||
+        const auto confirmable = query.is_confirmable(candidate);
+        const auto unstrong = confirmable || is_under_milestone(index);
+        if ((unstrong && !query.set_unstrong(candidate)) ||
             !query.pop_candidate())
         {
             fault(error::organize11);

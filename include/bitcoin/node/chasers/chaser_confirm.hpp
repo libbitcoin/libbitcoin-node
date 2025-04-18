@@ -56,7 +56,6 @@ protected:
 
 private:
     // setters
-    bool set_regressed(height_t candidate_height) NOEXCEPT;
     bool set_reorganized(const database::header_link& link,
         height_t confirmed_height) NOEXCEPT;
     bool set_organized(const database::header_link& link,
