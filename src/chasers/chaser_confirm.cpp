@@ -162,8 +162,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     if (!strong)
         return;
 
-    // BUGBUG: reorganize/organize operations that span a disk full recovery
-    // BUGBUG: may be inconsistent due to orphaned or incomplete set_strong.
     reorganize(fork, fork_point);
 }
 
@@ -322,6 +320,11 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 // private setters
 // ----------------------------------------------------------------------------
 // These affect only confirmed chain and strong tx state (not candidate).
+
+///////////////////////////////////////////////////////////////////////////////
+// BUGBUG: reorganize/organize operations that span a disk full recovery
+// BUGBUG: may be inconsistent between set/unset_strong and push/pop_candidate.
+///////////////////////////////////////////////////////////////////////////////
 
 // Milestoned blocks can become formerly-confirmed.
 // Checkpointed blocks cannot become formerly-confirmed.

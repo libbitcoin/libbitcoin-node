@@ -425,6 +425,11 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 // Private setters
 // ----------------------------------------------------------------------------
 
+///////////////////////////////////////////////////////////////////////////////
+// BUGBUG: reorganize/organize operations that span a disk full recovery
+// BUGBUG: may be inconsistent due to orphaned or incomplete set_strong.
+///////////////////////////////////////////////////////////////////////////////
+
 TEMPLATE
 bool CLASS::set_reorganized(const database::header_link& link,
     height_t candidate_height) NOEXCEPT
