@@ -301,14 +301,14 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Check block.
     // ........................................................................
 
-    const auto checked = is_under_checkpoint(height) ||
-        query.is_milestone(link);
+    const auto checked = is_under_checkpoint(height);
+    const auto bypass = checked || query.is_milestone(link);
 
     // Tx commitments and malleation are checked under bypass. Invalidity is
     // only stored when a strong header has been stored, later to be found out
     // as invalid and not malleable. Stored invalidity prevents repeat
     // processing of the same invalid chain but is not logically necessary.
-    if (const auto code = check(*block, it->context, checked))
+    if (const auto code = check(*block, it->context, bypass))
     {
         // These imply that we don't have actual block represented by the hash.
         if (code == system::error::invalid_transaction_commitment ||
