@@ -68,11 +68,6 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
-    inline bool unfilled() const NOEXCEPT
-    {
-        return backlog_ < maximum_backlog_;
-    }
-
     // This is protected by strand.
     network::threadpool threadpool_;
 

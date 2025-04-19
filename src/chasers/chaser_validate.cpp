@@ -138,7 +138,7 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Don't spend processing time until the gap is filled.
+    // Cannot validate next block until all previous blocks are archived.
     if (height == add1(position()))
         do_bump(height);
 }
@@ -152,17 +152,17 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     const auto& query = archive();
 
     // Bypass until next event if validation backlog is full.
-    for (auto height = add1(position()); unfilled() && !closed(); ++height)
+    for (auto height = add1(position()); (backlog_ < maximum_backlog_) &&
+        !closed(); ++height)
     {
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
 
+        // Wait until the gap is filled.
         if (ec == database::error::unassociated)
-        {
-            // Wait until the gap is filled.
             return;
-        }
-        else if (ec == database::error::block_unconfirmable)
+
+        if (ec == database::error::block_unconfirmable)
         {
             complete_block(ec, link, height, true);
             return;
