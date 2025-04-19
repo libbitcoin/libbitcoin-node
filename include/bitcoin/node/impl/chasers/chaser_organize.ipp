@@ -427,7 +427,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
 ///////////////////////////////////////////////////////////////////////////////
 // BUGBUG: reorganize/organize operations that span a disk full recovery
-// BUGBUG: may be inconsistent due to orphaned or incomplete set_strong.
+// BUGBUG: may be inconsistent between set/unset_strong and push/pop_candidate.
 ///////////////////////////////////////////////////////////////////////////////
 
 TEMPLATE
@@ -445,7 +445,6 @@ bool CLASS::set_reorganized(const database::header_link& link,
     if ((strong && !query.set_unstrong(link)) || !query.pop_candidate())
         return false;
 
-    ////notify(error::success, chase::????, link);
     fire(events::header_reorganized, candidate_height);
     LOGV("Header reorganized: " << candidate_height);
     return true;
@@ -463,7 +462,6 @@ bool CLASS::set_organized(const database::header_link& link,
     if ((strong && !query.set_strong(link)) || !query.push_candidate(link))
         return false;
 
-    ////notify(error::success, chase::????, link);
     ////fire(events::header_organized, candidate_height);
     LOGV("Header organized: " << candidate_height);
     return true;
