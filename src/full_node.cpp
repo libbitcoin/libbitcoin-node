@@ -283,6 +283,8 @@ void full_node::fault(const code& ec) NOEXCEPT
     }
     else if (ec)
     {
+        // This is a resumable error condition, arising from calling fault(ec)
+        // when the cause did not originate from the memory map (!is_fault).
         LOGF("Node fault, " << ec.message());
     }
 

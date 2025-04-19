@@ -110,16 +110,9 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    for (auto height = position(); height > branch_point; --height)
-    {
-        if (!set_regressed(height))
-        {
-            fault(error::confirm1);
-            return;
-        }
-    }
-
     // Update position and wait.
+    // Candidate chain is controlled by organizer and does not directly affect
+    // confirmed chain. Organizer sets unstrong and then pops candidates.
     set_position(branch_point);
 }
 
@@ -294,24 +287,29 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
             }
             else
             {
-                // TODO: roll back here?
-                // TODO: may need to lock against candidate reorganization
-                // TODO: during confirmation to prevent inconsistency, not just
-                // TODO: here but in all candidate iteration during confirm.
+                // BUGBUG: resolving this scenario generally requires candidate
+                // BUGBUG: reorganization interlock so that such reorganization
+                // BUGBUG: cannot occur during this confirmation loop. This
+                // BUGBUG: should be a low-conflict interaction given confirm
+                // BUGBUG: does not ensue until header chain is current and the
+                // BUGBUG: very low frequency of additional blocks and very,
+                // BUGBUG: very rare occurrence of candidate chain reorg/disorg.
                 // All fork blocks should be block_valid or block_confirmable,
                 // unless there has been an intervening candidate reorganization
-                // resulting in a candidate blcok by height not being valid,
+                // resulting in a candidate block by height not being valid,
                 // before the reorganization and disorganization events have
                 // been received here. So this method always checks and does
                 // not fault when block state is unexpected.
+                fault(error::confirm13);
                 return;
             }
         }
 
         // Set strong (if not bypassed) and push to confirmed index.
+        // This must not preceed set_block_confirmable (double spend).
         if (!set_organized(link, height, bypassed))
         {
-            fault(error::confirm13);
+            fault(error::confirm14);
             return;
         }
 
@@ -323,21 +321,22 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 // ----------------------------------------------------------------------------
 // These affect only confirmed chain and strong tx state (not candidate).
 
-bool chaser_confirm::set_regressed(height_t candidate_height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    auto& query = archive();
-    const auto link = query.to_candidate(candidate_height);
-    return query.set_unstrong(link) || (query.get_block_state(link) ==
-        database::error::unassociated);
-}
+///////////////////////////////////////////////////////////////////////////////
+// BUGBUG: reorganize/organize operations that span a disk full recovery
+// BUGBUG: may be inconsistent between set/unset_strong and push/pop_candidate.
+///////////////////////////////////////////////////////////////////////////////
 
+// Milestoned blocks can become formerly-confirmed.
+// Checkpointed blocks cannot become formerly-confirmed.
+// Reorganization sets unstrong on any formerly-confirmed blocks.
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
-    if (!query.pop_confirmed() || !query.set_unstrong(link))
+
+    // TODO: disk full race.
+    if (!query.set_unstrong(link) || !query.pop_confirmed())
         return false;
 
     notify(error::success, chase::reorganized, link);
@@ -346,11 +345,16 @@ bool chaser_confirm::set_reorganized(const header_link& link,
     return true;
 }
 
+// Milestoned (bypassed) blocks are set strong by organizer.
+// Checkpointed (bypassed) blocks are set strong by archiver.
+// Organization sets strong on newly-confirmed non-bypassed blocks.
 bool chaser_confirm::set_organized(const header_link& link,
     height_t confirmed_height, bool bypassed) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
+
+    // TODO: disk full race.
     if ((!bypassed && !query.set_strong(link)) || !query.push_confirmed(link))
         return false;
 
