@@ -131,13 +131,32 @@ private:
     {
         return is_block() ? chase::blocks : chase::headers;
     }
+    static constexpr auto events_object() NOEXCEPT
+    {
+        return is_block() ? events::block_archived : events::header_archived;
+    }
 
-    // Chain methods.
-    // ------------------------------------------------------------------------
+    // Setters
+    // ----------------------------------------------------------------------------
+
+    bool set_reorganized(const database::header_link& link,
+        height_t candidate_height) NOEXCEPT;
+    bool set_organized(const database::header_link& link,
+        height_t candidate_height, bool strong) NOEXCEPT;
+
+    // Move tree Block to database and push to top of candidate chain.
+    code push_block(const system::hash_digest& key) NOEXCEPT;
+
+    /// Store Block to database and push to top of candidate chain.
+    code push_block(const Block& block,
+        const system::chain::context& ctx) NOEXCEPT;
 
     // Store Block into logical tree cache.
     void cache(const typename Block::cptr& block,
         const chain_state::ptr& state) NOEXCEPT;
+
+    // Getters.
+    // ------------------------------------------------------------------------
 
     // Obtain chain state for given previous hash, nullptr if not found.
     chain_state::ptr get_chain_state(
@@ -151,13 +170,6 @@ private:
     // True if work represents a stronger candidate branch.
     bool get_is_strong(bool& strong, const uint256_t& branch_work,
         size_t branch_point) const NOEXCEPT;
-
-    // Move tree Block to database and push to top of candidate chain.
-    code push_block(const system::hash_digest& key) NOEXCEPT;
-
-    /// Store Block to database and push to top of candidate chain.
-    code push_block(const Block& block,
-        const system::chain::context& ctx) const NOEXCEPT;
 
     // Logging.
     // ------------------------------------------------------------------------

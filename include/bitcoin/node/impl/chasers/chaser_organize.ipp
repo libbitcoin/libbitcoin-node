@@ -53,8 +53,8 @@ code CLASS::start() NOEXCEPT
     // when a block first branches below the current chain top. Chain work
     // is a questionable DoS protection scheme only, so could also toss it.
     const auto& query = archive();
-    state_ = query.get_candidate_chain_state(settings_,
-        query.get_top_candidate());
+    const auto top = query.get_top_candidate();
+    state_ = query.get_candidate_chain_state(settings_, top);
 
     if (!state_)
     {
@@ -90,11 +90,6 @@ bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
     if (closed())
         return false;
 
-    // TODO: allow required messages.
-    ////// Stop generating query during suspension.
-    ////if (suspended())
-    ////    return true;
-
     switch (event_)
     {
         case chase::unchecked:
@@ -129,7 +124,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // shared_ptr copy keeps block ref in scope until completion of set_code.
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
-    auto& query = archive();
+    const auto& query = archive();
 
     // Skip existing/orphan, get state.
     // ........................................................................
@@ -230,8 +225,8 @@ void CLASS::do_organize(typename Block::cptr block,
     // Reorganize candidate chain.
     // ........................................................................
 
-    // A milestone can only be set within a to-be-archived chain of candidate
-    // headers/blocks. Once the milestone block is archived it is not useful.
+    // The milestone flag will be archived in the header record.
+    // Here it must be computed from the header tree because it trickles down.
     update_milestone(header, height, branch_point);
 
     const auto top_candidate = state_->height();
@@ -245,37 +240,27 @@ void CLASS::do_organize(typename Block::cptr block,
     auto index = top_candidate;
     while (index > branch_point)
     {
-        // Assume any confirmable block has been been set strong.
-        // Milestone blocks are not set confirmable but are set_strong.
-        const auto candidate = query.to_candidate(index);
-        const auto confirmable = query.is_confirmable(candidate);
-        const auto unstrong = confirmable || is_under_milestone(index);
-        if ((unstrong && !query.set_unstrong(candidate)) ||
-            !query.pop_candidate())
+        if (!set_reorganized(query.to_candidate(index), index--))
         {
             handler(fault(error::organize5), height);
             return;
         }
-
-        fire(events::header_reorganized, index--);
     }
 
-    // Shift chasers to new branch (vs. continuous branch).
+    // Reset chasers to the branch point.
     if (branch_point < top_candidate)
+    {
         notify(error::success, chase::regressed, branch_point);
+    }
 
     // Push stored strong headers to candidate chain.
     for (const auto& link: std::views::reverse(store_branch))
     {
-        if ((is_under_milestone(index) && !query.set_strong(link)) ||
-            !query.push_candidate(link))
+        if (!set_organized(link, index, is_under_milestone(index++)))
         {
             handler(fault(error::organize6), height);
             return;
         }
-
-        ////fire(events::header_organized, index);
-        index++;
     }
 
     // Store strong tree headers and push to candidate chain.
@@ -287,21 +272,14 @@ void CLASS::do_organize(typename Block::cptr block,
             return;
         }
 
-        ////fire(events::header_archived, index);
-        ////fire(events::header_organized, index);
         index++;
     }
 
     // Push new header as top of candidate chain.
+    if ((ec = push_block(*block, state->context())))
     {
-        if ((ec = push_block(*block, state->context())))
-        {
-            handler(fault(ec), height);
-            return;
-        }
-        
-        ////fire(events::header_archived, index);
-        ////fire(events::header_organized, index);
+        handler(fault(ec), height);
+        return;
     }
 
     // Reset top chain state and notify.
@@ -311,7 +289,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Checking currency before notify also avoids excessive work backlog.
     if (is_block() || is_current(header.timestamp()))
     {
-        // TODO: this should probably be sent only once for the process.
+        // TODO: this should probably be sent only once.
         // If at start the fork point is top of both chains, and next candidate
         // is already downloaded, then new header will arrive and download will
         // be skipped, resulting in stall until restart at which time the start
@@ -319,7 +297,8 @@ void CLASS::do_organize(typename Block::cptr block,
         // arrivals. This bumps validation for current strong headers.
         notify(error::success, chase::bump, add1(branch_point));
 
-        // This is to prevent download stall, the check chaser races ahead.
+        // chase::headers | chase::blocks
+        // This prevents download stall, the check chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
         notify(error::success, chase_object(), branch_point);
     }
@@ -376,6 +355,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     }
 
     // Copy candidates from above fork point to below height into header tree.
+    // Height and above excluded from tree since they are unconfirmable blocks.
     // ........................................................................
     // Forward order is required to advance chain state for tree.
 
@@ -400,39 +380,28 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        // Assume any confirmable block has been been set strong.
-        // Milestone blocks are not set confirmable but are set_strong.
-        const auto candidate = query.to_candidate(index);
-        const auto confirmable = query.is_confirmable(candidate);
-        const auto unstrong = confirmable || is_under_milestone(index);
-        if ((unstrong && !query.set_unstrong(candidate)) ||
-            !query.pop_candidate())
+        if (!set_reorganized(query.to_candidate(index), index))
         {
             fault(error::organize11);
             return;
         }
-
-        // headers >= height are invalid, but also report as reorganized.
-        fire(events::header_reorganized, index);
     }
 
-    // Shift chasers to old branch (will be the currently confirmed).
-    notify(error::success, chase::disorganized, fork_point);
-
+    // TODO: this should include notifications to follow disorganized.
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
     const auto top_confirmed = query.get_top_confirmed();
     for (auto index = add1(fork_point); index <= top_confirmed; ++index)
     {
-        // Confirmed are already set_strong and must stay that way.
-        if (!query.push_candidate(query.to_confirmed(index)))
+        // Confirmed blocks may or may not be strong, as a branch severs strong
+        // above the branch point, so as they are copied to the candidate index
+        // they must be assured to be strong, since the fork point moves up.
+        if (!set_organized(query.to_confirmed(index), index, true))
         {
             fault(error::organize12);
             return;
         }
-
-        fire(events::header_organized, index);
     }
 
     state = query.get_candidate_chain_state(settings_, top_confirmed);
@@ -446,12 +415,91 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     log_state_change(*state_, *state);
     state_ = state;
 
+    // Candidate is same as confirmed, reset chasers to new top.
+    notify(error::success, chase::disorganized, top_confirmed);
+
     // Reset all connections to ensure that new connections exist.
     notify(error::success, chase::suspend, {});
 }
 
-// Private
+// Private setters
 // ----------------------------------------------------------------------------
+
+TEMPLATE
+bool CLASS::set_reorganized(const database::header_link& link,
+    height_t candidate_height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // Any milestone or confirmable candidate block must be set unstrong.
+    const auto milestone = is_under_milestone(candidate_height);
+    const auto strong = milestone || query.is_confirmable(link);
+
+    // TODO: disk full race.
+    if ((strong && !query.set_unstrong(link)) || !query.pop_candidate())
+        return false;
+
+    ////notify(error::success, chase::????, link);
+    fire(events::header_reorganized, candidate_height);
+    LOGV("Header reorganized: " << candidate_height);
+    return true;
+}
+
+TEMPLATE
+bool CLASS::set_organized(const database::header_link& link,
+    height_t candidate_height, bool strong) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // TODO: disk full race.
+    // Any milestone or previously-confirmed (strong) block must be set strong.
+    if ((strong && !query.set_strong(link)) || !query.push_candidate(link))
+        return false;
+
+    ////notify(error::success, chase::????, link);
+    ////fire(events::header_organized, candidate_height);
+    LOGV("Header organized: " << candidate_height);
+    return true;
+}
+
+TEMPLATE
+code CLASS::push_block(const Block& block,
+    const system::chain::context& ctx) NOEXCEPT
+{
+    // set_code invokes set_strong when checked, but only for a whole block.
+    // Headers cannot be set strong, that is only when the block is archived.
+    // Milestone is archived in the header and like checkpoint cannot change.
+    // But unlike checkpointed, milestoned blocks may not be strong chain.
+    const auto checked = is_block() && is_under_checkpoint(ctx.height);
+    const auto milestone = is_under_milestone(ctx.height);
+
+    auto& query = archive();
+    database::header_link link{};
+    const auto ec = query.set_code(link, block, ctx, milestone, checked);
+    if (ec)
+        return ec;
+
+    if (!set_organized(link, ctx.height, false))
+        return error::organize14;
+
+    // events:header_archived | events:block_archived
+    ////fire(events_object(), ctx.height);
+    LOGV("Header archived: " << ctx.height);
+    return ec;
+}
+
+TEMPLATE
+code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
+{
+    const auto handle = tree_.extract(system::hash_cref(key));
+    if (!handle)
+        return error::organize15;
+
+    const auto& value = handle.mapped();
+    return push_block(*value.block, value.state->context());
+}
 
 TEMPLATE
 void CLASS::cache(const typename Block::cptr& block,
@@ -460,6 +508,9 @@ void CLASS::cache(const typename Block::cptr& block,
     tree_.emplace(system::hash_cref(block->get_hash()),
         block_state{ block, state });
 }
+
+// Private getters
+// ----------------------------------------------------------------------------
 
 TEMPLATE
 CLASS::chain_state::ptr CLASS::get_chain_state(
@@ -548,38 +599,6 @@ bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
     return true;
 }
 
-TEMPLATE
-code CLASS::push_block(const Block& block,
-    const system::chain::context& ctx) const NOEXCEPT
-{
-    // set_code invokes set_strong when checked.
-    const auto milestone = is_under_milestone(ctx.height);
-    const auto checked = is_block() && is_under_checkpoint(ctx.height);
-
-    auto& query = archive();
-    database::header_link link{};
-    const auto ec = query.set_code(link, block, ctx, milestone, checked);
-    if (ec)
-        return ec;
-
-    if (!query.push_candidate(link))
-        return error::organize14;
-
-    return ec;
-}
-
-TEMPLATE
-code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
-{
-    const auto handle = tree_.extract(system::hash_cref(key));
-    if (!handle)
-        return error::organize15;
-
-    // handle keeps the block reference in scope until completion of set_code.
-    const auto& value = handle.mapped();
-    return push_block(*value.block, value.state->context());
-}
-
 // Properties
 // ----------------------------------------------------------------------------
 
@@ -595,7 +614,7 @@ const typename CLASS::block_tree& CLASS::tree() const NOEXCEPT
     return tree_;
 }
 
-// Logging.
+// Logging
 // ----------------------------------------------------------------------------
 
 TEMPLATE
