@@ -111,6 +111,8 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Update position and wait.
+    // Candidate chain is controlled by organizer and does not directly affect
+    // confirmed chain. Organizer sets unstrong and then pops candidates.
     set_position(branch_point);
 }
 
@@ -321,12 +323,17 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 // ----------------------------------------------------------------------------
 // These affect only confirmed chain and strong tx state (not candidate).
 
+// Milestoned blocks can become formerly-confirmed.
+// Checkpointed blocks cannot become formerly-confirmed.
+// Reorganization sets unstrong on any formerly-confirmed blocks.
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
-    if (!query.pop_confirmed() || !query.set_unstrong(link))
+
+    // TODO: disk full race.
+    if (!query.set_unstrong(link) || !query.pop_confirmed())
         return false;
 
     notify(error::success, chase::reorganized, link);
@@ -335,11 +342,16 @@ bool chaser_confirm::set_reorganized(const header_link& link,
     return true;
 }
 
+// Milestoned (bypassed) blocks are set strong by organizer.
+// Checkpointed (bypassed) blocks are set strong by archiver.
+// Organization sets strong on newly-confirmed non-bypassed blocks.
 bool chaser_confirm::set_organized(const header_link& link,
     height_t confirmed_height, bool bypassed) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
+
+    // TODO: disk full race.
     if ((!bypassed && !query.set_strong(link)) || !query.push_confirmed(link))
         return false;
 
