@@ -175,6 +175,8 @@ bool chaser_header::is_under_milestone(size_t height) const NOEXCEPT
     return height <= active_milestone_height_;
 }
 
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
 void chaser_header::update_milestone(const system::chain::header& header,
     size_t height, size_t branch_point) NOEXCEPT
 {
@@ -208,6 +210,8 @@ void chaser_header::update_milestone(const system::chain::header& header,
     if (active_milestone_height_ > branch_point)
         active_milestone_height_ = branch_point;
 }
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
