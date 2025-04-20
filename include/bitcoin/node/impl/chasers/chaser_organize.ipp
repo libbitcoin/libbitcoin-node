@@ -462,7 +462,7 @@ bool CLASS::set_organized(const database::header_link& link,
     if ((strong && !query.set_strong(link)) || !query.push_candidate(link))
         return false;
 
-    ////fire(events::header_organized, candidate_height);
+    fire(events::header_organized, candidate_height);
     LOGV("Header organized: " << candidate_height);
     return true;
 }
@@ -488,7 +488,7 @@ code CLASS::push_block(const Block& block,
         return error::organize14;
 
     // events:header_archived | events:block_archived
-    ////fire(events_object(), ctx.height);
+    fire(events_object(), ctx.height);
     LOGV("Header archived: " << ctx.height);
     return ec;
 }
