@@ -140,35 +140,40 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 
     // Cannot validate next block until all previous blocks are archived.
     if (height == add1(position()))
-        do_bump(height);
+        do_bumped(height);
 }
-
-// validate (cancellable)
-// ----------------------------------------------------------------------------
 
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
 
+    // Only necessary when bumping as next position may not be associated.
+    const auto height = add1(position());
+    const auto link = query.to_candidate(height);
+    const auto ec = query.get_block_state(link);
+    if (ec != database::error::unassociated &&
+        ec != database::error::block_unconfirmable)
+        do_bumped(height);
+}
+
+// validate (cancellable)
+// ----------------------------------------------------------------------------
+
+void chaser_validate::do_bumped(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
     // Bypass until next event if validation backlog is full.
-    for (auto height = add1(position()); (backlog_ < maximum_backlog_) &&
-        !closed(); ++height)
+    while ((backlog_ < maximum_backlog_) && !closed())
     {
+        // Wait until the gap is filled.
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
-
-        // Wait until the gap is filled.
         if (ec == database::error::unassociated)
             return;
 
-        if (ec == database::error::block_unconfirmable)
-        {
-            complete_block(ec, link, height, true);
-            return;
-        }
-
-        // block_unknown allowed here (debug reset).
         const auto bypass =
             (ec == database::error::block_valid) ||
             (ec == database::error::block_confirmable) ||
@@ -178,14 +183,20 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         {
             complete_block(database::error::success, link, height, true);
         }
-        else
+        else if (ec == database::error::unvalidated)
         {
             // Increment the backlog and lauch job.
             backlog_.fetch_add(one, std::memory_order_relaxed);
             PARALLEL(validate_block, link, bypass);
         }
+        else
+        {
+            // A candidate organization race can cause this (ok).
+            complete_block(ec, link, height, true);
+            return;
+        }
 
-        set_position(height);
+        set_position(height++);
     }
 }
 
@@ -293,7 +304,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
 // May or may not be stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool bypassed) NOEXCEPT
+    size_t height, bool) NOEXCEPT
 {
     if (ec)
     {
@@ -305,23 +316,17 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
             return;
         }
 
+        // INVALID BLOCK (NON FAULT)
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
-
-        // Stop the network in case of an unexpected invalidity (debugging).
-        // This is considered a bug, not an invalid block arrival (for now).
-        ////fault(ec);
         return;
     }
 
+    // VALID BLOCK
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
-
-    if (!bypassed)
-    {
-        fire(events::block_validated, height);
-        ////LOGV("Block validated: " << height);
-    }
+    fire(events::block_validated, height);
+    LOGV("Block validated: " << height);
 
     // Prevent stall by posting internal event, avoid hitting external handlers.
     if (is_zero(backlog_.load(std::memory_order_relaxed)))

@@ -51,6 +51,7 @@ protected:
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
+    virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
     virtual void validate_block(const database::header_link& link,

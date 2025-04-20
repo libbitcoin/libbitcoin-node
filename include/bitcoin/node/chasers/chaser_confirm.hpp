@@ -48,6 +48,7 @@ protected:
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
+    virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
     virtual void reorganize(header_links& fork, size_t fork_point) NOEXCEPT;

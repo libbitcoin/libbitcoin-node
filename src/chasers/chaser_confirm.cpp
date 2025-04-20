@@ -119,28 +119,48 @@ void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
 void chaser_confirm::do_validated(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    do_bump(height);
+
+    // Cannot confirm next block until previous block is confirmed.
+    if (height == add1(position()))
+        do_bumped(height);
+}
+
+void chaser_confirm::do_bump(height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    // Only necessary when bumping as next position may not be validated.
+    const auto height = add1(position());
+    const auto link = query.to_candidate(height);
+    const auto ec = query.get_block_state(link);
+    const auto bypass =
+        (ec == database::error::block_valid) ||
+        (ec == database::error::block_confirmable) ||
+        is_under_checkpoint(height) || query.is_milestone(link);
+
+    // Block state must be checked, milestone, valid, or confirmable. This
+    // is assured by chasing validations. But if filtering, must have been
+    // filtered by the validator (otherwise bypass races ahead of validate).
+    if (bypass && query.is_filtered(link))
+        do_bumped(height);
 }
 
 // confirm (not cancellable)
 // ----------------------------------------------------------------------------
 
 // Compute relative work, set fork and fork_point, and invoke reorganize.
-void chaser_confirm::do_bump(height_t) NOEXCEPT
+void chaser_confirm::do_bumped(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (closed())
         return;
 
-    // position is top of the set of contiguously valid associated blocks
-    // scanning from the provided position, considering milestones and state.
-    set_position(archive().get_top_valid_from(position(), checkpoint()));
-
     // Scan from candidate height to first confirmed, return links and work.
     uint256_t work{};
     header_links fork{};
-    if (!get_fork_work(work, fork, position()))
+    if (!get_fork_work(work, fork, height))
     {
         fault(error::confirm2);
         return;
@@ -151,7 +171,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         return;
 
     bool strong{};
-    const auto fork_point = position() - fork.size();
+    const auto fork_point = height - fork.size();
     if (!get_is_strong(strong, work, fork_point))
     {
         fault(error::confirm3);
@@ -210,110 +230,96 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
     BC_ASSERT(stranded());
 
     auto& query = archive();
-    auto height = fork_point;
+    auto height = add1(fork_point);
     while (!fork.empty())
     {
-        ++height;
-        auto bypassed = false;
         const auto& link = fork.back();
+        auto ec = query.get_block_state(link);
+        const auto bypass =
+            (ec == database::error::block_confirmable) ||
+            is_under_checkpoint(height) || query.is_milestone(link);
 
-        if (is_under_checkpoint(height) || query.is_milestone(link))
+        if (bypass)
         {
-            // Block state must be valid or confirmable or this will fail.
-            bypassed = true;
             if (!query.set_filter_head(link))
             {
                 fault(error::confirm7);
                 return;
             }
         }
-        else
+        else if (ec == database::error::block_valid)
         {
-            auto ec = query.get_block_state(link);
-            if (ec == database::error::block_valid)
+            // Confirmation query.
+            if ((ec = query.block_confirmable(link)))
             {
-                // Confirmation query.
-                if ((ec = query.block_confirmable(link)))
+                // Database errors are fatal.
+                if (database::error::error_category::contains(ec))
                 {
-                    if (database::error::error_category::contains(ec))
-                    {
-                        LOGF("Confirm [" << height << "] " << ec.message());
-                        fault(ec);
-                        return;
-                    }
-
-                    if (!query.set_unstrong(link))
-                    {
-                        fault(error::confirm8);
-                        return;
-                    }
-
-                    if (!query.set_block_unconfirmable(link))
-                    {
-                        fault(error::confirm9);
-                        return;
-                    }
-
-                    if (!roll_back(popped, fork_point, sub1(height)))
-                        fault(error::confirm10);
-
-                    notify(ec, chase::unconfirmable, link);
-                    fire(events::block_unconfirmable, height);
-                    LOGR("Unconfirmable [" << height << "] " << ec.message());
+                    LOGF("Confirm [" << height << "] " << ec.message());
+                    fault(ec);
                     return;
                 }
 
-                // Set before changing block state.
-                if (!query.set_filter_head(link))
+                if (!query.set_unstrong(link))
                 {
-                    fault(error::confirm11);
+                    fault(error::confirm8);
                     return;
                 }
 
-                // Prevents reconfirm of entire chain.
-                if (!query.set_block_confirmable(link))
+                if (!query.set_block_unconfirmable(link))
                 {
-                    fault(error::confirm12);
+                    fault(error::confirm9);
                     return;
                 }
 
-                notify(error::success, chase::confirmable, height);
-                ////fire(events::block_confirmed, height);
-                LOGV("Block confirmable: " << height);
-            }
-            else if (ec == database::error::block_confirmable)
-            {
-                // Nothing to check, state and filter set, just organize.
-            }
-            else
-            {
-                // BUGBUG: resolving this scenario generally requires candidate
-                // BUGBUG: reorganization interlock so that such reorganization
-                // BUGBUG: cannot occur during this confirmation loop. This
-                // BUGBUG: should be a low-conflict interaction given confirm
-                // BUGBUG: does not ensue until header chain is current and the
-                // BUGBUG: very low frequency of additional blocks and very,
-                // BUGBUG: very rare occurrence of candidate chain reorg/disorg.
-                // All fork blocks should be block_valid or block_confirmable,
-                // unless there has been an intervening candidate reorganization
-                // resulting in a candidate block by height not being valid,
-                // before the reorganization and disorganization events have
-                // been received here. So this method always checks and does
-                // not fault when block state is unexpected.
-                fault(error::confirm13);
+                if (!roll_back(popped, fork_point, sub1(height)))
+                    fault(error::confirm10);
+
+                // UNCONFIRMABLE BLOCK (NON FAULT)
+                notify(ec, chase::unconfirmable, link);
+                fire(events::block_unconfirmable, height);
+                LOGR("Unconfirmable block [" << height << "] " << ec.message());
                 return;
             }
+
+            // Set before changing block state.
+            if (!query.set_filter_head(link))
+            {
+                fault(error::confirm11);
+                return;
+            }
+
+            // Prevents reconfirm of entire chain.
+            if (!query.set_block_confirmable(link))
+            {
+                fault(error::confirm12);
+                return;
+            }
+
+            // CONFIRMABLE BLOCK
+            notify(error::success, chase::confirmable, height);
+            fire(events::block_confirmed, height);
+            LOGV("Block confirmable: " << height);
+        }
+        else
+        {
+            ///////////////////////////////////////////////////////////////////
+            // BUGBUG: A candidate organization race can cause this.
+            ///////////////////////////////////////////////////////////////////
+            fault(error::confirm13);
+            return;
         }
 
-        // Set strong (if not bypassed) and push to confirmed index.
+        // Set strong (if not bypass) and push to confirmed index.
         // This must not preceed set_block_confirmable (double spend).
-        if (!set_organized(link, height, bypassed))
+        if (!set_organized(link, height, bypass))
         {
             fault(error::confirm14);
             return;
         }
 
         fork.pop_back();
+        set_position(height++);
     }
 }
 
