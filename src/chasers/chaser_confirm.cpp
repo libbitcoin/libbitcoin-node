@@ -262,6 +262,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
             }
             case database::error::block_confirmable:
             {
+                // Previously confirmable is NOT considered bypass here.
                 complete_block(error::success, link, height, bypass);
                 break;
             }

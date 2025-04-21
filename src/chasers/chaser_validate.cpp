@@ -206,8 +206,8 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             case database::error::block_valid:
             case database::error::block_confirmable:
             {
-                // Previously valid is considered bypass here.
-                complete_block(error::success, link, height, true);
+                // Previously valid is NOT considered bypass.
+                complete_block(error::success, link, height, bypass);
                 return;
             }
             default:
