@@ -169,7 +169,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 
     // Upon iteration any block state may be enountered.
     // Bypass until next event if validation backlog is full.
-    while ((backlog_ < maximum_backlog_) && !closed())
+    while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
         const auto bypass = is_under_checkpoint(height) ||
