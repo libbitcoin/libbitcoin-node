@@ -54,6 +54,11 @@ protected:
     virtual void reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
     virtual void organize(header_links& fork, const header_links& popped,
         size_t fork_point) NOEXCEPT;
+    virtual bool confirm_block(const database::header_link& link,
+        size_t height, const header_links& popped, size_t fork_point) NOEXCEPT;
+    virtual void complete_block(const code& ec,
+        const database::header_link& link, size_t height,
+        bool bypassed) NOEXCEPT;
 
 private:
     // setters
