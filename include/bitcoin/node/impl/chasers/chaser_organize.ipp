@@ -387,7 +387,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         }
     }
 
-    // TODO: this should include notifications to follow disorganized.
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
