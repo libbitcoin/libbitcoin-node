@@ -140,9 +140,10 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     const auto ready =
         (ec == database::error::block_valid) ||
         (ec == database::error::block_confirmable) ||
-        is_under_checkpoint(height) || query.is_milestone(link);
+        ((is_under_checkpoint(height) || query.is_milestone(link)) && 
+            query.is_filtered(link));
 
-    if (ready && query.is_filtered(link))
+    if (ready)
         do_bumped(height);
 }
 
