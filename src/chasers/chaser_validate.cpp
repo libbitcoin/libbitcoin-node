@@ -226,7 +226,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 void chaser_validate::validate_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
-    if (closed())
+    if (closed() || suspended())
         return;
 
     code ec{};
