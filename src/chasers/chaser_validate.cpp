@@ -152,9 +152,8 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         (ec == database::error::block_valid) ||
         (ec == database::error::block_confirmable);
 
-    // Block state must be unvalidated, valid, or confirmable. Checked and
-    // milestone are captured by unvalidated. This is assured in do_checked by
-    // chasing block checks.
+    // First block state should be unvalidated, valid, or confirmable. This is
+    // assured in do_checked by chasing block checks.
     if (ready)
         do_bumped(height);
 }
@@ -167,13 +166,17 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
-    // Upon iteration any block state may be enountered.
     // Bypass until next event if validation backlog is full.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
+        const auto ec = query.get_block_state(link);
         const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
+
+        // Upon iteration any block state may be enountered.
+        if (ec == database::error::unassociated)
+            return;
 
         if (bypass)
         {
@@ -187,9 +190,9 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
                 complete_block(error::success, link, height, bypass);
             }
         }
-        else switch (query.get_block_state(link).value())
+        else switch (ec.value())
         {
-            case database::error::unassociated:
+            ////case database::error::unassociated:
             case database::error::block_unconfirmable:
             {
                 return;

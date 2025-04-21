@@ -134,14 +134,12 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     const auto link = query.to_candidate(height);
     const auto ec = query.get_block_state(link);
     const auto ready =
+        (ec == database::error::unvalidated) ||
         (ec == database::error::block_valid) ||
-        (ec == database::error::block_confirmable) ||
-        is_under_checkpoint(height) || query.is_milestone(link);
+        (ec == database::error::block_confirmable);
 
-    // First block state must be checked, milestone, valid, or confirmable.
-    // This is assured in do_validated by chasing validations. If filtering,
-    // must have been filtered by the validator (otherwise bypass races ahead
-    // of validate).
+    // First block state should be unvalidated, valid, or confirmable. This is
+    // assured in do_checked by chasing block checks.
     if (ready && query.is_filtered(link))
         do_bumped(height);
 }
@@ -231,12 +229,17 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
     auto& query = archive();
     auto height = add1(fork_point);
 
-    // Upon iteration any block state may be enountered.
     while (!fork.empty())
     {
         const auto& link = fork.back();
+        const auto ec = query.get_block_state(link);
         const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
+
+        // Upon iteration any block state may be enountered. However
+        // unassociated should not be encounterable here once interlocked.
+        if (ec == database::error::unassociated)
+            return;
 
         if (bypass)
         {
@@ -248,7 +251,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 
             complete_block(error::success, link, height, bypass);
         }
-        else switch (query.get_block_state(link).value())
+        else switch (ec.value())
         {
             case database::error::block_valid:
             {
