@@ -257,10 +257,8 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         {
             case database::error::block_valid:
             {
-                if (!confirm_block(link, height, popped, fork_point))
-                    return;
-
-                FALLTHROUGH;
+                if (!confirm_block(link, height, popped, fork_point)) return;
+                break;
             }
             case database::error::block_confirmable:
             {
