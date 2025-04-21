@@ -179,11 +179,16 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
         return;
     }
 
-    // Fork does not have more work than the confirmed branch.
+    // Fork does not have more work than the confirmed branch. Position moves
+    // up to accumulate blocks until sufficient work, or regression resets it.
     if (!strong)
+    {
+        set_position(height);
         return;
+    }
 
     reorganize(fork, fork_point);
+    set_position(height);
 }
 
 // Pop confirmed chain from top down to above fork point, save popped.
@@ -215,8 +220,6 @@ void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
             fault(error::confirm6);
             return;
         }
-
-        set_position(--height);
     }
 
     // Top is now fork_point.
