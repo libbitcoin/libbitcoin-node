@@ -209,11 +209,13 @@ void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
         }
 
         popped.push_back(link);
-        if (!set_reorganized(link, height--))
+        if (!set_reorganized(link, height))
         {
             fault(error::confirm6);
             return;
         }
+
+        set_position(--height);
     }
 
     // Top is now fork_point.
