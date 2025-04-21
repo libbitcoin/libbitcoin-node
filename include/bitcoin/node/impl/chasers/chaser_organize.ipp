@@ -289,13 +289,16 @@ void CLASS::do_organize(typename Block::cptr block,
     // Checking currency before notify also avoids excessive work backlog.
     if (is_block() || is_current(header.timestamp()))
     {
-        // TODO: this should probably be sent only once.
-        // If at start the fork point is top of both chains, and next candidate
-        // is already downloaded, then new header will arrive and download will
-        // be skipped, resulting in stall until restart at which time the start
-        // event will advance through all downloaded candidates and progress on
-        // arrivals. This bumps validation for current strong headers.
-        notify(error::success, chase::bump, add1(branch_point));
+        if (!bumped_)
+        {
+            // If at start the fork point is top of both chains, and next candidate
+            // is already downloaded, then new header will arrive and download will
+            // be skipped, resulting in stall until restart at which time the start
+            // event will advance through all downloaded candidates and progress on
+            // arrivals. This bumps validation once for current strong headers.
+            notify(error::success, chase::bump, add1(branch_point));
+            bumped_ = true;
+        }
 
         // chase::headers | chase::blocks
         // This prevents download stall, the check chaser races ahead.
