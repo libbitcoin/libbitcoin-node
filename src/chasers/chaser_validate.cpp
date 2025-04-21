@@ -33,9 +33,6 @@ using namespace system;
 using namespace database;
 using namespace std::placeholders;
 
-// Shared pointer is required to keep the race object alive in bind closure.
-BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
-BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Independent threadpool and strand (base class strand uses network pool).
@@ -129,63 +126,99 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
     if (branch_point >= position())
         return;
 
-    // Update position and wait.
     set_position(branch_point);
 }
 
-// Candidate block checked at given height, if next then validate/advance.
 void chaser_validate::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Don't spend processing time until the gap is filled.
+    // Cannot validate next block until all previous blocks are archived.
     if (height == add1(position()))
-        do_bump(height);
+        do_bumped(height);
 }
-
-// validate (cancellable)
-// ----------------------------------------------------------------------------
 
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
 
+    // Only necessary when bumping as next position may not be associated.
+    const auto height = add1(position());
+    const auto link = query.to_candidate(height);
+    const auto ec = query.get_block_state(link);
+
+    // First block state should be unvalidated, valid, or confirmable. This is
+    // assured in do_checked by chasing block checks.
+    const auto ready =
+        (ec == database::error::unvalidated) ||
+        (ec == database::error::block_valid) ||
+        (ec == database::error::block_confirmable);
+
+    if (ready)
+        do_bumped(height);
+}
+
+// validate (cancellable)
+// ----------------------------------------------------------------------------
+
+void chaser_validate::do_bumped(height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
     // Bypass until next event if validation backlog is full.
-    for (auto height = add1(position()); unfilled() && !closed(); ++height)
+    while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
+        // Given height-based iteration, any block state may be enountered.
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
-
         if (ec == database::error::unassociated)
-        {
-            // Wait until the gap is filled.
             return;
-        }
-        else if (ec == database::error::block_unconfirmable)
+
+        const auto bypass = is_under_checkpoint(height) ||
+            query.is_milestone(link);
+
+        if (bypass)
         {
-            complete_block(ec, link, height, true);
-            return;
+            if (filter_)
+            {
+                backlog_.fetch_add(one, std::memory_order_relaxed);
+                PARALLEL(validate_block, link, bypass);
+            }
+            else
+            {
+                complete_block(error::success, link, height, bypass);
+            }
+        }
+        else switch (ec.value())
+        {
+            ////case database::error::unassociated:
+            case database::error::block_unconfirmable:
+            {
+                return;
+            }
+            case database::error::unvalidated:
+            {
+                backlog_.fetch_add(one, std::memory_order_relaxed);
+                PARALLEL(validate_block, link, bypass);
+                break;
+            }
+            case database::error::block_valid:
+            case database::error::block_confirmable:
+            {
+                // Previously valid is NOT considered bypass.
+                complete_block(error::success, link, height, bypass);
+                break;
+            }
+            default:
+            {
+                fault(error::validate1);
+                return;
+            }
         }
 
-        // block_unknown allowed here (debug reset).
-        const auto bypass =
-            (ec == database::error::block_valid) ||
-            (ec == database::error::block_confirmable) ||
-            is_under_checkpoint(height) || query.is_milestone(link);
-
-        if (bypass && !filter_)
-        {
-            complete_block(database::error::success, link, height, true);
-        }
-        else
-        {
-            // Increment the backlog and lauch job.
-            backlog_.fetch_add(one, std::memory_order_relaxed);
-            PARALLEL(validate_block, link, bypass);
-        }
-
-        set_position(height);
+        set_position(height++);
     }
 }
 
@@ -206,25 +239,21 @@ void chaser_validate::validate_block(const header_link& link,
 
     if (!block)
     {
-        ec = error::validate1;
+        ec = error::validate2;
     }
     else if (!query.get_context(ctx, link))
     {
-        ec = error::validate2;
+        ec = error::validate3;
     }
     else if ((ec = populate(bypass, *block, ctx)))
     {
         if (!query.set_block_unconfirmable(link))
-            ec = error::validate3;
+            ec = error::validate4;
     }
     else if ((ec = validate(bypass, *block, link, ctx)))
     {
-        ///////////////////////////////////////////////////////////////////////
-        ////fire(events::template_issued, (ctx.height * 10'000u) + block->segregated());
-        ///////////////////////////////////////////////////////////////////////
-
         if (!query.set_block_unconfirmable(link))
-            ec = error::validate4;
+            ec = error::validate5;
     }
     
     // Just being explicit that block should be released in its creation thread.
@@ -259,7 +288,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
             return system::error::missing_previous_output;
     }
     
-    return system::error::success;
+    return error::success;
 }
 
 // Unstranded (concurrent by block).
@@ -278,50 +307,44 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
             return ec;
 
         if (!query.set_prevouts(link, block))
-            return error::validate5;
+            return error::validate6;
     }
 
     if (!query.set_filter_body(link, block))
-        return error::validate6;
-
-    // This must be set after prevouts and filter due to confirmation ordering.
-    if (!bypass && !query.set_block_valid(link, block.fees()))
         return error::validate7;
+
+    // After set_prevouts and set_filter_body.
+    if (!bypass && !query.set_block_valid(link, block.fees()))
+        return error::validate8;
 
     return error::success;
 }
 
 // May or may not be stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool bypassed) NOEXCEPT
+    size_t height, bool) NOEXCEPT
 {
     if (ec)
     {
         // Node errors are fatal.
         if (node::error::error_category::contains(ec))
         {
-            LOGF("Validate [" << height << "] " << ec.message());
+            LOGF("Fault validating [" << height << "] " << ec.message());
             fault(ec);
             return;
         }
 
+        // INVALID BLOCK (not a fault)
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
-
-        // Stop the network in case of an unexpected invalidity (debugging).
-        // This is considered a bug, not an invalid block arrival (for now).
-        ////fault(ec);
         return;
     }
 
+    // VALID BLOCK (bypass not differentiated)
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
-
-    if (!bypassed)
-    {
-        fire(events::block_validated, height);
-        ////LOGV("Block validated: " << height);
-    }
+    fire(events::block_validated, height);
+    LOGV("Block validated: " << height);
 
     // Prevent stall by posting internal event, avoid hitting external handlers.
     if (is_zero(backlog_.load(std::memory_order_relaxed)))
@@ -341,8 +364,6 @@ bool chaser_validate::stranded() const NOEXCEPT
     return independent_strand_.running_in_this_thread();
 }
 
-BC_POP_WARNING()
-BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

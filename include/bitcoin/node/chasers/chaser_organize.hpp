@@ -183,6 +183,7 @@ private:
     const system::chain::checkpoints& checkpoints_;
 
     // These are protected by strand.
+    bool bumped_{};
     chain_state::ptr state_{};
 
     // TODO: optimize, default bucket count is around 8.

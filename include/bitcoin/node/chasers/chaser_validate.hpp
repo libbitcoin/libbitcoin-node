@@ -51,6 +51,7 @@ protected:
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
+    virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
     virtual void validate_block(const database::header_link& link,
@@ -61,18 +62,14 @@ protected:
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec,
-        const database::header_link& link, size_t height, bool bypassed) NOEXCEPT;
+        const database::header_link& link, size_t height,
+        bool bypassed) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
     bool stranded() const NOEXCEPT override;
 
 private:
-    inline bool unfilled() const NOEXCEPT
-    {
-        return backlog_ < maximum_backlog_;
-    }
-
     // This is protected by strand.
     network::threadpool threadpool_;
 

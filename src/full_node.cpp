@@ -274,12 +274,14 @@ void full_node::fault(const code& ec) NOEXCEPT
 {
     if (query_.is_full())
     {
-        LOGF("Disk full, [" << query_.get_space() << "] bytes required.");
+        LOGF("Disk full [" << query_.get_space()
+            << "] bytes required following, " << ec.message());
         notify(ec, chase::space, {});
     }
     else if (query_.is_fault())
     {
-        LOGF("Store fault, " << query_.get_fault());
+        LOGF("Store faulted '" << query_.get_fault().message()
+            << "' following, " << ec.message());
     }
     else if (ec)
     {

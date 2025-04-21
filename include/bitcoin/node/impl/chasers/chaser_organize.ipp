@@ -289,13 +289,16 @@ void CLASS::do_organize(typename Block::cptr block,
     // Checking currency before notify also avoids excessive work backlog.
     if (is_block() || is_current(header.timestamp()))
     {
-        // TODO: this should probably be sent only once.
-        // If at start the fork point is top of both chains, and next candidate
-        // is already downloaded, then new header will arrive and download will
-        // be skipped, resulting in stall until restart at which time the start
-        // event will advance through all downloaded candidates and progress on
-        // arrivals. This bumps validation for current strong headers.
-        notify(error::success, chase::bump, add1(branch_point));
+        if (!bumped_)
+        {
+            // If at start the fork point is top of both chains, and next candidate
+            // is already downloaded, then new header will arrive and download will
+            // be skipped, resulting in stall until restart at which time the start
+            // event will advance through all downloaded candidates and progress on
+            // arrivals. This bumps validation once for current strong headers.
+            notify(error::success, chase::bump, add1(branch_point));
+            bumped_ = true;
+        }
 
         // chase::headers | chase::blocks
         // This prevents download stall, the check chaser races ahead.
@@ -387,7 +390,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         }
     }
 
-    // TODO: this should include notifications to follow disorganized.
     // Push confirmed headers from above fork point onto candidate chain.
     // ........................................................................
 
@@ -462,7 +464,7 @@ bool CLASS::set_organized(const database::header_link& link,
     if ((strong && !query.set_strong(link)) || !query.push_candidate(link))
         return false;
 
-    ////fire(events::header_organized, candidate_height);
+    fire(events::header_organized, candidate_height);
     LOGV("Header organized: " << candidate_height);
     return true;
 }
@@ -488,7 +490,7 @@ code CLASS::push_block(const Block& block,
         return error::organize14;
 
     // events:header_archived | events:block_archived
-    ////fire(events_object(), ctx.height);
+    fire(events_object(), ctx.height);
     LOGV("Header archived: " << ctx.height);
     return ec;
 }

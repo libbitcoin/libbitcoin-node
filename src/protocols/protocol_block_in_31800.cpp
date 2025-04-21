@@ -269,7 +269,6 @@ get_data protocol_block_in_31800::create_get_data(
 // check block
 // ----------------------------------------------------------------------------
 
-// Messages are allocated in a thread of the channel and 
 bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
 {
@@ -281,7 +280,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Preconditions.
     // ........................................................................
 
-    // message lifetime is guaranteed, and therefore block_ptr is as well.
     const auto& block = message->block_ptr;
     const auto& hash = block->get_hash();
     const auto it = map_->find(hash);
@@ -307,7 +305,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Tx commitments and malleation are checked under bypass. Invalidity is
     // only stored when a strong header has been stored, later to be found out
     // as invalid and not malleable. Stored invalidity prevents repeat
-    // processing of the same invalid chain but is not logically necessary.
+    // processing of the same invalid chain but is not necessary or desirable.
     if (const auto code = check(*block, it->context, bypass))
     {
         // These imply that we don't have actual block represented by the hash.
@@ -326,8 +324,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         // Actual block represented by the hash is unconfirmable.
         if (!query.set_block_unconfirmable(link))
         {
-            LOGF("Failure setting block unconfirmable [" << encode_hash(hash)
-                << ":" << height << "] from [" << authority() << "].");
             stop(fault(error::protocol1));
             return false;
         }
@@ -343,21 +339,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    // This populates duplicate table always.
-    // This populates strong_tx table when checked.
-    // This populates address table when table is enabled.
     if (const auto code = query.set_code(*block, link, checked))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << authority() << "] " << code.message());
 
         stop(fault(code));
-        return false;
-    }
-
-    if (!block->is_valid())
-    {
-        stop(fault(error::protocol2));
         return false;
     }
 
@@ -370,13 +357,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
-    ///////////////////////////////////////////////////////////////////////////
-    ////fire(events::block_archived, (height * 10'000u) + block->segregated());
-    ///////////////////////////////////////////////////////////////////////////
-    ////fire(events::block_archived, archive().positive_search_count());
-    ////fire(events::block_buffered, archive().negative_search_count());
-    ///////////////////////////////////////////////////////////////////////////
-
     count(block->serialized_size(true));
     map_->erase(it);
     if (is_idle())
@@ -388,36 +368,25 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-// Header state is checked by organize.
+// Identity is correct unless error::invalid_witness_commitment or
+// error::invalid_transaction_commitment is returned. Only identity is required
+// under bypass. Header state is checked by organize. 
 code protocol_block_in_31800::check(const chain::block& block,
     const chain::context& ctx, bool bypass) const NOEXCEPT
 {
     code ec{};
     if (bypass)
     {
-        // Only identity is required under bypass.
         if (((ec = block.identify())) || ((ec = block.identify(ctx))))
             return ec;
     }
     else
     {
-        // Identity is not correct if error::invalid_transaction_commitment.
-        if ((ec = block.check()))
-        {
-            // Identity is not correct if error::block_malleated.
-            if ((ec != system::error::invalid_transaction_commitment) &&
-                block.is_malleated())
-                return system::error::block_malleated;
-
-            return ec;
-        }
-
-        // Identity is not correct if error::invalid_witness_commitment.
-        if ((ec = block.check(ctx)))
+        if (((ec = block.check())) || ((ec = block.check(ctx))))
             return ec;
     }
 
-    return system::error::block_success;
+    return error::success;
 }
 
 // get/put hashes

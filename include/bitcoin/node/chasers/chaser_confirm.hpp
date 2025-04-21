@@ -48,11 +48,17 @@ protected:
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
     virtual void do_validated(height_t height) NOEXCEPT;
+    virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
     virtual void reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
     virtual void organize(header_links& fork, const header_links& popped,
         size_t fork_point) NOEXCEPT;
+    virtual bool confirm_block(const database::header_link& link,
+        size_t height, const header_links& popped, size_t fork_point) NOEXCEPT;
+    virtual void complete_block(const code& ec,
+        const database::header_link& link, size_t height,
+        bool bypassed) NOEXCEPT;
 
 private:
     // setters
