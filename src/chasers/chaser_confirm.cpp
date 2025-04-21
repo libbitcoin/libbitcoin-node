@@ -215,7 +215,7 @@ void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
         }
 
         popped.push_back(link);
-        if (!set_reorganized(link, height))
+        if (!set_reorganized(link, height--))
         {
             fault(error::confirm6);
             return;
@@ -280,7 +280,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         }
 
         // After set_block_confirmable.
-        if (!set_organized(link, height, bypass))
+        if (!set_organized(link, height++, bypass))
         {
             fault(error::confirm5);
             return;
