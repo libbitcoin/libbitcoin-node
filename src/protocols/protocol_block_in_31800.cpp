@@ -308,12 +308,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // processing of the same invalid chain but is not necessary or desirable.
     if (const auto code = check(*block, it->context, bypass))
     {
-        // These imply that we don't have actual block represented by the hash.
         if (code == system::error::invalid_transaction_commitment ||
-            code == system::error::invalid_witness_commitment ||
-            code == system::error::block_malleated)
+            code == system::error::invalid_witness_commitment)
         {
-            LOGR("Uncommitted block [" << encode_hash(hash) << ":" << height
+            LOGR("Malleated block [" << encode_hash(hash) << ":" << height
                 << "] from [" << authority() << "] " << code.message()
                 << " txs(" << block->transactions() << ")"
                 << " segregated(" << block->is_segregated() << ").");
@@ -321,7 +319,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        // Actual block represented by the hash is unconfirmable.
         if (!query.set_block_unconfirmable(link))
         {
             stop(fault(error::protocol1));

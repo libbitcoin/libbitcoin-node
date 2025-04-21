@@ -140,9 +140,10 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     const auto ready =
         (ec == database::error::block_valid) ||
         (ec == database::error::block_confirmable) ||
-        is_under_checkpoint(height) || query.is_milestone(link);
+        ((is_under_checkpoint(height) || query.is_milestone(link)) && 
+            query.is_filtered(link));
 
-    if (ready && query.is_filtered(link))
+    if (ready)
         do_bumped(height);
 }
 
@@ -178,11 +179,16 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
         return;
     }
 
-    // Fork does not have more work than the confirmed branch.
+    // Fork does not have more work than the confirmed branch. Position moves
+    // up to accumulate blocks until sufficient work, or regression resets it.
     if (!strong)
+    {
+        set_position(height);
         return;
+    }
 
     reorganize(fork, fork_point);
+    set_position(height);
 }
 
 // Pop confirmed chain from top down to above fork point, save popped.
@@ -214,8 +220,6 @@ void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
             fault(error::confirm6);
             return;
         }
-
-        set_position(--height);
     }
 
     // Top is now fork_point.
@@ -283,8 +287,10 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         }
 
         fork.pop_back();
-        set_position(height++);
     }
+
+    // Prevent stall by posting internal event, avoiding external handlers.
+    handle_event(error::success, chase::bump, height_t{});
 }
 
 bool chaser_confirm::confirm_block(const header_link& link,

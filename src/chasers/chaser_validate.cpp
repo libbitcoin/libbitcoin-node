@@ -226,7 +226,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 void chaser_validate::validate_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
-    if (closed())
+    if (closed() || suspended())
         return;
 
     code ec{};
@@ -346,7 +346,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     fire(events::block_validated, height);
     LOGV("Block validated: " << height);
 
-    // Prevent stall by posting internal event, avoid hitting external handlers.
+    // Prevent stall by posting internal event, avoiding external handlers.
     if (is_zero(backlog_.load(std::memory_order_relaxed)))
         handle_event(ec, chase::bump, height_t{});
 }
