@@ -209,7 +209,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             {
                 // Previously valid is NOT considered bypass.
                 complete_block(error::success, link, height, bypass);
-                return;
+                break;
             }
             default:
             {
