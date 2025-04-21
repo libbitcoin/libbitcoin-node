@@ -283,8 +283,11 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         }
 
         fork.pop_back();
-        set_position(height++);
     }
+
+    // Validator requries this only because of concurrency (messages gapped).
+    ////// Prevent stall by posting internal event, avoiding external handlers.
+    ////handle_event(error::success, chase::bump, height_t{});
 }
 
 bool chaser_confirm::confirm_block(const header_link& link,
