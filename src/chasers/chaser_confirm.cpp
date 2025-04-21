@@ -231,15 +231,15 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 
     while (!fork.empty())
     {
-        const auto& link = fork.back();
-        const auto ec = query.get_block_state(link);
-        const auto bypass = is_under_checkpoint(height) ||
-            query.is_milestone(link);
-
         // Upon iteration any block state may be enountered. However
         // unassociated should not be encounterable here once interlocked.
+        const auto& link = fork.back();
+        const auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
             return;
+
+        const auto bypass = is_under_checkpoint(height) ||
+            query.is_milestone(link);
 
         if (bypass)
         {

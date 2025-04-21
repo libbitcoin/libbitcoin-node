@@ -147,13 +147,14 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     const auto height = add1(position());
     const auto link = query.to_candidate(height);
     const auto ec = query.get_block_state(link);
+
+    // First block state should be unvalidated, valid, or confirmable. This is
+    // assured in do_checked by chasing block checks.
     const auto ready =
         (ec == database::error::unvalidated) ||
         (ec == database::error::block_valid) ||
         (ec == database::error::block_confirmable);
 
-    // First block state should be unvalidated, valid, or confirmable. This is
-    // assured in do_checked by chasing block checks.
     if (ready)
         do_bumped(height);
 }
@@ -169,14 +170,14 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     // Bypass until next event if validation backlog is full.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
+        // Upon iteration any block state may be enountered.
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
-        const auto bypass = is_under_checkpoint(height) ||
-            query.is_milestone(link);
-
-        // Upon iteration any block state may be enountered.
         if (ec == database::error::unassociated)
             return;
+
+        const auto bypass = is_under_checkpoint(height) ||
+            query.is_milestone(link);
 
         if (bypass)
         {
