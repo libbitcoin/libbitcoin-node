@@ -133,13 +133,15 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
     const auto height = add1(position());
     const auto link = query.to_candidate(height);
     const auto ec = query.get_block_state(link);
-    const auto ready =
-        (ec == database::error::unvalidated) ||
-        (ec == database::error::block_valid) ||
-        (ec == database::error::block_confirmable);
 
-    // First block state should be unvalidated, valid, or confirmable. This is
-    // assured in do_checked by chasing block checks.
+    // First block state must be valid or confirmable. This is assured in
+    // do_checked by chasing block checks. However bypassed blocks are not
+    // marked with state, so that must be checked if not valid or confirmable.
+    const auto ready =
+        (ec == database::error::block_valid) ||
+        (ec == database::error::block_confirmable) ||
+        is_under_checkpoint(height) || query.is_milestone(link);
+
     if (ready && query.is_filtered(link))
         do_bumped(height);
 }
