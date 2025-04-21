@@ -170,7 +170,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     // Bypass until next event if validation backlog is full.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
-        // Upon iteration any block state may be enountered.
+        // Given height-based iteration, any block state may be enountered.
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
@@ -334,14 +334,14 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
             return;
         }
 
-        // INVALID BLOCK (NON FAULT)
+        // INVALID BLOCK (not a fault)
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
         return;
     }
 
-    // VALID BLOCK
+    // VALID BLOCK (bypass not differentiated)
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
     fire(events::block_validated, height);
     LOGV("Block validated: " << height);

@@ -235,8 +235,8 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
 
     while (!fork.empty())
     {
-        // Upon iteration any block state may be enountered. However
-        // unassociated should not be encounterable here once interlocked.
+        // Given height-based iteration, any block state may be enountered.
+        // But unassociated should not be encounterable here once interlocked.
         const auto& link = fork.back();
         const auto ec = query.get_block_state(link);
         if (ec == database::error::unassociated)
@@ -264,7 +264,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
             }
             case database::error::block_confirmable:
             {
-                // Previously confirmable is NOT considered bypass here.
+                // Previously confirmable is NOT considered bypass.
                 complete_block(error::success, link, height, bypass);
                 break;
             }
@@ -347,14 +347,14 @@ void chaser_confirm::complete_block(const code& ec, const header_link& link,
             return;
         }
 
-        // UNCONFIRMABLE BLOCK (NON FAULT)
+        // UNCONFIRMABLE BLOCK (not a fault)
         notify(ec, chase::unconfirmable, link);
         fire(events::block_unconfirmable, height);
         LOGR("Unconfirmable block [" << height << "] " << ec.message());
         return;
     }
 
-    // CONFIRMABLE BLOCK
+    // CONFIRMABLE BLOCK (bypass not differentiated)
     notify(error::success, chase::confirmable, height);
     fire(events::block_confirmed, height);
     LOGV("Block confirmable: " << height);
