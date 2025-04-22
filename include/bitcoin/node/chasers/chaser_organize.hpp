@@ -139,8 +139,7 @@ private:
     // Setters
     // ----------------------------------------------------------------------------
 
-    bool set_reorganized(const database::header_link& link,
-        height_t candidate_height) NOEXCEPT;
+    bool set_reorganized(height_t candidate_height) NOEXCEPT;
     bool set_organized(const database::header_link& link,
         height_t candidate_height) NOEXCEPT;
 

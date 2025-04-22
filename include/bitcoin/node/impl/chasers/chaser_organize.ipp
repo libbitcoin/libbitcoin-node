@@ -121,7 +121,6 @@ void CLASS::do_organize(typename Block::cptr block,
     // shared_ptr copy keeps block ref in scope until completion of set_code.
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
-    const auto& query = archive();
 
     // Skip existing/orphan, get state.
     // ........................................................................
@@ -238,7 +237,7 @@ void CLASS::do_organize(typename Block::cptr block,
     auto index = top_candidate;
     while (index > branch_point)
     {
-        if (!set_reorganized(query.to_candidate(index), index--))
+        if (!set_reorganized(index--))
         {
             handler(fault(error::organize5), height);
             return;
@@ -380,7 +379,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        if (!set_reorganized(query.to_candidate(index), index))
+        if (!set_reorganized(index))
         {
             fault(error::organize11);
             return;
@@ -425,8 +424,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-bool CLASS::set_reorganized(const database::header_link& link,
-    height_t candidate_height) NOEXCEPT
+bool CLASS::set_reorganized(height_t candidate_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     BC_ASSERT(!is_under_checkpoint(candidate_height));
