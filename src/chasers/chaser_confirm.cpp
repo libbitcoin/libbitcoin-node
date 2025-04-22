@@ -69,6 +69,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         ////    POST(do_validated, std::get<height_t>(value));
         ////    break;
         ////}
+        case chase::resume:
         case chase::start:
         case chase::bump:
         {
@@ -103,7 +104,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
-// track validation
+// Track validation
 // ----------------------------------------------------------------------------
 
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
@@ -147,7 +148,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         do_bumped(height);
 }
 
-// confirm (not cancellable)
+// Confirm (not cancellable)
 // ----------------------------------------------------------------------------
 
 // Compute relative work, set fork and fork_point, and invoke reorganize.
@@ -366,7 +367,7 @@ void chaser_confirm::complete_block(const code& ec, const header_link& link,
     LOGV("Block confirmable: " << height);
 }
 
-// private setters
+// Private setters
 // ----------------------------------------------------------------------------
 // These affect only confirmed chain and strong tx state (not candidate).
 
@@ -432,7 +433,7 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
     return true;
 }
 
-// private getters
+// Private getters
 // ----------------------------------------------------------------------------
 // These are subject to intervening/concurrent candidate chain reorganization.
 

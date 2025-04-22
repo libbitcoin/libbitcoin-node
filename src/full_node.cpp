@@ -258,7 +258,7 @@ void full_node::resume() NOEXCEPT
     }
 
     LOGS("Resuming network.");
-    notify(error::success, chase::bump, {});
+    notify(error::success, chase::resume, {});
     p2p::resume();
 }
 

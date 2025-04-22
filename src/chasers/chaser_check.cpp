@@ -94,15 +94,11 @@ bool chaser_check::handle_event(const code&, chase event_,
     if (closed())
         return false;
 
-    // TODO: allow required messages.
-    ////// Stop generating query during suspension.
-    ////if (suspended())
-    ////    return true;
-
     switch (event_)
     {
         // Track downloaded.
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        case chase::resume:
         case chase::start:
         case chase::bump:
         {
@@ -209,10 +205,10 @@ void chaser_check::do_advanced(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Confirmations are ordered and notification order is guaranteed.
-    advanced_ = height;
+    // Validations are not ordered, so accumulate vs. compare height.
+    ++advanced_;
 
-    // The full set of requested hashes has been confirmed.
+    // The full set of requested hashes has been validated.
     if (advanced_ == requested_)
         do_headers(height);
 }
@@ -254,8 +250,10 @@ void chaser_check::do_headers(height_t) NOEXCEPT
     BC_ASSERT(stranded());
 
     const auto added = set_unassociated();
-    if (!is_zero(added))
-        notify(error::success, chase::download, added);
+    if (is_zero(added))
+        return;
+        
+    notify(error::success, chase::download, added);
 }
 
 // get/put hashes
@@ -344,7 +342,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
     if (closed() || purging())
         return {};
 
-    // Defer new work issuance until gaps filled and confirmation caught up.
+    // Defer new work issuance until gaps filled and validation caught up.
     if (position() < requested_ || advanced_ < requested_)
         return {};
 

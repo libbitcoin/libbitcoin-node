@@ -55,22 +55,6 @@ code chaser_validate::start() NOEXCEPT
     return error::success;
 }
 
-void chaser_validate::stopping(const code& ec) NOEXCEPT
-{
-    // Stop threadpool keep-alive, all work must self-terminate to affect join.
-    threadpool_.stop();
-    chaser::stopping(ec);
-}
-
-void chaser_validate::stop() NOEXCEPT
-{
-    if (!threadpool_.join())
-    {
-        BC_ASSERT_MSG(false, "failed to join threadpool");
-        std::abort();
-    }
-}
-
 bool chaser_validate::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
 {
@@ -83,6 +67,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
 
     switch (event_)
     {
+        case chase::resume:
         case chase::start:
         case chase::bump:
         {
@@ -117,7 +102,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
     return true;
 }
 
-// track downloaded
+// Track downloaded
 // ----------------------------------------------------------------------------
 
 void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
@@ -159,7 +144,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
         do_bumped(height);
 }
 
-// validate (cancellable)
+// Validate (cancellable)
 // ----------------------------------------------------------------------------
 
 void chaser_validate::do_bumped(height_t height) NOEXCEPT
@@ -183,8 +168,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         {
             if (filter_)
             {
-                backlog_.fetch_add(one, std::memory_order_relaxed);
-                PARALLEL(validate_block, link, bypass);
+                post_block(link, bypass);
             }
             else
             {
@@ -200,8 +184,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             }
             case database::error::unvalidated:
             {
-                backlog_.fetch_add(one, std::memory_order_relaxed);
-                PARALLEL(validate_block, link, bypass);
+                post_block(link, bypass);
                 break;
             }
             case database::error::block_valid:
@@ -218,23 +201,35 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             }
         }
 
+        // All posted validations must complete or this is invalid.
+        // So posted validations continue despite network suspension.
         set_position(height++);
     }
 }
 
-// Unstranded (concurrent by block).
+void chaser_validate::post_block(const header_link& link,
+    bool bypass) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    backlog_.fetch_add(one, std::memory_order_relaxed);
+    PARALLEL(validate_block, link, bypass);
+}
+
+// Unstranded (concurrent by block)
+// ----------------------------------------------------------------------------
+
 void chaser_validate::validate_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
-    if (closed() || suspended())
+    if (closed())
         return;
 
     code ec{};
     chain::context ctx{};
     auto& query = archive();
 
-    // TODO: implement allocator parameter resulting in full allocation to the
-    // shared_ptr<block>, to optimize deallocation (12% of milestone/filter).
+    // TODO: implement allocator parameter resulting in full allocation to
+    // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
     auto block = query.get_block(link);
 
     if (!block)
@@ -255,16 +250,14 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate5;
     }
-    
-    // Just being explicit that block should be released in its creation thread.
-    block.reset();
 
-    // Decrement the backlog and return to strand to handle result.
-    backlog_.fetch_sub(one, std::memory_order_relaxed);
     complete_block(ec, link, ctx.height, bypass);
+
+    // Prevent stall by posting internal event, avoiding external handlers.
+    if (is_one(backlog_.fetch_sub(one, std::memory_order_relaxed)))
+        handle_event(error::success, chase::bump, height_t{});
 }
 
-// Unstranded (concurrent by block).
 code chaser_validate::populate(bool bypass, const chain::block& block,
     const chain::context& ctx) NOEXCEPT
 {
@@ -291,7 +284,6 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     return error::success;
 }
 
-// Unstranded (concurrent by block).
 code chaser_validate::validate(bool bypass, const chain::block& block,
     const database::header_link& link, const chain::context& ctx) NOEXCEPT
 {
@@ -320,7 +312,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     return error::success;
 }
 
-// May or may not be stranded.
+// May be either concurrent or stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
     size_t height, bool) NOEXCEPT
 {
@@ -345,14 +337,26 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
     fire(events::block_validated, height);
     LOGV("Block validated: " << height);
-
-    // Prevent stall by posting internal event, avoiding external handlers.
-    if (is_zero(backlog_.load(std::memory_order_relaxed)))
-        handle_event(ec, chase::bump, height_t{});
 }
 
-// strand - overridden due to independent priority thread pool
+// Overrides due to independent priority thread pool
 // ----------------------------------------------------------------------------
+
+void chaser_validate::stopping(const code& ec) NOEXCEPT
+{
+    // Stop threadpool keep-alive, all work must self-terminate to affect join.
+    threadpool_.stop();
+    chaser::stopping(ec);
+}
+
+void chaser_validate::stop() NOEXCEPT
+{
+    if (!threadpool_.join())
+    {
+        BC_ASSERT_MSG(false, "failed to join threadpool");
+        std::abort();
+    }
+}
 
 network::asio::strand& chaser_validate::strand() NOEXCEPT
 {

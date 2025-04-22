@@ -85,8 +85,6 @@ void CLASS::organize(const typename Block::cptr& block,
 TEMPLATE
 bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
 {
-    using namespace system;
-
     if (closed())
         return false;
 
@@ -118,7 +116,6 @@ TEMPLATE
 void CLASS::do_organize(typename Block::cptr block,
     const organize_handler& handler) NOEXCEPT
 {
-    using namespace system;
     BC_ASSERT(stranded());
 
     // shared_ptr copy keeps block ref in scope until completion of set_code.
@@ -168,6 +165,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Validation and currency.
     // ........................................................................
 
+    using namespace system;
     if (chain::checkpoint::is_conflict(checkpoints_, hash, height))
     {
         handler(system::error::checkpoint_conflict, height);
@@ -317,8 +315,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    using namespace system;
-
     // Skip already reorganized out, get height.
     // ........................................................................
 
@@ -371,6 +367,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
             return;
         }
 
+        using namespace system;
         const auto& header = get_header(*block);
         state.reset(new chain::chain_state{ *state, header, settings_ });
         cache(block, state);
@@ -436,7 +433,7 @@ bool CLASS::set_reorganized(const database::header_link& link,
 
     // Any non-checkpoint block must be set unstrong.
     // But checkpointed blocks cannot be reorganized.
-    BC_ASSERT(!is_under_checkpoint(confirmed_height));
+    BC_ASSERT(!is_under_checkpoint(candidate_height));
 
     // TODO: make this atomic in store using two-phase commit.
     if (!query.set_unstrong(link) || !query.pop_candidate())
