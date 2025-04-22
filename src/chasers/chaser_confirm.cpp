@@ -379,8 +379,7 @@ bool chaser_confirm::set_reorganized(const header_link& link,
 
     // Checkpointed blocks cannot be reorganized.
     BC_ASSERT(!is_under_checkpoint(confirmed_height));
-
-    if (!query.set_unstrong(link) || !query.pop_confirmed())
+    if (!query.pop_confirmed())
         return false;
 
     notify(error::success, chase::reorganized, link);
@@ -395,10 +394,8 @@ bool chaser_confirm::set_organized(const header_link& link,
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // Checkpointed blocks are set strong by archiver (redundant here).
-    const auto strong = !is_under_checkpoint(confirmed_height);
-
-    if ((strong && !query.set_strong(link)) || !query.push_confirmed(link))
+    // Checkpointed blocks are set strong by archiver.
+    if (!query.push_confirmed(link, !is_under_checkpoint(confirmed_height)))
         return false;
 
     notify(error::success, chase::organized, link);
