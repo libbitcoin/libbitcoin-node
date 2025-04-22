@@ -69,6 +69,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         ////    POST(do_validated, std::get<height_t>(value));
         ////    break;
         ////}
+        case chase::resume:
         case chase::start:
         case chase::bump:
         {
@@ -103,7 +104,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
     return true;
 }
 
-// track validation
+// Track validation
 // ----------------------------------------------------------------------------
 
 void chaser_confirm::do_regressed(height_t branch_point) NOEXCEPT
@@ -147,7 +148,7 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
         do_bumped(height);
 }
 
-// confirm (not cancellable)
+// Confirm (not cancellable)
 // ----------------------------------------------------------------------------
 
 // Compute relative work, set fork and fork_point, and invoke reorganize.
@@ -280,7 +281,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         }
 
         // After set_block_confirmable.
-        if (!set_organized(link, height++, bypass))
+        if (!set_organized(link, height++))
         {
             fault(error::confirm5);
             return;
@@ -366,26 +367,19 @@ void chaser_confirm::complete_block(const code& ec, const header_link& link,
     LOGV("Block confirmable: " << height);
 }
 
-// private setters
+// Private setters
 // ----------------------------------------------------------------------------
-// These affect only confirmed chain and strong tx state (not candidate).
+// Checkpointed blocks are set strong by archiver, and cannot be reorganized.
 
-///////////////////////////////////////////////////////////////////////////////
-// BUGBUG: reorganize/organize operations that span a disk full recovery
-// BUGBUG: may be inconsistent between set/unset_strong and push/pop_candidate.
-///////////////////////////////////////////////////////////////////////////////
-
-// Milestoned blocks can become formerly-confirmed.
-// Checkpointed blocks cannot become formerly-confirmed.
-// Reorganization sets unstrong on any formerly-confirmed blocks.
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // TODO: disk full race.
-    if (!query.set_unstrong(link) || !query.pop_confirmed())
+    // Checkpointed blocks cannot be reorganized.
+    BC_ASSERT(!is_under_checkpoint(confirmed_height));
+    if (!query.pop_confirmed())
         return false;
 
     notify(error::success, chase::reorganized, link);
@@ -394,17 +388,14 @@ bool chaser_confirm::set_reorganized(const header_link& link,
     return true;
 }
 
-// Milestoned (bypassed) blocks are set strong by organizer.
-// Checkpointed (bypassed) blocks are set strong by archiver.
-// Organization sets strong on newly-confirmed non-bypassed blocks.
 bool chaser_confirm::set_organized(const header_link& link,
-    height_t confirmed_height, bool bypassed) NOEXCEPT
+    height_t confirmed_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // TODO: disk full race.
-    if ((!bypassed && !query.set_strong(link)) || !query.push_confirmed(link))
+    // Checkpointed blocks are set strong by archiver.
+    if (!query.push_confirmed(link, !is_under_checkpoint(confirmed_height)))
         return false;
 
     notify(error::success, chase::organized, link);
@@ -414,7 +405,6 @@ bool chaser_confirm::set_organized(const header_link& link,
 }
 
 // Rollback to the fork point, then forward through previously popped.
-// Rollback cannot apply to bypassed blocks, so always set/unset strong.
 bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
     size_t top) NOEXCEPT
 {
@@ -425,13 +415,13 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
             return false;
 
     for (const auto& fk: std::views::reverse(popped))
-        if (!set_organized(fk, ++fork_point, true))
+        if (!set_organized(fk, ++fork_point))
             return false;
 
     return true;
 }
 
-// private getters
+// Private getters
 // ----------------------------------------------------------------------------
 // These are subject to intervening/concurrent candidate chain reorganization.
 

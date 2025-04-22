@@ -54,6 +54,8 @@ protected:
     virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
+    virtual void post_block(const database::header_link& link,
+        bool bypass) NOEXCEPT;
     virtual void validate_block(const database::header_link& link,
         bool bypass) NOEXCEPT;
     virtual code validate(bool bypass, const system::chain::block& block,

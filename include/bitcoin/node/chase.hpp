@@ -30,20 +30,24 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// Chasers directed to start operating (height_t).
-    /// Issued by 'full_node' and handled by 'validate'.
+    /// Issued by 'full_node' and handled by 'check', 'validate', 'confirm'.
     start,
 
     /// Disk space is limited (count_t).
-    /// Issued by full_node and handled by 'snapshot' and 'storage'.
+    /// Issued by 'full_node' and handled by 'snapshot' and 'storage'.
     space,
 
-    /// Chaser is directed to start when there are no downloads (height_t).
-    /// Issued by 'organize' and handled by 'validate'.
+    /// Chaser directed to attempt start from its current position (height_t).
+    /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
     bump,
 
-    /// Channels (all) directed to stop (channel_t).
+    /// Channels (all) directed to stop (default).
     /// Issued by 'full_node' and handled by 'observer'.
     suspend,
+
+    /// Chasers (all) directed to resume following suspend (default).
+    /// Issued by 'full_node' and handled by 'check', 'validate', 'confirm'.
+    resume,
 
     /// Channel starved for work (object_t).
     /// Issued by 'block_in_31800' and handled by 'session_outbound'.
@@ -69,7 +73,7 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A new candidate branch exists from given branch point (height_t).
-    /// Issued by 'block' and handled by 'confirm'.
+    /// Issued by 'block' and handled by 'confirm' and 'snapshot'.
     blocks,
 
     /// A new candidate branch exists from given branch point (height_t).
@@ -81,59 +85,56 @@ enum class chase
     download,
 
     /// The candidate chain has been reorganized (branched below its top).
-    /// Issued by 'organize' and handled by 'check'.
+    /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
     regressed,
 
     /// unchecked, unvalid or unconfirmable was handled (height_t).
-    /// Issued by 'organize' and handled by 'validate' (disorgs candidates).
+    /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
     disorganized,
 
     /// Check/Identify.
     /// -----------------------------------------------------------------------
 
-    /////// A set of blocks is being checked, top block provided (height_t).
-    ////checking,
-
     /// A block has been downloaded, checked and stored (height_t).
-    /// Issued by 'block_in_31800' or 'populate' and handled by 'connect'.
+    /// Issued by 'block_in_31800', handled by 'check', 'validate', 'snapshot'.
     /// Populate is bypassed for checkpoint/milestone blocks.
     checked,
 
     /// A downloaded block has failed check (header_t).
-    /// Issued by 'block_in_31800' and handled by 'header'.
+    /// Issued by 'block_in_31800' and handled by 'organize'.
     unchecked,
 
     /// Accept/Connect.
     /// -----------------------------------------------------------------------
 
     /// A branch has become valid (height_t).
-    /// Issued by 'validate' and handled by 'confirm'.
+    /// Issued by 'validate' and handled by 'check', 'confirm', 'snapshot'.
     valid,
 
     /// A checked block has failed validation (header_t).
-    /// Issued by 'validate' and handled by 'header'.
+    /// Issued by 'validate' and handled by 'organize'.
     unvalid,
 
     /// Confirm (block).
     /// -----------------------------------------------------------------------
 
     /// A connected block has become confirmable (header_t).
-    /// Issued by 'confirm' and handled by 'transaction'.
+    /// Issued by 'confirm' and handled by 'snapshot'.
     confirmable,
 
     /// A connected block has failed confirmability (header_t).
-    /// Issued by 'confirm' and handled by 'header' (and 'block').
+    /// Issued by 'confirm' and handled by 'organize'.
     unconfirmable,
 
     /// Confirm (chain).
     /// -----------------------------------------------------------------------
 
     /// A confirmable block has been confirmed (header_t).
-    /// Issued by 'confirm' and handled by 'transaction'.
+    /// Issued by 'confirm' [and handled by 'transaction'].
     organized,
 
     /// A previously confirmed block has been unconfirmed (header_t).
-    /// Issued by 'confirm' and handled by 'transaction'.
+    /// Issued by 'confirm' [and handled by 'transaction'].
     reorganized,
 
     /// Mining.
@@ -150,7 +151,7 @@ enum class chase
     /// Stop.
     /// -----------------------------------------------------------------------
 
-    /// Service is stopping, accompanied by error::service_stopped (count_t).
+    /// Service is stopping, accompanied by error::service_stopped (default).
     stop
 };
 

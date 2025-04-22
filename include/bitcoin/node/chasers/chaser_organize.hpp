@@ -139,10 +139,9 @@ private:
     // Setters
     // ----------------------------------------------------------------------------
 
-    bool set_reorganized(const database::header_link& link,
-        height_t candidate_height) NOEXCEPT;
+    bool set_reorganized(height_t candidate_height) NOEXCEPT;
     bool set_organized(const database::header_link& link,
-        height_t candidate_height, bool strong) NOEXCEPT;
+        height_t candidate_height) NOEXCEPT;
 
     // Move tree Block to database and push to top of candidate chain.
     code push_block(const system::hash_digest& key) NOEXCEPT;

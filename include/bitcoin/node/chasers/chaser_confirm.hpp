@@ -65,7 +65,7 @@ private:
     bool set_reorganized(const database::header_link& link,
         height_t confirmed_height) NOEXCEPT;
     bool set_organized(const database::header_link& link,
-        height_t confirmed_height, bool bypassed) NOEXCEPT;
+        height_t confirmed_height) NOEXCEPT;
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
 

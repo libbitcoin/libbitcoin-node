@@ -85,8 +85,6 @@ void CLASS::organize(const typename Block::cptr& block,
 TEMPLATE
 bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
 {
-    using namespace system;
-
     if (closed())
         return false;
 
@@ -118,13 +116,11 @@ TEMPLATE
 void CLASS::do_organize(typename Block::cptr block,
     const organize_handler& handler) NOEXCEPT
 {
-    using namespace system;
     BC_ASSERT(stranded());
 
     // shared_ptr copy keeps block ref in scope until completion of set_code.
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
-    const auto& query = archive();
 
     // Skip existing/orphan, get state.
     // ........................................................................
@@ -168,6 +164,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Validation and currency.
     // ........................................................................
 
+    using namespace system;
     if (chain::checkpoint::is_conflict(checkpoints_, hash, height))
     {
         handler(system::error::checkpoint_conflict, height);
@@ -240,7 +237,7 @@ void CLASS::do_organize(typename Block::cptr block,
     auto index = top_candidate;
     while (index > branch_point)
     {
-        if (!set_reorganized(query.to_candidate(index), index--))
+        if (!set_reorganized(index--))
         {
             handler(fault(error::organize5), height);
             return;
@@ -256,7 +253,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Push stored strong headers to candidate chain.
     for (const auto& link: std::views::reverse(store_branch))
     {
-        if (!set_organized(link, index, is_under_milestone(index++)))
+        if (!set_organized(link, index++))
         {
             handler(fault(error::organize6), height);
             return;
@@ -317,8 +314,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    using namespace system;
-
     // Skip already reorganized out, get height.
     // ........................................................................
 
@@ -371,6 +366,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
             return;
         }
 
+        using namespace system;
         const auto& header = get_header(*block);
         state.reset(new chain::chain_state{ *state, header, settings_ });
         cache(block, state);
@@ -383,7 +379,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
     {
-        if (!set_reorganized(query.to_candidate(index), index))
+        if (!set_reorganized(index))
         {
             fault(error::organize11);
             return;
@@ -399,7 +395,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         // Confirmed blocks may or may not be strong, as a branch severs strong
         // above the branch point, so as they are copied to the candidate index
         // they must be assured to be strong, since the fork point moves up.
-        if (!set_organized(query.to_confirmed(index), index, true))
+        if (!set_organized(query.to_confirmed(index), index))
         {
             fault(error::organize12);
             return;
@@ -427,24 +423,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 // Private setters
 // ----------------------------------------------------------------------------
 
-///////////////////////////////////////////////////////////////////////////////
-// BUGBUG: reorganize/organize operations that span a disk full recovery
-// BUGBUG: may be inconsistent between set/unset_strong and push/pop_candidate.
-///////////////////////////////////////////////////////////////////////////////
-
 TEMPLATE
-bool CLASS::set_reorganized(const database::header_link& link,
-    height_t candidate_height) NOEXCEPT
+bool CLASS::set_reorganized(height_t candidate_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
-
-    // Any milestone or confirmable candidate block must be set unstrong.
-    const auto milestone = is_under_milestone(candidate_height);
-    const auto strong = milestone || query.is_confirmable(link);
-
-    // TODO: disk full race.
-    if ((strong && !query.set_unstrong(link)) || !query.pop_candidate())
+    BC_ASSERT(!is_under_checkpoint(candidate_height));
+    if (!archive().pop_candidate())
         return false;
 
     fire(events::header_reorganized, candidate_height);
@@ -454,14 +438,10 @@ bool CLASS::set_reorganized(const database::header_link& link,
 
 TEMPLATE
 bool CLASS::set_organized(const database::header_link& link,
-    height_t candidate_height, bool strong) NOEXCEPT
+    height_t candidate_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
-
-    // TODO: disk full race.
-    // Any milestone or previously-confirmed (strong) block must be set strong.
-    if ((strong && !query.set_strong(link)) || !query.push_candidate(link))
+    if (!archive().push_candidate(link))
         return false;
 
     fire(events::header_organized, candidate_height);
@@ -486,7 +466,7 @@ code CLASS::push_block(const Block& block,
     if (ec)
         return ec;
 
-    if (!set_organized(link, ctx.height, false))
+    if (!set_organized(link, ctx.height))
         return error::organize14;
 
     // events:header_archived | events:block_archived
