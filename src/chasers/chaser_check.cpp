@@ -233,8 +233,8 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 
     // TODO: query.is_associated() is expensive (hashmap search).
     // Skip checked blocks starting immediately after last checked.
-    while (!closed() &&
-        query.is_associated(query.to_candidate((height = add1(height)))))
+    while (!closed() && query.is_associated(
+        query.to_candidate((height = add1(height)))))
     {
         set_position(height);
     }
@@ -269,9 +269,7 @@ void chaser_check::get_hashes(map_handler&& handler) NOEXCEPT
     if (closed())
         return;
 
-    boost::asio::post(strand(),
-        std::bind(&chaser_check::do_get_hashes,
-            this, std::move(handler)));
+    POST(do_get_hashes, std::move(handler));
 }
 
 void chaser_check::put_hashes(const map_ptr& map,
@@ -280,9 +278,7 @@ void chaser_check::put_hashes(const map_ptr& map,
     if (closed())
         return;
 
-    boost::asio::post(strand(),
-        std::bind(&chaser_check::do_put_hashes,
-            this, map, std::move(handler)));
+    POST(do_put_hashes, map, std::move(handler));
 }
 
 void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
@@ -291,15 +287,14 @@ void chaser_check::do_get_hashes(const map_handler& handler) NOEXCEPT
     if (closed() || purging())
         return;
 
-    const auto map = get_map();
-    handler(error::success, map, job_);
+    handler(error::success, get_map(), job_);
 }
 
 void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT(map->size() <= messages::max_inventory);
     BC_ASSERT(stranded());
+    BC_ASSERT(map->size() <= messages::max_inventory);
     if (closed() || purging())
         return;
 
@@ -315,7 +310,6 @@ void chaser_check::do_put_hashes(const map_ptr& map,
 map_ptr chaser_check::get_map() NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     return maps_.empty() ? empty_map() : pop_front(maps_);
 }
 
@@ -324,7 +318,6 @@ bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
     // Called from start.
     ////BC_ASSERT(stranded());
     BC_ASSERT(map->size() <= messages::max_inventory);
-
     if (map->empty())
         return false;
 
