@@ -429,14 +429,8 @@ bool CLASS::set_reorganized(const database::header_link& link,
     height_t candidate_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
-
-    // Any non-checkpoint block must be set unstrong.
-    // But checkpointed blocks cannot be reorganized.
     BC_ASSERT(!is_under_checkpoint(candidate_height));
-
-    // TODO: make this atomic in store using two-phase commit.
-    if (!query.set_unstrong(link) || !query.pop_candidate())
+    if (!archive().pop_candidate())
         return false;
 
     fire(events::header_reorganized, candidate_height);
@@ -449,13 +443,7 @@ bool CLASS::set_organized(const database::header_link& link,
     height_t candidate_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
-
-    // Any non-checkpoint block must be set strong.
-    const auto strong = is_block() && !is_under_checkpoint(candidate_height);
-
-    // TODO: make this atomic in store using two-phase commit.
-    if ((strong && !query.set_strong(link)) || !query.push_candidate(link))
+    if (!archive().push_candidate(link))
         return false;
 
     fire(events::header_organized, candidate_height);

@@ -369,22 +369,17 @@ void chaser_confirm::complete_block(const code& ec, const header_link& link,
 
 // Private setters
 // ----------------------------------------------------------------------------
-// These affect only confirmed chain and strong tx state (not candidate).
+// Checkpointed blocks are set strong by archiver, and cannot be reorganized.
 
-// Milestoned blocks can become formerly-confirmed.
-// Checkpointed blocks cannot become formerly-confirmed.
-// Reorganization sets unstrong on any formerly-confirmed blocks.
 bool chaser_confirm::set_reorganized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // Any non-checkpoint block must be set unstrong.
-    // But checkpointed blocks cannot be reorganized.
+    // Checkpointed blocks cannot be reorganized.
     BC_ASSERT(!is_under_checkpoint(confirmed_height));
 
-    // TODO: make this atomic in store using two-phase commit.
     if (!query.set_unstrong(link) || !query.pop_confirmed())
         return false;
 
@@ -394,18 +389,15 @@ bool chaser_confirm::set_reorganized(const header_link& link,
     return true;
 }
 
-// Checkpointed blocks are set strong by archiver.
-// Organization sets strong/unstrong non-checkpointed blocks.
 bool chaser_confirm::set_organized(const header_link& link,
     height_t confirmed_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
-    // Any non-checkpoint block must be set strong.
+    // Checkpointed blocks are set strong by archiver (redundant here).
     const auto strong = !is_under_checkpoint(confirmed_height);
 
-    // TODO: make this atomic in store using two-phase commit.
     if ((strong && !query.set_strong(link)) || !query.push_confirmed(link))
         return false;
 
@@ -416,7 +408,6 @@ bool chaser_confirm::set_organized(const header_link& link,
 }
 
 // Rollback to the fork point, then forward through previously popped.
-// Rollback cannot apply to checkpointed blocks so always set strong/unstrong.
 bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
     size_t top) NOEXCEPT
 {
