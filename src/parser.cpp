@@ -98,7 +98,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.tx_size = 17'000'000'000;
     configured.database.tx_rate = 5;
 
-    configured.database.txs_buckets = 386'364;
+    configured.database.txs_buckets = 850'001;
     configured.database.txs_size = 1'050'000'000;
     configured.database.txs_rate = 5;
 
@@ -124,7 +124,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.prevout_size = 5'250'000'000;
     configured.database.prevout_rate = 5;
 
-    configured.database.validated_bk_buckets = 504'546;
+    configured.database.validated_bk_buckets = 850'001;
     configured.database.validated_bk_size = 3'700'000;
     configured.database.validated_bk_rate = 5;
 
@@ -766,7 +766,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.txs_buckets",
         value<uint32_t>(&configured.database.txs_buckets),
-        "The log2 number of buckets in the txs table head, defaults to '386364'."
+        "The log2 number of buckets in the txs table head, defaults to '850001'."
     )
     (
         "database.txs_size",
@@ -858,7 +858,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_buckets",
         value<uint32_t>(&configured.database.validated_bk_buckets),
-        "The log2 number of buckets in the validated_bk table head, defaults to '504546'."
+        "The log2 number of buckets in the validated_bk table head, defaults to '850001'."
     )
     (
         "database.validated_bk_size",

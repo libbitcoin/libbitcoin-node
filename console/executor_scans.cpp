@@ -147,29 +147,6 @@ void executor::scan_buckets() const
     filled = zero;
     bucket = max_size_t;
     start = logger::now();
-    while (!cancel_ && (++bucket < query_.txs_buckets()))
-    {
-        const auto top = query_.top_txs(bucket);
-        if (!top.is_terminal())
-            ++filled;
-
-        if (is_zero(bucket % block_frequency))
-            logger(format("txs" BN_READ_ROW) % bucket %
-                duration_cast<seconds>(logger::now() - start).count());
-    }
-
-    if (cancel_)
-        logger(BN_OPERATION_CANCELED);
-
-    span = duration_cast<seconds>(logger::now() - start);
-    logger(format("txs" BN_READ_ROW) % (to_double(filled) / bucket) %
-        span.count());
-
-    // ------------------------------------------------------------------------
-
-    filled = zero;
-    bucket = max_size_t;
-    start = logger::now();
     while (!cancel_ && (++bucket < query_.tx_buckets()))
     {
         const auto top = query_.top_tx(bucket);
