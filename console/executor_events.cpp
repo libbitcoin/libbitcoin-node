@@ -25,7 +25,6 @@
 #include <future>
 #include <iostream>
 #include <map>
-#include <mutex>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
