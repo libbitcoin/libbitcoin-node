@@ -141,7 +141,7 @@ public:
 
     /// Get reorganization lock.
     /// Used to prevent candidate chain reorganization during confirmation.
-    virtual lock get_reorganization_lock() NOEXCEPT;
+    virtual lock get_reorganization_lock() const NOEXCEPT;
 
 protected:
     /// Session attachments.
@@ -164,8 +164,8 @@ private:
         event_value value) NOEXCEPT;
 
     // These are thread safe.
+    mutable std::mutex reorganization_mutex_{};
     const configuration& config_;
-    std::mutex reorganization_mutex_{};
     memory_controller memory_;
     query& query_;
 

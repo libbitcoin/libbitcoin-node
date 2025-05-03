@@ -159,9 +159,6 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
     if (closed())
         return;
 
-    // Prevents organizer from popping candidates (does not block push).
-    get_reorganization_lock();
-
     // Scan from candidate height to first confirmed, return links and work.
     uint256_t work{};
     header_links fork{};
@@ -435,8 +432,9 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
     BC_ASSERT(stranded());
     const auto& query = archive();
     header_link link{};
-    fork_work = zero;
-    fork.clear();
+
+    // Prevents organizer from popping candidates (does not block push).
+    get_reorganization_lock();
 
     // Walk down candidates from fork_top to fork point (highest common).
     for (link = query.to_candidate(fork_top); !link.is_terminal() &&
