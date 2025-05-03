@@ -70,8 +70,9 @@ private:
         size_t top) NOEXCEPT;
 
     // getters
-    bool get_fork_work(uint256_t& fork_work, header_links& fork,
-        height_t fork_top) const NOEXCEPT;
+    header_links get_fork(height_t fork_top) const NOEXCEPT;
+    bool get_fork_work(uint256_t& fork_work,
+        const header_links& fork) const NOEXCEPT;
     bool get_is_strong(bool& strong, const uint256_t& fork_work,
         size_t fork_point) const NOEXCEPT;
 };
