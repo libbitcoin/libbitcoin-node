@@ -355,6 +355,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Height and above excluded from tree since they are unconfirmable blocks.
     // ........................................................................
     // Forward order is required to advance chain state for tree.
+    // Can't pop in loop because that requires reverse order.
 
     typename Block::cptr block{};
     for (auto index = add1(fork_point); index < height; ++index)
@@ -373,7 +374,6 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Pop candidates from top candidate down to above fork point.
     // ........................................................................
-    // Can't pop in loop above because state chaining requires forward order.
 
     const auto top_candidate = state_->height();
     for (auto index = top_candidate; index > fork_point; --index)
