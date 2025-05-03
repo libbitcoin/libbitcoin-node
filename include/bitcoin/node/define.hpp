@@ -22,7 +22,6 @@
 /// Standard includes (do not include directly).
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <utility>
 #include <variant>
 
@@ -58,7 +57,6 @@ typedef std::error_code code;
 typedef std::function<void(const code&, size_t)> organize_handler;
 typedef database::store<database::map> store;
 typedef database::query<store> query;
-typedef std::unique_lock<std::mutex> lock;
 
 /// Work types.
 typedef network::race_all<const code&> job;
