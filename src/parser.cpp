@@ -125,7 +125,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.prevout_rate = 5;
 
     configured.database.validated_bk_buckets = 850'001;
-    configured.database.validated_bk_size = 3'700'000;
+    configured.database.validated_bk_size = 1'700'000;
     configured.database.validated_bk_rate = 5;
 
     configured.database.validated_tx_buckets = 1;
@@ -863,7 +863,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_size",
         value<uint64_t>(&configured.database.validated_bk_size),
-        "The minimum allocation of the validated_bk table body, defaults to '3400000'."
+        "The minimum allocation of the validated_bk table body, defaults to '1700000'."
     )
     (
         "database.validated_bk_rate",
