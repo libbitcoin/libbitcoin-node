@@ -165,7 +165,7 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
         return;
 
     uint256_t work{};
-    if (!get_fork_work(work, fork))
+    if (!get_work(work, fork))
     {
         fault(error::confirm1);
         return;
@@ -173,7 +173,7 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
 
     bool strong{};
     const auto fork_point = height - fork.size();
-    if (!get_is_strong(strong, work, fork_point))
+    if (!get_strong(strong, work, fork_point))
     {
         fault(error::confirm2);
         return;
@@ -423,8 +423,8 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
 
 // Private getters
 // ----------------------------------------------------------------------------
-// These are subject to intervening/concurrent candidate chain reorganization.
 
+// TODO: move into database library with internal lock.
 chaser_confirm::header_links chaser_confirm::get_fork(
     height_t fork_top) const NOEXCEPT
 {
@@ -452,7 +452,7 @@ chaser_confirm::header_links chaser_confirm::get_fork(
     return out;
 }
 
-bool chaser_confirm::get_fork_work(uint256_t& fork_work,
+bool chaser_confirm::get_work(uint256_t& fork_work,
     const header_links& fork) const NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -472,7 +472,7 @@ bool chaser_confirm::get_fork_work(uint256_t& fork_work,
 }
 
 // A fork with greater work will cause confirmed reorganization.
-bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
+bool chaser_confirm::get_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {
     BC_ASSERT(stranded());
