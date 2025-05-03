@@ -40,8 +40,8 @@ public:
     code start() NOEXCEPT override;
 
 protected:
-    using header_links = std_vector<database::header_link>;
-    typedef network::race_unity<const code&, const database::tx_link&> race;
+    using header_link = database::header_link;
+    using header_links = database::header_links;
 
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
@@ -54,27 +54,18 @@ protected:
     virtual void reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
     virtual void organize(header_links& fork, const header_links& popped,
         size_t fork_point) NOEXCEPT;
-    virtual bool confirm_block(const database::header_link& link,
+    virtual bool confirm_block(const header_link& link,
         size_t height, const header_links& popped, size_t fork_point) NOEXCEPT;
-    virtual void complete_block(const code& ec,
-        const database::header_link& link, size_t height,
-        bool bypassed) NOEXCEPT;
+    virtual void complete_block(const code& ec, const header_link& link,
+        size_t height, bool bypassed) NOEXCEPT;
 
 private:
-    // setters
-    bool set_reorganized(const database::header_link& link,
+    bool set_reorganized(const header_link& link,
         height_t confirmed_height) NOEXCEPT;
-    bool set_organized(const database::header_link& link,
+    bool set_organized(const header_link& link,
         height_t confirmed_height) NOEXCEPT;
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
-
-    // getters
-    header_links get_fork(height_t fork_top) const NOEXCEPT;
-    bool get_work(uint256_t& fork_work,
-        const header_links& fork) const NOEXCEPT;
-    bool get_strong(bool& strong, const uint256_t& fork_work,
-        size_t fork_point) const NOEXCEPT;
 };
 
 } // namespace node

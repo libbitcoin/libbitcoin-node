@@ -75,7 +75,6 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { validate6, "validate6" },
     { validate7, "validate7" },
     { validate8, "validate8" },
-    ////{ validate9, "validate9" },
     { confirm1, "confirm1" },
     { confirm2, "confirm2" },
     { confirm3, "confirm3" },
@@ -85,12 +84,10 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm7, "confirm7" },
     { confirm8, "confirm8" },
     { confirm9, "confirm9" },
-    { confirm10, "confirm10" }
-    ////{ confirm11, "confirm11" },
-    ////{ confirm12, "confirm12" },
-    ////{ confirm13, "confirm13" },
-    ////{ confirm14, "confirm14" },
-    ////{ confirm15, "confirm15" }
+    { confirm10, "confirm10" },
+    { confirm11, "confirm11" },
+    { confirm12, "confirm12" },
+    { confirm13, "confirm13" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
