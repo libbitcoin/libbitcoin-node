@@ -94,7 +94,7 @@ protected:
     virtual code reload(const store::event_handler& handler) NOEXCEPT;
 
     /// Get reorganization lock.
-    virtual lock get_reorganization_lock() NOEXCEPT;
+    virtual lock get_reorganization_lock() const NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------

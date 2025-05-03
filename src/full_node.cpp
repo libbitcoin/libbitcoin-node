@@ -370,7 +370,7 @@ network::memory& full_node::get_memory() NOEXCEPT
     return memory_;
 }
 
-lock full_node::get_reorganization_lock() NOEXCEPT
+lock full_node::get_reorganization_lock() const NOEXCEPT
 {
     return lock{ reorganization_mutex_ };
 }

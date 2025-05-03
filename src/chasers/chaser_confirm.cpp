@@ -159,25 +159,21 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
     if (closed())
         return;
 
-    // Prevents organizer from popping candidates (does not block push).
-    get_reorganization_lock();
+    // If empty height is not on a candidate fork (may have been reorganized).
+    auto fork = get_fork(height);
+    if (fork.empty())
+        return;
 
-    // Scan from candidate height to first confirmed, return links and work.
     uint256_t work{};
-    header_links fork{};
-    if (!get_fork_work(work, fork, height))
+    if (!get_work(work, fork))
     {
         fault(error::confirm1);
         return;
     }
 
-    // No longer a candidate fork (may have been reorganized).
-    if (fork.empty())
-        return;
-
     bool strong{};
     const auto fork_point = height - fork.size();
-    if (!get_is_strong(strong, work, fork_point))
+    if (!get_strong(strong, work, fork_point))
     {
         fault(error::confirm2);
         return;
@@ -427,42 +423,56 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
 
 // Private getters
 // ----------------------------------------------------------------------------
-// These are subject to intervening/concurrent candidate chain reorganization.
 
-bool chaser_confirm::get_fork_work(uint256_t& fork_work, header_links& fork,
+// TODO: move into database library with internal lock.
+chaser_confirm::header_links chaser_confirm::get_fork(
     height_t fork_top) const NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
     header_link link{};
-    fork_work = zero;
-    fork.clear();
+    header_links out{};
+
+    // Prevents organizer from popping candidates (does not block push).
+    get_reorganization_lock();
 
     // Walk down candidates from fork_top to fork point (highest common).
-    for (link = query.to_candidate(fork_top); !link.is_terminal() &&
-        !query.is_confirmed_block(link); link = query.to_candidate(--fork_top))
+    for (link = query.to_candidate(fork_top);
+        !link.is_terminal() && !query.is_confirmed_block(link);
+         link = query.to_candidate(--fork_top))
+    {
+        out.push_back(link);
+    }
+
+    // Terminal candidate from previously valid height implies regression.
+    // This is ok, it just means that the fork is no longer a candidate.
+    if (link.is_terminal())
+        out.clear();
+
+    return out;
+}
+
+bool chaser_confirm::get_work(uint256_t& fork_work,
+    const header_links& fork) const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    // Walk down candidates from fork_top to fork point (highest common).
+    for (const auto& link: fork)
     {
         uint32_t bits{};
         if (!query.get_bits(bits, link))
             return false;
 
         fork_work += chain::header::proof(bits);
-        fork.push_back(link);
-    }
-
-    // Terminal candidate from previously valid height implies regression.
-    // This is ok, it just means that the fork is no longer a candidate.
-    if (link.is_terminal())
-    {
-        fork_work = zero;
-        fork.clear();
     }
 
     return true;
 }
 
 // A fork with greater work will cause confirmed reorganization.
-bool chaser_confirm::get_is_strong(bool& strong, const uint256_t& fork_work,
+bool chaser_confirm::get_strong(bool& strong, const uint256_t& fork_work,
     size_t fork_point) const NOEXCEPT
 {
     BC_ASSERT(stranded());
