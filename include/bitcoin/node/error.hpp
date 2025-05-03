@@ -85,7 +85,6 @@ enum error_t : uint8_t
     validate6,
     validate7,
     validate8,
-    ////validate9,
     confirm1,
     confirm2,
     confirm3,
@@ -95,12 +94,10 @@ enum error_t : uint8_t
     confirm7,
     confirm8,
     confirm9,
-    confirm10
-    ////confirm11,
-    ////confirm12,
-    ////confirm13,
-    ////confirm14,
-    ////confirm15
+    confirm10,
+    confirm11,
+    confirm12,
+    confirm13
 };
 
 // No current need for error_code equivalence mapping.

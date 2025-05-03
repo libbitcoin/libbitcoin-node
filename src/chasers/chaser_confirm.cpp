@@ -31,7 +31,6 @@ namespace node {
 #define CLASS chaser_confirm
 
 using namespace system;
-using namespace database;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -155,17 +154,18 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 void chaser_confirm::do_bumped(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    const auto& query = archive();
 
     if (closed())
         return;
 
     // If empty height is not on a candidate fork (may have been reorganized).
-    auto fork = get_fork(height);
+    auto fork = query.get_fork(height);
     if (fork.empty())
         return;
 
     uint256_t work{};
-    if (!get_work(work, fork))
+    if (!query.get_work(work, fork))
     {
         fault(error::confirm1);
         return;
@@ -173,7 +173,7 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
 
     bool strong{};
     const auto fork_point = height - fork.size();
-    if (!get_strong(strong, work, fork_point))
+    if (!query.get_strong(strong, work, fork_point))
     {
         fault(error::confirm2);
         return;
@@ -195,12 +195,12 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
 void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     const auto& query = archive();
+
     auto height = query.get_top_confirmed();
     if (height < fork_point)
     {
-        fault(error::confirm4);
+        fault(error::confirm3);
         return;
     }
 
@@ -210,14 +210,14 @@ void chaser_confirm::reorganize(header_links& fork, size_t fork_point) NOEXCEPT
         const auto link = query.to_confirmed(height);
         if (link.is_terminal())
         {
-            fault(error::confirm5);
+            fault(error::confirm4);
             return;
         }
 
         popped.push_back(link);
         if (!set_reorganized(link, height--))
         {
-            fault(error::confirm6);
+            fault(error::confirm5);
             return;
         }
     }
@@ -253,7 +253,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         {
             if (!query.set_filter_head(link))
             {
-                fault(error::confirm3);
+                fault(error::confirm6);
                 return;
             }
 
@@ -274,7 +274,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
             }
             default:
             {
-                fault(error::confirm4);
+                fault(error::confirm7);
                 return;
             }
         }
@@ -282,7 +282,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
         // After set_block_confirmable.
         if (!set_organized(link, height++))
         {
-            fault(error::confirm5);
+            fault(error::confirm8);
             return;
         }
 
@@ -304,19 +304,19 @@ bool chaser_confirm::confirm_block(const header_link& link,
     {
         if (!query.set_unstrong(link))
         {
-            fault(error::confirm6);
+            fault(error::confirm9);
             return false;
         }
 
         if (!query.set_block_unconfirmable(link))
         {
-            fault(error::confirm7);
+            fault(error::confirm10);
             return false;
         }
 
         if (!roll_back(popped, fork_point, sub1(height)))
         {
-            fault(error::confirm8);
+            fault(error::confirm11);
             return false;
         }
 
@@ -327,13 +327,13 @@ bool chaser_confirm::confirm_block(const header_link& link,
     // Before set_block_confirmable.
     if (!query.set_filter_head(link))
     {
-        fault(error::confirm9);
+        fault(error::confirm12);
         return false;
     }
 
     if (!query.set_block_confirmable(link))
     {
-        fault(error::confirm10);
+        fault(error::confirm13);
         return false;
     }
 
@@ -367,7 +367,7 @@ void chaser_confirm::complete_block(const code& ec, const header_link& link,
     LOGV("Block confirmable: " << height);
 }
 
-// Private setters
+// private
 // ----------------------------------------------------------------------------
 // Checkpointed blocks are set strong by archiver, and cannot be reorganized.
 
@@ -418,84 +418,6 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
         if (!set_organized(fk, ++fork_point))
             return false;
 
-    return true;
-}
-
-// Private getters
-// ----------------------------------------------------------------------------
-
-// TODO: move into database library with internal lock.
-chaser_confirm::header_links chaser_confirm::get_fork(
-    height_t fork_top) const NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    const auto& query = archive();
-    header_link link{};
-    header_links out{};
-
-    // Prevents organizer from popping candidates (does not block push).
-    get_reorganization_lock();
-
-    // Walk down candidates from fork_top to fork point (highest common).
-    for (link = query.to_candidate(fork_top);
-        !link.is_terminal() && !query.is_confirmed_block(link);
-         link = query.to_candidate(--fork_top))
-    {
-        out.push_back(link);
-    }
-
-    // Terminal candidate from previously valid height implies regression.
-    // This is ok, it just means that the fork is no longer a candidate.
-    if (link.is_terminal())
-        out.clear();
-
-    return out;
-}
-
-bool chaser_confirm::get_work(uint256_t& fork_work,
-    const header_links& fork) const NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    const auto& query = archive();
-
-    // Walk down candidates from fork_top to fork point (highest common).
-    for (const auto& link: fork)
-    {
-        uint32_t bits{};
-        if (!query.get_bits(bits, link))
-            return false;
-
-        fork_work += chain::header::proof(bits);
-    }
-
-    return true;
-}
-
-// A fork with greater work will cause confirmed reorganization.
-bool chaser_confirm::get_strong(bool& strong, const uint256_t& fork_work,
-    size_t fork_point) const NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    uint256_t confirmed_work{};
-    const auto& query = archive();
-
-    for (auto height = query.get_top_confirmed(); height > fork_point;
-        --height)
-    {
-        uint32_t bits{};
-        if (!query.get_bits(bits, query.to_confirmed(height)))
-            return false;
-
-        // Not strong when confirmed_work equals or exceeds fork_work.
-        confirmed_work += chain::header::proof(bits);
-        if (confirmed_work >= fork_work)
-        {
-            strong = false;
-            return true;
-        }
-    }
-
-    strong = true;
     return true;
 }
 
