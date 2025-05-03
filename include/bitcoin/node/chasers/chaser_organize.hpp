@@ -51,7 +51,7 @@ protected:
     struct block_state
     {
         typename Block::cptr block;
-        chain_state::ptr state;
+        chain_state::cptr state;
     };
     using block_tree = std::unordered_map<system::hash_cref, block_state>;
     using header_links = std_vector<database::header_link>;
@@ -152,13 +152,13 @@ private:
 
     // Store Block into logical tree cache.
     void cache(const typename Block::cptr& block,
-        const chain_state::ptr& state) NOEXCEPT;
+        const chain_state::cptr& state) NOEXCEPT;
 
     // Getters.
     // ------------------------------------------------------------------------
 
     // Obtain chain state for given previous hash, nullptr if not found.
-    chain_state::ptr get_chain_state(
+    chain_state::cptr get_chain_state(
         const system::hash_digest& previous_hash) const NOEXCEPT;
 
     // Sum of work from header to branch point (excluded).
@@ -183,7 +183,7 @@ private:
 
     // These are protected by strand.
     bool bumped_{};
-    chain_state::ptr state_{};
+    chain_state::cptr state_{};
 
     // TODO: optimize, default bucket count is around 8.
     block_tree tree_{};
