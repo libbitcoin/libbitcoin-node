@@ -83,6 +83,11 @@ code chaser::reload(const store::event_handler& handler) NOEXCEPT
     return node_.reload(handler);
 }
 
+lock chaser::get_reorganization_lock() NOEXCEPT
+{
+    return node_.get_reorganization_lock();
+}
+
 // Events.
 // ----------------------------------------------------------------------------
 

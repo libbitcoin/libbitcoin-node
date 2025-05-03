@@ -93,6 +93,9 @@ protected:
     /// Reset store disk full condition.
     virtual code reload(const store::event_handler& handler) NOEXCEPT;
 
+    /// Get reorganization lock.
+    virtual lock get_reorganization_lock() NOEXCEPT;
+
     /// Events.
     /// -----------------------------------------------------------------------
 
