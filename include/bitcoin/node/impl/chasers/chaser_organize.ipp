@@ -118,7 +118,6 @@ void CLASS::do_organize(typename Block::cptr block,
 {
     BC_ASSERT(stranded());
 
-    // shared_ptr copy keeps block ref in scope until completion of set_code.
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
 
