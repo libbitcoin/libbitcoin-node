@@ -232,16 +232,12 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // Pop down to the branch point.
     auto index = top_candidate;
-    if (top_candidate > branch_point)
+    while (index > branch_point)
     {
-        get_reorganization_lock();
-        while (index > branch_point)
+        if (!set_reorganized(index--))
         {
-            if (!set_reorganized(index--))
-            {
-                handler(fault(error::organize5), height);
-                return;
-            }
+            handler(fault(error::organize5), height);
+            return;
         }
     }
 
@@ -378,16 +374,12 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // ........................................................................
 
     const auto top_candidate = state_->height();
-    if (top_candidate > fork_point)
+    for (auto index = top_candidate; index > fork_point; --index)
     {
-        get_reorganization_lock();
-        for (auto index = top_candidate; index > fork_point; --index)
+        if (!set_reorganized(index))
         {
-            if (!set_reorganized(index))
-            {
-                fault(error::organize11);
-                return;
-            }
+            fault(error::organize11);
+            return;
         }
     }
 

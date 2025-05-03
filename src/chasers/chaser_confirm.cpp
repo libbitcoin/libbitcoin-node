@@ -160,7 +160,7 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
         return;
 
     // If empty height is not on a candidate fork (may have been reorganized).
-    auto fork = query.get_fork(height);
+    auto fork = query.get_candidate_fork(height);
     if (fork.empty())
         return;
 
