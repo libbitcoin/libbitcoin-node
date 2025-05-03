@@ -19,7 +19,6 @@
 #include <bitcoin/node/block_arena.hpp>
 
 #include <algorithm>
-#include <shared_mutex>
 #include <bitcoin/system.hpp>
 
 namespace libbitcoin {

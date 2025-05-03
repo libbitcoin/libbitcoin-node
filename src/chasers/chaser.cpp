@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser.hpp>
 
+#include <mutex>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -80,6 +81,11 @@ code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
 code chaser::reload(const store::event_handler& handler) NOEXCEPT
 {
     return node_.reload(handler);
+}
+
+lock chaser::get_reorganization_lock() NOEXCEPT
+{
+    return node_.get_reorganization_lock();
 }
 
 // Events.

@@ -139,6 +139,10 @@ public:
     /// Get the memory resource.
     virtual network::memory& get_memory() NOEXCEPT;
 
+    /// Get reorganization lock.
+    /// Used to prevent candidate chain reorganization during confirmation.
+    virtual lock get_reorganization_lock() NOEXCEPT;
+
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------
@@ -161,6 +165,7 @@ private:
 
     // These are thread safe.
     const configuration& config_;
+    std::mutex reorganization_mutex_{};
     memory_controller memory_;
     query& query_;
 

@@ -118,7 +118,6 @@ void CLASS::do_organize(typename Block::cptr block,
 {
     BC_ASSERT(stranded());
 
-    // shared_ptr copy keeps block ref in scope until completion of set_code.
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
 
@@ -235,12 +234,16 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // Pop down to the branch point.
     auto index = top_candidate;
-    while (index > branch_point)
+    if (top_candidate > branch_point)
     {
-        if (!set_reorganized(index--))
+        get_reorganization_lock();
+        while (index > branch_point)
         {
-            handler(fault(error::organize5), height);
-            return;
+            if (!set_reorganized(index--))
+            {
+                handler(fault(error::organize5), height);
+                return;
+            }
         }
     }
 
@@ -356,6 +359,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Height and above excluded from tree since they are unconfirmable blocks.
     // ........................................................................
     // Forward order is required to advance chain state for tree.
+    // Can't pop in loop because that requires reverse order.
 
     typename Block::cptr block{};
     for (auto index = add1(fork_point); index < height; ++index)
@@ -374,15 +378,18 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
     // Pop candidates from top candidate down to above fork point.
     // ........................................................................
-    // Can't pop in loop above because state chaining requires forward order.
 
     const auto top_candidate = state_->height();
-    for (auto index = top_candidate; index > fork_point; --index)
+    if (top_candidate > fork_point)
     {
-        if (!set_reorganized(index))
+        get_reorganization_lock();
+        for (auto index = top_candidate; index > fork_point; --index)
         {
-            fault(error::organize11);
-            return;
+            if (!set_reorganized(index))
+            {
+                fault(error::organize11);
+                return;
+            }
         }
     }
 

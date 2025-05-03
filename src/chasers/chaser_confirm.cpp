@@ -159,6 +159,9 @@ void chaser_confirm::do_bumped(height_t height) NOEXCEPT
     if (closed())
         return;
 
+    // Prevents organizer from popping candidates (does not block push).
+    get_reorganization_lock();
+
     // Scan from candidate height to first confirmed, return links and work.
     uint256_t work{};
     header_links fork{};
@@ -291,6 +294,7 @@ void chaser_confirm::organize(header_links& fork, const header_links& popped,
     }
 
     // Prevent stall by posting internal event, avoiding external handlers.
+    // Posts new work, preventing recursion and releasing reorganization lock.
     handle_event(error::success, chase::bump, height_t{});
 }
 
