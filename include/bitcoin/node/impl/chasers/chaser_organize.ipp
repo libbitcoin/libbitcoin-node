@@ -29,8 +29,6 @@
 namespace libbitcoin {
 namespace node {
 
-BC_PUSH_WARNING(NO_NEW_OR_DELETE)
-
 // Public
 // ----------------------------------------------------------------------------
 
@@ -372,7 +370,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
 
         using namespace system;
         const auto& header = get_header(*block);
-        state.reset(new chain::chain_state{ *state, header, settings_ });
+        state = to_shared<chain::chain_state>(*state, header, settings_);
         cache(block, state);
     }
 
@@ -495,7 +493,7 @@ code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
 
 TEMPLATE
 void CLASS::cache(const typename Block::cptr& block,
-    const chain_state::ptr& state) NOEXCEPT
+    const chain_state::cptr& state) NOEXCEPT
 {
     tree_.emplace(system::hash_cref(block->get_hash()),
         block_state{ block, state });
@@ -505,7 +503,7 @@ void CLASS::cache(const typename Block::cptr& block,
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-CLASS::chain_state::ptr CLASS::get_chain_state(
+CLASS::chain_state::cptr CLASS::get_chain_state(
     const system::hash_digest& previous_hash) const NOEXCEPT
 {
     if (!state_)
@@ -637,8 +635,6 @@ void CLASS::log_state_change(const chain_state& from,
         }
     }
 }
-
-BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
