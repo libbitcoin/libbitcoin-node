@@ -126,13 +126,11 @@ namespace node {
 #define BN_MEASURE_COLLISION_RATES \
     "Collision rates...\n" \
     "   header    :%1%\n" \
-    "   txs       :%2%\n" \
-    "   tx        :%3%\n" \
-    "   point     :%4%\n" \
-    "   strong_tx :%5%\n" \
-    "   valid_bk  :%6%\n" \
-    "   valid_tx  :%7%\n" \
-    "   address   :%8%"
+    "   tx        :%2%\n" \
+    "   point     :%3%\n" \
+    "   strong_tx :%4%\n" \
+    "   valid_tx  :%5%\n" \
+    "   address   :%6%"
 #define BN_MEASURE_PROGRESS_START \
     "Thinking..."
 #define BN_MEASURE_PROGRESS \

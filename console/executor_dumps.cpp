@@ -141,19 +141,16 @@ void executor::dump_buckets() const
         query_.address_buckets());
 }
 
-// txs, validated_tx, validated_bk collision rates assume 1:1 records.
 void executor::dump_collisions() const
 {
     logger(format(BN_MEASURE_COLLISION_RATES) %
         (to_double(query_.header_records()) / query_.header_buckets()) %
-        (to_double(query_.header_records()) / query_.txs_buckets()) %
         (to_double(query_.tx_records()) / query_.tx_buckets()) %
         (to_double(query_.point_records()) / query_.point_buckets()) %
         (to_double(query_.strong_tx_records()) / query_.strong_tx_buckets()) %
-        (to_double(query_.header_records()) / query_.validated_bk_buckets()) %
         (to_double(query_.tx_records()) / query_.validated_tx_buckets()) %
-        (query_.address_enabled() ?
-            (to_double(query_.address_records()) / query_.address_buckets()) : zero));
+        (query_.address_enabled() ? (to_double(query_.address_records()) / 
+            query_.address_buckets()) : zero));
 }
 
 void executor::dump_progress() const
