@@ -257,10 +257,9 @@ get_data protocol_block_in_31800::create_get_data(
     data.items.reserve(map.size());
 
     // bip144: get_data uses witness constant but inventory does not.
-    // clang emplace_back bug (no matching constructor), using push_back.
     std::for_each(map.pos_begin(), map.pos_end(), [&](const auto& item) NOEXCEPT
     {
-        data.items.push_back({ block_type_, item.hash });
+        data.items.emplace_back(block_type_, item.hash);
     });
 
     return data;
