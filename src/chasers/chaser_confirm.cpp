@@ -366,6 +366,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     BC_ASSERT(stranded());
     auto& query = archive();
 
+#if defined(NDEBUG)
     const auto previous_height = query.get_top_confirmed();
     if (confirmed_height != add1(previous_height))
     {
@@ -380,6 +381,7 @@ bool chaser_confirm::set_organized(const header_link& link,
         fault(error::suspended_service);
         return false;
     }
+#endif // !NDEBUG
 
     // Checkpointed blocks are set strong by archiver.
     if (!query.push_confirmed(link, !is_under_checkpoint(confirmed_height)))
