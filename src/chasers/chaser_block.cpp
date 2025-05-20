@@ -40,10 +40,11 @@ const header& chaser_block::get_header(const block& block) const NOEXCEPT
     return block.header();
 }
 
-bool chaser_block::get_block(block::cptr& out, size_t height) const NOEXCEPT
+bool chaser_block::get_block(block::cptr& out,
+    const header_link& link) const NOEXCEPT
 {
     const auto& query = archive();
-    out = query.get_block(query.to_candidate(height));
+    out = query.get_block(link);
     return !is_null(out);
 }
 

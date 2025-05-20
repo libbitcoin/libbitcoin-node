@@ -47,10 +47,11 @@ const header& chaser_header::get_header(const header& header) const NOEXCEPT
     return header;
 }
 
-bool chaser_header::get_block(header::cptr& out, size_t height) const NOEXCEPT
+bool chaser_header::get_block(header::cptr& out, 
+    const header_link& link) const NOEXCEPT
 {
     const auto& query = archive();
-    out = query.get_header(query.to_candidate(height));
+    out = query.get_header(link);
     return !is_null(out);
 }
 
@@ -91,24 +92,22 @@ code chaser_header::duplicate(size_t& height,
 code chaser_header::validate(const header& header,
     const chain_state& state) const NOEXCEPT
 {
-    code ec{};
-
     // header.check is never bypassed.
-    if ((ec = header.check(
+    if (const auto ec = header.check(
         settings().timestamp_limit_seconds,
         settings().proof_of_work_limit,
-        settings().forks.scrypt_proof_of_work)))
+        settings().forks.scrypt_proof_of_work))
         return ec;
 
     // header.accept is never bypassed.
-    if ((ec = header.accept(state.context())))
+    if (const auto ec = header.accept(state.context()))
         return ec;
 
     // This prevents a long unconfirmable header chain with an early
     // unconfirmable from reinitiating a long validation chain before hitting
     // the invalidation again. This is more likely the case of a bug than IRL.
     ////const auto& query = archive();
-    ////ec = query.get_header_state(query.to_header(header.hash()));
+    ////const auto ec = query.get_header_state(query.to_header(header.hash()));
     ////if (ec == database::error::block_unconfirmable)
     ////    return ec;
 

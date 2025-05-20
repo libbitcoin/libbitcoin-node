@@ -46,7 +46,7 @@ protected:
 
     /// Query store for const pointer to Block instance by candidate height.
     bool get_block(system::chain::block::cptr& out,
-        size_t height) const NOEXCEPT override;
+        const header_link& link) const NOEXCEPT override;
 
     /// Determine if Block is a duplicate (success for not duplicate).
     code duplicate(size_t& height,
