@@ -249,7 +249,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Push stored strong headers to candidate chain.
     for (const auto& link: std::views::reverse(store_branch))
     {
-        if (!set_organized(link, index++))
+        if (!set_organized(link, ++index))
         {
             handler(fault(error::organize6), height);
             return;
