@@ -221,7 +221,7 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
 
     for (const auto& state: fork)
     {
-        switch (state.code.value())
+        switch (state.ec.value())
         {
             case database::error::bypassed:
             {
