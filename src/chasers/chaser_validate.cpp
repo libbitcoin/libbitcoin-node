@@ -128,6 +128,8 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
+    // TODO: make store query.
+
     // Only necessary when bumping as next position may not be associated.
     const auto height = add1(position());
     const auto link = query.to_candidate(height);
@@ -155,9 +157,11 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     // Bypass until next event if validation backlog is full.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
-        // Given height-based iteration, any block state may be enountered.
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
+
+        // Must exit on unassociated so they are not set valid in bypass.
+        // Given height-based iteration, any block state may be enountered.
         if (ec == database::error::unassociated)
             return;
 
@@ -177,16 +181,6 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         }
         else switch (ec.value())
         {
-            ////case database::error::unassociated:
-            case database::error::block_unconfirmable:
-            {
-                return;
-            }
-            case database::error::unvalidated:
-            {
-                post_block(link, bypass);
-                break;
-            }
             case database::error::block_valid:
             case database::error::block_confirmable:
             {
@@ -194,6 +188,16 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
                 complete_block(error::success, link, height, bypass);
                 break;
             }
+            case database::error::unvalidated:
+            {
+                post_block(link, bypass);
+                break;
+            }
+            case database::error::block_unconfirmable:
+            {
+                return;
+            }
+            ////case database::error::unassociated
             default:
             {
                 fault(error::validate1);
@@ -230,7 +234,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     // TODO: implement allocator parameter resulting in full allocation to
     // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
-    auto block = query.get_block(link);
+    const auto block = query.get_block(link);
 
     if (!block)
     {
