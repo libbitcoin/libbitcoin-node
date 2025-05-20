@@ -55,7 +55,7 @@ protected:
     };
     using block_tree = std::unordered_map<system::hash_cref, block_state>;
     using header_link = database::header_link;
-    using header_links = std_vector<header_link>;
+    using header_links = database::header_links;
 
     /// Protected constructor for abstract base.
     chaser_organize(full_node& node) NOEXCEPT;

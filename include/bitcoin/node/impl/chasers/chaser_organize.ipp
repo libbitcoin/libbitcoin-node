@@ -116,6 +116,7 @@ void CLASS::do_organize(typename Block::cptr block,
 {
     BC_ASSERT(stranded());
 
+    using namespace system;
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
 
@@ -128,16 +129,15 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
-    const auto it = tree_.find(system::hash_cref(hash));
+    const auto it = tree_.find(hash_cref(hash));
     if (it != tree_.end())
     {
         handler(error_duplicate(), it->second.state->height());
         return;
     }
 
-    code ec{};
     size_t height{};
-    if ((ec = duplicate(height, hash)))
+    if (const auto ec = duplicate(height, hash))
     {
         handler(ec, height);
         return;
@@ -161,7 +161,6 @@ void CLASS::do_organize(typename Block::cptr block,
     // Validation and currency.
     // ........................................................................
 
-    using namespace system;
     if (chain::checkpoint::is_conflict(checkpoints_, hash, height))
     {
         handler(system::error::checkpoint_conflict, height);
@@ -170,13 +169,13 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // Headers are late validated, with malleations ignored upon download.
     // Blocks are fully validated (not confirmed), so malleation is non-issue.
-    if ((ec = validate(*block, *state)))
+    if (const auto ec = validate(*block, *state))
     {
         handler(ec, height);
         return;
     }
 
-    // Store the chain once it is sufficiently guaranteed.
+    // Cache headers until the branch is sufficiently guaranteed.
     if (!is_storable(*state))
     {
         log_state_change(*parent, *state);
@@ -260,7 +259,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Store strong tree headers and push to candidate chain.
     for (const auto& key: std::views::reverse(tree_branch))
     {
-        if ((ec = push_block(key)))
+        if (const auto ec = push_block(key))
         {
             handler(fault(ec), height);
             return;
@@ -270,7 +269,7 @@ void CLASS::do_organize(typename Block::cptr block,
     }
 
     // Push new header as top of candidate chain.
-    if ((ec = push_block(*block, state->context())))
+    if (const auto ec = push_block(*block, state->context()))
     {
         handler(fault(ec), height);
         return;
@@ -310,96 +309,106 @@ TEMPLATE
 void CLASS::do_disorganize(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    using namespace system;
+    auto& query = archive();
 
-    // Skip already reorganized out, get height.
-    // ........................................................................
-
-    // Upon restart chain validation will hit unconfirmable block.
     if (closed())
         return;
 
-    // If header is not a current candidate it has been reorganized out.
-    // If header becomes candidate again its unconfirmable state is handled.
-    auto& query = archive();
+    // May have been reorganized already by previous unconfirmable.
     if (!query.is_candidate_header(link))
         return;
 
-    size_t height{};
-    if (!query.get_height(height, link) || is_zero(height))
-    {
-        fault(error::organize7);
-        return;
-    }
+    // Get list of links to pop (weak branch), may be empty (previous disorg).
+    // ........................................................................
 
-    // Must reorganize down to fork point, since entire branch is now weak.
-    const auto fork_point = query.get_fork();
-    if (height <= fork_point)
-    {
-        fault(error::organize8);
-        return;
-    }
+    // Guarded by confirmed interlock, ensures a consistent branch only.
+    size_t fork_point{};
+    auto candidates = query.get_candidate_fork(fork_point);
 
-    // Get fork point chain state.
+    // Move candidates above the invalid link into an independent list.
+    header_links invalids{};
+    if (!part(candidates, invalids, link))
+        return;
+
+    // Copy valid portion of branch (below link) into header tree with state.
     // ........................................................................
 
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
-        fault(error::organize9);
+        fault(error::organize8);
         return;
     }
 
-    // Copy candidates from above fork point to below height into header tree.
-    // Height and above excluded from tree since they are unconfirmable blocks.
-    // ........................................................................
-    // Forward order is required to advance chain state for tree.
-    // Can't pop in loop because that requires reverse order.
-
-    typename Block::cptr block{};
-    for (auto index = add1(fork_point); index < height; ++index)
+    for (const auto& candidate: candidates)
     {
-        if (!get_block(block, index))
+        typename Block::cptr block{};
+        if (!get_block(block, candidate))
         {
-            fault(error::organize10);
+            fault(error::organize9);
             return;
         }
 
-        using namespace system;
         const auto& header = get_header(*block);
         state = to_shared<chain::chain_state>(*state, header, settings_);
         cache(block, state);
     }
 
-    // Pop candidates from top candidate down to above fork point.
+    // Pop invalids (top to link), set unconfirmable (stops validation).
     // ........................................................................
 
-    const auto top_candidate = state_->height();
-    for (auto index = top_candidate; index > fork_point; --index)
+    for (const auto& invalid: std::views::reverse(invalids))
     {
-        if (!set_reorganized(index))
+        if (!query.set_block_unconfirmable(invalid))
+        {
+            fault(error::organize10);
+            return;
+        }
+
+        if (!set_reorganized(invalid))
         {
             fault(error::organize11);
             return;
         }
     }
 
-    // Push confirmed headers from above fork point onto candidate chain.
+    // Pop weak candidates (below link to fork point).
     // ........................................................................
 
-    const auto top_confirmed = query.get_top_confirmed();
-    for (auto index = add1(fork_point); index <= top_confirmed; ++index)
+    for (const auto& candidate: std::views::reverse(candidates))
     {
-        // Confirmed blocks may or may not be strong, as a branch severs strong
-        // above the branch point, so as they are copied to the candidate index
-        // they must be assured to be strong, since the fork point moves up.
-        if (!set_organized(query.to_confirmed(index), index))
+        if (!set_reorganized(candidate))
+        {
+            fault(error::organize11);
+            return;
+        }
+    }
+
+    // Push all confirmeds above fork point onto candidate chain.
+    // ........................................................................
+
+    // Candidate fork link used to ensure consistency with confirmed chain.
+    const auto fork = query.to_candidate(fork_point);
+
+    // Guarded by confirmed interlock, ensures fork point consistency.
+    const auto confirmeds = query.get_confirmed_fork(fork);
+
+    // fork_point reflects the new candidate top once complete.
+    // May be empty because of reorganization or just no blocks.
+    for (const auto& confirmed: std::views::reverse(confirmeds))
+    {
+        if (!set_organized(confirmed, ++fork_point))
         {
             fault(error::organize12);
             return;
         }
     }
 
-    state = query.get_candidate_chain_state(settings_, top_confirmed);
+    // Reset top candidate state to match confirmed, log and notify.
+    // ........................................................................
+
+    state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
         fault(error::organize13);
@@ -411,7 +420,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state_ = state;
 
     // Candidate is same as confirmed, reset chasers to new top.
-    notify(error::success, chase::disorganized, top_confirmed);
+    notify(error::success, chase::disorganized, fork_point);
 
     // Reset all connections to ensure that new connections exist.
     notify(error::success, chase::suspend, {});
@@ -438,7 +447,24 @@ bool CLASS::set_organized(const database::header_link& link,
     height_t candidate_height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    if (!archive().push_candidate(link))
+    auto& query = archive();
+
+    const auto previous_height = query.get_top_candidate();
+    if (candidate_height != add1(previous_height))
+    {
+        fault(error::stalled_channel);
+        return false;
+    }
+
+    const auto parent = query.to_parent(link);
+    const auto top = query.to_candidate(previous_height);
+    if (parent != top)
+    {
+        fault(error::suspended_channel);
+        return false;
+    }
+
+    if (!query.push_candidate(link))
         return false;
 
     fire(events::header_organized, candidate_height);
@@ -487,6 +513,7 @@ TEMPLATE
 void CLASS::cache(const typename Block::cptr& block,
     const chain_state::cptr& state) NOEXCEPT
 {
+    // TODO: guard cache against memory exhaustion (DoS).
     tree_.emplace(system::hash_cref(block->get_hash()),
         block_state{ block, state });
 }
