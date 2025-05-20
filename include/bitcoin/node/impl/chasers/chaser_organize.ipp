@@ -337,7 +337,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     auto state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
-        fault(error::organize8);
+        fault(error::organize7);
         return;
     }
 
@@ -346,7 +346,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
         typename Block::cptr block{};
         if (!get_block(block, candidate))
         {
-            fault(error::organize9);
+            fault(error::organize8);
             return;
         }
 
@@ -362,13 +362,13 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     {
         if (!query.set_block_unconfirmable(invalid))
         {
-            fault(error::organize10);
+            fault(error::organize9);
             return;
         }
 
         if (!set_reorganized(invalid))
         {
-            fault(error::organize11);
+            fault(error::organize10);
             return;
         }
     }
