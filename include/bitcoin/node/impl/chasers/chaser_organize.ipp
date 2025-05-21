@@ -564,7 +564,7 @@ bool CLASS::get_branch_work(uint256_t& work,
 
     // Get portion of branch from tree and sum its work.
     auto it = tree_.find(previous);
-    while (it != tree_.end());
+    while (it != tree_.end())
     {
         // Accumulate.
         const auto& head = get_header(*it->second.block);
