@@ -196,7 +196,6 @@ void CLASS::do_organize(typename Block::cptr block,
     // Compute relative work.
     // ........................................................................
 
-    bool strong{};
     uint256_t work{};
     hashes tree_branch{};
     header_states store_branch{};
@@ -206,11 +205,9 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
-    // New height is one above branch_point if the tree/store branch is empty.
+    bool strong{};
     const auto branch_size = add1(tree_branch.size() + store_branch.size());
     const auto branch_point = height - branch_size;
-
-    // branch_point is the highest tree-candidate common block.
     if (!query.get_strong_branch(strong, work, branch_point))
     {
         handler(fault(error::organize3), height);
