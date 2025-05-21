@@ -199,17 +199,19 @@ void CLASS::do_organize(typename Block::cptr block,
     bool strong{};
     uint256_t work{};
     hashes tree_branch{};
-    height_t branch_point{};
-    header_links store_branch{};
-
-    if (!get_branch_work(work, branch_point, tree_branch, store_branch, header))
+    header_states store_branch{};
+    if (!get_branch_work(work, tree_branch, store_branch, header))
     {
         handler(fault(error::organize2), height);
         return;
     }
 
+    // New height is one above branch_point if the tree/store branch is empty.
+    const auto branch_size = add1(tree_branch.size() + store_branch.size());
+    const auto branch_point = height - branch_size;
+
     // branch_point is the highest tree-candidate common block.
-    if (!get_is_strong(strong, work, branch_point))
+    if (!query.get_strong_branch(strong, work, branch_point))
     {
         handler(fault(error::organize3), height);
         return;
@@ -257,9 +259,9 @@ void CLASS::do_organize(typename Block::cptr block,
     }
 
     // Push stored strong headers to candidate chain.
-    for (const auto& link: std::views::reverse(store_branch))
+    for (const auto& stored: std::views::reverse(store_branch))
     {
-        if (!set_organized(link, ++top))
+        if (!set_organized(stored.link, ++top))
         {
             handler(fault(error::organize6), height);
             return;
@@ -553,67 +555,45 @@ CLASS::chain_state::cptr CLASS::get_chain_state(
 // Also obtains branch point for work summation termination.
 // Also obtains ordered branch identifiers for subsequent reorg.
 TEMPLATE
-bool CLASS::get_branch_work(uint256_t& work, size_t& branch_point,
-    system::hashes& tree_branch, header_links& store_branch,
+bool CLASS::get_branch_work(uint256_t& work,
+    system::hashes& tree_branch, header_states& store_branch,
     const system::chain::header& header) const NOEXCEPT
 {
+    using namespace system;
+    const auto& query = archive();
+
     // Use pointer to avoid const/copy.
     auto previous = &header.previous_block_hash();
-    const auto& query = archive();
     work = header.proof();
 
-    // Sum all branch work from tree.
-    for (auto it = tree_.find(system::hash_cref(*previous)); it != tree_.end();
-        it = tree_.find(system::hash_cref(*previous)))
+    // Get portion of branch from tree and sum its work.
+    auto it = tree_.find(hash_cref(*previous));
+    while (it != tree_.end());
     {
-        const auto& next = get_header(*it->second.block);
-        previous = &next.previous_block_hash();
-        tree_branch.push_back(next.hash());
-        work += next.proof();
+        // Iterate.
+        const auto& head = get_header(*it->second.block);
+        previous = &head.previous_block_hash();
+        it = tree_.find(hash_cref(*previous));
+
+        // Accumulate.
+        tree_branch.push_back(head.hash());
+        work += head.proof();
     }
 
-    // Sum branch work from store.
-    database::height_link link{};
-    for (link = query.to_header(*previous); !query.is_candidate_header(link);
-        link = query.to_parent(link))
+    // Get portion of branch that is already stored.
+    if (!query.get_branch(store_branch, *previous))
+        return false;
+
+    // If store_branch is empty then previous is candidate/branch_point.
+    if (!store_branch.empty())
     {
-        uint32_t bits{};
-        if (link.is_terminal() || !query.get_bits(bits, link))
+        uint256_t store_work{};
+        if (!query.get_work(store_work, store_branch))
             return false;
 
-        store_branch.push_back(link);
-        work += system::chain::header::proof(bits);
+        work += store_work;
     }
 
-    // Height of the highest candidate header is the branch point.
-    return query.get_height(branch_point, link);
-}
-
-// A branch with greater work will cause candidate reorganization.
-TEMPLATE
-bool CLASS::get_is_strong(bool& strong, const uint256_t& branch_work,
-    size_t branch_point) const NOEXCEPT
-{
-    uint256_t candidate_work{};
-    const auto& query = archive();
-
-    for (auto height = query.get_top_candidate(); height > branch_point;
-        --height)
-    {
-        uint32_t bits{};
-        if (!query.get_bits(bits, query.to_candidate(height)))
-            return false;
-
-        // Not strong when candidate_work equals or exceeds branch_work.
-        candidate_work += system::chain::header::proof(bits);
-        if (candidate_work >= branch_work)
-        {
-            strong = false;
-            return true;
-        }
-    }
-
-    strong = true;
     return true;
 }
 
