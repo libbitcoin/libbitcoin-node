@@ -366,7 +366,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     BC_ASSERT(stranded());
     auto& query = archive();
 
-#if defined(NDEBUG)
+#if !defined(NDEBUG)
     const auto previous_height = query.get_top_confirmed();
     if (confirmed_height != add1(previous_height))
     {

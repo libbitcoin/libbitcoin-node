@@ -455,7 +455,7 @@ bool CLASS::set_organized(const database::header_link& link,
     BC_ASSERT(stranded());
     auto& query = archive();
 
-#if defined(NDEBUG)
+#if !defined(NDEBUG)
     const auto previous_height = query.get_top_candidate();
     if (candidate_height != add1(previous_height))
     {
