@@ -42,6 +42,7 @@ public:
 protected:
     using header_link = database::header_link;
     using header_links = database::header_links;
+    using header_states = database::header_states;
 
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
@@ -51,12 +52,13 @@ protected:
     virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
-    virtual void reorganize(header_links& fork, size_t fork_point) NOEXCEPT;
-    virtual void organize(header_links& fork, const header_links& popped,
+    virtual void reorganize(header_states& fork, size_t top,
+        size_t fork_point) NOEXCEPT;
+    virtual void organize(header_states& fork, const header_links& popped,
         size_t fork_point) NOEXCEPT;
     virtual bool confirm_block(const header_link& link,
         size_t height, const header_links& popped, size_t fork_point) NOEXCEPT;
-    virtual void complete_block(const code& ec, const header_link& link,
+    virtual bool complete_block(const code& ec, const header_link& link,
         size_t height, bool bypassed) NOEXCEPT;
 
 private:

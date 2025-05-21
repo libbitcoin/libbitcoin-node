@@ -54,7 +54,7 @@ protected:
         chain_state::cptr state;
     };
     using block_tree = std::unordered_map<system::hash_cref, block_state>;
-    using header_links = std_vector<database::header_link>;
+    using header_link = database::header_link;
 
     /// Protected constructor for abstract base.
     chaser_organize(full_node& node) NOEXCEPT;
@@ -66,9 +66,9 @@ protected:
     virtual const system::chain::header& get_header(
         const Block& block) const NOEXCEPT = 0;
 
-    /// Query store for const pointer to Block instance by candidate height.
+    /// Query store for const pointer to Block instance by link.
     virtual bool get_block(typename Block::cptr& out,
-        size_t height) const NOEXCEPT = 0;
+        const header_link& link) const NOEXCEPT = 0;
 
     /// Determine if Block is a duplicate (success for not duplicate).
     virtual code duplicate(size_t& height,
@@ -112,6 +112,9 @@ protected:
     virtual const system::settings& settings() const NOEXCEPT;
 
 private:
+    using header_links = database::header_links;
+    using header_states = database::header_states;
+
     // Template differetiators.
     // ------------------------------------------------------------------------
 
@@ -162,13 +165,9 @@ private:
         const system::hash_digest& previous_hash) const NOEXCEPT;
 
     // Sum of work from header to branch point (excluded).
-    bool get_branch_work(uint256_t& branch_work, size_t& branch_point,
-        system::hashes& tree_branch, header_links& store_branch,
+    bool get_branch_work(uint256_t& branch_work,
+        system::hashes& tree_branch, header_states& store_branch,
         const system::chain::header& header) const NOEXCEPT;
-
-    // True if work represents a stronger candidate branch.
-    bool get_is_strong(bool& strong, const uint256_t& branch_work,
-        size_t branch_point) const NOEXCEPT;
 
     // Logging.
     // ------------------------------------------------------------------------
