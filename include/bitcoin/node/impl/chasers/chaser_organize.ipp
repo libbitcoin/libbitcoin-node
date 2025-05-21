@@ -143,7 +143,7 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
-    // Obtain header chain state.
+    // Validate parent and obtain header chain state.
     // ........................................................................
 
     // Obtain parent state from state_, tree, or store as applicable.
@@ -154,7 +154,7 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
-    // Roll chain state forward from archived parent to current header.
+    // Roll chain state forward from archived parent to new header.
     const auto state = std::make_shared<chain_state>(*parent, header, settings_);
     height = state->height();
 
@@ -167,7 +167,7 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     };
 
-    // Headers are late validated, with malleations ignored upon download.
+    // Blocks of headers are validated later, malleations ignored until then.
     // Blocks are fully validated (not confirmed), so malleation is non-issue.
     if (const auto ec = validate(*block, *state))
     {
@@ -222,18 +222,19 @@ void CLASS::do_organize(typename Block::cptr block,
     // Here it must be computed from the header tree because it trickles down.
     update_milestone(header, height, branch_point);
 
-    const auto top_candidate = state_->height();
-    if (branch_point > top_candidate)
+    // Cannot be branching above top.
+    auto top = state_->height();
+    if (branch_point > top)
     {
         handler(fault(error::organize4), height);
         return;
     }
 
-    // Pop down to the branch point.
-    auto index = top_candidate;
-    while (index > branch_point)
+    // Pop top down to the branch point.
+    const auto regress = branch_point < top;
+    while (branch_point < top)
     {
-        if (!set_reorganized(index--))
+        if (!set_reorganized(top--))
         {
             handler(fault(error::organize5), height);
             return;
@@ -241,7 +242,7 @@ void CLASS::do_organize(typename Block::cptr block,
     }
 
     // Reset chasers to the branch point.
-    if (branch_point < top_candidate)
+    if (regress)
     {
         notify(error::success, chase::regressed, branch_point);
     }
@@ -249,14 +250,14 @@ void CLASS::do_organize(typename Block::cptr block,
     // Push stored strong headers to candidate chain.
     for (const auto& link: std::views::reverse(store_branch))
     {
-        if (!set_organized(link, ++index))
+        if (!set_organized(link, ++top))
         {
             handler(fault(error::organize6), height);
             return;
         }
     }
 
-    // Store strong tree headers and push to candidate chain.
+    // Archive strong tree headers and push to candidate chain.
     for (const auto& key: std::views::reverse(tree_branch))
     {
         if (const auto ec = push_block(key))
@@ -265,7 +266,7 @@ void CLASS::do_organize(typename Block::cptr block,
             return;
         }
 
-        index++;
+        top++;
     }
 
     // Push new header as top of candidate chain.
