@@ -402,11 +402,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     const auto fork = query.to_candidate(fork_point);
 
     // Guarded by confirmed interlock, ensures fork point consistency.
-    const auto confirmeds = query.get_confirmed_fork(fork);
-
-    // fork_point reflects the new candidate top once complete.
-    // May be empty because of reorganization or just no blocks.
-    for (const auto& confirmed: std::views::reverse(confirmeds))
+    for (const auto& confirmed: query.get_confirmed_fork(fork))
     {
         if (!set_organized(confirmed, ++fork_point))
         {
@@ -418,6 +414,7 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     // Reset top candidate state to match confirmed, log and notify.
     // ........................................................................
 
+    // fork_point reflects the new candidate top.
     state = query.get_candidate_chain_state(settings_, fork_point);
     if (!state)
     {
