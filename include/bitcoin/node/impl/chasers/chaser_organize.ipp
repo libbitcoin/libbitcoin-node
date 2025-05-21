@@ -536,6 +536,7 @@ TEMPLATE
 CLASS::chain_state::cptr CLASS::get_chain_state(
     const system::hash_digest& previous_hash) const NOEXCEPT
 {
+    using namespace system;
     if (!state_)
         return {};
 
@@ -544,7 +545,7 @@ CLASS::chain_state::cptr CLASS::get_chain_state(
         return state_;
 
     // Previous block may be cached because it is not yet strong.
-    const auto it = tree_.find(system::hash_cref(previous_hash));
+    const auto it = tree_.find(hash_cref(previous_hash));
     if (it != tree_.end())
         return it->second.state;
 
@@ -561,27 +562,25 @@ bool CLASS::get_branch_work(uint256_t& work,
 {
     using namespace system;
     const auto& query = archive();
-
-    // Use pointer to avoid const/copy.
-    auto previous = &header.previous_block_hash();
+    hash_cref previous{ header.previous_block_hash() };
     work = header.proof();
 
     // Get portion of branch from tree and sum its work.
-    auto it = tree_.find(hash_cref(*previous));
+    auto it = tree_.find(previous);
     while (it != tree_.end());
     {
-        // Iterate.
-        const auto& head = get_header(*it->second.block);
-        previous = &head.previous_block_hash();
-        it = tree_.find(hash_cref(*previous));
-
         // Accumulate.
+        const auto& head = get_header(*it->second.block);
         tree_branch.push_back(head.hash());
         work += head.proof();
+
+        // Iterate.
+        previous = hash_cref(head.previous_block_hash());
+        it = tree_.find(previous);
     }
 
     // Get portion of branch that is already stored.
-    if (!query.get_branch(store_branch, *previous))
+    if (!query.get_branch(store_branch, previous))
         return false;
 
     // If store_branch is empty then previous is candidate/branch_point.
