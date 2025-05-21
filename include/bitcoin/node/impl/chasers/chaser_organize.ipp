@@ -117,6 +117,7 @@ void CLASS::do_organize(typename Block::cptr block,
     BC_ASSERT(stranded());
 
     using namespace system;
+    const auto& query = archive();
     const auto& hash = block->get_hash();
     const auto& header = get_header(*block);
 
@@ -146,8 +147,16 @@ void CLASS::do_organize(typename Block::cptr block,
     // Validate parent and obtain header chain state.
     // ........................................................................
 
+    // Shortcircuit parent unconfirmable (looping over failed block).
+    const auto& previous = header.previous_block_hash();
+    if (query.is_unconfirmable(query.to_header(previous)))
+    {
+        handler(database::error::block_unconfirmable, {});
+        return;
+    }
+
     // Obtain parent state from state_, tree, or store as applicable.
-    const auto parent = get_chain_state(header.previous_block_hash());
+    const auto parent = get_chain_state(previous);
     if (!parent)
     {
         handler(error_orphan(), {});
