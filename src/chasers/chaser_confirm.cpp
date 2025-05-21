@@ -164,7 +164,7 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
 
         // Compares candidate branch work to confirmed (above fork point).
         bool strong{};
-        if (!query.get_strong(strong, work, fork_point))
+        if (!query.get_strong_fork(strong, work, fork_point))
         {
             fault(error::confirm3);
             return;
