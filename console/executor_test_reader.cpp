@@ -19,12 +19,8 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
+////#include <set>
+////#include <string>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
@@ -32,11 +28,8 @@ namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using system::config::printer;
 using namespace network;
 using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 // arbitrary testing (const).
 void executor::read_test(bool) const
@@ -115,7 +108,7 @@ void executor::read_test(bool dump) const
 
         ////size_t found{};
         auto address_it = store_.address.it(key);
-        if (address_it.self().is_terminal())
+        if (address_it.get().is_terminal())
         {
             // fault, missing address.
             return;
@@ -127,7 +120,7 @@ void executor::read_test(bool dump) const
                 break;
 
             table::address::record address{};
-            if (!store_.address.get(address_it.self(), address))
+            if (!store_.address.get(address_it.get(), address))
             {
                 // fault, missing address.
                 return;
@@ -436,14 +429,14 @@ void executor::read_test(bool dump) const
     }
 
     auto spenders = store_.tx.it(hash_spender);
-    if (spenders.self().is_terminal())
+    if (spenders.get().is_terminal())
         return;
 
     // ...260, 261
     size_t spender_count{};
     do
     {
-        const auto foo = spenders.self();
+        const auto foo = spenders.get();
         ++spender_count;
     } while(spenders.advance());
 
@@ -480,14 +473,14 @@ void executor::read_test(bool dump) const
     }
 
     auto spent = store_.tx.it(hash_spent);
-    if (spent.self().is_terminal())
+    if (spent.get().is_terminal())
         return;
 
     // ...255, 254
     size_t spent_count{};
     do
     {
-        const auto bar = spent.self();
+        const auto bar = spent.get();
         ++spent_count;
     } while (spent.advance());
 
@@ -747,7 +740,7 @@ void executor::read_test(bool dump) const
 
         // 191s 215s/212s/208s [independent]
         // ???? 228s/219s/200s [combined]
-        if (!query_.populate(*block))
+        if (!query_.populate_with_metadata(*block))
         {
             logger("populate");
             return;
@@ -793,7 +786,6 @@ void executor::read_test(bool dump) const
 
         ////for (size_t index = one; index < block->transactions_ptr()->size(); ++index)
         ////{
-        ////    constexpr size_t index = 1933;
         ////    const auto& tx = *block->transactions_ptr()->at(index);
         ////    if ((ec = tx.connect(state)))
         ////    {
@@ -872,13 +864,9 @@ void executor::read_test(bool) const
     state.minimum_block_version = 0;
     state.work_required = 0;
 
-    if (!block->populate(state))
-    {
-        logger("!block->populate(state)");
-        return;
-    }
+    block->populate();
 
-    if (!query_.populate(*block))
+    if (!query_.populate_with_metadata(*block))
     {
         logger("!query_.populate(*block)");
         return;
@@ -920,7 +908,7 @@ void executor::read_test(bool) const
     ////    "eb2179db6c40bceb02cebcc5c99cf783ed6385b00767c7a5419fe530eaba8bff");
     ////const auto tx_link = query_.to_tx(tx_hash);
     ////const auto tx = query_.get_transaction(tx_link);
-    ////const auto result = query_.populate(*tx);
+    ////const auto result = query_.populate_without_metadata(*tx);
     ////const auto size = tx->serialized_size(false);
     ////const auto weight = tx->serialized_size(true);
     ////const auto version = tx->version();

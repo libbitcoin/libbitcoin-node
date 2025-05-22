@@ -17,26 +17,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "executor.hpp"
-#include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
 #include <iostream>
-#include <map>
-#include <boost/format.hpp>
+#include <string>
+#include <unordered_map>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-using boost::format;
-using system::config::printer;
-using namespace network;
-using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 const std::unordered_map<uint8_t, std::string> executor::fired_
 {
@@ -76,14 +64,22 @@ system::ofstream executor::create_event_sink() const
 
 void executor::subscribe_events(std::ostream& sink)
 {
-    log_.subscribe_events([&sink, start = logger::now()](const code& ec,
-        uint8_t event_, uint64_t value, const logger::time& point)
-    {
-        if (ec) return false;
-        const auto time = duration_cast<seconds>(point - start).count();
-        sink << fired_.at(event_) << " " << value << " " << time << std::endl;
-        return true;
-    });
+    using namespace network;
+    using namespace std::chrono;
+
+    log_.subscribe_events
+    (
+        [&sink, start = logger::now()](const code& ec, uint8_t event_,
+            uint64_t value, const logger::time& point)
+        {
+            if (ec)
+                return false;
+
+            const auto time = duration_cast<seconds>(point - start).count();
+            sink << fired_.at(event_) << " " << value << " " << time << std::endl;
+            return true;
+        }
+    );
 }
 
 } // namespace node

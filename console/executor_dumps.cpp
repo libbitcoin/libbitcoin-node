@@ -19,12 +19,6 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
@@ -32,11 +26,6 @@ namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using system::config::printer;
-using namespace network;
-using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 constexpr double to_double(auto integer)
 {
@@ -59,19 +48,23 @@ void executor::dump_version() const
 // The "try" functions are safe for instructions not compiled in.
 void executor::dump_hardware() const
 {
+    using namespace system;
+
     logger(BN_HARDWARE_HEADER);
     logger(format("arm..... " BN_HARDWARE_TABLE1) % with_arm);
     logger(format("intel... " BN_HARDWARE_TABLE1) % with_xcpu);
-    logger(format("avx512.. " BN_HARDWARE_TABLE2) % system::try_avx512() % with_avx512);
-    logger(format("avx2.... " BN_HARDWARE_TABLE2) % system::try_avx2() % with_avx2);
-    logger(format("sse41... " BN_HARDWARE_TABLE2) % system::try_sse41() % with_sse41);
-    logger(format("shani... " BN_HARDWARE_TABLE2) % system::try_shani() % with_shani);
-    logger(format("neon.... " BN_HARDWARE_TABLE2) % system::try_neon() % with_neon);
+    logger(format("avx512.. " BN_HARDWARE_TABLE2) % try_avx512() % with_avx512);
+    logger(format("avx2.... " BN_HARDWARE_TABLE2) % try_avx2() % with_avx2);
+    logger(format("sse41... " BN_HARDWARE_TABLE2) % try_sse41() % with_sse41);
+    logger(format("shani... " BN_HARDWARE_TABLE2) % try_shani() % with_shani);
+    logger(format("neon.... " BN_HARDWARE_TABLE2) % try_neon() % with_neon);
 }
 
 // logging compilation and initial values.
 void executor::dump_options() const
 {
+    using namespace network;
+
     logger(BN_LOG_TABLE_HEADER);
     logger(format("[a]pplication.. " BN_LOG_TABLE) % levels::application_defined % toggle_.at(levels::application));
     logger(format("[n]ews......... " BN_LOG_TABLE) % levels::news_defined % toggle_.at(levels::news));
@@ -155,6 +148,8 @@ void executor::dump_collisions() const
 
 void executor::dump_progress() const
 {
+    using namespace system;
+
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %

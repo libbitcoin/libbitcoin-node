@@ -19,24 +19,14 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
+#include <unordered_map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-using boost::format;
-using system::config::printer;
 using namespace network;
-using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 const std::unordered_map<uint8_t, bool> executor::defined_
 {
@@ -69,42 +59,46 @@ database::file::stream::out::rotator executor::create_log_sink() const
 
 void executor::subscribe_log(std::ostream& sink)
 {
-    log_.subscribe_messages([&](const code& ec, uint8_t level, time_t time,
-        const std::string& message)
-    {
-        if (level >= toggle_.size())
-        {
-            sink    << "Invalid log [" << serialize(level) << "] : " << message;
-            output_ << "Invalid log [" << serialize(level) << "] : " << message;
-            output_.flush();
-            return true;
-        }
+    using namespace system;
 
-        // Write only selected logs.
-        if (!ec && !toggle_.at(level))
-            return true;
-
-        const auto prefix = format_zulu_time(time) + "." +
-            serialize(level) + " ";
-
-        if (ec)
+    log_.subscribe_messages
+    (
+        [&](const code& ec, uint8_t level, time_t time, const std::string& message)
         {
-            sink << prefix << message << std::endl;
-            output_ << prefix << message << std::endl;
-            sink << prefix << BN_NODE_FOOTER << std::endl;
-            output_ << prefix << BN_NODE_FOOTER << std::endl;
-            output_ << prefix << BN_NODE_TERMINATE << std::endl;
-            stopped_.set_value(ec);
-            return false;
+            if (level >= toggle_.size())
+            {
+                sink    << "Invalid log [" << serialize(level) << "] : " << message;
+                output_ << "Invalid log [" << serialize(level) << "] : " << message;
+                output_.flush();
+                return true;
+            }
+
+            // Write only selected logs.
+            if (!ec && !toggle_.at(level))
+                return true;
+
+            const auto prefix = format_zulu_time(time) + "." +
+                serialize(level) + " ";
+
+            if (ec)
+            {
+                sink << prefix << message << std::endl;
+                output_ << prefix << message << std::endl;
+                sink << prefix << BN_NODE_FOOTER << std::endl;
+                output_ << prefix << BN_NODE_FOOTER << std::endl;
+                output_ << prefix << BN_NODE_TERMINATE << std::endl;
+                stopped_.set_value(ec);
+                return false;
+            }
+            else
+            {
+                sink << prefix << message;
+                output_ << prefix << message;
+                output_.flush();
+                return true;
+            }
         }
-        else
-        {
-            sink << prefix << message;
-            output_ << prefix << message;
-            output_.flush();
-            return true;
-        }
-    });
+    );
 }
 
 } // namespace node

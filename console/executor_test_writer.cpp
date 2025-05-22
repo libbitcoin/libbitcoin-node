@@ -19,23 +19,15 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
-#include <boost/format.hpp>
+////#include <boost/format.hpp>
 #include <bitcoin/node.hpp>
+
 namespace libbitcoin {
 namespace node {
 
-using boost::format;
-using system::config::printer;
+////using boost::format;
 using namespace network;
 using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 // arbitrary testing (non-const).
 void executor::write_test(bool)
@@ -59,7 +51,7 @@ void executor::write_test(bool)
     logger(format("set_block_unknown complete."));
 }
 
-void executor::write_test()
+void executor::write_test(bool)
 {
     code ec{};
     size_t count{};
@@ -84,13 +76,13 @@ void executor::write_test()
         ////    return;
         ////}
         ////
-        ////if (!query_.set_block_confirmable(block, uint64_t{}))
+        ////if (!query_.set_block_confirmable(block))
         ////{
         ////    logger(format("set_block_confirmable [%1%] fault.") % height);
         ////    return;
         ////}
 
-        if (!query_.push_confirmed(block))
+        if (!query_.push_confirmed(block, true))
         {
             logger(format("push_confirmed [%1%] fault.") % height);
             return;
@@ -105,7 +97,7 @@ void executor::write_test()
         span.count());
 }
 
-void executor::write_test()
+void executor::write_test(bool)
 {
     using namespace database;
     constexpr auto frequency = 10'000;
@@ -118,7 +110,7 @@ void executor::write_test()
         // Assumes height is header link.
         const header_link link{ possible_narrow_cast<header_link::integer>(height) };
 
-        if (!query_.push_confirmed(link))
+        if (!query_.push_confirmed(link, true))
         {
             logger("!query_.push_confirmed(link)");
             return;
@@ -142,7 +134,7 @@ void executor::write_test()
     logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
-void executor::write_test()
+void executor::write_test(bool)
 {
     using namespace database;
     ////constexpr uint64_t fees = 99;
@@ -209,11 +201,12 @@ void executor::write_test()
     logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
-void executor::write_test()
+void executor::write_test(bool)
 {
     constexpr auto hash251684 = base16_hash(
         "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
     const auto link = query_.to_header(hash251684);
+
     if (link.is_terminal())
     {
         logger("link.is_terminal()");
@@ -226,7 +219,7 @@ void executor::write_test()
         return;
     }
 
-    if (!query_.push_confirmed(link))
+    if (!query_.push_confirmed(link, true))
     {
         logger("!query_.push_confirmed(link)");
         return;
