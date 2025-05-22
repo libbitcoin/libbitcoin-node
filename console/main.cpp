@@ -17,11 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
 
-// This is some temporary code to explore emission of win32 stack dump.
+// This is some experimental code to explore emission of win32 stack dump.
 #ifdef HAVE_MSC
 #include "stack_trace.hpp"
 

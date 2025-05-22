@@ -19,12 +19,11 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
 #include <atomic>
 #include <csignal>
+#include <functional>
 #include <future>
 #include <iostream>
-#include <map>
 #include <mutex>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
@@ -33,10 +32,6 @@ namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using system::config::printer;
-using namespace network;
-using namespace system;
-using namespace std::chrono;
 using namespace std::placeholders;
 
 // non-const member static (global for blocking interrupt handling).

@@ -19,12 +19,8 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
+#include <string>
+#include <unordered_map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
@@ -32,11 +28,7 @@ namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using system::config::printer;
 using namespace network;
-using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 // local
 enum menu : uint8_t
@@ -247,114 +239,119 @@ void executor::do_reload_store()
 
 void executor::subscribe_capture()
 {
+    using namespace system;
+
     // This is not on a network thread, so the node may call close() while this
     // is running a backup (for example), resulting in a try_lock warning loop.
-    capture_.subscribe([&](const code& ec, const std::string& line)
-    {
-        // The only case in which false may be returned.
-        if (ec == network::error::service_stopped)
+    capture_.subscribe(
+        [&](const code& ec, const std::string& line)
         {
-            set_console_echo();
-            return false;
-        }
+            // The only case in which false may be returned.
+            if (ec == network::error::service_stopped)
+            {
+                set_console_echo();
+                return false;
+            }
 
-        const auto token = trim_copy(line);
+            const auto token = trim_copy(line);
 
-        // <control>-c emits empty token on Win32.
-        if (token.empty())
+            // <control>-c emits empty token on Win32.
+            if (token.empty())
+                return true;
+
+            // toggle log levels
+            if (toggles_.contains(token))
+            {
+                const auto toggle = toggles_.at(token);
+                if (defined_.at(toggle))
+                {
+                    toggle_.at(toggle) = !toggle_.at(toggle);
+                    logger(format("CONSOLE: toggle %1% logging (%2%).") %
+                        toggles_menu_.at(toggle) % 
+                        (toggle_.at(toggle) ? "+" : "-"));
+                }
+                else
+                {
+                    logger(format("CONSOLE: %1% logging is not compiled.") %
+                        toggles_menu_.at(toggle));
+                }
+
+                return true;
+            }
+
+            // dispatch options
+            if (options_.contains(token))
+            {
+                switch (options_.at(token))
+                {
+                    case menu::backup:
+                    {
+                        do_hot_backup();
+                        return true;
+                    }
+                    case menu::close:
+                    {
+                        do_close();
+                        return true;
+                    }
+                    case menu::errors:
+                    {
+                        do_report_condition();
+                        return true;
+                    }
+                    case menu::go:
+                    {
+                        do_resume();
+                        return true;
+                    }
+                    case menu::hold:
+                    {
+                        do_suspend();
+                        return true;
+                    }
+                    case menu::info:
+                    {
+                        do_info();
+                        return true;
+                    }
+                    case menu::menu_:
+                    {
+                        do_menu();
+                        return true;
+                    }
+                    case menu::test:
+                    {
+                        do_test();
+                        return true;
+                    }
+                    case menu::work:
+                    {
+                        do_report_work();
+                        return true;
+                    }
+                    case menu::zeroize:
+                    {
+                        do_reload_store();
+                        return true;
+                    }
+                    default:
+                    {
+                        logger("CONSOLE: Unexpected option.");
+                        return true;
+                    }
+                }
+            }
+
+            logger("CONSOLE: '" + line + "'");
             return true;
-
-        // toggle log levels
-        if (toggles_.contains(token))
+        },
+        [&](const code& ec)
         {
-            const auto toggle = toggles_.at(token);
-            if (defined_.at(toggle))
-            {
-                toggle_.at(toggle) = !toggle_.at(toggle);
-                logger(format("CONSOLE: toggle %1% logging (%2%).") %
-                    toggles_menu_.at(toggle) % (toggle_.at(toggle) ? "+" : "-"));
-            }
-            else
-            {
-                logger(format("CONSOLE: %1% logging is not compiled.") %
-                    toggles_menu_.at(toggle));
-            }
-
-            return true;
+            // subscription completion handler.
+            if (!ec)
+                unset_console_echo();
         }
-
-        // dispatch options
-        if (options_.contains(token))
-        {
-            switch (options_.at(token))
-            {
-                case menu::backup:
-                {
-                    do_hot_backup();
-                    return true;
-                }
-                case menu::close:
-                {
-                    do_close();
-                    return true;
-                }
-                case menu::errors:
-                {
-                    do_report_condition();
-                    return true;
-                }
-                case menu::go:
-                {
-                    do_resume();
-                    return true;
-                }
-                case menu::hold:
-                {
-                    do_suspend();
-                    return true;
-                }
-                case menu::info:
-                {
-                    do_info();
-                    return true;
-                }
-                case menu::menu_:
-                {
-                    do_menu();
-                    return true;
-                }
-                case menu::test:
-                {
-                    do_test();
-                    return true;
-                }
-                case menu::work:
-                {
-                    do_report_work();
-                    return true;
-                }
-                case menu::zeroize:
-                {
-                    do_reload_store();
-                    return true;
-                }
-                default:
-                {
-                    logger("CONSOLE: Unexpected option.");
-                    return true;
-                }
-            }
-        }
-
-        logger("CONSOLE: '" + line + "'");
-        return true;
-    },
-    [&](const code& ec)
-    {
-        // subscription completion handler.
-        if (!ec)
-            unset_console_echo();
-    });
+    );
 }
 
 } // namespace node

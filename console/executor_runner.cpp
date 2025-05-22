@@ -19,23 +19,12 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
-#include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-using boost::format;
-using system::config::printer;
 using namespace network;
-using namespace system;
-using namespace std::chrono;
 using namespace std::placeholders;
 
 // Runner.
@@ -43,7 +32,9 @@ using namespace std::placeholders;
 
 void executor::subscribe_connect()
 {
-    node_->subscribe_connect([&](const code&, const channel::ptr&)
+    node_->subscribe_connect
+    (
+        [&](const code&, const channel::ptr&)
         {
             log_.write(levels::verbose) <<
                 "{in:" << node_->inbound_channel_count() << "}"
@@ -62,12 +53,15 @@ void executor::subscribe_connect()
             // By not handling it is possible stop could fire before complete.
             // But the handler is not required for termination, so this is ok.
             // The error code in the handler can be used to differentiate.
-        });
+        }
+    );
 }
 
 void executor::subscribe_close()
 {
-    node_->subscribe_close([&](const code&)
+    node_->subscribe_close
+    (
+        [&](const code&)
         {
             log_.write(levels::verbose) <<
                 "{in:" << node_->inbound_channel_count() << "}"
@@ -86,7 +80,8 @@ void executor::subscribe_close()
             // By not handling it is possible stop could fire before complete.
             // But the handler is not required for termination, so this is ok.
             // The error code in the handler can be used to differentiate.
-        });
+        }
+    );
 }
 
 bool executor::do_run()

@@ -19,12 +19,6 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <future>
-#include <iostream>
-#include <map>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 
@@ -32,11 +26,7 @@ namespace libbitcoin {
 namespace node {
 
 using boost::format;
-using system::config::printer;
 using namespace network;
-using namespace system;
-using namespace std::chrono;
-using namespace std::placeholders;
 
 // Store functions.
 // ----------------------------------------------------------------------------
