@@ -176,21 +176,27 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             }
             else
             {
-                complete_block(error::success, link, height, bypass);
+                complete_block(error::success, link, height, true);
             }
         }
         else switch (ec.value())
         {
-            case database::error::block_valid:
-            case database::error::block_confirmable:
-            {
-                // Previously valid is NOT considered bypass.
-                complete_block(error::success, link, height, bypass);
-                break;
-            }
             case database::error::unvalidated:
             {
                 post_block(link, bypass);
+                break;
+            }
+            case database::error::block_valid:
+            {
+                if (query.is_prevouts_cached(link))
+                    post_block(link, true);
+                else
+                    complete_block(error::success, link, height, true);
+                break;
+            }
+            case database::error::block_confirmable:
+            {
+                complete_block(error::success, link, height, true);
                 break;
             }
             case database::error::block_unconfirmable:
