@@ -19,7 +19,6 @@
 #include "executor.hpp"
 #include "localize.hpp"
 
-#include <iostream>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 

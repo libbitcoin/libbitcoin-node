@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/parser.hpp>
 
-#include <iostream>
 #include <bitcoin/system.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
