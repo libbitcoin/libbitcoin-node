@@ -29,8 +29,8 @@ using namespace bc::system;
 configuration::configuration(system::chain::selection context) NOEXCEPT
   : log(context),
     node(context),
-    database(context),
     network(context),
+    database(context),
     bitcoin(context)
 {
 }

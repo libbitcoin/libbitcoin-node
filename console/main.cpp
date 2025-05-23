@@ -18,7 +18,6 @@
  */
 #include <cstdlib>
 #include <filesystem>
-#include <iostream>
 #include <bitcoin/node.hpp>
 #include "executor.hpp"
 
@@ -32,8 +31,8 @@ namespace system {
     std::ostream& cout = cout_stream();
     std::ostream& cerr = cerr_stream();
     int main(int argc, char* argv[]);
-}
-}
+} // namespace system
+} // namespace libbitcoin
 
 namespace bc = libbitcoin;
 std::filesystem::path symbols_path{};

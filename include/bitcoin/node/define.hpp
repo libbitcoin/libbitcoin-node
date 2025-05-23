@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_DEFINE_HPP
 
 /// Standard includes (do not include directly).
-#include <functional>
 #include <memory>
 #include <utility>
 #include <variant>

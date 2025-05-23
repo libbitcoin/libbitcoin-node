@@ -20,7 +20,6 @@
 #include "localize.hpp"
 
 ////#include <set>
-////#include <string>
 #include <boost/format.hpp>
 #include <bitcoin/node.hpp>
 

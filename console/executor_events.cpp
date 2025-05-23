@@ -18,8 +18,6 @@
  */
 #include "executor.hpp"
 
-#include <iostream>
-#include <string>
 #include <unordered_map>
 #include <bitcoin/node.hpp>
 

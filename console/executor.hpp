@@ -21,7 +21,6 @@
 
 #include <atomic>
 #include <future>
-#include <iostream>
 #include <unordered_map>
 #include <bitcoin/database.hpp>
 #include <bitcoin/node.hpp>

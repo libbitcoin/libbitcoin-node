@@ -21,8 +21,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <iostream>
-#include <vector>
 #include <filesystem>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node.hpp>
