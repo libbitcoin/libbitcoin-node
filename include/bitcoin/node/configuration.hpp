@@ -63,8 +63,8 @@ public:
     /// Settings.
     log::settings log;
     node::settings node;
-    database::settings database;
     network::settings network;
+    database::settings database;
     system::settings bitcoin;
 };
 
