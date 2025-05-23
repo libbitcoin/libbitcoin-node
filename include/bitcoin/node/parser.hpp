@@ -23,6 +23,30 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
+// Not localizable.
+#define BN_HELP_VARIABLE "help"
+#define BN_HARDWARE_VARIABLE "hardware"
+#define BN_SETTINGS_VARIABLE "settings"
+#define BN_VERSION_VARIABLE "version"
+#define BN_NEWSTORE_VARIABLE "newstore"
+#define BN_BACKUP_VARIABLE "backup"
+#define BN_RESTORE_VARIABLE "restore"
+
+#define BN_FLAGS_VARIABLE "flags"
+#define BN_SLABS_VARIABLE "slabs"
+#define BN_BUCKETS_VARIABLE "buckets"
+#define BN_COLLISIONS_VARIABLE "collisions"
+#define BN_INFORMATION_VARIABLE "information"
+
+#define BN_READ_VARIABLE "test"
+#define BN_WRITE_VARIABLE "write"
+
+// This must be lower case but the env var part can be any case.
+#define BN_CONFIG_VARIABLE "config"
+
+// This must match the case of the env var.
+#define BN_ENVIRONMENT_VARIABLE_PREFIX "BN_"
+
 namespace libbitcoin {
 namespace node {
 
