@@ -60,7 +60,7 @@
       <Configuration>ReleaseLIB</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-        <ProjectConfiguration Include="DebugDLL|ARM">
+    <ProjectConfiguration Include="DebugDLL|ARM">
       <Configuration>DebugDLL</Configuration>
       <Platform>ARM</Platform>
     </ProjectConfiguration>
