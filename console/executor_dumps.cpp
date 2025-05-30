@@ -51,13 +51,12 @@ void executor::dump_hardware() const
     using namespace system;
 
     logger(BN_HARDWARE_HEADER);
-    logger(format("arm..... " BN_HARDWARE_TABLE1) % with_arm);
-    logger(format("intel... " BN_HARDWARE_TABLE1) % with_xcpu);
-    logger(format("avx512.. " BN_HARDWARE_TABLE2) % try_avx512() % with_avx512);
-    logger(format("avx2.... " BN_HARDWARE_TABLE2) % try_avx2() % with_avx2);
-    logger(format("sse41... " BN_HARDWARE_TABLE2) % try_sse41() % with_sse41);
-    logger(format("shani... " BN_HARDWARE_TABLE2) % try_shani() % with_shani);
-    logger(format("neon.... " BN_HARDWARE_TABLE2) % try_neon() % with_neon);
+    logger(format("arm..... " BN_HARDWARE_TABLE1) % have_arm);
+    logger(format("intel... " BN_HARDWARE_TABLE1) % have_xcpu);
+    logger(format("avx512.. " BN_HARDWARE_TABLE2) % try_avx512() % have_512);
+    logger(format("avx2.... " BN_HARDWARE_TABLE2) % try_avx2() % have_256);
+    logger(format("sse41... " BN_HARDWARE_TABLE2) % try_sse41() % have_128);
+    logger(format("shani... " BN_HARDWARE_TABLE2) % try_shani() % have_sha);
 }
 
 // logging compilation and initial values.
