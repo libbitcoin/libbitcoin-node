@@ -350,12 +350,22 @@ options_metadata parser::load_settings() THROWS
     (
         "forks.bip143",
         value<bool>(&configured.bitcoin.forks.bip143),
-        "Version 0 transaction digest, defaults to true (soft fork)."
+        "Witness version 0 (segwit), defaults to true (soft fork)."
     )
     (
         "forks.bip147",
         value<bool>(&configured.bitcoin.forks.bip147),
         "Prevent dummy value malleability, defaults to true (soft fork)."
+    )
+    (
+        "forks.bip341",
+        value<bool>(&configured.bitcoin.forks.bip341),
+        "Witness version 1 (taproot), defaults to true (soft fork)."
+    )
+    (
+        "forks.bip342",
+        value<bool>(&configured.bitcoin.forks.bip342),
+        "Validation of taproot script, defaults to true (soft fork)."
     )
     (
         "forks.time_warp_patch",
