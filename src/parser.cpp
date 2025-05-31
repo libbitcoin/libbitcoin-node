@@ -84,7 +84,9 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.output_size = 25'300'000'000;
     configured.database.output_rate = 5;
 
-    configured.database.point_buckets = 1'194'185'278;
+    // point table set to 2.2LF @ ~900k.
+    configured.database.point_buckets = 1'365'977'136;
+    ////configured.database.point_buckets = 1'194'185'278;
     configured.database.point_size = 25'700'000'000;
     configured.database.point_rate = 5;
 
@@ -708,7 +710,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.point_buckets",
         value<uint32_t>(&configured.database.point_buckets),
-        "The log2 number of buckets in the spend table head, defaults to '1194185278'."
+        "The log2 number of buckets in the spend table head, defaults to '1365977136'."
     )
     (
         "database.point_size",
