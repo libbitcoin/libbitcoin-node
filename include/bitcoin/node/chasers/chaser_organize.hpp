@@ -84,8 +84,8 @@ protected:
     /// True if Block is on a milestone-covered branch.
     virtual bool is_under_milestone(size_t height) const NOEXCEPT = 0;
 
-    /// Milestone tracking.
-    virtual void update_milestone(const system::chain::header& header,
+    /// Milestone tracking, true if updated.
+    virtual bool update_milestone(const system::chain::header& header,
         size_t height, size_t branch_point) NOEXCEPT = 0;
 
     /// Methods

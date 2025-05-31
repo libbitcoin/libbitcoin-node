@@ -228,7 +228,10 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // The milestone flag will be archived in the header record.
     // Here it must be computed from the header tree because it trickles down.
-    update_milestone(header, height, branch_point);
+    if (update_milestone(header, height, branch_point))
+    {
+        LOGN("Set milestone: [" << encode_hash(hash) << ":" << height << "].");
+    }
 
     // Cannot be branching above top.
     auto top = state_->height();

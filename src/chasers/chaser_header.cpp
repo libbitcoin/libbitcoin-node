@@ -176,13 +176,13 @@ bool chaser_header::is_under_milestone(size_t height) const NOEXCEPT
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-void chaser_header::update_milestone(const system::chain::header& header,
+bool chaser_header::update_milestone(const system::chain::header& header,
     size_t height, size_t branch_point) NOEXCEPT
 {
     if (milestone_.equals(header.get_hash(), height))
     {
         active_milestone_height_ = height;
-        return;
+        return true;
     }
 
     // Use pointer to avoid const/copy.
@@ -196,7 +196,7 @@ void chaser_header::update_milestone(const system::chain::header& header,
         if (milestone_.equals(it->second.state->hash(), index))
         {
             active_milestone_height_ = index;
-            return;
+            return true;
         }
 
         const auto& next = get_header(*it->second.block);
@@ -207,7 +207,12 @@ void chaser_header::update_milestone(const system::chain::header& header,
     // New branch doesn't have milestone and reorganizes the branch with it.
     // Can retain a milestone at the branch point (below its definition).
     if (active_milestone_height_ > branch_point)
+    {
         active_milestone_height_ = branch_point;
+        return true;
+    }
+
+    return false;
 }
 
 BC_POP_WARNING()

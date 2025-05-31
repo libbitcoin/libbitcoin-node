@@ -146,8 +146,9 @@ bool chaser_block::is_under_milestone(size_t) const NOEXCEPT
     return false;
 }
 
-void chaser_block::update_milestone(const header&, size_t, size_t) NOEXCEPT
+bool chaser_block::update_milestone(const header&, size_t, size_t) NOEXCEPT
 {
+    return false;
 }
 
 // Populate methods (private).
