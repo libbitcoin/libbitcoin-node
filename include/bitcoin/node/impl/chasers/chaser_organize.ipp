@@ -230,7 +230,7 @@ void CLASS::do_organize(typename Block::cptr block,
     // Here it must be computed from the header tree because it trickles down.
     if (update_milestone(header, height, branch_point))
     {
-        LOGN("Set milestone: [" << encode_hash(hash) << ":" << height << "].");
+        LOGN("Found milestone [" << encode_hash(hash) << ":" << height << "]");
     }
 
     // Cannot be branching above top.
