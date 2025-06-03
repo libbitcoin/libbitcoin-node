@@ -18,7 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_in.hpp>
 
-#include <algorithm>
+#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
