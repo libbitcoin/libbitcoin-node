@@ -134,9 +134,9 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     const auto& block_ptr = message->block_ptr;
 
     // Unrequested block, may not have been announced via inventory.
-    if (tracker_.ids.find(block_ptr->hash()) == tracker_.ids.end())
+    if (tracker_.ids.find(block_ptr->get_hash()) == tracker_.ids.end())
     {
-        LOGP("Unrequested block [" << encode_hash(block_ptr->hash())
+        LOGP("Unrequested block [" << encode_hash(block_ptr->get_hash())
             << "] from [" << authority() << "].");
         return true;
     }
@@ -155,7 +155,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
         return;
 
     // Order is enforced by organize.
-    tracker_.ids.erase(block_ptr->hash());
+    tracker_.ids.erase(block_ptr->get_hash());
 
     // Must erase duplicates, handled above.
     if (ec == error::duplicate_block)
@@ -168,7 +168,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
         {
             // Many peers blindly broadcast blocks even at/above v31800, ugh.
             // If we are not caught up on headers this is useless information.
-            LOGP("Block [" << encode_hash(block_ptr->hash()) << "] from ["
+            LOGP("Block [" << encode_hash(block_ptr->get_hash()) << "] from ["
                 << authority() << "] " << ec.message());
         }
         else
@@ -181,7 +181,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
         return;
     }
 
-    LOGP("Block [" << encode_hash(block_ptr->hash()) << ":" << height
+    LOGP("Block [" << encode_hash(block_ptr->get_hash()) << ":" << height
         << "] from [" << authority() << "].");
 
     // Completion of tracked inventory.
