@@ -157,7 +157,7 @@ get_headers protocol_header_in_31800::create_get_headers(
     if (hashes.empty())
         return {};
 
-    if (hashes.size() == one)
+    if (is_one(hashes.size()))
     {
         LOGP("Request headers after [" << encode_hash(hashes.front())
             << "] from [" << authority() << "].");
