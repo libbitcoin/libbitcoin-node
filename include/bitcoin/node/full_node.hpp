@@ -130,8 +130,8 @@ public:
     /// Configuration settings for all libraries.
     virtual const configuration& config() const NOEXCEPT;
 
-    /// The candidate chain is current.
-    virtual bool is_current() const NOEXCEPT;
+    /// The candidate|confirmed chain is current.
+    virtual bool is_current(bool confirmed) const NOEXCEPT;
 
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;

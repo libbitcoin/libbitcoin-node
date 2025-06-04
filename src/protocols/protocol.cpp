@@ -145,9 +145,9 @@ const configuration& protocol::config() const NOEXCEPT
     return session_->config();
 }
 
-bool protocol::is_current() const NOEXCEPT
+bool protocol::is_current(bool confirmed) const NOEXCEPT
 {
-    return session_->is_current();
+    return session_->is_current(confirmed);
 }
 
 } // namespace node

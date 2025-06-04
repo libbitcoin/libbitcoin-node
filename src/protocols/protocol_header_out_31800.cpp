@@ -76,7 +76,7 @@ network::messages::headers protocol_header_out_31800::create_headers(
     const get_headers& locator) const NOEXCEPT
 {
     // Empty response implies complete (success).
-    if (!is_current())
+    if (!is_current(true))
         return {};
 
     return
