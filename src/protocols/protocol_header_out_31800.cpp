@@ -61,8 +61,7 @@ bool protocol_header_out_31800::handle_receive_get_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    LOGP("Get headers " << encode_hash(message->start_hash())
-        << " to " << encode_hash(message->stop_hash)
+    LOGP("Get headers above " << encode_hash(message->start_hash())
         << " from [" << authority() << "].");
 
     SEND(create_headers(*message), handle_send, _1);
