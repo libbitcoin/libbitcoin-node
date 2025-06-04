@@ -26,11 +26,8 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS protocol_header_out_70012
-    
-using namespace system;
-using namespace network;
-using namespace network::messages;
-using namespace std::placeholders;
 
+// TODO: switch to header-based announcements when "sendheaders" is received.
+    
 } // namespace node
 } // namespace libbitcoin

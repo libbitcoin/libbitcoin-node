@@ -32,6 +32,10 @@ using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 // Start.
 // ----------------------------------------------------------------------------
 
@@ -42,11 +46,48 @@ void protocol_header_out_31800::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_CHANNEL(headers, handle_receive_get_headers, _1, _2);
     protocol::start();
 }
 
 // Outbound (get_headers).
 // ----------------------------------------------------------------------------
+
+bool protocol_header_out_31800::handle_receive_get_headers(const code& ec,
+    const get_headers::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    LOGP("Get headers " << encode_hash(message->start_hash())
+        << " to " << encode_hash(message->stop_hash)
+        << " from [" << authority() << "].");
+
+    SEND(create_headers(*message), handle_send, _1);
+    return true;
+}
+
+// utilities
+// ----------------------------------------------------------------------------
+
+network::messages::headers protocol_header_out_31800::create_headers(
+    const get_headers& locator) const NOEXCEPT
+{
+    // Empty response implies complete (success).
+    if (!is_current())
+        return {};
+
+    return
+    {
+        archive().get_headers(locator.start_hashes, locator.stop_hash,
+            max_get_headers)
+    };
+}
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

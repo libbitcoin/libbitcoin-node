@@ -81,7 +81,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     // The headers response to get_headers is limited to max_get_headers.
     if (message->header_ptrs.size() == max_get_headers)
     {
-        const auto last = message->header_ptrs.back()->hash();
+        const auto& last = message->header_ptrs.back()->get_hash();
         SEND(create_get_headers(last), handle_send, _1);
     }
     else
@@ -108,20 +108,20 @@ void protocol_header_in_31800::handle_organize(const code& ec,
     {
         if (is_zero(height))
         {
-            LOGP("Header [" << encode_hash(header_ptr->hash()) << "] from ["
+            LOGP("Header [" << encode_hash(header_ptr->get_hash()) << "] from ["
                 << authority() << "] " << ec.message());
         }
         else
         {
-            LOGR("Header [" << encode_hash(header_ptr->hash()) << ":" << height
-                << "] from [" << authority() << "] " << ec.message());
+            LOGR("Header [" << encode_hash(header_ptr->get_hash()) << ":"
+                << height << "] from [" << authority() << "] " << ec.message());
         }
 
         stop(ec);
         return;
     }
 
-    LOGP("Header [" << encode_hash(header_ptr->hash()) << ":" << height
+    LOGP("Header [" << encode_hash(header_ptr->get_hash()) << ":" << height
         << "] from [" << authority() << "] " << ec.message());
 }
 
@@ -157,7 +157,7 @@ get_headers protocol_header_in_31800::create_get_headers(
     if (hashes.empty())
         return {};
 
-    if (hashes.size() == one)
+    if (is_one(hashes.size()))
     {
         LOGP("Request headers after [" << encode_hash(hashes.front())
             << "] from [" << authority() << "].");
