@@ -344,17 +344,20 @@ const configuration& full_node::config() const NOEXCEPT
     return config_;
 }
 
-bool full_node::is_current() const NOEXCEPT
+// TODO: push into store query, return top(bool) timestamp.
+bool full_node::is_current(bool confirmed) const NOEXCEPT
 {
     if (is_zero(config_.node.currency_window_minutes))
         return true;
 
+    const auto top = confirmed ?
+        query_.to_confirmed(query_.get_top_confirmed()) :
+        query_.to_candidate(query_.get_top_candidate());
+
     uint32_t timestamp{};
-    const auto top = query_.to_candidate(query_.get_top_candidate());
     return query_.get_timestamp(timestamp, top) && is_current(timestamp);
 }
 
-// en.wikipedia.org/wiki/Time_formatting_and_storage_bugs#Year_2106
 bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
 {
     if (is_zero(config_.node.currency_window_minutes))

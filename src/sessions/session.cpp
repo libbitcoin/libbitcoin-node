@@ -140,9 +140,9 @@ const configuration& session::config() const NOEXCEPT
     return node_.config();
 }
 
-bool session::is_current() const NOEXCEPT
+bool session::is_current(bool confirmed) const NOEXCEPT
 {
-    return node_.is_current();
+    return node_.is_current(confirmed);
 }
 
 BC_POP_WARNING()

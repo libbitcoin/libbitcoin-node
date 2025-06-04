@@ -382,7 +382,7 @@ size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
     // Either condition means blocks shouldn't be getting downloaded (yet).
     const size_t peers = config().network.outbound_connections;
-    if (is_zero(peers) || !is_current())
+    if (is_zero(peers) || !is_current(false))
         return zero;
 
     const auto& query = archive();

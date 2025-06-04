@@ -129,9 +129,9 @@ query& chaser::archive() const NOEXCEPT
     return node_.archive();
 }
 
-bool chaser::is_current() const NOEXCEPT
+bool chaser::is_current(bool confirmed) const NOEXCEPT
 {
-    return node_.is_current();
+    return node_.is_current(confirmed);
 }
 
 bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
@@ -142,9 +142,7 @@ bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
 // get_timestamp error results in false (ok).
 bool chaser::is_current(const database::header_link& link) const NOEXCEPT
 {
-    uint32_t timestamp{};
-    return archive().get_timestamp(timestamp, link) &&
-        node_.is_current(timestamp);
+    return node_.is_current(link);
 }
 
 bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT

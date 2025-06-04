@@ -125,8 +125,8 @@ protected:
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
 
-    /// Top candidate is within configured span from current time.
-    bool is_current() const NOEXCEPT;
+    /// Top candidate|confirmed is within configured span from current time.
+    bool is_current(bool confirmed) const NOEXCEPT;
 
     /// Header timestamp is within configured span from current time.
     bool is_current(uint32_t timestamp) const NOEXCEPT;

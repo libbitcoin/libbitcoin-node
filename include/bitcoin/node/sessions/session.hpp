@@ -98,8 +98,8 @@ public:
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;
 
-    /// The candidate chain is current.
-    virtual bool is_current() const NOEXCEPT;
+    /// The candidate|confirmed chain is current.
+    virtual bool is_current(bool confirmed) const NOEXCEPT;
 
 protected:
     template <class Sibling, class Shared>
