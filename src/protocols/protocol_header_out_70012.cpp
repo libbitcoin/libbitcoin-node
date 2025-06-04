@@ -27,10 +27,5 @@ namespace node {
 
 #define CLASS protocol_header_out_70012
     
-using namespace system;
-using namespace network;
-using namespace network::messages;
-using namespace std::placeholders;
-
 } // namespace node
 } // namespace libbitcoin
