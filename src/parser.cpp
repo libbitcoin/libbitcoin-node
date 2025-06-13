@@ -57,10 +57,14 @@ parser::parser(system::chain::selection context) NOEXCEPT
     using service = network::messages::service;
 
     configured.network.threads = 16;
+    configured.network.enable_relay = true;
     configured.network.enable_address = true;
-    configured.network.enable_transaction = true;
+    configured.network.enable_address_v2 = false;
+    configured.network.enable_witness_tx = false;
+    configured.network.enable_compact = false;
     configured.network.host_pool_capacity = 10000;
     configured.network.outbound_connections = 100;
+    configured.network.maximum_skew_minutes = 120;
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
 
@@ -523,9 +527,29 @@ options_metadata parser::load_settings() THROWS
         "The advertised services that cause a peer to be dropped, defaults to 176."
     )
     (
+        "network.enable_relay",
+        value<bool>(&configured.network.enable_relay),
+        "Enable transaction relay, defaults to true."
+    )
+    (
         "network.enable_address",
         value<bool>(&configured.network.enable_address),
         "Enable address messages, defaults to true."
+    )
+    (
+        "network.enable_address_v2",
+        value<bool>(&configured.network.enable_address_v2),
+        "Enable address v2 messages, defaults to false."
+    )
+    (
+        "network.enable_witness_tx",
+        value<bool>(&configured.network.enable_witness_tx),
+        "Enable witness transaction identifier relay, defaults to false."
+    )
+    (
+        "network.enable_compact",
+        value<bool>(&configured.network.enable_compact),
+        "Enable enable compact block messages, defaults to false."
     )
     (
         "network.enable_alert",
@@ -536,11 +560,6 @@ options_metadata parser::load_settings() THROWS
         "network.enable_reject",
         value<bool>(&configured.network.enable_reject),
         "Enable reject messages, defaults to false."
-    )
-    (
-        "network.enable_transaction",
-        value<bool>(&configured.network.enable_transaction),
-        "Enable transaction relay, defaults to true."
     )
     (
         "network.enable_ipv6",
@@ -611,6 +630,11 @@ options_metadata parser::load_settings() THROWS
         "network.channel_expiration_minutes",
         value<uint32_t>(&configured.network.channel_expiration_minutes),
         "The age limit for any connection, defaults to 1440."
+    )
+    (
+        "network.maximum_skew_minutes",
+        value<uint32_t>(&configured.network.maximum_skew_minutes),
+        "The maximum allowable channel clock skew, defaults to 120."
     )
     (
         "network.host_pool_capacity",
