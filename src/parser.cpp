@@ -64,7 +64,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.enable_compact = false;
     configured.network.host_pool_capacity = 10000;
     configured.network.outbound_connections = 100;
-    configured.network.channel_maximum_skew_minutes = 120;
+    configured.network.maximum_skew_minutes = 120;
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
 
@@ -632,8 +632,8 @@ options_metadata parser::load_settings() THROWS
         "The age limit for any connection, defaults to 1440."
     )
     (
-        "network.channel_maximum_skew_minutes",
-        value<uint32_t>(&configured.network.channel_maximum_skew_minutes),
+        "network.maximum_skew_minutes",
+        value<uint32_t>(&configured.network.maximum_skew_minutes),
         "The maximum allowable channel clock skew, defaults to 120."
     )
     (
