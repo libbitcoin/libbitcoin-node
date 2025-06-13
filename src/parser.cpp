@@ -74,6 +74,18 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.services_maximum = service::node_network |
         service::node_witness;
 
+    // TODO: from bitcoind, revert to defaults when seeds are up.
+    configured.network.seeds.clear();
+    configured.network.seeds.emplace_back("seed.bitcoin.sipa.be", 8333_u16);
+    configured.network.seeds.emplace_back("dnsseed.bluematt.me", 8333_u16);
+    configured.network.seeds.emplace_back("dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us", 8333_u16);
+    configured.network.seeds.emplace_back("seed.bitcoin.jonasschnelli.ch", 8333_u16);
+    configured.network.seeds.emplace_back("seed.btc.petertodd.net", 8333_u16);
+    configured.network.seeds.emplace_back("seed.bitcoin.sprovoost.nl", 8333_u16);
+    configured.network.seeds.emplace_back("dnsseed.emzy.de", 8333_u16);
+    configured.network.seeds.emplace_back("seed.bitcoin.wiz.biz", 8333_u16);
+    configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
+
     // SCALE: LF2.2 @ 850K.
 
     // database (archive)
