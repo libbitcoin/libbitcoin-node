@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_block_out.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -25,7 +25,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_block_out
+#define CLASS protocol_transaction_out_106
 
 using namespace system;
 using namespace network;
@@ -35,7 +35,7 @@ using namespace std::placeholders;
 // Start.
 // ----------------------------------------------------------------------------
 
-void protocol_block_out::start() NOEXCEPT
+void protocol_transaction_out_106::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
 

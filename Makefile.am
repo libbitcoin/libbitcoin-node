@@ -53,17 +53,17 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_transaction.cpp \
     src/chasers/chaser_validate.cpp \
     src/protocols/protocol.cpp \
-    src/protocols/protocol_block_in.cpp \
+    src/protocols/protocol_block_in_106.cpp \
     src/protocols/protocol_block_in_31800.cpp \
-    src/protocols/protocol_block_out.cpp \
+    src/protocols/protocol_block_out_106.cpp \
     src/protocols/protocol_header_in_31800.cpp \
     src/protocols/protocol_header_in_70012.cpp \
     src/protocols/protocol_header_out_31800.cpp \
     src/protocols/protocol_header_out_70012.cpp \
     src/protocols/protocol_observer.cpp \
     src/protocols/protocol_performer.cpp \
-    src/protocols/protocol_transaction_in.cpp \
-    src/protocols/protocol_transaction_out.cpp \
+    src/protocols/protocol_transaction_in_106.cpp \
+    src/protocols/protocol_transaction_out_106.cpp \
     src/sessions/session.cpp \
     src/sessions/session_inbound.cpp \
     src/sessions/session_manual.cpp \
@@ -171,17 +171,17 @@ include_bitcoin_node_impl_chasers_HEADERS = \
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol.hpp \
-    include/bitcoin/node/protocols/protocol_block_in.hpp \
+    include/bitcoin/node/protocols/protocol_block_in_106.hpp \
     include/bitcoin/node/protocols/protocol_block_in_31800.hpp \
-    include/bitcoin/node/protocols/protocol_block_out.hpp \
+    include/bitcoin/node/protocols/protocol_block_out_106.hpp \
     include/bitcoin/node/protocols/protocol_header_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_in_70012.hpp \
     include/bitcoin/node/protocols/protocol_header_out_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_out_70012.hpp \
     include/bitcoin/node/protocols/protocol_observer.hpp \
     include/bitcoin/node/protocols/protocol_performer.hpp \
-    include/bitcoin/node/protocols/protocol_transaction_in.hpp \
-    include/bitcoin/node/protocols/protocol_transaction_out.hpp \
+    include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
+    include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions

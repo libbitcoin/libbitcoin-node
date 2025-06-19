@@ -93,13 +93,13 @@ protected:
             // Blocks-first synchronization (no headers protocol).
             if constexpr (!in)
             {
-                channel->attach<protocol_block_in>(self)->start();
+                channel->attach<protocol_block_in_106>(self)->start();
             }
         }
 
-        channel->attach<protocol_block_out>(self)->start();
-        channel->attach<protocol_transaction_in>(self)->start();
-        channel->attach<protocol_transaction_out>(self)->start();
+        channel->attach<protocol_block_out_106>(self)->start();
+        channel->attach<protocol_transaction_in_106>(self)->start();
+        channel->attach<protocol_transaction_out_106>(self)->start();
         channel->attach<protocol_observer>(self)->start();
     }
 
