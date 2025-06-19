@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_106_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_106_HPP
 
 #include <unordered_set>
 #include <bitcoin/network.hpp>
@@ -27,20 +27,20 @@
 namespace libbitcoin {
 namespace node {
     
-class BCN_API protocol_block_in
+class BCN_API protocol_block_in_106
   : public node::protocol,
-    protected network::tracker<protocol_block_in>
+    protected network::tracker<protocol_block_in_106>
 {
 public:
-    typedef std::shared_ptr<protocol_block_in> ptr;
+    typedef std::shared_ptr<protocol_block_in_106> ptr;
     using type_id = network::messages::inventory::type_id;
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename SessionPtr>
-    protocol_block_in(const SessionPtr& session,
+    protocol_block_in_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_block_in>(session->log),
+        network::tracker<protocol_block_in_106>(session->log),
         block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block)
     {

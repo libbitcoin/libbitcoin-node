@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_block_in.hpp>
+#include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 
 #include <utility>
 #include <bitcoin/database.hpp>
@@ -33,7 +33,7 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_block_in
+#define CLASS protocol_block_in_106
 
 using namespace system;
 using namespace network;
@@ -48,7 +48,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 // start/stop
 // ----------------------------------------------------------------------------
 
-void protocol_block_in::start() NOEXCEPT
+void protocol_block_in_106::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -65,7 +65,7 @@ void protocol_block_in::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 // Receive inventory and send get_data for all blocks that are not found.
-bool protocol_block_in::handle_receive_inventory(const code& ec,
+bool protocol_block_in_106::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -123,7 +123,7 @@ bool protocol_block_in::handle_receive_inventory(const code& ec,
 // ----------------------------------------------------------------------------
 
 // Process block responses in order as dictated by tracker.
-bool protocol_block_in::handle_receive_block(const code& ec,
+bool protocol_block_in_106::handle_receive_block(const code& ec,
     const block::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -147,7 +147,7 @@ bool protocol_block_in::handle_receive_block(const code& ec,
     return true;
 }
 
-void protocol_block_in::handle_organize(const code& ec, size_t height,
+void protocol_block_in_106::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
@@ -205,7 +205,7 @@ void protocol_block_in::handle_organize(const code& ec, size_t height,
 // utilities
 // ----------------------------------------------------------------------------
 
-get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
+get_blocks protocol_block_in_106::create_get_inventory() const NOEXCEPT
 {
     // Block-first sync is from the archived (strong) candidate chain.
     // All strong block branches are archived, so this will reflect latest.
@@ -216,13 +216,13 @@ get_blocks protocol_block_in::create_get_inventory() const NOEXCEPT
     return create_get_inventory(query.get_candidate_hashes(index));
 }
 
-get_blocks protocol_block_in::create_get_inventory(
+get_blocks protocol_block_in_106::create_get_inventory(
     const hash_digest& last) const NOEXCEPT
 {
     return create_get_inventory(hashes{ last });
 }
 
-get_blocks protocol_block_in::create_get_inventory(
+get_blocks protocol_block_in_106::create_get_inventory(
     hashes&& hashes) const NOEXCEPT
 {
     if (hashes.empty())
@@ -245,7 +245,7 @@ get_blocks protocol_block_in::create_get_inventory(
 
 // This will prevent most duplicate block requests despite each channel
 // synchronizing its own inventory branch from startup to complete.
-get_data protocol_block_in::create_get_data(
+get_data protocol_block_in_106::create_get_data(
     const inventory& message) const NOEXCEPT
 {
     // bip144: get_data uses witness constant but inventory does not.
@@ -261,7 +261,7 @@ get_data protocol_block_in::create_get_data(
 }
 
 // static
-protocol_block_in::hashmap protocol_block_in::to_hashes(
+protocol_block_in_106::hashmap protocol_block_in_106::to_hashes(
     const get_data& getter) NOEXCEPT
 {
     hashmap out{};
