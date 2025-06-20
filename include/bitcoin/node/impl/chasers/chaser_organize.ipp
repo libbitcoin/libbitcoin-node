@@ -206,8 +206,8 @@ void CLASS::do_organize(typename Block::cptr block,
     }
 
     bool strong{};
-    const auto branch_size = add1(tree_branch.size() + store_branch.size());
-    const auto branch_point = height - branch_size;
+    const auto branch_size = tree_branch.size() + store_branch.size();
+    const auto branch_point = height - add1(branch_size);
     if (!query.get_strong_branch(strong, work, branch_point))
     {
         handler(fault(error::organize3), height);
