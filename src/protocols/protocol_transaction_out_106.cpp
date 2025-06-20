@@ -27,8 +27,6 @@ namespace node {
 
 #define CLASS protocol_transaction_out_106
 
-using namespace system;
-using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 

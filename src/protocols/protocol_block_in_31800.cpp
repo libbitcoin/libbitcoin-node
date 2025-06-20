@@ -35,7 +35,10 @@ using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // start/stop
 // ----------------------------------------------------------------------------
@@ -440,6 +443,8 @@ bool protocol_block_in_31800::is_under_checkpoint(size_t height) const NOEXCEPT
     return height <= top_checkpoint_height_;
 }
 
+BC_POP_WARNING()
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

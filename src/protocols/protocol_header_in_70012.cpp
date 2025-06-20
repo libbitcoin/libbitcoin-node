@@ -26,7 +26,6 @@ namespace node {
 
 #define CLASS protocol_header_in_70012
 
-using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 

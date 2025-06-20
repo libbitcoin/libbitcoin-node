@@ -32,6 +32,9 @@ using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 // Start.
 // ----------------------------------------------------------------------------
 
@@ -42,11 +45,142 @@ void protocol_block_out_106::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
+    SUBSCRIBE_CHANNEL(get_blocks, handle_receive_get_blocks, _1, _2);
+    SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
+    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2, _3);
     protocol::start();
 }
 
-// Outbound.
+// Inbound (send_headers).
 // ----------------------------------------------------------------------------
+// TODO: move to protocol_block_out_70012.
+
+bool protocol_block_out_106::handle_receive_send_headers(const code& ec,
+    const send_headers::cptr&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: need identifier per subscriber, not per channel.
+    // TODO: unsubscribe all and unsubscribe type are too broad.
+    ////// Invokes ALL broadcast subscriptions with network::error::desubscribed.
+    ////// Header notification will take over if configured (ignores desubscribed).
+    ////UNSUBSCRIBE_BROADCAST();
+    disabled_ = true;
+    return false;
+}
+
+// Outbound (block).
+// ----------------------------------------------------------------------------
+
+bool protocol_block_out_106::handle_broadcast_block(const code& ec,
+    const block::cptr& message, uint64_t sender) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec) || disabled_)
+        return false;
+
+    if (sender == identifier())
+        return true;
+
+    const inventory inv{ { { type_id::block, message->block_ptr->hash() } } };
+    SEND(inv, handle_send, _1);
+    return true;
+}
+
+// Inbound (get_blocks).
+// ----------------------------------------------------------------------------
+
+bool protocol_block_out_106::handle_receive_get_blocks(const code& ec,
+    const get_blocks::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    LOGP("Get headers above " << encode_hash(message->start_hash())
+        << " from [" << authority() << "].");
+
+    SEND(create_inventory(*message), handle_send, _1);
+    return true;
+}
+
+// Inbound (get_data).
+// ----------------------------------------------------------------------------
+
+bool protocol_block_out_106::handle_receive_get_data(const code& ec,
+    const get_data::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // Send and desubscribe.
+    send_block(error::success, zero, message);
+    return false;
+}
+
+// Outbound (block).
+// ----------------------------------------------------------------------------
+
+void protocol_block_out_106::send_block(const code& ec, size_t index,
+    const get_data::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return;
+
+    if (index >= message->items.size())
+    {
+        // Complete, resubscribe to block requests.
+        SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
+        return;
+    }
+
+    const auto& query = archive();
+    const auto& hash = message->items.at(index).hash;
+    const auto block_ptr = query.get_block(query.to_header(hash));
+
+    if (!block_ptr)
+    {
+        LOGR("Requested block not found " << encode_hash(hash)
+            << " from [" << authority() << "].");
+
+        // This block could not have been advertised to the peer.
+        stop(system::error::not_found);
+        return;
+    }
+
+    SEND(block{ block_ptr }, send_block, _1, sub1(index), message);
+}
+
+// utilities
+// ----------------------------------------------------------------------------
+
+network::messages::inventory protocol_block_out_106::create_inventory(
+    const get_blocks& locator) const NOEXCEPT
+{
+    // Empty response implies complete (success).
+    if (!is_current(true))
+        return {};
+
+    return inventory::factory
+    (
+        archive().get_blocks(locator.start_hashes, locator.stop_hash,
+            max_get_blocks),
+        inventory::type_id::block
+    );
+}
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

@@ -28,6 +28,10 @@ namespace node {
 
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 void protocol_observer::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -91,6 +95,9 @@ bool protocol_observer::handle_event(const code&, chase event_,
 
     return true;
 }
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
