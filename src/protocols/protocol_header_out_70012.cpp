@@ -59,7 +59,7 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2);
+    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2, _3);
     return false;
 }
 
@@ -67,14 +67,21 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
 // ----------------------------------------------------------------------------
 
 bool protocol_header_out_70012::handle_broadcast_block(const code& ec,
-    const block::cptr& message) NOEXCEPT
+    const block::cptr& message, uint64_t sender) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // see: protocol_block_out_70012
+    ////// Ignore desubscription from other protocols (block_out).
+    ////if (ec == network::error::desubscribed)
+    ////    return true;
 
     if (stopped(ec))
         return false;
 
-    // Blindly relaying broadcast block to peer (which may have originated it).
+    if (sender == identifier())
+        return true;
+
     SEND(headers{ { message->block_ptr->header_ptr() } }, handle_send, _1);
     return true;
 }

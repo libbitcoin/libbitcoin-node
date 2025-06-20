@@ -48,7 +48,8 @@ protected:
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;
     virtual bool handle_broadcast_block(const code& ec,
-        const network::messages::block::cptr& message) NOEXCEPT;
+        const network::messages::block::cptr& message,
+        uint64_t sender) NOEXCEPT;
 };
 
 } // namespace node

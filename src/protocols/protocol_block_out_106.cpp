@@ -47,7 +47,49 @@ void protocol_block_out_106::start() NOEXCEPT
 
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     SUBSCRIBE_CHANNEL(get_blocks, handle_receive_get_blocks, _1, _2);
+    SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
+    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2, _3);
     protocol::start();
+}
+
+// Inbound (send_headers).
+// ----------------------------------------------------------------------------
+// TODO: move to protocol_block_out_70012.
+
+bool protocol_block_out_106::handle_receive_send_headers(const code& ec,
+    const send_headers::cptr&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: need identifier per subscriber, not per channel.
+    // TODO: unsubscribe all and unsubscribe type are too broad.
+    ////// Invokes ALL broadcast subscriptions with network::error::desubscribed.
+    ////// Header notification will take over if configured (ignores desubscribed).
+    ////UNSUBSCRIBE_BROADCAST();
+    disabled_ = true;
+    return false;
+}
+
+// Outbound (block).
+// ----------------------------------------------------------------------------
+
+bool protocol_block_out_106::handle_broadcast_block(const code& ec,
+    const block::cptr& message, uint64_t sender) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec) || disabled_)
+        return false;
+
+    if (sender == identifier())
+        return true;
+
+    const inventory inv{ { { type_id::block, message->block_ptr->hash() } } };
+    SEND(inv, handle_send, _1);
+    return true;
 }
 
 // Inbound (get_blocks).
