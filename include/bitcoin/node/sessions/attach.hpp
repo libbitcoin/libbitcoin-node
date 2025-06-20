@@ -61,6 +61,7 @@ protected:
         constexpr auto headers = network::messages::level::headers_protocol;
         constexpr auto in = is_same_type<Session, network::session_inbound>;
 
+        const auto current = is_current(true);
         const auto headers_first = config().node.headers_first;
         const auto version = channel->negotiated_version();
         const auto self = session::shared_from_sibling<attach<Session>,
@@ -72,7 +73,10 @@ protected:
         if (headers_first && version >= bip130)
         {
             channel->attach<protocol_header_in_70012>(self)->start();
-            channel->attach<protocol_header_out_70012>(self)->start();
+
+            if (current)
+                channel->attach<protocol_header_out_70012>(self)->start();
+
             if constexpr (!in)
             {
                 channel->attach<protocol_block_in_31800>(self)->start();
@@ -81,7 +85,10 @@ protected:
         else if (headers_first && version >= headers)
         {
             channel->attach<protocol_header_in_31800>(self)->start();
-            channel->attach<protocol_header_out_31800>(self)->start();
+
+            if (current)
+                channel->attach<protocol_header_out_31800>(self)->start();
+
             if constexpr (!in)
             {
                 channel->attach<protocol_block_in_31800>(self)->start();
@@ -97,9 +104,13 @@ protected:
             }
         }
 
-        channel->attach<protocol_block_out_106>(self)->start();
-        channel->attach<protocol_transaction_in_106>(self)->start();
-        channel->attach<protocol_transaction_out_106>(self)->start();
+        if (current)
+        {
+            channel->attach<protocol_block_out_106>(self)->start();
+            channel->attach<protocol_transaction_in_106>(self)->start();
+            channel->attach<protocol_transaction_out_106>(self)->start();
+        }
+
         channel->attach<protocol_observer>(self)->start();
     }
 
