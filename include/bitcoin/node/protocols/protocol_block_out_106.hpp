@@ -43,6 +43,18 @@ public:
 
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
+
+protected:
+    virtual bool handle_receive_get_blocks(const code& ec,
+        const network::messages::get_blocks::cptr& message) NOEXCEPT;
+    virtual bool handle_receive_get_data(const code& ec,
+        const network::messages::get_data::cptr& message) NOEXCEPT;
+    virtual void send_block(const code& ec, size_t index,
+        const network::messages::get_data::cptr& message) NOEXCEPT;
+
+private:
+    network::messages::inventory create_inventory(
+        const network::messages::get_blocks& locator) const NOEXCEPT;
 };
 
 } // namespace node

@@ -26,8 +26,61 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS protocol_header_out_70012
-
-// TODO: switch to header-based announcements when "sendheaders" is received.
     
+using namespace network::messages;
+using namespace std::placeholders;
+
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
+// Start.
+// ----------------------------------------------------------------------------
+
+void protocol_header_out_70012::start() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (started())
+        return;
+
+    SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
+    protocol_header_out_31800::start();
+}
+
+// Inbound (send_headers).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
+    const send_headers::cptr&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2);
+    return false;
+}
+
+// Outbound (headers).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_out_70012::handle_broadcast_block(const code& ec,
+    const block::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // Blindly relaying broadcast block to peer (which may have originated it).
+    SEND(headers{ { message->block_ptr->header_ptr() } }, handle_send, _1);
+    return true;
+}
+
+BC_POP_WARNING()
+BC_POP_WARNING()
+
 } // namespace node
 } // namespace libbitcoin

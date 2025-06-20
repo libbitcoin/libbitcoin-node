@@ -46,7 +46,7 @@ void protocol_header_out_31800::start() NOEXCEPT
     if (started())
         return;
 
-    SUBSCRIBE_CHANNEL(headers, handle_receive_get_headers, _1, _2);
+    SUBSCRIBE_CHANNEL(get_headers, handle_receive_get_headers, _1, _2);
     protocol::start();
 }
 

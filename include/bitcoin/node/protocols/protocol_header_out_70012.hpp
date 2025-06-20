@@ -40,6 +40,15 @@ public:
         network::tracker<protocol_header_out_70012>(session->log)
     {
     }
+
+    /// Start protocol (strand required).
+    void start() NOEXCEPT override;
+
+protected:
+    virtual bool handle_receive_send_headers(const code& ec,
+        const network::messages::send_headers::cptr& message) NOEXCEPT;
+    virtual bool handle_broadcast_block(const code& ec,
+        const network::messages::block::cptr& message) NOEXCEPT;
 };
 
 } // namespace node
