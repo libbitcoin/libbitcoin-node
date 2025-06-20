@@ -446,7 +446,8 @@ bool CLASS::set_reorganized(height_t candidate_height) NOEXCEPT
     if (!archive().pop_candidate())
         return false;
 
-    fire(events::header_reorganized, candidate_height);
+    // events::header_reorganized | events::block_reorganized
+    fire(events_object_reorganized(), candidate_height);
     LOGV("Header reorganized: " << candidate_height);
     return true;
 }
@@ -478,7 +479,8 @@ bool CLASS::set_organized(const database::header_link& link,
     if (!query.push_candidate(link))
         return false;
 
-    fire(events::header_organized, candidate_height);
+    // events::header_organized | events::block_organized
+    fire(events_object_organized(), candidate_height);
     LOGV("Header organized: " << candidate_height);
     return true;
 }
@@ -503,8 +505,8 @@ code CLASS::push_block(const Block& block,
     if (!set_organized(link, ctx.height))
         return error::organize14;
 
-    // events:header_archived | events:block_archived
-    fire(events_object(), ctx.height);
+    // events::header_archived | events::block_archived
+    fire(events_object_archived(), ctx.height);
     LOGV("Header archived: " << ctx.height);
     return ec;
 }
