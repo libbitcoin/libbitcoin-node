@@ -43,12 +43,16 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
+    headers_first_(node.config().node.headers_first),
     filter_(node.archive().filter_enabled())
 {
 }
 
 code chaser_validate::start() NOEXCEPT
 {
+    if (!headers_first_)
+        return error::success;
+
     const auto& query = archive();
     set_position(query.get_fork());
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
