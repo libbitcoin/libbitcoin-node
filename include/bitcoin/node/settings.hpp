@@ -73,6 +73,7 @@ public:
 
     /// Properties.
     bool priority;
+    bool delay_inbound;
     bool headers_first;
     float allowed_deviation;
     uint16_t allocation_multiple;

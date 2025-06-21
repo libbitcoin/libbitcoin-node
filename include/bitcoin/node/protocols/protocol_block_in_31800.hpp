@@ -27,7 +27,7 @@
 namespace libbitcoin {
 namespace node {
     
-/// This does NOT inherit from protocol_block_in_106.
+/// This class does NOT inherit from protocol_block_in_106.
 class BCN_API protocol_block_in_31800
   : public protocol_performer
 {

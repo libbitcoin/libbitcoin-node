@@ -21,5 +21,11 @@
 namespace libbitcoin {
 namespace node {
 
+// Inbound connection attempts are dropped unless confirmed chain is current.
+bool session_inbound::disabled() const NOEXCEPT
+{
+    return config().node.delay_inbound && !is_current(true);
+}
+
 } // namespace node
 } // namespace libbitcoin

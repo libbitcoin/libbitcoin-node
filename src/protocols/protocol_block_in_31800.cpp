@@ -27,6 +27,7 @@
 namespace libbitcoin {
 namespace node {
 
+// This class does NOT inherit from protocol_block_in_106.
 #define CLASS protocol_block_in_31800
 
 using namespace system;

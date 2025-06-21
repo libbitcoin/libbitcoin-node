@@ -76,6 +76,7 @@ namespace node {
 
 settings::settings() NOEXCEPT
   : priority{ true },
+    delay_inbound{ true },
     headers_first{ true },
     allowed_deviation{ 1.5 },
     allocation_multiple{ 20 },

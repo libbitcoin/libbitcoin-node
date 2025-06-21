@@ -64,6 +64,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.enable_compact = false;
     configured.network.host_pool_capacity = 10000;
     configured.network.outbound_connections = 100;
+    configured.network.inbound_connections = 100;
     configured.network.maximum_skew_minutes = 120;
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
@@ -596,7 +597,7 @@ options_metadata parser::load_settings() THROWS
     (
         "network.inbound_connections",
         value<uint16_t>(&configured.network.inbound_connections),
-        "The target number of incoming network connections, defaults to 0."
+        "The target number of incoming network connections, defaults to 100."
     )
     (
         "network.outbound_connections",
@@ -997,6 +998,11 @@ options_metadata parser::load_settings() THROWS
         "node.priority",
         value<bool>(&configured.node.priority),
         "Set the validation threadpool to high priority, defaults to true."
+    )
+    (
+        "node.delay_inbound",
+        value<bool>(&configured.node.delay_inbound),
+        "Delay accepting inbound connections until node is current, defaults to true."
     )
     ////(
     ////    "node.headers_first",

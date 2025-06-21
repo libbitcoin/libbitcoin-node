@@ -55,6 +55,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
 
     const node::settings node{};
     BOOST_REQUIRE_EQUAL(node.priority, true);
+    BOOST_REQUIRE_EQUAL(node.delay_inbound, true);
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
