@@ -61,14 +61,6 @@ bool chaser_confirm::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        ////case chase::blocks:
-        ////{
-        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
-        ////
-        ////    // TODO: value is branch point.
-        ////    POST(do_validated, std::get<height_t>(value));
-        ////    break;
-        ////}
         case chase::resume:
         case chase::start:
         case chase::bump:
