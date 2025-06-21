@@ -998,6 +998,11 @@ options_metadata parser::load_settings() THROWS
         value<bool>(&configured.node.priority),
         "Set the validation threadpool to high priority, defaults to true."
     )
+    (
+        "node.delay_inbound",
+        value<bool>(&configured.node.delay_inbound),
+        "Delay accepting inbound connections until node is current, defaults to true."
+    )
     ////(
     ////    "node.headers_first",
     ////    value<bool>(&configured.node.headers_first),

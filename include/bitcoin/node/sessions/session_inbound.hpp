@@ -33,6 +33,8 @@ public:
     typedef std::shared_ptr<session_inbound> ptr;
     using base = attach<network::session_inbound>;
     using base::base;
+
+    bool disabled() const NOEXCEPT override;
 };
 
 } // namespace node
