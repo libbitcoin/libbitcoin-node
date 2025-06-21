@@ -998,11 +998,11 @@ options_metadata parser::load_settings() THROWS
         value<bool>(&configured.node.priority),
         "Set the validation threadpool to high priority, defaults to true."
     )
-    (
-        "node.headers_first",
-        value<bool>(&configured.node.headers_first),
-        "Obtain current header chain before obtaining associated blocks, defaults to true."
-    )
+    ////(
+    ////    "node.headers_first",
+    ////    value<bool>(&configured.node.headers_first),
+    ////    "Obtain current header chain before obtaining associated blocks, defaults to true."
+    ////)
     (
         "node.allowed_deviation",
         value<float>(&configured.node.allowed_deviation),
