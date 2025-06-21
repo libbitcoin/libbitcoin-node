@@ -108,29 +108,49 @@ code chaser_block::validate(const block& block,
         // Only identity is required under checkpoint.
         if (((ec = block.identify())) || ((ec = block.identify(ctx))))
             return ec;
-
-        return system::error::block_success;
     }
     else
     {
         // Identity is not assured if invalid (but is not required).
         if (((ec = block.check())) || ((ec = block.check(ctx))))
             return ec;
+
+        if (!populate(block))
+            return system::error::missing_previous_output;
+
+        if ((ec = block.accept(ctx,
+            setting.subsidy_interval_blocks,
+            setting.initial_subsidy())))
+            return ec;
+
+        if ((ec = block.connect(ctx)))
+            return ec;
     }
 
-    // Populate prevouts from self/tree (no metadata for accept/connect).
-    populate(block);
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: chaser_validate bypasses set filter body, prevouts, block_valid.
+    // These and notify(chase::valid) could be set here in chaser_block but
+    // blocks are populated from the block tree and therefore there is not yet
+    // tx metadata for all prevouts. So presently blocks first does not proceed
+    // to confirmation following this block validation and header organization.
+    ///////////////////////////////////////////////////////////////////////////
+    //// None of this can be done because block is not archived.
+    ////
+    ////auto& query = archive();
+    ////if (!query.set_prevouts(link, block))
+    ////    return error::validate6;
+    ////
+    ////if (!query.set_filter_body(link, block))
+    ////    return error::validate7;
+    ////
+    ////// After set_prevouts and set_filter_body.
+    ////if (!bypass && !query.set_block_valid(link, block.fees()))
+    ////    return error::validate8;
+    ////
+    ////notify(error::success, chase::valid, state.height());
+    ///////////////////////////////////////////////////////////////////////////
 
-    // Populate prevouts from store (no metadata for accept/connect).
-    if (!archive().populate_without_metadata(block))
-        return network::error::protocol_violation;
-
-    if ((ec = block.accept(ctx,
-        setting.subsidy_interval_blocks,
-        setting.initial_subsidy())))
-        return ec;
-
-    return block.connect(ctx);
+    return system::error::block_success;
 }
 
 bool chaser_block::is_storable(const chain_state&) const NOEXCEPT
@@ -184,6 +204,7 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
     });
 }
 
+// Populate prevouts from self/tree/store (without metadata).
 bool chaser_block::populate(const block& block) const NOEXCEPT
 {
     block.populate();
@@ -194,7 +215,7 @@ bool chaser_block::populate(const block& block) const NOEXCEPT
         set_prevout(*in);
     });
 
-    return true;
+    return archive().populate_without_metadata(block);
 }
 
 } // namespace node

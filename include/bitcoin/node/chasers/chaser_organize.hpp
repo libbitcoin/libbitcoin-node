@@ -115,7 +115,7 @@ private:
     using header_links = database::header_links;
     using header_states = database::header_states;
 
-    // Template differetiators.
+    // Template differentiators.
     // ------------------------------------------------------------------------
 
     static constexpr bool is_block() NOEXCEPT
@@ -140,11 +140,15 @@ private:
     }
     static constexpr auto events_object_organized() NOEXCEPT
     {
-        return is_block() ? events::block_organized : events::header_organized;
+        // Using header because block organization is in confirmation chaser.
+        ////return is_block() ? events::block_organized : events::header_organized;
+        return events::header_organized;
     }
     static constexpr auto events_object_reorganized() NOEXCEPT
     {
-        return is_block() ? events::block_reorganized : events::header_reorganized;
+        // Using header because block reorganized is in confirmation chaser.
+        ////return is_block() ? events::block_reorganized : events::header_reorganized;
+        return events::header_reorganized;
     }
 
     // Setters
