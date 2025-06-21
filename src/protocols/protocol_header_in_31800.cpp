@@ -95,6 +95,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     return true;
 }
 
+// not stranded
 void protocol_header_in_31800::handle_organize(const code& ec,
     size_t height, const chain::header::cptr& LOG_ONLY(header_ptr)) NOEXCEPT
 {

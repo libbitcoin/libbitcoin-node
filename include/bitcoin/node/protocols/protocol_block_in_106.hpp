@@ -71,6 +71,8 @@ protected:
         const network::messages::block::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
+    virtual void do_handle_organize(const code& ec, size_t height,
+        const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:
     static hashmap to_hashes(

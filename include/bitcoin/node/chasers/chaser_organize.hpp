@@ -134,9 +134,17 @@ private:
     {
         return is_block() ? chase::blocks : chase::headers;
     }
-    static constexpr auto events_object() NOEXCEPT
+    static constexpr auto events_object_archived() NOEXCEPT
     {
         return is_block() ? events::block_archived : events::header_archived;
+    }
+    static constexpr auto events_object_organized() NOEXCEPT
+    {
+        return is_block() ? events::block_organized : events::header_organized;
+    }
+    static constexpr auto events_object_reorganized() NOEXCEPT
+    {
+        return is_block() ? events::block_reorganized : events::header_reorganized;
     }
 
     // Setters

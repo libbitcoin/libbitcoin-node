@@ -147,9 +147,18 @@ bool protocol_block_in_106::handle_receive_block(const code& ec,
     return true;
 }
 
+// return to strand to guard tracker_.
 void protocol_block_in_106::handle_organize(const code& ec, size_t height,
     const chain::block::cptr& block_ptr) NOEXCEPT
 {
+    POST(do_handle_organize, ec, height, block_ptr);
+}
+
+void protocol_block_in_106::do_handle_organize(const code& ec, size_t height,
+    const chain::block::cptr& block_ptr) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
     // Chaser may be stopped before protocol.
     if (stopped() || ec == network::error::service_stopped)
         return;
