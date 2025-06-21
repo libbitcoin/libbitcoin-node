@@ -132,7 +132,7 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     BC_ASSERT(stranded());
     const auto& query = archive();
 
-    // TODO: make store query.
+    // TODO: make store query?
 
     // Only necessary when bumping as next position may not be associated.
     const auto height = add1(position());
