@@ -28,7 +28,7 @@
 // announcements, which introduces several ambiguities. Furthermore inventory
 // messages can contain a mix of types, further increasing complexity. Unlike
 // header protocol, block protocol cannot leave annoucement disabled until
-// caught up and in both cases nodes announce to peers that are not caught up.
+// current and in both cases nodes announce to peers that are not current.
 
 namespace libbitcoin {
 namespace node {
