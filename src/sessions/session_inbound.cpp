@@ -24,7 +24,13 @@ namespace node {
 // Inbound connection attempts are dropped unless confirmed chain is current.
 bool session_inbound::disabled() const NOEXCEPT
 {
-    return config().node.delay_inbound && !is_current(true);
+    if (!config().node.delay_inbound)
+        return false;
+
+    if (archive().get_top_confirmed() >= config().node.maximum_height)
+        return false;
+
+    return !is_current(true);
 }
 
 } // namespace node

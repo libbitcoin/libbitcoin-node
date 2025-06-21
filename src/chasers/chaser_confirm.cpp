@@ -37,7 +37,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    filter_(node.archive().filter_enabled())
+    filter_(node.archive().filter_enabled()),
+    maximum_height_(node.config().node.maximum_height)
 {
 }
 
@@ -383,6 +384,15 @@ bool chaser_confirm::set_organized(const header_link& link,
     notify(error::success, chase::organized, link);
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
+
+    // When current or maximum height take snapshot, which resets connections.
+    // Node may fall behind after becomming current though this does not reset.
+    if (!recent_ && (confirmed_height == maximum_height_ || is_current(link)))
+    {
+        recent_ = true;
+        notify(error::success, chase::recent, confirmed_height);
+    }
+
     return true;
 }
 
