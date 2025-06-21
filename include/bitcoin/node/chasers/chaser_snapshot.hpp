@@ -43,6 +43,7 @@ protected:
     virtual void do_archive(height_t height) NOEXCEPT;
     virtual void do_valid(height_t height) NOEXCEPT;
     virtual void do_confirm(height_t height) NOEXCEPT;
+    virtual void do_recent(size_t height) NOEXCEPT;
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 

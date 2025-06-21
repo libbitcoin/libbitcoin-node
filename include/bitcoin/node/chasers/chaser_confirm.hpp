@@ -69,8 +69,12 @@ private:
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
 
-    // This is thread safe.
+    // These are thread safe.
     const bool filter_;
+    const size_t maximum_height_;
+
+    // This is protected by strand.
+    bool recent_{};
 };
 
 } // namespace node
