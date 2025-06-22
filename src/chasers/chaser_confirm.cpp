@@ -46,6 +46,12 @@ code chaser_confirm::start() NOEXCEPT
 {
     const auto& query = archive();
     set_position(query.get_fork());
+
+    if (recent_)
+    {
+        LOGN("Node is recent at startup block [" << position() << "].");
+    }
+
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
