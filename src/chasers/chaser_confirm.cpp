@@ -391,6 +391,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     {
         recent_ = true;
         notify(error::success, chase::recent, confirmed_height);
+        LOGN("Node is recent as of block [" << confirmed_height << "].");
     }
 
     return true;
