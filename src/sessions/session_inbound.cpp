@@ -22,15 +22,10 @@ namespace libbitcoin {
 namespace node {
 
 // Inbound connection attempts are dropped unless confirmed chain is current.
+// Used instead of suspension because suspension has independent start/stop.
 bool session_inbound::disabled() const NOEXCEPT
 {
-    if (!config().node.delay_inbound)
-        return false;
-
-    if (archive().get_top_confirmed() >= config().node.maximum_height)
-        return false;
-
-    return !is_current(true);
+    return config().node.delay_inbound && !is_recent();
 }
 
 } // namespace node

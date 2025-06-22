@@ -61,7 +61,7 @@ protected:
         constexpr auto headers = network::messages::level::headers_protocol;
         constexpr auto in = is_same_type<Session, network::session_inbound>;
 
-        const auto current = is_current(true);
+        const auto recent = is_recent();
         const auto headers_first = config().node.headers_first;
         const auto version = channel->negotiated_version();
         const auto self = session::shared_from_sibling<attach<Session>,
@@ -74,7 +74,7 @@ protected:
         {
             channel->attach<protocol_header_in_70012>(self)->start();
 
-            if (current)
+            if (recent)
                 channel->attach<protocol_header_out_70012>(self)->start();
 
             if constexpr (!in)
@@ -86,7 +86,7 @@ protected:
         {
             channel->attach<protocol_header_in_31800>(self)->start();
 
-            if (current)
+            if (recent)
                 channel->attach<protocol_header_out_31800>(self)->start();
 
             if constexpr (!in)
@@ -104,7 +104,7 @@ protected:
             }
         }
 
-        if (current)
+        if (recent)
         {
             channel->attach<protocol_block_out_106>(self)->start();
             channel->attach<protocol_transaction_in_106>(self)->start();
