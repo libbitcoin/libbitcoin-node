@@ -293,7 +293,7 @@ void full_node::fault(const code& ec) NOEXCEPT
     suspend(ec);
 }
 
-// Leaves store suspended, caller may want to resume upon success.
+// Leaves network suspended, caller may want to resume upon success.
 code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
 {
     if (query_.is_fault())
@@ -312,7 +312,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
     return ec;
 }
 
-// Leaves store suspended, caller may want to resume upon success.
+// Leaves network suspended, caller may want to resume upon success.
 code full_node::reload(const store::event_handler& handler) NOEXCEPT
 {
     if (!query_.is_full())
