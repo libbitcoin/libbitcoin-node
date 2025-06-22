@@ -63,11 +63,7 @@ code chaser_snapshot::start() NOEXCEPT
     if (enabled_confirm_)
         confirm_ = std::max(archive().get_top_confirmed(), checkpoint());
 
-    if (enabled_bytes_ || enabled_valid_)
-    {
-        SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
-    }
-
+    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
 }
 
