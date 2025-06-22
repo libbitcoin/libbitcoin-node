@@ -54,8 +54,8 @@ enum events : uint8_t
     /// Mining.
     template_issued,      // block template issued for mining
 
-    /// Snapshot span.
-    snapshot_span
+    /// Timespans.
+    snapshot_msecs        // snapshot timespan in milliseconds.
 };
 
 } // namespace node
