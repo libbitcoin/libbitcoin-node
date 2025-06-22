@@ -56,6 +56,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_in_106.cpp \
     src/protocols/protocol_block_in_31800.cpp \
     src/protocols/protocol_block_out_106.cpp \
+    src/protocols/protocol_block_out_70012.cpp \
     src/protocols/protocol_header_in_31800.cpp \
     src/protocols/protocol_header_in_70012.cpp \
     src/protocols/protocol_header_out_31800.cpp \
@@ -174,6 +175,7 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_block_in_106.hpp \
     include/bitcoin/node/protocols/protocol_block_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_block_out_106.hpp \
+    include/bitcoin/node/protocols/protocol_block_out_70012.hpp \
     include/bitcoin/node/protocols/protocol_header_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_in_70012.hpp \
     include/bitcoin/node/protocols/protocol_header_out_31800.hpp \

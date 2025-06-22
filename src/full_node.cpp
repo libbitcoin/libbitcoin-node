@@ -365,7 +365,8 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
 bool full_node::is_recent() const NOEXCEPT
 {
     const auto top = query_.get_top_confirmed();
-    if (top >= config_.node.maximum_height)
+    if (!is_zero(config_.node.maximum_height) &&
+        top >= config_.node.maximum_height)
         return true;
 
     uint32_t timestamp{};
