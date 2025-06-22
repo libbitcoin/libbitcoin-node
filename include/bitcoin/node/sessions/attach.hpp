@@ -61,7 +61,7 @@ protected:
         constexpr auto headers = network::messages::level::headers_protocol;
         constexpr auto in = is_same_type<Session, network::session_inbound>;
 
-        const auto recent = is_recent();
+        const auto recent = !config().node.delay_inbound || is_recent();
         const auto headers_first = config().node.headers_first;
         const auto version = channel->negotiated_version();
         const auto self = session::shared_from_sibling<attach<Session>,
