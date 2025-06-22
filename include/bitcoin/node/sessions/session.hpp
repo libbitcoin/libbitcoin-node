@@ -101,6 +101,9 @@ public:
     /// The candidate|confirmed chain is current.
     virtual bool is_current(bool confirmed) const NOEXCEPT;
 
+    /// The confirmed chain is recent (confirmed to maximum height or current).
+    virtual bool is_recent() const NOEXCEPT;
+
 protected:
     template <class Sibling, class Shared>
     std::shared_ptr<Sibling> shared_from_sibling() NOEXCEPT

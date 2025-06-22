@@ -145,6 +145,17 @@ bool session::is_current(bool confirmed) const NOEXCEPT
     return node_.is_current(confirmed);
 }
 
+bool session::is_recent() const NOEXCEPT
+{
+    const auto& query = archive();
+    const auto top = query.get_top_confirmed();
+    if (top >= config().node.maximum_height)
+        return true;
+
+    uint32_t timestamp{};
+    return is_current(query.get_timestamp(timestamp, query.to_confirmed(top)));
+}
+
 BC_POP_WARNING()
 
 } // namespace node
