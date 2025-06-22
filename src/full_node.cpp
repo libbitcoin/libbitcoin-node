@@ -299,6 +299,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
     if (query_.is_fault())
         return query_.get_code();
 
+    const auto start = logger::now();
     suspend(error::store_snapshot);
     const auto ec = query_.snapshot([&](auto event, auto table) NOEXCEPT
     {
@@ -309,6 +310,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
+    p2p::span<milliseconds>(events::snapshot_msecs, start);
     return ec;
 }
 
@@ -318,6 +320,7 @@ code full_node::reload(const store::event_handler& handler) NOEXCEPT
     if (!query_.is_full())
         return query_.is_fault() ? query_.get_code() : error::success;
 
+    const auto start = logger::now();
     suspend(error::store_reload);
     const auto ec = query_.reload([&](auto event, auto table) NOEXCEPT
     {
@@ -328,6 +331,7 @@ code full_node::reload(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
+    p2p::span<milliseconds>(events::reload_msecs, start);
     return ec;
 }
 

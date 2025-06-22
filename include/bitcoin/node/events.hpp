@@ -55,7 +55,8 @@ enum events : uint8_t
     template_issued,      // block template issued for mining
 
     /// Timespans.
-    snapshot_msecs        // snapshot timespan in milliseconds.
+    snapshot_msecs,       // snapshot timespan in milliseconds.
+    reload_msecs          // store reload timespan in milliseconds.
 };
 
 } // namespace node
