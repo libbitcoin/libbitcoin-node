@@ -136,6 +136,9 @@ public:
     /// The specified timestamp is current.
     virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
 
+    /// The confirmed chain is confirmed to maximum height or is current.
+    virtual bool is_recent() const NOEXCEPT;
+
     /// Get the memory resource.
     virtual network::memory& get_memory() NOEXCEPT;
 

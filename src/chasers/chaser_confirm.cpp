@@ -38,7 +38,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     filter_(node.archive().filter_enabled()),
-    maximum_height_(node.config().node.maximum_height)
+    recent_(is_recent())
 {
 }
 
@@ -387,7 +387,7 @@ bool chaser_confirm::set_organized(const header_link& link,
 
     // When current or maximum height take snapshot, which resets connections.
     // Node may fall behind after becomming current though this does not reset.
-    if (!recent_ && (confirmed_height == maximum_height_ || is_current(link)))
+    if (!recent_ && is_recent())
     {
         recent_ = true;
         notify(error::success, chase::recent, confirmed_height);

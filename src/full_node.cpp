@@ -362,6 +362,17 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     return time >= current;
 }
 
+bool full_node::is_recent() const NOEXCEPT
+{
+    const auto top = query_.get_top_confirmed();
+    if (top >= config_.node.maximum_height)
+        return true;
+
+    uint32_t timestamp{};
+    const auto link = query_.to_confirmed(top);
+    return is_current(query_.get_timestamp(timestamp, link));
+}
+
 network::memory& full_node::get_memory() NOEXCEPT
 {
     return memory_;

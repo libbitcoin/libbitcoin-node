@@ -145,6 +145,11 @@ bool chaser::is_current(const database::header_link& link) const NOEXCEPT
     return node_.is_current(link);
 }
 
+bool chaser::is_recent() const NOEXCEPT
+{
+    return node_.is_recent();
+}
+
 bool chaser::is_under_checkpoint(size_t height) const NOEXCEPT
 {
     return height <= checkpoint();
