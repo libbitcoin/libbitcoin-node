@@ -194,8 +194,6 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
     }
     else
     {
-        span(events::snapshot_span, start);
-
         // Could become full before snapshot start (and it could still succeed).
         if (running && !archive().is_full())
             resume();

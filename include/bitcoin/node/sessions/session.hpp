@@ -101,7 +101,7 @@ public:
     /// The candidate|confirmed chain is current.
     virtual bool is_current(bool confirmed) const NOEXCEPT;
 
-    /// The confirmed chain is recent (confirmed to maximum height or current).
+    /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;
 
 protected:

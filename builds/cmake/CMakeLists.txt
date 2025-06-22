@@ -268,6 +268,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_block_in_106.cpp"
     "../../src/protocols/protocol_block_in_31800.cpp"
     "../../src/protocols/protocol_block_out_106.cpp"
+    "../../src/protocols/protocol_block_out_70012.cpp"
     "../../src/protocols/protocol_header_in_31800.cpp"
     "../../src/protocols/protocol_header_in_70012.cpp"
     "../../src/protocols/protocol_header_out_31800.cpp"

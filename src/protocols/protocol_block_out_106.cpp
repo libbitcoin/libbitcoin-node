@@ -28,7 +28,6 @@ namespace node {
 #define CLASS protocol_block_out_106
 
 using namespace system;
-using namespace network;
 using namespace network::messages;
 using namespace std::placeholders;
 
@@ -47,30 +46,8 @@ void protocol_block_out_106::start() NOEXCEPT
 
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     SUBSCRIBE_CHANNEL(get_blocks, handle_receive_get_blocks, _1, _2);
-    SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
     SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2, _3);
     protocol::start();
-}
-
-// Inbound (send_headers).
-// ----------------------------------------------------------------------------
-// TODO: move to protocol_block_out_70012.
-
-bool protocol_block_out_106::handle_receive_send_headers(const code& ec,
-    const send_headers::cptr&) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped(ec))
-        return false;
-
-    // TODO: need identifier per subscriber, not per channel.
-    // TODO: unsubscribe all and unsubscribe type are too broad.
-    ////// Invokes ALL broadcast subscriptions with network::error::desubscribed.
-    ////// Header notification will take over if configured (ignores desubscribed).
-    ////UNSUBSCRIBE_BROADCAST();
-    disabled_ = true;
-    return false;
 }
 
 // Outbound (block).
@@ -81,7 +58,7 @@ bool protocol_block_out_106::handle_broadcast_block(const code& ec,
 {
     BC_ASSERT(stranded());
 
-    if (stopped(ec) || disabled_)
+    if (stopped(ec) || disabled())
         return false;
 
     if (sender == identifier())
@@ -164,7 +141,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
 // utilities
 // ----------------------------------------------------------------------------
 
-network::messages::inventory protocol_block_out_106::create_inventory(
+inventory protocol_block_out_106::create_inventory(
     const get_blocks& locator) const NOEXCEPT
 {
     // Empty response implies complete (success).
@@ -174,8 +151,7 @@ network::messages::inventory protocol_block_out_106::create_inventory(
     return inventory::factory
     (
         archive().get_blocks(locator.start_hashes, locator.stop_hash,
-            max_get_blocks),
-        inventory::type_id::block
+            max_get_blocks), inventory::type_id::block
     );
 }
 

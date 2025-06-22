@@ -45,8 +45,8 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    virtual bool handle_receive_send_headers(const code& ec,
-        const network::messages::send_headers::cptr& message) NOEXCEPT;
+    virtual bool disabled() const NOEXCEPT { return false; };
+
     virtual bool handle_receive_get_blocks(const code& ec,
         const network::messages::get_blocks::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_data(const code& ec,

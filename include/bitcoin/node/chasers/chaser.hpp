@@ -134,6 +134,9 @@ protected:
     /// Header's timestamp is within configured span from current time.
     bool is_current(const database::header_link& link) const NOEXCEPT;
 
+    /// The confirmed chain is confirmed to maximum height or is current.
+    bool is_recent() const NOEXCEPT;
+
     /// The height is at or below the top checkpoint.
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
 
