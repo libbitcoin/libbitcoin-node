@@ -131,6 +131,38 @@ void protocol_header_in_31800::handle_organize(const code& ec,
 void protocol_header_in_31800::complete() NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // There are no header announcements at 31800, so translate from inv.
+    if (!subscribed_ && is_current(true))
+    {
+        subscribed_ = true;
+        SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
+    }
+}
+
+// Inbound (inv).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
+    const inventory::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    for (const auto& item: message->items)
+    {
+        if (item.is_block_type() && !query.is_block(item.hash))
+        {
+            // This is inefficient but simple and limited to protocol 31800.
+            SEND(create_get_headers(), handle_send, _1);
+            return true;
+        }
+    }
+
+    return true;
 }
 
 // utilities
