@@ -43,6 +43,11 @@ public:
 
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
+
+protected:
+    /// Accept incoming inventory message.
+    virtual bool handle_receive_inventory(const code& ec,
+        const network::messages::inventory::cptr& message) NOEXCEPT;
 };
 
 } // namespace node
