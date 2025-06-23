@@ -40,11 +40,11 @@ public:
 protected:
     template <typename SessionPtr>
     protocol_performer(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const channel_ptr& channel, bool enabled) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_performer>(session->log),
         deviation_(session->config().node.allowed_deviation > 0.0),
-        enabled_(to_bool(session->config().node.sample_period_seconds)),
+        enabled_(enabled && to_bool(session->config().node.sample_period_seconds)),
         performance_timer_(std::make_shared<network::deadline>(session->log,
             channel->strand(), session->config().node.sample_period()))
     {

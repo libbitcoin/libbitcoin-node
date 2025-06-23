@@ -37,8 +37,8 @@ public:
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename SessionPtr>
     protocol_block_in_31800(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
-      : protocol_performer(session, channel),
+        const channel_ptr& channel, bool performance_enabled) NOEXCEPT
+      : protocol_performer(session, channel, performance_enabled),
         top_checkpoint_height_(
             session->config().bitcoin.top_checkpoint().height()),
         block_type_(session->config().network.witness_node() ?
