@@ -58,6 +58,7 @@ bool protocol_block_out_106::handle_broadcast_block(const code& ec,
 {
     BC_ASSERT(stranded());
 
+    // False return unsubscribes this broadcast handler.
     if (stopped(ec) || disabled())
         return false;
 
