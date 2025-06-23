@@ -40,11 +40,35 @@ void protocol_transaction_in_106::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
     protocol::start();
 }
 
 // Inbound.
 // ----------------------------------------------------------------------------
+
+bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
+    const inventory::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    const auto tx_count = message->count(inventory::type_id::transaction);
+
+    // There are a small number of agressive (Satoshi 25.x) nodes that do this.
+    if (!config().network.enable_relay && !is_zero(tx_count))
+    {
+        LOGR("Unrequested txs (" << tx_count << ") from ["
+            << authority() << "] " << peer_version()->user_agent);
+
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    return true;
+}
 
 } // namespace node
 } // namespace libbitcoin
