@@ -57,7 +57,7 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
 
     const auto tx_count = message->count(inventory::type_id::transaction);
 
-    // There are a small number of agressive (Satoshi 25.x) nodes that do this.
+    // Many satoshi v25.0 and v25.1 peers fail to honor version.relay = 0.
     if (!config().network.enable_relay && !is_zero(tx_count))
     {
         LOGR("Unrequested txs (" << tx_count << ") from ["
