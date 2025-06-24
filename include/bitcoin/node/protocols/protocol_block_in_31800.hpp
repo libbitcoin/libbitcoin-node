@@ -29,7 +29,8 @@ namespace node {
     
 /// This class does NOT inherit from protocol_block_in_106.
 class BCN_API protocol_block_in_31800
-  : public protocol_performer
+  : public protocol_performer,
+    protected network::tracker<protocol_block_in_31800>
 {
 public:
     typedef std::shared_ptr<protocol_block_in_31800> ptr;
@@ -43,7 +44,8 @@ public:
             session->config().bitcoin.top_checkpoint().height()),
         block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block),
-        map_(chaser_check::empty_map())
+        map_(chaser_check::empty_map()),
+        network::tracker<protocol_block_in_31800>(session->log)
     {
     }
     BC_POP_WARNING()
