@@ -40,9 +40,9 @@ public:
     protocol_block_in_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        network::tracker<protocol_block_in_106>(session->log),
         block_type_(session->config().network.witness_node() ?
-            type_id::witness_block : type_id::block)
+            type_id::witness_block : type_id::block),
+        network::tracker<protocol_block_in_106>(session->log)
     {
     }
     BC_POP_WARNING()
@@ -87,11 +87,11 @@ private:
     network::messages::get_data create_get_data(
         const network::messages::inventory& message) const NOEXCEPT;
 
-    // This is protected by strand.
-    track tracker_{};
-
     // This is thread safe.
     const network::messages::inventory::type_id block_type_;
+
+    // This is protected by strand.
+    track tracker_{};
 };
 
 } // namespace node

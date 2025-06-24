@@ -45,6 +45,8 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    virtual bool handle_receive_inventory(const code& ec,
+        const network::messages::inventory::cptr& message) NOEXCEPT;
     virtual bool handle_receive_headers(const code& ec,
         const network::messages::headers::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
@@ -57,6 +59,9 @@ private:
         const system::hash_digest& last) const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         system::hashes&& start_hashes) const NOEXCEPT;
+
+    // This is protected by strand.
+    bool subscribed_{};
 };
 
 } // namespace node

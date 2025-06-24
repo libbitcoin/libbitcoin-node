@@ -34,6 +34,7 @@ public:
     using base = attach<network::session_inbound>;
     using base::base;
 
+protected:
     bool disabled() const NOEXCEPT override;
 };
 

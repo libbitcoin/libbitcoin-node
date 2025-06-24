@@ -60,6 +60,7 @@ protected:
         constexpr auto bip130 = network::messages::level::bip130;
         constexpr auto headers = network::messages::level::headers_protocol;
         constexpr auto in = is_same_type<Session, network::session_inbound>;
+        constexpr auto out = is_same_type<Session, network::session_outbound>;
 
         const auto recent = !config().node.delay_inbound || is_recent();
         const auto headers_first = config().node.headers_first;
@@ -79,7 +80,7 @@ protected:
 
             if constexpr (!in)
             {
-                channel->attach<protocol_block_in_31800>(self)->start();
+                channel->attach<protocol_block_in_31800>(self, out)->start();
             }
         }
         else if (headers_first && version >= headers)
@@ -91,7 +92,7 @@ protected:
 
             if constexpr (!in)
             {
-                channel->attach<protocol_block_in_31800>(self)->start();
+                channel->attach<protocol_block_in_31800>(self, out)->start();
             }
         }
         else

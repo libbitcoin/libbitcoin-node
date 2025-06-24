@@ -58,15 +58,21 @@ bool protocol_block_out_106::handle_broadcast_block(const code& ec,
 {
     BC_ASSERT(stranded());
 
+    // False return unsubscribes this broadcast handler.
     if (stopped(ec) || disabled())
         return false;
 
     if (sender == identifier())
         return true;
 
-    const inventory inv{ { { type_id::block, message->block_ptr->hash() } } };
+    const inventory inv{ { { block_type_, message->block_ptr->hash() } } };
     SEND(inv, handle_send, _1);
     return true;
+}
+
+bool protocol_block_out_106::disabled() const NOEXCEPT
+{
+    return false;
 }
 
 // Inbound (get_blocks).
