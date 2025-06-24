@@ -70,6 +70,11 @@ bool protocol_block_out_106::handle_broadcast_block(const code& ec,
     return true;
 }
 
+bool protocol_block_out_106::disabled() const NOEXCEPT
+{
+    return false;
+}
+
 // Inbound (get_blocks).
 // ----------------------------------------------------------------------------
 

@@ -64,6 +64,13 @@ bool protocol_block_out_70012::handle_receive_send_headers(const code& ec,
     return false;
 }
 
+// Suspends inventory announcement processing in favor of header announcements.
+bool protocol_block_out_70012::disabled() const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    return disabled_;
+}
+
 BC_POP_WARNING()
 BC_POP_WARNING()
 

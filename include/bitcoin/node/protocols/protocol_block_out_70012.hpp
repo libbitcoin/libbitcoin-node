@@ -45,12 +45,13 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    bool disabled() const NOEXCEPT override { return disabled_; };
+    bool disabled() const NOEXCEPT override;
 
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;
 
 private:
+    // This is protected by strand.
     bool disabled_{};
 };
 
