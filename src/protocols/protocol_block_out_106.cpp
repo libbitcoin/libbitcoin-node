@@ -65,7 +65,7 @@ bool protocol_block_out_106::handle_broadcast_block(const code& ec,
     if (sender == identifier())
         return true;
 
-    const inventory inv{ { { type_id::block, message->block_ptr->hash() } } };
+    const inventory inv{ { { block_type_, message->block_ptr->hash() } } };
     SEND(inv, handle_send, _1);
     return true;
 }
