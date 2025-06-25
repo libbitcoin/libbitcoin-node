@@ -45,7 +45,44 @@ void protocol_header_out_70012::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
+
+    // Events subscription is asynchronous, events may be missed.
+    subscribe_events(BIND(handle_event, _1, _2, _3));
     protocol_header_out_31800::start();
+}
+
+void protocol_header_out_70012::stopping(const code& ec) NOEXCEPT
+{
+    // Unsubscriber race is ok.
+    BC_ASSERT(stranded());
+    unsubscribe_events();
+    protocol::stopping(ec);
+}
+
+// handle events (block)
+// ----------------------------------------------------------------------------
+
+bool protocol_header_out_70012::handle_event(const code&, chase event_,
+    event_value) NOEXCEPT
+{
+    // Do not pass ec to stopped as it is not a call status.
+    if (stopped())
+        return false;
+
+    switch (event_)
+    {
+        case chase::organized:
+        {
+            // TODO:
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    return true;
 }
 
 // Inbound (send_headers).

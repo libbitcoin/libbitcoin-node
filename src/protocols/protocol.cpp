@@ -64,7 +64,7 @@ void protocol::put_hashes(const map_ptr& map,
     session_->put_hashes(map, std::move(handler));
 }
 
-// Events.
+// Events notification.
 // ----------------------------------------------------------------------------
 
 void protocol::notify(const code& ec, chase event_,
@@ -79,24 +79,23 @@ void protocol::notify_one(object_key key, const code& ec, chase event_,
     session_->notify_one(key, ec, event_, value);
 }
 
-void protocol::subscribe_events(event_notifier&& handler,
-    event_completer&& complete) NOEXCEPT
-{
-    session_->subscribe_events(std::move(handler),
-        BIND(handle_subscribe, _1, _2, std::move(complete)));
-}
+// Events subscription.
+// ----------------------------------------------------------------------------
 
-// As this has no completion handler resubscription is not allowed.
-void protocol::unsubscribe_events() NOEXCEPT
+void protocol::subscribe_events(event_notifier&& handler) NOEXCEPT
 {
-    session_->unsubscribe_events(key_);
-    key_ = {};
+    event_completer completer = BIND(subscribed, _1, _2);
+    session_->subscribe_events(std::move(handler),
+        BIND(handle_subscribe, _1, _2, std::move(completer)));
 }
 
 // private
 void protocol::handle_subscribe(const code& ec, object_key key,
     const event_completer& complete) NOEXCEPT
 {
+    // The key member is protected by one event subscription per protocol.
+    BC_ASSERT_MSG(is_zero(key_), "unsafe access");
+
     // Protocol stop is thread safe.
     if (ec)
     {
@@ -106,6 +105,22 @@ void protocol::handle_subscribe(const code& ec, object_key key,
 
     key_ = key;
     complete(ec, key_);
+}
+
+void protocol::subscribed(const code& ec, object_key) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Unsubscriber race is ok.
+    if (stopped(ec))
+        unsubscribe_events();
+}
+
+// As this has no completion handler resubscription is not allowed.
+void protocol::unsubscribe_events() NOEXCEPT
+{
+    session_->unsubscribe_events(key_);
+    key_ = {};
 }
 
 object_key protocol::events_key() const NOEXCEPT

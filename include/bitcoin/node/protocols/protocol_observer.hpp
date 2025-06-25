@@ -43,18 +43,14 @@ public:
 
     /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;
+
+    /// The channel is stopping (called on strand by stop subscription).
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Handle event subscription completion.
-    virtual void handle_complete(const code& ec, object_key key) NOEXCEPT;
-
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
-
-private:
-    void do_handle_complete(const code& e) NOEXCEPT;
 };
 
 } // namespace node

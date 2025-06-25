@@ -76,7 +76,7 @@ protected:
     /// A race condition could result in an unsuspended connection.
     virtual code fault(const code& ec) NOEXCEPT;
 
-    /// Events.
+    /// Events notification.
     /// -----------------------------------------------------------------------
 
     /// Set a chaser event.
@@ -87,11 +87,17 @@ protected:
     virtual void notify_one(object_key key, const code& ec, chase event_,
         event_value value) const NOEXCEPT;
 
-    /// Subscribe to chaser events (only once).
-    virtual void subscribe_events(event_notifier&& handler,
-        event_completer&& complete) NOEXCEPT;
+    /// Events subscription.
+    /// -----------------------------------------------------------------------
+
+    /// Subscribe to chaser events (max one active per protocol).
+    virtual void subscribe_events(event_notifier&& handler) NOEXCEPT;
+
+    /// Override to handle subscription completion (stranded).
+    virtual void subscribed(const code& ec, object_key key) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
+    /// Subscribing protocol must invoke from overridden stopping().
     virtual void unsubscribe_events() NOEXCEPT;
 
     /// Get the subscription key (for notify_one).
@@ -110,6 +116,7 @@ protected:
     virtual bool is_current(bool confirmed) const NOEXCEPT;
 
 private:
+    void handle_subscribed(const code& ec, object_key key) NOEXCEPT;
     void handle_subscribe(const code& ec, object_key key,
         const event_completer& complete) NOEXCEPT;
 
