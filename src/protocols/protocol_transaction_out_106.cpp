@@ -30,7 +30,7 @@ namespace node {
 using namespace network::messages;
 using namespace std::placeholders;
 
-// Start.
+// start/stop
 // ----------------------------------------------------------------------------
 
 void protocol_transaction_out_106::start() NOEXCEPT
@@ -40,11 +40,44 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
+    // Events subscription is asynchronous, events may be missed.
+    subscribe_events(BIND(handle_event, _1, _2, _3));
     protocol::start();
 }
 
-// Outbound.
+void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
+{
+    // Unsubscriber race is ok.
+    BC_ASSERT(stranded());
+    unsubscribe_events();
+    protocol::stopping(ec);
+}
+
+// handle events (transaction)
 // ----------------------------------------------------------------------------
+
+bool protocol_transaction_out_106::handle_event(const code&, chase event_,
+    event_value) NOEXCEPT
+{
+    // Do not pass ec to stopped as it is not a call status.
+    if (stopped())
+        return false;
+
+    switch (event_)
+    {
+        case chase::transaction:
+        {
+            // TODO:
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    return true;
+}
 
 } // namespace node
 } // namespace libbitcoin

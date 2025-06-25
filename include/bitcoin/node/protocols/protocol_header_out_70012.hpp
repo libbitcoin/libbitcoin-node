@@ -44,7 +44,14 @@ public:
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
 
+    /// The channel is stopping (called on strand by stop subscription).
+    void stopping(const code& ec) NOEXCEPT override;
+
 protected:
+    /// Handle chaser events.
+    virtual bool handle_event(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
+
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;
     virtual bool handle_broadcast_block(const code& ec,
