@@ -32,6 +32,9 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// start/stop
+// ----------------------------------------------------------------------------
+
 void protocol_observer::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -40,34 +43,21 @@ void protocol_observer::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3),
-        BIND(handle_complete, _1, _2));
+    subscribe_events(BIND(handle_event, _1, _2, _3));
 
     protocol::start();
 }
 
-// protected
-void protocol_observer::handle_complete(const code& ec, object_key) NOEXCEPT
-{
-    POST(do_handle_complete, ec);
-}
-
-// private
-void protocol_observer::do_handle_complete(const code& ec) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped(ec))
-        unsubscribe_events();
-}
-
-// If this is invoked before do_handle_complete then it will unsubscribe.
 void protocol_observer::stopping(const code& ec) NOEXCEPT
 {
+    // Unsubscriber race is ok.
     BC_ASSERT(stranded());
     unsubscribe_events();
     protocol::stopping(ec);
 }
+
+// handle events (suspend)
+// ----------------------------------------------------------------------------
 
 bool protocol_observer::handle_event(const code&, chase event_,
     event_value) NOEXCEPT

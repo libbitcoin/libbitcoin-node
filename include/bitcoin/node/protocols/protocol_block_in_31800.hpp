@@ -52,11 +52,13 @@ public:
 
     /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;
+
+    /// The channel is stopping (called on strand by stop subscription).
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
     /// Handle event subscription completion.
-    virtual void handle_complete(const code& ec, object_key key) NOEXCEPT;
+    void subscribed(const code& ec, object_key key) NOEXCEPT override;
 
     /// Get published download identifiers.
     virtual void do_get_downloads(count_t count) NOEXCEPT;
@@ -86,7 +88,6 @@ private:
         const database::associations& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
-    void do_handle_complete(const code& ec) NOEXCEPT;
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
     void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map,

@@ -51,25 +51,14 @@ void protocol_block_in_31800::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3),
-        BIND(handle_complete, _1, _2));
+    subscribe_events(BIND(handle_event, _1, _2, _3));
 
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     protocol::start();
 }
 
-// protected
-void protocol_block_in_31800::handle_complete(const code& ec,
-    object_key) NOEXCEPT
-{
-    if (stopped(ec))
-        return;
-
-    POST(do_handle_complete, ec);
-}
-
-// private
-void protocol_block_in_31800::do_handle_complete(const code& ec) NOEXCEPT
+// overridden to add non-current node start.
+void protocol_block_in_31800::subscribed(const code& ec, object_key) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -89,7 +78,7 @@ void protocol_block_in_31800::do_handle_complete(const code& ec) NOEXCEPT
     }
 }
 
-// If this is invoked before do_handle_complete then it will unsubscribe.
+// overridden to add map handling (and stop_performance).
 void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
