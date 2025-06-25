@@ -100,6 +100,9 @@ void chaser_transaction::do_store(const transaction::cptr&) NOEXCEPT
     BC_ASSERT(stranded());
 
     // TODO: validate and store transaction.
+
+    // Relay notification.
+    ////notify(error::success, chase::transaction, link);
 }
 
 BC_POP_WARNING()
