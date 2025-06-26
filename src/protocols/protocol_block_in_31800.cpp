@@ -43,6 +43,7 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // start/stop
 // ----------------------------------------------------------------------------
+
 void protocol_block_in_31800::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
