@@ -45,6 +45,7 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    /// Block announcements are superseded by send_headers.
     bool disabled() const NOEXCEPT override;
 
     virtual bool handle_receive_send_headers(const code& ec,

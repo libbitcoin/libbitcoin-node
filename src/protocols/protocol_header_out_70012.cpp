@@ -34,7 +34,7 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Start.
+// start/stop
 // ----------------------------------------------------------------------------
 
 void protocol_header_out_70012::start() NOEXCEPT
@@ -45,9 +45,6 @@ void protocol_header_out_70012::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
-
-    // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3));
     protocol_header_out_31800::start();
 }
 
@@ -63,7 +60,7 @@ void protocol_header_out_70012::stopping(const code& ec) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_header_out_70012::handle_event(const code&, chase event_,
-    event_value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
     if (stopped())
@@ -73,7 +70,9 @@ bool protocol_header_out_70012::handle_event(const code&, chase event_,
     {
         case chase::organized:
         {
-            // TODO:
+            // value is organized block pk.
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_organized, std::get<header_t>(value));
             break;
         }
         default:
@@ -82,6 +81,33 @@ bool protocol_header_out_70012::handle_event(const code&, chase event_,
         }
     }
 
+    return true;
+}
+
+// Outbound (headers).
+// ----------------------------------------------------------------------------
+
+bool protocol_header_out_70012::do_organized(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    if (stopped())
+        return false;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: don't send to peer that sent to us.
+    ///////////////////////////////////////////////////////////////////////////
+
+    const auto header = query.get_header(link);
+    if (!header)
+    {
+        ////stop(fault(system::error::not_found));
+        LOGF("Organized block not found.");
+        return true;
+    }
+
+    SEND(headers{ { header } }, handle_send, _1);
     return true;
 }
 
@@ -96,31 +122,9 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2, _3);
+    // Events subscription is asynchronous, events may be missed.
+    subscribe_events(BIND(handle_event, _1, _2, _3));
     return false;
-}
-
-// Outbound (headers).
-// ----------------------------------------------------------------------------
-
-bool protocol_header_out_70012::handle_broadcast_block(const code& ec,
-    const block::cptr& message, uint64_t sender) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // see: protocol_block_out_70012
-    ////// Ignore desubscription from other protocols (block_out).
-    ////if (ec == network::error::desubscribed)
-    ////    return true;
-
-    if (stopped(ec))
-        return false;
-
-    if (sender == identifier())
-        return true;
-
-    SEND(headers{ { message->block_ptr->header_ptr() } }, handle_send, _1);
-    return true;
 }
 
 BC_POP_WARNING()

@@ -44,35 +44,73 @@ void protocol_block_out_106::start() NOEXCEPT
     if (started())
         return;
 
+    // Events subscription is asynchronous, events may be missed.
+    subscribe_events(BIND(handle_event, _1, _2, _3));
+
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     SUBSCRIBE_CHANNEL(get_blocks, handle_receive_get_blocks, _1, _2);
-    SUBSCRIBE_BROADCAST(block, handle_broadcast_block, _1, _2, _3);
     protocol::start();
+}
+
+void protocol_block_out_106::stopping(const code& ec) NOEXCEPT
+{
+    // Unsubscriber race is ok.
+    BC_ASSERT(stranded());
+    unsubscribe_events();
+    protocol::stopping(ec);
+}
+
+// handle events (block)
+// ----------------------------------------------------------------------------
+
+bool protocol_block_out_106::handle_event(const code&, chase event_,
+    event_value value) NOEXCEPT
+{
+    // Do not pass ec to stopped as it is not a call status.
+    if (stopped() || disabled())
+        return false;
+
+    switch (event_)
+    {
+        case chase::organized:
+        {
+            // value is organized block pk.
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_organized, std::get<header_t>(value));
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    return true;
 }
 
 // Outbound (block).
 // ----------------------------------------------------------------------------
 
-bool protocol_block_out_106::handle_broadcast_block(const code& ec,
-    const block::cptr& message, uint64_t sender) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // False return unsubscribes this broadcast handler.
-    if (stopped(ec) || disabled())
-        return false;
-
-    if (sender == identifier())
-        return true;
-
-    const inventory inv{ { { block_type_, message->block_ptr->hash() } } };
-    SEND(inv, handle_send, _1);
-    return true;
-}
-
 bool protocol_block_out_106::disabled() const NOEXCEPT
 {
     return false;
+}
+
+bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    if (stopped())
+        return false;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: don't send to peer that sent to us.
+    ///////////////////////////////////////////////////////////////////////////
+
+    const inventory inv{ { { block_type_, query.get_header_key(link) } } };
+    SEND(inv, handle_send, _1);
+    return true;
 }
 
 // Inbound (get_blocks).

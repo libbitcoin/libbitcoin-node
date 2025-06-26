@@ -23,9 +23,9 @@ namespace node {
 
 // Inbound connection attempts are dropped unless confirmed chain is current.
 // Used instead of suspension because suspension has independent start/stop.
-bool session_inbound::disabled() const NOEXCEPT
+bool session_inbound::enabled() const NOEXCEPT
 {
-    return config().node.delay_inbound && !is_recent();
+    return !config().node.delay_inbound || is_recent();
 }
 
 } // namespace node

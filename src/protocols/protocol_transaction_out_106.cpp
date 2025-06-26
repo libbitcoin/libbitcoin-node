@@ -30,6 +30,10 @@ namespace node {
 using namespace network::messages;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 // start/stop
 // ----------------------------------------------------------------------------
 
@@ -40,16 +44,23 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
+    // TODO: protocol_transaction_out_70001.
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3));
+    if (peer_version()->relay)
+        subscribe_events(BIND(handle_event, _1, _2, _3));
+
     protocol::start();
 }
 
 void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 {
-    // Unsubscriber race is ok.
     BC_ASSERT(stranded());
-    unsubscribe_events();
+
+    // TODO: protocol_transaction_out_70001.
+    // Unsubscriber race is ok.
+    if (peer_version()->relay)
+        unsubscribe_events();
+
     protocol::stopping(ec);
 }
 
@@ -57,7 +68,7 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_transaction_out_106::handle_event(const code&, chase event_,
-    event_value) NOEXCEPT
+    event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
     if (stopped())
@@ -67,7 +78,9 @@ bool protocol_transaction_out_106::handle_event(const code&, chase event_,
     {
         case chase::transaction:
         {
-            // TODO:
+            // value is organized tx pk.
+            BC_ASSERT(std::holds_alternative<transaction_t>(value));
+            POST(do_organized, std::get<transaction_t>(value));
             break;
         }
         default:
@@ -78,6 +91,30 @@ bool protocol_transaction_out_106::handle_event(const code&, chase event_,
 
     return true;
 }
+
+// Outbound (headers).
+// ----------------------------------------------------------------------------
+
+bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    if (stopped())
+        return false;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: don't send to peer that sent to us.
+    ///////////////////////////////////////////////////////////////////////////
+
+    // Compute/use witness hash if flagged.
+    const inventory inv{ { { tx_type_, query.get_tx_key(link) } } };
+    SEND(inv, handle_send, _1);
+    return true;
+}
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

@@ -52,11 +52,11 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
+    /// Process block announcement.
+    virtual bool do_organized(header_t link) NOEXCEPT;
+
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;
-    virtual bool handle_broadcast_block(const code& ec,
-        const network::messages::block::cptr& message,
-        uint64_t sender) NOEXCEPT;
 };
 
 } // namespace node
