@@ -25,6 +25,9 @@
 
 namespace libbitcoin {
 namespace node {
+
+// TODO: negotiate at 70016.
+constexpr auto wtxidrelay = false;
     
 class BCN_API protocol_transaction_out_106
   : public node::protocol,
@@ -37,6 +40,7 @@ public:
     protocol_transaction_out_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
+        tx_type_(wtxidrelay ? type_id::witness_tx : type_id::transaction),
         network::tracker<protocol_transaction_out_106>(session->log)
     {
     }
@@ -48,9 +52,17 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    using type_id = network::messages::inventory_item::type_id;
+
     /// Handle chaser events.
-    virtual bool handle_event(const code& ec, chase event_,
+    virtual bool handle_event(const code& ec, chase event_, 
         event_value value) NOEXCEPT;
+
+    /// Process tx announcement.
+    virtual bool do_organized(transaction_t link) NOEXCEPT;
+
+    // This is thread safe.
+    const type_id tx_type_;
 };
 
 } // namespace node

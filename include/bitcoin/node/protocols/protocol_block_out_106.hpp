@@ -46,8 +46,19 @@ public:
     /// Start protocol (strand required).
     void start() NOEXCEPT override;
 
+    /// The channel is stopping (called on strand by stop subscription).
+    void stopping(const code& ec) NOEXCEPT override;
+
 protected:
+    /// Block announcements are superseded by send_headers.
     virtual bool disabled() const NOEXCEPT;
+
+    /// Handle chaser events.
+    virtual bool handle_event(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
+
+    /// Process block announcement.
+    virtual bool do_organized(header_t link) NOEXCEPT;
 
     virtual bool handle_receive_get_blocks(const code& ec,
         const network::messages::get_blocks::cptr& message) NOEXCEPT;
@@ -55,9 +66,6 @@ protected:
         const network::messages::get_data::cptr& message) NOEXCEPT;
     virtual void send_block(const code& ec, size_t index,
         const network::messages::get_data::cptr& message) NOEXCEPT;
-    virtual bool handle_broadcast_block(const code& ec,
-        const network::messages::block::cptr& message,
-        uint64_t sender) NOEXCEPT;
 
 private:
     using type_id = network::messages::inventory_item::type_id;
@@ -66,7 +74,7 @@ private:
         const network::messages::get_blocks& locator) const NOEXCEPT;
 
     // This is thread safe.
-    const network::messages::inventory::type_id block_type_;
+    const type_id block_type_;
 
     // This is protected by strand.
     bool disabled_{};
