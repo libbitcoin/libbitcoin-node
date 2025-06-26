@@ -107,14 +107,7 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
     // TODO: don't send to peer that sent to us.
     ///////////////////////////////////////////////////////////////////////////
 
-    const auto header = query.get_header(link);
-    if (!header)
-    {
-        ////stop(fault(system::error::not_found));
-        LOGF("Organized transaction not found.");
-        return true;
-    }
-
+    // Compute/use witness hash if flagged.
     const inventory inv{ { { tx_type_, query.get_tx_key(link) } } };
     SEND(inv, handle_send, _1);
     return true;
