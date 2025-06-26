@@ -35,7 +35,7 @@ public:
     using base::base;
 
 protected:
-    bool disabled() const NOEXCEPT override;
+    bool enabled() const NOEXCEPT override;
 };
 
 } // namespace node
