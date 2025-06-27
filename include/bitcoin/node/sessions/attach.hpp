@@ -50,7 +50,7 @@ public:
             network::messages::service::node_network
         )))
     {
-    };
+    }
 
 protected:
     void attach_handshake(const network::channel::ptr& channel,
