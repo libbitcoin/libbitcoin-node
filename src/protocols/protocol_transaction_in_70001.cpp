@@ -40,11 +40,11 @@ bool protocol_transaction_in_70001::handle_receive_inventory(const code& ec,
     if (stopped(ec))
         return false;
 
-    // TODO: test for any tx type?
-    const auto tx_count = message->count(tx_type_);
+    // bip144: get_data uses witness constant but inv does not.
+    const auto tx_count = message->count(type_id::transaction);
 
     // Many satoshi v25.0 and v25.1 peers fail to honor version.relay = 0.
-    if (!config().network.enable_relay && !is_zero(tx_count))
+    if (!relay_ && !is_zero(tx_count))
     {
         LOGR("Unrequested txs (" << tx_count << ") from ["
             << authority() << "] " << peer_version()->user_agent);

@@ -250,7 +250,7 @@ get_data protocol_block_in_31800::create_get_data(
     get_data data{};
     data.items.reserve(map.size());
 
-    // bip144: get_data uses witness constant but inventory does not.
+    // bip144: get_data uses witness constant (block_type_) but inv does not.
     std::for_each(map.pos_begin(), map.pos_end(), [&](const auto& item) NOEXCEPT
     {
         data.items.emplace_back(block_type_, item.hash);

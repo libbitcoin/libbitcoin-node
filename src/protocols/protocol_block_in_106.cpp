@@ -74,7 +74,8 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
         return false;
 
     // Ignore non-block inventory.
-    const auto block_count = message->count(inventory::type_id::block);
+    // bip144: get_data uses witness constant but inv does not.
+    const auto block_count = message->count(type_id::block);
     if (is_zero(block_count))
         return true;
 
@@ -257,11 +258,11 @@ get_blocks protocol_block_in_106::create_get_inventory(
 get_data protocol_block_in_106::create_get_data(
     const inventory& message) const NOEXCEPT
 {
-    // bip144: get_data uses witness constant but inventory does not.
+    // bip144: get_data uses witness constant (block_type_) but inv does not.
 
     get_data getter{};
     getter.items.reserve(message.count(type_id::block));
-    for (const messages::inventory_item& item: message.items)
+    for (const auto& item: message.items)
         if ((item.type == type_id::block) && !archive().is_block(item.hash))
             getter.items.emplace_back(block_type_, item.hash);
 
@@ -274,7 +275,8 @@ protocol_block_in_106::hashmap protocol_block_in_106::to_hashes(
     const get_data& getter) NOEXCEPT
 {
     hashmap out{};
-    for (const messages::inventory_item& item: getter.items)
+    out.reserve(getter.items.size());
+    for (const auto& item: getter.items)
         out.insert(item.hash);
 
     return out;

@@ -37,8 +37,7 @@ public:
     protocol_transaction_in_70001(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : protocol_transaction_in_106(session, channel),
-        tx_type_(session->config().network.witness_node() ?
-            type_id::witness_tx : type_id::transaction),
+        relay_(session->config().network.enable_relay),
         network::tracker<protocol_transaction_in_70001>(session->log)
     {
     }
@@ -49,10 +48,7 @@ protected:
         const network::messages::inventory::cptr& message) NOEXCEPT override;
 
 private:
-    using type_id = network::messages::inventory_item::type_id;
-
-    // This is thread safe.
-    const type_id tx_type_;
+    bool relay_;
 };
 
 } // namespace node

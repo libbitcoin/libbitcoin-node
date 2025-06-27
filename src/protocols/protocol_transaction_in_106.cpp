@@ -59,7 +59,8 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
     if (stopped(ec))
         return false;
 
-    // TODO: get and handle tx as requried, only transaction type?
+    // TODO: get and handle tx as required.
+    // bip144: get_data uses witness constant but inv does not.
     ////const auto tx_count = message->count(type_id::transaction);
     return true;
 }
