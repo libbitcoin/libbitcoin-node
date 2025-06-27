@@ -46,14 +46,14 @@ public:
 
 protected:
     /// Block announcements are superseded by send_headers.
-    bool disabled() const NOEXCEPT override;
+    bool superseded() const NOEXCEPT override;
 
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;
 
 private:
     // This is protected by strand.
-    bool disabled_{};
+    bool superseded_{};
 };
 
 } // namespace node

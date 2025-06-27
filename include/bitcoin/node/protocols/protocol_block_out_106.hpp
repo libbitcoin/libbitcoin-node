@@ -37,8 +37,6 @@ public:
     protocol_block_out_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
-        block_type_(session->config().network.witness_node() ?
-            type_id::witness_block : type_id::block),
         network::tracker<protocol_block_out_106>(session->log)
     {
     }
@@ -51,7 +49,7 @@ public:
 
 protected:
     /// Block announcements are superseded by send_headers.
-    virtual bool disabled() const NOEXCEPT;
+    virtual bool superseded() const NOEXCEPT;
 
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_,
@@ -72,12 +70,6 @@ private:
 
     network::messages::inventory create_inventory(
         const network::messages::get_blocks& locator) const NOEXCEPT;
-
-    // This is thread safe.
-    const type_id block_type_;
-
-    // This is protected by strand.
-    bool disabled_{};
 };
 
 } // namespace node

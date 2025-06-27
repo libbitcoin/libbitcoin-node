@@ -30,6 +30,10 @@ namespace node {
 using namespace network::messages;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 // Start.
 // ----------------------------------------------------------------------------
 
@@ -44,31 +48,24 @@ void protocol_transaction_in_106::start() NOEXCEPT
     protocol::start();
 }
 
-// Inbound.
+// Inbound (inv).
 // ----------------------------------------------------------------------------
 
 bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
-    const inventory::cptr& message) NOEXCEPT
+    const inventory::cptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
 
-    const auto tx_count = message->count(inventory::type_id::transaction);
-
-    // Many satoshi v25.0 and v25.1 peers fail to honor version.relay = 0.
-    if (!config().network.enable_relay && !is_zero(tx_count))
-    {
-        LOGR("Unrequested txs (" << tx_count << ") from ["
-            << authority() << "] " << peer_version()->user_agent);
-
-        stop(network::error::protocol_violation);
-        return false;
-    }
-
+    // TODO: get and handle tx as requried, only transaction type?
+    ////const auto tx_count = message->count(type_id::transaction);
     return true;
 }
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

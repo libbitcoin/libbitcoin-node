@@ -64,7 +64,9 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_observer.cpp \
     src/protocols/protocol_performer.cpp \
     src/protocols/protocol_transaction_in_106.cpp \
+    src/protocols/protocol_transaction_in_70001.cpp \
     src/protocols/protocol_transaction_out_106.cpp \
+    src/protocols/protocol_transaction_out_70001.cpp \
     src/sessions/session.cpp \
     src/sessions/session_inbound.cpp \
     src/sessions/session_manual.cpp \
@@ -183,7 +185,9 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_observer.hpp \
     include/bitcoin/node/protocols/protocol_performer.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
+    include/bitcoin/node/protocols/protocol_transaction_in_70001.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
+    include/bitcoin/node/protocols/protocol_transaction_out_70001.hpp \
     include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions

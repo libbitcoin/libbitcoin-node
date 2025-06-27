@@ -34,7 +34,7 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Start.
+// start/stop
 // ----------------------------------------------------------------------------
 
 void protocol_block_out_106::start() NOEXCEPT
@@ -67,7 +67,7 @@ bool protocol_block_out_106::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
-    if (stopped() || disabled())
+    if (stopped() || superseded())
         return false;
 
     switch (event_)
@@ -91,7 +91,7 @@ bool protocol_block_out_106::handle_event(const code&, chase event_,
 // Outbound (block).
 // ----------------------------------------------------------------------------
 
-bool protocol_block_out_106::disabled() const NOEXCEPT
+bool protocol_block_out_106::superseded() const NOEXCEPT
 {
     return false;
 }
@@ -108,7 +108,8 @@ bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
     // TODO: don't send to peer that sent to us.
     ///////////////////////////////////////////////////////////////////////////
 
-    const inventory inv{ { { block_type_, query.get_header_key(link) } } };
+    // bip144: new witness types are for use only in get_data.
+    const inventory inv{ { { type_id::block, query.get_header_key(link) } } };
     SEND(inv, handle_send, _1);
     return true;
 }
@@ -165,6 +166,10 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         return;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: filter for block types.
+    ///////////////////////////////////////////////////////////////////////////
+
     const auto& query = archive();
     const auto& hash = message->items.at(index).hash;
     const auto block_ptr = query.get_block(query.to_header(hash));
@@ -195,7 +200,7 @@ inventory protocol_block_out_106::create_inventory(
     return inventory::factory
     (
         archive().get_blocks(locator.start_hashes, locator.stop_hash,
-            max_get_blocks), inventory::type_id::block
+            max_get_blocks), type_id::block
     );
 }
 

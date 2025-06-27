@@ -16,41 +16,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_OUT_70001_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_OUT_70001_HPP
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-class BCN_API protocol_transaction_in_106
-  : public node::protocol,
-    protected network::tracker<protocol_transaction_in_106>
+class BCN_API protocol_transaction_out_70001
+  : public protocol_transaction_out_106,
+    protected network::tracker<protocol_transaction_out_70001>
 {
 public:
-    typedef std::shared_ptr<protocol_transaction_in_106> ptr;
+    typedef std::shared_ptr<protocol_transaction_out_70001> ptr;
 
     template <typename SessionPtr>
-    protocol_transaction_in_106(const SessionPtr& session,
+    protocol_transaction_out_70001(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
-        network::tracker<protocol_transaction_in_106>(session->log)
+      : protocol_transaction_out_106(session, channel),
+        network::tracker<protocol_transaction_out_70001>(session->log)
     {
     }
 
-    /// Start protocol (strand required).
-    void start() NOEXCEPT override;
-
 protected:
-    /// Accept incoming inventory message.
-    virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::inventory::cptr& message) NOEXCEPT;
-
-private:
-    using type_id = network::messages::inventory_item::type_id;
+    /// Overridden to implement tx relay configuration.
+    bool relay() const NOEXCEPT override;
 };
 
 } // namespace node

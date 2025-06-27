@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_block_out_70012.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in_70001.hpp>
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
@@ -25,54 +25,36 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_block_out_70012
+#define CLASS protocol_transaction_in_70001
 
-using namespace system;
-using namespace network;
 using namespace network::messages;
-using namespace std::placeholders;
 
-BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
-BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
-
-// Start.
+// Inbound (inv).
 // ----------------------------------------------------------------------------
 
-void protocol_block_out_70012::start() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (started())
-        return;
-
-    SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
-    protocol::start();
-}
-
-// Inbound (send_headers).
-// ----------------------------------------------------------------------------
-
-bool protocol_block_out_70012::handle_receive_send_headers(const code& ec,
-    const send_headers::cptr&) NOEXCEPT
+bool protocol_transaction_in_70001::handle_receive_inventory(const code& ec,
+    const inventory::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
 
-    superseded_ = true;
-    return false;
-}
+    // TODO: test for any tx type?
+    const auto tx_count = message->count(tx_type_);
 
-// Suspends inventory announcement processing in favor of header announcements.
-bool protocol_block_out_70012::superseded() const NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    return superseded_;
-}
+    // Many satoshi v25.0 and v25.1 peers fail to honor version.relay = 0.
+    if (!config().network.enable_relay && !is_zero(tx_count))
+    {
+        LOGR("Unrequested txs (" << tx_count << ") from ["
+            << authority() << "] " << peer_version()->user_agent);
 
-BC_POP_WARNING()
-BC_POP_WARNING()
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    return protocol_transaction_in_106::handle_receive_inventory(ec, message);
+}
 
 } // namespace node
 } // namespace libbitcoin
