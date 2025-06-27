@@ -99,7 +99,7 @@ protected:
             else
             {
                 // Very hard to find < 31800 peer to connect with.
-                // Blocks-first synchronization (no headers protocol).
+                // Blocks-first synchronization (not base of block_in_31800).
                 channel->attach<protocol_block_in_106>(self)->start();
             }
         }
@@ -119,13 +119,11 @@ protected:
             }
             else
             {
-                // Very hard to find < 31800 peer to connect with.
-                // Blocks-first synchronization (no headers protocol).
                 channel->attach<protocol_block_out_106>(self)->start();
             }
         }
 
-        // Txs are ready (txs in/out).
+        // Relay is configured and transactions are ready (txs in/out).
         if (relay_ && (!delay_ || is_current(true)))
         {
             channel->attach<protocol_transaction_in_106>(self)->start();
