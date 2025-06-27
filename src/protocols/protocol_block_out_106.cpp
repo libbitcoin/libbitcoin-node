@@ -170,6 +170,8 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
 
     ///////////////////////////////////////////////////////////////////////////
     // TODO: filter for block types.
+    // If witness service not advertised, type_id::witness_block is not allowed.
+    // Otherwise must be type_id::block. Query and send as requested.
     ///////////////////////////////////////////////////////////////////////////
     const auto& hash = message->items.at(index).hash;
 

@@ -113,6 +113,9 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
     ///////////////////////////////////////////////////////////////////////////
 
     // bip144: get_data uses witness constant but inventory does not.
+    // Otherwise must be type_id::transaction. Query and send as requested.
+    // bip339: "After a node has received a wtxidrelay message from a peer,
+    // the node MUST use the MSG_WTX inv type when announcing transactions..."
     const inventory inv{ { { type_id::transaction, query.get_tx_key(link) } } };
     SEND(inv, handle_send, _1);
     return true;
@@ -156,6 +159,11 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
 
     ///////////////////////////////////////////////////////////////////////////
     // TODO: filter for tx types.
+    // If witness service not advertised, type_id::witness_tx not allowed.
+    // bip339: "After a node has received a wtxidrelay message from a peer,
+    // the node SHOULD use a MSG_WTX getdata message to request any announced
+    // transactions. A node MAY still request transactions from that peer
+    // using MSG_TX getdata messages."
     ///////////////////////////////////////////////////////////////////////////
     const auto& hash = message->items.at(index).hash;
 

@@ -61,6 +61,9 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
 
     // TODO: get and handle tx as required.
     // bip144: get_data uses witness constant but inv does not.
+    // bip339: "After a node has received a wtxidrelay message from a peer,
+    // the node SHOULD use a MSG_WTX getdata message to request any announced
+    // transactions."
     ////const auto tx_count = message->count(type_id::transaction);
     return true;
 }
