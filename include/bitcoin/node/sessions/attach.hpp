@@ -41,9 +41,10 @@ public:
     attach(full_node& node, uint64_t identifier) NOEXCEPT
       : Session(node, identifier),
         session(node),
-        delay_(config().node.delay_inbound),
+        relay_(node.config().network.enable_relay),
+        delay_(node.config().node.delay_inbound),
         headers_(node.config().node.headers_first),
-        blockchain_(to_bool(system::bit_and<uint64_t>
+        node_network_(to_bool(system::bit_and<uint64_t>
         (
             node.config().network.services_maximum,
             network::messages::service::node_network
@@ -64,6 +65,8 @@ protected:
 
     void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
     {
+        using namespace network::messages;
+
         // Performance managed only on outbound connections.
         constexpr auto perform = is_same_type<Session, session_outbound>;
         const auto self = session::shared_from_sibling<attach<Session>,
@@ -76,19 +79,19 @@ protected:
         channel->attach<protocol_observer>(self)->start();
 
         // Node must advertise node_network or there is no in|out of blocks|txs. 
-        if (!blockchain_)
+        if (!node_network_)
             return;
 
         // Peer advertises chain (blocks in).
-        if (peer_blocks(channel))
+        if (channel->is_peer_service(service::node_network))
         {
-            if (send_headers_version(channel))
+            if (headers_ && channel->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_in_70012>(self)->start();
                 channel->attach<protocol_block_in_31800>(self, perform)->start();
 
             }
-            else if (headers_version(channel))
+            else if (headers_ && channel->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_in_31800>(self)->start();
                 channel->attach<protocol_block_in_31800>(self, perform)->start();
@@ -102,14 +105,14 @@ protected:
         }
 
         // Blocks are ready (blocks out).
-        if (blocks_ready())
+        if (!delay_ || is_recent())
         {
-            if (send_headers_version(channel))
+            if (headers_ && channel->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_out_70012>(self)->start();
                 channel->attach<protocol_block_out_70012>(self)->start();
             }
-            else if (headers_version(channel))
+            else if (headers_ && channel->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_out_31800>(self)->start();
                 channel->attach<protocol_block_out_106>(self)->start();
@@ -123,18 +126,11 @@ protected:
         }
 
         // Txs are ready (txs in/out).
-        if (txs_ready())
+        if (relay_ && (!delay_ || is_current(true)))
         {
-            if (relay_version(channel))
-            {
-                channel->attach<protocol_transaction_in_70001>(self)->start();
-                channel->attach<protocol_transaction_out_70001>(self)->start();
-            }
-            else
-            {
-                channel->attach<protocol_transaction_in_106>(self)->start();
+            channel->attach<protocol_transaction_in_106>(self)->start();
+            if (channel->peer_version()->relay)
                 channel->attach<protocol_transaction_out_106>(self)->start();
-            }
         }
     }
 
@@ -147,53 +143,10 @@ protected:
     }
 
 private:
-    inline bool txs_ready() const NOEXCEPT
-    {
-        // delay_inbound also defers accepting inbound connections.
-        return !delay_ || is_current(true);
-    }
-
-    inline bool blocks_ready() const NOEXCEPT
-    {
-        // delay_inbound also defers accepting inbound connections.
-        return !delay_ || is_recent();
-    }
-
-    inline bool relay_version(
-        const network::channel::ptr& channel) const NOEXCEPT
-    {
-        constexpr auto bip37 = network::messages::level::bip37;
-        return channel->negotiated_version() >= bip37;
-    }
-
-    inline bool send_headers_version(
-        const network::channel::ptr& channel) const NOEXCEPT
-    {
-        constexpr auto bip130 = network::messages::level::bip130;
-        return headers_ && channel->negotiated_version() >= bip130;
-    }
-
-    inline bool headers_version(
-        const network::channel::ptr& channel) const NOEXCEPT
-    {
-        constexpr auto headers = network::messages::level::headers_protocol;
-        return headers_ && channel->negotiated_version() >= headers;
-    }
-
-    inline bool peer_blocks(
-        const network::channel::ptr& channel) const NOEXCEPT
-    {
-        using namespace system;
-        return to_bool(bit_and<uint64_t>
-        (
-            channel->peer_version()->services,
-            network::messages::service::node_network
-        ));
-    }
-
-    bool delay_;
-    bool headers_;
-    bool blockchain_;
+    const bool relay_;
+    const bool delay_;
+    const bool headers_;
+    const bool node_network_;
 };
 
 } // namespace node
