@@ -40,20 +40,18 @@ bool protocol_transaction_in_70001::handle_receive_inventory(const code& ec,
     if (stopped(ec))
         return false;
 
+    // Ignore non-tx inventory.
     // bip144: get_data uses witness constant but inv does not.
     const auto tx_count = message->count(type_id::transaction);
+    if (relay_ || is_zero(tx_count))
+        return protocol_transaction_in_106::handle_receive_inventory(ec, message);
 
     // Many satoshi v25.0 and v25.1 peers fail to honor version.relay = 0.
-    if (!relay_ && !is_zero(tx_count))
-    {
-        LOGR("Unrequested txs (" << tx_count << ") from ["
-            << authority() << "] " << peer_version()->user_agent);
+    LOGR("Unrequested txs (" << tx_count << ") from [" << authority() << "] "
+        << peer_version()->user_agent);
 
-        stop(network::error::protocol_violation);
-        return false;
-    }
-
-    return protocol_transaction_in_106::handle_receive_inventory(ec, message);
+    stop(network::error::protocol_violation);
+    return false;
 }
 
 } // namespace node
