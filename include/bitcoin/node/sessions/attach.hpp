@@ -39,7 +39,14 @@ class attach
 {
 public:
     attach(full_node& node, uint64_t identifier) NOEXCEPT
-      : Session(node, identifier), session(node)
+      : Session(node, identifier),
+        session(node),
+        headers_(node.config().node.headers_first),
+        blockchain_(to_bool(system::bit_and<uint64_t>
+        (
+            node.config().network.services_maximum,
+            network::messages::service::node_network
+        )))
     {
     };
 
@@ -54,74 +61,136 @@ protected:
         Session::attach_handshake(channel, std::move(handler));
     }
 
-    void attach_protocols(
-        const network::channel::ptr& channel) NOEXCEPT override
+    void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
     {
-        constexpr auto bip130 = network::messages::level::bip130;
-        constexpr auto headers = network::messages::level::headers_protocol;
-        constexpr auto in = is_same_type<Session, network::session_inbound>;
-        constexpr auto out = is_same_type<Session, network::session_outbound>;
-
-        const auto recent = !config().node.delay_inbound || is_recent();
-        const auto headers_first = config().node.headers_first;
-        const auto version = channel->negotiated_version();
+        constexpr auto perform = is_same_type<Session, session_outbound>;
         const auto self = session::shared_from_sibling<attach<Session>,
             network::session>();
 
         // Attach appropriate alert, reject, ping, and/or address protocols.
         Session::attach_protocols(channel);
-        
-        if (headers_first && version >= bip130)
+
+        // Channel suspensions.
+        channel->attach<protocol_observer>(self)->start();
+
+        // We must advertise node_network or there is no in|out of blocks|txs. 
+        if (!blockchain_)
+            return;
+
+        // Peer advertises chain (blocks in).
+        if (peer_blocks(channel))
         {
-            channel->attach<protocol_header_in_70012>(self)->start();
-
-            if (recent)
-                channel->attach<protocol_header_out_70012>(self)->start();
-
-            if constexpr (!in)
+            if (send_headers_version(channel))
             {
-                channel->attach<protocol_block_in_31800>(self, out)->start();
+                channel->attach<protocol_header_in_70012>(self)->start();
+                channel->attach<protocol_block_in_31800>(self, perform)->start();
+
             }
-        }
-        else if (headers_first && version >= headers)
-        {
-            channel->attach<protocol_header_in_31800>(self)->start();
-
-            if (recent)
-                channel->attach<protocol_header_out_31800>(self)->start();
-
-            if constexpr (!in)
+            else if (headers_version(channel))
             {
-                channel->attach<protocol_block_in_31800>(self, out)->start();
+                channel->attach<protocol_header_in_31800>(self)->start();
+                channel->attach<protocol_block_in_31800>(self, perform)->start();
             }
-        }
-        else
-        {
-            // Very hard to find < 31800 peer to connect with.
-            // Blocks-first synchronization (no headers protocol).
-            if constexpr (!in)
+            else
             {
+                // Very hard to find < 31800 peer to connect with.
+                // Blocks-first synchronization (no headers protocol).
                 channel->attach<protocol_block_in_106>(self)->start();
             }
         }
 
-        if (recent)
+        // Blocks are ready (blocks out).
+        if (blocks_out())
         {
-            channel->attach<protocol_block_out_106>(self)->start();
-            channel->attach<protocol_transaction_in_106>(self)->start();
-            channel->attach<protocol_transaction_out_106>(self)->start();
+            if (send_headers_version(channel))
+            {
+                channel->attach<protocol_header_out_70012>(self)->start();
+                channel->attach<protocol_block_out_70012>(self)->start();
+            }
+            else if (headers_version(channel))
+            {
+                channel->attach<protocol_header_out_31800>(self)->start();
+                channel->attach<protocol_block_out_106>(self)->start();
+            }
+            else
+            {
+                // Very hard to find < 31800 peer to connect with.
+                // Blocks-first synchronization (no headers protocol).
+                channel->attach<protocol_block_out_106>(self)->start();
+            }
         }
 
-        channel->attach<protocol_observer>(self)->start();
+        // Txs are ready (txs in/out).
+        if (tx_relay())
+        {
+            if (relay_version(channel))
+            {
+                channel->attach<protocol_transaction_in_70001>(self)->start();
+                channel->attach<protocol_transaction_out_70001>(self)->start();
+            }
+            else
+            {
+                channel->attach<protocol_transaction_in_106>(self)->start();
+                channel->attach<protocol_transaction_out_106>(self)->start();
+            }
+        }
     }
 
     network::channel::ptr create_channel(const network::socket::ptr& socket,
         bool quiet) NOEXCEPT override
     {
-        return std::make_shared<network::channel>(session::get_memory(),
+        return std::make_shared<network::channel>(node::session::get_memory(),
             network::session::log, socket, network::session::settings(),
             network::session::create_key(), quiet);
     }
+
+private:
+    inline bool tx_relay() const NOEXCEPT
+    {
+        // delay_inbound also defers accepting inbound connections.
+        return !config().node.delay_inbound || is_current(true);
+    }
+
+    inline bool blocks_out() const NOEXCEPT
+    {
+        // delay_inbound also defers accepting inbound connections.
+        return !config().node.delay_inbound || is_recent();
+    }
+
+    inline bool relay_version(
+        const network::channel::ptr& channel) const NOEXCEPT
+    {
+        constexpr auto bip37 = network::messages::level::bip37;
+        return channel->negotiated_version() >= bip37;
+    }
+
+    inline bool send_headers_version(
+        const network::channel::ptr& channel) const NOEXCEPT
+    {
+        constexpr auto bip130 = network::messages::level::bip130;
+        return headers_ && channel->negotiated_version() >= bip130;
+    }
+
+    inline bool headers_version(
+        const network::channel::ptr& channel) const NOEXCEPT
+    {
+        constexpr auto headers = network::messages::level::headers_protocol;
+        return headers_ && channel->negotiated_version() >= headers;
+    }
+
+    inline bool peer_blocks(
+        const network::channel::ptr& channel) const NOEXCEPT
+    {
+        using namespace system;
+        return to_bool(bit_and<uint64_t>
+        (
+            channel->peer_version()->services,
+            network::messages::service::node_network
+        ));
+    }
+
+    bool headers_;
+    bool blockchain_;
 };
 
 } // namespace node

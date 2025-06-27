@@ -27,6 +27,7 @@ namespace node {
 
 #define CLASS protocol_transaction_out_106
 
+using namespace system;
 using namespace network::messages;
 using namespace std::placeholders;
 
@@ -44,11 +45,11 @@ void protocol_transaction_out_106::start() NOEXCEPT
     if (started())
         return;
 
-    // TODO: protocol_transaction_out_70001.
     // Events subscription is asynchronous, events may be missed.
-    if (peer_version()->relay)
+    if (relay())
         subscribe_events(BIND(handle_event, _1, _2, _3));
 
+    SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol::start();
 }
 
@@ -56,9 +57,8 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // TODO: protocol_transaction_out_70001.
     // Unsubscriber race is ok.
-    if (peer_version()->relay)
+    if (relay())
         unsubscribe_events();
 
     protocol::stopping(ec);
@@ -66,6 +66,11 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 
 // handle events (transaction)
 // ----------------------------------------------------------------------------
+
+bool protocol_transaction_out_106::relay() const NOEXCEPT
+{ 
+    return true;
+}
 
 bool protocol_transaction_out_106::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
@@ -92,7 +97,7 @@ bool protocol_transaction_out_106::handle_event(const code&, chase event_,
     return true;
 }
 
-// Outbound (headers).
+// Outbound (inv).
 // ----------------------------------------------------------------------------
 
 bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
@@ -107,10 +112,65 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
     // TODO: don't send to peer that sent to us.
     ///////////////////////////////////////////////////////////////////////////
 
-    // Compute/use witness hash if flagged.
-    const inventory inv{ { { tx_type_, query.get_tx_key(link) } } };
+    // bip144: get_data uses witness constant but inventory does not.
+    const inventory inv{ { { type_id::transaction, query.get_tx_key(link) } } };
     SEND(inv, handle_send, _1);
     return true;
+}
+
+// Inbound (get_data).
+// ----------------------------------------------------------------------------
+
+bool protocol_transaction_out_106::handle_receive_get_data(const code& ec,
+    const get_data::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // Send and desubscribe.
+    send_transaction(error::success, zero, message);
+    return false;
+}
+
+// Outbound (tx).
+// ----------------------------------------------------------------------------
+
+void protocol_transaction_out_106::send_transaction(const code& ec,
+    size_t index, const get_data::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return;
+
+    if (index >= message->items.size())
+    {
+        // Complete, resubscribe to transaction requests.
+        SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
+        return;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: filter for tx types.
+    ///////////////////////////////////////////////////////////////////////////
+
+    const auto& query = archive();
+    const auto& hash = message->items.at(index).hash;
+    const auto tx_ptr = query.get_transaction(query.to_tx(hash));
+
+    if (!tx_ptr)
+    {
+        LOGR("Requested tx not found " << encode_hash(hash)
+            << " from [" << authority() << "].");
+
+        // This tx could not have been advertised to the peer.
+        stop(system::error::not_found);
+        return;
+    }
+
+    SEND(transaction{ tx_ptr }, send_transaction, _1, sub1(index), message);
 }
 
 BC_POP_WARNING()
