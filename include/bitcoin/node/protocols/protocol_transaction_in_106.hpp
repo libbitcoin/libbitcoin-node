@@ -37,6 +37,8 @@ public:
     protocol_transaction_in_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
+        tx_type_(session->config().network.witness_node() ?
+            type_id::witness_tx : type_id::transaction),
         network::tracker<protocol_transaction_in_106>(session->log)
     {
     }
@@ -45,12 +47,15 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    using type_id = network::messages::inventory_item::type_id;
+
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::inventory::cptr& message) NOEXCEPT;
 
 private:
-    using type_id = network::messages::inventory_item::type_id;
+    // This is thread safe.
+    const type_id tx_type_;
 };
 
 } // namespace node

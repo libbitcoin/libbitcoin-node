@@ -33,7 +33,6 @@ class BCN_API protocol_block_in_106
 {
 public:
     typedef std::shared_ptr<protocol_block_in_106> ptr;
-    using type_id = network::messages::inventory::type_id;
 
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename SessionPtr>
@@ -75,6 +74,8 @@ protected:
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:
+    using type_id = network::messages::inventory::type_id;
+
     static hashmap to_hashes(
         const network::messages::get_data& getter) NOEXCEPT;
 
@@ -88,7 +89,7 @@ private:
         const network::messages::inventory& message) const NOEXCEPT;
 
     // This is thread safe.
-    const network::messages::inventory::type_id block_type_;
+    const type_id block_type_;
 
     // This is protected by strand.
     track tracker_{};

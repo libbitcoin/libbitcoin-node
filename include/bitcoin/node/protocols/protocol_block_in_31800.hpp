@@ -95,7 +95,7 @@ private:
 
     // These are thread safe.
     const size_t top_checkpoint_height_;
-    const network::messages::inventory::type_id block_type_;
+    const type_id block_type_;
 
     // These are protected by strand.
     map_ptr map_;
