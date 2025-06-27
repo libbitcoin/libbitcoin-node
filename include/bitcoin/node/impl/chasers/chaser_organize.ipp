@@ -502,13 +502,10 @@ code CLASS::push_block(const Block& block,
     if (ec)
         return ec;
 
-    if (!set_organized(link, ctx.height))
-        return error::organize14;
-
     // events::header_archived | events::block_archived
     fire(events_object_archived(), ctx.height);
     LOGV("Header archived: " << ctx.height);
-    return ec;
+    return set_organized(link, ctx.height) ? ec : error::organize14;
 }
 
 TEMPLATE
