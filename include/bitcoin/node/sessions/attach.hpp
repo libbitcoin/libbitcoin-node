@@ -41,6 +41,7 @@ public:
     attach(full_node& node, uint64_t identifier) NOEXCEPT
       : Session(node, identifier),
         session(node),
+        delay_(config().node.delay_inbound),
         headers_(node.config().node.headers_first),
         blockchain_(to_bool(system::bit_and<uint64_t>
         (
@@ -63,6 +64,7 @@ protected:
 
     void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
     {
+        // Performance managed only on outbound connections.
         constexpr auto perform = is_same_type<Session, session_outbound>;
         const auto self = session::shared_from_sibling<attach<Session>,
             network::session>();
@@ -73,7 +75,7 @@ protected:
         // Channel suspensions.
         channel->attach<protocol_observer>(self)->start();
 
-        // We must advertise node_network or there is no in|out of blocks|txs. 
+        // Node must advertise node_network or there is no in|out of blocks|txs. 
         if (!blockchain_)
             return;
 
@@ -100,7 +102,7 @@ protected:
         }
 
         // Blocks are ready (blocks out).
-        if (blocks_out())
+        if (blocks_ready())
         {
             if (send_headers_version(channel))
             {
@@ -121,7 +123,7 @@ protected:
         }
 
         // Txs are ready (txs in/out).
-        if (tx_relay())
+        if (txs_ready())
         {
             if (relay_version(channel))
             {
@@ -145,16 +147,16 @@ protected:
     }
 
 private:
-    inline bool tx_relay() const NOEXCEPT
+    inline bool txs_ready() const NOEXCEPT
     {
         // delay_inbound also defers accepting inbound connections.
-        return !config().node.delay_inbound || is_current(true);
+        return !delay_ || is_current(true);
     }
 
-    inline bool blocks_out() const NOEXCEPT
+    inline bool blocks_ready() const NOEXCEPT
     {
         // delay_inbound also defers accepting inbound connections.
-        return !config().node.delay_inbound || is_recent();
+        return !delay_ || is_recent();
     }
 
     inline bool relay_version(
@@ -189,6 +191,7 @@ private:
         ));
     }
 
+    bool delay_;
     bool headers_;
     bool blockchain_;
 };
