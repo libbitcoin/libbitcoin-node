@@ -82,9 +82,9 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
     // Work on only one block inventory at a time.
     if (!tracker_.ids.empty())
     {
-        LOGP("Unrequested (" << block_count
-            << ") block inventory from [" << authority() << "] with ("
-            << tracker_.ids.size() << ") pending.");
+        LOGP("Unrequested (" << block_count << ") block inventory from ["
+            << authority() << "] with (" << tracker_.ids.size()
+            << ") pending.");
         return true;
     }
 
@@ -144,7 +144,6 @@ bool protocol_block_in_106::handle_receive_block(const code& ec,
 
     // Inventory backlog is limited to 500 per channel.
     organize(block_ptr, BIND(handle_organize, _1, _2, block_ptr));
-
     return true;
 }
 

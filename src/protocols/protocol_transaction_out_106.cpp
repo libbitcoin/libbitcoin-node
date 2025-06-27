@@ -152,12 +152,16 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         return;
     }
 
+    const auto& query = archive();
+
     ///////////////////////////////////////////////////////////////////////////
     // TODO: filter for tx types.
     ///////////////////////////////////////////////////////////////////////////
-
-    const auto& query = archive();
     const auto& hash = message->items.at(index).hash;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: pass witness flag to allow non-witness objects.
+    ///////////////////////////////////////////////////////////////////////////
     const auto tx_ptr = query.get_transaction(query.to_tx(hash));
 
     if (!tx_ptr)

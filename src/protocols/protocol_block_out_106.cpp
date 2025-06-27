@@ -166,12 +166,16 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         return;
     }
 
+    const auto& query = archive();
+
     ///////////////////////////////////////////////////////////////////////////
     // TODO: filter for block types.
     ///////////////////////////////////////////////////////////////////////////
-
-    const auto& query = archive();
     const auto& hash = message->items.at(index).hash;
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: pass witness flag to allow non-witness objects.
+    ///////////////////////////////////////////////////////////////////////////
     const auto block_ptr = query.get_block(query.to_header(hash));
 
     if (!block_ptr)

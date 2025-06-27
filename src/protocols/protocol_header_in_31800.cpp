@@ -142,6 +142,7 @@ void protocol_header_in_31800::complete() NOEXCEPT
 
 // Inbound (inv).
 // ----------------------------------------------------------------------------
+// Handle announcement by sending get_headers() if missing any announced.
 
 bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
