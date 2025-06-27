@@ -46,7 +46,7 @@ protected:
     void complete() NOEXCEPT override;
 
 private:
-    bool sent_{};
+    bool subscribed_{};
 };
 
 } // namespace node
