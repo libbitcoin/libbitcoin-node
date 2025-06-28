@@ -34,11 +34,11 @@ void protocol_header_in_70012::complete() NOEXCEPT
     BC_ASSERT(stranded());
     ////protocol_header_in_31800::complete();
 
-    if (!sent_)
+    if (!subscribed_)
     {
         SEND(send_headers{}, handle_send, _1);
         LOGP("Requested header announcements from [" << authority() << "].");
-        sent_ = true;
+        subscribed_ = true;
     }
 }
 

@@ -50,7 +50,7 @@ public:
             network::messages::service::node_network
         )))
     {
-    };
+    }
 
 protected:
     void attach_handshake(const network::channel::ptr& channel,
@@ -66,9 +66,6 @@ protected:
     void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
     {
         using namespace network::messages;
-
-        // Performance managed only on outbound connections.
-        constexpr auto perform = is_same_type<Session, session_outbound>;
         const auto self = session::shared_from_sibling<attach<Session>,
             network::session>();
 
@@ -88,13 +85,13 @@ protected:
             if (headers_ && channel->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_in_70012>(self)->start();
-                channel->attach<protocol_block_in_31800>(self, perform)->start();
+                channel->attach<protocol_block_in_31800>(self)->start();
 
             }
             else if (headers_ && channel->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_in_31800>(self)->start();
-                channel->attach<protocol_block_in_31800>(self, perform)->start();
+                channel->attach<protocol_block_in_31800>(self)->start();
             }
             else
             {
