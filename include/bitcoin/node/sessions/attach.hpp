@@ -85,13 +85,13 @@ protected:
             if (headers_ && channel->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_in_70012>(self)->start();
-                channel->attach<protocol_block_in_31800>(self, perform_)->start();
+                channel->attach<protocol_block_in_31800>(self)->start();
 
             }
             else if (headers_ && channel->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_in_31800>(self)->start();
-                channel->attach<protocol_block_in_31800>(self, perform_)->start();
+                channel->attach<protocol_block_in_31800>(self)->start();
             }
             else
             {
@@ -138,10 +138,6 @@ protected:
     }
 
 private:
-    // Performance managed only on outbound connections (requires network::).
-    static constexpr auto perform_ = is_same_type<Session,
-        network::session_outbound>;
-
     const bool relay_;
     const bool delay_;
     const bool headers_;
