@@ -52,8 +52,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 session_outbound::session_outbound(full_node& node,
     uint64_t identifier) NOEXCEPT
   : attach(node, identifier),
-    tracker<session_outbound>(node.log),
-    allowed_deviation_(node.config().node.allowed_deviation)
+    allowed_deviation_(node.config().node.allowed_deviation),
+    tracker<session_outbound>(node.log)
 {
 }
 
