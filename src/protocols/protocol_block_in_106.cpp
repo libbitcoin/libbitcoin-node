@@ -115,7 +115,7 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
     // Track inventory and request blocks (to_hashes order is reversed).
     tracker_.announced = block_count;
     tracker_.last = getter.items.back().hash;
-    tracker_.ids = to_hashes(getter);
+    tracker_.ids = to_hashes(block_count, getter);
     SEND(getter, handle_send, _1);
     return true;
 }
@@ -261,8 +261,8 @@ get_data protocol_block_in_106::create_get_data(
 
     get_data getter{};
     getter.items.reserve(message.count(type_id::block));
-    for (const auto& item: message.items)
-        if ((item.type == type_id::block) && !archive().is_block(item.hash))
+    for (const auto& item: message.view(type_id::block))
+        if (!archive().is_block(item.hash))
             getter.items.emplace_back(block_type_, item.hash);
 
     getter.items.shrink_to_fit();
@@ -270,12 +270,12 @@ get_data protocol_block_in_106::create_get_data(
 }
 
 // static
-protocol_block_in_106::hashmap protocol_block_in_106::to_hashes(
+protocol_block_in_106::hashmap protocol_block_in_106::to_hashes(size_t reserve,
     const get_data& getter) NOEXCEPT
 {
     hashmap out{};
-    out.reserve(getter.items.size());
-    for (const auto& item: getter.items)
+    out.reserve(reserve);
+    for (const auto& item: getter.view(type_id::block))
         out.insert(item.hash);
 
     return out;

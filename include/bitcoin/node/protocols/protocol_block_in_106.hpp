@@ -76,7 +76,7 @@ protected:
 private:
     using type_id = network::messages::inventory::type_id;
 
-    static hashmap to_hashes(
+    static hashmap to_hashes(size_t reserve,
         const network::messages::get_data& getter) NOEXCEPT;
 
     network::messages::get_blocks create_get_inventory() const NOEXCEPT;
