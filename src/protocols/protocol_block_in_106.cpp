@@ -27,7 +27,7 @@
 // Both block and header protocols conflate iterative requests and unsolicited
 // announcements, which introduces several ambiguities. Furthermore inventory
 // messages can contain a mix of types, further increasing complexity. Unlike
-// header protocol, block protocol cannot leave annoucement disabled until
+// header protocol, block protocol cannot leave announcement disabled until
 // current and in both cases nodes announce to peers that are not current.
 
 namespace libbitcoin {
