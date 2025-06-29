@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 
-#include <unordered_map>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/attach.hpp>
@@ -27,35 +26,13 @@
 namespace libbitcoin {
 namespace node {
     
-class BCN_API session_outbound
-  : public attach<network::session_outbound>,
-    protected network::tracker<session_outbound>
+class session_outbound
+  : public attach<network::session_outbound>
 {
 public:
     typedef std::shared_ptr<session_outbound> ptr;
-
-    session_outbound(full_node& node, uint64_t identifier) NOEXCEPT;
-
-    void start(network::result_handler&& handler) NOEXCEPT override;
-    void performance(object_key channel, uint64_t speed,
-        network::result_handler&& handler) NOEXCEPT override;
-
-protected:
-    virtual bool handle_event(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
-    virtual void do_starved(object_t self) NOEXCEPT;
-    virtual void do_performance(object_key channel, uint64_t speed,
-        const network::result_handler& handler) NOEXCEPT;
-
-private:
-    static constexpr size_t minimum_for_standard_deviation = 3;
-
-    // This is thread safe.
-    const float allowed_deviation_;
-
-    // This is protected by strand.
-    // TODO: optimize, default bucket count is around 8.
-    std::unordered_map<object_key, double> speeds_{};
+    using base = attach<network::session_outbound>;
+    using base::base;
 };
 
 } // namespace node

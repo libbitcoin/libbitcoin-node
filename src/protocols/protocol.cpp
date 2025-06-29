@@ -134,7 +134,8 @@ object_key protocol::events_key() const NOEXCEPT
 void protocol::performance(uint64_t speed,
     network::result_handler&& handler) const NOEXCEPT
 {
-    session_->performance(events_key(), speed, std::move(handler));
+    // Passed protocol->session->full_node->check_chaser.post->do_update.
+    session_->performance(key_, speed, std::move(handler));
 }
 
 code protocol::fault(const code& ec) NOEXCEPT
