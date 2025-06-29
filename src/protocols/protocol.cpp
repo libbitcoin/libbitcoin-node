@@ -84,7 +84,7 @@ void protocol::notify_one(object_key key, const code& ec, chase event_,
 
 void protocol::subscribe_events(event_notifier&& handler) NOEXCEPT
 {
-    event_completer completer = BIND(subscribed, _1, _2);
+    event_completer completer = BIND(handle_subscribed, _1, _2);
     session_->subscribe_events(std::move(handler),
         BIND(handle_subscribe, _1, _2, std::move(completer)));
 }
@@ -105,6 +105,11 @@ void protocol::handle_subscribe(const code& ec, object_key key,
 
     key_ = key;
     complete(ec, key_);
+}
+
+void protocol::handle_subscribed(const code& ec, object_key key) NOEXCEPT
+{
+    POST(subscribed, ec, key);
 }
 
 void protocol::subscribed(const code& ec, object_key) NOEXCEPT
