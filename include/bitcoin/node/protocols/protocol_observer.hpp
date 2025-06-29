@@ -60,9 +60,9 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    /// Accept incoming get_data message.
-    virtual bool handle_receive_get_data(const code& ec,
-        const network::messages::get_data::cptr& message) NOEXCEPT;
+    /////// Accept incoming get_data message.
+    ////virtual bool handle_receive_get_data(const code& ec,
+    ////    const network::messages::get_data::cptr& message) NOEXCEPT;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,

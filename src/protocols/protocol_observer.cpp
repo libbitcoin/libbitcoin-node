@@ -46,8 +46,12 @@ void protocol_observer::start() NOEXCEPT
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3));
 
-    SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
-    SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
+    if (relay_disallowed_)
+    {
+        SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
+    }
+
+    ////SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol::start();
 }
 
@@ -113,35 +117,35 @@ bool protocol_observer::handle_receive_inventory(const code& ec,
         return false;
     }
 
-    // Witness types never allowed in inventory (wxtid excluded).
-    if (message->any_witness())
-    {
-        LOGR("Unsupported witness inventory from [" << authority() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
+    ////// Witness types never allowed in inventory (wxtid excluded).
+    ////if (message->any_witness())
+    ////{
+    ////    LOGR("Unsupported witness inventory from [" << authority() << "].");
+    ////    stop(network::error::protocol_violation);
+    ////    return false;
+    ////}
 
     return true;
 }
 
-bool protocol_observer::handle_receive_get_data(const code& ec,
-    const get_data::cptr& message) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped(ec))
-        return false;
-
-    // Witness types only allowed in get_data if witness service advertised.
-    if (!node_witness_ && message->any_witness())
-    {
-        LOGR("Unsupported witness get_data from [" << authority() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
-
-    return true;
-}
+////bool protocol_observer::handle_receive_get_data(const code& ec,
+////    const get_data::cptr& message) NOEXCEPT
+////{
+////    BC_ASSERT(stranded());
+////
+////    if (stopped(ec))
+////        return false;
+////
+////    // Witness types only allowed in get_data if witness service advertised.
+////    if (!node_witness_ && message->any_witness())
+////    {
+////        LOGR("Unsupported witness get_data from [" << authority() << "].");
+////        stop(network::error::protocol_violation);
+////        return false;
+////    }
+////
+////    return true;
+////}
 
 BC_POP_WARNING()
 BC_POP_WARNING()
