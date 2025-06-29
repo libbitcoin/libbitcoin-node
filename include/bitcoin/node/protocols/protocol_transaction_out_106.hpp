@@ -62,9 +62,6 @@ protected:
         const network::messages::get_data::cptr& message) NOEXCEPT;
     virtual void send_transaction(const code& ec, size_t index,
         const network::messages::get_data::cptr& message) NOEXCEPT;
-
-private:
-    using type_id = network::messages::inventory_item::type_id;
 };
 
 } // namespace node

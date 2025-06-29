@@ -47,8 +47,6 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    using type_id = network::messages::inventory_item::type_id;
-
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::inventory::cptr& message) NOEXCEPT;

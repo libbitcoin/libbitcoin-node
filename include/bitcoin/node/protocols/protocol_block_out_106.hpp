@@ -66,8 +66,6 @@ protected:
         const network::messages::get_data::cptr& message) NOEXCEPT;
 
 private:
-    using type_id = network::messages::inventory_item::type_id;
-
     network::messages::inventory create_inventory(
         const network::messages::get_blocks& locator) const NOEXCEPT;
 };
