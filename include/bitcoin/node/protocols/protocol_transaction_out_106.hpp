@@ -37,6 +37,7 @@ public:
     protocol_transaction_out_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
+        node_witness_(session->config().network.witness_node()),
         network::tracker<protocol_transaction_out_106>(session->log)
     {
     }
@@ -59,6 +60,10 @@ protected:
         const network::messages::get_data::cptr& message) NOEXCEPT;
     virtual void send_transaction(const code& ec, size_t index,
         const network::messages::get_data::cptr& message) NOEXCEPT;
+
+private:
+    // These are thread safe.
+    const bool node_witness_;
 };
 
 } // namespace node
