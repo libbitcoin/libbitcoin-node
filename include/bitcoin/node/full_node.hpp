@@ -139,6 +139,13 @@ public:
     /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;
 
+    /// Methods.
+    /// -----------------------------------------------------------------------
+
+    /// Handle performance, base returns false (implied terminate).
+    virtual void performance(object_key channel, uint64_t speed,
+        network::result_handler&& handler) NOEXCEPT;
+
     /// Get the memory resource.
     virtual network::memory& get_memory() NOEXCEPT;
 

@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/full_node.hpp>
 
+#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
@@ -376,6 +377,15 @@ bool full_node::is_recent() const NOEXCEPT
     uint32_t timestamp{};
     const auto link = query_.to_confirmed(top);
     return is_current(query_.get_timestamp(timestamp, link));
+}
+
+// Session attachments.
+
+// ----------------------------------------------------------------------------
+void full_node::performance(object_key key, uint64_t speed,
+    result_handler&& handler) NOEXCEPT
+{
+    chaser_check_.update(key, speed, std::move(handler));
 }
 
 network::memory& full_node::get_memory() NOEXCEPT

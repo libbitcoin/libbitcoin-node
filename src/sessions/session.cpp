@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/sessions/session.hpp>
 
+#include <utility>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -104,14 +105,10 @@ void session::unsubscribe_events(object_key key) NOEXCEPT
 // Methods.
 // ----------------------------------------------------------------------------
 
-void session::performance(object_key, uint64_t,
+void session::performance(object_key key, uint64_t speed,
     result_handler&& handler) NOEXCEPT
 {
-    // This session type does not implement performance, handler error.
-    // The handler captures the protocol shared pointer for its lifetime.
-    // This session lifetime is not required beyond return from this method.
-    boost::asio::post(node_.strand(),
-        std::bind(handler, system::error::not_implemented));
+    node_.performance(key, speed, std::move(handler));
 }
 
 network::memory& session::get_memory() const NOEXCEPT

@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CHECK_HPP
 
 #include <deque>
+#include <unordered_map>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -48,6 +49,10 @@ public:
     code start() NOEXCEPT override;
     void stopping(const code& ec) NOEXCEPT override;
 
+    /// Interface for protocols to provide performance data.
+    virtual void update(object_key channel, uint64_t speed,
+        network::result_handler&& handler) NOEXCEPT;
+
     /// Interface for protocols to obtain/return pending download identifiers.
     /// Identifiers not downloaded must be returned or chain will remain gapped.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
@@ -59,6 +64,7 @@ protected:
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
+    /// block tracking
     virtual void do_bump(height_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_advanced(height_t height) NOEXCEPT;
@@ -69,7 +75,14 @@ protected:
     virtual void do_put_hashes(const map_ptr& map,
         const network::result_handler& handler) NOEXCEPT;
 
+    /// channel performance
+    virtual void do_starved(object_t self) NOEXCEPT;
+    virtual void do_update(object_key channel, uint64_t speed,
+        const network::result_handler& handler) NOEXCEPT;
+
 private:
+    static constexpr size_t minimum_for_standard_deviation = 3;
+    typedef std::unordered_map<object_key, double> speeds;
     typedef std::deque<map_ptr> maps;
 
     map_ptr get_map() NOEXCEPT;
@@ -85,12 +98,16 @@ private:
     const size_t maximum_concurrency_;
     const size_t maximum_height_;
     const size_t connections_;
+    const float allowed_deviation_;
 
     // These are protected by strand.
     size_t inventory_{};
     size_t requested_{};
     size_t advanced_{};
     job::ptr job_{};
+
+    // TODO: optimize, default bucket count is around 8.
+    speeds speeds_{};
     maps maps_{};
 };
 
