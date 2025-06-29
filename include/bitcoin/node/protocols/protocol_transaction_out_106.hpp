@@ -48,9 +48,6 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Override to implement tx relay configuration.
-    virtual bool relay() const NOEXCEPT;
-
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_, 
         event_value value) NOEXCEPT;
