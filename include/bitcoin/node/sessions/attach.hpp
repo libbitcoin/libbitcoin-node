@@ -139,6 +139,7 @@ protected:
     }
 
 private:
+    // These are thread safe.
     const bool relay_;
     const bool delay_;
     const bool headers_;
