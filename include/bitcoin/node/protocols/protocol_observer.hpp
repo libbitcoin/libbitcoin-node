@@ -33,6 +33,8 @@ class BCN_API protocol_observer
 public:
     typedef std::shared_ptr<protocol_observer> ptr;
 
+    // TODO: consider relay may be dynamic (disallowed until current).
+    // TODO: current network handshake sets relay based on config only.
     template <typename SessionPtr>
     protocol_observer(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT

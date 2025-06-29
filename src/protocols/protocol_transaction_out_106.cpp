@@ -100,7 +100,8 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
         return false;
 
     ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't send to peer that sent to us.
+    // TODO: don't announce to peer that announced to us.
+    // TODO: don't announce to peer that is not current.
     ///////////////////////////////////////////////////////////////////////////
 
     // bip144: get_data uses witness constant but inventory does not.

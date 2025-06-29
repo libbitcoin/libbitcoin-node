@@ -105,7 +105,8 @@ bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
         return false;
 
     ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't send to peer that sent to us.
+    // TODO: don't announce to peer that announced to us.
+    // TODO: don't announce to peer that is not current.
     ///////////////////////////////////////////////////////////////////////////
 
     // bip144: new witness types are for use only in get_data.
