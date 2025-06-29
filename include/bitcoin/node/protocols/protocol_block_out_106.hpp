@@ -37,6 +37,7 @@ public:
     protocol_block_out_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
+        node_witness_(session->config().network.witness_node()),
         network::tracker<protocol_block_out_106>(session->log)
     {
     }
@@ -66,10 +67,12 @@ protected:
         const network::messages::get_data::cptr& message) NOEXCEPT;
 
 private:
-    using type_id = network::messages::inventory_item::type_id;
-
     network::messages::inventory create_inventory(
         const network::messages::get_blocks& locator) const NOEXCEPT;
+
+private:
+    // These are thread safe.
+    const bool node_witness_;
 };
 
 } // namespace node

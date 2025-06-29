@@ -46,8 +46,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    if (relay())
-        subscribe_events(BIND(handle_event, _1, _2, _3));
+    subscribe_events(BIND(handle_event, _1, _2, _3));
 
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol::start();
@@ -55,22 +54,14 @@ void protocol_transaction_out_106::start() NOEXCEPT
 
 void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     // Unsubscriber race is ok.
-    if (relay())
-        unsubscribe_events();
-
+    BC_ASSERT(stranded());
+    unsubscribe_events();
     protocol::stopping(ec);
 }
 
 // handle events (transaction)
 // ----------------------------------------------------------------------------
-
-bool protocol_transaction_out_106::relay() const NOEXCEPT
-{ 
-    return true;
-}
 
 bool protocol_transaction_out_106::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
@@ -109,7 +100,8 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
         return false;
 
     ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't send to peer that sent to us.
+    // TODO: don't announce to peer that announced to us.
+    // TODO: don't announce to peer that is not current.
     ///////////////////////////////////////////////////////////////////////////
 
     // bip144: get_data uses witness constant but inventory does not.
@@ -139,6 +131,10 @@ bool protocol_transaction_out_106::handle_receive_get_data(const code& ec,
 
 // Outbound (tx).
 // ----------------------------------------------------------------------------
+// TODO: bip339: "After a node has received a wtxidrelay message from a peer,
+// the node SHOULD use a MSG_WTX getdata message to request any announced
+// transactions. A node MAY still request transactions from that peer
+// using MSG_TX getdata messages." (derived protocol)
 
 void protocol_transaction_out_106::send_transaction(const code& ec,
     size_t index, const get_data::cptr& message) NOEXCEPT
@@ -148,6 +144,11 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     if (stopped(ec))
         return;
 
+    // Skip over non-tx inventory.
+    for (; index < message->items.size(); ++index)
+        if (message->items.at(index).is_transaction_type())
+            break;
+
     if (index >= message->items.size())
     {
         // Complete, resubscribe to transaction requests.
@@ -155,34 +156,30 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         return;
     }
 
-    const auto& query = archive();
-
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: filter for tx types.
-    // If witness service not advertised, type_id::witness_tx not allowed.
-    // bip339: "After a node has received a wtxidrelay message from a peer,
-    // the node SHOULD use a MSG_WTX getdata message to request any announced
-    // transactions. A node MAY still request transactions from that peer
-    // using MSG_TX getdata messages."
-    ///////////////////////////////////////////////////////////////////////////
-    const auto& hash = message->items.at(index).hash;
-
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: pass witness flag to allow non-witness objects.
-    ///////////////////////////////////////////////////////////////////////////
-    const auto tx_ptr = query.get_transaction(query.to_tx(hash));
-
-    if (!tx_ptr)
+    const auto& item = message->items.at(index);
+    const auto witness = item.is_witness_type();
+    if (!node_witness_ && witness)
     {
-        LOGR("Requested tx not found " << encode_hash(hash)
-            << " from [" << authority() << "].");
+        LOGR("Unsupported witness get_data from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return;
+    }
+
+    // TODO: implement witness parameter in block/tx queries.
+    const auto& query = archive();
+    const auto ptr = query.get_transaction(query.to_tx(item.hash) /*, witness*/);
+
+    if (!ptr)
+    {
+        LOGR("Requested tx " << encode_hash(item.hash)
+            << " from [" << authority() << "] not found.");
 
         // This tx could not have been advertised to the peer.
         stop(system::error::not_found);
         return;
     }
 
-    SEND(transaction{ tx_ptr }, send_transaction, _1, sub1(index), message);
+    SEND(transaction{ ptr }, send_transaction, _1, sub1(index), message);
 }
 
 BC_POP_WARNING()

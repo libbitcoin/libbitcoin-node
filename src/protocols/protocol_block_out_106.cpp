@@ -105,7 +105,8 @@ bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
         return false;
 
     ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't send to peer that sent to us.
+    // TODO: don't announce to peer that announced to us.
+    // TODO: don't announce to peer that is not current.
     ///////////////////////////////////////////////////////////////////////////
 
     // bip144: new witness types are for use only in get_data.
@@ -159,6 +160,11 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     if (stopped(ec))
         return;
 
+    // Skip over non-block inventory.
+    for (; index < message->items.size(); ++index)
+        if (message->items.at(index).is_block_type())
+            break;
+
     if (index >= message->items.size())
     {
         // Complete, resubscribe to block requests.
@@ -166,31 +172,30 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         return;
     }
 
-    const auto& query = archive();
-
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: filter for block types.
-    // If witness service not advertised, type_id::witness_block is not allowed.
-    // Otherwise must be type_id::block. Query and send as requested.
-    ///////////////////////////////////////////////////////////////////////////
-    const auto& hash = message->items.at(index).hash;
-
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: pass witness flag to allow non-witness objects.
-    ///////////////////////////////////////////////////////////////////////////
-    const auto block_ptr = query.get_block(query.to_header(hash));
-
-    if (!block_ptr)
+    const auto& item = message->items.at(index);
+    const auto witness = item.is_witness_type();
+    if (!node_witness_ && witness)
     {
-        LOGR("Requested block not found " << encode_hash(hash)
-            << " from [" << authority() << "].");
+        LOGR("Unsupported witness get_data from [" << authority() << "].");
+        stop(network::error::protocol_violation);
+        return;
+    }
+
+    // TODO: implement witness parameter in block/tx queries.
+    const auto& query = archive();
+    const auto ptr = query.get_block(query.to_header(item.hash) /*, witness*/);
+
+    if (!ptr)
+    {
+        LOGR("Requested block " << encode_hash(item.hash)
+            << " from [" << authority() << "] not found.");
 
         // This block could not have been advertised to the peer.
         stop(system::error::not_found);
         return;
     }
 
-    SEND(block{ block_ptr }, send_block, _1, sub1(index), message);
+    SEND(block{ ptr }, send_block, _1, sub1(index), message);
 }
 
 // utilities

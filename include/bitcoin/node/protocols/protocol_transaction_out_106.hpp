@@ -37,6 +37,7 @@ public:
     protocol_transaction_out_106(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
+        node_witness_(session->config().network.witness_node()),
         network::tracker<protocol_transaction_out_106>(session->log)
     {
     }
@@ -48,9 +49,6 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// Override to implement tx relay configuration.
-    virtual bool relay() const NOEXCEPT;
-
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_, 
         event_value value) NOEXCEPT;
@@ -64,7 +62,8 @@ protected:
         const network::messages::get_data::cptr& message) NOEXCEPT;
 
 private:
-    using type_id = network::messages::inventory_item::type_id;
+    // These are thread safe.
+    const bool node_witness_;
 };
 
 } // namespace node

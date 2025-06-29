@@ -88,6 +88,9 @@ typedef network::desubscriber<object_key, chase, event_value> event_subscriber;
 typedef event_subscriber::handler event_notifier;
 typedef event_subscriber::completer event_completer;
 
+// Inventory messages.
+using type_id = network::messages::inventory_item::type_id;
+
 // NDEBUG MSVC
 ////static_assert(sizeof(uint64_t) == 8u);
 ////static_assert(sizeof(block_t) == 16u);

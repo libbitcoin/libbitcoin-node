@@ -120,8 +120,9 @@ protected:
             }
         }
 
-        // Relay is configured and transactions are ready (txs in/out).
-        if (relay_ && (!delay_ || is_current(true)))
+        // Relay is configured, active, and txs are ready (txs in/out).
+        if (relay_ && channel->is_negotiated(level::bip37) &&
+            (!delay_ || is_current(true)))
         {
             channel->attach<protocol_transaction_in_106>(self)->start();
             if (channel->peer_version()->relay)
@@ -138,6 +139,7 @@ protected:
     }
 
 private:
+    // These are thread safe.
     const bool relay_;
     const bool delay_;
     const bool headers_;
