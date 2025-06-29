@@ -26,6 +26,7 @@ namespace node {
 
 #define CLASS protocol_observer
 
+using namespace network::messages;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
@@ -44,6 +45,10 @@ void protocol_observer::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3));
+
+    // Capture relay non-compliance.
+    if (relay_disallowed_)
+        SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
 
     protocol::start();
 }
@@ -81,6 +86,30 @@ bool protocol_observer::handle_event(const code&, chase event_,
         {
             break;
         }
+    }
+
+    return true;
+}
+
+// Inbound (inv).
+// ----------------------------------------------------------------------------
+
+bool protocol_observer::handle_receive_inventory(const code& ec,
+    const inventory::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    //  Common with Satoshi 25.0 and 25.1.
+    if (message->any_transaction())
+    {
+        LOGR("Unrequested tx relay from [" << authority() << "] "
+            << peer_version()->user_agent);
+
+        stop(network::error::protocol_violation);
+        return false;
     }
 
     return true;

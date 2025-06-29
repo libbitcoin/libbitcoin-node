@@ -37,6 +37,9 @@ public:
     protocol_observer(const SessionPtr& session,
         const channel_ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
+        relay_disallowed_(
+            channel->is_negotiated(network::messages::level::bip37) &&
+            !session->config().network.enable_relay),
         network::tracker<protocol_observer>(session->log)
     {
     }
@@ -51,6 +54,13 @@ protected:
     /// Handle chaser events.
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
+
+    /// Accept incoming inventory message.
+    virtual bool handle_receive_inventory(const code& ec,
+        const network::messages::inventory::cptr& message) NOEXCEPT;
+
+    // This is thread safe.
+    const bool relay_disallowed_;
 };
 
 } // namespace node
