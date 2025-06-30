@@ -311,7 +311,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
-    p2p::span<milliseconds>(events::snapshot_msecs, start);
+    p2p::span<seconds>(events::snapshot_secs, start);
     return ec;
 }
 
