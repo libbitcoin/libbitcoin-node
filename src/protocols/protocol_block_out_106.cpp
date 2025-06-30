@@ -109,7 +109,7 @@ bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
     // TODO: don't announce to peer that is not current.
     ///////////////////////////////////////////////////////////////////////////
 
-    // bip144: new witness types are for use only in get_data.
+    // bip144: get_data uses witness type_id but inv does not.
     const inventory inv{ { { type_id::block, query.get_header_key(link) } } };
     SEND(inv, handle_send, _1);
     return true;

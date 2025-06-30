@@ -152,6 +152,8 @@ bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
     if (stopped(ec))
         return false;
 
+    // bip144: get_data uses witness type_id but inv does not.
+
     const auto& query = archive();
     for (const auto& item: message->items)
     {
