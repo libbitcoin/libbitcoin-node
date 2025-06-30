@@ -137,10 +137,6 @@ enum class chase
     /// Issued by 'confirm' [and handled by 'transaction'].
     reorganized,
 
-    /// Confirmed chain is current or at maximum configured height (height_t).
-    /// Issued by 'confirm' [and handled by 'snapshot'].
-    recent,
-
     /// Mining.
     /// -----------------------------------------------------------------------
 

@@ -104,7 +104,7 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
     // TODO: don't announce to peer that is not current.
     ///////////////////////////////////////////////////////////////////////////
 
-    // bip144: get_data uses witness constant but inventory does not.
+    // bip144: get_data uses witness type_id but inv does not.
     // Otherwise must be type_id::transaction. Query and send as requested.
     // bip339: "After a node has received a wtxidrelay message from a peer,
     // the node MUST use the MSG_WTX inv type when announcing transactions..."

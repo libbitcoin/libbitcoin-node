@@ -111,7 +111,7 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             POST(do_confirm, std::get<height_t>(value));
             break;
         }
-        case chase::recent:
+        case chase::organized:
         {
             // Currency snapshot is always enabled.
             // Also has effect of attaching inbound protocols on reset.
@@ -164,13 +164,19 @@ void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
     do_snapshot(height);
 }
 
+// When current or maximum height take snapshot, which resets connections.
+// Node may fall behind after becomming current though this does not reset.
 void chaser_snapshot::do_recent(size_t height) NOEXCEPT
 {
-    if (closed())
+    if (recent_ || closed())
         return;
 
-    LOGN("Snapshot at recent height [" << height << "] is started.");
-    do_snapshot(height);
+    if ((recent_ = is_recent()))
+    {
+        LOGN("Node is recent as of block [" << height << "].");
+        LOGN("Snapshot at recent height [" << height << "] is started.");
+        do_snapshot(height);
+    }
 }
 
 // utility
