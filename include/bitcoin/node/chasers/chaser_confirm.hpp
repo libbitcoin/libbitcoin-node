@@ -71,6 +71,9 @@ private:
 
     // This is thread safe.
     const bool filter_;
+
+    // This is guarded by strand.
+    bool recent_{};
 };
 
 } // namespace node

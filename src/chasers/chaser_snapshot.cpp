@@ -35,13 +35,13 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
-  : chaser(node),
-    snapshot_bytes_(node.config().node.snapshot_bytes),
-    snapshot_valid_(node.config().node.snapshot_valid),
-    snapshot_confirm_(node.config().node.snapshot_confirm),
-    enabled_bytes_(to_bool(snapshot_bytes_)),
-    enabled_valid_(to_bool(snapshot_valid_)),
-    enabled_confirm_(to_bool(snapshot_confirm_))
+  : chaser(node)
+    ////snapshot_bytes_(node.config().node.snapshot_bytes),
+    ////snapshot_valid_(node.config().node.snapshot_valid),
+    ////snapshot_confirm_(node.config().node.snapshot_confirm),
+    ////enabled_bytes_(to_bool(snapshot_bytes_)),
+    ////enabled_valid_(to_bool(snapshot_valid_)),
+    ////enabled_confirm_(to_bool(snapshot_confirm_))
 {
 }
 
@@ -53,15 +53,15 @@ code chaser_snapshot::start() NOEXCEPT
     // Initial values assume all stops or starts are snapped.
     // get_top_validated is an expensive scan.
 
-    if (enabled_bytes_)
-        bytes_ = archive().store_body_size();
-
-    if (enabled_valid_)
-        valid_ = std::max(archive().get_top_confirmed(), checkpoint());
-        ////valid_ = std::max(archive().get_top_validated(), checkpoint());
-
-    if (enabled_confirm_)
-        confirm_ = std::max(archive().get_top_confirmed(), checkpoint());
+    ////if (enabled_bytes_)
+    ////    bytes_ = archive().store_body_size();
+    ////
+    ////if (enabled_valid_)
+    ////    valid_ = std::max(archive().get_top_confirmed(), checkpoint());
+    ////    ////valid_ = std::max(archive().get_top_validated(), checkpoint());
+    ////
+    ////if (enabled_confirm_)
+    ////    confirm_ = std::max(archive().get_top_confirmed(), checkpoint());
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
     return error::success;
@@ -70,7 +70,7 @@ code chaser_snapshot::start() NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_snapshot::handle_event(const code& ec, chase event_,
+bool chaser_snapshot::handle_event(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
@@ -83,42 +83,40 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
     switch (event_)
     {
         // blocks first and headers first (checked) messages
-        case chase::blocks:
-        case chase::checked:
-        {
-            if (!enabled_bytes_ || ec)
-                break;
-
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_archive, std::get<height_t>(value));
-            break;
-        }
-        case chase::valid:
-        {
-            if (!enabled_valid_ || ec)
-                break;
-
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_valid, std::get<height_t>(value));
-            break;
-        }
-        case chase::confirmable:
-        {
-            if (!enabled_confirm_ || ec)
-                break;
-
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_confirm, std::get<height_t>(value));
-            break;
-        }
-        ////case chase::organized:
+        ////case chase::blocks:
+        ////case chase::checked:
         ////{
-        ////    // Currency snapshot is always enabled.
-        ////    // Also has effect of attaching inbound protocols on reset.
-        ////    BC_ASSERT(std::holds_alternative<header_t>(value));
-        ////    POST(do_recent, std::get<height_t>(value));
+        ////    if (!enabled_bytes_ || ec)
+        ////        break;
+        ////
+        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
+        ////    POST(do_archive, std::get<height_t>(value));
         ////    break;
         ////}
+        ////case chase::valid:
+        ////{
+        ////    if (!enabled_valid_ || ec)
+        ////        break;
+        ////
+        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
+        ////    POST(do_valid, std::get<height_t>(value));
+        ////    break;
+        ////}
+        ////case chase::confirmable:
+        ////{
+        ////    if (!enabled_confirm_ || ec)
+        ////        break;
+        ////
+        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
+        ////    POST(do_confirm, std::get<height_t>(value));
+        ////    break;
+        ////}
+        case chase::snap:
+        {
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_recent, std::get<height_t>(value));
+            break;
+        }
         default:
         {
             break;
@@ -131,52 +129,46 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
 // snapshot events
 // ----------------------------------------------------------------------------
 
-void chaser_snapshot::do_archive(size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
+////void chaser_snapshot::do_archive(size_t height) NOEXCEPT
+////{
+////    BC_ASSERT(stranded());
+////
+////    if (closed() || !update_bytes())
+////        return;
+////
+////    LOGN("Snapshot at archived height [" << height << "] is started.");
+////    do_snapshot(height);
+////}
+////
+////void chaser_snapshot::do_valid(size_t height) NOEXCEPT
+////{
+////    BC_ASSERT(stranded());
+////
+////    if (closed() || !update_valid(height))
+////        return;
+////
+////    LOGN("Snapshot at validated height [" << height << "] is started.");
+////    do_snapshot(height);
+////}
+//// 
+////void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
+////{
+////    BC_ASSERT(stranded());
+////
+////    if (closed() || !update_confirm(height))
+////        return;
+////
+////    LOGN("Snapshot at confirmable height [" << height << "] is started.");
+////    do_snapshot(height);
+////}
 
-    if (closed() || !update_bytes())
-        return;
-
-    LOGN("Snapshot at archived height [" << height << "] is started.");
-    do_snapshot(height);
-}
-
-void chaser_snapshot::do_valid(size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (closed() || !update_valid(height))
-        return;
-
-    LOGN("Snapshot at validated height [" << height << "] is started.");
-    do_snapshot(height);
-}
- 
-void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (closed() || !update_confirm(height))
-        return;
-
-    LOGN("Snapshot at confirmable height [" << height << "] is started.");
-    do_snapshot(height);
-}
-
-// When current or maximum height take snapshot, which resets connections.
-// Node may fall behind after becomming current though this does not reset.
 void chaser_snapshot::do_recent(size_t height) NOEXCEPT
 {
-    if (recent_ || closed())
+    if (closed())
         return;
 
-    if ((recent_ = is_recent()))
-    {
-        LOGN("Node is recent as of block [" << height << "].");
-        LOGN("Snapshot at recent height [" << height << "] is started.");
-        do_snapshot(height);
-    }
+    LOGN("Snapshot at recent height [" << height << "] is started.");
+    do_snapshot(height);
 }
 
 // utility
@@ -186,7 +178,6 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto& query = archive();
     const auto running = !suspended();
     const auto start = logger::now();
     if (const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
@@ -209,41 +200,42 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
             << span.count() << " secs.");
     }
 
-    // Current values may have raced ahead but this is sufficient.
-    // Snapshot failure also resets these values, to prevent cycling.
-
-    if (enabled_bytes_)
-        bytes_ = query.store_body_size();
-
-    if (enabled_valid_)
-        valid_ = height;
-        ////valid_ = std::max(query.get_top_validated(), checkpoint());
-
-    if (enabled_confirm_)
-        valid_ = std::max(query.get_top_confirmed(), checkpoint());
+    ////// Current values may have raced ahead but this is sufficient.
+    ////// Snapshot failure also resets these values, to prevent cycling.
+    ////const auto& query = archive();
+    ////
+    ////if (enabled_bytes_)
+    ////    bytes_ = query.store_body_size();
+    ////
+    ////if (enabled_valid_)
+    ////    valid_ = height;
+    ////    ////valid_ = std::max(query.get_top_validated(), checkpoint());
+    ////
+    ////if (enabled_confirm_)
+    ////    valid_ = std::max(query.get_top_confirmed(), checkpoint());
 }
 
-bool chaser_snapshot::update_bytes() NOEXCEPT
-{
-    // This is the most costly, sizing for every download, but is just a sum.
-    // Wire size might be better, but there is no constant time query for it.
-    const auto growth = floored_subtract(archive().store_body_size(), bytes_);
-    return growth >= snapshot_bytes_;
-}
-
-bool chaser_snapshot::update_valid(height_t height) NOEXCEPT
-{
-    // The difference may have been negative and therefore show zero growth.
-    const auto growth = floored_subtract(height, valid_);
-    return growth >= snapshot_valid_;
-}
-
-bool chaser_snapshot::update_confirm(height_t height) NOEXCEPT
-{
-    // The difference may have been negative and therefore show zero growth.
-    const auto growth = floored_subtract(height, valid_);
-    return growth >= snapshot_confirm_;
-}
+////bool chaser_snapshot::update_bytes() NOEXCEPT
+////{
+////    // This is the most costly, sizing for every download, but is just a sum.
+////    // Wire size might be better, but there is no constant time query for it.
+////    const auto growth = floored_subtract(archive().store_body_size(), bytes_);
+////    return growth >= snapshot_bytes_;
+////}
+////
+////bool chaser_snapshot::update_valid(height_t height) NOEXCEPT
+////{
+////    // The difference may have been negative and therefore show zero growth.
+////    const auto growth = floored_subtract(height, valid_);
+////    return growth >= snapshot_valid_;
+////}
+////
+////bool chaser_snapshot::update_confirm(height_t height) NOEXCEPT
+////{
+////    // The difference may have been negative and therefore show zero growth.
+////    const auto growth = floored_subtract(height, valid_);
+////    return growth >= snapshot_confirm_;
+////}
 
 BC_POP_WARNING()
 

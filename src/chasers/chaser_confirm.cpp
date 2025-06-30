@@ -46,7 +46,7 @@ code chaser_confirm::start() NOEXCEPT
     const auto& query = archive();
     set_position(query.get_fork());
 
-    if (is_recent())
+    if ((recent_ = is_recent()))
     {
         LOGN("Node is recent at startup block [" << position() << "].");
     }
@@ -389,6 +389,20 @@ bool chaser_confirm::set_organized(const header_link& link,
     notify(error::success, chase::organized, link);
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
+
+    // Announce newly-organized block.
+    if (is_current(true))
+        notify(error::success, chase::block, link);
+
+    // When current or maximum height take snapshot, which resets connections.
+    // Node may fall behind after becomming current though this does not reset.
+    if (!recent_ && is_recent())
+    {
+        recent_ = true;
+        notify(error::success, chase::snap, confirmed_height);
+        LOGN("Node is recent as of block [" << confirmed_height << "].");
+    }
+
     return true;
 }
 

@@ -37,6 +37,10 @@ enum class chase
     /// Issued by 'full_node' and handled by 'snapshot' and 'storage'.
     space,
 
+    /// Take a snapshot (height_t).
+    /// Issued by 'confirm' and handled by 'snapshot'.
+    snap,
+
     /// Chaser directed to attempt start from its current position (height_t).
     /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
     bump,
@@ -129,6 +133,10 @@ enum class chase
     /// Confirm (chain).
     /// -----------------------------------------------------------------------
 
+    /// A current block has been organized (header_t).
+    /// Issued by 'transaction' and handled by 'protocol_header/block_out'.
+    block,
+
     /// A confirmable block has been confirmed (header_t).
     /// Issued by 'confirm' [and handled by 'transaction'].
     organized,
@@ -140,11 +148,11 @@ enum class chase
     /// Mining.
     /// -----------------------------------------------------------------------
 
-    /// A new transaction has been added to the pool (transaction_t).
+    /// A transaction has been added to the pool (transaction_t).
     /// Issued by 'transaction' and handled by 'template'.
     transaction,
 
-    /// A new candidate block (template) has been created (height_t).
+    /// A candidate block (template) has been created (height_t).
     /// Issued by 'template' and handled by [miners].
     template_,
 
