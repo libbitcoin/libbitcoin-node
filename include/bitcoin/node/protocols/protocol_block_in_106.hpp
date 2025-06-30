@@ -37,7 +37,7 @@ public:
     BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
     template <typename SessionPtr>
     protocol_block_in_106(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         block_type_(session->config().network.witness_node() ?
             type_id::witness_block : type_id::block),

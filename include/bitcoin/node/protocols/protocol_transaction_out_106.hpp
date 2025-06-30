@@ -35,7 +35,7 @@ public:
 
     template <typename SessionPtr>
     protocol_transaction_out_106(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         node_witness_(session->config().network.witness_node()),
         network::tracker<protocol_transaction_out_106>(session->log)

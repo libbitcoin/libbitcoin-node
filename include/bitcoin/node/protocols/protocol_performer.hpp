@@ -40,7 +40,7 @@ public:
 protected:
     template <typename SessionPtr>
     protocol_performer(const SessionPtr& session,
-        const channel_ptr& channel, bool enabled) NOEXCEPT
+        const network::channel::ptr& channel, bool enabled) NOEXCEPT
       : node::protocol(session, channel),
         deviation_(session->config().node.allowed_deviation > 0.0),
         enabled_(enabled && to_bool(session->config().node.sample_period_seconds)),
