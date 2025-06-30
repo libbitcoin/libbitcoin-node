@@ -105,7 +105,7 @@ bool chaser_check::handle_event(const code&, chase event_,
         {
             // When a channel becomes starved notify other(s) to split work.
             BC_ASSERT(std::holds_alternative<object_t>(value));
-            do_starved(std::get<object_t>(value));
+            POST(do_starved, std::get<object_t>(value));
             break;
         }
         // Track downloaded.
