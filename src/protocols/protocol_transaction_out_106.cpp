@@ -167,7 +167,7 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
 
     // TODO: implement witness parameter in block/tx queries.
     const auto& query = archive();
-    const auto ptr = query.get_transaction(query.to_tx(item.hash) /*, witness*/);
+    const auto ptr = query.get_transaction(query.to_tx(item.hash), witness);
 
     if (!ptr)
     {

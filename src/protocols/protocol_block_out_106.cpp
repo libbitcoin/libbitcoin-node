@@ -183,7 +183,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
 
     // TODO: implement witness parameter in block/tx queries.
     const auto& query = archive();
-    const auto ptr = query.get_block(query.to_header(item.hash) /*, witness*/);
+    const auto ptr = query.get_block(query.to_header(item.hash), witness);
 
     if (!ptr)
     {

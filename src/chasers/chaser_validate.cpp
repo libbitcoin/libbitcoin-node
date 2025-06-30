@@ -44,6 +44,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
     headers_first_(node.config().node.headers_first),
+    node_witness_(node.config().network.witness_node()),
     filter_(node.archive().filter_enabled())
 {
 }
@@ -244,7 +245,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     // TODO: implement allocator parameter resulting in full allocation to
     // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
-    const auto block = query.get_block(link);
+    const auto block = query.get_block(link, node_witness_);
 
     if (!block)
     {
