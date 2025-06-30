@@ -106,7 +106,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // point table set to 2.2LF @ ~900k.
     configured.database.point_buckets = 1'365'977'136;
-    ////configured.database.point_buckets = 1'194'185'278;
     configured.database.point_size = 25'700'000'000;
     configured.database.point_rate = 5;
 
@@ -493,7 +492,7 @@ options_metadata parser::load_settings() THROWS
     (
         "bitcoin.milestone",
         value<chain::checkpoint>(&configured.bitcoin.milestone),
-        "A block presumed to be valid but not required to be present, defaults to 00000000000000000002a0b5db2a7f8d9087464c2586b546be7bce8eb53b8187:850000."
+        "A block presumed to be valid but not required to be present, defaults to 000000000000000000010538edbfd2d5b809a33dd83f284aeea41c6d0d96968a:900000."
     )
     (
         "bitcoin.minimum_work",
