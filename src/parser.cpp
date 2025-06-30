@@ -1017,6 +1017,11 @@ options_metadata parser::load_settings() THROWS
         "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
     )
     (
+        "node.announcement_cache",
+        value<uint16_t>(&configured.node.announcement_cache),
+        "Limit of per channel cached peer block and tx announcements, to avoid replaying."
+    )
+    (
         "node.allocation_multiple",
         value<uint16_t>(&configured.node.allocation_multiple),
         "Block deserialization buffer multiple of wire size, defaults to 20 (0 disables)."
