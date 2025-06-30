@@ -82,6 +82,7 @@ private:
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
     const bool headers_first_;
+    const bool node_witness_;
     const bool filter_;
 };
 

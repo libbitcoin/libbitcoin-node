@@ -31,7 +31,8 @@ using namespace system;
 using namespace system::chain;
 
 chaser_block::chaser_block(full_node& node) NOEXCEPT
-  : chaser_organize<block>(node)
+  : chaser_organize<block>(node),
+    node_witness_(node.config().network.witness_node())
 {
 }
 
@@ -44,7 +45,7 @@ bool chaser_block::get_block(block::cptr& out,
     const header_link& link) const NOEXCEPT
 {
     const auto& query = archive();
-    out = query.get_block(link);
+    out = query.get_block(link, node_witness_);
     return !is_null(out);
 }
 

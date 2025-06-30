@@ -69,6 +69,10 @@ protected:
 private:
     void set_prevout(const system::chain::input& input) const NOEXCEPT;
     bool populate(const system::chain::block& block) const NOEXCEPT;
+
+private:
+    // These are thread safe.
+    const bool node_witness_;
 };
 
 } // namespace node
