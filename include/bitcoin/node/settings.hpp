@@ -77,9 +77,9 @@ public:
     bool headers_first;
     float allowed_deviation;
     uint16_t allocation_multiple;
-    uint64_t snapshot_bytes;
-    uint32_t snapshot_valid;
-    uint32_t snapshot_confirm;
+    ////uint64_t snapshot_bytes;
+    ////uint32_t snapshot_valid;
+    ////uint32_t snapshot_confirm;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;
     uint16_t sample_period_seconds;

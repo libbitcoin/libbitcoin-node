@@ -74,7 +74,7 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
         return false;
 
     // Ignore non-block inventory.
-    // bip144: get_data uses witness constant but inv does not.
+    // bip144: get_data uses witness type_id but inv does not.
     const auto block_count = message->count(type_id::block);
     if (is_zero(block_count))
         return true;
@@ -257,7 +257,7 @@ get_blocks protocol_block_in_106::create_get_inventory(
 get_data protocol_block_in_106::create_get_data(
     const inventory& message) const NOEXCEPT
 {
-    // bip144: get_data uses witness constant (block_type_) but inv does not.
+    // bip144: get_data uses witness type_id but inv does not.
 
     get_data getter{};
     getter.items.reserve(message.count(type_id::block));

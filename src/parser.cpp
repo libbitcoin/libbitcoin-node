@@ -47,9 +47,9 @@ parser::parser(system::chain::selection context) NOEXCEPT
 {
     // node
 
-    configured.node.snapshot_bytes = 0;
-    configured.node.snapshot_valid = 0;
-    configured.node.snapshot_confirm = 0;
+    ////configured.node.snapshot_bytes = 0;
+    ////configured.node.snapshot_valid = 0;
+    ////configured.node.snapshot_confirm = 0;
 
     // network
 
@@ -1032,21 +1032,21 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.node.maximum_concurrency),
         "Maximum number of blocks to download concurrently, defaults to '50000' (0 disables)."
     )
-    (
-        "node.snapshot_bytes",
-        value<uint64_t>(&configured.node.snapshot_bytes),
-        "Downloaded bytes that triggers snapshot, defaults to '0' (0 disables)."
-    )
-    (
-        "node.snapshot_valid",
-        value<uint32_t>(&configured.node.snapshot_valid),
-        "Completed validations that trigger snapshot, defaults to '0' (0 disables)."
-    )
-    (
-        "node.snapshot_confirm",
-        value<uint32_t>(&configured.node.snapshot_confirm),
-        "Completed confirmations that trigger snapshot, defaults to '0' (0 disables)."
-    )
+    ////(
+    ////    "node.snapshot_bytes",
+    ////    value<uint64_t>(&configured.node.snapshot_bytes),
+    ////    "Downloaded bytes that triggers snapshot, defaults to '0' (0 disables)."
+    ////)
+    ////(
+    ////    "node.snapshot_valid",
+    ////    value<uint32_t>(&configured.node.snapshot_valid),
+    ////    "Completed validations that trigger snapshot, defaults to '0' (0 disables)."
+    ////)
+    ////(
+    ////    "node.snapshot_confirm",
+    ////    value<uint32_t>(&configured.node.snapshot_confirm),
+    ////    "Completed confirmations that trigger snapshot, defaults to '0' (0 disables)."
+    ////)
     (
         "node.sample_period_seconds",
         value<uint16_t>(&configured.node.sample_period_seconds),

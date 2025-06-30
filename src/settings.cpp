@@ -80,9 +80,9 @@ settings::settings() NOEXCEPT
     headers_first{ true },
     allowed_deviation{ 1.5 },
     allocation_multiple{ 20 },
-    snapshot_bytes{ 200'000'000'000 },
-    snapshot_valid{ 250'000 },
-    snapshot_confirm{ 500'000 },
+    ////snapshot_bytes{ 200'000'000'000 },
+    ////snapshot_valid{ 250'000 },
+    ////snapshot_confirm{ 500'000 },
     maximum_height{ 0 },
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
@@ -94,7 +94,7 @@ settings::settings() NOEXCEPT
 settings::settings(chain::selection) NOEXCEPT
   : settings()
 {
-    // TODO: testnet, etc. maximum_concurrency, snapshot_bytes.
+    // TODO: testnet, etc. maximum_concurrency.
 }
 
 size_t settings::threads_() const NOEXCEPT
