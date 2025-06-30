@@ -111,14 +111,14 @@ bool chaser_snapshot::handle_event(const code& ec, chase event_,
             POST(do_confirm, std::get<height_t>(value));
             break;
         }
-        case chase::organized:
-        {
-            // Currency snapshot is always enabled.
-            // Also has effect of attaching inbound protocols on reset.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_recent, std::get<height_t>(value));
-            break;
-        }
+        ////case chase::organized:
+        ////{
+        ////    // Currency snapshot is always enabled.
+        ////    // Also has effect of attaching inbound protocols on reset.
+        ////    BC_ASSERT(std::holds_alternative<header_t>(value));
+        ////    POST(do_recent, std::get<height_t>(value));
+        ////    break;
+        ////}
         default:
         {
             break;
