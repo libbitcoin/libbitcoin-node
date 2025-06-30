@@ -155,9 +155,9 @@ bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
     // bip144: get_data uses witness type_id but inv does not.
 
     const auto& query = archive();
-    for (const auto& item: message->items)
+    for (const auto& item: message->view(type_id::block))
     {
-        if (item.is_block_type() && !query.is_block(item.hash))
+        if (!query.is_block(item.hash))
         {
             // This is inefficient but simple and limited to protocol 31800.
             SEND(create_get_headers(), handle_send, _1);
