@@ -65,6 +65,7 @@ private:
     uint64_t bytes_{};
     size_t valid_{};
     size_t confirm_{};
+    bool recent_{};
 };
 
 } // namespace node
