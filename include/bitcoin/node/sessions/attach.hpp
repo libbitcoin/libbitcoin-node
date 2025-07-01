@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 #define LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
@@ -133,9 +134,10 @@ protected:
     network::channel::ptr create_channel(const network::socket::ptr& socket,
         bool quiet) NOEXCEPT override
     {
-        return std::make_shared<network::channel>(node::session::get_memory(),
-            network::session::log, socket, network::session::settings(),
-            network::session::create_key(), quiet);
+        return std::static_pointer_cast<network::channel>(
+            std::make_shared<node::channel>(node::session::get_memory(),
+                network::session::log, socket, node::session::config(),
+                network::session::create_key(), quiet));
     }
 
 private:

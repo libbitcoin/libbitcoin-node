@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_storage.hpp>
 
+#include <chrono>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -31,6 +32,7 @@ namespace node {
 using namespace system;
 using namespace network;
 using namespace database;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)

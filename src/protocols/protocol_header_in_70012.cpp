@@ -32,14 +32,16 @@ using namespace std::placeholders;
 void protocol_header_in_70012::complete() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    ////protocol_header_in_31800::complete();
 
-    if (!subscribed_)
+    if (!subscribed)
     {
+        subscribed = true;
         SEND(send_headers{}, handle_send, _1);
-        LOGP("Requested header announcements from [" << authority() << "].");
-        subscribed_ = true;
+        LOGP("Subscribed to header announcements at [" << authority() << "].");
     }
+
+    // Must come after subscribed is updated.
+    protocol_header_in_31800::complete();
 }
 
 } // namespace node

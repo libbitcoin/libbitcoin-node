@@ -35,7 +35,7 @@ public:
 
     template <typename SessionPtr>
     protocol_transaction_in_106(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         tx_type_(session->config().network.witness_node() ?
             type_id::witness_tx : type_id::transaction),

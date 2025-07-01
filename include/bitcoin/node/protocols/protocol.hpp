@@ -20,6 +20,8 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
  // Individual session.hpp inclusion to prevent cycle (can't forward declare).
+#include <algorithm>
+#include <memory>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -28,20 +30,60 @@
 namespace libbitcoin {
 namespace node {
 
+/// Node channel state.
+class BCN_API channel
+  : public network::channel
+{
+public:
+    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
+    typedef std::shared_ptr<node::channel> ptr;
+
+    /// Capture configured buffer size.
+    inline channel(network::memory& memory, const network::logger& log,
+        const network::socket::ptr& socket, const node::configuration& config,
+        uint64_t identifier=zero, bool quiet=true) NOEXCEPT
+      : network::channel(memory, log, socket, config.network, identifier, quiet),
+        announced_(config.node.announcement_cache)
+    {
+    }
+
+    inline void set_announced(const system::hash_digest& hash) NOEXCEPT
+    {
+        BC_ASSERT(stranded());
+        announced_.push_back(hash);
+    }
+
+    inline bool was_announced(const system::hash_digest& hash) const NOEXCEPT
+    {
+        // TODO: remove from buffer on read.
+        BC_ASSERT(stranded());
+        return std::find(announced_.begin(), announced_.end(), hash) !=
+            announced_.end();
+    }
+
+    BC_POP_WARNING()
+
+private:
+    // This is protected by strand.
+    boost::circular_buffer<system::hash_digest> announced_;
+};
+
 /// Abstract base for node protocols, thread safe.
 class BCN_API protocol
   : public network::protocol
 {
 protected:
-    typedef network::channel::ptr channel_ptr;
-
     /// Constructors.
     /// -----------------------------------------------------------------------
+    /// static_pointer_cast relies on create_channel().
 
     // Need template (see session member)?
     template <typename SessionPtr>
-    protocol(const SessionPtr& session, const channel_ptr& channel) NOEXCEPT
-      : network::protocol(session, channel), session_(session)
+    protocol(const SessionPtr& session,
+        const network::channel::ptr& channel) NOEXCEPT
+      : network::protocol(session, channel), session_(session),
+        channel_(std::static_pointer_cast<node::channel>(channel))
     {
     }
 
@@ -75,6 +117,15 @@ protected:
     /// Suspend all existing and future network connections.
     /// A race condition could result in an unsuspended connection.
     virtual code fault(const code& ec) NOEXCEPT;
+
+    /// Announcements.
+    /// -----------------------------------------------------------------------
+
+    /// Set an incoming block or tx hash that peer announced.
+    virtual void set_announced(const system::hash_digest&) NOEXCEPT;
+
+    /// Determine if outgoing block or tx was previously announced by peer.
+    virtual bool was_announced(const system::hash_digest&) const NOEXCEPT;
 
     /// Events notification.
     /// -----------------------------------------------------------------------
@@ -122,6 +173,9 @@ private:
 
     // This is thread safe.
     const session::ptr session_;
+
+    // This derived channel requires stranded calls, base is thread safe.
+    node::channel::ptr channel_;
 
     // This is protected by singular subscription.
     object_key key_{};

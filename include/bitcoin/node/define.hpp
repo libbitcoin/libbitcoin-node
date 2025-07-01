@@ -23,6 +23,7 @@
 #include <memory>
 #include <utility>
 #include <variant>
+#include <boost/circular_buffer.hpp>
 
 /// Pulls in common /node headers (excluding settings/config/parser/full_node).
 #include <bitcoin/node/chase.hpp>

@@ -27,6 +27,7 @@ namespace node {
 
 #define CLASS protocol_header_out_70012
     
+using namespace system;
 using namespace network::messages;
 using namespace std::placeholders;
 
@@ -44,6 +45,7 @@ void protocol_header_out_70012::start() NOEXCEPT
     if (started())
         return;
 
+    // Events subscription is deferred, in handle_receive_send_headers.
     SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
     protocol_header_out_31800::start();
 }
@@ -68,11 +70,11 @@ bool protocol_header_out_70012::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        case chase::organized:
+        case chase::block:
         {
             // value is organized block pk.
             BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_organized, std::get<header_t>(value));
+            POST(do_announce, std::get<header_t>(value));
             break;
         }
         default:
@@ -87,7 +89,7 @@ bool protocol_header_out_70012::handle_event(const code&, chase event_,
 // Outbound (headers).
 // ----------------------------------------------------------------------------
 
-bool protocol_header_out_70012::do_organized(header_t link) NOEXCEPT
+bool protocol_header_out_70012::do_announce(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -95,19 +97,25 @@ bool protocol_header_out_70012::do_organized(header_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't send to peer that sent to us.
-    ///////////////////////////////////////////////////////////////////////////
-
-    const auto header = query.get_header(link);
-    if (!header)
+    // Don't announce to peer that announced to us.
+    const auto hash = query.get_header_key(link);
+    if (was_announced(hash))
     {
-        ////stop(fault(system::error::not_found));
-        LOGF("Organized block not found.");
+        LOGP("Suppress " << encode_hash(hash) << " to ["
+            << authority() << "].");
         return true;
     }
 
-    SEND(headers{ { header } }, handle_send, _1);
+    const auto ptr = query.get_header(link);
+    if (!ptr)
+    {
+        ////stop(fault(system::error::not_found));
+        LOGF("Organized header not found.");
+        return true;
+    }
+
+    LOGN("Announce " << encode_hash(hash) << " to [" << authority() << "].");
+    SEND(headers{ { ptr } }, handle_send, _1);
     return true;
 }
 

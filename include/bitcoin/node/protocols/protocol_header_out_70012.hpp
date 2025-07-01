@@ -53,7 +53,7 @@ protected:
         event_value value) NOEXCEPT;
 
     /// Process block announcement.
-    virtual bool do_organized(header_t link) NOEXCEPT;
+    virtual bool do_announce(header_t link) NOEXCEPT;
 
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;

@@ -153,6 +153,19 @@ code protocol::fault(const code& ec) NOEXCEPT
     return ec;
 }
 
+// Announcements.
+// ----------------------------------------------------------------------------
+
+void protocol::set_announced(const system::hash_digest& hash) NOEXCEPT
+{
+    channel_->set_announced(hash);
+}
+
+bool protocol::was_announced(const system::hash_digest& hash) const NOEXCEPT
+{
+    return channel_->was_announced(hash);
+}
+
 // Properties.
 // ----------------------------------------------------------------------------
 

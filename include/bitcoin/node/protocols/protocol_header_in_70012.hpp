@@ -44,9 +44,6 @@ public:
 protected:
     /// Invoked when initial headers sync is complete.
     void complete() NOEXCEPT override;
-
-private:
-    bool subscribed_{};
 };
 
 } // namespace node

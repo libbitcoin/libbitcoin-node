@@ -54,7 +54,7 @@ protected:
         event_value value) NOEXCEPT;
 
     /// Process tx announcement.
-    virtual bool do_organized(transaction_t link) NOEXCEPT;
+    virtual bool do_announce(transaction_t link) NOEXCEPT;
 
     virtual bool handle_receive_get_data(const code& ec,
         const network::messages::get_data::cptr& message) NOEXCEPT;

@@ -53,15 +53,15 @@ protected:
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
     virtual void complete() NOEXCEPT;
 
+    // This is protected by strand.
+    bool subscribed{};
+
 private:
     network::messages::get_headers create_get_headers() const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         const system::hash_digest& last) const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         system::hashes&& start_hashes) const NOEXCEPT;
-
-    // This is protected by strand.
-    bool subscribed_{};
 };
 
 } // namespace node

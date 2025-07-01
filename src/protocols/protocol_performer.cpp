@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 
+#include <chrono>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/define.hpp>
@@ -29,6 +30,7 @@ namespace node {
 
 using namespace system;
 using namespace network;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 void protocol_performer::start_performance() NOEXCEPT

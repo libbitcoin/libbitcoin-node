@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>
 
+#include <chrono>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -30,6 +31,7 @@ namespace node {
 
 using namespace system;
 using namespace network;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -113,7 +115,7 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
         ////}
         case chase::snap:
         {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
+            BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(do_recent, std::get<height_t>(value));
             break;
         }
