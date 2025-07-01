@@ -390,8 +390,8 @@ bool chaser_confirm::set_organized(const header_link& link,
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
 
-    // Announce newly-organized block.
-    if (is_current(true))
+    // Announce newly-organized block (current is subset of recent).
+    if (recent_ && is_current(true))
         notify(error::success, chase::block, link);
 
     // When current or maximum height take snapshot, which resets connections.
