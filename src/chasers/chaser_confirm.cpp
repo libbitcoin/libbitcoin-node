@@ -316,7 +316,7 @@ bool chaser_confirm::confirm_block(const header_link& link,
 
 // Confirmation complete, not yet organized.
 bool chaser_confirm::complete_block(const code& ec, const header_link& link,
-    size_t height, bool /* bypass */) NOEXCEPT
+    size_t height, bool bypass) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -337,10 +337,10 @@ bool chaser_confirm::complete_block(const code& ec, const header_link& link,
         return false;
     }
 
-    // CONFIRMABLE BLOCK (bypass could be reported)
+    // CONFIRMABLE BLOCK
     notify(error::success, chase::confirmable, height);
     fire(events::block_confirmed, height);
-    LOGV("Block confirmable: " << height);
+    LOGV("Block confirmable: " << height << (bypass ? " (bypass)" : ""));
     return true;
 }
 

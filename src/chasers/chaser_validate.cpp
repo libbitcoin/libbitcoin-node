@@ -329,7 +329,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
 // May be either concurrent or stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool) NOEXCEPT
+    size_t height, bool bypass) NOEXCEPT
 {
     if (ec)
     {
@@ -348,10 +348,10 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         return;
     }
 
-    // VALID BLOCK (bypass not differentiated)
+    // VALID BLOCK
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
     fire(events::block_validated, height);
-    LOGV("Block validated: " << height);
+    LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }
 
 // Overrides due to independent priority thread pool
