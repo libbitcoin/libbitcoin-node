@@ -314,9 +314,12 @@ bool chaser_confirm::confirm_block(const header_link& link,
     return complete_block(error::success, link, height, false);
 }
 
+// Confirmation complete, not yet organized.
 bool chaser_confirm::complete_block(const code& ec, const header_link& link,
     size_t height, bool /* bypass */) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     if (ec)
     {
         // Database errors are fatal.
