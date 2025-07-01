@@ -37,7 +37,7 @@ public:
     // TODO: current network handshake sets relay based on config only.
     template <typename SessionPtr>
     protocol_observer(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         relay_disallowed_
         (

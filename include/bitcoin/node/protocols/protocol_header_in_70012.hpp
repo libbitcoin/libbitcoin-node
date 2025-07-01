@@ -35,7 +35,7 @@ public:
 
     template <typename SessionPtr>
     protocol_header_in_70012(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_header_in_31800(session, channel),
         network::tracker<protocol_header_in_70012>(session->log)
     {
@@ -44,9 +44,6 @@ public:
 protected:
     /// Invoked when initial headers sync is complete.
     void complete() NOEXCEPT override;
-
-private:
-    bool subscribed_{};
 };
 
 } // namespace node

@@ -66,6 +66,7 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
 
     // TODO: get and handle tx as required.
     ////const auto tx_count = message->count(type_id::transaction);
+    ////set_announced(hash);
     return true;
 }
 

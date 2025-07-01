@@ -35,7 +35,7 @@ public:
 
     template <typename SessionPtr>
     protocol_header_in_31800(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_header_in_31800>(session->log)
     {
@@ -53,15 +53,15 @@ protected:
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
     virtual void complete() NOEXCEPT;
 
+    // This is protected by strand.
+    bool subscribed{};
+
 private:
     network::messages::get_headers create_get_headers() const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         const system::hash_digest& last) const NOEXCEPT;
     network::messages::get_headers create_get_headers(
         system::hashes&& start_hashes) const NOEXCEPT;
-
-    // This is protected by strand.
-    bool subscribed_{};
 };
 
 } // namespace node

@@ -76,6 +76,7 @@ public:
     bool delay_inbound;
     bool headers_first;
     float allowed_deviation;
+    uint16_t announcement_cache;
     uint16_t allocation_multiple;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;

@@ -35,7 +35,7 @@ public:
 
     template <typename SessionPtr>
     protocol_header_out_31800(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_header_out_31800>(session->log)
     {

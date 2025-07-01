@@ -47,7 +47,6 @@ void protocol_transaction_out_106::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3));
-
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol::start();
 }
@@ -76,7 +75,7 @@ bool protocol_transaction_out_106::handle_event(const code&, chase event_,
         {
             // value is organized tx pk.
             BC_ASSERT(std::holds_alternative<transaction_t>(value));
-            POST(do_organized, std::get<transaction_t>(value));
+            POST(do_announce, std::get<transaction_t>(value));
             break;
         }
         default:
@@ -90,8 +89,10 @@ bool protocol_transaction_out_106::handle_event(const code&, chase event_,
 
 // Outbound (inv).
 // ----------------------------------------------------------------------------
+// TODO: bip339: "After a node has received a wtxidrelay message from a peer,
+// the node MUST use the MSG_WTX inv type when announcing transactions..."
 
-bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
+bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -99,16 +100,20 @@ bool protocol_transaction_out_106::do_organized(transaction_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't announce to peer that announced to us.
-    // TODO: don't announce to peer that is not current.
-    ///////////////////////////////////////////////////////////////////////////
+    // Don't announce to peer that announced to us.
+    const auto hash = query.get_tx_key(link);
+    if (was_announced(hash))
+        return true;
+
+    if (hash == null_hash)
+    {
+        ////stop(fault(system::error::not_found));
+        LOGF("Organized transaction not found.");
+        return true;
+    }
 
     // bip144: get_data uses witness type_id but inv does not.
-    // Otherwise must be type_id::transaction. Query and send as requested.
-    // bip339: "After a node has received a wtxidrelay message from a peer,
-    // the node MUST use the MSG_WTX inv type when announcing transactions..."
-    const inventory inv{ { { type_id::transaction, query.get_tx_key(link) } } };
+    const inventory inv{ { { type_id::transaction, hash } } };
     SEND(inv, handle_send, _1);
     return true;
 }
@@ -165,10 +170,11 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         return;
     }
 
-    // TODO: implement witness parameter in block/tx queries.
+    // Tx could be always queried with witness and therefore safely cached.
+    // If can then be serialized according to channel configuration, however
+    // that is currently fixed to witness as available in the object.
     const auto& query = archive();
     const auto ptr = query.get_transaction(query.to_tx(item.hash), witness);
-
     if (!ptr)
     {
         LOGR("Requested tx " << encode_hash(item.hash)

@@ -68,14 +68,17 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         << authority() << "].");
 
     // Store each header, drop channel if invalid.
-    for (const auto& header_ptr: message->header_ptrs)
+    for (const auto& ptr: message->header_ptrs)
     {
         if (stopped())
             return false;
 
+        if (subscribed)
+            set_announced(ptr->get_hash());
+
         // A job backlog will occur when organize is slower than download.
         // This is not likely with headers-first even for high channel count.
-        organize(header_ptr, BIND(handle_organize, _1, _2, header_ptr));
+        organize(ptr, BIND(handle_organize, _1, _2, ptr));
     }
 
     // The headers response to get_headers is limited to max_get_headers.
@@ -133,10 +136,11 @@ void protocol_header_in_31800::complete() NOEXCEPT
     BC_ASSERT(stranded());
 
     // There are no header announcements at 31800, so translate from inv.
-    if (!subscribed_ && is_current(true))
+    if (!subscribed && is_current(true))
     {
-        subscribed_ = true;
+        subscribed = true;
         SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
+        LOGP("Subscribed to block announcements at [" << authority() << "].");
     }
 }
 
@@ -160,6 +164,7 @@ bool protocol_header_in_31800::handle_receive_inventory(const code& ec,
         if (!query.is_block(item.hash))
         {
             // This is inefficient but simple and limited to protocol 31800.
+            // Since subscribed is set, the response headers will be cached.
             SEND(create_get_headers(), handle_send, _1);
             return true;
         }

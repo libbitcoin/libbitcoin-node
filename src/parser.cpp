@@ -106,7 +106,6 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // point table set to 2.2LF @ ~900k.
     configured.database.point_buckets = 1'365'977'136;
-    ////configured.database.point_buckets = 1'194'185'278;
     configured.database.point_size = 25'700'000'000;
     configured.database.point_rate = 5;
 
@@ -138,7 +137,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // database (caches)
 
-    configured.database.duplicate_buckets = 10;
+    configured.database.duplicate_buckets = 1024;
     configured.database.duplicate_size = 44;
     configured.database.duplicate_rate = 5;
 
@@ -493,7 +492,7 @@ options_metadata parser::load_settings() THROWS
     (
         "bitcoin.milestone",
         value<chain::checkpoint>(&configured.bitcoin.milestone),
-        "A block presumed to be valid but not required to be present, defaults to 00000000000000000002a0b5db2a7f8d9087464c2586b546be7bce8eb53b8187:850000."
+        "A block presumed to be valid but not required to be present, defaults to 000000000000000000010538edbfd2d5b809a33dd83f284aeea41c6d0d96968a:900000."
     )
     (
         "bitcoin.minimum_work",
@@ -876,7 +875,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.duplicate_buckets",
         value<uint16_t>(&configured.database.duplicate_buckets),
-        "The minimum number of buckets in the duplicate table head, defaults to '10'."
+        "The minimum number of buckets in the duplicate table head, defaults to '1024'."
     )
     (
         "database.duplicate_size",
@@ -1016,6 +1015,11 @@ options_metadata parser::load_settings() THROWS
         "node.allowed_deviation",
         value<float>(&configured.node.allowed_deviation),
         "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
+    )
+    (
+        "node.announcement_cache",
+        value<uint16_t>(&configured.node.announcement_cache),
+        "Limit of per channel cached peer block and tx announcements, to avoid replaying (defaults to 42)."
     )
     (
         "node.allocation_multiple",

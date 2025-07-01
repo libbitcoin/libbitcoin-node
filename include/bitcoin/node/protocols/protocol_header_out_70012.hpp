@@ -35,7 +35,7 @@ public:
 
     template <typename SessionPtr>
     protocol_header_out_70012(const SessionPtr& session,
-        const channel_ptr& channel) NOEXCEPT
+        const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_header_out_31800(session, channel),
         network::tracker<protocol_header_out_70012>(session->log)
     {
@@ -53,7 +53,7 @@ protected:
         event_value value) NOEXCEPT;
 
     /// Process block announcement.
-    virtual bool do_organized(header_t link) NOEXCEPT;
+    virtual bool do_announce(header_t link) NOEXCEPT;
 
     virtual bool handle_receive_send_headers(const code& ec,
         const network::messages::send_headers::cptr& message) NOEXCEPT;

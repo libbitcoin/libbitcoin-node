@@ -53,7 +53,6 @@ void protocol_block_in_31800::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3));
-
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     protocol::start();
 }

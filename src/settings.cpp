@@ -79,6 +79,7 @@ settings::settings() NOEXCEPT
     delay_inbound{ true },
     headers_first{ true },
     allowed_deviation{ 1.5 },
+    announcement_cache{ 42 },
     allocation_multiple{ 20 },
     ////snapshot_bytes{ 200'000'000'000 },
     ////snapshot_valid{ 250'000 },

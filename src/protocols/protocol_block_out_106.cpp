@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 
+#include <chrono>
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -28,7 +29,9 @@ namespace node {
 #define CLASS protocol_block_out_106
 
 using namespace system;
+using namespace network;
 using namespace network::messages;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
@@ -46,7 +49,6 @@ void protocol_block_out_106::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3));
-
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     SUBSCRIBE_CHANNEL(get_blocks, handle_receive_get_blocks, _1, _2);
     protocol::start();
@@ -72,11 +74,11 @@ bool protocol_block_out_106::handle_event(const code&, chase event_,
 
     switch (event_)
     {
-        case chase::organized:
+        case chase::block:
         {
             // value is organized block pk.
             BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_organized, std::get<header_t>(value));
+            POST(do_announce, std::get<header_t>(value));
             break;
         }
         default:
@@ -96,7 +98,7 @@ bool protocol_block_out_106::superseded() const NOEXCEPT
     return false;
 }
 
-bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
+bool protocol_block_out_106::do_announce(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto& query = archive();
@@ -104,13 +106,20 @@ bool protocol_block_out_106::do_organized(header_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: don't announce to peer that announced to us.
-    // TODO: don't announce to peer that is not current.
-    ///////////////////////////////////////////////////////////////////////////
+    // Don't announce to peer that announced to us.
+    const auto hash = query.get_header_key(link);
+    if (was_announced(hash))
+        return true;
+
+    if (hash == null_hash)
+    {
+        ////stop(fault(system::error::not_found));
+        LOGF("Organized block not found.");
+        return true;
+    }
 
     // bip144: get_data uses witness type_id but inv does not.
-    const inventory inv{ { { type_id::block, query.get_header_key(link) } } };
+    const inventory inv{ { { type_id::block, hash } } };
     SEND(inv, handle_send, _1);
     return true;
 }
@@ -181,10 +190,12 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         return;
     }
 
-    // TODO: implement witness parameter in block/tx queries.
+    // Block could be always queried with witness and therefore safely cached.
+    // If can then be serialized according to channel configuration, however
+    // that is currently fixed to witness as available in the object.
     const auto& query = archive();
+    const auto start = logger::now();
     const auto ptr = query.get_block(query.to_header(item.hash), witness);
-
     if (!ptr)
     {
         LOGR("Requested block " << encode_hash(item.hash)
@@ -195,6 +206,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         return;
     }
 
+    span<milliseconds>(events::getblock_msecs, start);
     SEND(block{ ptr }, send_block, _1, sub1(index), message);
 }
 
