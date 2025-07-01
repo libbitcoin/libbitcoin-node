@@ -393,19 +393,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
 
-    // Announce newly-organized block (current is subset of recent).
-    if (recent_ && is_current(true))
-        notify(error::success, chase::block, link);
-
-    // When current or maximum height take snapshot, which resets connections.
-    // Node may fall behind after becomming current though this does not reset.
-    if (!recent_ && is_recent())
-    {
-        recent_ = true;
-        notify(error::success, chase::snap, confirmed_height);
-        LOGN("Node is recent as of block [" << confirmed_height << "].");
-    }
-
+    announce(link, confirmed_height);
     return true;
 }
 
@@ -424,6 +412,25 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
             return false;
 
     return true;
+}
+
+void chaser_confirm::announce(const header_link& link,
+    height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Announce newly-organized block (current is subset of recent).
+    if (recent_ && is_current(true))
+        notify(error::success, chase::block, link);
+
+    // When current or maximum height take snapshot, which resets connections.
+    // Node may fall behind after becomming current though this does not reset.
+    if (!recent_ && is_recent())
+    {
+        recent_ = true;
+        notify(error::success, chase::snap, height);
+        LOGN("Node is recent as of block [" << height << "].");
+    }
 }
 
 BC_POP_WARNING()

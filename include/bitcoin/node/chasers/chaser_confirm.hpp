@@ -68,6 +68,8 @@ private:
         height_t confirmed_height) NOEXCEPT;
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
+    void announce(const header_link& link, height_t height) NOEXCEPT;
+    
 
     // This is thread safe.
     const bool filter_;
