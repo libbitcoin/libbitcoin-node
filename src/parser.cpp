@@ -137,7 +137,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // database (caches)
 
-    configured.database.duplicate_buckets = 10;
+    configured.database.duplicate_buckets = 1024;
     configured.database.duplicate_size = 44;
     configured.database.duplicate_rate = 5;
 
@@ -875,7 +875,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.duplicate_buckets",
         value<uint16_t>(&configured.database.duplicate_buckets),
-        "The minimum number of buckets in the duplicate table head, defaults to '10'."
+        "The minimum number of buckets in the duplicate table head, defaults to '1024'."
     )
     (
         "database.duplicate_size",
