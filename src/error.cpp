@@ -32,6 +32,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     // database
     { store_uninitialized, "store not initialized" },
     { store_reload, "store reload" },
+    { store_prune, "store prune" },
     { store_snapshot, "store snapshot" },
 
     // network

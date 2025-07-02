@@ -54,6 +54,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__store_reload__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "store reload");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__store_prune__true_exected_message)
+{
+    constexpr auto value = error::store_prune;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "store prune");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__store_snapshot__true_exected_message)
 {
     constexpr auto value = error::store_snapshot;
