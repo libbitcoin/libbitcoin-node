@@ -160,7 +160,7 @@ void chaser_snapshot::do_prune(header_t) NOEXCEPT
     {
         // Prune may fail due to chain not being coalesced following suspend,
         // in which case pruning will be attempted on announce until success.
-        LOGF("Prune failed, " << ec.message());
+        LOGF("Prune deferred, " << ec.message());
     }
     else
     {
