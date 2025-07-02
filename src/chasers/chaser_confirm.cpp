@@ -419,15 +419,22 @@ void chaser_confirm::announce(const header_link& link,
 {
     BC_ASSERT(stranded());
 
-    // Announce newly-organized block (current is subset of recent).
+    bool snapshot{};
+    if (!recent_ && is_recent())
+    {
+        // Snapshot at the point where the chain first becomes recent.
+        recent_ = true;
+        snapshot = true;
+    }
+
+    // Announce newly-organized block when confirmed chain is current.
     if (recent_ && is_current(true))
         notify(error::success, chase::block, link);
 
     // When current or maximum height take snapshot, which resets connections.
     // Node may fall behind after becomming current though this does not reset.
-    if (!recent_ && is_recent())
+    if (snapshot)
     {
-        recent_ = true;
         notify(error::success, chase::snap, height);
         LOGN("Node is recent as of block [" << height << "].");
     }
