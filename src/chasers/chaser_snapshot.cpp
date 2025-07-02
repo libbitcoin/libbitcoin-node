@@ -128,55 +128,53 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     return true;
 }
 
-// snapshot events
+// events
 // ----------------------------------------------------------------------------
+
+void chaser_snapshot::do_recent(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    LOGN("Snapshot at recent height [" << height << "] is started.");
+    take_snapshot(height);
+}
 
 ////void chaser_snapshot::do_archive(size_t height) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
-////
 ////    if (closed() || !update_bytes())
 ////        return;
 ////
 ////    LOGN("Snapshot at archived height [" << height << "] is started.");
-////    do_snapshot(height);
+////    take_snapshot(height);
 ////}
 ////
 ////void chaser_snapshot::do_valid(size_t height) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
-////
 ////    if (closed() || !update_valid(height))
 ////        return;
 ////
 ////    LOGN("Snapshot at validated height [" << height << "] is started.");
-////    do_snapshot(height);
+////    take_snapshot(height);
 ////}
 //// 
 ////void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
-////
 ////    if (closed() || !update_confirm(height))
 ////        return;
 ////
 ////    LOGN("Snapshot at confirmable height [" << height << "] is started.");
-////    do_snapshot(height);
+////    take_snapshot(height);
 ////}
-
-void chaser_snapshot::do_recent(size_t height) NOEXCEPT
-{
-    if (closed())
-        return;
-
-    LOGN("Snapshot at recent height [" << height << "] is started.");
-    do_snapshot(height);
-}
 
 // utility
 // ----------------------------------------------------------------------------
 
-void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
+void chaser_snapshot::take_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

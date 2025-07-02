@@ -40,18 +40,19 @@ public:
     code start() NOEXCEPT override;
 
 protected:
+    virtual void do_recent(size_t height) NOEXCEPT;
     ////virtual void do_archive(height_t height) NOEXCEPT;
     ////virtual void do_valid(height_t height) NOEXCEPT;
     ////virtual void do_confirm(height_t height) NOEXCEPT;
-    virtual void do_recent(size_t height) NOEXCEPT;
+
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
 private:
+    void take_snapshot(height_t height) NOEXCEPT;
     ////bool update_bytes() NOEXCEPT;
     ////bool update_valid(height_t height) NOEXCEPT;
     ////bool update_confirm(height_t height) NOEXCEPT;
-    void do_snapshot(height_t height) NOEXCEPT;
 
     ////// These are thread safe.
     ////const uint64_t snapshot_bytes_;
