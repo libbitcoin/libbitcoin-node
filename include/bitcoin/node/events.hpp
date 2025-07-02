@@ -57,7 +57,8 @@ enum events : uint8_t
     /// Timespans.
     snapshot_secs,        // snapshot timespan in seconds.
     getblock_msecs,       // getblock timespan in milliseconds.
-    reload_msecs          // store reload timespan in milliseconds.
+    reload_msecs,         // store reload timespan in milliseconds.
+    prune_msecs           // prune timespan in milliseconds.
 };
 
 } // namespace node

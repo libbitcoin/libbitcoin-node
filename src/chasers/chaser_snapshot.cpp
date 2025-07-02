@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -113,10 +114,19 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
         ////    POST(do_confirm, std::get<height_t>(value));
         ////    break;
         ////}
+        case chase::block:
+        {
+            if (pruned_.load(std::memory_order_relaxed))
+                break;
+
+            BC_ASSERT(std::holds_alternative<header_t>(value));
+            POST(do_prune, std::get<header_t>(value));
+            break;
+        }
         case chase::snap:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_recent, std::get<height_t>(value));
+            POST(do_snap, std::get<height_t>(value));
             break;
         }
         default:
@@ -128,68 +138,102 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
     return true;
 }
 
-// snapshot events
+// events
 // ----------------------------------------------------------------------------
+
+void chaser_snapshot::do_prune(header_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (pruned_.load(std::memory_order_relaxed) ||
+        closed() || !archive().is_coalesced())
+        return;
+
+    const auto running = !suspended();
+    LOG_ONLY(const auto start = logger::now();)
+
+    if (const auto ec = prune([this](auto LOG_ONLY(event_),
+        auto LOG_ONLY(table)) NOEXCEPT
+    {
+        LOGN("prune::" << full_node::store::events.at(event_)
+            << "(" << full_node::store::tables.at(table) << ")");
+    }))
+    {
+        // Prune may fail due to chain not being coalesced following suspend,
+        // in which case pruning will be attempted on announce until success.
+        LOGF("Prune failed, " << ec.message());
+    }
+    else
+    {
+        // Could become full before prune start (and it could still succeed).
+        if (running && !archive().is_full())
+            resume();
+
+        pruned_.store(true, std::memory_order_relaxed);
+        LOG_ONLY(const auto time = logger::now() - start;)
+        LOG_ONLY(const auto span = duration_cast<milliseconds>(time);)
+        LOGN("Pruned prevout cache at height [" << archive().get_top_confirmed()
+            << "] complete in " << span.count() << " msecs.");
+    }
+}
+
+void chaser_snapshot::do_snap(size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (closed())
+        return;
+
+    LOGN("Snapshot at recent height [" << height << "] is started.");
+    take_snapshot(height);
+}
 
 ////void chaser_snapshot::do_archive(size_t height) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
-////
 ////    if (closed() || !update_bytes())
 ////        return;
 ////
 ////    LOGN("Snapshot at archived height [" << height << "] is started.");
-////    do_snapshot(height);
+////    take_snapshot(height);
 ////}
 ////
 ////void chaser_snapshot::do_valid(size_t height) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
-////
 ////    if (closed() || !update_valid(height))
 ////        return;
 ////
 ////    LOGN("Snapshot at validated height [" << height << "] is started.");
-////    do_snapshot(height);
+////    take_snapshot(height);
 ////}
 //// 
 ////void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
-////
 ////    if (closed() || !update_confirm(height))
 ////        return;
 ////
 ////    LOGN("Snapshot at confirmable height [" << height << "] is started.");
-////    do_snapshot(height);
+////    take_snapshot(height);
 ////}
-
-void chaser_snapshot::do_recent(size_t height) NOEXCEPT
-{
-    if (closed())
-        return;
-
-    LOGN("Snapshot at recent height [" << height << "] is started.");
-    do_snapshot(height);
-}
 
 // utility
 // ----------------------------------------------------------------------------
 
-void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
+// Doesn't currently require strand.
+void chaser_snapshot::take_snapshot(size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     const auto running = !suspended();
-    const auto start = logger::now();
-    if (const auto ec = snapshot([this](auto event_, auto table) NOEXCEPT
+    LOG_ONLY(const auto start = logger::now();)
+
+    if (const auto ec = snapshot([this](auto LOG_ONLY(event_),
+        auto LOG_ONLY(table)) NOEXCEPT
     {
         LOGN("snapshot::" << full_node::store::events.at(event_)
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
-        LOGF("Snapshot at height [" << height << "] failed, "
-            << ec.message());
+        LOGF("Snapshot at height [" << height << "] failed, " << ec.message());
     }
     else
     {
@@ -197,7 +241,8 @@ void chaser_snapshot::do_snapshot(size_t height) NOEXCEPT
         if (running && !archive().is_full())
             resume();
 
-        const auto span = duration_cast<seconds>(logger::now() - start);
+        LOG_ONLY(const auto time = logger::now() - start;)
+        LOG_ONLY(const auto span = duration_cast<seconds>(time);)
         LOGN("Snapshot at height [" << height << "] complete in "
             << span.count() << " secs.");
     }

@@ -73,6 +73,11 @@ void chaser::resume() NOEXCEPT
     node_.resume();
 }
 
+code chaser::prune(const store::event_handler& handler) NOEXCEPT
+{
+    return node_.prune(handler);
+}
+
 code chaser::snapshot(const store::event_handler& handler) NOEXCEPT
 {
     return node_.snapshot(handler);

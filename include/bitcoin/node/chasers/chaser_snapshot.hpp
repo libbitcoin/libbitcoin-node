@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_SNAPSHOT_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_SNAPSHOT_HPP
 
+#include <atomic>
 #include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
@@ -40,18 +41,20 @@ public:
     code start() NOEXCEPT override;
 
 protected:
+    virtual void do_prune(header_t link) NOEXCEPT;
+    virtual void do_snap(size_t height) NOEXCEPT;
     ////virtual void do_archive(height_t height) NOEXCEPT;
     ////virtual void do_valid(height_t height) NOEXCEPT;
     ////virtual void do_confirm(height_t height) NOEXCEPT;
-    virtual void do_recent(size_t height) NOEXCEPT;
+
     virtual bool handle_event(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
 private:
+    void take_snapshot(height_t height) NOEXCEPT;
     ////bool update_bytes() NOEXCEPT;
     ////bool update_valid(height_t height) NOEXCEPT;
     ////bool update_confirm(height_t height) NOEXCEPT;
-    void do_snapshot(height_t height) NOEXCEPT;
 
     ////// These are thread safe.
     ////const uint64_t snapshot_bytes_;
@@ -61,11 +64,12 @@ private:
     ////const bool enabled_valid_;
     ////const bool enabled_confirm_;
 
-    ////// These are protected by strand.
+    // These are protected by strand.
     ////uint64_t bytes_{};
     ////size_t valid_{};
     ////size_t confirm_{};
     ////bool recent_{};
+    std::atomic_bool pruned_{};
 };
 
 } // namespace node

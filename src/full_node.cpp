@@ -295,6 +295,27 @@ void full_node::fault(const code& ec) NOEXCEPT
 }
 
 // Leaves network suspended, caller may want to resume upon success.
+code full_node::prune(const store::event_handler& handler) NOEXCEPT
+{
+    if (query_.is_fault())
+        return query_.get_code();
+
+    const auto start = logger::now();
+    suspend(error::store_prune);
+    const auto ec = query_.prune([&](auto event, auto table) NOEXCEPT
+    {
+        // Suspend channels that missed previous suspend events.
+        if (event == database::event_t::wait_lock)
+            suspend(error::store_prune);
+
+        handler(event, table);
+    });
+
+    p2p::span<milliseconds>(events::prune_msecs, start);
+    return ec;
+}
+
+// Leaves network suspended, caller may want to resume upon success.
 code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
 {
     if (query_.is_fault())

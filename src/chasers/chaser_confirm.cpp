@@ -314,9 +314,12 @@ bool chaser_confirm::confirm_block(const header_link& link,
     return complete_block(error::success, link, height, false);
 }
 
+// Confirmation complete, not yet organized.
 bool chaser_confirm::complete_block(const code& ec, const header_link& link,
-    size_t height, bool /* bypass */) NOEXCEPT
+    size_t height, bool bypass) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     if (ec)
     {
         // Database errors are fatal.
@@ -334,10 +337,10 @@ bool chaser_confirm::complete_block(const code& ec, const header_link& link,
         return false;
     }
 
-    // CONFIRMABLE BLOCK (bypass could be reported)
+    // CONFIRMABLE BLOCK
     notify(error::success, chase::confirmable, height);
     fire(events::block_confirmed, height);
-    LOGV("Block confirmable: " << height);
+    LOGV("Block confirmable: " << height << (bypass ? " (bypass)" : ""));
     return true;
 }
 
@@ -390,19 +393,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
 
-    // Announce newly-organized block (current is subset of recent).
-    if (recent_ && is_current(true))
-        notify(error::success, chase::block, link);
-
-    // When current or maximum height take snapshot, which resets connections.
-    // Node may fall behind after becomming current though this does not reset.
-    if (!recent_ && is_recent())
-    {
-        recent_ = true;
-        notify(error::success, chase::snap, confirmed_height);
-        LOGN("Node is recent as of block [" << confirmed_height << "].");
-    }
-
+    announce(link, confirmed_height);
     return true;
 }
 
@@ -421,6 +412,32 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
             return false;
 
     return true;
+}
+
+void chaser_confirm::announce(const header_link& link,
+    height_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    bool snapshot{};
+    if (!recent_ && is_recent())
+    {
+        // Snapshot at the point where the chain first becomes recent.
+        recent_ = true;
+        snapshot = true;
+    }
+
+    // Announce newly-organized block when confirmed chain is current.
+    if (recent_ && is_current(true))
+        notify(error::success, chase::block, link);
+
+    // When current or maximum height take snapshot, which resets connections.
+    // Node may fall behind after becomming current though this does not reset.
+    if (snapshot)
+    {
+        notify(error::success, chase::snap, height);
+        LOGN("Node is recent as of block [" << height << "].");
+    }
 }
 
 BC_POP_WARNING()

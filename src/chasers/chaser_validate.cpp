@@ -43,7 +43,6 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
-    headers_first_(node.config().node.headers_first),
     node_witness_(node.config().network.witness_node()),
     filter_(node.archive().filter_enabled())
 {
@@ -51,7 +50,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
 
 code chaser_validate::start() NOEXCEPT
 {
-    if (!headers_first_)
+    if (!config().node.headers_first)
         return error::success;
 
     const auto& query = archive();
@@ -329,7 +328,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
 // May be either concurrent or stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool) NOEXCEPT
+    size_t height, bool bypass) NOEXCEPT
 {
     if (ec)
     {
@@ -348,10 +347,10 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         return;
     }
 
-    // VALID BLOCK (bypass not differentiated)
+    // VALID BLOCK
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
     fire(events::block_validated, height);
-    LOGV("Block validated: " << height);
+    LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }
 
 // Overrides due to independent priority thread pool
