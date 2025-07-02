@@ -30,6 +30,10 @@ using namespace network;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+// TODO: this can be optimized using a circular cuckoo filter. Minimal false
+// positives are acceptable. Elements should be removed from filter on read,
+// since received objects that are already stored are not again announced.
+
 // Capture configured buffer size.
 channel::channel(memory& memory, const logger& log, const socket::ptr& socket,
     const node::configuration& config, uint64_t identifier, bool quiet) NOEXCEPT
@@ -44,7 +48,6 @@ void channel::set_announced(const hash_digest& hash) NOEXCEPT
     announced_.push_back(hash);
 }
 
-// TODO: remove from buffer on read.
 bool channel::was_announced(const hash_digest& hash) const NOEXCEPT
 {
     BC_ASSERT(stranded());
