@@ -37,6 +37,7 @@ src_libbitcoin_node_la_LIBADD = ${bitcoin_database_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/block_arena.cpp \
     src/block_memory.cpp \
+    src/channel.cpp \
     src/configuration.cpp \
     src/error.cpp \
     src/full_node.cpp \
@@ -82,6 +83,7 @@ test_libbitcoin_node_test_LDADD = src/libbitcoin-node.la ${boost_unit_test_frame
 test_libbitcoin_node_test_SOURCES = \
     test/block_arena.cpp \
     test/block_memory.cpp \
+    test/channel.cpp \
     test/configuration.cpp \
     test/error.cpp \
     test/full_node.cpp \
@@ -140,6 +142,7 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/block_arena.hpp \
     include/bitcoin/node/block_memory.hpp \
+    include/bitcoin/node/channel.hpp \
     include/bitcoin/node/chase.hpp \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \

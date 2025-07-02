@@ -249,6 +249,7 @@ add_definitions(
 add_library( ${CANONICAL_LIB_NAME}
     "../../src/block_arena.cpp"
     "../../src/block_memory.cpp"
+    "../../src/channel.cpp"
     "../../src/configuration.cpp"
     "../../src/error.cpp"
     "../../src/full_node.cpp"
@@ -324,6 +325,7 @@ if (with-tests)
     add_executable( libbitcoin-node-test
         "../../test/block_arena.cpp"
         "../../test/block_memory.cpp"
+        "../../test/channel.cpp"
         "../../test/configuration.cpp"
         "../../test/error.cpp"
         "../../test/full_node.cpp"
