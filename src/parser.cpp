@@ -141,8 +141,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.database.duplicate_size = 44;
     configured.database.duplicate_rate = 5;
 
-    configured.database.prevout_buckets = 850'001;
-    configured.database.prevout_size = 5'250'000'000;
+    configured.database.prevout_buckets = 0;
+    configured.database.prevout_size = 1;
     configured.database.prevout_rate = 5;
 
     configured.database.validated_bk_buckets = 850'001;
@@ -892,12 +892,12 @@ options_metadata parser::load_settings() THROWS
     (
         "database.prevout_buckets",
         value<uint32_t>(&configured.database.prevout_buckets),
-        "The minimum number of buckets in the prevout table head, defaults to '850001'."
+        "The minimum number of buckets in the prevout table head, defaults to '0'."
     )
     (
         "database.prevout_size",
         value<uint64_t>(&configured.database.prevout_size),
-        "The minimum allocation of the prevout table body, defaults to '5250000000'."
+        "The minimum allocation of the prevout table body, defaults to '1'."
     )
     (
         "database.prevout_rate",
