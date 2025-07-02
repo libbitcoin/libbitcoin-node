@@ -718,7 +718,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.header_buckets",
         value<uint32_t>(&configured.database.header_buckets),
-        "The log2 number of buckets in the header table head, defaults to '386364'."
+        "The number of buckets in the header table head, defaults to '386364'."
     )
     (
         "database.header_size",
@@ -759,7 +759,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.point_buckets",
         value<uint32_t>(&configured.database.point_buckets),
-        "The log2 number of buckets in the spend table head, defaults to '1365977136'."
+        "The number of buckets in the spend table head, defaults to '1365977136'."
     )
     (
         "database.point_size",
@@ -800,7 +800,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.tx_buckets",
         value<uint32_t>(&configured.database.tx_buckets),
-        "The log2 number of buckets in the tx table head, defaults to '469222525'."
+        "The number of buckets in the tx table head, defaults to '469222525'."
     )
     (
         "database.tx_size",
@@ -817,7 +817,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.txs_buckets",
         value<uint32_t>(&configured.database.txs_buckets),
-        "The log2 number of buckets in the txs table head, defaults to '850001'."
+        "The number of buckets in the txs table head, defaults to '850001'."
     )
     (
         "database.txs_size",
@@ -858,7 +858,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.strong_tx_buckets",
         value<uint32_t>(&configured.database.strong_tx_buckets),
-        "The log2 number of buckets in the strong_tx table head, defaults to '469222525'."
+        "The number of buckets in the strong_tx table head, defaults to '469222525'."
     )
     (
         "database.strong_tx_size",
@@ -909,7 +909,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.validated_bk_buckets",
         value<uint32_t>(&configured.database.validated_bk_buckets),
-        "The log2 number of buckets in the validated_bk table head, defaults to '850001'."
+        "The number of buckets in the validated_bk table head, defaults to '850001'."
     )
     (
         "database.validated_bk_size",
@@ -943,7 +943,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.address_buckets",
         value<uint32_t>(&configured.database.address_buckets),
-        "The log2 number of buckets in the address table head, defaults to '1' (0|1 disables)."
+        "The number of buckets in the address table head, defaults to '1' (0|1 disables)."
     )
     (
         "database.address_size",
@@ -960,7 +960,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.filter_bk_buckets",
         value<uint32_t>(&configured.database.filter_bk_buckets),
-        "The log2 number of buckets in the filter_bk table head, defaults to '0' (0 disables)."
+        "The number of buckets in the filter_bk table head, defaults to '0' (0 disables)."
     )
     (
         "database.filter_bk_size",
@@ -977,7 +977,7 @@ options_metadata parser::load_settings() THROWS
     (
         "database.filter_tx_buckets",
         value<uint32_t>(&configured.database.filter_tx_buckets),
-        "The log2 number of buckets in the filter_tx table head, defaults to '0' (0 disables)."
+        "The number of buckets in the filter_tx table head, defaults to '0' (0 disables)."
     )
     (
         "database.filter_tx_size",
