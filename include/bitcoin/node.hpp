@@ -18,6 +18,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/block_arena.hpp>
 #include <bitcoin/node/block_memory.hpp>
+#include <bitcoin/node/channel.hpp>
 #include <bitcoin/node/chase.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>

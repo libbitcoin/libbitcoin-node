@@ -27,6 +27,9 @@
     <ClCompile Include="..\..\..\..\test\block_memory.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\test\channel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>

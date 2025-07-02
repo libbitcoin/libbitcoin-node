@@ -20,54 +20,14 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
  // Individual session.hpp inclusion to prevent cycle (can't forward declare).
-#include <algorithm>
 #include <memory>
-#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/channel.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-/// Node channel state.
-class BCN_API channel
-  : public network::channel
-{
-public:
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-
-    typedef std::shared_ptr<node::channel> ptr;
-
-    /// Capture configured buffer size.
-    inline channel(network::memory& memory, const network::logger& log,
-        const network::socket::ptr& socket, const node::configuration& config,
-        uint64_t identifier=zero, bool quiet=true) NOEXCEPT
-      : network::channel(memory, log, socket, config.network, identifier, quiet),
-        announced_(config.node.announcement_cache)
-    {
-    }
-
-    inline void set_announced(const system::hash_digest& hash) NOEXCEPT
-    {
-        BC_ASSERT(stranded());
-        announced_.push_back(hash);
-    }
-
-    inline bool was_announced(const system::hash_digest& hash) const NOEXCEPT
-    {
-        // TODO: remove from buffer on read.
-        BC_ASSERT(stranded());
-        return std::find(announced_.begin(), announced_.end(), hash) !=
-            announced_.end();
-    }
-
-    BC_POP_WARNING()
-
-private:
-    // This is protected by strand.
-    boost::circular_buffer<system::hash_digest> announced_;
-};
 
 /// Abstract base for node protocols, thread safe.
 class BCN_API protocol
