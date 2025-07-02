@@ -87,6 +87,9 @@ protected:
     /// Resume all network connections.
     virtual void resume() NOEXCEPT;
 
+    /// Prune the store, suspends and resumes network.
+    virtual code prune(const store::event_handler& handler) NOEXCEPT;
+
     /// Snapshot the store, suspends and resumes network.
     virtual code snapshot(const store::event_handler& handler) NOEXCEPT;
 
