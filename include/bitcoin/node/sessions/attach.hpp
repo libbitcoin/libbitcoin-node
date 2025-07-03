@@ -49,6 +49,11 @@ public:
         (
             node.config().network.services_maximum,
             network::messages::service::node_network
+        ))),
+        node_client_filters_(to_bool(system::bit_and<uint64_t>
+        (
+            node.config().network.services_maximum,
+            network::messages::service::node_client_filters
         )))
     {
     }
@@ -76,9 +81,21 @@ protected:
         // Channel suspensions.
         channel->attach<protocol_observer>(self)->start();
 
-        // Node must advertise node_network or there is no in|out of blocks|txs. 
+        // Ready to relay blocks or block filters.
+        const auto blocks_out = !delay_ || is_recent();
+
+        // Node must advertise node_client_filters or no out filters.
+        if (node_client_filters_ && blocks_out)
+            channel->attach<protocol_filter_out_70015>(self)->start();
+
+        // Node must advertise node_network or no in|out blocks|txs.
         if (!node_network_)
             return;
+
+        // Ready to relay transactions.
+        const auto txs_in_out = relay_ &&
+            channel->is_negotiated(level::bip37) &&
+            (!delay_ || is_current(true));
 
         // Peer advertises chain (blocks in).
         if (channel->is_peer_service(service::node_network))
@@ -103,7 +120,7 @@ protected:
         }
 
         // Blocks are ready (blocks out).
-        if (!delay_ || is_recent())
+        if (blocks_out)
         {
             if (headers_ && channel->is_negotiated(level::bip130))
             {
@@ -122,8 +139,7 @@ protected:
         }
 
         // Relay is configured, active, and txs are ready (txs in/out).
-        if (relay_ && channel->is_negotiated(level::bip37) &&
-            (!delay_ || is_current(true)))
+        if (txs_in_out)
         {
             channel->attach<protocol_transaction_in_106>(self)->start();
             if (channel->peer_version()->relay)
@@ -146,6 +162,7 @@ private:
     const bool delay_;
     const bool headers_;
     const bool node_network_;
+    const bool node_client_filters_;
 };
 
 } // namespace node

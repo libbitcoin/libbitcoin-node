@@ -78,8 +78,6 @@ protected:
         const network::messages::block::cptr& message) NOEXCEPT;
 
 private:
-    using type_id = network::messages::inventory::type_id;
-
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 

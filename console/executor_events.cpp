@@ -49,6 +49,7 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
 
     { events::snapshot_secs,       "snapshot_secs......." },
     { events::getblock_msecs,      "getblock_msecs......" },
+    { events::getfilter_msecs,     "getfilter_msecs....." },
     { events::reload_msecs,        "reload_msecs........" },
     { events::prune_msecs,         "prune_msecs........." }
 };

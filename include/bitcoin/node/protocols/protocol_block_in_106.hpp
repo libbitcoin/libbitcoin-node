@@ -74,8 +74,6 @@ protected:
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:
-    using type_id = network::messages::inventory::type_id;
-
     static hashmap to_hashes(size_t reserve,
         const network::messages::get_data& getter) NOEXCEPT;
 

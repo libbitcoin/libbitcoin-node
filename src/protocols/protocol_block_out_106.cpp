@@ -101,13 +101,11 @@ bool protocol_block_out_106::superseded() const NOEXCEPT
 bool protocol_block_out_106::do_announce(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
-
     if (stopped())
         return false;
 
     // Don't announce to peer that announced to us.
-    const auto hash = query.get_header_key(link);
+    const auto hash = archive().get_header_key(link);
     if (was_announced(hash))
         return true;
 
@@ -131,7 +129,6 @@ bool protocol_block_out_106::handle_receive_get_blocks(const code& ec,
     const get_blocks::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -149,7 +146,6 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
     const get_data::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -165,7 +161,6 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     const get_data::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
     if (stopped(ec))
         return;
 
