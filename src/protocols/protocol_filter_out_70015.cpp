@@ -99,12 +99,19 @@ bool protocol_filter_out_70015::handle_receive_get_client_filters(
     // support for this filter type (the method of signal is unspecified).
     const auto& query = archive();
     if (message->filter_type != client_filter::type_id::neutrino)
-        return true;
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
 
     // bip157: node SHOULD NOT respond to getcfilters with unknown stop_hash.
+    // bip157: stop_hash MUST have been announced (or ancestor of) block hash.
     size_t stop_height{};
     if (!query.get_height(stop_height, query.to_header(message->stop_hash)))
-        return true;
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
 
     // bip157: height of block with stop_hash MUST be >= to start_height.
     // bip157: difference [stop_height - start_height] MUST be less than 1000.
