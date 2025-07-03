@@ -114,6 +114,9 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70012.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_filter_out_70015.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in_31800.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
@@ -237,6 +240,9 @@
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70012.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_filter_out_70015.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in_31800.hpp">
