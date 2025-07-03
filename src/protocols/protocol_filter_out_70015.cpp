@@ -143,13 +143,16 @@ void protocol_filter_out_70015::send_client_filter(const code& ec, size_t height
     const auto start = logger::now();
 
     client_filter out{};
-    if (!query.get_filter_body(out.filter, query.to_confirmed(height)))
+    const auto link = query.to_confirmed(height);
+    if (!query.get_filter_body(out.filter, link))
     {
         LOGF("Filter at (" << height << ") not found.");
         stop(system::error::not_found);
         return;
     }
 
+    out.block_hash = query.get_header_key(link);
+    out.filter_type = client_filter::type_id::neutrino;
     span<milliseconds>(events::getfilter_msecs, start);
 
     if (height == stop_height)
