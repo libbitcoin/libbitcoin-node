@@ -59,9 +59,10 @@ enum events : uint8_t
     prune_msecs,          // prune timespan in milliseconds.
     reload_msecs,         // store reload timespan in milliseconds.
     block_msecs,          // getblock timespan in milliseconds.
-    filter_msecs,         // getfilter timespan in milliseconds.
     ancestry_msecs,       // getancestry timespan in milliseconds.
-    filterhashes_msecs    // getfilterhashes timespan in milliseconds.
+    filter_msecs,         // getfilter timespan in milliseconds.
+    filterhashes_msecs,   // getfilterhashes timespan in milliseconds.
+    filterchecks_msecs    // getcfcheckpt timespan in milliseconds.
 };
 
 } // namespace node

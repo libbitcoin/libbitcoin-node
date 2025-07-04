@@ -57,14 +57,48 @@ void protocol_filter_out_70015::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_filter_out_70015::handle_receive_get_filter_checkpoint(
-    const code& ec, const get_client_filter_checkpoint::cptr&) NOEXCEPT
+    const code& ec, const get_client_filter_checkpoint::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return false;
 
-    // TODO:
-    SEND(client_filter_checkpoint{}, handle_send, _1);
+    // bip157: Nodes SHOULD NOT send getcfcheckpt unless peer has signaled
+    // support for this filter type (the method of signal is unspecified).
+    if (message->filter_type != client_filter::type_id::neutrino)
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    const auto& query = archive();
+    const auto start = logger::now();
+
+    // bip157: node SHOULD NOT respond to getcfcheckpt with unknown stop_hash.
+    // bip157: stop_hash MUST have been announced (or ancestor of) block hash.
+    size_t stop_height{};
+    const auto stop_link = query.to_header(message->stop_hash);
+    if (!query.get_height(stop_height, stop_link))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // There is no guarantee that this set will be consistent across reorgs.
+    // However for it to be inconsistent there must be a > 1000 block reorg.
+    // If the branch has never been confirmed then filters will not be found.
+    client_filter_checkpoint out{};
+    if (!query.get_filter_heads(out.filter_headers, stop_height,
+        client_filter_checkpoint_interval))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    out.stop_hash = message->stop_hash;
+    out.filter_type = client_filter::type_id::neutrino;
+    span<milliseconds>(events::filterchecks_msecs, start);
+    SEND(out, handle_send, _1);
     return true;
 }
 
