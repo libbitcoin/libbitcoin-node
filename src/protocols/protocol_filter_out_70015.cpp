@@ -85,7 +85,7 @@ bool protocol_filter_out_70015::handle_receive_get_filter_checkpoint(
     }
 
     // There is no guarantee that this set will be consistent across reorgs.
-    // However for it to be inconsistent there must be a > 1000 block reorg.
+    // However for it to be inconsistent there must be a >= 1000 block reorg.
     // If the branch has never been confirmed then filters will not be found.
     client_filter_checkpoint out{};
     if (!query.get_filter_heads(out.filter_headers, stop_height,
@@ -150,6 +150,7 @@ bool protocol_filter_out_70015::handle_receive_get_filter_headers(
     }
 
     // The response is assured to represent a consistent branch.
+    // If the branch has never been confirmed then filters will not be found.
     client_filter_headers out{};
     if (!query.get_filter_hashes(out.filter_hashes, out.previous_filter_header,
         stop_link, count))
@@ -243,6 +244,7 @@ void protocol_filter_out_70015::send_filter(const code& ec,
     const auto start = logger::now();
     const auto link = system::pop(*ancestry);
 
+    // If the branch has never been confirmed then filters will not be found.
     client_filter out{};
     if (!query.get_filter_body(out.filter, link))
     {
