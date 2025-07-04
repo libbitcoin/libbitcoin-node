@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_CLIENT_FILTER_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_CLIENT_FILTER_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
@@ -45,16 +46,16 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    virtual bool handle_receive_get_client_filter_checkpoint(const code& ec,
+    virtual bool handle_receive_get_filter_checkpoint(const code& ec,
         const network::messages::get_client_filter_checkpoint::cptr& message) NOEXCEPT;
-    virtual bool handle_receive_get_client_filter_headers(const code& ec,
+    virtual bool handle_receive_get_filter_headers(const code& ec,
         const network::messages::get_client_filter_headers::cptr& message) NOEXCEPT;
-    virtual bool handle_receive_get_client_filters(const code& ec,
+    virtual bool handle_receive_get_filters(const code& ec,
         const network::messages::get_client_filters::cptr& message) NOEXCEPT;
 
 private:
-    void send_client_filter(const code& ec, size_t height, size_t stop_height,
-        const network::messages::get_client_filters::cptr& message) NOEXCEPT;
+    using ancestry_ptr = std::shared_ptr<database::header_links>;
+    void send_filter(const code& ec, const ancestry_ptr& ancestry) NOEXCEPT;
 };
 
 } // namespace node

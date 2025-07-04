@@ -48,10 +48,13 @@ const std::unordered_map<uint8_t, std::string> executor::fired_
     { events::template_issued,     "template_issued....." },
 
     { events::snapshot_secs,       "snapshot_secs......." },
-    { events::getblock_msecs,      "getblock_msecs......" },
-    { events::getfilter_msecs,     "getfilter_msecs....." },
+    { events::prune_msecs,         "prune_msecs........." },
     { events::reload_msecs,        "reload_msecs........" },
-    { events::prune_msecs,         "prune_msecs........." }
+    { events::block_msecs,         "block_msecs........." },
+    { events::ancestry_msecs,      "ancestry_msecs......" },
+    { events::filter_msecs,        "filter_msecs........" },
+    { events::filterhashes_msecs,  "filterhashes_msecs.." },
+    { events::filterchecks_msecs,  "filterchecks_msecs.." }
 };
 
 // Events.

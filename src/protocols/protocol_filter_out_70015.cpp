@@ -34,6 +34,7 @@ using namespace std::chrono;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -46,50 +47,130 @@ void protocol_filter_out_70015::start() NOEXCEPT
     if (started())
         return;
 
-    SUBSCRIBE_CHANNEL(get_client_filter_checkpoint,
-        handle_receive_get_client_filter_checkpoint, _1, _2);
-    SUBSCRIBE_CHANNEL(get_client_filter_headers,
-        handle_receive_get_client_filter_headers, _1, _2);
-    SUBSCRIBE_CHANNEL(get_client_filters,
-        handle_receive_get_client_filters, _1, _2);
+    SUBSCRIBE_CHANNEL(get_client_filter_checkpoint, handle_receive_get_filter_checkpoint, _1, _2);
+    SUBSCRIBE_CHANNEL(get_client_filter_headers, handle_receive_get_filter_headers, _1, _2);
+    SUBSCRIBE_CHANNEL(get_client_filters, handle_receive_get_filters, _1, _2);
     protocol::start();
 }
 
 // Inbound (get_client_filter_checkpoint).
 // ----------------------------------------------------------------------------
 
-bool protocol_filter_out_70015::handle_receive_get_client_filter_checkpoint(
-    const code& ec, const get_client_filter_checkpoint::cptr&) NOEXCEPT
+bool protocol_filter_out_70015::handle_receive_get_filter_checkpoint(
+    const code& ec, const get_client_filter_checkpoint::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return false;
 
-    // TODO:
-    SEND(client_filter_checkpoint{}, handle_send, _1);
+    // bip157: Nodes SHOULD NOT send getcfcheckpt unless peer has signaled
+    // support for this filter type (the method of signal is unspecified).
+    if (message->filter_type != client_filter::type_id::neutrino)
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    const auto& query = archive();
+    const auto start = logger::now();
+
+    // bip157: node SHOULD NOT respond to getcfcheckpt with unknown stop_hash.
+    // bip157: stop_hash MUST have been announced (or ancestor of) block hash.
+    size_t stop_height{};
+    const auto stop_link = query.to_header(message->stop_hash);
+    if (!query.get_height(stop_height, stop_link))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // There is no guarantee that this set will be consistent across reorgs.
+    // However for it to be inconsistent there must be a >= 1000 block reorg.
+    // If the branch has never been confirmed then filters will not be found.
+    client_filter_checkpoint out{};
+    if (!query.get_filter_heads(out.filter_headers, stop_height,
+        client_filter_checkpoint_interval))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    out.stop_hash = message->stop_hash;
+    out.filter_type = client_filter::type_id::neutrino;
+    span<milliseconds>(events::filterchecks_msecs, start);
+    SEND(out, handle_send, _1);
     return true;
 }
 
 // Inbound (get_client_filter_headers).
 // ----------------------------------------------------------------------------
 
-bool protocol_filter_out_70015::handle_receive_get_client_filter_headers(
-    const code& ec, const get_client_filter_headers::cptr&) NOEXCEPT
+bool protocol_filter_out_70015::handle_receive_get_filter_headers(
+    const code& ec, const get_client_filter_headers::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return false;
 
-    // TODO:
-    SEND(client_filter_headers{}, handle_send, _1);
+    // bip157: Nodes SHOULD NOT send getcfheaders unless peer has signaled
+    // support for this filter type (the method of signal is unspecified).
+    if (message->filter_type != client_filter::type_id::neutrino)
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    const auto& query = archive();
+    const auto start = logger::now();
+
+    // bip157: node SHOULD NOT respond to getcfheaders with unknown stop_hash.
+    // bip157: stop_hash MUST have been announced (or ancestor of) block hash.
+    size_t stop_height{};
+    const auto stop_link = query.to_header(message->stop_hash);
+    if (!query.get_height(stop_height, stop_link))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // bip157: height of block with stop_hash MUST be >= to start_height.
+    const size_t start_height = message->start_height;
+    if (is_subtract_overflow(stop_height, start_height))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // bip157: difference [stop_height - start_height] MUST be less than 2000.
+    const auto count = subtract(stop_height, start_height);
+    if (count >= max_client_filter_headers)
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // The response is assured to represent a consistent branch.
+    // If the branch has never been confirmed then filters will not be found.
+    client_filter_headers out{};
+    if (!query.get_filter_hashes(out.filter_hashes, out.previous_filter_header,
+        stop_link, count))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    out.stop_hash = message->stop_hash;
+    out.filter_type = client_filter::type_id::neutrino;
+    span<milliseconds>(events::filterhashes_msecs, start);
+    SEND(out, handle_send, _1);
     return true;
 }
 
 // Inbound (get_client_filters).
 // ----------------------------------------------------------------------------
 
-bool protocol_filter_out_70015::handle_receive_get_client_filters(
-    const code& ec, const get_client_filters::cptr& message) NOEXCEPT
+bool protocol_filter_out_70015::handle_receive_get_filters(const code& ec,
+    const get_client_filters::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
@@ -97,65 +178,87 @@ bool protocol_filter_out_70015::handle_receive_get_client_filters(
 
     // bip157: Nodes SHOULD NOT send getcfilters unless peer has signaled
     // support for this filter type (the method of signal is unspecified).
-    const auto& query = archive();
     if (message->filter_type != client_filter::type_id::neutrino)
-        return true;
-
-    // bip157: node SHOULD NOT respond to getcfilters with unknown stop_hash.
-    size_t stop_height{};
-    if (!query.get_height(stop_height, query.to_header(message->stop_hash)))
-        return true;
-
-    // bip157: height of block with stop_hash MUST be >= to start_height.
-    // bip157: difference [stop_height - start_height] MUST be less than 1000.
-    const size_t start_height = message->start_height;
-    if (is_subtract_overflow(stop_height, start_height) ||
-        subtract(stop_height, start_height) >= max_client_filter_request)
     {
         stop(network::error::protocol_violation);
         return false;
     }
 
-    // Send and desubscribe.
-    // bip157: node MUST respond by sending one cfilter message for each block
-    // in the requested range, sequentially in order by block height.
-    send_client_filter(error::success, start_height, stop_height, message);
+    const auto& query = archive();
+    const auto start = logger::now();
+
+    // bip157: node SHOULD NOT respond to getcfilters with unknown stop_hash.
+    // bip157: stop_hash MUST have been announced (or ancestor of) block hash.
+    size_t stop_height{};
+    const auto stop_link = query.to_header(message->stop_hash);
+    if (!query.get_height(stop_height, stop_link))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // bip157: height of block with stop_hash MUST be >= to start_height.
+    const size_t start_height = message->start_height;
+    if (is_subtract_overflow(stop_height, start_height))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // bip157: difference [stop_height - start_height] MUST be less than 1000.
+    const auto count = subtract(stop_height, start_height);
+    if (count >= max_client_filters)
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // The response is assured to represent a consistent branch.
+    const auto ancestry = std::make_shared<database::header_links>();
+    if (!query.get_ancestry(*ancestry, stop_link, count))
+    {
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    span<milliseconds>(events::ancestry_msecs, start);
+    send_filter(error::success, ancestry);
     return false;
 }
 
-void protocol_filter_out_70015::send_client_filter(const code& ec, size_t height,
-    size_t stop_height, const get_client_filters::cptr& message) NOEXCEPT
+void protocol_filter_out_70015::send_filter(const code& ec,
+    const ancestry_ptr& ancestry) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return;
 
-    // Forward ordering by height makes it costly to ensure consistency when
-    // spanning a reorganization, so allow that to pass to client for handling.
-    const auto& query = archive();
-    const auto start = logger::now();
-
-    client_filter out{};
-    if (!query.get_filter_body(out.filter, query.to_confirmed(height)))
-    {
-        LOGF("Filter at (" << height << ") not found.");
-        stop(system::error::not_found);
-        return;
-    }
-
-    span<milliseconds>(events::getfilter_msecs, start);
-
-    if (height == stop_height)
+    if (ancestry->empty())
     {
         // Complete, resubscribe to get_client_filters.
-        SUBSCRIBE_CHANNEL(get_client_filters,
-            handle_receive_get_client_filters, _1, _2);
+        SUBSCRIBE_CHANNEL(get_client_filters, handle_receive_get_filters, _1, _2);
         return;
     }
 
-    SEND(out, send_client_filter, _1, add1(height), stop_height, message);
+    const auto& query = archive();
+    const auto start = logger::now();
+    const auto link = system::pop(*ancestry);
+
+    // If the branch has never been confirmed then filters will not be found.
+    client_filter out{};
+    if (!query.get_filter_body(out.filter, link))
+    {
+        stop(network::error::protocol_violation);
+        return;
+    }
+
+    out.block_hash = query.get_header_key(link);
+    out.filter_type = client_filter::type_id::neutrino;
+    span<milliseconds>(events::filter_msecs, start);
+    SEND(out, send_filter, _1, ancestry);
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 

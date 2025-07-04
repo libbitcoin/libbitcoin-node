@@ -56,10 +56,13 @@ enum events : uint8_t
 
     /// Timespans.
     snapshot_secs,        // snapshot timespan in seconds.
-    getblock_msecs,       // getblock timespan in milliseconds.
-    getfilter_msecs,      // getfilter timespan in milliseconds.
+    prune_msecs,          // prune timespan in milliseconds.
     reload_msecs,         // store reload timespan in milliseconds.
-    prune_msecs           // prune timespan in milliseconds.
+    block_msecs,          // getblock timespan in milliseconds.
+    ancestry_msecs,       // getancestry timespan in milliseconds.
+    filter_msecs,         // getfilter timespan in milliseconds.
+    filterhashes_msecs,   // getfilterhashes timespan in milliseconds.
+    filterchecks_msecs    // getcfcheckpt timespan in milliseconds.
 };
 
 } // namespace node

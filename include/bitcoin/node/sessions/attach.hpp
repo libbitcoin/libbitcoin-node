@@ -84,8 +84,16 @@ protected:
         // Ready to relay blocks or block filters.
         const auto blocks_out = !delay_ || is_recent();
 
+        ///////////////////////////////////////////////////////////////////////
+        // bip152: "Upon receipt of a `sendcmpct` message with the first and
+        // second integers set to 1, the node SHOULD announce new blocks by
+        // sending a cmpctblock message." IOW at 70014 bip152 is optional.
+        // This allows the node to support bip157 without supporting bip152.
+        ///////////////////////////////////////////////////////////////////////
+
         // Node must advertise node_client_filters or no out filters.
-        if (node_client_filters_ && blocks_out)
+        if (node_client_filters_ && blocks_out &&
+            channel->is_negotiated(level::bip157))
             channel->attach<protocol_filter_out_70015>(self)->start();
 
         // Node must advertise node_network or no in|out blocks|txs.
