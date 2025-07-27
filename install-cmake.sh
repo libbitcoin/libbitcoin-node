@@ -40,7 +40,7 @@
 #==============================================================================
 # Branches for github dependencies.
 #------------------------------------------------------------------------------
-SECP256K1_BRANCH="v0.5.1"
+SECP256K1_BRANCH="v0.7.0"
 BITCOIN_SYSTEM_BRANCH="master"
 BITCOIN_NETWORK_BRANCH="master"
 BITCOIN_DATABASE_BRANCH="master"
