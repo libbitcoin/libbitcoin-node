@@ -46,9 +46,9 @@ code chaser_confirm::start() NOEXCEPT
     const auto& query = archive();
     set_position(query.get_fork());
 
-    if ((recent_ = is_recent()))
+    if (is_current(true))
     {
-        LOGN("Node is recent at startup block [" << position() << "].");
+        LOGN("Node is current at startup block [" << position() << "].");
     }
 
     SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
@@ -414,30 +414,13 @@ bool chaser_confirm::roll_back(const header_links& popped, size_t fork_point,
     return true;
 }
 
-void chaser_confirm::announce(const header_link& link,
-    height_t height) NOEXCEPT
+void chaser_confirm::announce(const header_link& link, height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    bool snapshot{};
-    if (!recent_ && is_recent())
-    {
-        // Snapshot at the point where the chain first becomes recent.
-        recent_ = true;
-        snapshot = true;
-    }
-
-    // Announce newly-organized block when confirmed chain is current.
-    if (recent_ && is_current(true))
+    // Announce newly-organized blocks when confirmed chain is current.
+    if (is_current(true))
         notify(error::success, chase::block, link);
-
-    // When current or maximum height take snapshot, which resets connections.
-    // Node may fall behind after becomming current though this does not reset.
-    if (snapshot)
-    {
-        notify(error::success, chase::snap, height);
-        LOGN("Node is recent as of block [" << height << "].");
-    }
 }
 
 BC_POP_WARNING()
