@@ -70,12 +70,8 @@ private:
         size_t top) NOEXCEPT;
     void announce(const header_link& link, height_t height) NOEXCEPT;
     
-
     // This is thread safe.
     const bool filter_;
-
-    // This is guarded by strand.
-    bool recent_{};
 };
 
 } // namespace node
