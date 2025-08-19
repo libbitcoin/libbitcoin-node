@@ -154,7 +154,8 @@ void chaser_snapshot::do_prune(header_t) NOEXCEPT
     if (const auto ec = prune([this](auto LOG_ONLY(event_),
         auto LOG_ONLY(table)) NOEXCEPT
     {
-        LOGN("prune::" << full_node::store::events.at(event_)
+        // prune internally logs the prune event, otherwise is a snapshot.
+        LOGN("snapshot::" << full_node::store::events.at(event_)
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
