@@ -23,7 +23,7 @@
 #include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/channel.hpp>
+#include <bitcoin/node/channel_peer.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
@@ -31,7 +31,7 @@ namespace node {
 
 /// Abstract base for node protocols, thread safe.
 class BCN_API protocol
-  : public network::protocol
+  : public network::protocol_peer
 {
 protected:
     /// Constructors.
@@ -42,8 +42,8 @@ protected:
     template <typename SessionPtr>
     protocol(const SessionPtr& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : network::protocol(session, channel), session_(session),
-        channel_(std::static_pointer_cast<node::channel>(channel))
+      : network::protocol_peer(session, channel), session_(session),
+        channel_(std::static_pointer_cast<node::channel_peer>(channel))
     {
     }
 
@@ -135,7 +135,7 @@ private:
     const session::ptr session_;
 
     // This derived channel requires stranded calls, base is thread safe.
-    node::channel::ptr channel_;
+    node::channel_peer::ptr channel_;
 
     // This is protected by singular subscription.
     object_key key_{};

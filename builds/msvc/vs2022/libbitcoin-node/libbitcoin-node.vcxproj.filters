@@ -54,7 +54,7 @@
     <ClCompile Include="..\..\..\..\src\block_memory.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\channel.cpp">
+    <ClCompile Include="..\..\..\..\src\channel_peer.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp">
@@ -167,7 +167,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\channel.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channel_peer.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp">

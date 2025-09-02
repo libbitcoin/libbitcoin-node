@@ -63,7 +63,8 @@ protected:
         network::result_handler&& handler) NOEXCEPT override
     {
         // Set the current top for version protocol, before handshake.
-        channel->set_start_height(archive().get_top_confirmed());
+        std::dynamic_pointer_cast<network::channel_peer>(channel)->
+            set_start_height(archive().get_top_confirmed());
 
         // Attach and execute appropriate version protocol.
         Session::attach_handshake(channel, std::move(handler));
@@ -91,9 +92,12 @@ protected:
         // This allows the node to support bip157 without supporting bip152.
         ///////////////////////////////////////////////////////////////////////
 
+        const auto peer = std::dynamic_pointer_cast<network::channel_peer>(
+            channel);
+
         // Node must advertise node_client_filters or no out filters.
         if (node_client_filters_ && blocks_out &&
-            channel->is_negotiated(level::bip157))
+            peer->is_negotiated(level::bip157))
             channel->attach<protocol_filter_out_70015>(self)->start();
 
         // Node must advertise node_network or no in|out blocks|txs.
@@ -101,20 +105,19 @@ protected:
             return;
 
         // Ready to relay transactions.
-        const auto txs_in_out = relay_ &&
-            channel->is_negotiated(level::bip37) &&
+        const auto txs_in_out = relay_ && peer->is_negotiated(level::bip37) &&
             (!delay_ || is_current(true));
 
         // Peer advertises chain (blocks in).
-        if (channel->is_peer_service(service::node_network))
+        if (peer->is_peer_service(service::node_network))
         {
-            if (headers_ && channel->is_negotiated(level::bip130))
+            if (headers_ && peer->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_in_70012>(self)->start();
                 channel->attach<protocol_block_in_31800>(self)->start();
 
             }
-            else if (headers_ && channel->is_negotiated(level::headers_protocol))
+            else if (headers_ && peer->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_in_31800>(self)->start();
                 channel->attach<protocol_block_in_31800>(self)->start();
@@ -130,12 +133,12 @@ protected:
         // Blocks are ready (blocks out).
         if (blocks_out)
         {
-            if (headers_ && channel->is_negotiated(level::bip130))
+            if (headers_ && peer->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_out_70012>(self)->start();
                 channel->attach<protocol_block_out_70012>(self)->start();
             }
-            else if (headers_ && channel->is_negotiated(level::headers_protocol))
+            else if (headers_ && peer->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_out_31800>(self)->start();
                 channel->attach<protocol_block_out_106>(self)->start();
@@ -149,19 +152,17 @@ protected:
         // Relay is configured, active, and txs are ready (txs in/out).
         if (txs_in_out)
         {
-            channel->attach<protocol_transaction_in_106>(self)->start();
-            if (channel->peer_version()->relay)
+            if (peer->peer_version()->relay)
                 channel->attach<protocol_transaction_out_106>(self)->start();
         }
     }
 
-    network::channel::ptr create_channel(const network::socket::ptr& socket,
-        bool quiet) NOEXCEPT override
+    network::channel::ptr create_channel(const network::socket::ptr& socket) NOEXCEPT override
     {
         return std::static_pointer_cast<network::channel>(
-            std::make_shared<node::channel>(node::session::get_memory(),
+            std::make_shared<node::channel_peer>(node::session::get_memory(),
                 network::session::log, socket, node::session::config(),
-                network::session::create_key(), quiet));
+                network::session::create_key()));
     }
 
 private:
