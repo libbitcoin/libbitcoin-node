@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/channel.hpp>
+#include <bitcoin/node/channel_peer.hpp>
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -35,20 +35,21 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // since received objects that are already stored are not again announced.
 
 // Capture configured buffer size.
-channel::channel(memory& memory, const logger& log, const socket::ptr& socket,
-    const node::configuration& config, uint64_t identifier, bool quiet) NOEXCEPT
-  : network::channel(memory, log, socket, config.network, identifier, quiet),
+channel_peer::channel_peer(memory& memory, const logger& log,
+    const socket::ptr& socket, const node::configuration& config,
+    uint64_t identifier) NOEXCEPT
+  : network::channel_peer(memory, log, socket, config.network, identifier),
     announced_(config.node.announcement_cache)
 {
 }
 
-void channel::set_announced(const hash_digest& hash) NOEXCEPT
+void channel_peer::set_announced(const hash_digest& hash) NOEXCEPT
 {
     BC_ASSERT(stranded());
     announced_.push_back(hash);
 }
 
-bool channel::was_announced(const hash_digest& hash) const NOEXCEPT
+bool channel_peer::was_announced(const hash_digest& hash) const NOEXCEPT
 {
     BC_ASSERT(stranded());
     return std::find(announced_.begin(), announced_.end(), hash) !=

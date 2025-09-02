@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_OBSERVER_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_OBSERVER_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
@@ -41,7 +42,8 @@ public:
       : node::protocol(session, channel),
         relay_disallowed_
         (
-            channel->is_negotiated(network::messages::level::bip37) &&
+            std::dynamic_pointer_cast<network::channel_peer>(channel)->
+                is_negotiated(network::messages::level::bip37) &&
             !session->config().network.enable_relay
         ),
         node_witness_(session->config().network.witness_node()),

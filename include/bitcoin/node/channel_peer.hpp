@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNEL_HPP
-#define LIBBITCOIN_NODE_CHANNEL_HPP
+#ifndef LIBBITCOIN_NODE_CHANNEL_PEER_HPP
+#define LIBBITCOIN_NODE_CHANNEL_PEER_HPP
 
 #include <memory>
 #include <bitcoin/network.hpp>
@@ -27,16 +27,16 @@
 namespace libbitcoin {
 namespace node {
 
-/// Channel state for the node.
-class BCN_API channel
-  : public network::channel
+/// Peer channel state for the node.
+class BCN_API channel_peer
+  : public network::channel_peer
 {
 public:
-    typedef std::shared_ptr<node::channel> ptr;
+    typedef std::shared_ptr<node::channel_peer> ptr;
 
-    channel(network::memory& memory, const network::logger& log,
+    channel_peer(network::memory& memory, const network::logger& log,
         const network::socket::ptr& socket, const node::configuration& config,
-        uint64_t identifier=zero, bool quiet=true) NOEXCEPT;
+        uint64_t identifier=zero) NOEXCEPT;
 
     void set_announced(const system::hash_digest& hash) NOEXCEPT;
     bool was_announced(const system::hash_digest& hash) const NOEXCEPT;
