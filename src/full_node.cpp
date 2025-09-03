@@ -34,10 +34,10 @@ using namespace network;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// p2p::strand() is safe to call from constructor (non-virtual).
+// net::strand() is safe to call from constructor (non-virtual).
 full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
-  : p2p(configuration.network, log),
+  : net(configuration.network, log),
     config_(configuration),
     memory_(config_.node.allocation_multiple, config_.network.threads),
     query_(query),
@@ -69,8 +69,8 @@ void full_node::start(result_handler&& handler) NOEXCEPT
         return;
     }
 
-    // Base (p2p) invokes do_start().
-    p2p::start(std::move(handler));
+    // Base (net) invokes do_start().
+    net::start(std::move(handler));
 }
 
 void full_node::do_start(const result_handler& handler) NOEXCEPT
@@ -93,13 +93,13 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         return;
     }
 
-    p2p::do_start(handler);
+    net::do_start(handler);
 }
 
 void full_node::run(result_handler&& handler) NOEXCEPT
 {
-    // Base (p2p) invokes do_run().
-    p2p::run(std::move(handler));
+    // Base (net) invokes do_run().
+    net::run(std::move(handler));
 }
 
 void full_node::do_run(const result_handler& handler) NOEXCEPT
@@ -116,13 +116,13 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
     // This will kick off lagging validations even if not current.
     do_notify(error::success, chase::start, height_t{});
 
-    p2p::do_run(handler);
+    net::do_run(handler);
 }
 
 void full_node::close() NOEXCEPT
 {
-    // Base (p2p) invokes do_close().
-    p2p::close();
+    // Base (net) invokes do_close().
+    net::close();
 
     // Block on chaser stop (including dedicated threadpool joins).
     chaser_header_.stop();
@@ -136,7 +136,7 @@ void full_node::close() NOEXCEPT
     chaser_storage_.stop();
 }
 
-// Base (p2p) invokes do_close().
+// Base (net) invokes do_close().
 void full_node::do_close() NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -153,7 +153,7 @@ void full_node::do_close() NOEXCEPT
     chaser_storage_.stopping(network::error::service_stopped);
 
     event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
-    p2p::do_close();
+    net::do_close();
 }
 
 // Organizers.
@@ -260,14 +260,14 @@ void full_node::resume() NOEXCEPT
 
     LOGS("Resuming network.");
     notify(error::success, chase::resume, {});
-    p2p::resume();
+    net::resume();
 }
 
 // This is just a best effort, the call may have to be repeated.
 void full_node::suspend(const code& ec) NOEXCEPT
 {
     LOGS("Suspending network, " << ec.message());
-    p2p::suspend(ec);
+    net::suspend(ec);
     notify(ec, chase::suspend, {});
 }
 
@@ -311,7 +311,7 @@ code full_node::prune(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
-    p2p::span<milliseconds>(events::prune_msecs, start);
+    net::span<milliseconds>(events::prune_msecs, start);
     return ec;
 }
 
@@ -332,7 +332,7 @@ code full_node::snapshot(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
-    p2p::span<seconds>(events::snapshot_secs, start);
+    net::span<seconds>(events::snapshot_secs, start);
     return ec;
 }
 
@@ -353,7 +353,7 @@ code full_node::reload(const store::event_handler& handler) NOEXCEPT
         handler(event, table);
     });
 
-    p2p::span<milliseconds>(events::reload_msecs, start);
+    net::span<milliseconds>(events::reload_msecs, start);
     return ec;
 }
 
@@ -419,17 +419,17 @@ network::memory& full_node::get_memory() NOEXCEPT
 
 network::session_manual::ptr full_node::attach_manual_session() NOEXCEPT
 {
-    return p2p::attach<node::session_manual>(*this);
+    return net::attach<node::session_manual>(*this);
 }
 
 network::session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 {
-    return p2p::attach<node::session_inbound>(*this);
+    return net::attach<node::session_inbound>(*this);
 }
 
 network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
-    return p2p::attach<node::session_outbound>(*this);
+    return net::attach<node::session_outbound>(*this);
 }
 
 BC_POP_WARNING()
