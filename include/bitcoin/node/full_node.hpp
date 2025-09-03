@@ -37,7 +37,7 @@ namespace node {
 /// shared_ptr must also be be retained. Taking a block or sub-object copy is
 /// insufficient, as copies are shallow (copy internal shared_ptr objects).
 class BCN_API full_node
-  : public network::p2p
+  : public network::net
 {
 public:
     using memory_controller = block_memory;
