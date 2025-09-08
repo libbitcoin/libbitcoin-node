@@ -90,6 +90,10 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.seeds.emplace_back("seed.bitcoin.wiz.biz", 8333_u16);
     configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
 
+    // server
+    configured.network.client.count = 1;
+    configured.network.client.binds.emplace_back(asio::address{}, 80_u16);
+
     // SCALE: LF2.2 @ 850K.
 
     // database (archive)
@@ -1082,6 +1086,18 @@ options_metadata parser::load_settings() THROWS
     ////    value<uint64_t>(&configured.node.minimum_output_satoshis),
     ////    "The minimum output value, defaults to 500."
     ////)
+
+    /* [server] */
+    (
+        "server.inbound_connections",
+        value<uint16_t>(&configured.network.client.count),
+        "The target number of incoming network connections, defaults to 1."
+    )
+    (
+        "server.bind",
+        value<network::config::endpoints>(&configured.network.client.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:80."
+    )
 
     /* [log] */
 #if defined(HAVE_LOGA)
