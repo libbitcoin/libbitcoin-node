@@ -91,8 +91,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
 
     // server
-    configured.network.client.count = 1;
-    configured.network.client.binds.emplace_back(asio::address{}, 80_u16);
+    configured.network.client.count = 0;
+    configured.network.client.binds.emplace_back(asio::address{}, 8080_u16);
 
     // SCALE: LF2.2 @ 850K.
 
@@ -1091,12 +1091,12 @@ options_metadata parser::load_settings() THROWS
     (
         "server.inbound_connections",
         value<uint16_t>(&configured.network.client.count),
-        "The target number of incoming network connections, defaults to 1."
+        "The target number of incoming network connections, defaults to 0."
     )
     (
         "server.bind",
         value<network::config::endpoints>(&configured.network.client.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:80."
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8080."
     )
 
     /* [log] */
