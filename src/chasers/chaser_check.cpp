@@ -433,7 +433,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    BC_ASSERT(map->size() <= messages::max_inventory);
+    BC_ASSERT(map->size() <= messages::p2p::max_inventory);
     if (closed() || purging())
         return;
 
@@ -456,7 +456,7 @@ bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
-    BC_ASSERT(map->size() <= messages::max_inventory);
+    BC_ASSERT(map->size() <= messages::p2p::max_inventory);
     if (map->empty())
         return false;
 
