@@ -63,11 +63,11 @@ protected:
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::inventory::cptr& message) NOEXCEPT;
+        const network::messages::p2p::inventory::cptr& message) NOEXCEPT;
 
     /// Accept incoming block message.
     virtual bool handle_receive_block(const code& ec,
-        const network::messages::block::cptr& message) NOEXCEPT;
+        const network::messages::p2p::block::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
     virtual void do_handle_organize(const code& ec, size_t height,
@@ -75,16 +75,16 @@ protected:
 
 private:
     static hashmap to_hashes(size_t reserve,
-        const network::messages::get_data& getter) NOEXCEPT;
+        const network::messages::p2p::get_data& getter) NOEXCEPT;
 
-    network::messages::get_blocks create_get_inventory() const NOEXCEPT;
-    network::messages::get_blocks create_get_inventory(
+    network::messages::p2p::get_blocks create_get_inventory() const NOEXCEPT;
+    network::messages::p2p::get_blocks create_get_inventory(
         const system::hash_digest& last) const NOEXCEPT;
-    network::messages::get_blocks create_get_inventory(
+    network::messages::p2p::get_blocks create_get_inventory(
         system::hashes&& start_hashes) const NOEXCEPT;
 
-    network::messages::get_data create_get_data(
-        const network::messages::inventory& message) const NOEXCEPT;
+    network::messages::p2p::get_data create_get_data(
+        const network::messages::p2p::inventory& message) const NOEXCEPT;
 
     // This is thread safe.
     const type_id block_type_;

@@ -46,11 +46,11 @@ public:
 
 protected:
     virtual bool handle_receive_get_headers(const code& ec,
-        const network::messages::get_headers::cptr& message) NOEXCEPT;
+        const network::messages::p2p::get_headers::cptr& message) NOEXCEPT;
 
 private:
-    network::messages::headers create_headers(
-        const network::messages::get_headers& locator) const NOEXCEPT;
+    network::messages::p2p::headers create_headers(
+        const network::messages::p2p::get_headers& locator) const NOEXCEPT;
 };
 
 } // namespace node

@@ -29,7 +29,7 @@ namespace node {
 
 using namespace system;
 using namespace network;
-using namespace network::messages;
+using namespace network::messages::p2p;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)

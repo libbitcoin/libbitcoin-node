@@ -27,7 +27,7 @@ namespace node {
 
 #define CLASS protocol_transaction_in_106
 
-using namespace network::messages;
+using namespace network::messages::p2p;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.

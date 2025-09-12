@@ -47,11 +47,11 @@ public:
 
 protected:
     virtual bool handle_receive_get_filter_checkpoint(const code& ec,
-        const network::messages::get_client_filter_checkpoint::cptr& message) NOEXCEPT;
+        const network::messages::p2p::get_client_filter_checkpoint::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_filter_headers(const code& ec,
-        const network::messages::get_client_filter_headers::cptr& message) NOEXCEPT;
+        const network::messages::p2p::get_client_filter_headers::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_filters(const code& ec,
-        const network::messages::get_client_filters::cptr& message) NOEXCEPT;
+        const network::messages::p2p::get_client_filters::cptr& message) NOEXCEPT;
 
 private:
     using ancestry_ptr = std::shared_ptr<database::header_links>;

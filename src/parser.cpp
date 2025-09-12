@@ -53,8 +53,8 @@ parser::parser(system::chain::selection context) NOEXCEPT
 
     // network
 
-    using level = network::messages::level;
-    using service = network::messages::service;
+    using level = network::messages::p2p::level;
+    using service = network::messages::p2p::service;
 
     configured.network.threads = 16;
     configured.network.enable_relay = true;
@@ -69,7 +69,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
 
-    // TODO: presently network::messages::block/tx/compact hardwire witness
+    // TODO: presently network::messages::p2p::block/tx/compact hardwire witness
     // to true, but that should be drive off of configured and peer services.
 
     // services_minimum must be node_witness to be a witness node.

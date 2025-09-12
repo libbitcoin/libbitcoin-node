@@ -57,9 +57,9 @@ protected:
     virtual bool do_announce(transaction_t link) NOEXCEPT;
 
     virtual bool handle_receive_get_data(const code& ec,
-        const network::messages::get_data::cptr& message) NOEXCEPT;
+        const network::messages::p2p::get_data::cptr& message) NOEXCEPT;
     virtual void send_transaction(const code& ec, size_t index,
-        const network::messages::get_data::cptr& message) NOEXCEPT;
+        const network::messages::p2p::get_data::cptr& message) NOEXCEPT;
 
 private:
     // These are thread safe.
