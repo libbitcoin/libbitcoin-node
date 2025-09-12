@@ -527,7 +527,7 @@ size_t chaser_check::get_inventory_size() const NOEXCEPT
     const auto& query = archive();
     const auto fork = query.get_fork();
 
-    const auto span = ceilinged_multiply(messages::max_inventory, peers);
+    const auto span = ceilinged_multiply(messages::p2p::max_inventory, peers);
     const auto step = std::min(maximum_concurrency_, span);
     const auto inventory = query.get_unassociated_count_above(fork, step);
     return ceilinged_divide(inventory, peers);

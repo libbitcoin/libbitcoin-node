@@ -43,7 +43,7 @@ public:
         relay_disallowed_
         (
             std::dynamic_pointer_cast<network::channel_peer>(channel)->
-                is_negotiated(network::messages::level::bip37) &&
+                is_negotiated(network::messages::p2p::level::bip37) &&
             !session->config().network.enable_relay
         ),
         node_witness_(session->config().network.witness_node()),
@@ -64,11 +64,11 @@ protected:
 
     /////// Accept incoming get_data message.
     ////virtual bool handle_receive_get_data(const code& ec,
-    ////    const network::messages::get_data::cptr& message) NOEXCEPT;
+    ////    const network::messages::p2p::get_data::cptr& message) NOEXCEPT;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::inventory::cptr& message) NOEXCEPT;
+        const network::messages::p2p::inventory::cptr& message) NOEXCEPT;
 
     // This is thread safe.
     const bool relay_disallowed_;

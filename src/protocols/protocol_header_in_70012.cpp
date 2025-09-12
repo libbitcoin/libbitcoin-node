@@ -26,7 +26,7 @@ namespace node {
 
 #define CLASS protocol_header_in_70012
 
-using namespace network::messages;
+using namespace network::messages::p2p;
 using namespace std::placeholders;
 
 void protocol_header_in_70012::complete() NOEXCEPT

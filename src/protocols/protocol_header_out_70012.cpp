@@ -28,7 +28,7 @@ namespace node {
 #define CLASS protocol_header_out_70012
     
 using namespace system;
-using namespace network::messages;
+using namespace network::messages::p2p;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
