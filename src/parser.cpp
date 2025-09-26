@@ -47,6 +47,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
 {
     // node
 
+    configured.node.threads = 32;
     ////configured.node.snapshot_bytes = 0;
     ////configured.node.snapshot_valid = 0;
     ////configured.node.snapshot_confirm = 0;
@@ -998,7 +999,7 @@ options_metadata parser::load_settings() THROWS
     (
         "node.threads",
         value<uint32_t>(&configured.node.threads),
-        "The number of threads in the validation threadpool, defaults to 16."
+        "The number of threads in the validation threadpool, defaults to 32."
     )
     (
         "node.priority",
