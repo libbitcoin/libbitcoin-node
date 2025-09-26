@@ -901,6 +901,7 @@ BOOST_OPTIONS=(
 "--with-program_options" \
 "--with-regex" \
 "--with-thread" \
+"--with-url" \
 "--with-test")
 
 # Define secp256k1 options.
