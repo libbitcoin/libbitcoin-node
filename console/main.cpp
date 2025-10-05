@@ -66,7 +66,7 @@ void handle_stack_trace(const std::string& trace)
 // This is invoked by dump_stack_trace.
 std::wstring pdb_path()
 {
-    return bc::system::to_extended_path(symbols_path);
+    return bc::system::extended_path(symbols_path);
 }
 
 #else
