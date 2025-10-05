@@ -91,9 +91,15 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.seeds.emplace_back("seed.bitcoin.wiz.biz", 8333_u16);
     configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
 
-    // server
-    configured.network.client.count = 0;
-    configured.network.client.binds.emplace_back(asio::address{}, 8080_u16);
+    // admin
+    configured.network.admin.binds.emplace_back(asio::address{}, 8080_u16);
+    configured.network.explore.binds.emplace_back(asio::address{}, 8180_u16);
+    configured.network.rest.binds.emplace_back(asio::address{}, 8280_u16);
+    configured.network.websocket.binds.emplace_back(asio::address{}, 8380_u16);
+    configured.network.bitcoind.binds.emplace_back(asio::address{}, 8480_u16);
+    configured.network.electrum.binds.emplace_back(asio::address{}, 8580_u16);
+    configured.network.stratum_v1.binds.emplace_back(asio::address{}, 8680_u16);
+    configured.network.stratum_v2.binds.emplace_back(asio::address{}, 8780_u16);
 
     // SCALE: LF2.2 @ 850K.
 
@@ -1088,16 +1094,135 @@ options_metadata parser::load_settings() THROWS
     ////    "The minimum output value, defaults to 500."
     ////)
 
-    /* [server] */
+    /* [admin] */
     (
-        "server.inbound_connections",
-        value<uint16_t>(&configured.network.client.count),
-        "The target number of incoming network connections, defaults to 0."
+        "admin.bind",
+        value<network::config::endpoints>(&configured.network.admin.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8080."
     )
     (
-        "server.bind",
-        value<network::config::endpoints>(&configured.network.client.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8080."
+        "admin.connections",
+        value<uint16_t>(&configured.network.admin.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+    (
+        "admin.host",
+        value<network::config::endpoint>(&configured.network.admin.host),
+        "The required host name for verifying request headers, defaults to empty."
+    )
+    (
+        "admin.path",
+        value<std::filesystem::path>(&configured.network.admin.path),
+        "The required root path of source files to be served, defaults to empty."
+    )
+
+    /* [explore] */
+    (
+        "explore.bind",
+        value<network::config::endpoints>(&configured.network.explore.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8180."
+    )
+    (
+        "explore.connections",
+        value<uint16_t>(&configured.network.explore.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+    (
+        "explore.host",
+        value<network::config::endpoint>(&configured.network.explore.host),
+        "The required host name for verifying request headers, defaults to empty."
+    )
+    (
+        "explore.path",
+        value<std::filesystem::path>(&configured.network.explore.path),
+        "The required root path of source files to be served, defaults to empty."
+    )
+
+    /* [rest] */
+    (
+        "rest.bind",
+        value<network::config::endpoints>(&configured.network.rest.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8280."
+    )
+    (
+        "rest.connections",
+        value<uint16_t>(&configured.network.rest.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+    (
+        "rest.host",
+        value<network::config::endpoint>(&configured.network.rest.host),
+        "The required host name for verifying request headers, defaults to empty."
+    )
+
+    /* [websocket] */
+    (
+        "websocket.bind",
+        value<network::config::endpoints>(&configured.network.websocket.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8380."
+    )
+    (
+        "websocket.connections",
+        value<uint16_t>(&configured.network.websocket.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+    (
+        "websocket.host",
+        value<network::config::endpoint>(&configured.network.websocket.host),
+        "The required host name for verifying handshake request header, defaults to empty."
+    )
+
+    /* [bitcoind] */
+    (
+        "bitcoind.bind",
+        value<network::config::endpoints>(&configured.network.bitcoind.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8480."
+    )
+    (
+        "bitcoind.connections",
+        value<uint16_t>(&configured.network.bitcoind.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+    (
+        "bitcoind.host",
+        value<network::config::endpoint>(&configured.network.bitcoind.host),
+        "The required host name for verifying request headers, defaults to empty."
+    )
+
+    /* [electrum] */
+    (
+        "electrum.bind",
+        value<network::config::endpoints>(&configured.network.electrum.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8580."
+    )
+    (
+        "electrum.connections",
+        value<uint16_t>(&configured.network.electrum.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+
+    /* [stratum_v1] */
+    (
+        "stratum_v1.bind",
+        value<network::config::endpoints>(&configured.network.stratum_v1.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8680."
+    )
+    (
+        "stratum_v1.connections",
+        value<uint16_t>(&configured.network.stratum_v1.connections),
+        "The required maximum number of connections, defaults to 0."
+    )
+
+    /* [stratum_v2] */
+    (
+        "stratum_v2.bind",
+        value<network::config::endpoints>(&configured.network.stratum_v2.binds),
+        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8780."
+    )
+    (
+        "stratum_v2.connections",
+        value<uint16_t>(&configured.network.stratum_v2.connections),
+        "The required maximum number of connections, defaults to 0."
     )
 
     /* [log] */
