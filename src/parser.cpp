@@ -1115,6 +1115,11 @@ options_metadata parser::load_settings() THROWS
         value<std::filesystem::path>(&configured.network.admin.path),
         "The required root path of source files to be served, defaults to empty."
     )
+    (
+        "admin.default",
+        value<std::string>(&configured.network.admin.default_),
+        "The path of the default source page, defaults to empty (none)."
+    )
 
     /* [explore] */
     (
@@ -1136,6 +1141,11 @@ options_metadata parser::load_settings() THROWS
         "explore.path",
         value<std::filesystem::path>(&configured.network.explore.path),
         "The required root path of source files to be served, defaults to empty."
+    )
+    (
+        "explore.default",
+        value<std::string>(&configured.network.explore.default_),
+        "The path of the default source page, defaults to empty (none)."
     )
 
     /* [rest] */
