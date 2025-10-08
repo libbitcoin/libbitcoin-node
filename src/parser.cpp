@@ -1107,13 +1107,18 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "admin.host",
-        value<network::config::endpoint>(&configured.network.admin.host),
-        "The required host name for verifying request headers, defaults to empty."
+        value<network::config::endpoints>(&configured.network.admin.hosts),
+        "The host name for verifying requests, multiple entries allowed, defaults to empty."
     )
     (
         "admin.path",
         value<std::filesystem::path>(&configured.network.admin.path),
         "The required root path of source files to be served, defaults to empty."
+    )
+    (
+        "admin.default",
+        value<std::string>(&configured.network.admin.default_),
+        "The path of the default source page, defaults to empty (none)."
     )
 
     /* [explore] */
@@ -1129,13 +1134,18 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "explore.host",
-        value<network::config::endpoint>(&configured.network.explore.host),
-        "The required host name for verifying request headers, defaults to empty."
+        value<network::config::endpoints>(&configured.network.explore.hosts),
+        "The host name for verifying requests, multiple entries allowed, defaults to empty."
     )
     (
         "explore.path",
         value<std::filesystem::path>(&configured.network.explore.path),
         "The required root path of source files to be served, defaults to empty."
+    )
+    (
+        "explore.default",
+        value<std::string>(&configured.network.explore.default_),
+        "The path of the default source page, defaults to empty (none)."
     )
 
     /* [rest] */
@@ -1151,8 +1161,8 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "rest.host",
-        value<network::config::endpoint>(&configured.network.rest.host),
-        "The required host name for verifying request headers, defaults to empty."
+        value<network::config::endpoints>(&configured.network.rest.hosts),
+        "The host name for verifying requests, multiple entries allowed, defaults to empty."
     )
 
     /* [websocket] */
@@ -1168,8 +1178,8 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "websocket.host",
-        value<network::config::endpoint>(&configured.network.websocket.host),
-        "The required host name for verifying handshake request header, defaults to empty."
+        value<network::config::endpoints>(&configured.network.websocket.hosts),
+        "The host name for verifying requests, multiple entries allowed, defaults to empty."
     )
 
     /* [bitcoind] */
@@ -1185,8 +1195,8 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "bitcoind.host",
-        value<network::config::endpoint>(&configured.network.bitcoind.host),
-        "The required host name for verifying request headers, defaults to empty."
+        value<network::config::endpoints>(&configured.network.bitcoind.hosts),
+        "The host name for verifying requests, multiple entries allowed, defaults to empty."
     )
 
     /* [electrum] */
