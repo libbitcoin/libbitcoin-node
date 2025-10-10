@@ -176,6 +176,15 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     };
 
+    // TODO: If any checkpoint is reached then reject non-candidates below.
+    // TODO: because checkpoints are storable (and therefore stored) along with
+    // TODO: all ancestor blocks, which therefore much be candidates as well.
+    // TODO: When a checkpoint is pushed and after its branch is reorganized,
+    // TODO: purge all blocks in the tree with height at/below that checkpoint.
+    // TODO: The combination strongly mitigates low pow sybil attacks against
+    // TODO: the header tree, as all are purged as each checkpoint is reached,
+    // TODO: and no more are ever accepted below the top checkpoint.
+
     // Blocks of headers are validated later, malleations ignored until then.
     // Blocks are fully validated (not confirmed), so malleation is non-issue.
     if (const auto ec = validate(*block, *state))
