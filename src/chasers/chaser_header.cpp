@@ -140,6 +140,10 @@ bool chaser_header::is_current(const chain_state& state) const NOEXCEPT
 
 bool chaser_header::is_hard(const chain_state& state) const NOEXCEPT
 {
+    // TODO: use minimum_work as a threshold but once chain is organized and
+    // TODO: this is exceed, the comparison should be against the cumulative
+    // TODO: work of the current top block. This value is already stored in
+    // TODO: the top block chain state, so strong can be reduced to compare.
     return state.cumulative_work() >= settings().minimum_work;
 }
 
@@ -185,22 +189,24 @@ bool chaser_header::update_milestone(const system::chain::header& header,
         return true;
     }
 
-    // Use pointer to avoid const/copy.
-    auto previous = &header.previous_block_hash();
+    using namespace system;
+    hash_cref previous{ header.previous_block_hash() };
 
     // Scan branch for milestone match.
-    for (auto it = tree().find(*previous); it != tree().end();
-        it = tree().find(*previous))
+    for (auto it = tree().find(previous); it != tree().end();
+        it = tree().find(previous))
     {
-        const auto index = it->second.state->height();
-        if (milestone_.equals(it->second.state->hash(), index))
+        const auto& state = *(it->second->get_state());
+        const auto index = state.height();
+        if (milestone_.equals(state.hash(), index))
         {
             active_milestone_height_ = index;
             return true;
         }
 
-        const auto& next = get_header(*it->second.block);
-        previous = &next.previous_block_hash();
+        // Iterate.
+        const auto& next = get_header(*it->second);
+        previous = hash_cref(next.previous_block_hash());
     }
 
     // The current active milestone is necessarily on the candidate branch.
