@@ -140,6 +140,10 @@ bool chaser_header::is_current(const chain_state& state) const NOEXCEPT
 
 bool chaser_header::is_hard(const chain_state& state) const NOEXCEPT
 {
+    // TODO: use minimum_work as a threshold but once chain is organized and
+    // TODO: this is exceed, the comparison should be against the cumulative
+    // TODO: work of the current top block. This value is already stored in
+    // TODO: the top block chain state, so strong can be reduced to compare.
     return state.cumulative_work() >= settings().minimum_work;
 }
 
