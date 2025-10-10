@@ -182,23 +182,22 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
         return;
 
     // Scan all tree blocks for matching tx (linear :/ but legacy scenario)
-    std::for_each(tree().begin(), tree().end(), [&](const auto& item) NOEXCEPT
+    std::ranges::for_each(tree(), [&](const auto& item) NOEXCEPT
     {
-        const transactions_cptr txs{ item.second.block->transactions_ptr() };
-        const auto it = std::find_if(txs->begin(), txs->end(),
-            [&](const auto& tx) NOEXCEPT
-            {
-                return tx->hash(false) == point.hash();
-            });
+        const auto& txs = item.second->transactions_ptr();
+        const auto it = std::ranges::find_if(*txs, [&](const auto& tx) NOEXCEPT
+        {
+            return tx->hash(false) == point.hash();
+        });
 
         if (it != txs->end())
         {
-            const transaction::cptr tx{ *it };
-            const outputs_cptr outs{ tx->outputs_ptr() };
-            if (point.index() < outs->size())
+            const auto& tx = **it;
+            const auto& outs = *tx.outputs_ptr();
+            if (point.index() < outs.size())
             {
                 // prevout is mutable so can be set on a const object.
-                input.prevout = outs->at(point.index());
+                input.prevout = outs.at(point.index());
                 return;
             }
         }
@@ -211,7 +210,7 @@ bool chaser_block::populate(const block& block) const NOEXCEPT
     block.populate();
 
     const auto& ins = *block.inputs_ptr();
-    std::for_each(ins.begin(), ins.end(), [&](const auto& in) NOEXCEPT
+    std::ranges::for_each(ins, [&](const auto& in) NOEXCEPT
     {
         set_prevout(*in);
     });

@@ -47,14 +47,10 @@ public:
         organize_handler&& handler) NOEXCEPT;
 
 protected:
-    using chain_state = system::chain::chain_state;
-    struct block_state
-    {
-        typename Block::cptr block;
-        chain_state::cptr state;
-    };
-    using block_tree = std::unordered_map<system::hash_cref, block_state>;
     using header_link = database::header_link;
+    using chain_state = system::chain::chain_state;
+    using block_tree = std::unordered_map<system::hash_cref,
+        typename Block::cptr>;
 
     /// Protected constructor for abstract base.
     chaser_organize(full_node& node) NOEXCEPT;
@@ -165,7 +161,7 @@ private:
     code push_block(const Block& block,
         const system::chain::context& ctx) NOEXCEPT;
 
-    // Store Block into logical tree cache.
+    // Set Block state and store into tree cache.
     void cache(const typename Block::cptr& block,
         const chain_state::cptr& state) NOEXCEPT;
 

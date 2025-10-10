@@ -133,7 +133,7 @@ void CLASS::do_organize(typename Block::cptr block,
     const auto it = tree_.find(hash_cref(hash));
     if (it != tree_.end())
     {
-        handler(error_duplicate(), it->second.state->height());
+        handler(error_duplicate(), it->second->get_state()->height());
         return;
     }
 
@@ -515,17 +515,19 @@ code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
     if (!handle)
         return error::organize15;
 
-    const auto& value = handle.mapped();
-    return push_block(*value.block, value.state->context());
+    const auto& block = handle.mapped();
+    return push_block(*block, block->get_state()->context());
 }
 
 TEMPLATE
 void CLASS::cache(const typename Block::cptr& block,
     const chain_state::cptr& state) NOEXCEPT
 {
+    // Any block obtained from the tree must have state cached.
+    block->set_state(state);
+
     // TODO: guard cache against memory exhaustion (DoS).
-    tree_.emplace(system::hash_cref(block->get_hash()),
-        block_state{ block, state });
+    tree_.emplace(system::hash_cref(block->get_hash()), block);
 }
 
 // Private getters
@@ -546,7 +548,7 @@ CLASS::chain_state::cptr CLASS::get_chain_state(
     // Previous block may be cached because it is not yet strong.
     const auto it = tree_.find(hash_cref(previous_hash));
     if (it != tree_.end())
-        return it->second.state;
+        return it->second->get_state();
 
     // previous_hash may or not exist and/or be a candidate.
     return archive().get_chain_state(settings_, previous_hash);
@@ -569,7 +571,7 @@ bool CLASS::get_branch_work(uint256_t& work,
     while (it != tree_.end())
     {
         // Accumulate.
-        const auto& head = get_header(*it->second.block);
+        const auto& head = get_header(*it->second);
         tree_branch.push_back(head.hash());
         work += head.proof();
 
