@@ -23,6 +23,8 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 
+#define BC_HTTP_SERVER_NAME "libbitcoin/4.0"
+
 std::filesystem::path config_default_path() NOEXCEPT
 {
     return { "libbitcoin/bn.cfg" };
@@ -314,144 +316,144 @@ options_metadata parser::load_settings() THROWS
     (
         "forks.difficult",
         value<bool>(&configured.bitcoin.forks.difficult),
-        "Require difficult blocks, defaults to true (use false for testnet)."
+        "Require difficult blocks, defaults to 'true' (use false for testnet)."
     )
     (
         "forks.retarget",
         value<bool>(&configured.bitcoin.forks.retarget),
-        "Retarget difficulty, defaults to true."
+        "Retarget difficulty, defaults to 'true'."
     )
     (
         "forks.bip16",
         value<bool>(&configured.bitcoin.forks.bip16),
-        "Add pay-to-script-hash processing, defaults to true (soft fork)."
+        "Add pay-to-script-hash processing, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip30",
         value<bool>(&configured.bitcoin.forks.bip30),
-        "Disallow collision of unspent transaction hashes, defaults to true (soft fork)."
+        "Disallow collision of unspent transaction hashes, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip34",
         value<bool>(&configured.bitcoin.forks.bip34),
-        "Require coinbase input includes block height, defaults to true (soft fork)."
+        "Require coinbase input includes block height, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip42",
         value<bool>(&configured.bitcoin.forks.bip42),
-        "Finite monetary supply, defaults to true (soft fork)."
+        "Finite monetary supply, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip66",
         value<bool>(&configured.bitcoin.forks.bip66),
-        "Require strict signature encoding, defaults to true (soft fork)."
+        "Require strict signature encoding, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip65",
         value<bool>(&configured.bitcoin.forks.bip65),
-        "Add check-locktime-verify op code, defaults to true (soft fork)."
+        "Add check-locktime-verify op code, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip90",
         value<bool>(&configured.bitcoin.forks.bip90),
-        "Assume bip34, bip65, and bip66 activation if enabled, defaults to true (hard fork)."
+        "Assume bip34, bip65, and bip66 activation if enabled, defaults to 'true' (hard fork)."
     )
     (
         "forks.bip68",
         value<bool>(&configured.bitcoin.forks.bip68),
-        "Add relative locktime enforcement, defaults to true (soft fork)."
+        "Add relative locktime enforcement, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip112",
         value<bool>(&configured.bitcoin.forks.bip112),
-        "Add check-sequence-verify op code, defaults to true (soft fork)."
+        "Add check-sequence-verify op code, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip113",
         value<bool>(&configured.bitcoin.forks.bip113),
-        "Use median time past for locktime, defaults to true (soft fork)."
+        "Use median time past for locktime, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip141",
         value<bool>(&configured.bitcoin.forks.bip141),
-        "Segregated witness consensus layer, defaults to true (soft fork)."
+        "Segregated witness consensus layer, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip143",
         value<bool>(&configured.bitcoin.forks.bip143),
-        "Witness version 0 (segwit), defaults to true (soft fork)."
+        "Witness version 0 (segwit), defaults to 'true' (soft fork)."
     )
     (
         "forks.bip147",
         value<bool>(&configured.bitcoin.forks.bip147),
-        "Prevent dummy value malleability, defaults to true (soft fork)."
+        "Prevent dummy value malleability, defaults to 'true' (soft fork)."
     )
     (
         "forks.bip341",
         value<bool>(&configured.bitcoin.forks.bip341),
-        "Witness version 1 (taproot), defaults to true (soft fork)."
+        "Witness version 1 (taproot), defaults to 'true' (soft fork)."
     )
     (
         "forks.bip342",
         value<bool>(&configured.bitcoin.forks.bip342),
-        "Validation of taproot script, defaults to true (soft fork)."
+        "Validation of taproot script, defaults to 'true' (soft fork)."
     )
     (
         "forks.time_warp_patch",
         value<bool>(&configured.bitcoin.forks.time_warp_patch),
-        "Fix time warp bug, defaults to false (hard fork)."
+        "Fix time warp bug, defaults to 'false' (hard fork)."
     )
     (
         "forks.retarget_overflow_patch",
         value<bool>(&configured.bitcoin.forks.retarget_overflow_patch),
-        "Fix target overflow for very low difficulty, defaults to false (hard fork)."
+        "Fix target overflow for very low difficulty, defaults to 'false' (hard fork)."
     )
     (
         "forks.scrypt_proof_of_work",
         value<bool>(&configured.bitcoin.forks.scrypt_proof_of_work),
-        "Use scrypt hashing for proof of work, defaults to false (hard fork)."
+        "Use scrypt hashing for proof of work, defaults to 'false' (hard fork)."
     )
 
     /* [bitcoin] */
     (
         "bitcoin.initial_block_subsidy_bitcoin",
         value<uint64_t>(&configured.bitcoin.initial_subsidy_bitcoin),
-        "The initial block subsidy, defaults to 50."
+        "The initial block subsidy, defaults to '50'."
     )
     (
         "bitcoin.subsidy_interval",
         value<uint32_t>(&configured.bitcoin.subsidy_interval_blocks),
-        "The subsidy halving period, defaults to 210000."
+        "The subsidy halving period, defaults to '210000'."
     )
     (
         "bitcoin.timestamp_limit_seconds",
         value<uint32_t>(&configured.bitcoin.timestamp_limit_seconds),
-        "The future timestamp allowance, defaults to 7200."
+        "The future timestamp allowance, defaults to '7200'."
     )
     (
         "bitcoin.retargeting_factor",
         value<uint32_t>(&configured.bitcoin.retargeting_factor),
-        "The difficulty retargeting factor, defaults to 4."
+        "The difficulty retargeting factor, defaults to '4'."
     )
     (
         "bitcoin.retargeting_interval_seconds",
         value<uint32_t>(&configured.bitcoin.retargeting_interval_seconds),
-        "The difficulty retargeting period, defaults to 1209600."
+        "The difficulty retargeting period, defaults to '1209600'."
     )
     (
         "bitcoin.block_spacing_seconds",
         value<uint32_t>(&configured.bitcoin.block_spacing_seconds),
-        "The target block period, defaults to 600."
+        "The target block period, defaults to '600'."
     )
     (
         "bitcoin.proof_of_work_limit",
         value<uint32_t>(&configured.bitcoin.proof_of_work_limit),
-        "The proof of work limit, defaults to 486604799."
+        "The proof of work limit, defaults to '486604799'."
     )
     (
         "bitcoin.genesis_block",
         value<config::block>(&configured.bitcoin.genesis_block),
-        "The genesis block, defaults to mainnet."
+        "The hexideciaml encoding of the genesis block, defaults to mainnet."
     )
     (
         "bitcoin.checkpoint",
@@ -462,214 +464,214 @@ options_metadata parser::load_settings() THROWS
     (
         "bitcoin.bip34_activation_threshold",
         value<size_t>(&configured.bitcoin.bip34_activation_threshold),
-        "The number of new version blocks required for bip34 style soft fork activation, defaults to 750."
+        "The number of new version blocks required for bip34 style soft fork activation, defaults to '750'."
     )
     (
         "bitcoin.bip34_enforcement_threshold",
         value<size_t>(&configured.bitcoin.bip34_enforcement_threshold),
-        "The number of new version blocks required for bip34 style soft fork enforcement, defaults to 950."
+        "The number of new version blocks required for bip34 style soft fork enforcement, defaults to '950'."
     )
     (
         "bitcoin.bip34_activation_sample",
         value<size_t>(&configured.bitcoin.bip34_activation_sample),
-        "The number of blocks considered for bip34 style soft fork activation, defaults to 1000."
+        "The number of blocks considered for bip34 style soft fork activation, defaults to '1000'."
     )
     (
         "bitcoin.bip65_freeze",
         value<size_t>(&configured.bitcoin.bip90_bip65_height),
-        "The block height to freeze the bip65 softfork for bip90, defaults to 388381."
+        "The block height to freeze the bip65 softfork for bip90, defaults to '388381'."
     )
     (
         "bitcoin.bip66_freeze",
         value<size_t>(&configured.bitcoin.bip90_bip66_height),
-        "The block height to freeze the bip66 softfork for bip90, defaults to 363725."
+        "The block height to freeze the bip66 softfork for bip90, defaults to '363725'."
     )
     (
         "bitcoin.bip34_freeze",
         value<size_t>(&configured.bitcoin.bip90_bip34_height),
-        "The block height to freeze the bip34 softfork for bip90, defaults to 227931."
+        "The block height to freeze the bip34 softfork for bip90, defaults to '227931'."
     )
     (
         "bitcoin.bip16_activation_time",
         value<uint32_t>(&configured.bitcoin.bip16_activation_time),
-        "The activation time for bip16 in unix time, defaults to 1333238400."
+        "The activation time for bip16 in unix time, defaults to '1333238400'."
     )
     (
         "bitcoin.bip9_bit0_active_checkpoint",
         value<chain::checkpoint>(&configured.bitcoin.bip9_bit0_active_checkpoint),
-        "The hash:height checkpoint for bip9 bit0 activation, defaults to 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5:419328."
+        "The hash:height checkpoint for bip9 bit0 activation, defaults to '000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5:419328'."
     )
     (
         "bitcoin.milestone",
         value<chain::checkpoint>(&configured.bitcoin.milestone),
-        "A block presumed to be valid but not required to be present, defaults to 000000000000000000010538edbfd2d5b809a33dd83f284aeea41c6d0d96968a:900000."
+        "A block presumed to be valid but not required to be present, defaults to '000000000000000000010538edbfd2d5b809a33dd83f284aeea41c6d0d96968a:900000'."
     )
     (
         "bitcoin.minimum_work",
         value<config::hash256>(&configured.bitcoin.minimum_work),
-        "The minimum work for any branch to be considered valid, defaults to 000000000000000000000000000000000000000052b2559353df4117b7348b64."
+        "The minimum work for any branch to be considered valid, defaults to '000000000000000000000000000000000000000052b2559353df4117b7348b64'."
     )
 
     /* [network] */
     (
         "network.threads",
         value<uint32_t>(&configured.network.threads),
-        "The minimum number of threads in the network threadpool, defaults to 16."
+        "The minimum number of threads in the network threadpool, defaults to '16'."
     )
     (
         "network.address_upper",
         value<uint16_t>(&configured.network.address_upper),
-        "The upper bound for address selection divisor, defaults to 10."
+        "The upper bound for address selection divisor, defaults to '10'."
     )
     (
         "network.address_lower",
         value<uint16_t>(&configured.network.address_lower),
-        "The lower bound for address selection divisor, defaults to 5."
+        "The lower bound for address selection divisor, defaults to '5'."
     )
     (
         "network.protocol_maximum",
         value<uint32_t>(&configured.network.protocol_maximum),
-        "The maximum network protocol version, defaults to 70012."
+        "The maximum network protocol version, defaults to '70012'."
     )
     (
         "network.protocol_minimum",
         value<uint32_t>(&configured.network.protocol_minimum),
-        "The minimum network protocol version, defaults to 31800."
+        "The minimum network protocol version, defaults to '31800'."
     )
     (
         "network.services_maximum",
         value<uint64_t>(&configured.network.services_maximum),
-        "The maximum services exposed by network connections, defaults to 9 (full node, witness)."
+        "The maximum services exposed by network connections, defaults to '9' (full node, witness)."
     )
     (
         "network.services_minimum",
         value<uint64_t>(&configured.network.services_minimum),
-        "The minimum services exposed by network connections, defaults to 9 (full node, witness)."
+        "The minimum services exposed by network connections, defaults to '9' (full node, witness)."
     )
     (
         "network.invalid_services",
         value<uint64_t>(&configured.network.invalid_services),
-        "The advertised services that cause a peer to be dropped, defaults to 176."
+        "The advertised services that cause a peer to be dropped, defaults to '176'."
     )
     (
         "network.enable_relay",
         value<bool>(&configured.network.enable_relay),
-        "Enable transaction relay, defaults to true."
+        "Enable transaction relay, defaults to 'true'."
     )
     (
         "network.enable_address",
         value<bool>(&configured.network.enable_address),
-        "Enable address messages, defaults to true."
+        "Enable address messages, defaults to 'true'."
     )
     (
         "network.enable_address_v2",
         value<bool>(&configured.network.enable_address_v2),
-        "Enable address v2 messages, defaults to false."
+        "Enable address v2 messages, defaults to 'false'."
     )
     (
         "network.enable_witness_tx",
         value<bool>(&configured.network.enable_witness_tx),
-        "Enable witness transaction identifier relay, defaults to false."
+        "Enable witness transaction identifier relay, defaults to 'false'."
     )
     (
         "network.enable_compact",
         value<bool>(&configured.network.enable_compact),
-        "Enable enable compact block messages, defaults to false."
+        "Enable enable compact block messages, defaults to 'false'."
     )
     (
         "network.enable_alert",
         value<bool>(&configured.network.enable_alert),
-        "Enable alert messages, defaults to false."
+        "Enable alert messages, defaults to 'false'."
     )
     (
         "network.enable_reject",
         value<bool>(&configured.network.enable_reject),
-        "Enable reject messages, defaults to false."
+        "Enable reject messages, defaults to 'false'."
     )
     (
         "network.enable_ipv6",
         value<bool>(&configured.network.enable_ipv6),
-        "Enable internet protocol version 6 (IPv6), defaults to false."
+        "Enable internet protocol version 6 (IPv6), defaults to 'false'."
     )
     (
         "network.enable_loopback",
         value<bool>(&configured.network.enable_loopback),
-        "Allow connections from the node to itself, defaults to false."
+        "Allow connections from the node to itself, defaults to 'false'."
     )
     (
         "network.validate_checksum",
         value<bool>(&configured.network.validate_checksum),
-        "Validate the checksum of network messages, defaults to false."
+        "Validate the checksum of network messages, defaults to 'false'."
     )
     (
         "network.identifier",
         value<uint32_t>(&configured.network.identifier),
-        "The magic number for message headers, defaults to 3652501241."
+        "The magic number for message headers, defaults to '3652501241'."
     )
     (
         "network.inbound_connections",
         value<uint16_t>(&configured.network.inbound_connections),
-        "The target number of incoming network connections, defaults to 100."
+        "The target number of incoming network connections, defaults to '100'."
     )
     (
         "network.outbound_connections",
         value<uint16_t>(&configured.network.outbound_connections),
-        "The target number of outgoing network connections, defaults to 100."
+        "The target number of outgoing network connections, defaults to '100'."
     )
     (
         "network.connect_batch_size",
         value<uint16_t>(&configured.network.connect_batch_size),
-        "The number of concurrent attempts to establish one connection, defaults to 5."
+        "The number of concurrent attempts to establish one connection, defaults to '5'."
     )
     (
         "network.retry_timeout_seconds",
         value<uint32_t>(&configured.network.retry_timeout_seconds),
-        "The time delay for failed connection retry, defaults to 1."
+        "The time delay for failed connection retry, defaults to '1'."
     )
     (
         "network.connect_timeout_seconds",
         value<uint32_t>(&configured.network.connect_timeout_seconds),
-        "The time limit for connection establishment, defaults to 5."
+        "The time limit for connection establishment, defaults to '5'."
     )
     (
         "network.handshake_timeout_seconds",
         value<uint32_t>(&configured.network.handshake_timeout_seconds),
-        "The time limit to complete the connection handshake, defaults to 30."
+        "The time limit to complete the connection handshake, defaults to '30'."
     )
     (
         "network.seeding_timeout_seconds",
         value<uint32_t>(&configured.network.seeding_timeout_seconds),
-        "The time limit for obtaining seed addresses, defaults to 30."
+        "The time limit for obtaining seed addresses, defaults to '30'."
     )
     (
         "network.channel_heartbeat_minutes",
         value<uint32_t>(&configured.network.channel_heartbeat_minutes),
-        "The time between ping messages, defaults to 5."
+        "The time between ping messages, defaults to '5'."
     )
     (
         "network.channel_inactivity_minutes",
         value<uint32_t>(&configured.network.channel_inactivity_minutes),
-        "The inactivity time limit for any connection, defaults to 10."
+        "The inactivity time limit for any connection, defaults to '10'."
     )
     (
         "network.channel_expiration_minutes",
         value<uint32_t>(&configured.network.channel_expiration_minutes),
-        "The age limit for any connection, defaults to 1440."
+        "The age limit for any connection, defaults to '1440'."
     )
     (
         "network.maximum_skew_minutes",
         value<uint32_t>(&configured.network.maximum_skew_minutes),
-        "The maximum allowable channel clock skew, defaults to 120."
+        "The maximum allowable channel clock skew, defaults to '120'."
     )
     (
         "network.host_pool_capacity",
         value<uint32_t>(&configured.network.host_pool_capacity),
-        "The maximum number of peer hosts in the pool, defaults to 10000."
+        "The maximum number of peer hosts in the pool, defaults to '10000'."
     )
     (
         "network.minimum_buffer",
         value<uint32_t>(&configured.network.minimum_buffer),
-        "The minimum retained read buffer size, defaults to 4000000."
+        "The minimum retained read buffer size, defaults to '4000000'."
     )
     (
         "network.rate_limit",
@@ -689,32 +691,32 @@ options_metadata parser::load_settings() THROWS
     (
         "network.bind",
         value<network::config::authorities>(&configured.network.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8333."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8333' (all IPv4)."
     )
     (
         "network.self",
         value<network::config::authorities>(&configured.network.selfs),
-        "IP address to advertise, multiple entries allowed."
+        "IP address to advertise, multiple allowed."
     )
     (
         "network.blacklist",
         value<network::config::authorities>(&configured.network.blacklists),
-        "IP address to disallow as a peer, multiple entries allowed."
+        "IP address to disallow as a peer, multiple allowed."
     )
     (
         "network.whitelist",
         value<network::config::authorities>(&configured.network.whitelists),
-        "IP address to allow as a peer, multiple entries allowed."
+        "IP address to allow as a peer, multiple allowed."
     )
     (
         "network.peer",
         value<network::config::endpoints>(&configured.network.peers),
-        "A persistent peer node, multiple entries allowed."
+        "A persistent peer node, multiple allowed."
     )
     (
         "network.seed",
         value<network::config::endpoints>(&configured.network.seeds),
-        "A seed node for initializing the host pool, multiple entries allowed."
+        "A seed node for initializing the host pool, multiple allowed."
     )
 
     /* [database] */
@@ -1004,37 +1006,37 @@ options_metadata parser::load_settings() THROWS
     (
         "node.threads",
         value<uint32_t>(&configured.node.threads),
-        "The number of threads in the validation threadpool, defaults to 32."
+        "The number of threads in the validation threadpool, defaults to '32'."
     )
     (
         "node.priority",
         value<bool>(&configured.node.priority),
-        "Set the validation threadpool to high priority, defaults to true."
+        "Set the validation threadpool to high priority, defaults to 'true'."
     )
     (
         "node.delay_inbound",
         value<bool>(&configured.node.delay_inbound),
-        "Delay accepting inbound connections until node is current, defaults to true."
+        "Delay accepting inbound connections until node is current, defaults to 'true'."
     )
     ////(
     ////    "node.headers_first",
     ////    value<bool>(&configured.node.headers_first),
-    ////    "Obtain current header chain before obtaining associated blocks, defaults to true."
+    ////    "Obtain current header chain before obtaining associated blocks, defaults to 'true'."
     ////)
     (
         "node.allowed_deviation",
         value<float>(&configured.node.allowed_deviation),
-        "Allowable underperformance standard deviation, defaults to 1.5 (0 disables)."
+        "Allowable underperformance standard deviation, defaults to '1.5' (0 disables)."
     )
     (
         "node.announcement_cache",
         value<uint16_t>(&configured.node.announcement_cache),
-        "Limit of per channel cached peer block and tx announcements, to avoid replaying (defaults to 42)."
+        "Limit of per channel cached peer block and tx announcements, to avoid replaying, defaults to '42'."
     )
     (
         "node.allocation_multiple",
         value<uint16_t>(&configured.node.allocation_multiple),
-        "Block deserialization buffer multiple of wire size, defaults to 20 (0 disables)."
+        "Block deserialization buffer multiple of wire size, defaults to '20' (0 disables)."
     )
     (
         "node.maximum_height",
@@ -1064,50 +1066,70 @@ options_metadata parser::load_settings() THROWS
     (
         "node.sample_period_seconds",
         value<uint16_t>(&configured.node.sample_period_seconds),
-        "Sampling period for drop of stalled channels, defaults to 10 (0 disables)."
+        "Sampling period for drop of stalled channels, defaults to '10' (0 disables)."
     )
     (
         "node.currency_window_minutes",
         value<uint32_t>(&configured.node.currency_window_minutes),
-        "Time from present that blocks are considered current, defaults to 60 (0 disables)."
+        "Time from present that blocks are considered current, defaults to '60' (0 disables)."
     )
     // #######################
     ////(
     ////    "node.notify_limit_hours",
     ////    value<uint32_t>(&configured.node.notify_limit_hours),
-    ////    "Disable relay when top block age exceeds, defaults to 24 (0 disables)."
+    ////    "Disable relay when top block age exceeds, defaults to '24' (0 disables)."
     ////)
     ////(
     ////    "node.byte_fee_satoshis",
     ////    value<float>(&configured.node.byte_fee_satoshis),
-    ////    "The minimum fee per byte, cumulative for conflicts, defaults to 1."
+    ////    "The minimum fee per byte, cumulative for conflicts, defaults to '1'."
     ////)
     ////(
     ////    "node.sigop_fee_satoshis",
     ////    value<float>(&configured.node.sigop_fee_satoshis),
-    ////    "The minimum fee per sigop, additional to byte fee, defaults to 100."
+    ////    "The minimum fee per sigop, additional to byte fee, defaults to' 100'."
     ////)
     ////(
     ////    "node.minimum_output_satoshis",
     ////    value<uint64_t>(&configured.node.minimum_output_satoshis),
-    ////    "The minimum output value, defaults to 500."
+    ////    "The minimum output value, defaults to '500'."
     ////)
 
     /* [admin] */
     (
+        "admin.secure",
+        value<bool>(&configured.network.admin.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "admin.bind",
         value<network::config::endpoints>(&configured.network.admin.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8080."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "admin.connections",
         value<uint16_t>(&configured.network.admin.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "admin.timeout_seconds",
+        value<uint32_t>(&configured.network.admin.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "admin.server",
+        value<std::string>(&configured.network.admin.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "admin.host",
         value<network::config::endpoints>(&configured.network.admin.hosts),
-        "The host name for verifying requests, multiple entries allowed, defaults to empty."
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "admin.origin",
+        value<network::config::endpoints>(&configured.network.admin.origins),
+        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
         "admin.path",
@@ -1117,24 +1139,44 @@ options_metadata parser::load_settings() THROWS
     (
         "admin.default",
         value<std::string>(&configured.network.admin.default_),
-        "The path of the default source page, defaults to empty (none)."
+        "The path of the default source page, defaults to 'index.html'."
     )
 
     /* [explore] */
     (
+        "explore.secure",
+        value<bool>(&configured.network.explore.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "explore.bind",
         value<network::config::endpoints>(&configured.network.explore.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8180."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "explore.connections",
         value<uint16_t>(&configured.network.explore.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "explore.timeout_seconds",
+        value<uint32_t>(&configured.network.explore.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "explore.server",
+        value<std::string>(&configured.network.explore.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "explore.host",
         value<network::config::endpoints>(&configured.network.explore.hosts),
-        "The host name for verifying requests, multiple entries allowed, defaults to empty."
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "explore.origin",
+        value<network::config::endpoints>(&configured.network.explore.origins),
+        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
         "explore.path",
@@ -1144,77 +1186,137 @@ options_metadata parser::load_settings() THROWS
     (
         "explore.default",
         value<std::string>(&configured.network.explore.default_),
-        "The path of the default source page, defaults to empty (none)."
+        "The path of the default source page, defaults to 'index.html'."
     )
 
     /* [websocket] */
     (
+        "websocket.secure",
+        value<bool>(&configured.network.websocket.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "websocket.bind",
         value<network::config::endpoints>(&configured.network.websocket.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8280."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "websocket.connections",
         value<uint16_t>(&configured.network.websocket.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "websocket.timeout_seconds",
+        value<uint32_t>(&configured.network.websocket.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "websocket.server",
+        value<std::string>(&configured.network.websocket.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "websocket.host",
         value<network::config::endpoints>(&configured.network.websocket.hosts),
-        "The host name for verifying requests, multiple entries allowed, defaults to empty."
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
 
     /* [bitcoind] */
     (
+        "bitcoind.secure",
+        value<bool>(&configured.network.bitcoind.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "bitcoind.bind",
         value<network::config::endpoints>(&configured.network.bitcoind.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8380."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "bitcoind.connections",
         value<uint16_t>(&configured.network.bitcoind.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "bitcoind.timeout_seconds",
+        value<uint32_t>(&configured.network.bitcoind.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "bitcoind.server",
+        value<std::string>(&configured.network.bitcoind.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "bitcoind.host",
         value<network::config::endpoints>(&configured.network.bitcoind.hosts),
-        "The host name for verifying requests, multiple entries allowed, defaults to empty."
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
 
     /* [electrum] */
     (
+        "electrum.secure",
+        value<bool>(&configured.network.electrum.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "electrum.bind",
         value<network::config::endpoints>(&configured.network.electrum.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8480."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "electrum.connections",
         value<uint16_t>(&configured.network.electrum.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "electrum.timeout_seconds",
+        value<uint32_t>(&configured.network.electrum.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
     )
 
     /* [stratum_v1] */
     (
+        "stratum_v1.secure",
+        value<bool>(&configured.network.stratum_v1.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "stratum_v1.bind",
         value<network::config::endpoints>(&configured.network.stratum_v1.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8580."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "stratum_v1.connections",
         value<uint16_t>(&configured.network.stratum_v1.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "stratum_v1.timeout_seconds",
+        value<uint32_t>(&configured.network.stratum_v1.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
     )
 
     /* [stratum_v2] */
     (
+        "stratum_v2.secure",
+        value<bool>(&configured.network.stratum_v2.secure),
+        "The service requires TLS (not implemented), defaults to 'false'."
+    )
+    (
         "stratum_v2.bind",
         value<network::config::endpoints>(&configured.network.stratum_v2.binds),
-        "IP address to bind, multiple entries allowed, defaults to 0.0.0.0:8680."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "stratum_v2.connections",
         value<uint16_t>(&configured.network.stratum_v2.connections),
-        "The required maximum number of connections, defaults to 0."
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "stratum_v2.timeout_seconds",
+        value<uint32_t>(&configured.network.stratum_v2.timeout_seconds),
+        "The idle timeout (http keep-alive), defaults to '60'."
     )
 
     /* [log] */
@@ -1222,70 +1324,70 @@ options_metadata parser::load_settings() THROWS
     (
         "log.application",
         value<bool>(&configured.log.application),
-        "Enable application logging, defaults to true."
+        "Enable application logging, defaults to 'true'."
     )
 #endif
 #if defined(HAVE_LOGN)
     (
         "log.news",
         value<bool>(&configured.log.news),
-        "Enable news logging, defaults to true."
+        "Enable news logging, defaults to 'true'."
     )
 #endif
 #if defined(HAVE_LOGS)
     (
         "log.session",
         value<bool>(&configured.log.session),
-        "Enable session logging, defaults to true."
+        "Enable session logging, defaults to 'true'."
     )
 #endif
 #if defined(HAVE_LOGP)
     (
         "log.protocol",
         value<bool>(&configured.log.protocol),
-        "Enable protocol logging, defaults to false."
+        "Enable protocol logging, defaults to 'false'."
     )
 #endif
 #if defined(HAVE_LOGX)
     (
         "log.proxy",
         value<bool>(&configured.log.proxy),
-        "Enable proxy logging, defaults to false."
+        "Enable proxy logging, defaults to 'false'."
     )
 #endif
 #if defined(HAVE_LOGR)
     (
         "log.remote",
         value<bool>(&configured.log.remote),
-        "Enable remote fault logging, defaults to true."
+        "Enable remote fault logging, defaults to 'true'."
     )
 #endif
 #if defined(HAVE_LOGF)
     (
         "log.fault",
         value<bool>(&configured.log.fault),
-        "Enable local fault logging, defaults to true."
+        "Enable local fault logging, defaults to 'true'."
     )
 #endif
 #if defined(HAVE_LOGQ)
     (
         "log.quitting",
         value<bool>(&configured.log.quitting),
-        "Enable quitting logging, defaults to false."
+        "Enable quitting logging, defaults to 'false'."
     )
 #endif
 #if defined(HAVE_LOGO)
     (
         "log.objects",
         value<bool>(&configured.log.objects),
-        "Enable objects logging, defaults to false."
+        "Enable objects logging, defaults to 'false'."
     )
 #endif
 #if defined(HAVE_LOGV)
     (
         "log.verbose",
         value<bool>(&configured.log.verbose),
-        "Enable verbose logging, defaults to false."
+        "Enable verbose logging, defaults to 'false'."
     )
 #endif
     (
