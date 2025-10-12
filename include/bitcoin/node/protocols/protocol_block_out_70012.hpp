@@ -49,7 +49,7 @@ protected:
     bool superseded() const NOEXCEPT override;
 
     virtual bool handle_receive_send_headers(const code& ec,
-        const network::messages::p2p::send_headers::cptr& message) NOEXCEPT;
+        const network::messages::peer::send_headers::cptr& message) NOEXCEPT;
 
 private:
     // This is protected by strand.

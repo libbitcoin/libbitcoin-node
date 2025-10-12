@@ -49,7 +49,7 @@ public:
 protected:
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::p2p::inventory::cptr& message) NOEXCEPT;
+        const network::messages::peer::inventory::cptr& message) NOEXCEPT;
 
 private:
     // This is thread safe.

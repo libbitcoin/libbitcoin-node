@@ -29,7 +29,7 @@ namespace node {
 
 using namespace system;
 using namespace network;
-using namespace network::messages::p2p;
+using namespace network::messages::peer;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.

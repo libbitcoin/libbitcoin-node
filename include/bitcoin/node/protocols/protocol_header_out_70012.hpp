@@ -56,7 +56,7 @@ protected:
     virtual bool do_announce(header_t link) NOEXCEPT;
 
     virtual bool handle_receive_send_headers(const code& ec,
-        const network::messages::p2p::send_headers::cptr& message) NOEXCEPT;
+        const network::messages::peer::send_headers::cptr& message) NOEXCEPT;
 };
 
 } // namespace node

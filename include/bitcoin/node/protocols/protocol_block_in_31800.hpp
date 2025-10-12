@@ -75,14 +75,14 @@ protected:
 
     /// Check incoming block message.
     virtual bool handle_receive_block(const code& ec,
-        const network::messages::p2p::block::cptr& message) NOEXCEPT;
+        const network::messages::peer::block::cptr& message) NOEXCEPT;
 
 private:
     code check(const system::chain::block& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
     void send_get_data(const map_ptr& map, const job::ptr& job) NOEXCEPT;
-    network::messages::p2p::get_data create_get_data(
+    network::messages::peer::get_data create_get_data(
         const database::associations& map) const NOEXCEPT;
 
     void restore(const map_ptr& map) NOEXCEPT;
