@@ -94,7 +94,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
 
     // admin
-    configured.network.admin.binds.emplace_back(asio::address{}, 8080_u16);
+    configured.network.web.binds.emplace_back(asio::address{}, 8080_u16);
     configured.network.explore.binds.emplace_back(asio::address{}, 8180_u16);
     configured.network.websocket.binds.emplace_back(asio::address{}, 8280_u16);
     configured.network.bitcoind.binds.emplace_back(asio::address{}, 8380_u16);
@@ -1095,50 +1095,50 @@ options_metadata parser::load_settings() THROWS
     ////    "The minimum output value, defaults to '500'."
     ////)
 
-    /* [admin] */
+    /* [web] */
     (
-        "admin.secure",
-        value<bool>(&configured.network.admin.secure),
+        "web.secure",
+        value<bool>(&configured.network.web.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
-        "admin.bind",
-        value<network::config::endpoints>(&configured.network.admin.binds),
+        "web.bind",
+        value<network::config::endpoints>(&configured.network.web.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
-        "admin.connections",
-        value<uint16_t>(&configured.network.admin.connections),
+        "web.connections",
+        value<uint16_t>(&configured.network.web.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "admin.timeout_seconds",
-        value<uint32_t>(&configured.network.admin.timeout_seconds),
+        "web.timeout_seconds",
+        value<uint32_t>(&configured.network.web.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
     (
-        "admin.server",
-        value<std::string>(&configured.network.admin.server),
+        "web.server",
+        value<std::string>(&configured.network.web.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
-        "admin.host",
-        value<network::config::endpoints>(&configured.network.admin.hosts),
+        "web.host",
+        value<network::config::endpoints>(&configured.network.web.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
-        "admin.origin",
-        value<network::config::endpoints>(&configured.network.admin.origins),
+        "web.origin",
+        value<network::config::endpoints>(&configured.network.web.origins),
         "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
-        "admin.path",
-        value<std::filesystem::path>(&configured.network.admin.path),
+        "web.path",
+        value<std::filesystem::path>(&configured.network.web.path),
         "The required root path of source files to be served, defaults to empty."
     )
     (
-        "admin.default",
-        value<std::string>(&configured.network.admin.default_),
+        "web.default",
+        value<std::string>(&configured.network.web.default_),
         "The path of the default source page, defaults to 'index.html'."
     )
 
