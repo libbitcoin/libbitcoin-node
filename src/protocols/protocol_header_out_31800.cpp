@@ -29,7 +29,7 @@ namespace node {
 
 using namespace system;
 using namespace network;
-using namespace network::messages::p2p;
+using namespace network::messages::peer;
 using namespace std::placeholders;
 
 // Shared pointers required for lifetime in handler parameters.
@@ -71,7 +71,7 @@ bool protocol_header_out_31800::handle_receive_get_headers(const code& ec,
 // utilities
 // ----------------------------------------------------------------------------
 
-network::messages::p2p::headers protocol_header_out_31800::create_headers(
+network::messages::peer::headers protocol_header_out_31800::create_headers(
     const get_headers& locator) const NOEXCEPT
 {
     // Empty response implies complete (success).

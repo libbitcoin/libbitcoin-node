@@ -60,15 +60,15 @@ protected:
     virtual bool do_announce(header_t link) NOEXCEPT;
 
     virtual bool handle_receive_get_blocks(const code& ec,
-        const network::messages::p2p::get_blocks::cptr& message) NOEXCEPT;
+        const network::messages::peer::get_blocks::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_data(const code& ec,
-        const network::messages::p2p::get_data::cptr& message) NOEXCEPT;
+        const network::messages::peer::get_data::cptr& message) NOEXCEPT;
     virtual void send_block(const code& ec, size_t index,
-        const network::messages::p2p::get_data::cptr& message) NOEXCEPT;
+        const network::messages::peer::get_data::cptr& message) NOEXCEPT;
 
 private:
-    network::messages::p2p::inventory create_inventory(
-        const network::messages::p2p::get_blocks& locator) const NOEXCEPT;
+    network::messages::peer::inventory create_inventory(
+        const network::messages::peer::get_blocks& locator) const NOEXCEPT;
 
 private:
     // These are thread safe.

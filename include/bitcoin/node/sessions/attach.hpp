@@ -48,12 +48,12 @@ public:
         node_network_(to_bool(system::bit_and<uint64_t>
         (
             node.config().network.services_maximum,
-            network::messages::p2p::service::node_network
+            network::messages::peer::service::node_network
         ))),
         node_client_filters_(to_bool(system::bit_and<uint64_t>
         (
             node.config().network.services_maximum,
-            network::messages::p2p::service::node_client_filters
+            network::messages::peer::service::node_client_filters
         )))
     {
     }
@@ -72,7 +72,7 @@ protected:
 
     void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
     {
-        using namespace network::messages::p2p;
+        using namespace network::messages::peer;
         const auto self = session::shared_from_sibling<attach<Session>,
             network::session>();
 

@@ -30,7 +30,7 @@ namespace node {
 
 using namespace system;
 using namespace network;
-using namespace network::messages::p2p;
+using namespace network::messages::peer;
 using namespace std::chrono;
 using namespace std::placeholders;
 

@@ -433,7 +433,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
     const result_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    BC_ASSERT(map->size() <= messages::p2p::max_inventory);
+    BC_ASSERT(map->size() <= messages::peer::max_inventory);
     if (closed() || purging())
         return;
 
@@ -456,7 +456,7 @@ bool chaser_check::set_map(const map_ptr& map) NOEXCEPT
 {
     // Called from start.
     ////BC_ASSERT(stranded());
-    BC_ASSERT(map->size() <= messages::p2p::max_inventory);
+    BC_ASSERT(map->size() <= messages::peer::max_inventory);
     if (map->empty())
         return false;
 
@@ -527,7 +527,7 @@ size_t chaser_check::get_inventory_size() const NOEXCEPT
     const auto& query = archive();
     const auto fork = query.get_fork();
 
-    const auto span = ceilinged_multiply(messages::p2p::max_inventory, peers);
+    const auto span = ceilinged_multiply(messages::peer::max_inventory, peers);
     const auto step = std::min(maximum_concurrency_, span);
     const auto inventory = query.get_unassociated_count_above(fork, step);
     return ceilinged_divide(inventory, peers);

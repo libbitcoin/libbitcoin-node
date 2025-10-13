@@ -46,9 +46,9 @@ public:
 
 protected:
     virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::p2p::inventory::cptr& message) NOEXCEPT;
+        const network::messages::peer::inventory::cptr& message) NOEXCEPT;
     virtual bool handle_receive_headers(const code& ec,
-        const network::messages::p2p::headers::cptr& message) NOEXCEPT;
+        const network::messages::peer::headers::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
     virtual void complete() NOEXCEPT;
@@ -57,10 +57,10 @@ protected:
     bool subscribed{};
 
 private:
-    network::messages::p2p::get_headers create_get_headers() const NOEXCEPT;
-    network::messages::p2p::get_headers create_get_headers(
+    network::messages::peer::get_headers create_get_headers() const NOEXCEPT;
+    network::messages::peer::get_headers create_get_headers(
         const system::hash_digest& last) const NOEXCEPT;
-    network::messages::p2p::get_headers create_get_headers(
+    network::messages::peer::get_headers create_get_headers(
         system::hashes&& start_hashes) const NOEXCEPT;
 };
 
