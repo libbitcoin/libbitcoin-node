@@ -25,10 +25,10 @@
 
 #define BC_HTTP_SERVER_NAME "libbitcoin/4.0"
 
-std::filesystem::path config_default_path() NOEXCEPT
-{
-    return { "libbitcoin/bn.cfg" };
-}
+////std::filesystem::path config_default_path() NOEXCEPT
+////{
+////    return { "libbitcoin/bn.cfg" };
+////}
 
 namespace libbitcoin {
 namespace node {
@@ -300,7 +300,7 @@ options_metadata parser::load_environment() THROWS
         // This composes with the cmdline options and inits to default path.
         BN_CONFIG_VARIABLE,
         value<std::filesystem::path>(&configured.file)->composing()
-            ->default_value(config_default_path()),
+            /*->default_value(config_default_path())*/,
         "The path to the configuration settings file."
     );
 
