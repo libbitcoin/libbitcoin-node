@@ -33,8 +33,7 @@ class BCN_API protocol_block_out_106
 public:
     typedef std::shared_ptr<protocol_block_out_106> ptr;
 
-    template <typename SessionPtr>
-    protocol_block_out_106(const SessionPtr& session,
+    protocol_block_out_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         node_witness_(session->config().network.witness_node()),

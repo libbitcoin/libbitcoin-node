@@ -34,8 +34,7 @@ class BCN_API protocol_filter_out_70015
 public:
     typedef std::shared_ptr<protocol_filter_out_70015> ptr;
 
-    template <typename SessionPtr>
-    protocol_filter_out_70015(const SessionPtr& session,
+    protocol_filter_out_70015(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_filter_out_70015>(session->log)

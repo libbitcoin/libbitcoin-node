@@ -34,9 +34,7 @@ class BCN_API protocol_block_in_106
 public:
     typedef std::shared_ptr<protocol_block_in_106> ptr;
 
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    template <typename SessionPtr>
-    protocol_block_in_106(const SessionPtr& session,
+    protocol_block_in_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         block_type_(session->config().network.witness_node() ?
@@ -44,7 +42,6 @@ public:
         network::tracker<protocol_block_in_106>(session->log)
     {
     }
-    BC_POP_WARNING()
 
     /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;

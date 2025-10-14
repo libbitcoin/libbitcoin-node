@@ -33,8 +33,7 @@ class BCN_API protocol_header_in_31800
 public:
     typedef std::shared_ptr<protocol_header_in_31800> ptr;
 
-    template <typename SessionPtr>
-    protocol_header_in_31800(const SessionPtr& session,
+    protocol_header_in_31800(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         network::tracker<protocol_header_in_31800>(session->log)

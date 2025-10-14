@@ -33,8 +33,7 @@ class BCN_API protocol_transaction_in_106
 public:
     typedef std::shared_ptr<protocol_transaction_in_106> ptr;
 
-    template <typename SessionPtr>
-    protocol_transaction_in_106(const SessionPtr& session,
+    protocol_transaction_in_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         ////tx_type_(session->config().network.witness_node() ?

@@ -36,8 +36,7 @@ public:
 
     // TODO: consider relay may be dynamic (disallowed until current).
     // TODO: current network handshake sets relay based on config only.
-    template <typename SessionPtr>
-    protocol_observer(const SessionPtr& session,
+    protocol_observer(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         relay_disallowed_
