@@ -25,8 +25,7 @@
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-////#include <bitcoin/node/protocols/protocols.hpp>
-////#include <bitcoin/node/sessions/sessions.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -45,6 +44,7 @@ public:
     using store = node::store;
     using query = node::query;
     using memory_controller = block_memory;
+    using result_handler = network::result_handler;
     typedef std::shared_ptr<full_node> ptr;
 
     /// Constructors.
@@ -59,10 +59,10 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Start the node (seed and manual services).
-    void start(network::result_handler&& handler) NOEXCEPT override;
+    void start(result_handler&& handler) NOEXCEPT override;
 
     /// Run the node (inbound/outbound services and blockchain chasers).
-    void run(network::result_handler&& handler) NOEXCEPT override;
+    void run(result_handler&& handler) NOEXCEPT override;
 
     /// Close the node.
     void close() NOEXCEPT override;
@@ -81,7 +81,7 @@ public:
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
-        network::result_handler&& handler) NOEXCEPT;
+        result_handler&& handler) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
@@ -149,7 +149,7 @@ public:
 
     /// Handle performance, base returns false (implied terminate).
     virtual void performance(object_key channel, uint64_t speed,
-        network::result_handler&& handler) NOEXCEPT;
+        result_handler&& handler) NOEXCEPT;
 
     /// Get the memory resource.
     virtual network::memory& get_memory() NOEXCEPT;
@@ -160,14 +160,17 @@ protected:
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
+    virtual session_explore::ptr attach_explore_session() NOEXCEPT;
 
     /// Virtual handlers.
     /// -----------------------------------------------------------------------
-    void do_start(const network::result_handler& handler) NOEXCEPT override;
-    void do_run(const network::result_handler& handler) NOEXCEPT override;
+    void do_start(const result_handler& handler) NOEXCEPT override;
+    void do_run(const result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;
 
 private:
+    void start_explore(const code& ec, const result_handler& handler) NOEXCEPT;
+
     void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
     void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;
