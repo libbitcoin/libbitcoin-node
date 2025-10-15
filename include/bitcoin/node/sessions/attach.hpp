@@ -28,7 +28,7 @@
 namespace libbitcoin {
 namespace node {
 
-class session_outbound;
+class full_node;
 
 /// Session base class template for protocol attachment.
 /// node::session does not derive from network::session (siblings).
@@ -40,21 +40,7 @@ class attach
 {
 public:
     attach(full_node& node, uint64_t identifier) NOEXCEPT
-      : Session(node, identifier),
-        session(node),
-        relay_(node.config().network.enable_relay),
-        delay_(node.config().node.delay_inbound),
-        headers_(node.config().node.headers_first),
-        node_network_(to_bool(system::bit_and<uint64_t>
-        (
-            node.config().network.services_maximum,
-            network::messages::peer::service::node_network
-        ))),
-        node_client_filters_(to_bool(system::bit_and<uint64_t>
-        (
-            node.config().network.services_maximum,
-            network::messages::peer::service::node_client_filters
-        )))
+      : Session(node, identifier), session(node)
     {
     }
 
@@ -72,7 +58,22 @@ protected:
 
     void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
     {
+        using namespace system;
         using namespace network::messages::peer;
+        const auto relay = config().network.enable_relay;
+        const auto delay = config().node.delay_inbound;
+        const auto headers = config().node.headers_first;
+        const auto node_network = to_bool(bit_and<uint64_t>
+        (
+            config().network.services_maximum,
+            network::messages::peer::service::node_network
+        ));
+        const auto node_client_filters = to_bool(bit_and<uint64_t>
+        (
+            config().network.services_maximum,
+            network::messages::peer::service::node_client_filters
+        ));
+
         const auto self = session::shared_from_sibling<attach<Session>,
             network::session>();
 
@@ -83,7 +84,7 @@ protected:
         channel->attach<protocol_observer>(self)->start();
 
         // Ready to relay blocks or block filters.
-        const auto blocks_out = !delay_ || is_recent();
+        const auto blocks_out = !delay || is_recent();
 
         ///////////////////////////////////////////////////////////////////////
         // bip152: "Upon receipt of a `sendcmpct` message with the first and
@@ -96,28 +97,28 @@ protected:
             channel);
 
         // Node must advertise node_client_filters or no out filters.
-        if (node_client_filters_ && blocks_out &&
+        if (node_client_filters && blocks_out &&
             peer->is_negotiated(level::bip157))
             channel->attach<protocol_filter_out_70015>(self)->start();
 
         // Node must advertise node_network or no in|out blocks|txs.
-        if (!node_network_)
+        if (!node_network)
             return;
 
         // Ready to relay transactions.
-        const auto txs_in_out = relay_ && peer->is_negotiated(level::bip37) &&
-            (!delay_ || is_current(true));
+        const auto txs_in_out = relay && peer->is_negotiated(level::bip37) &&
+            (!delay || is_current(true));
 
         // Peer advertises chain (blocks in).
         if (peer->is_peer_service(service::node_network))
         {
-            if (headers_ && peer->is_negotiated(level::bip130))
+            if (headers && peer->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_in_70012>(self)->start();
                 channel->attach<protocol_block_in_31800>(self)->start();
 
             }
-            else if (headers_ && peer->is_negotiated(level::headers_protocol))
+            else if (headers && peer->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_in_31800>(self)->start();
                 channel->attach<protocol_block_in_31800>(self)->start();
@@ -133,12 +134,12 @@ protected:
         // Blocks are ready (blocks out).
         if (blocks_out)
         {
-            if (headers_ && peer->is_negotiated(level::bip130))
+            if (headers && peer->is_negotiated(level::bip130))
             {
                 channel->attach<protocol_header_out_70012>(self)->start();
                 channel->attach<protocol_block_out_70012>(self)->start();
             }
-            else if (headers_ && peer->is_negotiated(level::headers_protocol))
+            else if (headers && peer->is_negotiated(level::headers_protocol))
             {
                 channel->attach<protocol_header_out_31800>(self)->start();
                 channel->attach<protocol_block_out_106>(self)->start();
@@ -164,14 +165,6 @@ protected:
                 network::session::log, socket, node::session::config(),
                 network::session::create_key()));
     }
-
-private:
-    // These are thread safe.
-    const bool relay_;
-    const bool delay_;
-    const bool headers_;
-    const bool node_network_;
-    const bool node_client_filters_;
 };
 
 } // namespace node

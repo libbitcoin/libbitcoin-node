@@ -120,10 +120,9 @@ using type_id = network::messages::peer::inventory_item::type_id;
 // settings       : define
 // configuration  : define settings
 // parser         : define configuration
-// /chasers       : define configuration  [forward: full_node]
+// /chasers       : define configuration     [forward: full_node]
 // full_node      : define /chasers
-// session        : define full_node
+// attach         : define session           [forward: full_node]
+// session        : define                   [forward: full_node]
+// /sessions      : define attach /protocols [forward: full_node]
 // /protocols     : define session
-
-// Session is only included by full_node.cpp (avoids cycle).
-// /sessions      : define full_node /protocols
