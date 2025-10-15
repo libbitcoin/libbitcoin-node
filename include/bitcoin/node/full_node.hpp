@@ -44,6 +44,7 @@ public:
     using store = node::store;
     using query = node::query;
     using memory_controller = block_memory;
+    using result_handler = network::result_handler;
     typedef std::shared_ptr<full_node> ptr;
 
     /// Constructors.
@@ -58,10 +59,10 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Start the node (seed and manual services).
-    void start(network::result_handler&& handler) NOEXCEPT override;
+    void start(result_handler&& handler) NOEXCEPT override;
 
     /// Run the node (inbound/outbound services and blockchain chasers).
-    void run(network::result_handler&& handler) NOEXCEPT override;
+    void run(result_handler&& handler) NOEXCEPT override;
 
     /// Close the node.
     void close() NOEXCEPT override;
@@ -80,7 +81,7 @@ public:
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,
-        network::result_handler&& handler) NOEXCEPT;
+        result_handler&& handler) NOEXCEPT;
 
     /// Events.
     /// -----------------------------------------------------------------------
@@ -148,7 +149,7 @@ public:
 
     /// Handle performance, base returns false (implied terminate).
     virtual void performance(object_key channel, uint64_t speed,
-        network::result_handler&& handler) NOEXCEPT;
+        result_handler&& handler) NOEXCEPT;
 
     /// Get the memory resource.
     virtual network::memory& get_memory() NOEXCEPT;
@@ -163,8 +164,8 @@ protected:
 
     /// Virtual handlers.
     /// -----------------------------------------------------------------------
-    void do_start(const network::result_handler& handler) NOEXCEPT override;
-    void do_run(const network::result_handler& handler) NOEXCEPT override;
+    void do_start(const result_handler& handler) NOEXCEPT override;
+    void do_run(const result_handler& handler) NOEXCEPT override;
     void do_close() NOEXCEPT override;
 
 private:
