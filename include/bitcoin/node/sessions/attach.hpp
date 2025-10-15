@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
 
 #include <memory>
+#include <utility>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
@@ -30,7 +31,7 @@ namespace node {
 
 class full_node;
 
-/// Session base class template for protocol attachment.
+/// Session base class template for network session attachment.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
 /// Protocol contructors are templatized on Session, obtaining session.
@@ -39,8 +40,10 @@ class attach
   : public Session, public node::session
 {
 public:
-    attach(full_node& node, uint64_t identifier) NOEXCEPT
-      : Session(node, identifier), session(node)
+    template <typename... Args>
+    attach(full_node& node, uint64_t identifier, Args&&... args) NOEXCEPT
+      : Session(node, identifier, std::forward<Args>(args)...),
+        node::session(node)
     {
     }
 
@@ -56,21 +59,22 @@ protected:
         Session::attach_handshake(channel, std::move(handler));
     }
 
-    void attach_protocols(const network::channel::ptr& channel) NOEXCEPT override
+    void attach_protocols(
+        const network::channel::ptr& channel) NOEXCEPT override
     {
         using namespace system;
         using namespace network::messages::peer;
-        const auto relay = config().network.enable_relay;
-        const auto delay = config().node.delay_inbound;
-        const auto headers = config().node.headers_first;
+        const auto relay = this->config().network.enable_relay;
+        const auto delay = this->config().node.delay_inbound;
+        const auto headers = this->config().node.headers_first;
         const auto node_network = to_bool(bit_and<uint64_t>
         (
-            config().network.services_maximum,
+            this->config().network.services_maximum,
             network::messages::peer::service::node_network
         ));
         const auto node_client_filters = to_bool(bit_and<uint64_t>
         (
-            config().network.services_maximum,
+            this->config().network.services_maximum,
             network::messages::peer::service::node_client_filters
         ));
 
@@ -158,12 +162,12 @@ protected:
         }
     }
 
-    network::channel::ptr create_channel(const network::socket::ptr& socket) NOEXCEPT override
+    network::channel::ptr create_channel(
+        const network::socket::ptr& socket) NOEXCEPT override
     {
         return std::static_pointer_cast<network::channel>(
-            std::make_shared<node::channel_peer>(node::session::get_memory(),
-                network::session::log, socket, node::session::config(),
-                network::session::create_key()));
+            std::make_shared<node::channel_peer>(this->get_memory(), this->log,
+                socket, this->config(), this->create_key()));
     }
 };
 
