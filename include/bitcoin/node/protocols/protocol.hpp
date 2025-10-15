@@ -29,6 +29,11 @@
 namespace libbitcoin {
 namespace node {
 
+///////////////////////////////////////////////////////////////////////////////
+// TODO: ... -> node::protocol_tcp  -> node::protocol -> network::protocol.  //
+// TODO: ... -> node::protocol_peer -> node::protocol -> network::protocol.  //
+///////////////////////////////////////////////////////////////////////////////
+
 /// Abstract base for node protocols, thread safe.
 class BCN_API protocol
   : public network::protocol_peer
