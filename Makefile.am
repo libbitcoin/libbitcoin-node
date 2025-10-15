@@ -71,7 +71,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/sessions/session.cpp \
     src/sessions/session_inbound.cpp \
     src/sessions/session_manual.cpp \
-    src/sessions/session_outbound.cpp
+    src/sessions/session_outbound.cpp \
+    src/sessions/session_tcp.cpp
 
 # local: test/libbitcoin-node-test
 #------------------------------------------------------------------------------
@@ -200,6 +201,7 @@ include_bitcoin_node_sessions_HEADERS = \
     include/bitcoin/node/sessions/session_inbound.hpp \
     include/bitcoin/node/sessions/session_manual.hpp \
     include/bitcoin/node/sessions/session_outbound.hpp \
+    include/bitcoin/node/sessions/session_tcp.hpp \
     include/bitcoin/node/sessions/sessions.hpp
 
 # files => ${bash_completiondir}

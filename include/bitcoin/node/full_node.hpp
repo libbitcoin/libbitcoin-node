@@ -25,8 +25,7 @@
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-////#include <bitcoin/node/protocols/protocols.hpp>
-////#include <bitcoin/node/sessions/sessions.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -160,6 +159,7 @@ protected:
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
+    virtual session_explore::ptr attach_explore_session() NOEXCEPT;
 
     /// Virtual handlers.
     /// -----------------------------------------------------------------------

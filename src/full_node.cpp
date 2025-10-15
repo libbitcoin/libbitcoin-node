@@ -23,8 +23,7 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
-////#include <bitcoin/node/protocols/protocols.hpp>
-////#include <bitcoin/node/sessions/sessions.hpp>
+#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -431,6 +430,11 @@ network::session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
     return attach<node::session_outbound>(*this);
+}
+
+session_explore::ptr full_node::attach_explore_session() NOEXCEPT
+{
+    return net::attach<session_explore>(*this, config_.network.explore);
 }
 
 BC_POP_WARNING()

@@ -157,6 +157,7 @@
     <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp" />
+    <ClCompile Include="..\..\..\..\src\sessions\session_tcp.cpp" />
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -204,6 +205,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_tcp.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />

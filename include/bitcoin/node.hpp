@@ -61,6 +61,7 @@
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
+#include <bitcoin/node/sessions/session_tcp.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 #endif

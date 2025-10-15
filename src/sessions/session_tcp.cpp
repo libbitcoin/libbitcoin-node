@@ -16,14 +16,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
-#define LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
-
-#include <bitcoin/node/sessions/attach.hpp>
-#include <bitcoin/node/sessions/session.hpp>
-#include <bitcoin/node/sessions/session_inbound.hpp>
-#include <bitcoin/node/sessions/session_manual.hpp>
-#include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_tcp.hpp>
 
-#endif
+#include <bitcoin/node/full_node.hpp>
+
+namespace libbitcoin {
+namespace node {
+
+session_tcp::session_tcp(full_node& node, uint64_t identifier,
+    const options_t& options) NOEXCEPT
+  : network::session_tcp(node, identifier, options),
+    node::session(node)
+{
+}
+
+// Inbound connection attempts are dropped unless confirmed chain is current.
+// Used instead of suspension because suspension has independent start/stop.
+bool session_tcp::enabled() const NOEXCEPT
+{
+    return !config().node.delay_inbound || is_recent();
+}
+
+} // namespace node
+} // namespace libbitcoin
