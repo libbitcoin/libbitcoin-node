@@ -35,9 +35,7 @@ class BCN_API protocol_block_in_31800
 public:
     typedef std::shared_ptr<protocol_block_in_31800> ptr;
 
-    BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-    template <typename SessionPtr>
-    protocol_block_in_31800(const SessionPtr& session,
+    protocol_block_in_31800(const auto& session,
         const network::channel::ptr& channel, bool performance_enabled=true) NOEXCEPT
       : protocol_performer(session, channel, performance_enabled),
         top_checkpoint_height_(
@@ -48,7 +46,6 @@ public:
         network::tracker<protocol_block_in_31800>(session->log)
     {
     }
-    BC_POP_WARNING()
 
     /// Start/stop protocol (strand required).
     void start() NOEXCEPT override;

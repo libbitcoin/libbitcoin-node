@@ -21,12 +21,14 @@
 
 #include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
+
+ class full_node;
+
 /// Common session context, presumes will be joined with network::session.
 /// This could be templatized on the sibling, but there only one implemented.
 class BCN_API session
@@ -93,7 +95,7 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Thread safe synchronous archival interface.
-    full_node::query& archive() const NOEXCEPT;
+    node::query& archive() const NOEXCEPT;
 
     /// Configuration settings for all libraries.
     const configuration& config() const NOEXCEPT;

@@ -33,8 +33,7 @@ class BCN_API protocol_header_in_70012
 public:
     typedef std::shared_ptr<protocol_header_in_70012> ptr;
 
-    template <typename SessionPtr>
-    protocol_header_in_70012(const SessionPtr& session,
+    protocol_header_in_70012(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_header_in_31800(session, channel),
         network::tracker<protocol_header_in_70012>(session->log)

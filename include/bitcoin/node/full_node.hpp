@@ -25,6 +25,8 @@
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+////#include <bitcoin/node/protocols/protocols.hpp>
+////#include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -40,9 +42,9 @@ class BCN_API full_node
   : public network::net
 {
 public:
-    using memory_controller = block_memory;
     using store = node::store;
     using query = node::query;
+    using memory_controller = block_memory;
     typedef std::shared_ptr<full_node> ptr;
 
     /// Constructors.

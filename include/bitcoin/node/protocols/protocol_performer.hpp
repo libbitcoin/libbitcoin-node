@@ -38,8 +38,7 @@ public:
     virtual void count(size_t bytes) NOEXCEPT;
 
 protected:
-    template <typename SessionPtr>
-    protocol_performer(const SessionPtr& session,
+    protocol_performer(const auto& session,
         const network::channel::ptr& channel, bool enabled) NOEXCEPT
       : node::protocol(session, channel),
         deviation_(session->config().node.allowed_deviation > 0.0),

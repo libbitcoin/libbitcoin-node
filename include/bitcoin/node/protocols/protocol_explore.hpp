@@ -16,43 +16,42 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_EXPLORE_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_EXPLORE_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-class BCN_API protocol_transaction_in_106
-  : public node::protocol,
-    protected network::tracker<protocol_transaction_in_106>
+
+class BCN_API protocol_explore
+  : public network::protocol_html,
+    protected network::tracker<protocol_explore>
 {
 public:
-    typedef std::shared_ptr<protocol_transaction_in_106> ptr;
+    typedef std::shared_ptr<protocol_explore> ptr;
+    using options_t = network::settings::html_server;
+    using channel_t = network::channel_http;
 
-    protocol_transaction_in_106(const auto& session,
-        const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
-        ////tx_type_(session->config().network.witness_node() ?
-        ////    type_id::witness_tx : type_id::transaction),
-        network::tracker<protocol_transaction_in_106>(session->log)
+    protocol_explore(const auto& session,
+        const network::channel::ptr& channel,
+        const options_t& options) NOEXCEPT
+      : network::protocol_html(session, channel, options),
+        ////options_(options),
+        network::tracker<protocol_explore>(session->log)
     {
     }
 
-    /// Start protocol (strand required).
-    void start() NOEXCEPT override;
-
 protected:
-    /// Accept incoming inventory message.
-    virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::peer::inventory::cptr& message) NOEXCEPT;
+    void handle_receive_get(const code& ec,
+        const network::http::method::get& request) NOEXCEPT override;
 
 private:
     // This is thread safe.
-    ////const type_id tx_type_;
+    ////const options_t& options_;
 };
 
 } // namespace node
