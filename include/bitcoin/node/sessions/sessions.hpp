@@ -19,11 +19,11 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
 
-#include <bitcoin/node/sessions/attach.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
+#include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/session_tcp.hpp>
 
 #endif

@@ -21,17 +21,17 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/attach.hpp>
+#include <bitcoin/node/sessions/session_peer.hpp>
 
 namespace libbitcoin {
 namespace node {
     
 class session_outbound
-  : public attach<network::session_outbound>
+  : public session_peer<network::session_outbound>
 {
 public:
     typedef std::shared_ptr<session_outbound> ptr;
-    using base = attach<network::session_outbound>;
+    using base = session_peer<network::session_outbound>;
     using base::base;
 };
 

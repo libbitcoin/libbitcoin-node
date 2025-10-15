@@ -196,11 +196,11 @@ include_bitcoin_node_protocols_HEADERS = \
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
-    include/bitcoin/node/sessions/attach.hpp \
     include/bitcoin/node/sessions/session.hpp \
     include/bitcoin/node/sessions/session_inbound.hpp \
     include/bitcoin/node/sessions/session_manual.hpp \
     include/bitcoin/node/sessions/session_outbound.hpp \
+    include/bitcoin/node/sessions/session_peer.hpp \
     include/bitcoin/node/sessions/session_tcp.hpp \
     include/bitcoin/node/sessions/sessions.hpp
 
