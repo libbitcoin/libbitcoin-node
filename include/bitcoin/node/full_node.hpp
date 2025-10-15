@@ -169,6 +169,8 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
+    void start_explore(const code& ec, const result_handler& handler) NOEXCEPT;
+
     void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
     void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;

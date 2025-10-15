@@ -31,6 +31,7 @@ namespace node {
 using namespace system;
 using namespace database;
 using namespace network;
+using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
@@ -116,7 +117,28 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
     // This will kick off lagging validations even if not current.
     do_notify(error::success, chase::start, height_t{});
 
-    net::do_run(handler);
+    // Start services after network is running.
+    net::do_run(std::bind(&full_node::start_explore, this, _1, handler));
+}
+
+void full_node::start_explore(const code& ec,
+    const result_handler& handler) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+
+    if (ec)
+    {
+        handler(ec);
+        return;
+    }
+
+    if (!config().network.explore.enabled())
+    {
+        handler(ec);
+        return;
+    }
+
+    attach_explore_session()->start(move_copy(handler));
 }
 
 void full_node::close() NOEXCEPT
