@@ -56,11 +56,11 @@
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
-#include <bitcoin/node/sessions/attach.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
+#include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/session_tcp.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 

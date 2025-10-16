@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
-#define LIBBITCOIN_NODE_SESSIONS_ATTACH_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_PEER_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_PEER_HPP
 
 #include <memory>
 #include <utility>
@@ -31,17 +31,16 @@ namespace node {
 
 class full_node;
 
-/// Session base class template for network session attachment.
+/// CRTP base class template for network session multiple derivation.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
-/// Protocol contructors are templatized on Session, obtaining session.
 template <class Session>
-class attach
+class session_peer
   : public Session, public node::session
 {
 public:
     template <typename... Args>
-    attach(full_node& node, uint64_t identifier, Args&&... args) NOEXCEPT
+    session_peer(full_node& node, uint64_t identifier, Args&&... args) NOEXCEPT
       : Session(node, identifier, std::forward<Args>(args)...),
         node::session(node)
     {
@@ -52,8 +51,9 @@ protected:
         network::result_handler&& handler) NOEXCEPT override
     {
         // Set the current top for version protocol, before handshake.
-        std::dynamic_pointer_cast<network::channel_peer>(channel)->
-            set_start_height(archive().get_top_confirmed());
+        const auto top = archive().get_top_confirmed();
+        const auto peer = std::dynamic_pointer_cast<channel_peer>(channel);
+        peer->set_start_height(top);
 
         // Attach and execute appropriate version protocol.
         Session::attach_handshake(channel, std::move(handler));
@@ -63,23 +63,25 @@ protected:
         const network::channel::ptr& channel) NOEXCEPT override
     {
         using namespace system;
-        using namespace network::messages::peer;
+        using namespace network;
+        using namespace messages::peer;
+        using base = session_peer<Session>;
+
+        // this-> is required for dependent base access in CRTP.
+        const auto self = this->template shared_from_base<base>();
         const auto relay = this->config().network.enable_relay;
         const auto delay = this->config().node.delay_inbound;
         const auto headers = this->config().node.headers_first;
         const auto node_network = to_bool(bit_and<uint64_t>
         (
             this->config().network.services_maximum,
-            network::messages::peer::service::node_network
+            service::node_network
         ));
         const auto node_client_filters = to_bool(bit_and<uint64_t>
         (
             this->config().network.services_maximum,
-            network::messages::peer::service::node_client_filters
+            service::node_client_filters
         ));
-
-        const auto self = session::shared_from_sibling<attach<Session>,
-            network::session>();
 
         // Attach appropriate alert, reject, ping, and/or address protocols.
         Session::attach_protocols(channel);
@@ -97,8 +99,7 @@ protected:
         // This allows the node to support bip157 without supporting bip152.
         ///////////////////////////////////////////////////////////////////////
 
-        const auto peer = std::dynamic_pointer_cast<network::channel_peer>(
-            channel);
+        const auto peer = std::dynamic_pointer_cast<channel_peer>(channel);
 
         // Node must advertise node_client_filters or no out filters.
         if (node_client_filters && blocks_out &&
@@ -165,9 +166,12 @@ protected:
     network::channel::ptr create_channel(
         const network::socket::ptr& socket) NOEXCEPT override
     {
-        return std::static_pointer_cast<network::channel>(
-            std::make_shared<node::channel_peer>(this->get_memory(), this->log,
-                socket, this->config(), this->create_key()));
+        // this-> is required for dependent base access in CRTP.
+        const auto channel = std::make_shared<node::channel_peer>(
+            this->get_memory(), this->log, socket, this->config(),
+            this->create_key());
+
+        return std::static_pointer_cast<network::channel>(channel);
     }
 };
 

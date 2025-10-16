@@ -281,9 +281,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\attach.hpp">
-      <Filter>include\bitcoin\node\sessions</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
@@ -294,6 +291,9 @@
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp">
+      <Filter>include\bitcoin\node\sessions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_peer.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_tcp.hpp">
