@@ -18,9 +18,6 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/block_arena.hpp>
 #include <bitcoin/node/block_memory.hpp>
-#include <bitcoin/node/channel.hpp>
-#include <bitcoin/node/channel_peer.hpp>
-#include <bitcoin/node/channel_tcp.hpp>
 #include <bitcoin/node/chase.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -30,6 +27,10 @@
 #include <bitcoin/node/parser.hpp>
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
+#include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/channels/channel_peer.hpp>
+#include <bitcoin/node/channels/channel_tcp.hpp>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/chasers/chaser_block.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>

@@ -249,12 +249,12 @@ add_definitions(
 add_library( ${CANONICAL_LIB_NAME}
     "../../src/block_arena.cpp"
     "../../src/block_memory.cpp"
-    "../../src/channel_peer.cpp"
     "../../src/configuration.cpp"
     "../../src/error.cpp"
     "../../src/full_node.cpp"
     "../../src/parser.cpp"
     "../../src/settings.cpp"
+    "../../src/channels/channel_peer.cpp"
     "../../src/chasers/chaser.cpp"
     "../../src/chasers/chaser_block.cpp"
     "../../src/chasers/chaser_check.cpp"

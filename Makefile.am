@@ -37,12 +37,12 @@ src_libbitcoin_node_la_LIBADD = ${bitcoin_database_LIBS} ${bitcoin_network_LIBS}
 src_libbitcoin_node_la_SOURCES = \
     src/block_arena.cpp \
     src/block_memory.cpp \
-    src/channel_peer.cpp \
     src/configuration.cpp \
     src/error.cpp \
     src/full_node.cpp \
     src/parser.cpp \
     src/settings.cpp \
+    src/channels/channel_peer.cpp \
     src/chasers/chaser.cpp \
     src/chasers/chaser_block.cpp \
     src/chasers/chaser_check.cpp \
@@ -146,9 +146,6 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/block_arena.hpp \
     include/bitcoin/node/block_memory.hpp \
-    include/bitcoin/node/channel.hpp \
-    include/bitcoin/node/channel_peer.hpp \
-    include/bitcoin/node/channel_tcp.hpp \
     include/bitcoin/node/chase.hpp \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
@@ -158,6 +155,13 @@ include_bitcoin_node_HEADERS = \
     include/bitcoin/node/parser.hpp \
     include/bitcoin/node/settings.hpp \
     include/bitcoin/node/version.hpp
+
+include_bitcoin_node_channelsdir = ${includedir}/bitcoin/node/channels
+include_bitcoin_node_channels_HEADERS = \
+    include/bitcoin/node/channels/channel.hpp \
+    include/bitcoin/node/channels/channel_peer.hpp \
+    include/bitcoin/node/channels/channel_tcp.hpp \
+    include/bitcoin/node/channels/channels.hpp
 
 include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers
 include_bitcoin_node_chasers_HEADERS = \

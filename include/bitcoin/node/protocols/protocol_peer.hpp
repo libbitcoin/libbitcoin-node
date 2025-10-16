@@ -21,8 +21,8 @@
 
 #include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/channel_peer.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
