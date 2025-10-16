@@ -65,6 +65,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_header_out_31800.cpp \
     src/protocols/protocol_header_out_70012.cpp \
     src/protocols/protocol_observer.cpp \
+    src/protocols/protocol_peer.cpp \
     src/protocols/protocol_performer.cpp \
     src/protocols/protocol_transaction_in_106.cpp \
     src/protocols/protocol_transaction_out_106.cpp \
@@ -145,7 +146,9 @@ include_bitcoin_nodedir = ${includedir}/bitcoin/node
 include_bitcoin_node_HEADERS = \
     include/bitcoin/node/block_arena.hpp \
     include/bitcoin/node/block_memory.hpp \
+    include/bitcoin/node/channel.hpp \
     include/bitcoin/node/channel_peer.hpp \
+    include/bitcoin/node/channel_tcp.hpp \
     include/bitcoin/node/chase.hpp \
     include/bitcoin/node/configuration.hpp \
     include/bitcoin/node/define.hpp \
@@ -189,7 +192,9 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_header_out_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_out_70012.hpp \
     include/bitcoin/node/protocols/protocol_observer.hpp \
+    include/bitcoin/node/protocols/protocol_peer.hpp \
     include/bitcoin/node/protocols/protocol_performer.hpp \
+    include/bitcoin/node/protocols/protocol_tcp.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocols.hpp

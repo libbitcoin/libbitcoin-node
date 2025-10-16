@@ -35,6 +35,7 @@ channel_peer::channel_peer(memory& memory, const logger& log,
     const socket::ptr& socket, const node::configuration& config,
     uint64_t identifier) NOEXCEPT
   : network::channel_peer(memory, log, socket, config.network, identifier),
+    node::channel(log, socket, config, identifier),
     announced_(config.node.announcement_cache)
 {
 }

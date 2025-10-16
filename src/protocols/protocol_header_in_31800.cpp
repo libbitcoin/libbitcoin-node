@@ -48,7 +48,7 @@ void protocol_header_in_31800::start() NOEXCEPT
 
     SUBSCRIBE_CHANNEL(headers, handle_receive_headers, _1, _2);
     SEND(create_get_headers(), handle_send, _1);
-    protocol::start();
+    protocol_peer::start();
 }
 
 // Inbound (headers).

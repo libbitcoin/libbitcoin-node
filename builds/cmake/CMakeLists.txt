@@ -277,6 +277,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_header_out_31800.cpp"
     "../../src/protocols/protocol_header_out_70012.cpp"
     "../../src/protocols/protocol_observer.cpp"
+    "../../src/protocols/protocol_peer.cpp"
     "../../src/protocols/protocol_performer.cpp"
     "../../src/protocols/protocol_transaction_in_106.cpp"
     "../../src/protocols/protocol_transaction_out_106.cpp"

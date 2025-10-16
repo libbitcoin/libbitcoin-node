@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNEL_PEER_HPP
-#define LIBBITCOIN_NODE_CHANNEL_PEER_HPP
+#ifndef LIBBITCOIN_NODE_CHANNEL_TCP_HPP
+#define LIBBITCOIN_NODE_CHANNEL_TCP_HPP
 
 #include <memory>
 #include <bitcoin/network.hpp>
@@ -28,23 +28,23 @@
 namespace libbitcoin {
 namespace node {
 
-/// Peer channel state for the node.
-class BCN_API channel_peer
-  : public network::channel_peer, node::channel
+/// TCP channel state for the node.
+class BCN_API channel_tcp
+  : public network::channel_tcp, node::channel
 {
 public:
-    typedef std::shared_ptr<node::channel_peer> ptr;
+    typedef std::shared_ptr<node::channel_tcp> ptr;
+    using options_t = network::settings::tcp_server;
 
-    channel_peer(network::memory& memory, const network::logger& log,
-        const network::socket::ptr& socket, const node::configuration& config,
-        uint64_t identifier=zero) NOEXCEPT;
+    channel_tcp(const network::logger& log, const network::socket::ptr& socket,
+        const node::configuration& config, uint64_t identifier=zero,
+        const options_t& options={}) NOEXCEPT
+      : network::channel_tcp(log, socket, config.network, identifier, options),
+        node::channel(log, socket, config, identifier)
+    {
+    }
 
-    void set_announced(const system::hash_digest& hash) NOEXCEPT;
-    bool was_announced(const system::hash_digest& hash) const NOEXCEPT;
-
-private:
-    // This is protected by strand.
-    boost::circular_buffer<system::hash_digest> announced_;
+    virtual ~channel_tcp() NOEXCEPT {}
 };
 
 } // namespace node

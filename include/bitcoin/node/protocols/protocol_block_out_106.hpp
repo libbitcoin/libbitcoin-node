@@ -22,12 +22,13 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_peer.hpp>
 
 namespace libbitcoin {
 namespace node {
     
 class BCN_API protocol_block_out_106
-  : public node::protocol,
+  : public node::protocol_peer,
     protected network::tracker<protocol_block_out_106>
 {
 public:
@@ -35,7 +36,7 @@ public:
 
     protocol_block_out_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
+      : node::protocol_peer(session, channel),
         node_witness_(session->config().network.witness_node()),
         network::tracker<protocol_block_out_106>(session->log)
     {

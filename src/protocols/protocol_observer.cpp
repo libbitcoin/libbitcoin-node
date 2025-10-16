@@ -52,7 +52,7 @@ void protocol_observer::start() NOEXCEPT
     }
 
     ////SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
-    protocol::start();
+    protocol_peer::start();
 }
 
 void protocol_observer::stopping(const code& ec) NOEXCEPT
@@ -60,7 +60,7 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
     // Unsubscriber race is ok.
     BC_ASSERT(stranded());
     unsubscribe_events();
-    protocol::stopping(ec);
+    protocol_peer::stopping(ec);
 }
 
 // handle events (suspend)

@@ -135,6 +135,9 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_observer.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_peer.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_performer.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
@@ -173,7 +176,13 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channel.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channel_peer.hpp">
+      <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channel_tcp.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp">
@@ -269,7 +278,13 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_observer.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_peer.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_performer.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_tcp.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_106.hpp">

@@ -23,12 +23,13 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_peer.hpp>
 
 namespace libbitcoin {
 namespace node {
     
 class BCN_API protocol_filter_out_70015
-  : public node::protocol,
+  : public node::protocol_peer,
     protected network::tracker<protocol_filter_out_70015>
 {
 public:
@@ -36,7 +37,7 @@ public:
 
     protocol_filter_out_70015(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
+      : node::protocol_peer(session, channel),
         network::tracker<protocol_filter_out_70015>(session->log)
     {
     }

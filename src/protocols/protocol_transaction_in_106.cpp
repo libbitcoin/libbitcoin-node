@@ -45,7 +45,7 @@ void protocol_transaction_in_106::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
-    protocol::start();
+    protocol_peer::start();
 }
 
 // Inbound (inv).

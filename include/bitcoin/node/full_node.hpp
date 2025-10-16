@@ -157,10 +157,18 @@ public:
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------
+
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
+
+    ////virtual session_web::ptr attach_web_session() NOEXCEPT;
     virtual session_explore::ptr attach_explore_session() NOEXCEPT;
+    ////virtual session_websocket::ptr attach_websocket_session() NOEXCEPT;
+    ////virtual session_bitcoind::ptr attach_bitcoind_session() NOEXCEPT;
+    ////virtual session_electrum::ptr attach_electrum_session() NOEXCEPT;
+    ////virtual session_stratum_v1::ptr attach_stratum_v1_session() NOEXCEPT;
+    ////virtual session_stratum_v2::ptr attach_stratum_v2_session() NOEXCEPT;
 
     /// Virtual handlers.
     /// -----------------------------------------------------------------------

@@ -58,7 +58,7 @@ void protocol_block_in_106::start() NOEXCEPT
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
     SEND(create_get_inventory(), handle_send, _1);
-    protocol::start();
+    protocol_peer::start();
 }
 
 // accept inventory

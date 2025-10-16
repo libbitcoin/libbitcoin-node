@@ -47,7 +47,7 @@ void protocol_header_out_31800::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(get_headers, handle_receive_get_headers, _1, _2);
-    protocol::start();
+    protocol_peer::start();
 }
 
 // Outbound (get_headers).
