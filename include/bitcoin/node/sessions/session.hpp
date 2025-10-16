@@ -107,14 +107,6 @@ public:
     virtual bool is_recent() const NOEXCEPT;
 
 protected:
-    template <class Sibling, class Shared>
-    std::shared_ptr<Sibling> shared_from_sibling() NOEXCEPT
-    {
-        BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-        return std::dynamic_pointer_cast<Sibling>(
-            dynamic_cast<Shared*>(this)->shared_from_this());
-        BC_POP_WARNING()
-    }
 
     /// Constructors.
     /// -----------------------------------------------------------------------

@@ -50,11 +50,10 @@ protected:
     void attach_handshake(const network::channel::ptr& channel,
         network::result_handler&& handler) NOEXCEPT override
     {
-        using namespace network;
-
         // Set the current top for version protocol, before handshake.
         const auto top = archive().get_top_confirmed();
-        std::dynamic_pointer_cast<channel_peer>(channel)->set_start_height(top);
+        const auto peer = std::dynamic_pointer_cast<channel_peer>(channel);
+        peer->set_start_height(top);
 
         // Attach and execute appropriate version protocol.
         Session::attach_handshake(channel, std::move(handler));
@@ -68,6 +67,7 @@ protected:
         using namespace messages::peer;
 
         // this-> is required for dependent base access in CRTP.
+        const auto self = this->shared_from_base<session_peer<Session>>();
         const auto relay = this->config().network.enable_relay;
         const auto delay = this->config().node.delay_inbound;
         const auto headers = this->config().node.headers_first;
@@ -81,9 +81,6 @@ protected:
             this->config().network.services_maximum,
             service::node_client_filters
         ));
-
-        const auto self = session::shared_from_sibling<session_peer<Session>,
-            network::session>();
 
         // Attach appropriate alert, reject, ping, and/or address protocols.
         Session::attach_protocols(channel);
