@@ -42,14 +42,14 @@ protected:
     inline bool enabled() const NOEXCEPT override;
 };
 
-// TODO: move all sessions up from network.
-////using session_web        = network::session_server<protocol_web,        session_tcp>;
-using session_explore        = network::session_server<protocol_explore,    session_tcp>;
-////using session_websocket  = network::session_server<protocol_websocket,  session_tcp>;
-////using session_bitcoind   = network::session_server<protocol_bitcoind,   session_tcp>;
-////using session_electrum   = network::session_server<protocol_electrum,   session_tcp>;
-////using session_stratum_v1 = network::session_server<protocol_stratum_v1, session_tcp>;
-////using session_stratum_v2 = network::session_server<protocol_stratum_v2, session_tcp>;
+// TODO: implement specialized protocol instances, like node::protocol_explore.
+using session_web        = network::session_server<network::protocol_html, session_tcp>;
+using session_explore    = network::session_server<node::protocol_explore, session_tcp>;
+using session_websocket  = network::session_server<network::protocol_http, session_tcp>;
+using session_bitcoind   = network::session_server<network::protocol_http, session_tcp>;
+using session_electrum   = network::session_server<network::protocol_tcp,  session_tcp>;
+using session_stratum_v1 = network::session_server<network::protocol_tcp,  session_tcp>;
+using session_stratum_v2 = network::session_server<network::protocol_tcp,  session_tcp>;
 
 } // namespace node
 } // namespace libbitcoin
