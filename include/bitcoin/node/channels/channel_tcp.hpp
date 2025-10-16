@@ -16,32 +16,38 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol.hpp>
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_TCP_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_TCP_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-// Properties.
-// ----------------------------------------------------------------------------
-
-query& protocol::archive() const NOEXCEPT
+/// TCP channel state for the node.
+class BCN_API channel_tcp
+  : public network::channel_tcp, node::channel
 {
-    return session_->archive();
-}
+public:
+    typedef std::shared_ptr<node::channel_tcp> ptr;
+    using options_t = network::settings::tcp_server;
 
-const configuration& protocol::config() const NOEXCEPT
-{
-    return session_->config();
-}
+    channel_tcp(const network::logger& log, const network::socket::ptr& socket,
+        const node::configuration& config, uint64_t identifier=zero,
+        const options_t& options={}) NOEXCEPT
+      : network::channel_tcp(log, socket, config.network, identifier, options),
+        node::channel(log, socket, config, identifier)
+    {
+    }
 
-bool protocol::is_current(bool confirmed) const NOEXCEPT
-{
-    return session_->is_current(confirmed);
-}
+    virtual ~channel_tcp() NOEXCEPT {}
+};
 
 } // namespace node
 } // namespace libbitcoin
+
+#endif

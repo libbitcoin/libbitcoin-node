@@ -157,10 +157,20 @@ public:
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------
+
+    /// Override base net to attach derived peer sessions.
     network::session_manual::ptr attach_manual_session() NOEXCEPT override;
     network::session_inbound::ptr attach_inbound_session() NOEXCEPT override;
     network::session_outbound::ptr attach_outbound_session() NOEXCEPT override;
+
+    /// Attach server sessions (base net doesn't specialize or start these).
+    virtual session_web::ptr attach_web_session() NOEXCEPT;
     virtual session_explore::ptr attach_explore_session() NOEXCEPT;
+    virtual session_websocket::ptr attach_websocket_session() NOEXCEPT;
+    virtual session_bitcoind::ptr attach_bitcoind_session() NOEXCEPT;
+    virtual session_electrum::ptr attach_electrum_session() NOEXCEPT;
+    virtual session_stratum_v1::ptr attach_stratum_v1_session() NOEXCEPT;
+    virtual session_stratum_v2::ptr attach_stratum_v2_session() NOEXCEPT;
 
     /// Virtual handlers.
     /// -----------------------------------------------------------------------
@@ -169,7 +179,13 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
+    void start_web(const code& ec, const result_handler& handler) NOEXCEPT;
     void start_explore(const code& ec, const result_handler& handler) NOEXCEPT;
+    void start_websocket(const code& ec, const result_handler& handler) NOEXCEPT;
+    void start_bitcoind(const code& ec, const result_handler& handler) NOEXCEPT;
+    void start_electrum(const code& ec, const result_handler& handler) NOEXCEPT;
+    void start_stratum_v1(const code& ec, const result_handler& handler) NOEXCEPT;
+    void start_stratum_v2(const code& ec, const result_handler& handler) NOEXCEPT;
 
     void do_subscribe_events(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;

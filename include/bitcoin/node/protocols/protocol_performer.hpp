@@ -22,13 +22,14 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_peer.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 /// Abstract base protocol for performance standard deviation measurement.
 class BCN_API protocol_performer
-  : public node::protocol,
+  : public node::protocol_peer,
     protected network::tracker<protocol_performer>
 {
 public:
@@ -40,7 +41,7 @@ public:
 protected:
     protocol_performer(const auto& session,
         const network::channel::ptr& channel, bool enabled) NOEXCEPT
-      : node::protocol(session, channel),
+      : node::protocol_peer(session, channel),
         deviation_(session->config().node.allowed_deviation > 0.0),
         enabled_(enabled && to_bool(session->config().node.sample_period_seconds)),
         performance_timer_(std::make_shared<network::deadline>(session->log,

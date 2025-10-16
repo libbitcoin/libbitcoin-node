@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNEL_PEER_HPP
-#define LIBBITCOIN_NODE_CHANNEL_PEER_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_PEER_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_PEER_HPP
 
 #include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -29,7 +30,7 @@ namespace node {
 
 /// Peer channel state for the node.
 class BCN_API channel_peer
-  : public network::channel_peer
+  : public network::channel_peer, node::channel
 {
 public:
     typedef std::shared_ptr<node::channel_peer> ptr;

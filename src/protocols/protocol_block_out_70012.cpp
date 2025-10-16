@@ -46,7 +46,7 @@ void protocol_block_out_70012::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(send_headers, handle_receive_send_headers, _1, _2);
-    protocol::start();
+    protocol_block_out_106::start();
 }
 
 // Inbound (send_headers).

@@ -16,44 +16,43 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TCP_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TCP_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_peer.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
     
-class BCN_API protocol_transaction_in_106
-  : public node::protocol_peer,
-    protected network::tracker<protocol_transaction_in_106>
+/// Abstract base for TCP protocols, thread safe.
+class BCN_API protocol_tcp
+  : public network::protocol_tcp, public node::protocol
 {
-public:
-    typedef std::shared_ptr<protocol_transaction_in_106> ptr;
+protected:
+    typedef std::shared_ptr<node::protocol_tcp> ptr;
 
-    protocol_transaction_in_106(const auto& session,
+    protocol_tcp(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol_peer(session, channel),
-        ////tx_type_(session->config().network.witness_node() ?
-        ////    type_id::witness_tx : type_id::transaction),
-        network::tracker<protocol_transaction_in_106>(session->log)
+      : network::protocol_tcp(session, channel),
+        node::protocol(session, channel),
+        channel_(std::static_pointer_cast<node::channel_tcp>(channel)),
+        session_(session)
     {
     }
 
-    /// Start protocol (strand required).
-    void start() NOEXCEPT override;
-
-protected:
-    /// Accept incoming inventory message.
-    virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::peer::inventory::cptr& message) NOEXCEPT;
+    virtual ~protocol_tcp() NOEXCEPT {}
 
 private:
+    // This derived channel requires stranded calls, base is thread safe.
+    const node::channel_tcp::ptr channel_;
+
     // This is thread safe.
-    ////const type_id tx_type_;
+    const session::ptr session_;
 };
 
 } // namespace node

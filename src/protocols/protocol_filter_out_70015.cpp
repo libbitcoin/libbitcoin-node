@@ -50,7 +50,7 @@ void protocol_filter_out_70015::start() NOEXCEPT
     SUBSCRIBE_CHANNEL(get_client_filter_checkpoint, handle_receive_get_filter_checkpoint, _1, _2);
     SUBSCRIBE_CHANNEL(get_client_filter_headers, handle_receive_get_filter_headers, _1, _2);
     SUBSCRIBE_CHANNEL(get_client_filters, handle_receive_get_filters, _1, _2);
-    protocol::start();
+    protocol_peer::start();
 }
 
 // Inbound (get_client_filter_checkpoint).

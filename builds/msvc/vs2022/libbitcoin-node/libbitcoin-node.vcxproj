@@ -123,7 +123,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
     <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
-    <ClCompile Include="..\..\..\..\src\channel_peer.cpp" />
+    <ClCompile Include="..\..\..\..\src\channels\channel_peer.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
@@ -150,6 +150,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_out_31800.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_out_70012.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_observer.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_peer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_performer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp" />
@@ -164,7 +165,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\channel_peer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_tcp.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
@@ -196,7 +200,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_out_31800.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_out_70012.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_observer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_performer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_tcp.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />

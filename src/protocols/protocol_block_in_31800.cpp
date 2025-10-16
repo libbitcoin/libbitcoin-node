@@ -54,7 +54,7 @@ void protocol_block_in_31800::start() NOEXCEPT
     // Events subscription is asynchronous, events may be missed.
     subscribe_events(BIND(handle_event, _1, _2, _3));
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
-    protocol::start();
+    protocol_performer::start();
 }
 
 // overridden to add non-current node start.
@@ -86,7 +86,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     map_ = chaser_check::empty_map();
     stop_performance();
     unsubscribe_events();
-    protocol::stopping(ec);
+    protocol_performer::stopping(ec);
 }
 
 // handle events (download, split)

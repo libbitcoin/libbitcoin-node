@@ -16,32 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol.hpp>
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNELS_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNELS_HPP
 
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/configuration.hpp>
-#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/channels/channel_peer.hpp>
+#include <bitcoin/node/channels/channel_tcp.hpp>
 
-namespace libbitcoin {
-namespace node {
+#endif
 
-// Properties.
-// ----------------------------------------------------------------------------
-
-query& protocol::archive() const NOEXCEPT
-{
-    return session_->archive();
-}
-
-const configuration& protocol::config() const NOEXCEPT
-{
-    return session_->config();
-}
-
-bool protocol::is_current(bool confirmed) const NOEXCEPT
-{
-    return session_->is_current(confirmed);
-}
-
-} // namespace node
-} // namespace libbitcoin

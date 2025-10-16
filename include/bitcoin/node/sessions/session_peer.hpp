@@ -29,9 +29,7 @@
 namespace libbitcoin {
 namespace node {
 
-class full_node;
-
-/// CRTP base class template for network session multiple derivation.
+/// Template for network::session derivation with node::session.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
 template <class Session>
@@ -39,14 +37,25 @@ class session_peer
   : public Session, public node::session
 {
 public:
-    template <typename... Args>
-    session_peer(full_node& node, uint64_t identifier, Args&&... args) NOEXCEPT
-      : Session(node, identifier, std::forward<Args>(args)...),
+    template <typename Node, typename... Args>
+    session_peer(Node& node, Args&&... args) NOEXCEPT
+      : Session(node, std::forward<Args>(args)...),
         node::session(node)
     {
     }
 
 protected:
+    network::channel::ptr create_channel(
+        const network::socket::ptr& socket) NOEXCEPT override
+    {
+        // this-> is required for dependent base access in CRTP.
+        const auto channel = std::make_shared<node::channel_peer>(
+            this->get_memory(), this->log, socket, this->config(),
+            this->create_key());
+
+        return std::static_pointer_cast<network::channel>(channel);
+    }
+
     void attach_handshake(const network::channel::ptr& channel,
         network::result_handler&& handler) NOEXCEPT override
     {
@@ -161,17 +170,6 @@ protected:
             if (peer->peer_version()->relay)
                 channel->attach<protocol_transaction_out_106>(self)->start();
         }
-    }
-
-    network::channel::ptr create_channel(
-        const network::socket::ptr& socket) NOEXCEPT override
-    {
-        // this-> is required for dependent base access in CRTP.
-        const auto channel = std::make_shared<node::channel_peer>(
-            this->get_memory(), this->log, socket, this->config(),
-            this->create_key());
-
-        return std::static_pointer_cast<network::channel>(channel);
     }
 };
 

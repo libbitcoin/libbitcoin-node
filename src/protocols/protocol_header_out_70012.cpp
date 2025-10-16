@@ -55,7 +55,7 @@ void protocol_header_out_70012::stopping(const code& ec) NOEXCEPT
     // Unsubscriber race is ok.
     BC_ASSERT(stranded());
     unsubscribe_events();
-    protocol::stopping(ec);
+    protocol_header_out_31800::stopping(ec);
 }
 
 // handle events (block)

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/channels/channel_peer.hpp>
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
@@ -25,23 +25,35 @@
 namespace libbitcoin {
 namespace node {
 
-// Properties.
-// ----------------------------------------------------------------------------
+using namespace system;
+using namespace network;
 
-query& protocol::archive() const NOEXCEPT
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
+// Capture configured buffer size.
+channel_peer::channel_peer(memory& memory, const logger& log,
+    const socket::ptr& socket, const node::configuration& config,
+    uint64_t identifier) NOEXCEPT
+  : network::channel_peer(memory, log, socket, config.network, identifier),
+    node::channel(log, socket, config, identifier),
+    announced_(config.node.announcement_cache)
 {
-    return session_->archive();
 }
 
-const configuration& protocol::config() const NOEXCEPT
+void channel_peer::set_announced(const hash_digest& hash) NOEXCEPT
 {
-    return session_->config();
+    BC_ASSERT(stranded());
+    announced_.push_back(hash);
 }
 
-bool protocol::is_current(bool confirmed) const NOEXCEPT
+bool channel_peer::was_announced(const hash_digest& hash) const NOEXCEPT
 {
-    return session_->is_current(confirmed);
+    BC_ASSERT(stranded());
+    return std::find(announced_.begin(), announced_.end(), hash) !=
+        announced_.end();
 }
+
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin

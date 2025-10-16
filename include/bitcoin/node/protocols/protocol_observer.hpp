@@ -23,12 +23,13 @@
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_peer.hpp>
 
 namespace libbitcoin {
 namespace node {
     
 class BCN_API protocol_observer
-  : public node::protocol,
+  : public node::protocol_peer,
     protected network::tracker<protocol_observer>
 {
 public:
@@ -38,7 +39,7 @@ public:
     // TODO: current network handshake sets relay based on config only.
     protocol_observer(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol(session, channel),
+      : node::protocol_peer(session, channel),
         relay_disallowed_
         (
             std::dynamic_pointer_cast<network::channel_peer>(channel)->
