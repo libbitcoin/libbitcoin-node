@@ -39,7 +39,7 @@ public:
         const options_t& options) NOEXCEPT;
 
 protected:
-    inline bool enabled() const NOEXCEPT override;
+    bool enabled() const NOEXCEPT override;
 };
 
 // TODO: implement specialized protocol instances, like node::protocol_explore.
