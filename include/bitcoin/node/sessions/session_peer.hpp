@@ -65,9 +65,10 @@ protected:
         using namespace system;
         using namespace network;
         using namespace messages::peer;
+        using base = session_peer<Session>;
 
         // this-> is required for dependent base access in CRTP.
-        const auto self = this->shared_from_base<session_peer<Session>>();
+        const auto self = this->template shared_from_base<base>();
         const auto relay = this->config().network.enable_relay;
         const auto delay = this->config().node.delay_inbound;
         const auto headers = this->config().node.headers_first;
