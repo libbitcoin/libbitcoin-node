@@ -1103,7 +1103,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "web.bind",
-        value<network::config::endpoints>(&configured.network.web.binds),
+        value<network::config::authorities>(&configured.network.web.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
@@ -1150,7 +1150,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "explore.bind",
-        value<network::config::endpoints>(&configured.network.explore.binds),
+        value<network::config::authorities>(&configured.network.explore.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
@@ -1197,7 +1197,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "websocket.bind",
-        value<network::config::endpoints>(&configured.network.websocket.binds),
+        value<network::config::authorities>(&configured.network.websocket.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
@@ -1229,7 +1229,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "bitcoind.bind",
-        value<network::config::endpoints>(&configured.network.bitcoind.binds),
+        value<network::config::authorities>(&configured.network.bitcoind.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
@@ -1261,7 +1261,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "electrum.bind",
-        value<network::config::endpoints>(&configured.network.electrum.binds),
+        value<network::config::authorities>(&configured.network.electrum.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
@@ -1283,7 +1283,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "stratum_v1.bind",
-        value<network::config::endpoints>(&configured.network.stratum_v1.binds),
+        value<network::config::authorities>(&configured.network.stratum_v1.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
@@ -1305,7 +1305,7 @@ options_metadata parser::load_settings() THROWS
     )
     (
         "stratum_v2.bind",
-        value<network::config::endpoints>(&configured.network.stratum_v2.binds),
+        value<network::config::authorities>(&configured.network.stratum_v2.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
