@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_EXPLORE_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_html.hpp>
 
@@ -34,8 +32,6 @@ class BCN_API protocol_explore
 {
 public:
     typedef std::shared_ptr<protocol_explore> ptr;
-    using options_t = network::settings::html_server;
-    using channel_t = node::channel_http;
 
     protocol_explore(const auto& session,
         const network::channel::ptr& channel,
@@ -54,10 +50,6 @@ public:
 protected:
     void handle_receive_get(const code& ec,
         const network::http::method::get& request) NOEXCEPT override;
-
-private:
-    // This is thread safe.
-    ////const options_t& options_;
 };
 
 } // namespace node

@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_BLOCK_ARENA_HPP
 #define LIBBITCOIN_NODE_BLOCK_ARENA_HPP
 
-#include <bitcoin/system.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

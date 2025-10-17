@@ -20,10 +20,11 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTTP_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+
+ // Only session.hpp.
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
@@ -34,9 +35,11 @@ class BCN_API protocol_http
   : public network::protocol_http,
     public node::protocol
 {
-protected:
-    typedef std::shared_ptr<node::protocol_http> ptr;
+public:
+    // Replace base class channel_t (network::channel_http). 
+    using channel_t = node::channel_http;
 
+protected:
     protocol_http(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
@@ -52,7 +55,7 @@ private:
     const node::channel_tcp::ptr channel_;
 
     // This is thread safe.
-    const session::ptr session_;
+    const node::session::ptr session_;
 };
 
 } // namespace node

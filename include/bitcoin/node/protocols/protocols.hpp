@@ -19,11 +19,12 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 
-/// node base
+/// base
 #include <bitcoin/node/protocols/protocol.hpp>
-
-/// peer base
+#include <bitcoin/node/protocols/protocol_html.hpp>
+#include <bitcoin/node/protocols/protocol_http.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
+#include <bitcoin/node/protocols/protocol_tcp.hpp>
 
 /// peer
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>
@@ -39,11 +40,6 @@
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
-
-/// server base
-#include <bitcoin/node/protocols/protocol_tcp.hpp>
-#include <bitcoin/node/protocols/protocol_html.hpp>
-#include <bitcoin/node/protocols/protocol_http.hpp>
 
 /// server
 #include <bitcoin/node/protocols/protocol_web.hpp>

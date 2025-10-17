@@ -19,14 +19,13 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_MANUAL_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_MANUAL_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class session_manual
+class BCN_API session_manual
   : public session_peer<network::session_manual>
 {
 public:

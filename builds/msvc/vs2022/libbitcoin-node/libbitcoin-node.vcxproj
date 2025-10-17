@@ -149,6 +149,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in_70012.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_out_31800.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_out_70012.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_html.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_observer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_peer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_performer.cpp" />

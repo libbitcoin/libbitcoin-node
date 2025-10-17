@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
@@ -28,7 +27,7 @@ namespace node {
 
 class full_node;
 
-class session_tcp
+class BCN_API session_tcp
   : public network::session_tcp,
     public node::session
 {
@@ -36,12 +35,10 @@ public:
     typedef std::shared_ptr<session_tcp> ptr;
     using options_t = network::session_tcp::options_t;
 
+    // (network::net&) cast due to full_node forward ref (inheritance hidden).
     session_tcp(full_node& node, uint64_t identifier,
         const options_t& options) NOEXCEPT
-      : network::session_tcp(
-          (network::net&)node,
-          identifier,
-          (const network::settings::tcp_server&)options),
+      : network::session_tcp((network::net&)node, identifier, options),
         node::session(node)
     {
     }

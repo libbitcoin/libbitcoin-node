@@ -19,7 +19,6 @@
 #include <bitcoin/node/block_memory.hpp>
 
 #include <atomic>
-#include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {

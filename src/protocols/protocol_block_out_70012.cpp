@@ -18,8 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_block_out_70012.hpp>
 
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_ELECTRUM_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_tcp.hpp>
@@ -34,8 +33,6 @@ class BCN_API protocol_electrum
 {
 public:
     typedef std::shared_ptr<protocol_electrum> ptr;
-    using options_t = network::settings::tcp_server;
-    using channel_t = node::channel_tcp;
 
     protocol_electrum(const auto& session,
         const network::channel::ptr& channel,

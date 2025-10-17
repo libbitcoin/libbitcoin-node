@@ -21,8 +21,6 @@
 
 #include <algorithm>
 #include <ranges>
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 

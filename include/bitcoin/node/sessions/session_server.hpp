@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSION_SERVER_HPP
-#define LIBBITCOIN_NODE_SESSION_SERVER_HPP
+#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_SERVER_HPP
+#define LIBBITCOIN_NODE_SESSIONS_SESSION_SERVER_HPP
 
 #include <memory>
 #include <utility>
@@ -26,6 +26,8 @@
 
 namespace libbitcoin {
 namespace node {
+
+class full_node;
 
 // make_shared<>
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -49,8 +51,8 @@ public:
     using channel_t = typename Protocol::channel_t;
 
     /// Construct an instance (network should be started).
-    template <typename Node, typename... Args>
-    session_server(Node& node, uint64_t identifier, const options_t& options,
+    template <typename... Args>
+    session_server(full_node& node, uint64_t identifier, const options_t& options,
         Args&&... args) NOEXCEPT
       : session_tcp(node, identifier, options, std::forward<Args>(args)...),
         options_(options),
@@ -67,7 +69,7 @@ protected:
     /// based on available factors (e.g. a distinct protocol version).
     channel_ptr create_channel(const socket_ptr& socket) NOEXCEPT override
     {
-        BC_ASSERT_MSG(stranded(), "strand");
+        BC_ASSERT(stranded());
 
         const auto channel = std::make_shared<channel_t>(log, socket, config(),
             create_key(), options_);
@@ -83,8 +85,8 @@ protected:
     void attach_handshake(const channel_ptr& channel,
         network::result_handler&& handler) NOEXCEPT override
     {
-        BC_ASSERT_MSG(channel->stranded(), "channel strand");
-        BC_ASSERT_MSG(channel->paused(), "channel not paused for handshake");
+        BC_ASSERT(channel->stranded());
+        BC_ASSERT(channel->paused());
 
         session_tcp::attach_handshake(channel, std::move(handler));
     }
@@ -95,8 +97,8 @@ protected:
     /// Use std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
     void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
-        BC_ASSERT_MSG(channel->stranded(), "channel strand");
-        BC_ASSERT_MSG(channel->paused(), "channel not paused for protocols");
+        BC_ASSERT(channel->stranded());
+        BC_ASSERT(channel->paused());
 
         const auto self = shared_from_base<session_tcp>();
         channel->attach<Protocol>(self, options_)->start();

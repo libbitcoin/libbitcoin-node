@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_BLOCK_MEMORY_HPP
 
 #include <atomic>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/block_arena.hpp>
 #include <bitcoin/node/define.hpp>
 

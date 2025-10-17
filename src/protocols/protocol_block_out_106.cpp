@@ -19,8 +19,6 @@
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 
 #include <chrono>
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

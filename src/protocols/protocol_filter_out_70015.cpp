@@ -19,7 +19,6 @@
 #include <bitcoin/node/protocols/protocol_filter_out_70015.hpp>
 
 #include <chrono>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

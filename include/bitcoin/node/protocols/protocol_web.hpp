@@ -20,22 +20,19 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEB_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_html.hpp>
 
 namespace libbitcoin {
 namespace node {
 
+/// Administrative web site for the node (currently just page server).
 class BCN_API protocol_web
   : public node::protocol_html,
     protected network::tracker<protocol_web>
 {
 public:
     typedef std::shared_ptr<protocol_web> ptr;
-    using options_t = network::settings::html_server;
-    using channel_t = node::channel_http;
 
     protocol_web(const auto& session,
         const network::channel::ptr& channel,
@@ -50,14 +47,6 @@ public:
     {
         node::protocol_html::start();
     }
-
-////protected:
-////    void handle_receive_get(const code& ec,
-////        const network::http::method::get& request) NOEXCEPT override;
-
-private:
-    // This is thread safe.
-    ////const options_t& options_;
 };
 
 } // namespace node

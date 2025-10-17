@@ -18,8 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

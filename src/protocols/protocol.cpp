@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol.hpp>
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 

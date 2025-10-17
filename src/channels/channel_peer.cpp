@@ -19,7 +19,6 @@
 #include <bitcoin/node/channels/channel_peer.hpp>
 
 #include <algorithm>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 

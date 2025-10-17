@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/configuration.hpp>
 
-#include <bitcoin/system.hpp>
 
 namespace libbitcoin {
 namespace node {

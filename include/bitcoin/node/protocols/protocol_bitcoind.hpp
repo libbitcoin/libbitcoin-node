@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BITCOIND_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_http.hpp>
@@ -34,8 +33,6 @@ class BCN_API protocol_bitcoind
 {
 public:
     typedef std::shared_ptr<protocol_bitcoind> ptr;
-    using options_t = network::settings::http_server;
-    using channel_t = node::channel_http;
 
     protocol_bitcoind(const auto& session,
         const network::channel::ptr& channel,

@@ -19,9 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_OUT_106_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_OUT_106_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 
 namespace libbitcoin {

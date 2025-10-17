@@ -20,10 +20,11 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+
+// Only session.hpp.
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
@@ -45,15 +46,13 @@ namespace node {
 class BCN_API protocol
 {
 protected:
-    typedef std::shared_ptr<node::protocol> ptr;
-
     DELETE_COPY_MOVE_DESTRUCT(protocol);
 
     /// Constructors.
     /// -----------------------------------------------------------------------
 
     // reinterpret_pointer_cast because channel is abstract.
-    protocol(const node::session::ptr& session,
+    protocol(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : channel_(std::reinterpret_pointer_cast<node::channel>(channel)),
         session_(session)

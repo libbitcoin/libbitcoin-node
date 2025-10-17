@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_CHANNELS_CHANNEL_HTTP_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -35,7 +34,7 @@ class BCN_API channel_http
 {
 public:
     typedef std::shared_ptr<node::channel_http> ptr;
-    using options_t = network::settings::http_server;
+    using options_t = network::channel_http::options_t;
 
     channel_http(const network::logger& log, const network::socket::ptr& socket,
         const node::configuration& config, uint64_t identifier=zero,

@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_ORGANIZE_HPP
 
 #include <unordered_map>
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 

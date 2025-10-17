@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V2_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_tcp.hpp>
 
@@ -34,8 +32,6 @@ class BCN_API protocol_stratum_v2
 {
 public:
     typedef std::shared_ptr<protocol_stratum_v2> ptr;
-    using options_t = network::settings::tcp_server;
-    using channel_t = node::channel_tcp;
 
     protocol_stratum_v2(const auto& session,
         const network::channel::ptr& channel,

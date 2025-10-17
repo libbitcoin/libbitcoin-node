@@ -20,8 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_http.hpp>
 
@@ -34,8 +32,6 @@ class BCN_API protocol_websocket
 {
 public:
     typedef std::shared_ptr<protocol_websocket> ptr;
-    using options_t = network::settings::http_server;
-    using channel_t = node::channel_http;
 
     protocol_websocket(const auto& session,
         const network::channel::ptr& channel,

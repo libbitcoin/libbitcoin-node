@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PARSER_HPP
 #define LIBBITCOIN_NODE_PARSER_HPP
 
-#include <bitcoin/system.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 

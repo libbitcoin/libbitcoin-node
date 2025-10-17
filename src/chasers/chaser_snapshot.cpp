@@ -20,7 +20,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
