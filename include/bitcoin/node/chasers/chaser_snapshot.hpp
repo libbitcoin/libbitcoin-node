@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_SNAPSHOT_HPP
 
 #include <atomic>
-#include <bitcoin/system.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 

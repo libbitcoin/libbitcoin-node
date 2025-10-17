@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_CONFIRM_HPP
 
-#include <bitcoin/database.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 

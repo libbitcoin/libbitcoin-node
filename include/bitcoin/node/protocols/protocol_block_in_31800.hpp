@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_31800_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_performer.hpp>

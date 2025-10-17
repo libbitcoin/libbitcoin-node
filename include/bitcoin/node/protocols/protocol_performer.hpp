@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOL_PERFORMER_HPP
 #define LIBBITCOIN_NODE_PROTOCOL_PERFORMER_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 

@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V1_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_tcp.hpp>
 

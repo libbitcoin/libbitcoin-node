@@ -19,8 +19,6 @@
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 
 #include <utility>
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 // The block protocol is partially obsoleted by the headers protocol.

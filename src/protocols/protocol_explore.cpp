@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_explore.hpp>
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {

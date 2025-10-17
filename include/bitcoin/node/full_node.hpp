@@ -19,8 +19,6 @@
 #ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/block_memory.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>

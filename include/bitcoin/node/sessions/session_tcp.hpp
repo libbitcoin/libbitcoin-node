@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 

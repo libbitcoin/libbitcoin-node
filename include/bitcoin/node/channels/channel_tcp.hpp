@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_CHANNELS_CHANNEL_TCP_HPP
 
 #include <memory>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>

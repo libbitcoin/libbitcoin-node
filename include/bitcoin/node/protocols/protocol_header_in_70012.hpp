@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HEADER_IN_70012_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 

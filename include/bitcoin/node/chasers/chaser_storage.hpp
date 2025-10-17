@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_STORAGE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_STORAGE_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 

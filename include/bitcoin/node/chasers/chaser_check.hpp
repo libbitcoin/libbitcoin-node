@@ -21,7 +21,6 @@
 
 #include <deque>
 #include <unordered_map>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 

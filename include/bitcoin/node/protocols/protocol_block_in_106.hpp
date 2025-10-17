@@ -20,7 +20,6 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_IN_106_HPP
 
 #include <unordered_set>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 

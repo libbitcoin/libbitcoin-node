@@ -19,8 +19,6 @@
 #ifndef LIBBITCOIN_NODE_CONFIGURATION_HPP
 #define LIBBITCOIN_NODE_CONFIGURATION_HPP
 
-#include <bitcoin/database.hpp>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/settings.hpp>
 

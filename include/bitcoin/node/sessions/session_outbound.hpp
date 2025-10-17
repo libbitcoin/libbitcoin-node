@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_OUTBOUND_HPP
 
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 

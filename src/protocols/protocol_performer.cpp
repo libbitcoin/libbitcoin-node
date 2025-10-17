@@ -19,7 +19,6 @@
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 
 #include <chrono>
-#include <bitcoin/network.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/define.hpp>
 

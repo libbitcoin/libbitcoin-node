@@ -22,7 +22,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include <filesystem>
-#include <bitcoin/system.hpp>
 #include <bitcoin/node.hpp>
 
 #define TEST_NAME \
