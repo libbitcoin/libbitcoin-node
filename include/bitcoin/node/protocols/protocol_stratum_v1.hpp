@@ -21,7 +21,6 @@
 
 #include <memory>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_tcp.hpp>
 
@@ -34,8 +33,6 @@ class BCN_API protocol_stratum_v1
 {
 public:
     typedef std::shared_ptr<protocol_stratum_v1> ptr;
-    using options_t = network::settings::tcp_server;
-    using channel_t = node::channel_tcp;
 
     protocol_stratum_v1(const auto& session,
         const network::channel::ptr& channel,

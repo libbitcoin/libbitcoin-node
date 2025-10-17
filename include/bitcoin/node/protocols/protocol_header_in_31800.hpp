@@ -21,7 +21,6 @@
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 
 namespace libbitcoin {

@@ -35,12 +35,12 @@ class BCN_API channel_tcp
 {
 public:
     typedef std::shared_ptr<node::channel_tcp> ptr;
-    using options_t = network::settings::tcp_server;
+    using options_t = network::channel_tcp::options_t;
 
     channel_tcp(const network::logger& log, const network::socket::ptr& socket,
         const node::configuration& config, uint64_t identifier=zero,
         const options_t& options={}) NOEXCEPT
-      : network::channel_tcp(log, socket, config.network, identifier, options),
+      : network::channel_tcp(log, socket, (const network::settings&)config.network, identifier, options),
         node::channel(log, socket, config, identifier)
     {
     }

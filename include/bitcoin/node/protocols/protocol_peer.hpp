@@ -24,6 +24,8 @@
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+
+ // Only session.hpp.
 #include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
@@ -122,7 +124,7 @@ private:
     const node::channel_peer::ptr channel_;
 
     // This is thread safe.
-    const session::ptr session_;
+    const node::session::ptr session_;
 
     // This is protected by singular subscription.
     object_key key_{};

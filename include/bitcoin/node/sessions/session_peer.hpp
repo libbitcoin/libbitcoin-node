@@ -22,6 +22,7 @@
 #include <memory>
 #include <utility>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
@@ -38,6 +39,10 @@ class session_peer
     public node::session
 {
 public:
+    typedef std::shared_ptr<session_peer<Session>> ptr;
+    using channel_t = node::channel_peer;
+
+    /// Construct an instance.
     template <typename Node, typename... Args>
     session_peer(Node& node, Args&&... args) NOEXCEPT
       : Session(node, std::forward<Args>(args)...),
@@ -46,38 +51,47 @@ public:
     }
 
 protected:
-    network::channel::ptr create_channel(
-        const network::socket::ptr& socket) NOEXCEPT override
+    using socket_ptr = network::socket::ptr;
+    using channel_ptr = network::channel::ptr;
+
+    // this-> is required for dependent base access in CRTP.
+
+    channel_ptr create_channel(const socket_ptr& socket) NOEXCEPT override
     {
-        // this-> is required for dependent base access in CRTP.
-        const auto channel = std::make_shared<node::channel_peer>(
+        BC_ASSERT(this->stranded());
+
+        const auto channel = std::make_shared<channel_t>(
             this->get_memory(), this->log, socket, this->config(),
             this->create_key());
 
         return std::static_pointer_cast<network::channel>(channel);
     }
 
-    void attach_handshake(const network::channel::ptr& channel,
+    void attach_handshake(const channel_ptr& channel,
         network::result_handler&& handler) NOEXCEPT override
     {
+        BC_ASSERT(channel->stranded());
+        BC_ASSERT(channel->paused());
+
         // Set the current top for version protocol, before handshake.
-        const auto top = archive().get_top_confirmed();
-        const auto peer = std::dynamic_pointer_cast<channel_peer>(channel);
+        const auto top = this->archive().get_top_confirmed();
+        const auto peer = std::dynamic_pointer_cast<channel_t>(channel);
         peer->set_start_height(top);
 
         // Attach and execute appropriate version protocol.
         Session::attach_handshake(channel, std::move(handler));
     }
 
-    void attach_protocols(
-        const network::channel::ptr& channel) NOEXCEPT override
+    void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
+        BC_ASSERT(channel->stranded());
+        BC_ASSERT(channel->paused());
+
         using namespace system;
         using namespace network;
         using namespace messages::peer;
         using base = session_peer<Session>;
 
-        // this-> is required for dependent base access in CRTP.
         const auto self = this->template shared_from_base<base>();
         const auto relay = this->config().network.enable_relay;
         const auto delay = this->config().node.delay_inbound;
@@ -100,7 +114,7 @@ protected:
         channel->attach<protocol_observer>(self)->start();
 
         // Ready to relay blocks or block filters.
-        const auto blocks_out = !delay || is_recent();
+        const auto blocks_out = !delay || this->is_recent();
 
         ///////////////////////////////////////////////////////////////////////
         // bip152: "Upon receipt of a `sendcmpct` message with the first and
@@ -109,7 +123,7 @@ protected:
         // This allows the node to support bip157 without supporting bip152.
         ///////////////////////////////////////////////////////////////////////
 
-        const auto peer = std::dynamic_pointer_cast<channel_peer>(channel);
+        const auto peer = std::dynamic_pointer_cast<channel_t>(channel);
 
         // Node must advertise node_client_filters or no out filters.
         if (node_client_filters && blocks_out &&

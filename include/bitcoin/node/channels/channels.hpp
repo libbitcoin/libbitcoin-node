@@ -23,6 +23,7 @@
 #include <bitcoin/node/channels/channel_peer.hpp>
 #include <bitcoin/node/channels/channel_tcp.hpp>
 #include <bitcoin/node/channels/channel_http.hpp>
+// add channel_websocket to network and derive here
 
 #endif
 

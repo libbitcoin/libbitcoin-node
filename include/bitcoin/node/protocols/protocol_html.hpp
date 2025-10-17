@@ -31,16 +31,19 @@ namespace node {
     
 /// Abstract base for HTML protocols, thread safe.
 class BCN_API protocol_html
-  : public network::protocol_html,
+  : public network::protocol_http,
     public node::protocol
 {
-protected:
-    typedef std::shared_ptr<node::protocol_html> ptr;
+public:
+    /// http channel, but html settings.
+    using options_t = network::settings::html_server;
+    using channel_t = node::channel_http;
 
+protected:
     protocol_html(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_html(session, channel, options),
+      : network::protocol_http(session, channel, options),
         node::protocol(session, channel)
     {
     }

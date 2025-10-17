@@ -21,9 +21,8 @@
 
 #include <memory>
 #include <bitcoin/network.hpp>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_html.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -34,8 +33,6 @@ class BCN_API protocol_web
 {
 public:
     typedef std::shared_ptr<protocol_web> ptr;
-    using options_t = network::settings::html_server;
-    using channel_t = node::channel_http;
 
     protocol_web(const auto& session,
         const network::channel::ptr& channel,

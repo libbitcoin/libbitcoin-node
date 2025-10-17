@@ -34,8 +34,6 @@ class BCN_API protocol_electrum
 {
 public:
     typedef std::shared_ptr<protocol_electrum> ptr;
-    using options_t = network::settings::tcp_server;
-    using channel_t = node::channel_tcp;
 
     protocol_electrum(const auto& session,
         const network::channel::ptr& channel,

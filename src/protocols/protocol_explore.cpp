@@ -36,57 +36,57 @@ using namespace std::placeholders;
 // fields[], request->target(), file.is_open() are undeclared noexcept.
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-void protocol_explore::handle_receive_get(const code& ec,
-    const method::get& request) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "strand");
-
-    if (stopped(ec))
-        return;
-
-    // Enforce http origin policy (requires configured hosts).
-    if (!is_allowed_origin((*request)[field::origin], request->version()))
-    {
-        send_forbidden(*request);
-        return;
-    }
-
-    // Enforce http host header (if any hosts are configured).
-    if (!is_allowed_host((*request)[field::host], request->version()))
-    {
-        send_bad_host(*request);
-        return;
-    }
-
-    // Empty path implies malformed target (terminal).
-    auto path = to_local_path(request->target());
-    if (path.empty())
-    {
-        send_bad_target(*request);
-        return;
-    }
-
-    if (!path.has_extension())
-    {
-        // Empty path implies default page is invalid or not configured.
-        path = to_local_path();
-        if (path.empty())
-        {
-            send_not_implemented(*request);
-            return;
-        }
-    }
-
-    // Not open implies file not found (non-terminal).
-    auto file = get_file_body(path);
-    if (!file.is_open())
-    {
-        send_not_found(*request);
-        return;
-    }
-
-    send_file(*request, std::move(file), file_mime_type(path));
-}
+////void protocol_explore::handle_receive_get(const code& ec,
+////    const method::get& request) NOEXCEPT
+////{
+////    BC_ASSERT_MSG(stranded(), "strand");
+////
+////    if (stopped(ec))
+////        return;
+////
+////    // Enforce http origin policy (requires configured hosts).
+////    if (!is_allowed_origin((*request)[field::origin], request->version()))
+////    {
+////        send_forbidden(*request);
+////        return;
+////    }
+////
+////    // Enforce http host header (if any hosts are configured).
+////    if (!is_allowed_host((*request)[field::host], request->version()))
+////    {
+////        send_bad_host(*request);
+////        return;
+////    }
+////
+////    // Empty path implies malformed target (terminal).
+////    auto path = to_local_path(request->target());
+////    if (path.empty())
+////    {
+////        send_bad_target(*request);
+////        return;
+////    }
+////
+////    if (!path.has_extension())
+////    {
+////        // Empty path implies default page is invalid or not configured.
+////        path = to_local_path();
+////        if (path.empty())
+////        {
+////            send_not_implemented(*request);
+////            return;
+////        }
+////    }
+////
+////    // Not open implies file not found (non-terminal).
+////    auto file = get_file_body(path);
+////    if (!file.is_open())
+////    {
+////        send_not_found(*request);
+////        return;
+////    }
+////
+////    send_file(*request, std::move(file), file_mime_type(path));
+////}
 
 BC_POP_WARNING()
 

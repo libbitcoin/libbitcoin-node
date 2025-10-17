@@ -34,8 +34,6 @@ class BCN_API protocol_bitcoind
 {
 public:
     typedef std::shared_ptr<protocol_bitcoind> ptr;
-    using options_t = network::settings::http_server;
-    using channel_t = node::channel_http;
 
     protocol_bitcoind(const auto& session,
         const network::channel::ptr& channel,

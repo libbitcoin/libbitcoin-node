@@ -26,7 +26,7 @@
 namespace libbitcoin {
 namespace node {
     
-class session_outbound
+class BCN_API session_outbound
   : public session_peer<network::session_outbound>
 {
 public:
