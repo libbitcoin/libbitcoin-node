@@ -631,8 +631,6 @@ clone_from_github()
 
 create_from_github()
 {
-    push_directory "$BUILD_SRC_DIR"
-
     local ACCOUNT=$1
     local REPO=$2
     local BRANCH=$3
@@ -659,8 +657,6 @@ create_from_github()
         display_message "Cloning $FORK/$BRANCH..."
         clone_from_github "$FORK" "$BRANCH"
     fi
-
-    pop_directory
 }
 
 # Standard build from github.
