@@ -21,28 +21,34 @@
 
 #include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_html.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_explore
-  : public network::protocol_html,
+  : public node::protocol_html,
     protected network::tracker<protocol_explore>
 {
 public:
     typedef std::shared_ptr<protocol_explore> ptr;
     using options_t = network::settings::html_server;
-    using channel_t = network::channel_http;
+    using channel_t = node::channel_http;
 
     protocol_explore(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_html(session, channel, options),
-        ////options_(options),
+      : node::protocol_html(session, channel, options),
         network::tracker<protocol_explore>(session->log)
     {
+    }
+
+    /// Public start is required.
+    void start() NOEXCEPT override
+    {
+        node::protocol_html::start();
     }
 
 protected:

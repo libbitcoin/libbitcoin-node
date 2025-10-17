@@ -31,7 +31,8 @@ namespace node {
 
 /// Abstract base for node peer protocols, thread safe.
 class BCN_API protocol_peer
-  : public network::protocol_peer, public node::protocol
+  : public network::protocol_peer,
+    public node::protocol
 {
 protected:
     /// Constructors.
@@ -46,8 +47,6 @@ protected:
         session_(session)
     {
     }
-
-    virtual ~protocol_peer() NOEXCEPT {}
 
     /// Organizers.
     /// -----------------------------------------------------------------------

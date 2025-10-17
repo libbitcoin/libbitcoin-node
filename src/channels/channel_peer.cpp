@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/channels/channel_peer.hpp>
 
+#include <algorithm>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -29,16 +30,6 @@ using namespace system;
 using namespace network;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-
-// Capture configured buffer size.
-channel_peer::channel_peer(memory& memory, const logger& log,
-    const socket::ptr& socket, const node::configuration& config,
-    uint64_t identifier) NOEXCEPT
-  : network::channel_peer(memory, log, socket, config.network, identifier),
-    node::channel(log, socket, config, identifier),
-    announced_(config.node.announcement_cache)
-{
-}
 
 void channel_peer::set_announced(const hash_digest& hash) NOEXCEPT
 {

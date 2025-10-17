@@ -28,16 +28,22 @@
 namespace libbitcoin {
 namespace node {
 
-/// Peer channel state for the node.
+/// Abstract base peer channel state for the node.
 class BCN_API channel_peer
-  : public network::channel_peer, node::channel
+  : public network::channel_peer,
+    public node::channel
 {
 public:
     typedef std::shared_ptr<node::channel_peer> ptr;
 
     channel_peer(network::memory& memory, const network::logger& log,
         const network::socket::ptr& socket, const node::configuration& config,
-        uint64_t identifier=zero) NOEXCEPT;
+        uint64_t identifier=zero) NOEXCEPT
+      : network::channel_peer(memory, log, socket, config.network, identifier),
+        node::channel(log, socket, config, identifier),
+        announced_(config.node.announcement_cache)
+    {
+    }
 
     void set_announced(const system::hash_digest& hash) NOEXCEPT;
     bool was_announced(const system::hash_digest& hash) const NOEXCEPT;

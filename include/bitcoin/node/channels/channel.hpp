@@ -34,14 +34,13 @@ class BCN_API channel
 public:
     typedef std::shared_ptr<node::channel> ptr;
 
+    DELETE_COPY_MOVE_DESTRUCT(channel);
+
 protected:
     channel(const network::logger&, const network::socket::ptr&,
         const node::configuration&, uint64_t=zero) NOEXCEPT
     {
     }
-
-    virtual ~channel() NOEXCEPT {}
-
 };
 
 } // namespace node

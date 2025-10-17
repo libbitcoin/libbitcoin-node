@@ -16,38 +16,48 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
-#define LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEB_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEB_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class full_node;
-
-class session_tcp
-  : public network::session_tcp,
-    public node::session
+class BCN_API protocol_web
+  : public node::protocol_html,
+    protected network::tracker<protocol_web>
 {
 public:
-    typedef std::shared_ptr<session_tcp> ptr;
-    using options_t = network::session_tcp::options_t;
+    typedef std::shared_ptr<protocol_web> ptr;
+    using options_t = network::settings::html_server;
+    using channel_t = node::channel_http;
 
-    session_tcp(full_node& node, uint64_t identifier,
+    protocol_web(const auto& session,
+        const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::session_tcp(
-          (network::net&)node,
-          identifier,
-          (const network::settings::tcp_server&)options),
-        node::session(node)
+      : node::protocol_html(session, channel, options),
+        network::tracker<protocol_web>(session->log)
     {
     }
 
-protected:
-    bool enabled() const NOEXCEPT override;
+    /// Public start is required.
+    void start() NOEXCEPT override
+    {
+        node::protocol_html::start();
+    }
+
+////protected:
+////    void handle_receive_get(const code& ec,
+////        const network::http::method::get& request) NOEXCEPT override;
+
+private:
+    // This is thread safe.
+    ////const options_t& options_;
 };
 
 } // namespace node

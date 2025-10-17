@@ -36,7 +36,7 @@ class BCN_API session
 public:
     typedef std::shared_ptr<session> ptr;
 
-    DELETE_COPY_MOVE(session);
+    DELETE_COPY_MOVE_DESTRUCT(session);
 
     /// Organizers.
     /// -----------------------------------------------------------------------
@@ -112,7 +112,6 @@ protected:
     /// -----------------------------------------------------------------------
 
     session(full_node& node) NOEXCEPT;
-    ~session() NOEXCEPT;
 
 private:
     void do_subscribe_events(const event_notifier& handler,
