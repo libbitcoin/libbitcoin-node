@@ -39,7 +39,7 @@ public:
     channel_tcp(const network::logger& log, const network::socket::ptr& socket,
         const node::configuration& config, uint64_t identifier=zero,
         const options_t& options={}) NOEXCEPT
-      : network::channel_tcp(log, socket, (const network::settings&)config.network, identifier, options),
+      : network::channel_tcp(log, socket, config.network, identifier, options),
         node::channel(log, socket, config, identifier)
     {
     }
