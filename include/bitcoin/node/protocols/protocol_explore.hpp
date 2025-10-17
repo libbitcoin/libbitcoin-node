@@ -49,7 +49,7 @@ public:
 
 protected:
     void handle_receive_get(const code& ec,
-        const network::http::method::get& request) NOEXCEPT;
+        const network::http::method::get& request) NOEXCEPT override;
 };
 
 } // namespace node
