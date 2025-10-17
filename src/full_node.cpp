@@ -548,7 +548,7 @@ session_explore::ptr full_node::attach_explore_session() NOEXCEPT
 
 session_websocket::ptr full_node::attach_websocket_session() NOEXCEPT
 {
-    return net::attach<session_websocket>(*this, config_.server.websocket);
+    return net::attach<session_websocket>(*this, config_.server.socket);
 }
 
 session_bitcoind::ptr full_node::attach_bitcoind_session() NOEXCEPT

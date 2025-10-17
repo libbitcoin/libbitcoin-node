@@ -28,6 +28,7 @@ namespace libbitcoin {
 namespace node {
 
 /// Abstract base websocket channel state for the node.
+/// Does not inherit node::channel_http but does inherit network::channel_http.
 class BCN_API channel_websocket
   : public network::channel_websocket,
     public node::channel
