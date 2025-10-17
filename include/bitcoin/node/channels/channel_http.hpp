@@ -16,38 +16,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
-#define LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_HTTP_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_HTTP_HPP
 
+#include <memory>
 #include <bitcoin/network.hpp>
+#include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class full_node;
-
-class session_tcp
-  : public network::session_tcp,
-    public node::session
+/// Abstract base HTTP channel state for the node.
+class BCN_API channel_http
+  : public network::channel_http,
+    public node::channel
 {
 public:
-    typedef std::shared_ptr<session_tcp> ptr;
-    using options_t = network::session_tcp::options_t;
+    typedef std::shared_ptr<node::channel_http> ptr;
+    using options_t = network::settings::http_server;
 
-    session_tcp(full_node& node, uint64_t identifier,
-        const options_t& options) NOEXCEPT
-      : network::session_tcp(
-          (network::net&)node,
-          identifier,
-          (const network::settings::tcp_server&)options),
-        node::session(node)
+    channel_http(const network::logger& log, const network::socket::ptr& socket,
+        const node::configuration& config, uint64_t identifier=zero,
+        const options_t& options={}) NOEXCEPT
+      : network::channel_http(log, socket, config.network, identifier, options),
+        node::channel(log, socket, config, identifier)
     {
     }
-
-protected:
-    bool enabled() const NOEXCEPT override;
 };
 
 } // namespace node

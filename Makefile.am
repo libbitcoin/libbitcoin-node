@@ -159,6 +159,7 @@ include_bitcoin_node_HEADERS = \
 include_bitcoin_node_channelsdir = ${includedir}/bitcoin/node/channels
 include_bitcoin_node_channels_HEADERS = \
     include/bitcoin/node/channels/channel.hpp \
+    include/bitcoin/node/channels/channel_http.hpp \
     include/bitcoin/node/channels/channel_peer.hpp \
     include/bitcoin/node/channels/channel_tcp.hpp \
     include/bitcoin/node/channels/channels.hpp
@@ -185,22 +186,30 @@ include_bitcoin_node_impl_chasers_HEADERS = \
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol.hpp \
+    include/bitcoin/node/protocols/protocol_bitcoind.hpp \
     include/bitcoin/node/protocols/protocol_block_in_106.hpp \
     include/bitcoin/node/protocols/protocol_block_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_block_out_106.hpp \
     include/bitcoin/node/protocols/protocol_block_out_70012.hpp \
+    include/bitcoin/node/protocols/protocol_electrum.hpp \
     include/bitcoin/node/protocols/protocol_explore.hpp \
     include/bitcoin/node/protocols/protocol_filter_out_70015.hpp \
     include/bitcoin/node/protocols/protocol_header_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_in_70012.hpp \
     include/bitcoin/node/protocols/protocol_header_out_31800.hpp \
     include/bitcoin/node/protocols/protocol_header_out_70012.hpp \
+    include/bitcoin/node/protocols/protocol_html.hpp \
+    include/bitcoin/node/protocols/protocol_http.hpp \
     include/bitcoin/node/protocols/protocol_observer.hpp \
     include/bitcoin/node/protocols/protocol_peer.hpp \
     include/bitcoin/node/protocols/protocol_performer.hpp \
+    include/bitcoin/node/protocols/protocol_stratum_v1.hpp \
+    include/bitcoin/node/protocols/protocol_stratum_v2.hpp \
     include/bitcoin/node/protocols/protocol_tcp.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
+    include/bitcoin/node/protocols/protocol_web.hpp \
+    include/bitcoin/node/protocols/protocol_websocket.hpp \
     include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
@@ -210,6 +219,7 @@ include_bitcoin_node_sessions_HEADERS = \
     include/bitcoin/node/sessions/session_manual.hpp \
     include/bitcoin/node/sessions/session_outbound.hpp \
     include/bitcoin/node/sessions/session_peer.hpp \
+    include/bitcoin/node/sessions/session_server.hpp \
     include/bitcoin/node/sessions/session_tcp.hpp \
     include/bitcoin/node/sessions/sessions.hpp
 

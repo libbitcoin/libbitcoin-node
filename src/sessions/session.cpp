@@ -41,10 +41,6 @@ session::session(full_node& node) NOEXCEPT
 {
 }
 
-session::~session() NOEXCEPT
-{
-}
-
 // Organizers.
 // ----------------------------------------------------------------------------
 

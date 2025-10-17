@@ -16,43 +16,48 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TCP_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TCP_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BITCOIND_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BITCOIND_HPP
 
 #include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/protocols/protocol_http.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-/// Abstract base for TCP protocols, thread safe.
-class BCN_API protocol_tcp
-  : public network::protocol_tcp,
-    public node::protocol
-{
-protected:
-    typedef std::shared_ptr<node::protocol_tcp> ptr;
 
-    protocol_tcp(const auto& session,
+class BCN_API protocol_bitcoind
+  : public node::protocol_http,
+    protected network::tracker<protocol_bitcoind>
+{
+public:
+    typedef std::shared_ptr<protocol_bitcoind> ptr;
+    using options_t = network::settings::http_server;
+    using channel_t = node::channel_http;
+
+    protocol_bitcoind(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_tcp(session, channel, options),
-        node::protocol(session, channel),
-        channel_(std::static_pointer_cast<node::channel_tcp>(channel)),
-        session_(session)
+      : node::protocol_http(session, channel, options),
+        network::tracker<protocol_bitcoind>(session->log)
     {
     }
 
-private:
-    // This derived channel requires stranded calls, base is thread safe.
-    const node::channel_tcp::ptr channel_;
+    /// Public start is required.
+    void start() NOEXCEPT override
+    {
+        node::protocol_http::start();
+    }
 
+////protected:
+////    void handle_receive_get(const code& ec,
+////        const network::http::method::get& request) NOEXCEPT override;
+
+private:
     // This is thread safe.
-    const session::ptr session_;
+    ////const options_t& options_;
 };
 
 } // namespace node

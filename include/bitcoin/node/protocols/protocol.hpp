@@ -47,6 +47,8 @@ class BCN_API protocol
 protected:
     typedef std::shared_ptr<node::protocol> ptr;
 
+    DELETE_COPY_MOVE_DESTRUCT(protocol);
+
     /// Constructors.
     /// -----------------------------------------------------------------------
 
@@ -57,8 +59,6 @@ protected:
         session_(session)
     {
     }
-
-    virtual ~protocol() NOEXCEPT {}
 
     /// Properties.
     /// -----------------------------------------------------------------------

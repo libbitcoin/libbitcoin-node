@@ -23,13 +23,6 @@
 namespace libbitcoin {
 namespace node {
 
-session_tcp::session_tcp(full_node& node, uint64_t identifier,
-    const options_t& options) NOEXCEPT
-  : network::session_tcp(node, identifier, options),
-    node::session(node)
-{
-}
-
 // Inbound connection attempts are dropped unless confirmed chain is current.
 // Used instead of suspension because suspension has independent start/stop.
 bool session_tcp::enabled() const NOEXCEPT

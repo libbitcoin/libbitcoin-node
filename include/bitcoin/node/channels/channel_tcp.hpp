@@ -28,9 +28,10 @@
 namespace libbitcoin {
 namespace node {
 
-/// TCP channel state for the node.
+/// Abstract base TCP channel state for the node.
 class BCN_API channel_tcp
-  : public network::channel_tcp, node::channel
+  : public network::channel_tcp,
+    public node::channel
 {
 public:
     typedef std::shared_ptr<node::channel_tcp> ptr;
@@ -43,8 +44,6 @@ public:
         node::channel(log, socket, config, identifier)
     {
     }
-
-    virtual ~channel_tcp() NOEXCEPT {}
 };
 
 } // namespace node

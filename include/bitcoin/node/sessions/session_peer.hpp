@@ -34,7 +34,8 @@ namespace node {
 /// This avoids the diamond inheritance problem between network/node.
 template <class Session>
 class session_peer
-  : public Session, public node::session
+  : public Session,
+    public node::session
 {
 public:
     template <typename Node, typename... Args>
