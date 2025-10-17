@@ -27,6 +27,7 @@
 namespace libbitcoin {
 namespace node {
 
+/// Administrative web site for the node (currently just page server).
 class BCN_API protocol_web
   : public node::protocol_html,
     protected network::tracker<protocol_web>
@@ -47,14 +48,6 @@ public:
     {
         node::protocol_html::start();
     }
-
-////protected:
-////    void handle_receive_get(const code& ec,
-////        const network::http::method::get& request) NOEXCEPT override;
-
-private:
-    // This is thread safe.
-    ////const options_t& options_;
 };
 
 } // namespace node

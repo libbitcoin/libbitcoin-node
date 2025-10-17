@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_explore.hpp>
+#include <bitcoin/node/protocols/protocol_html.hpp>
 
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/define.hpp>
@@ -24,9 +24,8 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_explore
+#define CLASS protocol_html
 
-using namespace system;
 using namespace network::http;
 using namespace std::placeholders;
 
@@ -34,9 +33,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Handle get method.
 // ----------------------------------------------------------------------------
-// fields[], request->target(), file.is_open() are undeclared noexcept.
+// fields[] are undeclared noexcept.
 
-void protocol_explore::handle_receive_get(const code& ec,
+void protocol_html::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
@@ -59,22 +58,11 @@ void protocol_explore::handle_receive_get(const code& ec,
     }
 
     // Empty path implies malformed target (terminal).
-    auto path = to_local_path(request->target());
+    const auto path = to_local_path(request->target());
     if (path.empty())
     {
         send_bad_target(*request);
         return;
-    }
-
-    if (!path.has_extension())
-    {
-        // Empty path implies default page is invalid or not configured.
-        path = to_local_path();
-        if (path.empty())
-        {
-            send_not_implemented(*request);
-            return;
-        }
     }
 
     // Not open implies file not found (non-terminal).
@@ -85,7 +73,53 @@ void protocol_explore::handle_receive_get(const code& ec,
         return;
     }
 
-    send_file(*request, std::move(file), file_mime_type(path));
+    const auto default_type = mime_type::application_octet;
+    send_file(*request, std::move(file), file_mime_type(path, default_type));
+}
+
+// Senders.
+// ----------------------------------------------------------------------------
+
+void protocol_html::send_file(const string_request& request,
+    file&& file, mime_type type) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
+
+    file_response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+
+    response.set(field::content_type, from_mime_type(type));
+    response.body() = std::move(file);
+    response.prepare_payload();
+
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+// Utilities.
+// ----------------------------------------------------------------------------
+
+bool protocol_html::is_allowed_origin(const std::string& origin,
+    size_t version) const NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+
+    // Allow same-origin and no-origin requests.
+    // Origin header field is not available until http 1.1.
+    if (origin.empty() || version < version_1_1)
+        return true;
+
+    return options_.origins.empty() || system::contains(options_.origins,
+        network::config::to_normal_host(origin, default_port()));
+}
+
+std::filesystem::path protocol_html::to_local_path(
+    const std::string& target) const NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+
+    return sanitize_origin(options_.path,
+        target == "/" ? target + options_.default_ : target);
 }
 
 BC_POP_WARNING()

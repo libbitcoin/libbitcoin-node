@@ -48,13 +48,9 @@ public:
         node::protocol_html::start();
     }
 
-////protected:
-////    void handle_receive_get(const code& ec,
-////        const network::http::method::get& request) NOEXCEPT;
-
-private:
-    // This is thread safe.
-    ////const options_t& options_;
+protected:
+    void handle_receive_get(const code& ec,
+        const network::http::method::get& request) NOEXCEPT;
 };
 
 } // namespace node

@@ -19,12 +19,10 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTML_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTML_HPP
 
-#include <memory>
 #include <bitcoin/network.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -44,9 +42,28 @@ protected:
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : network::protocol_http(session, channel, options),
+        options_(options),
         node::protocol(session, channel)
     {
     }
+
+    /// Message handlers by http method.
+    void handle_receive_get(const code& ec,
+        const network::http::method::get& request) NOEXCEPT override;
+
+    /// Senders.
+    void send_file(const network::http::string_request& request,
+        network::http::file&& file, network::http::mime_type type) NOEXCEPT;
+
+    /// Utilities.
+    bool is_allowed_origin(const std::string& origin,
+        size_t version) const NOEXCEPT;
+    std::filesystem::path to_local_path(
+        const std::string& target = "/") const NOEXCEPT;
+
+private:
+    // This is thread safe.
+    const options_t& options_;
 };
 
 } // namespace node
