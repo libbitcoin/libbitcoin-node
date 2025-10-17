@@ -96,6 +96,62 @@ public:
 };
 
 } // namespace node
+
+namespace server {
+
+/// [server] settings.
+class BCN_API settings
+{
+public:
+    /// html (http/s) document server settings (has directory/default).
+    /// This is for web servers that expose a local file system directory.
+    struct html_server
+      : public network::settings::http_server
+    {
+        /// Directory to serve.
+        std::filesystem::path path{};
+
+        /// Default page for default URL (recommended).
+        std::string default_{ "index.html" };
+
+        /// Validated against origins if configured (recommended).
+        network::config::endpoints origins{};
+
+        /// Normalized origins.
+        system::string_list origin_names() const NOEXCEPT;
+
+        /// !path.empty() && http_server::enabled() [hidden, not virtual]
+        bool enabled() const NOEXCEPT;
+    };
+
+    DEFAULT_COPY_MOVE_DESTRUCT(settings);
+
+    settings() NOEXCEPT {};
+    settings(system::chain::selection) NOEXCEPT {};
+
+    /// native admin web interface, isolated (http/s, stateless html)
+    server::settings::html_server web{ "web" };
+
+    /// native RESTful block explorer (http/s, stateless html/json)
+    server::settings::html_server explore{ "explore" };
+
+    /// native websocket query interface (http/s->tcp/s, json, handshake)
+    network::settings::webs_server websocket{ "websocket" };
+
+    /// bitcoind compat interface (http/s, stateless json-rpc-v2)
+    network::settings::http_server bitcoind{ "bitcoind" };
+
+    /// electrum compat interface (tcp/s, json-rpc-v2)
+    network::settings::tcp_server electrum{ "electrum" };
+
+    /// stratum v1 compat interface (tcp/s, json-rpc-v1, auth handshake)
+    network::settings::tcp_server stratum_v1{ "stratum_v1" };
+
+    /// stratum v2 compat interface (tcp[/s], binary, auth/privacy handshake)
+    network::settings::tcp_server stratum_v2{ "stratum_v2" };
+};
+
+} // namespace server
 } // namespace libbitcoin
 
 #endif

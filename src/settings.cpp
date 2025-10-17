@@ -129,4 +129,23 @@ network::thread_priority settings::priority_() const NOEXCEPT
 }
 
 } // namespace node
+
+namespace server {
+
+system::string_list settings::html_server::origin_names() const NOEXCEPT
+{
+    // secure changes default port from 80 to 443.
+    const auto port = secure ? http::default_tls : http::default_http;
+    return network::config::to_host_names(hosts, port);
+}
+
+// Because session_tcp upcasts html_server to tcp_server settings, this doesn't
+// get executed, so presently an empty path allows the service to start. This
+// can be hacked away external to the session at startup.
+bool settings::html_server::enabled() const NOEXCEPT
+{
+    return !path.empty() && http_server::enabled();
+}
+
+} // namespace server
 } // namespace libbitcoin

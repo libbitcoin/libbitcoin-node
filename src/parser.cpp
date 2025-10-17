@@ -92,13 +92,13 @@ parser::parser(system::chain::selection context) NOEXCEPT
     configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
 
     // admin
-    configured.network.web.binds.emplace_back(asio::address{}, 8080_u16);
-    configured.network.explore.binds.emplace_back(asio::address{}, 8180_u16);
-    configured.network.websocket.binds.emplace_back(asio::address{}, 8280_u16);
-    configured.network.bitcoind.binds.emplace_back(asio::address{}, 8380_u16);
-    configured.network.electrum.binds.emplace_back(asio::address{}, 8480_u16);
-    configured.network.stratum_v1.binds.emplace_back(asio::address{}, 8580_u16);
-    configured.network.stratum_v2.binds.emplace_back(asio::address{}, 8680_u16);
+    configured.server.web.binds.emplace_back(asio::address{}, 8080_u16);
+    configured.server.explore.binds.emplace_back(asio::address{}, 8180_u16);
+    configured.server.websocket.binds.emplace_back(asio::address{}, 8280_u16);
+    configured.server.bitcoind.binds.emplace_back(asio::address{}, 8380_u16);
+    configured.server.electrum.binds.emplace_back(asio::address{}, 8480_u16);
+    configured.server.stratum_v1.binds.emplace_back(asio::address{}, 8580_u16);
+    configured.server.stratum_v2.binds.emplace_back(asio::address{}, 8680_u16);
 
     // SCALE: LF2.2 @ 850K.
 
@@ -1096,224 +1096,224 @@ options_metadata parser::load_settings() THROWS
     /* [web] */
     (
         "web.secure",
-        value<bool>(&configured.network.web.secure),
+        value<bool>(&configured.server.web.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "web.bind",
-        value<network::config::authorities>(&configured.network.web.binds),
+        value<network::config::authorities>(&configured.server.web.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "web.connections",
-        value<uint16_t>(&configured.network.web.connections),
+        value<uint16_t>(&configured.server.web.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "web.timeout_seconds",
-        value<uint32_t>(&configured.network.web.timeout_seconds),
+        value<uint32_t>(&configured.server.web.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
     (
         "web.server",
-        value<std::string>(&configured.network.web.server),
+        value<std::string>(&configured.server.web.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "web.host",
-        value<network::config::endpoints>(&configured.network.web.hosts),
+        value<network::config::endpoints>(&configured.server.web.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
         "web.origin",
-        value<network::config::endpoints>(&configured.network.web.origins),
+        value<network::config::endpoints>(&configured.server.web.origins),
         "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
         "web.path",
-        value<std::filesystem::path>(&configured.network.web.path),
+        value<std::filesystem::path>(&configured.server.web.path),
         "The required root path of source files to be served, defaults to empty."
     )
     (
         "web.default",
-        value<std::string>(&configured.network.web.default_),
+        value<std::string>(&configured.server.web.default_),
         "The path of the default source page, defaults to 'index.html'."
     )
 
     /* [explore] */
     (
         "explore.secure",
-        value<bool>(&configured.network.explore.secure),
+        value<bool>(&configured.server.explore.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "explore.bind",
-        value<network::config::authorities>(&configured.network.explore.binds),
+        value<network::config::authorities>(&configured.server.explore.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "explore.connections",
-        value<uint16_t>(&configured.network.explore.connections),
+        value<uint16_t>(&configured.server.explore.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "explore.timeout_seconds",
-        value<uint32_t>(&configured.network.explore.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        value<uint32_t>(&configured.server.explore.timeout_seconds),
+        "The idle timeout (http keep-server), defaults to '60'."
     )
     (
         "explore.server",
-        value<std::string>(&configured.network.explore.server),
+        value<std::string>(&configured.server.explore.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "explore.host",
-        value<network::config::endpoints>(&configured.network.explore.hosts),
+        value<network::config::endpoints>(&configured.server.explore.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
         "explore.origin",
-        value<network::config::endpoints>(&configured.network.explore.origins),
+        value<network::config::endpoints>(&configured.server.explore.origins),
         "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
     )
     (
         "explore.path",
-        value<std::filesystem::path>(&configured.network.explore.path),
+        value<std::filesystem::path>(&configured.server.explore.path),
         "The required root path of source files to be served, defaults to empty."
     )
     (
         "explore.default",
-        value<std::string>(&configured.network.explore.default_),
+        value<std::string>(&configured.server.explore.default_),
         "The path of the default source page, defaults to 'index.html'."
     )
 
     /* [websocket] */
     (
         "websocket.secure",
-        value<bool>(&configured.network.websocket.secure),
+        value<bool>(&configured.server.websocket.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "websocket.bind",
-        value<network::config::authorities>(&configured.network.websocket.binds),
+        value<network::config::authorities>(&configured.server.websocket.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "websocket.connections",
-        value<uint16_t>(&configured.network.websocket.connections),
+        value<uint16_t>(&configured.server.websocket.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "websocket.timeout_seconds",
-        value<uint32_t>(&configured.network.websocket.timeout_seconds),
+        value<uint32_t>(&configured.server.websocket.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
     (
         "websocket.server",
-        value<std::string>(&configured.network.websocket.server),
+        value<std::string>(&configured.server.websocket.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "websocket.host",
-        value<network::config::endpoints>(&configured.network.websocket.hosts),
+        value<network::config::endpoints>(&configured.server.websocket.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
 
     /* [bitcoind] */
     (
         "bitcoind.secure",
-        value<bool>(&configured.network.bitcoind.secure),
+        value<bool>(&configured.server.bitcoind.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "bitcoind.bind",
-        value<network::config::authorities>(&configured.network.bitcoind.binds),
+        value<network::config::authorities>(&configured.server.bitcoind.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "bitcoind.connections",
-        value<uint16_t>(&configured.network.bitcoind.connections),
+        value<uint16_t>(&configured.server.bitcoind.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "bitcoind.timeout_seconds",
-        value<uint32_t>(&configured.network.bitcoind.timeout_seconds),
+        value<uint32_t>(&configured.server.bitcoind.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
     (
         "bitcoind.server",
-        value<std::string>(&configured.network.bitcoind.server),
+        value<std::string>(&configured.server.bitcoind.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
         "bitcoind.host",
-        value<network::config::endpoints>(&configured.network.bitcoind.hosts),
+        value<network::config::endpoints>(&configured.server.bitcoind.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
 
     /* [electrum] */
     (
         "electrum.secure",
-        value<bool>(&configured.network.electrum.secure),
+        value<bool>(&configured.server.electrum.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "electrum.bind",
-        value<network::config::authorities>(&configured.network.electrum.binds),
+        value<network::config::authorities>(&configured.server.electrum.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "electrum.connections",
-        value<uint16_t>(&configured.network.electrum.connections),
+        value<uint16_t>(&configured.server.electrum.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "electrum.timeout_seconds",
-        value<uint32_t>(&configured.network.electrum.timeout_seconds),
+        value<uint32_t>(&configured.server.electrum.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
 
     /* [stratum_v1] */
     (
         "stratum_v1.secure",
-        value<bool>(&configured.network.stratum_v1.secure),
+        value<bool>(&configured.server.stratum_v1.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "stratum_v1.bind",
-        value<network::config::authorities>(&configured.network.stratum_v1.binds),
+        value<network::config::authorities>(&configured.server.stratum_v1.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "stratum_v1.connections",
-        value<uint16_t>(&configured.network.stratum_v1.connections),
+        value<uint16_t>(&configured.server.stratum_v1.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "stratum_v1.timeout_seconds",
-        value<uint32_t>(&configured.network.stratum_v1.timeout_seconds),
+        value<uint32_t>(&configured.server.stratum_v1.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
 
     /* [stratum_v2] */
     (
         "stratum_v2.secure",
-        value<bool>(&configured.network.stratum_v2.secure),
+        value<bool>(&configured.server.stratum_v2.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
         "stratum_v2.bind",
-        value<network::config::authorities>(&configured.network.stratum_v2.binds),
+        value<network::config::authorities>(&configured.server.stratum_v2.binds),
         "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
     )
     (
         "stratum_v2.connections",
-        value<uint16_t>(&configured.network.stratum_v2.connections),
+        value<uint16_t>(&configured.server.stratum_v2.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
         "stratum_v2.timeout_seconds",
-        value<uint32_t>(&configured.network.stratum_v2.timeout_seconds),
+        value<uint32_t>(&configured.server.stratum_v2.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
 

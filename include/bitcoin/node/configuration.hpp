@@ -60,6 +60,7 @@ public:
 
     /// Settings.
     log::settings log;
+    server::settings server;
     node::settings node;
     network::settings network;
     database::settings database;

@@ -22,6 +22,7 @@
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -33,7 +34,7 @@ class BCN_API protocol_html
 {
 public:
     /// http channel, but html settings.
-    using options_t = network::settings::html_server;
+    using options_t = server::settings::html_server;
     using channel_t = node::channel_http;
 
 protected:

@@ -538,37 +538,37 @@ network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 
 session_web::ptr full_node::attach_web_session() NOEXCEPT
 {
-    return net::attach<session_web>(*this, config_.network.web);
+    return net::attach<session_web>(*this, config_.server.web);
 }
 
 session_explore::ptr full_node::attach_explore_session() NOEXCEPT
 {
-    return net::attach<session_explore>(*this, config_.network.explore);
+    return net::attach<session_explore>(*this, config_.server.explore);
 }
 
 session_websocket::ptr full_node::attach_websocket_session() NOEXCEPT
 {
-    return net::attach<session_websocket>(*this, config_.network.websocket);
+    return net::attach<session_websocket>(*this, config_.server.websocket);
 }
 
 session_bitcoind::ptr full_node::attach_bitcoind_session() NOEXCEPT
 {
-    return net::attach<session_bitcoind>(*this, config_.network.bitcoind);
+    return net::attach<session_bitcoind>(*this, config_.server.bitcoind);
 }
 
 session_electrum::ptr full_node::attach_electrum_session() NOEXCEPT
 {
-    return net::attach<session_electrum>(*this, config_.network.electrum);
+    return net::attach<session_electrum>(*this, config_.server.electrum);
 }
 
 session_stratum_v1::ptr full_node::attach_stratum_v1_session() NOEXCEPT
 {
-    return net::attach<session_stratum_v1>(*this, config_.network.stratum_v1);
+    return net::attach<session_stratum_v1>(*this, config_.server.stratum_v1);
 }
 
 session_stratum_v2::ptr full_node::attach_stratum_v2_session() NOEXCEPT
 {
-    return net::attach<session_stratum_v2>(*this, config_.network.stratum_v2);
+    return net::attach<session_stratum_v2>(*this, config_.server.stratum_v2);
 }
 
 BC_POP_WARNING()
