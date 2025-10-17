@@ -163,6 +163,7 @@ include_bitcoin_node_channels_HEADERS = \
     include/bitcoin/node/channels/channel_http.hpp \
     include/bitcoin/node/channels/channel_peer.hpp \
     include/bitcoin/node/channels/channel_tcp.hpp \
+    include/bitcoin/node/channels/channel_websocket.hpp \
     include/bitcoin/node/channels/channels.hpp
 
 include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers

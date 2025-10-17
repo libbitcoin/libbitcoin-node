@@ -136,7 +136,7 @@ public:
     server::settings::html_server explore{ "explore" };
 
     /// native websocket query interface (http/s->tcp/s, json, handshake)
-    network::settings::webs_server websocket{ "websocket" };
+    network::settings::websocket_server websocket{ "websocket" };
 
     /// bitcoind compat interface (http/s, stateless json-rpc-v2)
     network::settings::http_server bitcoind{ "bitcoind" };
