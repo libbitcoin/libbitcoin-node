@@ -31,6 +31,7 @@
 #include <bitcoin/node/channels/channel_http.hpp>
 #include <bitcoin/node/channels/channel_peer.hpp>
 #include <bitcoin/node/channels/channel_tcp.hpp>
+#include <bitcoin/node/channels/channel_websocket.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/chasers/chaser_block.hpp>

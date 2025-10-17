@@ -26,12 +26,17 @@
 namespace libbitcoin {
 namespace node {
 
+// TODO: maybe make this an intermediate base class for websockets.
+// TODO: and then create a distinct concrete class for deployment.
 class BCN_API protocol_websocket
   : public node::protocol_http,
     protected network::tracker<protocol_websocket>
 {
 public:
     typedef std::shared_ptr<protocol_websocket> ptr;
+
+    // Replace base class channel_t (node::channel_http). 
+    using channel_t = node::channel_websocket;
 
     protocol_websocket(const auto& session,
         const network::channel::ptr& channel,

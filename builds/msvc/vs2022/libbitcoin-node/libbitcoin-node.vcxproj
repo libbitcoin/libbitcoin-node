@@ -170,6 +170,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_http.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_tcp.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_websocket.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />

@@ -197,6 +197,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_tcp.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_websocket.hpp">
+      <Filter>include\bitcoin\node\channels</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
