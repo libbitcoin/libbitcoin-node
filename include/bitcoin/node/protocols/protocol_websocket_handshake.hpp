@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HANDSHAKE_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HANDSHAKE_HPP
 
 #include <memory>
 #include <bitcoin/node/define.hpp>
@@ -26,32 +26,32 @@
 namespace libbitcoin {
 namespace node {
 
-// TODO: make this an intermediate base class for websocket.
+// TODO: make this an intermediate base class for websocket_handshake.
 // TODO: and then create a distinct concrete class for deployment.
-class BCN_API protocol_websocket
-  : public network::protocol_websocket,
+class BCN_API protocol_websocket_handshake
+  : public network::protocol_websocket_handshake,
     public node::protocol,
-    protected network::tracker<protocol_websocket>
+    protected network::tracker<protocol_websocket_handshake>
 {
 public:
-    typedef std::shared_ptr<protocol_websocket> ptr;
+    typedef std::shared_ptr<protocol_websocket_handshake> ptr;
 
-    // Replace base class channel_t (network::channel_websocket). 
-    using channel_t = node::channel_websocket;
+    // Replace base class channel_t (network::channel_http). 
+    using channel_t = node::channel_http;
 
-    protocol_websocket(const auto& session,
+    protocol_websocket_handshake(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_websocket(session, channel, options),
+      : network::protocol_websocket_handshake(session, channel, options),
         node::protocol(session, channel),
-        network::tracker<protocol_websocket>(session->log)
+        network::tracker<protocol_websocket_handshake>(session->log)
     {
     }
 
     /// Public start is required.
     void start() NOEXCEPT override
     {
-        network::protocol_websocket::start();
+        network::protocol_websocket_handshake::start();
     }
 
 private:
