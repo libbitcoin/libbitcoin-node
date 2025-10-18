@@ -94,7 +94,7 @@ parser::parser(system::chain::selection context) NOEXCEPT
     // admin
     configured.server.web.binds.emplace_back(asio::address{}, 8080_u16);
     configured.server.explore.binds.emplace_back(asio::address{}, 8180_u16);
-    configured.server.websocket.binds.emplace_back(asio::address{}, 8280_u16);
+    configured.server.socket.binds.emplace_back(asio::address{}, 8280_u16);
     configured.server.bitcoind.binds.emplace_back(asio::address{}, 8380_u16);
     configured.server.electrum.binds.emplace_back(asio::address{}, 8480_u16);
     configured.server.stratum_v1.binds.emplace_back(asio::address{}, 8580_u16);
@@ -1149,7 +1149,7 @@ options_metadata parser::load_settings() THROWS
     (
         "explore.bind",
         value<network::config::authorities>(&configured.server.explore.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8180' (all IPv4)."
     )
     (
         "explore.connections",
@@ -1187,35 +1187,35 @@ options_metadata parser::load_settings() THROWS
         "The path of the default source page, defaults to 'index.html'."
     )
 
-    /* [websocket] */
+    /* [socket] */
     (
         "websocket.secure",
-        value<bool>(&configured.server.websocket.secure),
+        value<bool>(&configured.server.socket.secure),
         "The service requires TLS (not implemented), defaults to 'false'."
     )
     (
-        "websocket.bind",
-        value<network::config::authorities>(&configured.server.websocket.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+        "socket.bind",
+        value<network::config::authorities>(&configured.server.socket.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8280' (all IPv4)."
     )
     (
-        "websocket.connections",
-        value<uint16_t>(&configured.server.websocket.connections),
+        "socket.connections",
+        value<uint16_t>(&configured.server.socket.connections),
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "websocket.timeout_seconds",
-        value<uint32_t>(&configured.server.websocket.timeout_seconds),
+        "socket.timeout_seconds",
+        value<uint32_t>(&configured.server.socket.timeout_seconds),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
     (
-        "websocket.server",
-        value<std::string>(&configured.server.websocket.server),
+        "socket.server",
+        value<std::string>(&configured.server.socket.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
     )
     (
-        "websocket.host",
-        value<network::config::endpoints>(&configured.server.websocket.hosts),
+        "socket.host",
+        value<network::config::endpoints>(&configured.server.socket.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
 
@@ -1228,7 +1228,7 @@ options_metadata parser::load_settings() THROWS
     (
         "bitcoind.bind",
         value<network::config::authorities>(&configured.server.bitcoind.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8380' (all IPv4)."
     )
     (
         "bitcoind.connections",
@@ -1260,7 +1260,7 @@ options_metadata parser::load_settings() THROWS
     (
         "electrum.bind",
         value<network::config::authorities>(&configured.server.electrum.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8480' (all IPv4)."
     )
     (
         "electrum.connections",
@@ -1282,7 +1282,7 @@ options_metadata parser::load_settings() THROWS
     (
         "stratum_v1.bind",
         value<network::config::authorities>(&configured.server.stratum_v1.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8580' (all IPv4)."
     )
     (
         "stratum_v1.connections",
@@ -1304,7 +1304,7 @@ options_metadata parser::load_settings() THROWS
     (
         "stratum_v2.bind",
         value<network::config::authorities>(&configured.server.stratum_v2.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8680' (all IPv4)."
     )
     (
         "stratum_v2.connections",

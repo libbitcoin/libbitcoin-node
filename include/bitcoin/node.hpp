@@ -70,7 +70,7 @@
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_web.hpp>
 #include <bitcoin/node/protocols/protocol_websocket.hpp>
-#include <bitcoin/node/protocols/protocol_websocket_handshake.hpp>
+#include <bitcoin/node/protocols/protocol_websocket_shake.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>

@@ -216,7 +216,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_web.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_websocket.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_websocket_handshake.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_websocket_shake.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />

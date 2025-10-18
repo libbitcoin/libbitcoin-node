@@ -212,7 +212,7 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocol_web.hpp \
     include/bitcoin/node/protocols/protocol_websocket.hpp \
-    include/bitcoin/node/protocols/protocol_websocket_handshake.hpp \
+    include/bitcoin/node/protocols/protocol_websocket_shake.hpp \
     include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions

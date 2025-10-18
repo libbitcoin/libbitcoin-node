@@ -159,10 +159,10 @@ BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
 BOOST_AUTO_TEST_CASE(server__websocket_server__defaults__expected)
 {
     const server::settings instance{};
-    const auto server = instance.websocket;
+    const auto server = instance.socket;
 
     // tcp_server
-    BOOST_REQUIRE_EQUAL(server.name, "websocket");
+    BOOST_REQUIRE_EQUAL(server.name, "socket");
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);

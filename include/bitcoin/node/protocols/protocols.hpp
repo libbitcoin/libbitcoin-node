@@ -50,6 +50,6 @@
 #include <bitcoin/node/protocols/protocol_stratum_v1.hpp>
 #include <bitcoin/node/protocols/protocol_stratum_v2.hpp>
 #include <bitcoin/node/protocols/protocol_websocket.hpp>
-#include <bitcoin/node/protocols/protocol_websocket_handshake.hpp>
+#include <bitcoin/node/protocols/protocol_websocket_shake.hpp>
 
 #endif
