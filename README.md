@@ -7,7 +7,7 @@
 
 ## tl;dr
 
-This is the **node of libbitcoin 4**. It integrates the basic components and offers a high performance Bitcoin full node that makes heavy use of the available hardware, from your internet connection over the availabe RAM to specific CPU instruction set extensions like SHA-NI or AVX.
+This is the **node of libbitcoin v4**. It integrates the basic components and offers a high performance Bitcoin full node that makes heavy use of the available hardware, internet connection and availabe RAM and CPU.
 
 If you follow this README you will be able to build, run and monitor your own libbitcoin node. As libbitcoin is a multi platform software it works on Linux, Windows and OSX, on Intel and on ARM.
 
