@@ -11,7 +11,7 @@ This is the **node of libbitcoin v4**. It integrates the basic components and of
 
 If you follow this README you will be able to build, run and monitor your own libbitcoin node. Libbitcoin is a multi platform software that works on Linux, Windows and OSX (Intel and ARM).
 
-**The current state of node is not a drop in replacement for your Core node.** Not yet. What the node currently does: It serves as a full node, and it does so very well. It receives and distributes Blocks in conformity with the Bitcoin protocol as fast as your hardware allows it. We are currently working on the connection layer that will let you connect your libbitcoin node to other systems like Sparrow Wallet (via `ElectrumX`) or Stratum V1 (via `json-rpc`). The node's capabilities in that matter change with every commit so stay tuned.
+The node currently serves as a full node: it receives and distributes blocks in conformity with the Bitcoin protocol as fast as your hardware allows it. A current work in progress is the connection layer that will let enables to connect the libbitcoin node to other systems like Sparrow Wallet (via `ElectrumX`) or Stratum V1 (via `json-rpc`).
 
 Now, If you want to see how fast your setup can sync the Bitcoin Blockchain, read on and get your libbitcoin node running today. It's pretty easy actually.
 
