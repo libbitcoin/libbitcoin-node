@@ -35,3 +35,6 @@ node_test/
 *.data
 *.head
 /.vs
+*.db
+*.db-shm
+*.db-wal
