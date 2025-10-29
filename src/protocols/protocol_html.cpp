@@ -79,8 +79,8 @@ void protocol_html::handle_receive_get(const code& ec,
 // Senders.
 // ----------------------------------------------------------------------------
 
-void protocol_html::send_file(const string_request& request,
-    file&& file, mime_type type) NOEXCEPT
+void protocol_html::send_file(const request& request, file&& file,
+    mime_type type) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");

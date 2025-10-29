@@ -52,7 +52,7 @@ protected:
         const network::http::method::get& request) NOEXCEPT override;
 
     /// Senders.
-    void send_file(const network::http::string_request& request,
+    void send_file(const network::http::request& request,
         network::http::file&& file, network::http::mime_type type) NOEXCEPT;
 
     /// Utilities.
