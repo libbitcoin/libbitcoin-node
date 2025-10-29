@@ -44,14 +44,14 @@ void protocol_explore::handle_receive_get(const code& ec,
         return;
 
     // Enforce http origin policy (requires configured hosts).
-    if (!is_allowed_origin((*request)[field::origin], request->version()))
+    if (!is_allowed_origin(*request, request->version()))
     {
         send_forbidden(*request);
         return;
     }
 
     // Enforce http host header (if any hosts are configured).
-    if (!is_allowed_host((*request)[field::host], request->version()))
+    if (!is_allowed_host(*request, request->version()))
     {
         send_bad_host(*request);
         return;

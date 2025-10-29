@@ -43,14 +43,14 @@ void protocol_html::handle_receive_get(const code& ec,
         return;
 
     // Enforce http origin policy (requires configured hosts).
-    if (!is_allowed_origin((*request)[field::origin], request->version()))
+    if (!is_allowed_origin(*request, request->version()))
     {
         send_forbidden(*request);
         return;
     }
 
     // Enforce http host header (if any hosts are configured).
-    if (!is_allowed_host((*request)[field::host], request->version()))
+    if (!is_allowed_host(*request, request->version()))
     {
         send_bad_host(*request);
         return;
@@ -98,13 +98,14 @@ void protocol_html::send_file(const request& request, file&& file,
 // Utilities.
 // ----------------------------------------------------------------------------
 
-bool protocol_html::is_allowed_origin(const std::string& origin,
+bool protocol_html::is_allowed_origin(const fields& fields,
     size_t version) const NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
 
     // Allow same-origin and no-origin requests.
     // Origin header field is not available until http 1.1.
+    const auto origin = fields[field::origin];
     if (origin.empty() || version < version_1_1)
         return true;
 

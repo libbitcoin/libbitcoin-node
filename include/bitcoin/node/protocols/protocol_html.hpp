@@ -56,7 +56,7 @@ protected:
         network::http::file&& file, network::http::mime_type type) NOEXCEPT;
 
     /// Utilities.
-    bool is_allowed_origin(const std::string& origin,
+    bool is_allowed_origin(const network::http::fields& fields,
         size_t version) const NOEXCEPT;
     std::filesystem::path to_local_path(
         const std::string& target = "/") const NOEXCEPT;
