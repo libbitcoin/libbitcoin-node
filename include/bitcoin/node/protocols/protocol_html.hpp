@@ -52,11 +52,11 @@ protected:
         const network::http::method::get& request) NOEXCEPT override;
 
     /// Senders.
-    void send_file(const network::http::string_request& request,
+    void send_file(const network::http::request& request,
         network::http::file&& file, network::http::mime_type type) NOEXCEPT;
 
     /// Utilities.
-    bool is_allowed_origin(const std::string& origin,
+    bool is_allowed_origin(const network::http::fields& fields,
         size_t version) const NOEXCEPT;
     std::filesystem::path to_local_path(
         const std::string& target = "/") const NOEXCEPT;
