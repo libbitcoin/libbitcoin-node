@@ -25,15 +25,19 @@ namespace node {
 
 #define CLASS protocol_explore
 
-using namespace system;
-using namespace network::http;
+using namespace boost::json;
 using namespace std::placeholders;
+using namespace network::http;
+using namespace system;
+
+const auto binary = mime_type::application_octet_stream;
+const auto json = mime_type::application_json;
+const auto text = mime_type::text_plain;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Handle get method.
 // ----------------------------------------------------------------------------
-// fields[], request->target(), file.is_open() are undeclared noexcept.
 
 void protocol_explore::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
@@ -56,6 +60,84 @@ void protocol_explore::handle_receive_get(const code& ec,
         send_bad_host(*request);
         return;
     }
+
+    const auto target = request->target();
+    if (!is_origin_form(target))
+    {
+        send_bad_target(*request);
+        return;
+    }
+
+    wallet::uri uri{};
+    if (!uri.decode(target))
+    {
+        send_bad_target(*request);
+        return;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // TODO: json error responses.
+    // TODO: priority sort and dispatch.
+    // TODO: trivial parse, the path is the base16 hash.
+    ///////////////////////////////////////////////////////////////////////////
+
+    const auto get_tx = [&](const auto& path) NOEXCEPT
+    { 
+        hash_digest hash{};
+        if (!decode_hash(hash, path))
+        {
+            send_bad_target(*request);
+            return chain::transaction::cptr{};
+        }
+
+        const auto& query = archive();
+        return query.get_transaction(query.to_tx(hash), true);
+    };
+
+    auto params = uri.decode_query();
+    const auto hex = trim_copy(uri.path(), { "/" });
+    const auto accepts = to_mime_types((*request)[field::accept]);
+
+    if (contains(accepts, json) || params["format"] == "json")
+    {
+        const auto tx = get_tx(hex);
+        if (!tx)
+        {
+            send_not_found(*request);
+            return;
+        }
+
+        send_json(*request, value_from(*tx));
+        return;
+    }
+
+    if (contains(accepts, binary) || params["format"] == "binary")
+    {
+        const auto tx = get_tx(hex);
+        if (!tx)
+        {
+            send_not_found(*request);
+            return;
+        }
+
+        send_data(*request, tx->to_data(true));
+        return;
+    }
+
+    if (contains(accepts, text) || params["format"] == "text")
+    {
+        const auto tx = get_tx(hex);
+        if (!tx)
+        {
+            send_not_found(*request);
+            return;
+        }
+
+        send_text(*request, encode_base16(tx->to_data(true)));
+        return;
+    }
+
+    // Default to html (single page site).
 
     // Empty path implies malformed target (terminal).
     auto path = to_local_path(request->target());
@@ -85,6 +167,44 @@ void protocol_explore::handle_receive_get(const code& ec,
     }
 
     send_file(*request, std::move(file), file_mime_type(path));
+}
+
+// TODO: buffer should be reused, so set at the channel.
+// json_value is not a sized body, so this sets chunked encoding.
+void protocol_explore::send_json(const request& request,
+    boost::json::value&& model) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(json));
+    response.body() = { std::move(model) };
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+void protocol_explore::send_data(const request& request,
+    data_chunk&& data) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    data_response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(binary));
+    response.body() = std::move(data);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+void protocol_explore::send_text(const request& request,
+    std::string&& hexidecimal) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    string_response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(text));
+    response.body() = std::move(hexidecimal);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
 }
 
 BC_POP_WARNING()
