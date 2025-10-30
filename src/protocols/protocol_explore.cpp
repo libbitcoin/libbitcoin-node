@@ -256,7 +256,7 @@ void protocol_explore::send_text(const request& request,
     std::string&& hexidecimal) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
-    string_response response{ status::ok, request.version() };
+    response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(text));
     response.body() = std::move(hexidecimal);
@@ -268,7 +268,7 @@ void protocol_explore::send_data(const request& request,
     data_chunk&& bytes) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
-    data_response response{ status::ok, request.version() };
+    response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(data));
     response.body() = std::move(bytes);
