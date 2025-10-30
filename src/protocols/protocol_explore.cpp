@@ -120,7 +120,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_header(query.to_header(hash)))
                 {
-                    send_json(*request, value_from(*ptr));
+                    send_json(*request, value_from(ptr));
                     return;
                 }
             }
@@ -128,7 +128,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_block(query.to_header(hash), wit))
                 {
-                    send_json(*request, value_from(*ptr));
+                    send_json(*request, value_from(ptr));
                     return;
                 }
             }
@@ -136,7 +136,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
                 {
-                    send_json(*request, value_from(*ptr));
+                    send_json(*request, value_from(ptr));
                     return;
                 }
             }
