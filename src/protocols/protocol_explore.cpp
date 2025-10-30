@@ -120,7 +120,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_header(query.to_header(hash)))
                 {
-                    send_json(*request, value_from(*ptr));
+                    send_json(*request, value_from(ptr));
                     return;
                 }
             }
@@ -128,7 +128,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_block(query.to_header(hash), wit))
                 {
-                    send_json(*request, value_from(*ptr));
+                    send_json(*request, value_from(ptr));
                     return;
                 }
             }
@@ -136,7 +136,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
                 {
-                    send_json(*request, value_from(*ptr));
+                    send_json(*request, value_from(ptr));
                     return;
                 }
             }
@@ -256,7 +256,7 @@ void protocol_explore::send_text(const request& request,
     std::string&& hexidecimal) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
-    string_response response{ status::ok, request.version() };
+    response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(text));
     response.body() = std::move(hexidecimal);
@@ -268,7 +268,7 @@ void protocol_explore::send_data(const request& request,
     data_chunk&& bytes) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
-    data_response response{ status::ok, request.version() };
+    response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(data));
     response.body() = std::move(bytes);

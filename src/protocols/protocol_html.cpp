@@ -85,7 +85,7 @@ void protocol_html::send_file(const request& request, file&& file,
     BC_ASSERT_MSG(stranded(), "strand");
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
 
-    file_response response{ status::ok, request.version() };
+    response response{ status::ok, request.version() };
     add_common_headers(response, request);
 
     response.set(field::content_type, from_mime_type(type));
