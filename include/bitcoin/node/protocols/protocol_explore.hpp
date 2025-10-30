@@ -54,7 +54,7 @@ protected:
     enum targets
     {
         /// /v[]/block/hash/[bkhash] {1}
-        /// /v[]/block/height/[height] {1}s
+        /// /v[]/block/height/[height] {1}
         block,
 
         /// /v[]/block/hash/[bkhash]/filter {1}
@@ -66,8 +66,8 @@ protected:
         header,
 
         /// /v[]/transaction/hash/[txhash] {1}
-        /// /v[]/block/hash/[bkhash]/transaction/[position] {1}
-        /// /v[]/block/height/[height]/transaction/[position] {1}
+        /// /v[]/block/hash/[bkhash]/transaction/position/[position] {1}
+        /// /v[]/block/height/[height]/transaction/position/[position] {1}
         transaction,
 
         /// /v[]/block/hash/[bkhash]/transactions {all txs in the block}
