@@ -76,9 +76,10 @@ void protocol_explore::handle_receive_get(const code& ec,
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // TODO: json error responses.
+    // TODO: formatted error responses.
     // TODO: priority sort and dispatch.
-    // TODO: trivial parse, the path is the base16 hash.
+    // TODO: URI path parse (see API doc).
+    // TODO: performance timing header.
     ///////////////////////////////////////////////////////////////////////////
 
     const auto get_tx = [&](const auto& path) NOEXCEPT
