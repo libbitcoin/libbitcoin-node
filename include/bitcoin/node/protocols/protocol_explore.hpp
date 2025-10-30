@@ -123,10 +123,10 @@ protected:
     /// Senders.
     void send_json(const network::http::request& request,
         boost::json::value&& model) NOEXCEPT;
-    void send_data(const network::http::request& request,
-        system::data_chunk&& data) NOEXCEPT;
     void send_text(const network::http::request& request,
         std::string&& hexidecimal) NOEXCEPT;
+    void send_data(const network::http::request& request,
+        system::data_chunk&& bytes) NOEXCEPT;
 
     /// Receivers.
     void handle_receive_get(const code& ec,

@@ -30,7 +30,7 @@ using namespace std::placeholders;
 using namespace network::http;
 using namespace system;
 
-const auto binary = mime_type::application_octet_stream;
+const auto data = mime_type::application_octet_stream;
 const auto json = mime_type::application_json;
 const auto text = mime_type::text_plain;
 
@@ -38,6 +38,10 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Handle get method.
 // ----------------------------------------------------------------------------
+// TODO: performance timing header.
+// TODO: formatted error responses.
+// TODO: priority sort and dispatch.
+// TODO: URI path parse (see API doc).
 
 void protocol_explore::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
@@ -75,67 +79,131 @@ void protocol_explore::handle_receive_get(const code& ec,
         return;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // TODO: formatted error responses.
-    // TODO: priority sort and dispatch.
-    // TODO: URI path parse (see API doc).
-    // TODO: performance timing header.
-    ///////////////////////////////////////////////////////////////////////////
-
-    const auto get_tx = [&](const auto& path) NOEXCEPT
-    { 
-        hash_digest hash{};
-        if (!decode_hash(hash, path))
+    if (const auto parts = split(uri.path(), "/");
+        !parts.empty() && parts.size() != two)
+    {
+        send_bad_target(*request);
+        return;
+    }
+    else
+    {
+        const auto hd = parts.front() == "header"      || parts.front() == "hd";
+        const auto bk = parts.front() == "block"       || parts.front() == "bk";
+        const auto tx = parts.front() == "transaction" || parts.front() == "tx";
+        if (!hd && !bk && !tx)
         {
             send_bad_target(*request);
-            return chain::transaction::cptr{};
+            return;
+        }
+
+        auto params = uri.decode_query();
+        const auto format = params["format"];
+        const auto accepts = to_mime_types((*request)[field::accept]);
+        const auto is_json = contains(accepts, json) || format == "json";
+        const auto is_text = contains(accepts, text) || format == "text";
+        const auto is_data = contains(accepts, data) || format == "data";
+        const auto wit = params["witness"] != "false";
+        const auto hex = parts.back();
+
+        hash_digest hash{};
+        if ((is_json || is_text || is_data) && !decode_hash(hash, hex))
+        {
+            send_bad_target(*request);
+            return;
         }
 
         const auto& query = archive();
-        return query.get_transaction(query.to_tx(hash), true);
-    };
 
-    auto params = uri.decode_query();
-    const auto hex = trim_copy(uri.path(), { "/" });
-    const auto accepts = to_mime_types((*request)[field::accept]);
-
-    if (contains(accepts, json) || params["format"] == "json")
-    {
-        const auto tx = get_tx(hex);
-        if (!tx)
+        if (is_json)
         {
+            if (hd)
+            {
+                if (const auto ptr = query.get_header(query.to_header(hash)))
+                {
+                    send_json(*request, value_from(*ptr));
+                    return;
+                }
+            }
+            else if (bk)
+            {
+                if (const auto ptr = query.get_block(query.to_header(hash), wit))
+                {
+                    send_json(*request, value_from(*ptr));
+                    return;
+                }
+            }
+            else
+            {
+                if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
+                {
+                    send_json(*request, value_from(*ptr));
+                    return;
+                }
+            }
+
             send_not_found(*request);
             return;
         }
-
-        send_json(*request, value_from(*tx));
-        return;
-    }
-
-    if (contains(accepts, binary) || params["format"] == "binary")
-    {
-        const auto tx = get_tx(hex);
-        if (!tx)
+        else if (is_text)
         {
+            if (hd)
+            {
+                if (const auto ptr = query.get_header(query.to_header(hash)))
+                {
+                    send_text(*request, encode_base16(ptr->to_data()));
+                    return;
+                }
+            }
+            else if (bk)
+            {
+                if (const auto ptr = query.get_block(query.to_header(hash), wit))
+                {
+                    send_text(*request, encode_base16(ptr->to_data(wit)));
+                    return;
+                }
+            }
+            else
+            {
+                if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
+                {
+                    send_text(*request, encode_base16(ptr->to_data(wit)));
+                    return;
+                }
+            }
+
             send_not_found(*request);
             return;
         }
-
-        send_data(*request, tx->to_data(true));
-        return;
-    }
-
-    if (contains(accepts, text) || params["format"] == "text")
-    {
-        const auto tx = get_tx(hex);
-        if (!tx)
+        else if (is_data)
         {
+            if (hd)
+            {
+                if (const auto ptr = query.get_header(query.to_header(hash)))
+                {
+                    send_data(*request, ptr->to_data());
+                    return;
+                }
+            }
+            else if (bk)
+            {
+                if (const auto ptr = query.get_block(query.to_header(hash), wit))
+                {
+                    send_data(*request, ptr->to_data(wit));
+                    return;
+                }
+            }
+            else
+            {
+                if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
+                {
+                    send_data(*request, ptr->to_data(wit));
+                    return;
+                }
+            }
+
             send_not_found(*request);
             return;
         }
-
-        send_text(*request, encode_base16(tx->to_data(true)));
-        return;
     }
 
     // Default to html (single page site).
@@ -179,19 +247,7 @@ void protocol_explore::send_json(const request& request,
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(json));
-    response.body() = { std::move(model) };
-    response.prepare_payload();
-    SEND(std::move(response), handle_complete, _1, error::success);
-}
-
-void protocol_explore::send_data(const request& request,
-    data_chunk&& data) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "strand");
-    data_response response{ status::ok, request.version() };
-    add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(binary));
-    response.body() = std::move(data);
+    response.body() = { std::move(model), std::make_shared<flat_buffer>(10 * 1024 * 1024) };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
@@ -204,6 +260,18 @@ void protocol_explore::send_text(const request& request,
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(text));
     response.body() = std::move(hexidecimal);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+void protocol_explore::send_data(const request& request,
+    data_chunk&& bytes) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    data_response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(data));
+    response.body() = std::move(bytes);
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
