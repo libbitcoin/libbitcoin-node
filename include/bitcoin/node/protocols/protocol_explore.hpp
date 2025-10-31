@@ -122,7 +122,7 @@ protected:
 
     /// Senders.
     void send_json(const network::http::request& request,
-        boost::json::value&& model) NOEXCEPT;
+        boost::json::value&& model, size_t size_hint) NOEXCEPT;
     void send_text(const network::http::request& request,
         std::string&& hexidecimal) NOEXCEPT;
     void send_data(const network::http::request& request,
