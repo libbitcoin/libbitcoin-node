@@ -84,14 +84,11 @@ void protocol_html::send_file(const request& request, file&& file,
 {
     BC_ASSERT_MSG(stranded(), "strand");
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
-
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-
     response.set(field::content_type, from_mime_type(type));
     response.body() = std::move(file);
     response.prepare_payload();
-
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
