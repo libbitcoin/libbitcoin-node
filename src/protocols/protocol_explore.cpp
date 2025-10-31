@@ -152,12 +152,7 @@ void protocol_explore::handle_receive_get(const code& ec,
     }
 
     if (const auto parts = split(uri.path(), "/");
-        !parts.empty() && parts.size() != two)
-    {
-        send_bad_target(*request);
-        return;
-    }
-    else
+        parts.size() == two)
     {
         const auto hd = parts.front() == "header"      || parts.front() == "hd";
         const auto bk = parts.front() == "block"       || parts.front() == "bk";
