@@ -40,8 +40,80 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // ----------------------------------------------------------------------------
 // TODO: performance timing header.
 // TODO: formatted error responses.
-// TODO: priority sort and dispatch.
+// TODO: formatted error responses.
+// TODO: priority accept media type sort and dispatch.
 // TODO: URI path parse (see API doc).
+
+/// TODO: move to own source.
+/// Pagination and filtering are via query string.
+enum targets
+{
+    /// /v[]/block/hash/[bkhash] {1}
+    /// /v[]/block/height/[height] {1}
+    block,
+
+    /// /v[]/block/hash/[bkhash]/filter {1}
+    /// /v[]/block/height/[height]/filter {1}
+    filter,
+
+    /// /v[]/block/hash/[bkhash]/header {1}
+    /// /v[]/block/height/[height]/header {1}
+    header,
+
+    /// /v[]/transaction/hash/[txhash] {1}
+    /// /v[]/block/hash/[bkhash]/transaction/position/[position] {1}
+    /// /v[]/block/height/[height]/transaction/position/[position] {1}
+    transaction,
+
+    /// /v[]/block/hash/[bkhash]/transactions {all txs in the block}
+    /// /v[]/block/height/[height]/transactions {all txs in the block}
+    transactions,
+
+    // --------------------------------------------------------------------
+
+    /// /v[]/input/[txhash]/[index] {1}
+    input,
+
+    /// /v[]/inputs/[txhash] {all inputs in the tx}
+    inputs,
+
+    /// /v[]/input/[txhash]/[index]/script {1}
+    input_script,
+
+    /// /v[]/input/[txhash]/scripts {all input scripts in the tx}
+    input_scripts,
+
+    /// /v[]/input/[txhash]/[index]/witness {1}
+    input_witness,
+
+    /// /v[]/input/[txhash]/witnesses {all witnesses in the tx}
+    input_witnesses,
+
+    // --------------------------------------------------------------------
+
+    /// /v[]/output/[txhash]/[index] {1}
+    output,
+
+    /// /v[]/outputs/[txhash] {all outputs in the tx}
+    outputs,
+
+    /// /v[]/output/[txhash]/[index]/script {1}
+    output_script,
+
+    /// /v[]/output/[txhash]/scripts {all output scripts in the tx}
+    output_scripts,
+
+    /// /v[]/output/[txhash]/[index]/spender {1 - confirmed}
+    output_spender,
+
+    /// /v[]/output/[txhash]/spenders {all}
+    output_spenders,
+
+    // --------------------------------------------------------------------
+
+    /// /v[]/address/[output-script-hash] {all}
+    address
+};
 
 void protocol_explore::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
@@ -80,12 +152,7 @@ void protocol_explore::handle_receive_get(const code& ec,
     }
 
     if (const auto parts = split(uri.path(), "/");
-        !parts.empty() && parts.size() != two)
-    {
-        send_bad_target(*request);
-        return;
-    }
-    else
+        parts.size() == two)
     {
         const auto hd = parts.front() == "header"      || parts.front() == "hd";
         const auto bk = parts.front() == "block"       || parts.front() == "bk";
@@ -120,7 +187,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_header(query.to_header(hash)))
                 {
-                    send_json(*request, value_from(ptr));
+                    send_json(*request, value_from(ptr), ptr->serialized_size());
                     return;
                 }
             }
@@ -128,7 +195,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_block(query.to_header(hash), wit))
                 {
-                    send_json(*request, value_from(ptr));
+                    send_json(*request, value_from(ptr), ptr->serialized_size(wit));
                     return;
                 }
             }
@@ -136,7 +203,7 @@ void protocol_explore::handle_receive_get(const code& ec,
             {
                 if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
                 {
-                    send_json(*request, value_from(ptr));
+                    send_json(*request, value_from(ptr), ptr->serialized_size(wit));
                     return;
                 }
             }
@@ -241,13 +308,13 @@ void protocol_explore::handle_receive_get(const code& ec,
 // TODO: buffer should be reused, so set at the channel.
 // json_value is not a sized body, so this sets chunked encoding.
 void protocol_explore::send_json(const request& request,
-    boost::json::value&& model) NOEXCEPT
+    boost::json::value&& model, size_t size_hint) NOEXCEPT
 {
     BC_ASSERT_MSG(stranded(), "strand");
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(json));
-    response.body() = { std::move(model), std::make_shared<flat_buffer>(10 * 1024 * 1024) };
+    response.body() = { std::move(model), size_hint };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
