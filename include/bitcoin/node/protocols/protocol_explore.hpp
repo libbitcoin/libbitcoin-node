@@ -48,14 +48,6 @@ public:
     }
 
 protected:
-    /// Senders.
-    void send_json(const network::http::request& request,
-        boost::json::value&& model, size_t size_hint) NOEXCEPT;
-    void send_text(const network::http::request& request,
-        std::string&& hexidecimal) NOEXCEPT;
-    void send_data(const network::http::request& request,
-        system::data_chunk&& bytes) NOEXCEPT;
-
     /// Receivers.
     void handle_receive_get(const code& ec,
         const network::http::method::get& request) NOEXCEPT override;

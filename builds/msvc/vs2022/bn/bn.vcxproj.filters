@@ -8,13 +8,46 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="resource">
-      <UniqueIdentifier>{D3404804-C83F-46CE-0000-000000000001}</UniqueIdentifier>
+      <UniqueIdentifier>{D3404804-C83F-46CE-0000-000000000002}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{D3404804-C83F-46CE-0000-000000000000}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\embedded">
+      <UniqueIdentifier>{D3404804-C83F-46CE-0000-000000000001}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\console\embedded\explore_css.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\explore_ecma.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\explore_font.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\explore_html.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\explore_icon.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\web_css.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\web_ecma.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\web_font.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\web_html.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\console\embedded\web_icon.cpp">
+      <Filter>src\embedded</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\console\executor.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -56,6 +89,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\console\embedded\embedded.hpp">
+      <Filter>src\embedded</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\console\executor.hpp">
       <Filter>src</Filter>
     </ClInclude>

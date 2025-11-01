@@ -20,6 +20,7 @@
 
 #include <filesystem>
 #include <bitcoin/node/configuration.hpp>
+#include <bitcoin/node/settings.hpp>
 
 #define BC_HTTP_SERVER_NAME "libbitcoin/4.0"
 
@@ -35,15 +36,11 @@ using namespace bc::system;
 using namespace bc::system::config;
 using namespace boost::program_options;
 
-// Initialize configuration by copying the given instance.
-parser::parser(const configuration& defaults) NOEXCEPT
-  : configured(defaults)
-{
-}
-
 // Initialize configuration using defaults of the given context.
-parser::parser(system::chain::selection context) NOEXCEPT
-  : configured(context)
+parser::parser(system::chain::selection context,
+    const server::settings::embedded_pages& explore,
+    const server::settings::embedded_pages& web) NOEXCEPT
+  : configured(context, explore, web)
 {
     // node
 

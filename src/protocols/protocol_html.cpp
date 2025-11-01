@@ -32,7 +32,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Handle get method.
 // ----------------------------------------------------------------------------
-// fields[] are undeclared noexcept.
 
 void protocol_html::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
@@ -79,6 +78,46 @@ void protocol_html::handle_receive_get(const code& ec,
 // Senders.
 // ----------------------------------------------------------------------------
 
+constexpr auto data = mime_type::application_octet_stream;
+constexpr auto json = mime_type::application_json;
+constexpr auto text = mime_type::text_plain;
+
+void protocol_html::send_json(const request& request,
+    boost::json::value&& model, size_t size_hint) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(json));
+    response.body() = { std::move(model), size_hint };
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+void protocol_html::send_text(const request& request,
+    std::string&& hexidecimal) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(text));
+    response.body() = std::move(hexidecimal);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+void protocol_html::send_data(const request& request,
+    system::data_chunk&& bytes) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(data));
+    response.body() = std::move(bytes);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
 void protocol_html::send_file(const request& request, file&& file,
     mime_type type) NOEXCEPT
 {
@@ -92,14 +131,24 @@ void protocol_html::send_file(const request& request, file&& file,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
+void protocol_html::send_span(const request& request,
+    span_body::value_type&& span, mime_type type) NOEXCEPT
+{
+    BC_ASSERT_MSG(stranded(), "strand");
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(type));
+    response.body() = std::move(span);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
 // Utilities.
 // ----------------------------------------------------------------------------
 
 bool protocol_html::is_allowed_origin(const fields& fields,
     size_t version) const NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
-
     // Allow same-origin and no-origin requests.
     // Origin header field is not available until http 1.1.
     const auto origin = fields[field::origin];
@@ -113,8 +162,6 @@ bool protocol_html::is_allowed_origin(const fields& fields,
 std::filesystem::path protocol_html::to_local_path(
     const std::string& target) const NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
-
     return sanitize_origin(options_.path,
         target == "/" ? target + options_.default_ : target);
 }

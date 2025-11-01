@@ -25,7 +25,9 @@ BOOST_AUTO_TEST_SUITE(configuration_tests)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 {
-    const node::configuration instance(chain::selection::none);
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const node::configuration instance(chain::selection::none, explorer, web);
 
     BOOST_REQUIRE(instance.file.empty());
     BOOST_REQUIRE(!instance.help);

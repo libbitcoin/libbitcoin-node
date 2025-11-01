@@ -16,27 +16,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/configuration.hpp>
-
-#include <bitcoin/node/settings.hpp>
+#include "../embedded/embedded.hpp"
 
 namespace libbitcoin {
-namespace node {
+namespace server {
 
-using namespace bc::system;
+// Simple test html for embedded page, links in css and page icon.
+DEFINE_EMBEDDED_PAGE(web_pages, char, html,
+R"(<html>
+<head>
+    <title>Libbitcoin Server</title>
+    <meta charset="utf-8">
+    <meta name="description" content="libbitcoin server admin site">
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="icon" href="icon.png" type="image/png"/>
+    <link rel="preload" href="boston.woff2" type="font/woff2" as="font">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <p>Hello world!</p>
+</body>
+</html>)")
 
-// Construct with defaults derived from given context.
-configuration::configuration(system::chain::selection context,
-    const server::settings::embedded_pages& explore,
-    const server::settings::embedded_pages& web) NOEXCEPT
-  : log(context),
-    server(context, explore, web),
-    node(context),
-    network(context),
-    database(context),
-    bitcoin(context)
-{
-}
-
-} // namespace node
+} // namespace server
 } // namespace libbitcoin

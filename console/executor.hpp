@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_EXECUTOR_HPP
-#define LIBBITCOIN_NODE_EXECUTOR_HPP
+#ifndef LIBBITCOIN_BN_EXECUTOR_HPP
+#define LIBBITCOIN_BN_EXECUTOR_HPP
 
 #include <atomic>
 #include <future>

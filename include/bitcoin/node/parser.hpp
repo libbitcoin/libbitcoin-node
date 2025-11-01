@@ -21,6 +21,7 @@
 
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/settings.hpp>
 
 // Not localizable.
 #define BN_HELP_VARIABLE "help"
@@ -55,8 +56,9 @@ class BCN_API parser
   : public system::config::parser
 {
 public:
-    parser(system::chain::selection context) NOEXCEPT;
-    parser(const configuration& defaults) NOEXCEPT;
+    parser(system::chain::selection context,
+        const server::settings::embedded_pages& explore,
+        const server::settings::embedded_pages& web) NOEXCEPT;
 
     /// Load command line options (named).
     virtual options_metadata load_options() THROWS;
