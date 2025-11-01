@@ -21,6 +21,7 @@
 BOOST_AUTO_TEST_SUITE(settings_tests)
 
 using namespace bc::network;
+using namespace bc::system::chain;
 
 // [log]
 
@@ -84,10 +85,11 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
 
 BOOST_AUTO_TEST_CASE(server__html_server__defaults__expected)
 {
-    const server::settings::html_server instance{};
+    const auto undefined = server::settings::embedded_pages{};
+    const server::settings::html_server instance{ "test", undefined };
 
     // tcp_server
-    BOOST_REQUIRE(instance.name.empty());
+    BOOST_REQUIRE_EQUAL(instance.name, "test");
     BOOST_REQUIRE(!instance.secure);
     BOOST_REQUIRE(instance.binds.empty());
     BOOST_REQUIRE_EQUAL(instance.connections, 0u);
@@ -100,6 +102,12 @@ BOOST_AUTO_TEST_CASE(server__html_server__defaults__expected)
     BOOST_REQUIRE(instance.host_names().empty());
 
     // html_server
+    BOOST_REQUIRE(!instance.pages.enabled());
+    BOOST_REQUIRE(instance.pages.css().empty());
+    BOOST_REQUIRE(instance.pages.html().empty());
+    BOOST_REQUIRE(instance.pages.ecma().empty());
+    BOOST_REQUIRE(instance.pages.font().empty());
+    BOOST_REQUIRE(instance.pages.icon().empty());
     BOOST_REQUIRE(instance.path.empty());
     BOOST_REQUIRE_EQUAL(instance.default_, "index.html");
     BOOST_REQUIRE(instance.origins.empty());
@@ -108,8 +116,10 @@ BOOST_AUTO_TEST_CASE(server__html_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.web;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.web;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "web");
@@ -125,6 +135,12 @@ BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
     BOOST_REQUIRE(server.host_names().empty());
 
     // html_server
+    BOOST_REQUIRE(!server.pages.enabled());
+    BOOST_REQUIRE(server.pages.css().empty());
+    BOOST_REQUIRE(server.pages.html().empty());
+    BOOST_REQUIRE(server.pages.ecma().empty());
+    BOOST_REQUIRE(server.pages.font().empty());
+    BOOST_REQUIRE(server.pages.icon().empty());
     BOOST_REQUIRE(server.path.empty());
     BOOST_REQUIRE_EQUAL(server.default_, "index.html");
     BOOST_REQUIRE(server.origins.empty());
@@ -133,8 +149,10 @@ BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.explore;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.explore;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "explore");
@@ -150,6 +168,12 @@ BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
     BOOST_REQUIRE(server.host_names().empty());
 
     // html_server
+    BOOST_REQUIRE(!server.pages.enabled());
+    BOOST_REQUIRE(server.pages.css().empty());
+    BOOST_REQUIRE(server.pages.html().empty());
+    BOOST_REQUIRE(server.pages.ecma().empty());
+    BOOST_REQUIRE(server.pages.font().empty());
+    BOOST_REQUIRE(server.pages.icon().empty());
     BOOST_REQUIRE(server.path.empty());
     BOOST_REQUIRE_EQUAL(server.default_, "index.html");
     BOOST_REQUIRE(server.origins.empty());
@@ -158,8 +182,10 @@ BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__websocket_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.socket;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.socket;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "socket");
@@ -177,8 +203,10 @@ BOOST_AUTO_TEST_CASE(server__websocket_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__bitcoind_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.bitcoind;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.bitcoind;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "bitcoind");
@@ -196,8 +224,10 @@ BOOST_AUTO_TEST_CASE(server__bitcoind_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__electrum_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.electrum;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.electrum;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "electrum");
@@ -210,8 +240,10 @@ BOOST_AUTO_TEST_CASE(server__electrum_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__stratum_v1_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.stratum_v1;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.stratum_v1;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "stratum_v1");
@@ -224,8 +256,10 @@ BOOST_AUTO_TEST_CASE(server__stratum_v1_server__defaults__expected)
 
 BOOST_AUTO_TEST_CASE(server__stratum_v2_server__defaults__expected)
 {
-    const server::settings instance{};
-    const auto server = instance.stratum_v2;
+    const server::settings::embedded_pages web{};
+    const server::settings::embedded_pages explorer{};
+    const server::settings instance{ selection::none, explorer, web };
+    const auto& server = instance.stratum_v2;
 
     // tcp_server
     BOOST_REQUIRE_EQUAL(server.name, "stratum_v2");

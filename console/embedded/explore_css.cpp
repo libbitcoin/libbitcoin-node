@@ -16,27 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/configuration.hpp>
-
-#include <bitcoin/node/settings.hpp>
+#include "../embedded/embedded.hpp"
 
 namespace libbitcoin {
-namespace node {
+namespace server {
 
-using namespace bc::system;
+DEFINE_EMBEDDED_PAGE(explore_pages, char, css, "")
 
-// Construct with defaults derived from given context.
-configuration::configuration(system::chain::selection context,
-    const server::settings::embedded_pages& explore,
-    const server::settings::embedded_pages& web) NOEXCEPT
-  : log(context),
-    server(context, explore, web),
-    node(context),
-    network(context),
-    database(context),
-    bitcoin(context)
-{
-}
-
-} // namespace node
+} // namespace server
 } // namespace libbitcoin

@@ -52,8 +52,17 @@ protected:
         const network::http::method::get& request) NOEXCEPT override;
 
     /// Senders.
-    void send_file(const network::http::request& request,
+    virtual void send_json(const network::http::request& request,
+        boost::json::value&& model, size_t size_hint) NOEXCEPT;
+    virtual void send_text(const network::http::request& request,
+        std::string&& hexidecimal) NOEXCEPT;
+    virtual void send_data(const network::http::request& request,
+        system::data_chunk&& bytes) NOEXCEPT;
+    virtual void send_file(const network::http::request& request,
         network::http::file&& file, network::http::mime_type type) NOEXCEPT;
+    virtual void send_span(const network::http::request& request,
+        network::http::span_body::value_type&& span,
+        network::http::mime_type type) NOEXCEPT;
 
     /// Utilities.
     bool is_allowed_origin(const network::http::fields& fields,
