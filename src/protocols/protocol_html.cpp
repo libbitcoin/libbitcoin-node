@@ -62,25 +62,25 @@ void protocol_html::handle_receive_get(const code& ec,
         return;
     }
 
-    // Always try object dispatch, false if unhandled.
+    // Always try API dispatch, false if unhandled.
     if (try_dispatch_object(*request))
         return;
 
-    // Otherwise require file dispatch if path is configured (always handles).
+    // Require file system dispatch if path is configured (always handles).
     if (!options_.path.empty())
     {
         dispatch_file(*request);
         return;
     }
 
-    // Dispatch from embedded site if site is configured. (always handles).
+    // Require embedded dispatch if site is configured (always handles).
     if (options_.pages.enabled())
     {
         dispatch_embedded(*request);
         return;
     }
 
-    // Neither site is enabled and object dispatch doesn't support accept type.
+    // Neither site is enabled and object dispatch doesn't support.
     send_not_implemented(*request);
 }
 
