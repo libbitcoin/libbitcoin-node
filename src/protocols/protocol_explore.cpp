@@ -38,7 +38,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 void protocol_explore::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (stopped(ec))
         return;

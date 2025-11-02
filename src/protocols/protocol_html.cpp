@@ -36,7 +36,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 void protocol_html::handle_receive_get(const code& ec,
     const method::get& request) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (stopped(ec))
         return;
@@ -126,7 +126,7 @@ constexpr auto text = mime_type::text_plain;
 void protocol_html::send_json(const request& request,
     boost::json::value&& model, size_t size_hint) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(json));
@@ -138,7 +138,7 @@ void protocol_html::send_json(const request& request,
 void protocol_html::send_text(const request& request,
     std::string&& hexidecimal) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(text));
@@ -150,7 +150,7 @@ void protocol_html::send_text(const request& request,
 void protocol_html::send_data(const request& request,
     system::data_chunk&& bytes) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(data));
@@ -162,7 +162,7 @@ void protocol_html::send_data(const request& request,
 void protocol_html::send_file(const request& request, file&& file,
     mime_type type) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
@@ -175,7 +175,7 @@ void protocol_html::send_file(const request& request, file&& file,
 void protocol_html::send_span(const request& request,
     span_body::value_type&& span, mime_type type) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     response.set(field::content_type, from_mime_type(type));
