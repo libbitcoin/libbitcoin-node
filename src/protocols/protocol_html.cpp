@@ -223,6 +223,18 @@ void protocol_html::send_span(const request& request,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
+void protocol_html::send_buffer(const request& request,
+    buffer_body::value_type&& buffer, mime_type type) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_mime_type(type));
+    response.body() = std::move(buffer);
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
 // Utilities.
 // ----------------------------------------------------------------------------
 
