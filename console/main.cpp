@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <bitcoin/node.hpp>
+#include "embedded/embedded.hpp"
 #include "executor.hpp"
 
 // This is some experimental code to explore emission of win32 stack dump.
@@ -83,9 +84,13 @@ int bc::system::main(int argc, char* argv[])
 
     // en.cppreference.com/w/cpp/io/ios_base/sync_with_stdio
     std::ios_base::sync_with_stdio(false);
-
     set_utf8_stdio();
-    parser metadata(chain::selection::mainnet);
+
+    // HACK: web_server used for both!
+    const server::web_pages web_server{};
+    const server::explore_pages block_explorer{};
+    parser metadata(chain::selection::mainnet, web_server, web_server);
+
     const auto& args = const_cast<const char**>(argv);
 
     if (!metadata.parse(argc, args, cerr))

@@ -391,7 +391,18 @@ if (with-console)
         "../../console/localize.hpp"
         "../../console/main.cpp"
         "../../console/stack_trace.cpp"
-        "../../console/stack_trace.hpp" )
+        "../../console/stack_trace.hpp"
+        "../../console/embedded/embedded.hpp"
+        "../../console/embedded/explore_css.cpp"
+        "../../console/embedded/explore_ecma.cpp"
+        "../../console/embedded/explore_font.cpp"
+        "../../console/embedded/explore_html.cpp"
+        "../../console/embedded/explore_icon.cpp"
+        "../../console/embedded/web_css.cpp"
+        "../../console/embedded/web_ecma.cpp"
+        "../../console/embedded/web_font.cpp"
+        "../../console/embedded/web_html.cpp"
+        "../../console/embedded/web_icon.cpp" )
 
 #     bn project specific include directories.
 #------------------------------------------------------------------------------

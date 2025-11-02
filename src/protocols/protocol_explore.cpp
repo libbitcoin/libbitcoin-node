@@ -30,10 +30,6 @@ using namespace std::placeholders;
 using namespace network::http;
 using namespace system;
 
-const auto data = mime_type::application_octet_stream;
-const auto json = mime_type::application_json;
-const auto text = mime_type::text_plain;
-
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Handle get method.
@@ -154,6 +150,10 @@ void protocol_explore::handle_receive_get(const code& ec,
     if (const auto parts = split(uri.path(), "/");
         parts.size() == two)
     {
+        constexpr auto data = mime_type::application_octet_stream;
+        constexpr auto json = mime_type::application_json;
+        constexpr auto text = mime_type::text_plain;
+
         const auto hd = parts.front() == "header"      || parts.front() == "hd";
         const auto bk = parts.front() == "block"       || parts.front() == "bk";
         const auto tx = parts.front() == "transaction" || parts.front() == "tx";
@@ -273,7 +273,38 @@ void protocol_explore::handle_receive_get(const code& ec,
         }
     }
 
-    // Default to html (single page site).
+    // Embedded page site.
+    if (config().server.explore.pages.enabled())
+    {
+        const auto& pages = config().server.explore.pages;
+        const auto mime = extension_mime_type(to_extension(request->target()));
+        switch (mime)
+        {
+            case mime_type::text_css:
+                send_span(*request, pages.css(), mime);
+                break;
+            case mime_type::text_html:
+                send_span(*request, pages.html(), mime);
+                break;
+            case mime_type::application_javascript:
+                send_span(*request, pages.ecma(), mime);
+                break;
+            case mime_type::font_woff:
+            case mime_type::font_woff2:
+                send_span(*request, pages.font(), mime);
+                return;
+            case mime_type::image_png:
+            case mime_type::image_gif:
+            case mime_type::image_jpeg:
+            case mime_type::image_x_icon:
+            case mime_type::image_svg_xml:
+                send_span(*request, pages.icon(), mime);
+                break;
+            default:
+                send_not_implemented(*request);
+                return;
+        }
+    }
 
     // Empty path implies malformed target (terminal).
     auto path = to_local_path(request->target());
@@ -285,7 +316,7 @@ void protocol_explore::handle_receive_get(const code& ec,
 
     if (!path.has_extension())
     {
-        // Empty path implies default page is invalid or not configured.
+        // Empty implies default page invalid or not configured (terminal).
         path = to_local_path();
         if (path.empty())
         {
@@ -303,44 +334,6 @@ void protocol_explore::handle_receive_get(const code& ec,
     }
 
     send_file(*request, std::move(file), file_mime_type(path));
-}
-
-// TODO: buffer should be reused, so set at the channel.
-// json_value is not a sized body, so this sets chunked encoding.
-void protocol_explore::send_json(const request& request,
-    boost::json::value&& model, size_t size_hint) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "strand");
-    response response{ status::ok, request.version() };
-    add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(json));
-    response.body() = { std::move(model), size_hint };
-    response.prepare_payload();
-    SEND(std::move(response), handle_complete, _1, error::success);
-}
-
-void protocol_explore::send_text(const request& request,
-    std::string&& hexidecimal) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "strand");
-    response response{ status::ok, request.version() };
-    add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(text));
-    response.body() = std::move(hexidecimal);
-    response.prepare_payload();
-    SEND(std::move(response), handle_complete, _1, error::success);
-}
-
-void protocol_explore::send_data(const request& request,
-    data_chunk&& bytes) NOEXCEPT
-{
-    BC_ASSERT_MSG(stranded(), "strand");
-    response response{ status::ok, request.version() };
-    add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(data));
-    response.body() = std::move(bytes);
-    response.prepare_payload();
-    SEND(std::move(response), handle_complete, _1, error::success);
 }
 
 BC_POP_WARNING()

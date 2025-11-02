@@ -25,6 +25,10 @@ using namespace bc::system;
 using namespace bc::network;
 
 namespace libbitcoin {
+
+// log
+// ----------------------------------------------------------------------------
+
 namespace log {
 
 // Log states default to network compiled states or explicit false.
@@ -70,6 +74,9 @@ std::filesystem::path settings::events_file() const NOEXCEPT
 }
 
 } // namespace log
+
+// node
+// ----------------------------------------------------------------------------
 
 namespace node {
 
@@ -130,7 +137,37 @@ network::thread_priority settings::priority_() const NOEXCEPT
 
 } // namespace node
 
+// server
+// ----------------------------------------------------------------------------
+
 namespace server {
+
+// settings::settings
+settings::settings(system::chain::selection, const embedded_pages& explore,
+    const embedded_pages& web) NOEXCEPT
+  : explore("explore", explore),
+    web("web", web)    
+{
+}
+
+// settings::embedded_pages
+span_value settings::embedded_pages::css()  const NOEXCEPT { return {}; }
+span_value settings::embedded_pages::html() const NOEXCEPT { return {}; }
+span_value settings::embedded_pages::ecma() const NOEXCEPT { return {}; }
+span_value settings::embedded_pages::font() const NOEXCEPT { return {}; }
+span_value settings::embedded_pages::icon() const NOEXCEPT { return {}; }
+bool settings::embedded_pages::enabled() const NOEXCEPT
+{
+    return !html().empty();
+}
+
+// settings::html_server
+settings::html_server::html_server(const std::string_view& logging_name,
+    const embedded_pages& embedded) NOEXCEPT
+  : network::settings::http_server(logging_name),
+    pages(embedded)
+{
+}
 
 system::string_list settings::html_server::origin_names() const NOEXCEPT
 {
@@ -139,13 +176,13 @@ system::string_list settings::html_server::origin_names() const NOEXCEPT
     return network::config::to_host_names(hosts, port);
 }
 
-// Because session_tcp upcasts html_server to tcp_server settings, this doesn't
-// get executed, so presently an empty path allows the service to start. This
-// can be hacked away external to the session at startup.
 bool settings::html_server::enabled() const NOEXCEPT
 {
-    return !path.empty() && http_server::enabled();
+    return (!path.empty() || pages.enabled()) && http_server::enabled();
 }
 
 } // namespace server
+
+// ----------------------------------------------------------------------------
+
 } // namespace libbitcoin
