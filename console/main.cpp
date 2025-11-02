@@ -86,10 +86,9 @@ int bc::system::main(int argc, char* argv[])
     std::ios_base::sync_with_stdio(false);
     set_utf8_stdio();
 
-    // HACK: web_server used for both!
     const server::web_pages web_server{};
     const server::explore_pages block_explorer{};
-    parser metadata(chain::selection::mainnet, web_server, web_server);
+    parser metadata(chain::selection::mainnet, block_explorer, web_server);
 
     const auto& args = const_cast<const char**>(argv);
 
