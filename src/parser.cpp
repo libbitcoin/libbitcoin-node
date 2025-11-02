@@ -1004,9 +1004,14 @@ options_metadata parser::load_settings() THROWS
         "The number of threads in the validation threadpool, defaults to '32'."
     )
     (
-        "node.priority",
-        value<bool>(&configured.node.priority),
-        "Set the validation threadpool to high priority, defaults to 'true'."
+        "node.thread_priority",
+        value<bool>(&configured.node.thread_priority),
+        "Set validation threads to high processing priority, defaults to 'true'."
+    )
+    (
+        "node.memory_priority",
+        value<bool>(&configured.node.memory_priority),
+        "Set the process to high memory priority, defaults to 'true'."
     )
     (
         "node.delay_inbound",

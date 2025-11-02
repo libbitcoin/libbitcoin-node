@@ -79,15 +79,17 @@ BC_USE_LIBBITCOIN_MAIN
 int bc::system::main(int argc, char* argv[])
 {
     using namespace bc;
-    using namespace bc::node;
     using namespace bc::system;
+    using namespace bc::network;
+    using namespace bc::node;
+    using namespace bc::server;
 
     // en.cppreference.com/w/cpp/io/ios_base/sync_with_stdio
     std::ios_base::sync_with_stdio(false);
     set_utf8_stdio();
 
-    const server::web_pages web_server{};
-    const server::explore_pages block_explorer{};
+    const web_pages web_server{};
+    const explore_pages block_explorer{};
     parser metadata(chain::selection::mainnet, block_explorer, web_server);
 
     const auto& args = const_cast<const char**>(argv);
@@ -99,18 +101,7 @@ int bc::system::main(int argc, char* argv[])
     symbols_path = metadata.configured.log.symbols;
 #endif
 
-// Requires _WIN32_WINNT set to 0x0602 (defaults 0x0602 in vc++ 2022).
-#if defined(HAVE_MSC) && (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
-
-    // Set low memory priority on the current process (testing).
-    MEMORY_PRIORITY_INFORMATION priority{ MEMORY_PRIORITY_LOW };
-    SetProcessInformation(
-        GetCurrentProcess(),
-        ProcessMemoryPriority,
-        &priority,
-        sizeof(priority));
-
-#endif
+    set_memory_priority(metadata.configured.node.memory_priority_());
 
     executor host(metadata, cin, cout, cerr);
     return host.dispatch() ? 0 : -1;

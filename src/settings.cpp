@@ -81,9 +81,10 @@ std::filesystem::path settings::events_file() const NOEXCEPT
 namespace node {
 
 settings::settings() NOEXCEPT
-  : priority{ true },
-    delay_inbound{ true },
+  : delay_inbound{ true },
     headers_first{ true },
+    memory_priority{ true },
+    thread_priority{ true },
     allowed_deviation{ 1.5 },
     announcement_cache{ 42 },
     allocation_multiple{ 20 },
@@ -129,10 +130,20 @@ network::wall_clock::duration settings::currency_window() const NOEXCEPT
     return network::minutes(currency_window_minutes);
 }
 
-network::thread_priority settings::priority_() const NOEXCEPT
+network::processing_priority settings::thread_priority_() const NOEXCEPT
 {
-    return priority ? network::thread_priority::high :
-        network::thread_priority::normal;
+    // medium is "normal" (os default), so true is a behavior change.
+    // highest is too much, as it makes the opreating system UI unresponsive.
+    return thread_priority ? network::processing_priority::high :
+        network::processing_priority::medium;
+}
+
+network::memory_priority settings::memory_priority_() const NOEXCEPT
+{
+    // highest is "normal" (os default), so false is a behavior change.
+    // highest is the OS default, so far low does not have a noticeable effect.
+    return memory_priority ? network::memory_priority::highest :
+        network::memory_priority::low;
 }
 
 } // namespace node

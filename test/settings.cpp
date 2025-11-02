@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     using namespace network;
 
     const node::settings node{};
-    BOOST_REQUIRE_EQUAL(node.priority, true);
+    BOOST_REQUIRE_EQUAL(node.thread_priority, true);
     BOOST_REQUIRE_EQUAL(node.delay_inbound, true);
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
@@ -77,7 +77,8 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50'000_size);
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(60)));
-    BOOST_REQUIRE(node.priority_() == network::thread_priority::high);
+    BOOST_REQUIRE(node.thread_priority_() == network::processing_priority::high);
+    BOOST_REQUIRE(node.memory_priority_() == network::memory_priority::highest);
 }
 
 // [server]
