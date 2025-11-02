@@ -32,87 +32,13 @@ using namespace system;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-// Handle get method.
-// ----------------------------------------------------------------------------
-
-void protocol_explore::handle_receive_get(const code& ec,
-    const method::get& request) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped(ec))
-        return;
-
-    // Enforce http origin policy (requires configured hosts).
-    if (!is_allowed_origin(*request, request->version()))
-    {
-        send_forbidden(*request);
-        return;
-    }
-
-    // Enforce http host header (if any hosts are configured).
-    if (!is_allowed_host(*request, request->version()))
-    {
-        send_bad_host(*request);
-        return;
-    }
-
-    // Dispatch object with specified encoding.
-    if (dispatch_object(*request))
-        return;
-
-    // Embedded page site.
-    if (dispatch_embedded(*request))
-        return;
-
-    // Empty path implies malformed target (terminal).
-    auto path = to_local_path(request->target());
-    if (path.empty())
-    {
-        send_bad_target(*request);
-        return;
-    }
-
-    // If no file extension it's REST on the single/default html page.
-    if (!path.has_extension())
-    {
-        path = to_local_path();
-
-        // Default html page (e.g. index.html) is not configured.
-        if (path.empty())
-        {
-            send_not_implemented(*request);
-            return;
-        }
-    }
-
-    // Get the single/default or explicitly requested page.
-    auto file = get_file_body(path);
-    if (!file.is_open())
-    {
-        send_not_found(*request);
-        return;
-    }
-
-    send_file(*request, std::move(file),
-        file_mime_type(path, mime_type::application_octet_stream));
-}
-
 // Dispatch.
 // ----------------------------------------------------------------------------
 
-bool protocol_explore::dispatch_object(
-    const network::http::request& request) NOEXCEPT
+bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 {
-    const auto target = request.target();
-    if (!is_origin_form(target))
-    {
-        send_bad_target(request);
-        return true;
-    }
-
     wallet::uri uri{};
-    if (!uri.decode(target))
+    if (!uri.decode(request.target()))
     {
         send_bad_target(request);
         return true;

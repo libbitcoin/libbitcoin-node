@@ -48,13 +48,9 @@ public:
     }
 
 protected:
-    /// Receivers.
-    void handle_receive_get(const code& ec,
-        const network::http::method::get& request) NOEXCEPT override;
-
     /// Dispatch.
-    virtual bool dispatch_object(
-        const network::http::request& request) NOEXCEPT;
+    bool try_dispatch_object(
+        const network::http::request& request) NOEXCEPT override;
 };
 
 } // namespace node

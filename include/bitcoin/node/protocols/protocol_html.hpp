@@ -52,7 +52,11 @@ protected:
         const network::http::method::get& request) NOEXCEPT override;
 
     /// Dispatch.
-    virtual bool dispatch_embedded(
+    virtual bool try_dispatch_object(
+        const network::http::request& request) NOEXCEPT;
+    virtual void dispatch_file(
+        const network::http::request& request) NOEXCEPT;
+    virtual void dispatch_embedded(
         const network::http::request& request) NOEXCEPT;
 
     /// Senders.
