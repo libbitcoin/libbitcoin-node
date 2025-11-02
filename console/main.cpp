@@ -100,11 +100,11 @@ int bc::system::main(int argc, char* argv[])
     symbols_path = metadata.configured.log.symbols;
 #endif
 
-// requires _WIN32_WINNT set to 0x0602 (defaults 0x0602 in vc++ 2022).
-#if defined(HAVE_MSC) && defined(MEMORY_PRIORITY_INFORMATION)
+// Requires _WIN32_WINNT set to 0x0602 (defaults 0x0602 in vc++ 2022).
+#if defined(HAVE_MSC) && (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
 
-    // Set low memory priority on the current process.
-    const MEMORY_PRIORITY_INFORMATION priority{ MEMORY_PRIORITY_LOW };
+    // Set low memory priority on the current process (testing).
+    MEMORY_PRIORITY_INFORMATION priority{ MEMORY_PRIORITY_LOW };
     SetProcessInformation(
         GetCurrentProcess(),
         ProcessMemoryPriority,
