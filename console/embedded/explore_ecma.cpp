@@ -21,7 +21,12 @@
 namespace libbitcoin {
 namespace server {
 
-DEFINE_EMBEDDED_PAGE(explore_pages, char, ecma, "")
+// Simple test ecma script for embedded page.
+DEFINE_EMBEDDED_PAGE(explore_pages, char, ecma,
+R"(document.addEventListener('DOMContentLoaded', function()
+{
+    console.log('pong');
+});)")
 
 } // namespace server
 } // namespace libbitcoin

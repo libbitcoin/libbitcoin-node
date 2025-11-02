@@ -21,7 +21,13 @@
 namespace libbitcoin {
 namespace server {
 
-DEFINE_EMBEDDED_PAGE(explore_pages, char, css, "")
+// Simple test css for embedded page, links in font.
+DEFINE_EMBEDDED_PAGE(explore_pages, char, css,
+    R"(@font-face
+{
+    font-family: 'Boston';
+    src: url('boston.woff2');
+})")
 
 } // namespace server
 } // namespace libbitcoin
