@@ -86,10 +86,9 @@ int bc::system::main(int argc, char* argv[])
     std::ios_base::sync_with_stdio(false);
     set_utf8_stdio();
 
-    // HACK: web_server used for both!
     const server::web_pages web_server{};
     const server::explore_pages block_explorer{};
-    parser metadata(chain::selection::mainnet, web_server, web_server);
+    parser metadata(chain::selection::mainnet, block_explorer, web_server);
 
     const auto& args = const_cast<const char**>(argv);
 
@@ -100,11 +99,11 @@ int bc::system::main(int argc, char* argv[])
     symbols_path = metadata.configured.log.symbols;
 #endif
 
-// requires _WIN32_WINNT set to 0x0602 (defaults 0x0602 in vc++ 2022).
-#if defined(HAVE_MSC) && defined(MEMORY_PRIORITY_INFORMATION)
+// Requires _WIN32_WINNT set to 0x0602 (defaults 0x0602 in vc++ 2022).
+#if defined(HAVE_MSC) && (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
 
-    // Set low memory priority on the current process.
-    const MEMORY_PRIORITY_INFORMATION priority{ MEMORY_PRIORITY_LOW };
+    // Set low memory priority on the current process (testing).
+    MEMORY_PRIORITY_INFORMATION priority{ MEMORY_PRIORITY_LOW };
     SetProcessInformation(
         GetCurrentProcess(),
         ProcessMemoryPriority,

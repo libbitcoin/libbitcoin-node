@@ -21,8 +21,22 @@
 namespace libbitcoin {
 namespace server {
 
-// Empty page disabled embedded size.
-DEFINE_EMBEDDED_PAGE(explore_pages, char, html, "")
+// Simple test html for embedded page, links in css and page icon.
+DEFINE_EMBEDDED_PAGE(explore_pages, char, html,
+R"(<html>
+<head>
+    <title>Libbitcoin Block Explorer</title>
+    <meta charset="utf-8">
+    <meta name="description" content="libbitcoin block explorer site">
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="icon" href="icon.png" type="image/png"/>
+    <link rel="preload" href="boston.woff2" type="font/woff2" as="font">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <p>Hello world!</p>
+</body>
+</html>)")
 
 } // namespace server
 } // namespace libbitcoin
