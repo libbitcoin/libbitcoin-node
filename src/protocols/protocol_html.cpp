@@ -41,7 +41,14 @@ void protocol_html::handle_receive_get(const code& ec,
     if (stopped(ec))
         return;
 
-    // Enforce http origin policy (requires configured hosts).
+    // Enforce http origin form for get.
+    if (!is_origin_form(request->target()))
+    {
+        send_bad_target(*request);
+        return;
+    }
+
+    // Enforce http origin policy (if any origins are configured).
     if (!is_allowed_origin(*request, request->version()))
     {
         send_forbidden(*request);
@@ -55,65 +62,97 @@ void protocol_html::handle_receive_get(const code& ec,
         return;
     }
 
-    // Embedded page site.
-    if (dispatch_embedded(*request))
+    // Always try API dispatch, false if unhandled.
+    if (try_dispatch_object(*request))
         return;
 
-    // Empty path implies malformed target (terminal).
-    const auto path = to_local_path(request->target());
-    if (path.empty())
+    // Require file system dispatch if path is configured (always handles).
+    if (!options_.path.empty())
     {
-        // TODO: split out sanitize from canonicalize so that this can return
-        // send_not_found() when the request is sanitary but not found.
-        send_bad_target(*request);
+        dispatch_file(*request);
         return;
     }
 
-    // Not open implies file not found (non-terminal).
-    auto file = get_file_body(path);
-    if (!file.is_open())
+    // Require embedded dispatch if site is configured (always handles).
+    if (options_.pages.enabled())
     {
-        send_not_found(*request);
+        dispatch_embedded(*request);
         return;
     }
 
-    send_file(*request, std::move(file),
-        file_mime_type(path, mime_type::application_octet_stream));
+    // Neither site is enabled and object dispatch doesn't support.
+    send_not_implemented(*request);
 }
 
 // Dispatch.
 // ----------------------------------------------------------------------------
 
-bool protocol_html::dispatch_embedded(const request& request) NOEXCEPT
+bool protocol_html::try_dispatch_object(const request&) NOEXCEPT
 {
-    // False only if not enabled, otherwise handled below.
-    if (!options_.pages.enabled())
-        return false;
+    return false;
+}
 
+void protocol_html::dispatch_embedded(const request& request) NOEXCEPT
+{
     const auto& pages = config().server.explore.pages;
     switch (const auto mime = file_mime_type(to_path(request.target())))
     {
         case mime_type::text_css:
             send_span(request, pages.css(), mime);
-            return true;
+            break;
         case mime_type::text_html:
             send_span(request, pages.html(), mime);
-            return true;
+            break;
         case mime_type::application_javascript:
             send_span(request, pages.ecma(), mime);
-            return true;
+            break;
         case mime_type::font_woff:
         case mime_type::font_woff2:
             send_span(request, pages.font(), mime);
-            return true;
+            break;
         case mime_type::image_png:
         case mime_type::image_gif:
         case mime_type::image_jpeg:
             send_span(request, pages.icon(), mime);
-            return true;
+            break;
         default:
-            return false;
+            send_not_found(request);
     }
+}
+
+void protocol_html::dispatch_file(const request& request) NOEXCEPT
+{
+    // Empty path implies malformed target (terminal).
+    auto path = to_local_path(request.target());
+    if (path.empty())
+    {
+        send_bad_target(request);
+        return;
+    }
+
+    // If no file extension it's REST on the single/default html page.
+    if (!path.has_extension())
+    {
+        path = to_local_path();
+
+        // Default html page (e.g. index.html) is not configured.
+        if (path.empty())
+        {
+            send_not_implemented(request);
+            return;
+        }
+    }
+
+    // Get the single/default or explicitly requested page.
+    auto file = get_file_body(path);
+    if (!file.is_open())
+    {
+        send_not_found(request);
+        return;
+    }
+
+    const auto octet_stream = mime_type::application_octet_stream;
+    send_file(request, std::move(file), file_mime_type(path, octet_stream));
 }
 
 // Senders.

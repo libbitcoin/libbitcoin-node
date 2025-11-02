@@ -37,7 +37,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Independent threadpool and strand (base class strand uses network pool).
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
-    threadpool_(node.config().node.threads_(), node.config().node.priority_()),
+    threadpool_(node.config().node.threads_(),
+        node.config().node.thread_priority_()),
     independent_strand_(threadpool_.service().get_executor()),
     subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),

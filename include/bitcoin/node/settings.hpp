@@ -70,9 +70,10 @@ public:
     settings(system::chain::selection context) NOEXCEPT;
 
     /// Properties.
-    bool priority;
     bool delay_inbound;
     bool headers_first;
+    bool thread_priority;
+    bool memory_priority;
     float allowed_deviation;
     uint16_t announcement_cache;
     uint16_t allocation_multiple;
@@ -91,7 +92,8 @@ public:
     virtual size_t maximum_concurrency_() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
-    virtual network::thread_priority priority_() const NOEXCEPT;
+    virtual network::processing_priority thread_priority_() const NOEXCEPT;
+    virtual network::memory_priority memory_priority_() const NOEXCEPT;
 };
 
 } // namespace node
