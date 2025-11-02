@@ -24,11 +24,9 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS protocol_explore
-
-using namespace boost::json;
-using namespace std::placeholders;
-using namespace network::http;
+    
 using namespace system;
+using namespace network::http;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
