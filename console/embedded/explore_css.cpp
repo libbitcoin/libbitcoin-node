@@ -23,7 +23,7 @@ namespace server {
 
 // Simple test css for embedded page, links in font.
 DEFINE_EMBEDDED_PAGE(explore_pages, char, css,
-    R"(@font-face
+R"(@font-face
 {
     font-family: 'Boston';
     src: url('boston.woff2');

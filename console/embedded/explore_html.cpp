@@ -23,7 +23,7 @@ namespace server {
 
 // Simple test html for embedded page, links in css and page icon.
 DEFINE_EMBEDDED_PAGE(explore_pages, char, html,
-    R"(<html>
+R"(<html>
 <head>
     <title>Libbitcoin Block Explorer</title>
     <meta charset="utf-8">
