@@ -51,6 +51,10 @@ protected:
     void handle_receive_get(const code& ec,
         const network::http::method::get& request) NOEXCEPT override;
 
+    /// Dispatch.
+    virtual bool dispatch_embedded(
+        const network::http::request& request) NOEXCEPT;
+
     /// Senders.
     virtual void send_json(const network::http::request& request,
         boost::json::value&& model, size_t size_hint) NOEXCEPT;

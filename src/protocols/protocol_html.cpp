@@ -71,8 +71,47 @@ void protocol_html::handle_receive_get(const code& ec,
         return;
     }
 
-    const auto default_type = mime_type::application_octet_stream;
-    send_file(*request, std::move(file), file_mime_type(path, default_type));
+    send_file(*request, std::move(file),
+        file_mime_type(path, mime_type::application_octet_stream));
+}
+
+// Dispatch.
+// ----------------------------------------------------------------------------
+
+bool protocol_html::dispatch_embedded(const request& request) NOEXCEPT
+{
+    // False only if not enabled, otherwise handled below.
+    if (!config().server.explore.pages.enabled())
+        return false;
+
+    const auto& pages = config().server.explore.pages;
+    switch (const auto mime = target_mime_type(request.target()))
+    {
+        case mime_type::text_css:
+            send_span(request, pages.css(), mime);
+            break;
+        case mime_type::text_html:
+            send_span(request, pages.html(), mime);
+            break;
+        case mime_type::application_javascript:
+            send_span(request, pages.ecma(), mime);
+            break;
+        case mime_type::font_woff:
+        case mime_type::font_woff2:
+            send_span(request, pages.font(), mime);
+            break;
+        case mime_type::image_png:
+        case mime_type::image_gif:
+        case mime_type::image_jpeg:
+        case mime_type::image_x_icon:
+        case mime_type::image_svg_xml:
+            send_span(request, pages.icon(), mime);
+            break;
+        default:
+            send_not_implemented(request);
+    }
+
+    return true;
 }
 
 // Senders.
