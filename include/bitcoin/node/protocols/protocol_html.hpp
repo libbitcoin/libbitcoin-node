@@ -71,6 +71,8 @@ protected:
     /// Utilities.
     bool is_allowed_origin(const network::http::fields& fields,
         size_t version) const NOEXCEPT;
+    std::filesystem::path to_path(
+        const std::string& target = "/") const NOEXCEPT;
     std::filesystem::path to_local_path(
         const std::string& target = "/") const NOEXCEPT;
 

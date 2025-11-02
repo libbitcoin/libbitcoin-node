@@ -55,10 +55,16 @@ void protocol_html::handle_receive_get(const code& ec,
         return;
     }
 
+    // Embedded page site.
+    if (dispatch_embedded(*request))
+        return;
+
     // Empty path implies malformed target (terminal).
     const auto path = to_local_path(request->target());
     if (path.empty())
     {
+        // TODO: split out sanitize from canonicalize so that this can return
+        // send_not_found() when the request is sanitary but not found.
         send_bad_target(*request);
         return;
     }
@@ -81,37 +87,33 @@ void protocol_html::handle_receive_get(const code& ec,
 bool protocol_html::dispatch_embedded(const request& request) NOEXCEPT
 {
     // False only if not enabled, otherwise handled below.
-    if (!config().server.explore.pages.enabled())
+    if (!options_.pages.enabled())
         return false;
 
     const auto& pages = config().server.explore.pages;
-    switch (const auto mime = target_mime_type(request.target()))
+    switch (const auto mime = file_mime_type(to_path(request.target())))
     {
         case mime_type::text_css:
             send_span(request, pages.css(), mime);
-            break;
+            return true;
         case mime_type::text_html:
             send_span(request, pages.html(), mime);
-            break;
+            return true;
         case mime_type::application_javascript:
             send_span(request, pages.ecma(), mime);
-            break;
+            return true;
         case mime_type::font_woff:
         case mime_type::font_woff2:
             send_span(request, pages.font(), mime);
-            break;
+            return true;
         case mime_type::image_png:
         case mime_type::image_gif:
         case mime_type::image_jpeg:
-        case mime_type::image_x_icon:
-        case mime_type::image_svg_xml:
             send_span(request, pages.icon(), mime);
-            break;
+            return true;
         default:
-            send_not_implemented(request);
+            return false;
     }
-
-    return true;
 }
 
 // Senders.
@@ -198,11 +200,16 @@ bool protocol_html::is_allowed_origin(const fields& fields,
         network::config::to_normal_host(origin, default_port()));
 }
 
+std::filesystem::path protocol_html::to_path(
+    const std::string& target) const NOEXCEPT
+{
+    return target == "/" ? target + options_.default_ : target;
+}
+
 std::filesystem::path protocol_html::to_local_path(
     const std::string& target) const NOEXCEPT
 {
-    return sanitize_origin(options_.path,
-        target == "/" ? target + options_.default_ : target);
+    return sanitize_origin(options_.path, to_path(target).string());
 }
 
 BC_POP_WARNING()
