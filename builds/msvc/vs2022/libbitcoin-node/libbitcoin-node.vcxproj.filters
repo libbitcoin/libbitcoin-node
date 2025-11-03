@@ -197,7 +197,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_tcp.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_websocket.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_ws.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp">
@@ -332,10 +332,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_web.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_websocket.hpp">
-      <Filter>include\bitcoin\node\protocols</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_websocket_shake.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_ws.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">

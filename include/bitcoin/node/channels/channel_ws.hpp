@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_WEBSOCKET_HPP
-#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_WEBSOCKET_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_WS_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_WS_HPP
 
 #include <memory>
 #include <bitcoin/node/channels/channel.hpp>
@@ -29,19 +29,19 @@ namespace node {
 
 /// Abstract base websocket channel state for the node.
 /// Does not inherit node::channel_http but does inherit network::channel_http.
-class BCN_API channel_websocket
-  : public network::channel_websocket,
+class BCN_API channel_ws
+  : public network::channel_ws,
     public node::channel
 {
 public:
-    typedef std::shared_ptr<node::channel_websocket> ptr;
-    using options_t = network::channel_websocket::options_t;
+    typedef std::shared_ptr<node::channel_ws> ptr;
+    using options_t = network::channel_ws::options_t;
 
-    channel_websocket(const network::logger& log,
+    channel_ws(const network::logger& log,
         const network::socket::ptr& socket,
         const node::configuration& config, uint64_t identifier=zero,
         const options_t& options={}) NOEXCEPT
-      : network::channel_websocket(log, socket, config.network, identifier,
+      : network::channel_ws(log, socket, config.network, identifier,
           options),
         node::channel(log, socket, config, identifier)
     {

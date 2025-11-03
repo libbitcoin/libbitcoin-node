@@ -31,7 +31,7 @@
 #include <bitcoin/node/channels/channel_http.hpp>
 #include <bitcoin/node/channels/channel_peer.hpp>
 #include <bitcoin/node/channels/channel_tcp.hpp>
-#include <bitcoin/node/channels/channel_websocket.hpp>
+#include <bitcoin/node/channels/channel_ws.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/chasers/chaser_block.hpp>
@@ -69,8 +69,7 @@
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_web.hpp>
-#include <bitcoin/node/protocols/protocol_websocket.hpp>
-#include <bitcoin/node/protocols/protocol_websocket_shake.hpp>
+#include <bitcoin/node/protocols/protocol_ws.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
