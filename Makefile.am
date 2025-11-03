@@ -174,7 +174,7 @@ include_bitcoin_node_channels_HEADERS = \
     include/bitcoin/node/channels/channel_http.hpp \
     include/bitcoin/node/channels/channel_peer.hpp \
     include/bitcoin/node/channels/channel_tcp.hpp \
-    include/bitcoin/node/channels/channel_websocket.hpp \
+    include/bitcoin/node/channels/channel_ws.hpp \
     include/bitcoin/node/channels/channels.hpp
 
 include_bitcoin_node_chasersdir = ${includedir}/bitcoin/node/chasers
@@ -222,8 +222,7 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocol_web.hpp \
-    include/bitcoin/node/protocols/protocol_websocket.hpp \
-    include/bitcoin/node/protocols/protocol_websocket_shake.hpp \
+    include/bitcoin/node/protocols/protocol_ws.hpp \
     include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions

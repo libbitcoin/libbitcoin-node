@@ -33,7 +33,7 @@ namespace node {
 // Alias server sessions derived from session_tcp.
 using session_web = session_server<protocol_web>;
 using session_explore = session_server<protocol_explore>;
-using session_websocket = session_server<protocol_websocket>;
+using session_websocket = session_server<protocol_ws>;
 using session_bitcoind = session_server<protocol_bitcoind>;
 using session_electrum = session_server<protocol_electrum>;
 using session_stratum_v1 = session_server<protocol_stratum_v1>;

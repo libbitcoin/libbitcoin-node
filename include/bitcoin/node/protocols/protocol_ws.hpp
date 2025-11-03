@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WEBSOCKET_HPP
+#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WS_HPP
+#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_WS_HPP
 
 #include <memory>
 #include <bitcoin/node/define.hpp>
@@ -28,30 +28,30 @@ namespace node {
 
 // TODO: make this an intermediate base class for websocket.
 // TODO: and then create a distinct concrete class for deployment.
-class BCN_API protocol_websocket
-  : public network::protocol_websocket,
+class BCN_API protocol_ws
+  : public network::protocol_ws,
     public node::protocol,
-    protected network::tracker<protocol_websocket>
+    protected network::tracker<protocol_ws>
 {
 public:
-    typedef std::shared_ptr<protocol_websocket> ptr;
+    typedef std::shared_ptr<protocol_ws> ptr;
 
-    // Replace base class channel_t (network::channel_websocket). 
-    using channel_t = node::channel_websocket;
+    // Replace base class channel_t (network::channel_ws). 
+    using channel_t = node::channel_ws;
 
-    protocol_websocket(const auto& session,
+    protocol_ws(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_websocket(session, channel, options),
+      : network::protocol_ws(session, channel, options),
         node::protocol(session, channel),
-        network::tracker<protocol_websocket>(session->log)
+        network::tracker<protocol_ws>(session->log)
     {
     }
 
     /// Public start is required.
     void start() NOEXCEPT override
     {
-        network::protocol_websocket::start();
+        network::protocol_ws::start();
     }
 
 private:

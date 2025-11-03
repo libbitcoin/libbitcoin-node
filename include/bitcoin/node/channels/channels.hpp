@@ -23,7 +23,7 @@
 #include <bitcoin/node/channels/channel_peer.hpp>
 #include <bitcoin/node/channels/channel_tcp.hpp>
 #include <bitcoin/node/channels/channel_http.hpp>
-#include <bitcoin/node/channels/channel_websocket.hpp>
+#include <bitcoin/node/channels/channel_ws.hpp>
 
 #endif
 
