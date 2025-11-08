@@ -29,8 +29,6 @@ namespace node {
 class BCN_API configuration
 {
 public:
-    DEFAULT_COPY_MOVE_DESTRUCT(configuration);
-
     configuration(system::chain::selection context,
         const server::settings::embedded_pages& explore,
         const server::settings::embedded_pages& web) NOEXCEPT;
