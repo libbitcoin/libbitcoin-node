@@ -631,12 +631,12 @@ options_metadata parser::load_settings() THROWS
     (
         "network.handshake_timeout_seconds",
         value<uint32_t>(&configured.network.handshake_timeout_seconds),
-        "The time limit to complete the connection handshake, defaults to '30'."
+        "The time limit to complete the connection handshake, defaults to '15'."
     )
     (
         "network.seeding_timeout_seconds",
         value<uint32_t>(&configured.network.seeding_timeout_seconds),
-        "The time limit for obtaining seed addresses, defaults to '30'."
+        "The time limit for obtaining seed connections and addresses, defaults to '30'."
     )
     (
         "network.channel_heartbeat_minutes",
