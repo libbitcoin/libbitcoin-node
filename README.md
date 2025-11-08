@@ -98,7 +98,7 @@ In order to successfully execute `install.sh` a few requirements need to be met.
 The corresponding packages can be installed with the following command:
 
 ```bash
-$ sudo apt install build-essential curl git automake pkg-config libtool
+$ sudo apt install build-essential curl git autoconf automake pkg-config libtool
 ```
 
 Create a new directory (e.g. `/home/user/development/libbitcoin`), then use git to fetch the latest repository from github by issuing the following command from within this directory:
