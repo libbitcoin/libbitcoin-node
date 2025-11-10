@@ -76,6 +76,7 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 
     const auto& query = archive();
     const auto wit = params["witness"] != "false";
+    constexpr auto header_size = chain::header::serialized_size();
 
     if (is_json)
     {
@@ -83,7 +84,7 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
         {
             if (const auto ptr = query.get_header(query.to_header(hash)))
             {
-                send_json(request, value_from(ptr), ptr->serialized_size());
+                send_json(request, value_from(ptr), header_size);
                 return true;
             }
         }
