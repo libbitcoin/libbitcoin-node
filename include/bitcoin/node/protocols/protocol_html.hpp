@@ -49,7 +49,7 @@ protected:
 
     /// Message handlers by http method.
     void handle_receive_get(const code& ec,
-        const network::http::method::get& request) NOEXCEPT override;
+        const network::http::method::get::cptr& get) NOEXCEPT override;
 
     /// Dispatch.
     virtual bool try_dispatch_object(
