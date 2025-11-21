@@ -34,7 +34,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // ----------------------------------------------------------------------------
 
 void protocol_html::handle_receive_get(const code& ec,
-    const method::get& request) NOEXCEPT
+    const method::get::cptr& get) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -42,46 +42,46 @@ void protocol_html::handle_receive_get(const code& ec,
         return;
 
     // Enforce http origin form for get.
-    if (!is_origin_form(request->target()))
+    if (!is_origin_form(get->target()))
     {
-        send_bad_target(*request);
+        send_bad_target(*get);
         return;
     }
 
     // Enforce http origin policy (if any origins are configured).
-    if (!is_allowed_origin(*request, request->version()))
+    if (!is_allowed_origin(*get, get->version()))
     {
-        send_forbidden(*request);
+        send_forbidden(*get);
         return;
     }
 
     // Enforce http host header (if any hosts are configured).
-    if (!is_allowed_host(*request, request->version()))
+    if (!is_allowed_host(*get, get->version()))
     {
-        send_bad_host(*request);
+        send_bad_host(*get);
         return;
     }
 
     // Always try API dispatch, false if unhandled.
-    if (try_dispatch_object(*request))
+    if (try_dispatch_object(*get))
         return;
 
     // Require file system dispatch if path is configured (always handles).
     if (!options_.path.empty())
     {
-        dispatch_file(*request);
+        dispatch_file(*get);
         return;
     }
 
     // Require embedded dispatch if site is configured (always handles).
     if (options_.pages.enabled())
     {
-        dispatch_embedded(*request);
+        dispatch_embedded(*get);
         return;
     }
 
     // Neither site is enabled and object dispatch doesn't support.
-    send_not_implemented(*request);
+    send_not_implemented(*get);
 }
 
 // Dispatch.
