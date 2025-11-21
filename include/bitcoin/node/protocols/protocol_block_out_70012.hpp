@@ -50,8 +50,8 @@ protected:
         const network::messages::peer::send_headers::cptr& message) NOEXCEPT;
 
 private:
-    // This is protected by strand.
-    bool superseded_{};
+    // This is thread safe.
+    std::atomic_bool superseded_{};
 };
 
 } // namespace node
