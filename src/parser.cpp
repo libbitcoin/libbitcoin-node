@@ -45,9 +45,6 @@ parser::parser(system::chain::selection context,
     // node
 
     configured.node.threads = 32;
-    ////configured.node.snapshot_bytes = 0;
-    ////configured.node.snapshot_valid = 0;
-    ////configured.node.snapshot_confirm = 0;
 
     // network
 
@@ -66,9 +63,6 @@ parser::parser(system::chain::selection context,
     configured.network.maximum_skew_minutes = 120;
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
-
-    // TODO: presently network::messages::peer::block/tx/compact hardwire witness
-    // to true, but that should be drive off of configured and peer services.
 
     // services_minimum must be node_witness to be a witness node.
     configured.network.services_minimum = service::node_network |
@@ -1112,9 +1106,9 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "web.timeout_seconds",
-        value<uint32_t>(&configured.server.web.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        "web.inactivity_minutes",
+        value<uint32_t>(&configured.server.web.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
     )
     (
         "web.server",
@@ -1159,8 +1153,8 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "explore.timeout_seconds",
-        value<uint32_t>(&configured.server.explore.timeout_seconds),
+        "explore.inactivity_minutes",
+        value<uint32_t>(&configured.server.explore.inactivity_minutes),
         "The idle timeout (http keep-server), defaults to '60'."
     )
     (
@@ -1206,9 +1200,9 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "socket.timeout_seconds",
-        value<uint32_t>(&configured.server.socket.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        "socket.inactivity_minutes",
+        value<uint32_t>(&configured.server.socket.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
     )
     (
         "socket.server",
@@ -1238,9 +1232,9 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "bitcoind.timeout_seconds",
-        value<uint32_t>(&configured.server.bitcoind.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        "bitcoind.inactivity_minutes",
+        value<uint32_t>(&configured.server.bitcoind.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
     )
     (
         "bitcoind.server",
@@ -1270,9 +1264,9 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "electrum.timeout_seconds",
-        value<uint32_t>(&configured.server.electrum.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        "electrum.inactivity_minutes",
+        value<uint32_t>(&configured.server.electrum.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
     )
 
     /* [stratum_v1] */
@@ -1292,9 +1286,9 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "stratum_v1.timeout_seconds",
-        value<uint32_t>(&configured.server.stratum_v1.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        "stratum_v1.inactivity_minutes",
+        value<uint32_t>(&configured.server.stratum_v1.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
     )
 
     /* [stratum_v2] */
@@ -1314,9 +1308,9 @@ options_metadata parser::load_settings() THROWS
         "The required maximum number of connections, defaults to '0'."
     )
     (
-        "stratum_v2.timeout_seconds",
-        value<uint32_t>(&configured.server.stratum_v2.timeout_seconds),
-        "The idle timeout (http keep-alive), defaults to '60'."
+        "stratum_v2.inactivity_minutes",
+        value<uint32_t>(&configured.server.stratum_v2.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
     )
 
     /* [log] */

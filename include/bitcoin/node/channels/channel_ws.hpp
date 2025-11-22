@@ -35,15 +35,12 @@ class BCN_API channel_ws
 {
 public:
     typedef std::shared_ptr<node::channel_ws> ptr;
-    using options_t = network::channel_ws::options_t;
 
-    channel_ws(const network::logger& log,
-        const network::socket::ptr& socket,
-        const node::configuration& config, uint64_t identifier=zero,
-        const options_t& options={}) NOEXCEPT
-      : network::channel_ws(log, socket, config.network, identifier,
-          options),
-        node::channel(log, socket, config, identifier)
+    channel_ws(const network::logger& log, const network::socket::ptr& socket,
+        uint64_t identifier, const node::configuration& config,
+        const options_t& options) NOEXCEPT
+      : network::channel_ws(log, socket, identifier, config.network, options),
+        node::channel(log, socket, identifier, config)
     {
     }
 };

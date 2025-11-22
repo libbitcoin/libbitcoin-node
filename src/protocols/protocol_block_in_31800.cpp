@@ -108,7 +108,7 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
         {
             // chase::split is posted by notify_one() using subscription key.
             // 'value' is the channel that requested a split to obtain work.
-            POST(do_split, channel_t{});
+            POST(do_split, peer_t{});
             break;
         }
         case chase::stall:
@@ -118,7 +118,7 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
             // This is initiated by any channel notifying chase::starved.
             if (map_->size() > one)
             {
-                POST(do_split, channel_t{});
+                POST(do_split, peer_t{});
             }
 
             break;
@@ -129,7 +129,7 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
             // This is initiated by chase::regressed/disorganized.
             if (map_->size() > one)
             {
-                POST(do_purge, channel_t{});
+                POST(do_purge, peer_t{});
             }
 
             break;
@@ -177,7 +177,7 @@ void protocol_block_in_31800::do_get_downloads(count_t) NOEXCEPT
     }
 }
 
-void protocol_block_in_31800::do_purge(channel_t) NOEXCEPT
+void protocol_block_in_31800::do_purge(peer_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -189,7 +189,7 @@ void protocol_block_in_31800::do_purge(channel_t) NOEXCEPT
     }
 }
 
-void protocol_block_in_31800::do_split(channel_t) NOEXCEPT
+void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

@@ -71,8 +71,8 @@ protected:
     {
         BC_ASSERT(stranded());
 
-        const auto channel = std::make_shared<channel_t>(log, socket, config(),
-            create_key(), options_);
+        const auto channel = std::make_shared<channel_t>(log, socket,
+            create_key(), config(), options_);
 
         return std::static_pointer_cast<network::channel>(channel);
     }

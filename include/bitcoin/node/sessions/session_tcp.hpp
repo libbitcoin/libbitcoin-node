@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
 #define LIBBITCOIN_NODE_SESSIONS_SESSION_TCP_HPP
 
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 
@@ -34,6 +35,7 @@ class BCN_API session_tcp
 public:
     typedef std::shared_ptr<session_tcp> ptr;
     using options_t = network::session_tcp::options_t;
+    using channel_t = node::channel_tcp;
 
     // (network::net&) cast due to full_node forward ref (inheritance hidden).
     session_tcp(full_node& node, uint64_t identifier,

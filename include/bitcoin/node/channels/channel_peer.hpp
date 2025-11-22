@@ -35,11 +35,12 @@ class BCN_API channel_peer
 public:
     typedef std::shared_ptr<node::channel_peer> ptr;
 
-    channel_peer(network::memory& memory, const network::logger& log,
-        const network::socket::ptr& socket, const node::configuration& config,
-        uint64_t identifier=zero) NOEXCEPT
-      : network::channel_peer(memory, log, socket, config.network, identifier),
-        node::channel(log, socket, config, identifier),
+    channel_peer(network::memory& allocator, const network::logger& log,
+        const network::socket::ptr& socket, uint64_t identifier,
+        const node::configuration& config, const options_t& options) NOEXCEPT
+      : network::channel_peer(allocator, log, socket, identifier,
+          config.network, options),
+        node::channel(log, socket, identifier, config),
         announced_(config.node.announcement_cache)
     {
     }

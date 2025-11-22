@@ -34,13 +34,12 @@ class BCN_API channel_http
 {
 public:
     typedef std::shared_ptr<node::channel_http> ptr;
-    using options_t = network::channel_http::options_t;
 
-    channel_http(const network::logger& log, const network::socket::ptr& socket,
-        const node::configuration& config, uint64_t identifier=zero,
-        const options_t& options={}) NOEXCEPT
-      : network::channel_http(log, socket, config.network, identifier, options),
-        node::channel(log, socket, config, identifier)
+    channel_http(const network::logger& log,
+        const network::socket::ptr& socket, uint64_t identifier,
+        const node::configuration& config, const options_t& options) NOEXCEPT
+      : network::channel_http(log, socket, identifier, config.network, options),
+        node::channel(log, socket, identifier, config)
     {
     }
 };
