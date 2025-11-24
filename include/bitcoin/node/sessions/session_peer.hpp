@@ -21,7 +21,7 @@
 
 #include <memory>
 #include <utility>
-#include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
@@ -39,6 +39,7 @@ class session_peer
 {
 public:
     typedef std::shared_ptr<session_peer<Session>> ptr;
+    using options_t = typename Session::options_t;
     using channel_t = node::channel_peer;
 
     /// Construct an instance.
@@ -60,8 +61,8 @@ protected:
         BC_ASSERT(this->stranded());
 
         const auto channel = std::make_shared<channel_t>(
-            this->get_memory(), this->log, socket, this->config(),
-            this->create_key());
+            this->get_memory(), this->log, socket, this->create_key(),
+            this->config(), this->options());
 
         return std::static_pointer_cast<network::channel>(channel);
     }

@@ -139,7 +139,7 @@ bool executor::do_run()
     logger(BN_NODE_INTERRUPT);
 
     // Create node.
-    metadata_.configured.network.initialize();
+    metadata_.configured.network.manual.initialize();
     node_ = std::make_shared<full_node>(query_, metadata_.configured, log_);
 
     // Subscribe node.

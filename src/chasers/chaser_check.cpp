@@ -46,7 +46,7 @@ chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
     maximum_concurrency_(node.config().node.maximum_concurrency_()),
     maximum_height_(node.config().node.maximum_height_()),
-    connections_(node.config().network.outbound_connections),
+    connections_(node.config().network.outbound.connections),
     allowed_deviation_(node.config().node.allowed_deviation)
 {
 }
@@ -518,7 +518,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
     // Either condition means blocks shouldn't be getting downloaded (yet).
-    const size_t peers = config().network.outbound_connections;
+    const size_t peers = config().network.outbound.connections;
     if (is_zero(peers) || !is_current(false))
         return zero;
 

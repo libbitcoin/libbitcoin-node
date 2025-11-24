@@ -94,8 +94,11 @@ BOOST_AUTO_TEST_CASE(server__html_server__defaults__expected)
     BOOST_REQUIRE(!instance.secure);
     BOOST_REQUIRE(instance.binds.empty());
     BOOST_REQUIRE_EQUAL(instance.connections, 0u);
-    BOOST_REQUIRE_EQUAL(instance.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(instance.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(instance.expiration_minutes, 60u);
     BOOST_REQUIRE(!instance.enabled());
+    BOOST_REQUIRE(instance.inactivity() == minutes(10));
+    BOOST_REQUIRE(instance.expiration() == minutes(60));
 
     // http_server
     BOOST_REQUIRE_EQUAL(instance.server, "libbitcoin/4.0");
@@ -127,8 +130,11 @@ BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 
     // http_server
     BOOST_REQUIRE_EQUAL(server.server, "libbitcoin/4.0");
@@ -160,8 +166,11 @@ BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 
     // http_server
     BOOST_REQUIRE_EQUAL(server.server, "libbitcoin/4.0");
@@ -193,8 +202,11 @@ BOOST_AUTO_TEST_CASE(server__websocket_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 
     // http_server
     BOOST_REQUIRE_EQUAL(server.server, "libbitcoin/4.0");
@@ -214,8 +226,11 @@ BOOST_AUTO_TEST_CASE(server__bitcoind_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 
     // http_server
     BOOST_REQUIRE_EQUAL(server.server, "libbitcoin/4.0");
@@ -235,8 +250,11 @@ BOOST_AUTO_TEST_CASE(server__electrum_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 }
 
 BOOST_AUTO_TEST_CASE(server__stratum_v1_server__defaults__expected)
@@ -251,8 +269,11 @@ BOOST_AUTO_TEST_CASE(server__stratum_v1_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 }
 
 BOOST_AUTO_TEST_CASE(server__stratum_v2_server__defaults__expected)
@@ -267,8 +288,11 @@ BOOST_AUTO_TEST_CASE(server__stratum_v2_server__defaults__expected)
     BOOST_REQUIRE(!server.secure);
     BOOST_REQUIRE(server.binds.empty());
     BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.timeout_seconds, 60u);
+    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
+    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
     BOOST_REQUIRE(!server.enabled());
+    BOOST_REQUIRE(server.inactivity() == minutes(10));
+    BOOST_REQUIRE(server.expiration() == minutes(60));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

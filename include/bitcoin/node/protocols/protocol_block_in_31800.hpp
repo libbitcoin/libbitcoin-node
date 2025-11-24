@@ -65,8 +65,8 @@ protected:
 
     /// Manage work splitting.
     bool is_idle() const NOEXCEPT override;
-    virtual void do_purge(channel_t) NOEXCEPT;
-    virtual void do_split(channel_t) NOEXCEPT;
+    virtual void do_purge(peer_t) NOEXCEPT;
+    virtual void do_split(peer_t) NOEXCEPT;
     virtual void do_report(count_t count) NOEXCEPT;
 
     /// Check incoming block message.

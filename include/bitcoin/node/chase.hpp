@@ -61,11 +61,11 @@ enum class chase
     /// Issued by 'session_outbound' and handled by 'block_in_31800'.
     split,
 
-    /// Channels (all with work) directed to split work and stop (channel_t).
+    /// Channels (all with work) directed to split work and stop (peer_t).
     /// Issued by 'session_outbound' and handled by 'block_in_31800'.
     stall,
 
-    /// Channels (all with work) directed to drop work and stop (channel_t).
+    /// Channels (all with work) directed to drop work and stop (peer_t).
     /// Issued by 'check' and handled by 'block_in_31800'.
     purge,
 

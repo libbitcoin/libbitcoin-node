@@ -160,11 +160,11 @@ public:
     settings(system::chain::selection context, const embedded_pages& explore,
         const embedded_pages& web) NOEXCEPT;
 
-    /// native RESTful block explorer (http/s, stateless html/json)
-    server::settings::html_server explore;
-
     /// native admin web interface, isolated (http/s, stateless html)
     server::settings::html_server web;
+
+    /// native RESTful block explorer (http/s, stateless html/json)
+    server::settings::html_server explore;
 
     /// native websocket query interface (http/s->tcp/s, json, handshake)
     network::settings::websocket_server socket{ "socket" };
