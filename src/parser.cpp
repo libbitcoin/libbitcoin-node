@@ -57,30 +57,28 @@ parser::parser(system::chain::selection context,
     configured.network.enable_address_v2 = false;
     configured.network.enable_witness_tx = false;
     configured.network.enable_compact = false;
-    configured.network.host_pool_capacity = 10000;
-    configured.network.outbound_connections = 100;
-    configured.network.inbound_connections = 100;
+    configured.network.outbound.host_pool_capacity = 10000;
+    configured.network.outbound.connections = 100;
+    configured.network.inbound.connections = 100;
     configured.network.maximum_skew_minutes = 120;
     configured.network.protocol_minimum = level::headers_protocol;
     configured.network.protocol_maximum = level::bip130;
 
     // services_minimum must be node_witness to be a witness node.
-    configured.network.services_minimum = service::node_network |
-        service::node_witness;
-    configured.network.services_maximum = service::node_network |
-        service::node_witness;
+    configured.network.services_minimum = service::node_network | service::node_witness;
+    configured.network.services_maximum = service::node_network | service::node_witness;
 
     // TODO: from bitcoind, revert to defaults when seeds are up.
-    configured.network.seeds.clear();
-    configured.network.seeds.emplace_back("seed.bitcoin.sipa.be", 8333_u16);
-    configured.network.seeds.emplace_back("dnsseed.bluematt.me", 8333_u16);
-    configured.network.seeds.emplace_back("dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us", 8333_u16);
-    configured.network.seeds.emplace_back("seed.bitcoin.jonasschnelli.ch", 8333_u16);
-    configured.network.seeds.emplace_back("seed.btc.petertodd.net", 8333_u16);
-    configured.network.seeds.emplace_back("seed.bitcoin.sprovoost.nl", 8333_u16);
-    configured.network.seeds.emplace_back("dnsseed.emzy.de", 8333_u16);
-    configured.network.seeds.emplace_back("seed.bitcoin.wiz.biz", 8333_u16);
-    configured.network.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
+    configured.network.outbound.seeds.clear();
+    configured.network.outbound.seeds.emplace_back("seed.bitcoin.sipa.be", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("dnsseed.bluematt.me", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("seed.bitcoin.jonasschnelli.ch", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("seed.btc.petertodd.net", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("seed.bitcoin.sprovoost.nl", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("dnsseed.emzy.de", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("seed.bitcoin.wiz.biz", 8333_u16);
+    configured.network.outbound.seeds.emplace_back("seed.mainnet.achownodes.xyz", 8333_u16);
 
     // admin
     configured.server.web.binds.emplace_back(asio::address{}, 8080_u16);
@@ -543,11 +541,6 @@ options_metadata parser::load_settings() THROWS
         "The advertised services that cause a peer to be dropped, defaults to '176'."
     )
     (
-        "network.enable_relay",
-        value<bool>(&configured.network.enable_relay),
-        "Enable transaction relay, defaults to 'true'."
-    )
-    (
         "network.enable_address",
         value<bool>(&configured.network.enable_address),
         "Enable address messages, defaults to 'true'."
@@ -578,14 +571,9 @@ options_metadata parser::load_settings() THROWS
         "Enable reject messages, defaults to 'false'."
     )
     (
-        "network.enable_ipv6",
-        value<bool>(&configured.network.enable_ipv6),
-        "Enable internet protocol version 6 (IPv6), defaults to 'false'."
-    )
-    (
-        "network.enable_loopback",
-        value<bool>(&configured.network.enable_loopback),
-        "Allow connections from the node to itself, defaults to 'false'."
+        "network.enable_relay",
+        value<bool>(&configured.network.enable_relay),
+        "Enable transaction relay, defaults to 'true'."
     )
     (
         "network.validate_checksum",
@@ -596,21 +584,6 @@ options_metadata parser::load_settings() THROWS
         "network.identifier",
         value<uint32_t>(&configured.network.identifier),
         "The magic number for message headers, defaults to '3652501241'."
-    )
-    (
-        "network.inbound_connections",
-        value<uint16_t>(&configured.network.inbound_connections),
-        "The target number of incoming network connections, defaults to '100'."
-    )
-    (
-        "network.outbound_connections",
-        value<uint16_t>(&configured.network.outbound_connections),
-        "The target number of outgoing network connections, defaults to '100'."
-    )
-    (
-        "network.connect_batch_size",
-        value<uint16_t>(&configured.network.connect_batch_size),
-        "The number of concurrent attempts to establish one connection, defaults to '5'."
     )
     (
         "network.retry_timeout_seconds",
@@ -628,34 +601,14 @@ options_metadata parser::load_settings() THROWS
         "The time limit to complete the connection handshake, defaults to '15'."
     )
     (
-        "network.seeding_timeout_seconds",
-        value<uint32_t>(&configured.network.seeding_timeout_seconds),
-        "The time limit for obtaining seed connections and addresses, defaults to '30'."
-    )
-    (
         "network.channel_heartbeat_minutes",
         value<uint32_t>(&configured.network.channel_heartbeat_minutes),
         "The time between ping messages, defaults to '5'."
     )
     (
-        "network.channel_inactivity_minutes",
-        value<uint32_t>(&configured.network.channel_inactivity_minutes),
-        "The inactivity time limit for any connection, defaults to '10'."
-    )
-    (
-        "network.channel_expiration_minutes",
-        value<uint32_t>(&configured.network.channel_expiration_minutes),
-        "The age limit for any connection, defaults to '1440'."
-    )
-    (
         "network.maximum_skew_minutes",
         value<uint32_t>(&configured.network.maximum_skew_minutes),
         "The maximum allowable channel clock skew, defaults to '120'."
-    )
-    (
-        "network.host_pool_capacity",
-        value<uint32_t>(&configured.network.host_pool_capacity),
-        "The maximum number of peer hosts in the pool, defaults to '10000'."
     )
     (
         "network.minimum_buffer",
@@ -678,16 +631,6 @@ options_metadata parser::load_settings() THROWS
         "The peer address cache file directory, defaults to empty."
     )
     (
-        "network.bind",
-        value<network::config::authorities>(&configured.network.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8333' (all IPv4)."
-    )
-    (
-        "network.self",
-        value<network::config::authorities>(&configured.network.selfs),
-        "IP address to advertise, multiple allowed."
-    )
-    (
         "network.blacklist",
         value<network::config::authorities>(&configured.network.blacklists),
         "IP address to disallow as a peer, multiple allowed."
@@ -697,16 +640,484 @@ options_metadata parser::load_settings() THROWS
         value<network::config::authorities>(&configured.network.whitelists),
         "IP address to allow as a peer, multiple allowed."
     )
+
+    /* [outbound] */
+    ////(
+    ////    "outbound.secure",
+    ////    value<bool>(&configured.network.outbound.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    ////(
+    ////    "outbound.bind",
+    ////    value<network::config::authorities>(&configured.network.outbound.binds),
+    ////    "IP address to bind for load balancing, multiple allowed (not implemented)."
+    ////)
     (
-        "network.peer",
-        value<network::config::endpoints>(&configured.network.peers),
-        "A persistent peer node, multiple allowed."
+        "outbound.connections",
+        value<uint16_t>(&configured.network.outbound.connections),
+        "The target number of outgoing network connections, defaults to '100'."
     )
     (
-        "network.seed",
-        value<network::config::endpoints>(&configured.network.seeds),
+        "outbound.inactivity_minutes",
+        value<uint32_t>(&configured.network.outbound.inactivity_minutes),
+        "The inactivity time limit for any connection, defaults to '10'."
+    )
+    (
+        "outbound.expiration_minutes",
+        value<uint32_t>(&configured.network.outbound.expiration_minutes),
+        "The age limit for any connection, defaults to '60'."
+    )
+    (
+        "outbound.use_ipv6",
+        value<bool>(&configured.network.outbound.use_ipv6),
+        "Use internet protocol version 6 (IPv6) addresses, defaults to 'false'."
+    )
+    (
+        "outbound.seed",
+        value<network::config::endpoints>(&configured.network.outbound.seeds),
         "A seed node for initializing the host pool, multiple allowed."
     )
+    (
+        "outbound.connect_batch_size",
+        value<uint16_t>(&configured.network.outbound.connect_batch_size),
+        "The number of concurrent attempts to establish one connection, defaults to '5'."
+    )
+    (
+        "outbound.host_pool_capacity",
+        value<uint32_t>(&configured.network.outbound.host_pool_capacity),
+        "The maximum number of peer hosts in the pool, defaults to '10000'."
+    )
+    (
+        "outbound.seeding_timeout_seconds",
+        value<uint32_t>(&configured.network.outbound.seeding_timeout_seconds),
+        "The time limit for obtaining seed connections and addresses, defaults to '30'."
+    )
+
+    /* [inbound] */
+    ////(
+    ////    "inbound.secure",
+    ////    value<bool>(&configured.network.inbound.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "inbound.bind",
+        value<network::config::authorities>(&configured.network.inbound.binds),
+        "IP address to bind for listening, multiple allowed, defaults to '0.0.0.0:8333' (all IPv4)."
+    )
+    (
+        "inbound.connections",
+        value<uint16_t>(&configured.network.inbound.connections),
+        "The target number of incoming network connections, defaults to '100'."
+    )
+    (
+        "inbound.inactivity_minutes",
+        value<uint32_t>(&configured.network.inbound.inactivity_minutes),
+        "The inactivity time limit for any connection, defaults to '10'."
+    )
+    (
+        "inbound.expiration_minutes",
+        value<uint32_t>(&configured.network.inbound.expiration_minutes),
+        "The age limit for any connection, defaults to '60'."
+    )
+    (
+        "inbound.enable_loopback",
+        value<bool>(&configured.network.inbound.enable_loopback),
+        "Allow connections from the node to itself, defaults to 'false'."
+    )
+    (
+        "inbound.self",
+        value<network::config::authorities>(&configured.network.inbound.selfs),
+        "IP address to advertise, multiple allowed."
+    )
+
+    /* [manual] */
+    ////(
+    ////    "manual.secure",
+    ////    value<bool>(&configured.network.manual.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    ////(
+    ////    "manual.bind",
+    ////    value<network::config::authorities>(&configured.network.manual.binds),
+    ////    "IP address to bind for load balancing, multiple allowed (not implemented)."
+    ////)
+    ////(
+    ////    "manual.connections",
+    ////    value<uint16_t>(&configured.network.manual.connections),
+    ////    "The target number of outgoing manual connections (not implemented)."
+    ////)
+    (
+        "manual.inactivity_minutes",
+        value<uint32_t>(&configured.network.manual.inactivity_minutes),
+        "The inactivity time limit for any connection, defaults to '10' (will attempt reconnect)."
+    )
+    (
+        "manual.expiration_minutes",
+        value<uint32_t>(&configured.network.manual.expiration_minutes),
+        "The age limit for any connection, defaults to '60' (will attempt reconnect)."
+    )
+    (
+        "manual.peer",
+        value<network::config::endpoints>(&configured.network.manual.peers),
+        "A persistent peer node, multiple allowed."
+    )
+
+    /* [web] */
+    ////(
+    ////    "web.secure",
+    ////    value<bool>(&configured.network.web.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "web.bind",
+        value<network::config::authorities>(&configured.server.web.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
+    )
+    (
+        "web.connections",
+        value<uint16_t>(&configured.server.web.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "web.inactivity_minutes",
+        value<uint32_t>(&configured.server.web.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
+    )
+    (
+        "web.expiration_minutes",
+        value<uint32_t>(&configured.server.web.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "web.server",
+        value<std::string>(&configured.server.web.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
+    )
+    (
+        "web.host",
+        value<network::config::endpoints>(&configured.server.web.hosts),
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "web.origin",
+        value<network::config::endpoints>(&configured.server.web.origins),
+        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "web.path",
+        value<std::filesystem::path>(&configured.server.web.path),
+        "The required root path of source files to be served, defaults to empty."
+    )
+    (
+        "web.default",
+        value<std::string>(&configured.server.web.default_),
+        "The path of the default source page, defaults to 'index.html'."
+    )
+
+    /* [explore] */
+    ////(
+    ////    "explore.secure",
+    ////    value<bool>(&configured.network.explore.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "explore.bind",
+        value<network::config::authorities>(&configured.server.explore.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8180' (all IPv4)."
+    )
+    (
+        "explore.connections",
+        value<uint16_t>(&configured.server.explore.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "explore.inactivity_minutes",
+        value<uint32_t>(&configured.server.explore.inactivity_minutes),
+        "The idle timeout (http keep-server), defaults to '60'."
+    )
+    (
+        "explore.expiration_minutes",
+        value<uint32_t>(&configured.server.explore.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "explore.server",
+        value<std::string>(&configured.server.explore.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
+    )
+    (
+        "explore.host",
+        value<network::config::endpoints>(&configured.server.explore.hosts),
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "explore.origin",
+        value<network::config::endpoints>(&configured.server.explore.origins),
+        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "explore.path",
+        value<std::filesystem::path>(&configured.server.explore.path),
+        "The required root path of source files to be served, defaults to empty."
+    )
+    (
+        "explore.default",
+        value<std::string>(&configured.server.explore.default_),
+        "The path of the default source page, defaults to 'index.html'."
+    )
+
+    /* [socket] */
+    ////(
+    ////    "socket.secure",
+    ////    value<bool>(&configured.network.socket.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "socket.bind",
+        value<network::config::authorities>(&configured.server.socket.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8280' (all IPv4)."
+    )
+    (
+        "socket.connections",
+        value<uint16_t>(&configured.server.socket.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "socket.inactivity_minutes",
+        value<uint32_t>(&configured.server.socket.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
+    )
+    (
+        "socket.expiration_minutes",
+        value<uint32_t>(&configured.server.socket.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "socket.server",
+        value<std::string>(&configured.server.socket.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
+    )
+    (
+        "socket.host",
+        value<network::config::endpoints>(&configured.server.socket.hosts),
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+
+    /* [bitcoind] */
+    ////(
+    ////    "bitcoind.secure",
+    ////    value<bool>(&configured.network.bitcoind.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "bitcoind.bind",
+        value<network::config::authorities>(&configured.server.bitcoind.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8380' (all IPv4)."
+    )
+    (
+        "bitcoind.connections",
+        value<uint16_t>(&configured.server.bitcoind.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "bitcoind.inactivity_minutes",
+        value<uint32_t>(&configured.server.bitcoind.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
+    )
+    (
+        "bitcoind.expiration_minutes",
+        value<uint32_t>(&configured.server.bitcoind.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "bitcoind.server",
+        value<std::string>(&configured.server.bitcoind.server),
+        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
+    )
+    (
+        "bitcoind.host",
+        value<network::config::endpoints>(&configured.server.bitcoind.hosts),
+        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+
+    /* [electrum] */
+    ////(
+    ////    "electrum.secure",
+    ////    value<bool>(&configured.network.electrum.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "electrum.bind",
+        value<network::config::authorities>(&configured.server.electrum.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8480' (all IPv4)."
+    )
+    (
+        "electrum.connections",
+        value<uint16_t>(&configured.server.electrum.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "electrum.inactivity_minutes",
+        value<uint32_t>(&configured.server.electrum.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
+    )
+    (
+        "electrum.expiration_minutes",
+        value<uint32_t>(&configured.server.electrum.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+
+    /* [stratum_v1] */
+    ////(
+    ////    "stratum_v1.secure",
+    ////    value<bool>(&configured.network.stratum_v1.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "stratum_v1.bind",
+        value<network::config::authorities>(&configured.server.stratum_v1.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8580' (all IPv4)."
+    )
+    (
+        "stratum_v1.connections",
+        value<uint16_t>(&configured.server.stratum_v1.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "stratum_v1.inactivity_minutes",
+        value<uint32_t>(&configured.server.stratum_v1.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
+    )
+    (
+        "stratum_v1.expiration_minutes",
+        value<uint32_t>(&configured.server.stratum_v1.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+
+    /* [stratum_v2] */
+    ////(
+    ////    "stratum_v2.secure",
+    ////    value<bool>(&configured.network.stratum_v2.secure),
+    ////    "Require transport layer security, defaults to 'false' (not implemented)."
+    ////)
+    (
+        "stratum_v2.bind",
+        value<network::config::authorities>(&configured.server.stratum_v2.binds),
+        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8680' (all IPv4)."
+    )
+    (
+        "stratum_v2.connections",
+        value<uint16_t>(&configured.server.stratum_v2.connections),
+        "The required maximum number of connections, defaults to '0'."
+    )
+    (
+        "stratum_v2.inactivity_minutes",
+        value<uint32_t>(&configured.server.stratum_v2.inactivity_minutes),
+        "The idle timeout (http keep-alive), defaults to '10'."
+    )
+    (
+        "stratum_v2.expiration_minutes",
+        value<uint32_t>(&configured.server.stratum_v2.expiration_minutes),
+        "The idle timeout (http keep-alive), defaults to '60'."
+    )
+
+    /* [node] */
+    (
+        "node.threads",
+        value<uint32_t>(&configured.node.threads),
+        "The number of threads in the validation threadpool, defaults to '32'."
+    )
+    (
+        "node.thread_priority",
+        value<bool>(&configured.node.thread_priority),
+        "Set validation threads to high processing priority, defaults to 'true'."
+    )
+    (
+        "node.memory_priority",
+        value<bool>(&configured.node.memory_priority),
+        "Set the process to high memory priority, defaults to 'true'."
+    )
+    (
+        "node.delay_inbound",
+        value<bool>(&configured.node.delay_inbound),
+        "Delay accepting inbound connections until node is current, defaults to 'true'."
+    )
+    ////(
+    ////    "node.headers_first",
+    ////    value<bool>(&configured.node.headers_first),
+    ////    "Obtain current header chain before obtaining associated blocks, defaults to 'true'."
+    ////)
+    (
+        "node.allowed_deviation",
+        value<float>(&configured.node.allowed_deviation),
+        "Allowable underperformance standard deviation, defaults to '1.5' (0 disables)."
+    )
+    (
+        "node.announcement_cache",
+        value<uint16_t>(&configured.node.announcement_cache),
+        "Limit of per channel cached peer block and tx announcements, to avoid replaying, defaults to '42'."
+    )
+    (
+        "node.allocation_multiple",
+        value<uint16_t>(&configured.node.allocation_multiple),
+        "Block deserialization buffer multiple of wire size, defaults to '20' (0 disables)."
+    )
+    (
+        "node.maximum_height",
+        value<uint32_t>(&configured.node.maximum_height),
+        "Maximum block height to populate, defaults to 0 (unlimited)."
+    )
+    (
+        "node.maximum_concurrency",
+        value<uint32_t>(&configured.node.maximum_concurrency),
+        "Maximum number of blocks to download concurrently, defaults to '50000' (0 disables)."
+    )
+    ////(
+    ////    "node.snapshot_bytes",
+    ////    value<uint64_t>(&configured.node.snapshot_bytes),
+    ////    "Downloaded bytes that triggers snapshot, defaults to '0' (0 disables)."
+    ////)
+    ////(
+    ////    "node.snapshot_valid",
+    ////    value<uint32_t>(&configured.node.snapshot_valid),
+    ////    "Completed validations that trigger snapshot, defaults to '0' (0 disables)."
+    ////)
+    ////(
+    ////    "node.snapshot_confirm",
+    ////    value<uint32_t>(&configured.node.snapshot_confirm),
+    ////    "Completed confirmations that trigger snapshot, defaults to '0' (0 disables)."
+    ////)
+    (
+        "node.sample_period_seconds",
+        value<uint16_t>(&configured.node.sample_period_seconds),
+        "Sampling period for drop of stalled channels, defaults to '10' (0 disables)."
+    )
+    (
+        "node.currency_window_minutes",
+        value<uint32_t>(&configured.node.currency_window_minutes),
+        "Time from present that blocks are considered current, defaults to '60' (0 disables)."
+    )
+    // #######################
+    ////(
+    ////    "node.notify_limit_hours",
+    ////    value<uint32_t>(&configured.node.notify_limit_hours),
+    ////    "Disable relay when top block age exceeds, defaults to '24' (0 disables)."
+    ////)
+    ////(
+    ////    "node.byte_fee_satoshis",
+    ////    value<float>(&configured.node.byte_fee_satoshis),
+    ////    "The minimum fee per byte, cumulative for conflicts, defaults to '1'."
+    ////)
+    ////(
+    ////    "node.sigop_fee_satoshis",
+    ////    value<float>(&configured.node.sigop_fee_satoshis),
+    ////    "The minimum fee per sigop, additional to byte fee, defaults to' 100'."
+    ////)
+    ////(
+    ////    "node.minimum_output_satoshis",
+    ////    value<uint64_t>(&configured.node.minimum_output_satoshis),
+    ////    "The minimum output value, defaults to '500'."
+    ////)
 
     /* [database] */
     (
@@ -989,328 +1400,6 @@ options_metadata parser::load_settings() THROWS
         "database.filter_tx_rate",
         value<uint16_t>(&configured.database.filter_tx_rate),
         "The percentage expansion of the filter_tx table body, defaults to '5'."
-    )
-
-    /* [node] */
-    (
-        "node.threads",
-        value<uint32_t>(&configured.node.threads),
-        "The number of threads in the validation threadpool, defaults to '32'."
-    )
-    (
-        "node.thread_priority",
-        value<bool>(&configured.node.thread_priority),
-        "Set validation threads to high processing priority, defaults to 'true'."
-    )
-    (
-        "node.memory_priority",
-        value<bool>(&configured.node.memory_priority),
-        "Set the process to high memory priority, defaults to 'true'."
-    )
-    (
-        "node.delay_inbound",
-        value<bool>(&configured.node.delay_inbound),
-        "Delay accepting inbound connections until node is current, defaults to 'true'."
-    )
-    ////(
-    ////    "node.headers_first",
-    ////    value<bool>(&configured.node.headers_first),
-    ////    "Obtain current header chain before obtaining associated blocks, defaults to 'true'."
-    ////)
-    (
-        "node.allowed_deviation",
-        value<float>(&configured.node.allowed_deviation),
-        "Allowable underperformance standard deviation, defaults to '1.5' (0 disables)."
-    )
-    (
-        "node.announcement_cache",
-        value<uint16_t>(&configured.node.announcement_cache),
-        "Limit of per channel cached peer block and tx announcements, to avoid replaying, defaults to '42'."
-    )
-    (
-        "node.allocation_multiple",
-        value<uint16_t>(&configured.node.allocation_multiple),
-        "Block deserialization buffer multiple of wire size, defaults to '20' (0 disables)."
-    )
-    (
-        "node.maximum_height",
-        value<uint32_t>(&configured.node.maximum_height),
-        "Maximum block height to populate, defaults to 0 (unlimited)."
-    )
-    (
-        "node.maximum_concurrency",
-        value<uint32_t>(&configured.node.maximum_concurrency),
-        "Maximum number of blocks to download concurrently, defaults to '50000' (0 disables)."
-    )
-    ////(
-    ////    "node.snapshot_bytes",
-    ////    value<uint64_t>(&configured.node.snapshot_bytes),
-    ////    "Downloaded bytes that triggers snapshot, defaults to '0' (0 disables)."
-    ////)
-    ////(
-    ////    "node.snapshot_valid",
-    ////    value<uint32_t>(&configured.node.snapshot_valid),
-    ////    "Completed validations that trigger snapshot, defaults to '0' (0 disables)."
-    ////)
-    ////(
-    ////    "node.snapshot_confirm",
-    ////    value<uint32_t>(&configured.node.snapshot_confirm),
-    ////    "Completed confirmations that trigger snapshot, defaults to '0' (0 disables)."
-    ////)
-    (
-        "node.sample_period_seconds",
-        value<uint16_t>(&configured.node.sample_period_seconds),
-        "Sampling period for drop of stalled channels, defaults to '10' (0 disables)."
-    )
-    (
-        "node.currency_window_minutes",
-        value<uint32_t>(&configured.node.currency_window_minutes),
-        "Time from present that blocks are considered current, defaults to '60' (0 disables)."
-    )
-    // #######################
-    ////(
-    ////    "node.notify_limit_hours",
-    ////    value<uint32_t>(&configured.node.notify_limit_hours),
-    ////    "Disable relay when top block age exceeds, defaults to '24' (0 disables)."
-    ////)
-    ////(
-    ////    "node.byte_fee_satoshis",
-    ////    value<float>(&configured.node.byte_fee_satoshis),
-    ////    "The minimum fee per byte, cumulative for conflicts, defaults to '1'."
-    ////)
-    ////(
-    ////    "node.sigop_fee_satoshis",
-    ////    value<float>(&configured.node.sigop_fee_satoshis),
-    ////    "The minimum fee per sigop, additional to byte fee, defaults to' 100'."
-    ////)
-    ////(
-    ////    "node.minimum_output_satoshis",
-    ////    value<uint64_t>(&configured.node.minimum_output_satoshis),
-    ////    "The minimum output value, defaults to '500'."
-    ////)
-
-    /* [web] */
-    (
-        "web.secure",
-        value<bool>(&configured.server.web.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "web.bind",
-        value<network::config::authorities>(&configured.server.web.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8080' (all IPv4)."
-    )
-    (
-        "web.connections",
-        value<uint16_t>(&configured.server.web.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "web.inactivity_minutes",
-        value<uint32_t>(&configured.server.web.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
-    )
-    (
-        "web.server",
-        value<std::string>(&configured.server.web.server),
-        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
-    )
-    (
-        "web.host",
-        value<network::config::endpoints>(&configured.server.web.hosts),
-        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
-    )
-    (
-        "web.origin",
-        value<network::config::endpoints>(&configured.server.web.origins),
-        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
-    )
-    (
-        "web.path",
-        value<std::filesystem::path>(&configured.server.web.path),
-        "The required root path of source files to be served, defaults to empty."
-    )
-    (
-        "web.default",
-        value<std::string>(&configured.server.web.default_),
-        "The path of the default source page, defaults to 'index.html'."
-    )
-
-    /* [explore] */
-    (
-        "explore.secure",
-        value<bool>(&configured.server.explore.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "explore.bind",
-        value<network::config::authorities>(&configured.server.explore.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8180' (all IPv4)."
-    )
-    (
-        "explore.connections",
-        value<uint16_t>(&configured.server.explore.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "explore.inactivity_minutes",
-        value<uint32_t>(&configured.server.explore.inactivity_minutes),
-        "The idle timeout (http keep-server), defaults to '60'."
-    )
-    (
-        "explore.server",
-        value<std::string>(&configured.server.explore.server),
-        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
-    )
-    (
-        "explore.host",
-        value<network::config::endpoints>(&configured.server.explore.hosts),
-        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
-    )
-    (
-        "explore.origin",
-        value<network::config::endpoints>(&configured.server.explore.origins),
-        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
-    )
-    (
-        "explore.path",
-        value<std::filesystem::path>(&configured.server.explore.path),
-        "The required root path of source files to be served, defaults to empty."
-    )
-    (
-        "explore.default",
-        value<std::string>(&configured.server.explore.default_),
-        "The path of the default source page, defaults to 'index.html'."
-    )
-
-    /* [socket] */
-    (
-        "websocket.secure",
-        value<bool>(&configured.server.socket.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "socket.bind",
-        value<network::config::authorities>(&configured.server.socket.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8280' (all IPv4)."
-    )
-    (
-        "socket.connections",
-        value<uint16_t>(&configured.server.socket.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "socket.inactivity_minutes",
-        value<uint32_t>(&configured.server.socket.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
-    )
-    (
-        "socket.server",
-        value<std::string>(&configured.server.socket.server),
-        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
-    )
-    (
-        "socket.host",
-        value<network::config::endpoints>(&configured.server.socket.hosts),
-        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
-    )
-
-    /* [bitcoind] */
-    (
-        "bitcoind.secure",
-        value<bool>(&configured.server.bitcoind.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "bitcoind.bind",
-        value<network::config::authorities>(&configured.server.bitcoind.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8380' (all IPv4)."
-    )
-    (
-        "bitcoind.connections",
-        value<uint16_t>(&configured.server.bitcoind.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "bitcoind.inactivity_minutes",
-        value<uint32_t>(&configured.server.bitcoind.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
-    )
-    (
-        "bitcoind.server",
-        value<std::string>(&configured.server.bitcoind.server),
-        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
-    )
-    (
-        "bitcoind.host",
-        value<network::config::endpoints>(&configured.server.bitcoind.hosts),
-        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
-    )
-
-    /* [electrum] */
-    (
-        "electrum.secure",
-        value<bool>(&configured.server.electrum.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "electrum.bind",
-        value<network::config::authorities>(&configured.server.electrum.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8480' (all IPv4)."
-    )
-    (
-        "electrum.connections",
-        value<uint16_t>(&configured.server.electrum.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "electrum.inactivity_minutes",
-        value<uint32_t>(&configured.server.electrum.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
-    )
-
-    /* [stratum_v1] */
-    (
-        "stratum_v1.secure",
-        value<bool>(&configured.server.stratum_v1.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "stratum_v1.bind",
-        value<network::config::authorities>(&configured.server.stratum_v1.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8580' (all IPv4)."
-    )
-    (
-        "stratum_v1.connections",
-        value<uint16_t>(&configured.server.stratum_v1.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "stratum_v1.inactivity_minutes",
-        value<uint32_t>(&configured.server.stratum_v1.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
-    )
-
-    /* [stratum_v2] */
-    (
-        "stratum_v2.secure",
-        value<bool>(&configured.server.stratum_v2.secure),
-        "The service requires TLS (not implemented), defaults to 'false'."
-    )
-    (
-        "stratum_v2.bind",
-        value<network::config::authorities>(&configured.server.stratum_v2.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8680' (all IPv4)."
-    )
-    (
-        "stratum_v2.connections",
-        value<uint16_t>(&configured.server.stratum_v2.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "stratum_v2.inactivity_minutes",
-        value<uint32_t>(&configured.server.stratum_v2.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
     )
 
     /* [log] */

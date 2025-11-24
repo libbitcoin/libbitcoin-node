@@ -39,7 +39,7 @@ class session_peer
 {
 public:
     typedef std::shared_ptr<session_peer<Session>> ptr;
-    using options_t = network::settings::tcp_server;
+    using options_t = typename Session::options_t;
     using channel_t = node::channel_peer;
 
     /// Construct an instance.
@@ -60,10 +60,9 @@ protected:
     {
         BC_ASSERT(this->stranded());
 
-        // TODO: send options_t.
         const auto channel = std::make_shared<channel_t>(
             this->get_memory(), this->log, socket, this->create_key(),
-            this->config(), options_t{});
+            this->config(), this->options());
 
         return std::static_pointer_cast<network::channel>(channel);
     }
