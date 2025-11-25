@@ -287,7 +287,7 @@ The events.log file displays all information about the sync process, providing t
 
 ### Using the console
 
-Pressing **`m` + Enter** while running will bring up the interactive console. This interface is mainly user for low level logging and configuration and it looks like this:
+Pressing **`m` + Enter** while running will bring up the interactive console. This interface is mainly used for low level logging and configuration and it looks like this:
 
 ```
 2025-10-17T23:47:58Z.0 Toggle: [v]erbose
