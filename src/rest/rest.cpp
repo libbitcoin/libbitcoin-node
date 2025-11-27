@@ -199,17 +199,15 @@ request_t path_to_request(const std::string& url_path) THROWS
             if (index == segments.size())
                 throw std::runtime_error("missing block hash");
 
-            // height nullable (required but can be set to null_t).
             params["hash"] = to_hash(segments[index++]);
-            params["height"] = null_t{};
+            params["height"] = value_t{ null_t{} };
         }
         else if (by == "height")
         {
             if (index == segments.size())
                 throw std::runtime_error("missing block height");
 
-            // hash required shared_ptr<T> and cannot be nullptr (or null_t).
-            params["hash"] = to_shared(null_hash);
+            params["hash"] = value_t{ null_t{} };
             params["height"] = to_number<uint32_t>(segments[index++]);
         }
         else

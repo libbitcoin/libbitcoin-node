@@ -105,21 +105,13 @@ BOOST_AUTO_TEST_CASE(path_to_request__block_height_valid_path__expected_request)
     BOOST_REQUIRE(std::holds_alternative<object_t>(params));
 
     const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
 
     const auto version = std::get<uint8_t>(object.at("version").value());
     BOOST_REQUIRE_EQUAL(version, 42u);
 
     const auto height = std::get<uint32_t>(object.at("height").value());
     BOOST_REQUIRE_EQUAL(height, 123456u);
-
-    const auto& any = std::get<any_t>(object.at("hash").value());
-    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
-
-    // any/ptr is not currently nullable, so use hash sentinel.
-    const auto& hash_cptr = any.get<const hash_digest>();
-    BOOST_REQUIRE(hash_cptr);
-    BOOST_REQUIRE_EQUAL(*hash_cptr, null_hash);
 }
 
 BOOST_AUTO_TEST_CASE(path_to_request__block_height_missing_height__throws_exception)
