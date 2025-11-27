@@ -8,34 +8,37 @@
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="include">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000005}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000006}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node">
+    <Filter Include="include\bitcoin">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000007}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\channels">
+    <Filter Include="include\bitcoin\node">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000008}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\chasers">
+    <Filter Include="include\bitcoin\node\channels">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000009}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\impl">
+    <Filter Include="include\bitcoin\node\chasers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000A}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\impl\chasers">
-      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000D}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="include\bitcoin\node\protocols">
+    <Filter Include="include\bitcoin\node\impl">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\sessions">
+    <Filter Include="include\bitcoin\node\impl\chasers">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000C}</UniqueIdentifier>
     </Filter>
-    <Filter Include="resource">
+    <Filter Include="include\bitcoin\node\rest">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bitcoin\node\sessions">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resource">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000001}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000000}</UniqueIdentifier>
@@ -49,8 +52,11 @@
     <Filter Include="src\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000003}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\sessions">
+    <Filter Include="src\rest">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000005}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -155,6 +161,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp">
       <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\rest\rest.cpp">
+      <Filter>src\rest</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp">
       <Filter>src\sessions</Filter>
@@ -337,6 +346,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\rest.hpp">
+      <Filter>include\bitcoin\node\rest</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
