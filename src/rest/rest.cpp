@@ -48,6 +48,9 @@ static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
 
 code path_to_request(request_t& out, const std::string& path) NOEXCEPT
 {
+    if (path.empty())
+        return error::empty_path;
+
     // Avoid conflict with node type.
     using object_t = network::rpc::object_t;
 
@@ -63,8 +66,7 @@ code path_to_request(request_t& out, const std::string& path) NOEXCEPT
     auto& method = out.method;
     auto& params = std::get<object_t>(out.params.value());
     const auto segments = split(path, "/", false, true);
-    if (segments.empty())
-        return error::empty_path;
+    BC_ASSERT(!segments.empty());
 
     size_t segment{};
     if (!segments[segment].starts_with('v'))
@@ -256,24 +258,26 @@ code path_to_request(request_t& out, const std::string& path) NOEXCEPT
         else
         {
             const auto component = segments[segment++];
-            if (component == "header")
+            if (component == "transaction")
+            {
+                if (segment == segments.size())
+                    return error::missing_position;
+
+                uint32_t position{};
+                if (!to_number(position, segments[segment++]))
+                    return error::invalid_number;
+
+                params["position"] = position;
+                method = "block_tx";
+            }
+            else if (component == "header")
                 method = "header";
             else if (component == "filter")
                 method = "filter";
             else if (component == "transactions")
                 method = "block_txs";
-            else if (component != "transaction")
+            else
                 return error::invalid_component;
-
-            if (segment == segments.size())
-                return error::missing_position;
-
-            uint32_t position{};
-            if (!to_number(position, segments[segment++]))
-                return error::invalid_number;
-
-            params["position"] = position;
-            method = "block_tx";
         }
     }
     else
