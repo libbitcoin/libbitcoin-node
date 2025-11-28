@@ -226,8 +226,9 @@ code path_to_request(request_t& out, const std::string& path) NOEXCEPT
             const auto hash = to_hash(segments[segment++]);
             if (!hash) return error::invalid_hash;
 
+            // nullables can be implicit.
+            ////params["height"] = null_t{};
             params["hash"] = hash;
-            params["height"] = null_t{};
         }
         else if (by == "height")
         {
@@ -238,7 +239,8 @@ code path_to_request(request_t& out, const std::string& path) NOEXCEPT
             if (!to_number(height, segments[segment++]))
                 return error::invalid_number;
 
-            params["hash"] = null_t{};
+            // nullables can be implicit.
+            ////params["hash"] = null_t{};
             params["height"] = height;
         }
         else

@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(path_to_request__block_height_valid___expected_request)
     BOOST_REQUIRE(std::holds_alternative<object_t>(params));
 
     const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
 
     const auto version = std::get<uint8_t>(object.at("version").value());
     BOOST_REQUIRE_EQUAL(version, 42u);
