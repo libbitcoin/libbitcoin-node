@@ -88,7 +88,24 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm10, "confirm10" },
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
-    { confirm13, "confirm13" }
+    { confirm13, "confirm13" },
+
+    /// server (url parse codes)
+    { empty_path, "empty_path" },
+    { invalid_number, "invalid_number" },
+    { invalid_hash, "invalid_hash" },
+    { missing_version, "missing_version" },
+    { missing_target, "missing_target" },
+    { invalid_target, "invalid_target" },
+    { missing_hash, "missing_hash" },
+    { missing_height, "missing_height" },
+    { missing_position, "missing_position" },
+    { missing_id_type, "missing_id_type" },
+    { invalid_id_type, "invalid_id_type" },
+    { missing_component, "missing_component" },
+    { invalid_component, "invalid_component" },
+    { invalid_subcomponent, "invalid_subcomponent" },
+    { extra_segment, "extra_segment" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
