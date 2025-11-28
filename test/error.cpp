@@ -177,6 +177,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__protocol1__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "protocol1");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__protocol2__true_exected_message)
+{
+    constexpr auto value = error::protocol2;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "protocol2");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__header1__true_exected_message)
 {
     constexpr auto value = error::header1;
@@ -186,6 +195,7 @@ BOOST_AUTO_TEST_CASE(error_t__code__header1__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "header1");
 }
 
+// TODO: organize2-organize15
 BOOST_AUTO_TEST_CASE(error_t__code__organize1__true_exected_message)
 {
     constexpr auto value = error::organize1;
@@ -195,8 +205,7 @@ BOOST_AUTO_TEST_CASE(error_t__code__organize1__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "organize1");
 }
 
-// TODO: organize2-organize15
-
+// TODO: validate2-validate6
 BOOST_AUTO_TEST_CASE(error_t__code__validate1__true_exected_message)
 {
     constexpr auto value = error::validate1;
@@ -206,8 +215,7 @@ BOOST_AUTO_TEST_CASE(error_t__code__validate1__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "validate1");
 }
 
-// TODO: validate2-validate6
-
+// TODO: confirm2-confirm17
 BOOST_AUTO_TEST_CASE(error_t__code__confirm1__true_exected_message)
 {
     constexpr auto value = error::confirm1;
@@ -217,6 +225,141 @@ BOOST_AUTO_TEST_CASE(error_t__code__confirm1__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "confirm1");
 }
 
-// TODO: confirm2-confirm17
+// server (url parse codes)
+
+BOOST_AUTO_TEST_CASE(error_t__code__empty_path__true_exected_message)
+{
+    constexpr auto value = error::empty_path;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "empty_path");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__invalid_number__true_exected_message)
+{
+    constexpr auto value = error::invalid_number;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "invalid_number");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__invalid_hash__true_exected_message)
+{
+    constexpr auto value = error::invalid_hash;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "invalid_hash");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_version__true_exected_message)
+{
+    constexpr auto value = error::missing_version;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_version");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_target__true_exected_message)
+{
+    constexpr auto value = error::missing_target;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_target");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__invalid_target__true_exected_message)
+{
+    constexpr auto value = error::invalid_target;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "invalid_target");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_hash__true_exected_message)
+{
+    constexpr auto value = error::missing_hash;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_hash");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_height__true_exected_message)
+{
+    constexpr auto value = error::missing_height;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_height");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_position__true_exected_message)
+{
+    constexpr auto value = error::missing_position;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_position");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_id_type__true_exected_message)
+{
+    constexpr auto value = error::missing_id_type;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_id_type");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__invalid_id_type__true_exected_message)
+{
+    constexpr auto value = error::invalid_id_type;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "invalid_id_type");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__missing_component__true_exected_message)
+{
+    constexpr auto value = error::missing_component;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_component");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__invalid_component__true_exected_message)
+{
+    constexpr auto value = error::invalid_component;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "invalid_component");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__invalid_subcomponent__true_exected_message)
+{
+    constexpr auto value = error::invalid_subcomponent;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "invalid_subcomponent");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__extra_segment__true_exected_message)
+{
+    constexpr auto value = error::extra_segment;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "extra_segment");
+}
 
 BOOST_AUTO_TEST_SUITE_END()

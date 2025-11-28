@@ -282,6 +282,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_performer.cpp"
     "../../src/protocols/protocol_transaction_in_106.cpp"
     "../../src/protocols/protocol_transaction_out_106.cpp"
+    "../../src/rest/rest.cpp"
     "../../src/sessions/session.cpp"
     "../../src/sessions/session_inbound.cpp"
     "../../src/sessions/session_manual.cpp"
@@ -348,6 +349,7 @@ if (with-tests)
         "../../test/chasers/chaser_transaction.cpp"
         "../../test/chasers/chaser_validate.cpp"
         "../../test/protocols/protocol.cpp"
+        "../../test/rest/rest.cpp"
         "../../test/sessions/session.cpp" )
 
     add_test( NAME libbitcoin-node-test COMMAND libbitcoin-node-test

@@ -71,6 +71,7 @@
 #include <bitcoin/node/protocols/protocol_web.hpp>
 #include <bitcoin/node/protocols/protocol_ws.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
+#include <bitcoin/node/rest/rest.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>

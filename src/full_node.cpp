@@ -48,8 +48,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_transaction_(*this),
     chaser_template_(*this),
     chaser_snapshot_(*this),
-    chaser_storage_(*this),
-    event_subscriber_(strand())
+    chaser_storage_(*this)
 {
 }
 
