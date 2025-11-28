@@ -206,7 +206,7 @@ private:
     chaser_template chaser_template_;
     chaser_snapshot chaser_snapshot_;
     chaser_storage chaser_storage_;
-    event_subscriber event_subscriber_;
+    event_subscriber event_subscriber_{};
 };
 
 } // namespace node
