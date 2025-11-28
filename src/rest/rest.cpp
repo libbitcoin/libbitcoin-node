@@ -30,6 +30,7 @@ using namespace system;
 using namespace network::rpc;
 
 BC_PUSH_WARNING(NO_ARRAY_INDEXING)
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 template <typename Number>
 static bool to_number(Number& out, const std::string_view& token) NOEXCEPT
@@ -283,6 +284,7 @@ code path_to_request(request_t& out, const std::string& path) NOEXCEPT
     return segment == segments.size() ? error::success : error::extra_segment;
 }
 
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node
