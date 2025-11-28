@@ -24,7 +24,8 @@
 namespace libbitcoin {
 namespace node {
 
-BCN_API network::rpc::request_t path_to_request(const std::string& path) THROWS;
+BCN_API code path_to_request(network::rpc::request_t& out,
+    const std::string& path) NOEXCEPT;
 
 } // namespace network
 } // namespace libbitcoin

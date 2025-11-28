@@ -32,32 +32,26 @@ using namespace network::rpc;
 BC_PUSH_WARNING(NO_ARRAY_INDEXING)
 
 template <typename Number>
-Number to_number(const std::string_view& token) THROWS
+static bool to_number(Number& out, const std::string_view& token) NOEXCEPT
 {
-    Number out{};
-    if (token.empty() || token.front() == '0' ||
-        !is_ascii_numeric(token) || !deserialize(out, token))
-        throw std::runtime_error("invalid number");
-
-    return out;
+    return !token.empty() && is_ascii_numeric(token) && token.front() != '0' &&
+        deserialize(out, token);
 }
 
-hash_cptr to_hash(const std::string_view& token) THROWS
+static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
 {
     hash_digest out{};
-    if (!decode_hash(out, token))
-        throw std::runtime_error("invalid hash");
-
-    return emplace_shared<const hash_digest>(std::move(out));
+    return decode_hash(out, token) ?
+        emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
 }
 
-request_t path_to_request(const std::string& url_path) THROWS
+code path_to_request(request_t& out, const std::string& path) NOEXCEPT
 {
     // Avoid conflict with node type.
     using object_t = network::rpc::object_t;
 
     // Initialize json-rpc.v2 named params message.
-    request_t request
+    out = request_t
     {
         .jsonrpc = version::v2,
         .id = null_t{},
@@ -65,65 +59,84 @@ request_t path_to_request(const std::string& url_path) THROWS
         .params = object_t{}
     };
 
-    auto& method = request.method;
-    auto& params = std::get<object_t>(request.params.value());
-    const auto segments = split(url_path, "/", false, true);
+    auto& method = out.method;
+    auto& params = std::get<object_t>(out.params.value());
+    const auto segments = split(path, "/", false, true);
     if (segments.empty())
-        throw std::runtime_error("empty url path");
+        return error::empty_path;
 
-    size_t index{};
-    if (!segments[index].starts_with('v'))
-        throw std::runtime_error("missing version");
+    size_t segment{};
+    if (!segments[segment].starts_with('v'))
+        return error::missing_version;
 
-    params["version"] = to_number<uint8_t>(segments[index++].substr(one));
-    if (index == segments.size())
-        throw std::runtime_error("missing target");
+    uint8_t version{};
+    if (!to_number(version, segments[segment++].substr(one)))
+        return error::invalid_number;
+
+    params["version"] = version;
+    if (segment == segments.size())
+        return error::missing_target;
 
     // transaction, address, inputs, and outputs are identical excluding names;
     // input and output are identical excluding names; block is unique.
-    const auto target = segments[index++];
+    const auto target = segments[segment++];
     if (target == "transaction")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing transaction hash");
+        if (segment == segments.size())
+            return error::missing_hash;
+
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
 
         method = "transaction";
-        params["hash"] = to_hash(segments[index++]);
+        params["hash"] = hash;
     }
     else if (target == "address")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing address hash");
+        if (segment == segments.size())
+            return error::missing_hash;
+
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
 
         method = "address";
-        params["hash"] = to_hash(segments[index++]);
+        params["hash"] = hash;
     }
     else if (target == "inputs")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing inputs tx hash");
+        if (segment == segments.size())
+            return error::missing_hash;
+
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
 
         method = "inputs";
-        params["hash"] = to_hash(segments[index++]);
+        params["hash"] = hash;
     }
     else if (target == "outputs")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing outputs tx hash");
+        if (segment == segments.size())
+            return error::missing_hash;
+
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
 
         method = "outputs";
-        params["hash"] = to_hash(segments[index++]);
+        params["hash"] = hash;
     }
     else if (target == "input")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing input tx hash");
+        if (segment == segments.size())
+            return error::missing_hash;
 
-        params["hash"] = to_hash(segments[index++]);
-        if (index == segments.size())
-            throw std::runtime_error("missing input component");
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
 
-        const auto component = segments[index++];
+        params["hash"] = hash;
+        if (segment == segments.size())
+            return error::missing_component;
+
+        const auto component = segments[segment++];
         if (component == "scripts")
         {
             method = "input_scripts";
@@ -134,33 +147,40 @@ request_t path_to_request(const std::string& url_path) THROWS
         }
         else
         {
-            params["index"] = to_number<uint32_t>(component);
-            if (index == segments.size())
+            uint32_t index{};
+            if (!to_number(index, component))
+                return error::invalid_number;
+
+            params["index"] = index;
+            if (segment == segments.size())
             {
                 method = "input";
             }
             else
             {
-                auto subcomponent = segments[index++];
+                auto subcomponent = segments[segment++];
                 if (subcomponent == "script")
                     method = "input_script";
                 else if (subcomponent == "witness")
                     method = "input_witness";
                 else
-                    throw std::runtime_error("unexpected input subcomponent");
+                    return error::invalid_subcomponent;
             }
         }
     }
     else if (target == "output")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing output tx hash");
+        if (segment == segments.size())
+            return error::missing_hash;
 
-        params["hash"] = to_hash(segments[index++]);
-        if (index == segments.size())
-            throw std::runtime_error("missing output component");
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
 
-        const auto component = segments[index++];
+        params["hash"] = hash;
+        if (segment == segments.size())
+            return error::missing_component;
+
+        const auto component = segments[segment++];
         if (component == "scripts")
         {
             method = "output_scripts";
@@ -171,57 +191,68 @@ request_t path_to_request(const std::string& url_path) THROWS
         }
         else
         {
-            params["index"] = to_number<uint32_t>(component);
-            if (index == segments.size())
+            uint32_t index{};
+            if (!to_number(index, component))
+                return error::invalid_number;
+
+            params["index"] = index;
+            if (segment == segments.size())
             {
                 method = "output";
             }
             else
             {
-                auto subcomponent = segments[index++];
+                auto subcomponent = segments[segment++];
                 if (subcomponent == "script")
                     method = "output_script";
                 else if (subcomponent == "spender")
                     method = "output_spender";
                 else
-                    throw std::runtime_error("unexpected output subcomponent");
+                    return error::invalid_subcomponent;
             }
         }
     }
     else if (target == "block")
     {
-        if (index == segments.size())
-            throw std::runtime_error("missing block id");
+        if (segment == segments.size())
+            return error::missing_id_type;
 
-        const auto by = segments[index++];
+        const auto by = segments[segment++];
         if (by == "hash")
         {
-            if (index == segments.size())
-                throw std::runtime_error("missing block hash");
+            if (segment == segments.size())
+                return error::missing_hash;
 
-            params["hash"] = to_hash(segments[index++]);
-            params["height"] = value_t{ null_t{} };
+            const auto hash = to_hash(segments[segment++]);
+            if (!hash) return error::invalid_hash;
+
+            params["hash"] = hash;
+            params["height"] = null_t{};
         }
         else if (by == "height")
         {
-            if (index == segments.size())
-                throw std::runtime_error("missing block height");
+            if (segment == segments.size())
+                return error::missing_height;
 
-            params["hash"] = value_t{ null_t{} };
-            params["height"] = to_number<uint32_t>(segments[index++]);
+            uint32_t height{};
+            if (!to_number(height, segments[segment++]))
+                return error::invalid_number;
+
+            params["hash"] = null_t{};
+            params["height"] = height;
         }
         else
         {
-            throw std::runtime_error("invalid block id");
+            return error::invalid_id_type;
         }
 
-        if (index == segments.size())
+        if (segment == segments.size())
         {
             method = "block";
         }
         else
         {
-            const auto component = segments[index++];
+            const auto component = segments[segment++];
             if (component == "header")
                 method = "header";
             else if (component == "filter")
@@ -229,24 +260,25 @@ request_t path_to_request(const std::string& url_path) THROWS
             else if (component == "transactions")
                 method = "block_txs";
             else if (component != "transaction")
-                throw std::runtime_error("invalid block component");
+                return error::invalid_component;
 
-            if (index == segments.size())
-                throw std::runtime_error("missing tx position");
+            if (segment == segments.size())
+                return error::missing_position;
 
-            params["position"] = to_number<uint32_t>(segments[index++]);
+            uint32_t position{};
+            if (!to_number(position, segments[segment++]))
+                return error::invalid_number;
+
+            params["position"] = position;
             method = "block_tx";
         }
     }
     else
     {
-        throw std::runtime_error("unknown target");
+        return error::invalid_target;
     }
 
-    if (index != segments.size())
-        throw std::runtime_error("extra segments");
-
-    return request;
+    return segment == segments.size() ? error::success : error::extra_segment;
 }
 
 BC_POP_WARNING()
