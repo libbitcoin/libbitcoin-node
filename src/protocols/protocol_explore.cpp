@@ -19,6 +19,8 @@
 #include <bitcoin/node/protocols/protocol_explore.hpp>
 
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/rest/media.hpp>
+#include <bitcoin/node/rest/parse.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -26,6 +28,7 @@ namespace node {
 #define CLASS protocol_explore
     
 using namespace system;
+using namespace network::rpc;
 using namespace network::http;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -35,141 +38,116 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 {
-    wallet::uri uri{};
-    if (!uri.decode(request.target()))
+    media_type accept{};
+    if (!get_acceptable_media_type(accept, request))
     {
         send_bad_target(request);
         return true;
     }
 
-    const auto parts = split(uri.path(), "/");
-    if (parts.size() != two)
-        return false;
-
-    const auto hd = parts.front() == "header"      || parts.front() == "hd";
-    const auto bk = parts.front() == "block"       || parts.front() == "bk";
-    const auto tx = parts.front() == "transaction" || parts.front() == "tx";
-    if (!hd && !bk && !tx)
+    request_t out{};
+    if (const auto ec = parse_request(out, request.target()))
     {
-        send_bad_target(request);
+        send_bad_target(request, ec);
         return true;
     }
 
-    auto params = uri.decode_query();
-    const auto format = params["format"];
-    constexpr auto text = mime_type::text_plain;
-    constexpr auto json = mime_type::application_json;
-    constexpr auto data = mime_type::application_octet_stream;
-    const auto accepts = to_mime_types((request)[field::accept]);
-    const auto is_json = contains(accepts, json) || format == "json";
-    const auto is_text = contains(accepts, text) || format == "text";
-    const auto is_data = contains(accepts, data) || format == "data";
-    if (!is_json && !is_text && !is_data)
-        return false;
+    ////const auto& query = archive();
+    ////const auto wit = params["witness"] != "false";
+    ////constexpr auto header_size = chain::header::serialized_size();
 
-    hash_digest hash{};
-    if (!decode_hash(hash, parts.back()))
-    {
-        send_bad_target(request);
-        return true;
-    }
+    ////if (accept == media_type::application_json)
+    ////{
+    ////    if (hd)
+    ////    {
+    ////        if (const auto ptr = query.get_header(query.to_header(hash)))
+    ////        {
+    ////            send_json(request, value_from(ptr), header_size);
+    ////            return true;
+    ////        }
+    ////    }
+    ////    else if (bk)
+    ////    {
+    ////        if (const auto ptr = query.get_block(query.to_header(hash), wit))
+    ////        {
+    ////            send_json(request, value_from(ptr), ptr->serialized_size(wit));
+    ////            return true;
+    ////        }
+    ////    }
+    ////    else
+    ////    {
+    ////        if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
+    ////        {
+    ////            send_json(request, value_from(ptr), ptr->serialized_size(wit));
+    ////            return true;
+    ////        }
+    ////    }
 
-    const auto& query = archive();
-    const auto wit = params["witness"] != "false";
-    constexpr auto header_size = chain::header::serialized_size();
+    ////    send_not_found(request);
+    ////    return true;
+    ////}
 
-    if (is_json)
-    {
-        if (hd)
-        {
-            if (const auto ptr = query.get_header(query.to_header(hash)))
-            {
-                send_json(request, value_from(ptr), header_size);
-                return true;
-            }
-        }
-        else if (bk)
-        {
-            if (const auto ptr = query.get_block(query.to_header(hash), wit))
-            {
-                send_json(request, value_from(ptr), ptr->serialized_size(wit));
-                return true;
-            }
-        }
-        else
-        {
-            if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
-            {
-                send_json(request, value_from(ptr), ptr->serialized_size(wit));
-                return true;
-            }
-        }
+    ////if (accept == media_type::text_plain)
+    ////{
+    ////    if (hd)
+    ////    {
+    ////        if (const auto ptr = query.get_header(query.to_header(hash)))
+    ////        {
+    ////            send_text(request, encode_base16(ptr->to_data()));
+    ////            return true;
+    ////        }
+    ////    }
+    ////    else if (bk)
+    ////    {
+    ////        if (const auto ptr = query.get_block(query.to_header(hash), wit))
+    ////        {
+    ////            send_text(request, encode_base16(ptr->to_data(wit)));
+    ////            return true;
+    ////        }
+    ////    }
+    ////    else
+    ////    {
+    ////        if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
+    ////        {
+    ////            send_text(request, encode_base16(ptr->to_data(wit)));
+    ////            return true;
+    ////        }
+    ////    }
 
-        send_not_found(request);
-        return true;
-    }
+    ////    send_not_found(request);
+    ////    return true;
+    ////}
 
-    if (is_text)
-    {
-        if (hd)
-        {
-            if (const auto ptr = query.get_header(query.to_header(hash)))
-            {
-                send_text(request, encode_base16(ptr->to_data()));
-                return true;
-            }
-        }
-        else if (bk)
-        {
-            if (const auto ptr = query.get_block(query.to_header(hash), wit))
-            {
-                send_text(request, encode_base16(ptr->to_data(wit)));
-                return true;
-            }
-        }
-        else
-        {
-            if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
-            {
-                send_text(request, encode_base16(ptr->to_data(wit)));
-                return true;
-            }
-        }
+    ////////if (accept == media_type::application_octet_stream)
+    ////{
+    ////    if (hd)
+    ////    {
+    ////        if (const auto ptr = query.get_header(query.to_header(hash)))
+    ////        {
+    ////            send_data(request, ptr->to_data());
+    ////            return true;
+    ////        }
+    ////    }
+    ////    else if (bk)
+    ////    {
+    ////        if (const auto ptr = query.get_block(query.to_header(hash), wit))
+    ////        {
+    ////            send_data(request, ptr->to_data(wit));
+    ////            return true;
+    ////        }
+    ////    }
+    ////    else
+    ////    {
+    ////        if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
+    ////        {
+    ////            send_data(request, ptr->to_data(wit));
+    ////            return true;
+    ////        }
+    ////    }
 
-        send_not_found(request);
-        return true;
-    }
-
-    ////if (is_data)
-    {
-        if (hd)
-        {
-            if (const auto ptr = query.get_header(query.to_header(hash)))
-            {
-                send_data(request, ptr->to_data());
-                return true;
-            }
-        }
-        else if (bk)
-        {
-            if (const auto ptr = query.get_block(query.to_header(hash), wit))
-            {
-                send_data(request, ptr->to_data(wit));
-                return true;
-            }
-        }
-        else
-        {
-            if (const auto ptr = query.get_transaction(query.to_tx(hash), wit))
-            {
-                send_data(request, ptr->to_data(wit));
-                return true;
-            }
-        }
-
-        send_not_found(request);
-        return true;
-    }
+    ////    send_not_found(request);
+    ////    return true;
+    ////}
 }
 
 BC_POP_WARNING()

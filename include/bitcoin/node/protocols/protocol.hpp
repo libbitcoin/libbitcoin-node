@@ -30,18 +30,6 @@
 namespace libbitcoin {
 namespace node {
 
-// TODO: first split node::protocol -> node::protocol and node::protocol_peer.
-// TODO: then create node::protocol_peer -> node::protocol + network::protocol_peer.
-// TODO: then create node::protocol_tcp  -> node::protocol + network::protocol_tcp.
-// TODO: this is the same pattern as joining node::session + network::session_xxxx.
-// TODO: node::session_xxx  => node::session_peer<network::session_xxx>   : node::session.
-// TODO: node::protocol_xxx => node::protocol_peer<network::protocol_xxx> : node::protocol.
-// TODO: none of the node classes derive from shared_from_base and instead just
-// TODO: rely on the network base class and shared_from_sibling<> to obtain
-// TODO: node object methods within protocol_peer and derived, just as in
-// TODO: session_peer and derived. This could be normalized using an override
-// TODO: of shared_from_base<>() withing the two templates.
-
 /// Abstract base for node protocols, thread safe.
 class BCN_API protocol
 {

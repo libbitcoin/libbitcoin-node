@@ -70,7 +70,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_performer.cpp \
     src/protocols/protocol_transaction_in_106.cpp \
     src/protocols/protocol_transaction_out_106.cpp \
-    src/rest/rest.cpp \
+    src/rest/media.cpp \
+    src/rest/parse.cpp \
     src/sessions/session.cpp \
     src/sessions/session_inbound.cpp \
     src/sessions/session_manual.cpp \
@@ -107,7 +108,8 @@ test_libbitcoin_node_test_SOURCES = \
     test/chasers/chaser_transaction.cpp \
     test/chasers/chaser_validate.cpp \
     test/protocols/protocol.cpp \
-    test/rest/rest.cpp \
+    test/rest/media.cpp \
+    test/rest/parse.cpp \
     test/sessions/session.cpp
 
 endif WITH_TESTS
@@ -229,7 +231,8 @@ include_bitcoin_node_protocols_HEADERS = \
 
 include_bitcoin_node_restdir = ${includedir}/bitcoin/node/rest
 include_bitcoin_node_rest_HEADERS = \
-    include/bitcoin/node/rest/rest.hpp
+    include/bitcoin/node/rest/media.hpp \
+    include/bitcoin/node/rest/parse.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \

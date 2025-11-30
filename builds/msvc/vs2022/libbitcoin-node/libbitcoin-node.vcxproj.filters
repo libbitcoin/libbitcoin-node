@@ -162,7 +162,10 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\rest\rest.cpp">
+    <ClCompile Include="..\..\..\..\src\rest\media.cpp">
+      <Filter>src\rest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\rest\parse.cpp">
       <Filter>src\rest</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp">
@@ -347,7 +350,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\rest.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\media.hpp">
+      <Filter>include\bitcoin\node\rest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\parse.hpp">
       <Filter>include\bitcoin\node\rest</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
