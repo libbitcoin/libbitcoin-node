@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/settings.hpp>
+#include <bitcoin/node/rest/parse.hpp>
 
 #include <ranges>
 #include <optional>
@@ -46,7 +46,7 @@ static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
         emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
 }
 
-code path_to_request(request_t& out, const std::string& path) NOEXCEPT
+code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
 {
     if (path.empty())
         return error::empty_path;

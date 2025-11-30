@@ -135,7 +135,8 @@
     <ClCompile Include="..\..\..\..\test\main.cpp" />
     <ClCompile Include="..\..\..\..\test\node.cpp" />
     <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp" />
-    <ClCompile Include="..\..\..\..\test\rest\rest.cpp" />
+    <ClCompile Include="..\..\..\..\test\rest\media.cpp" />
+    <ClCompile Include="..\..\..\..\test\rest\parse.cpp" />
     <ClCompile Include="..\..\..\..\test\sessions\session.cpp" />
     <ClCompile Include="..\..\..\..\test\settings.cpp" />
     <ClCompile Include="..\..\..\..\test\test.cpp" />

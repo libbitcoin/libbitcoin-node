@@ -75,7 +75,10 @@
     <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\rest\rest.cpp">
+    <ClCompile Include="..\..\..\..\test\rest\media.cpp">
+      <Filter>src\rest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\rest\parse.cpp">
       <Filter>src\rest</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\sessions\session.cpp">

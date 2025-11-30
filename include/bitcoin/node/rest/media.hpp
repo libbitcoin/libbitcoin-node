@@ -16,16 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_REST_HPP
-#define LIBBITCOIN_NODE_REST_HPP
+#ifndef LIBBITCOIN_NODE_MEDIA_HPP
+#define LIBBITCOIN_NODE_MEDIA_HPP
 
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-BCN_API code path_to_request(network::rpc::request_t& out,
-    const std::string& path) NOEXCEPT;
+BCN_API bool get_acceptable_media_type(network::http::media_type& out,
+    const network::http::request& request) NOEXCEPT;
 
 } // namespace network
 } // namespace libbitcoin
