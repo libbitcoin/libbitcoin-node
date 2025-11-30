@@ -95,25 +95,25 @@ bool protocol_html::try_dispatch_object(const request&) NOEXCEPT
 void protocol_html::dispatch_embedded(const request& request) NOEXCEPT
 {
     const auto& pages = config().server.explore.pages;
-    switch (const auto mime = file_mime_type(to_path(request.target())))
+    switch (const auto media = file_media_type(to_path(request.target())))
     {
-        case mime_type::text_css:
-            send_span(request, pages.css(), mime);
+        case media_type::text_css:
+            send_span(request, pages.css(), media);
             break;
-        case mime_type::text_html:
-            send_span(request, pages.html(), mime);
+        case media_type::text_html:
+            send_span(request, pages.html(), media);
             break;
-        case mime_type::application_javascript:
-            send_span(request, pages.ecma(), mime);
+        case media_type::application_javascript:
+            send_span(request, pages.ecma(), media);
             break;
-        case mime_type::font_woff:
-        case mime_type::font_woff2:
-            send_span(request, pages.font(), mime);
+        case media_type::font_woff:
+        case media_type::font_woff2:
+            send_span(request, pages.font(), media);
             break;
-        case mime_type::image_png:
-        case mime_type::image_gif:
-        case mime_type::image_jpeg:
-            send_span(request, pages.icon(), mime);
+        case media_type::image_png:
+        case media_type::image_gif:
+        case media_type::image_jpeg:
+            send_span(request, pages.icon(), media);
             break;
         default:
             send_not_found(request);
@@ -151,16 +151,16 @@ void protocol_html::dispatch_file(const request& request) NOEXCEPT
         return;
     }
 
-    const auto octet_stream = mime_type::application_octet_stream;
-    send_file(request, std::move(file), file_mime_type(path, octet_stream));
+    const auto octet_stream = media_type::application_octet_stream;
+    send_file(request, std::move(file), file_media_type(path, octet_stream));
 }
 
 // Senders.
 // ----------------------------------------------------------------------------
 
-constexpr auto data = mime_type::application_octet_stream;
-constexpr auto json = mime_type::application_json;
-constexpr auto text = mime_type::text_plain;
+constexpr auto data = media_type::application_octet_stream;
+constexpr auto json = media_type::application_json;
+constexpr auto text = media_type::text_plain;
 
 void protocol_html::send_json(const request& request,
     boost::json::value&& model, size_t size_hint) NOEXCEPT
@@ -168,7 +168,7 @@ void protocol_html::send_json(const request& request,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(json));
+    response.set(field::content_type, from_media_type(json));
     response.body() = { std::move(model), size_hint };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
@@ -180,7 +180,7 @@ void protocol_html::send_text(const request& request,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(text));
+    response.set(field::content_type, from_media_type(text));
     response.body() = std::move(hexidecimal);
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
@@ -192,44 +192,44 @@ void protocol_html::send_data(const request& request,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(data));
+    response.set(field::content_type, from_media_type(data));
     response.body() = std::move(bytes);
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
 void protocol_html::send_file(const request& request, file&& file,
-    mime_type type) NOEXCEPT
+    media_type type) NOEXCEPT
 {
     BC_ASSERT(stranded());
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(type));
+    response.set(field::content_type, from_media_type(type));
     response.body() = std::move(file);
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
 void protocol_html::send_span(const request& request,
-    span_body::value_type&& span, mime_type type) NOEXCEPT
+    span_body::value_type&& span, media_type type) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(type));
+    response.set(field::content_type, from_media_type(type));
     response.body() = std::move(span);
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
 void protocol_html::send_buffer(const request& request,
-    buffer_body::value_type&& buffer, mime_type type) NOEXCEPT
+    buffer_body::value_type&& buffer, media_type type) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
-    response.set(field::content_type, from_mime_type(type));
+    response.set(field::content_type, from_media_type(type));
     response.body() = std::move(buffer);
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);

@@ -57,10 +57,10 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 
     auto params = uri.decode_query();
     const auto format = params["format"];
-    constexpr auto text = mime_type::text_plain;
-    constexpr auto json = mime_type::application_json;
-    constexpr auto data = mime_type::application_octet_stream;
-    const auto accepts = to_mime_types((request)[field::accept]);
+    constexpr auto text = media_type::text_plain;
+    constexpr auto json = media_type::application_json;
+    constexpr auto data = media_type::application_octet_stream;
+    const auto accepts = to_media_types((request)[field::accept]);
     const auto is_json = contains(accepts, json) || format == "json";
     const auto is_text = contains(accepts, text) || format == "text";
     const auto is_data = contains(accepts, data) || format == "data";
