@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/rest/parse.hpp>
+#include <bitcoin/node/parse/target.hpp>
 
 #include <ranges>
 #include <optional>
@@ -35,8 +35,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 template <typename Number>
 static bool to_number(Number& out, const std::string_view& token) NOEXCEPT
 {
-    return !token.empty() && is_ascii_numeric(token) && token.front() != '0' &&
-        deserialize(out, token);
+    return !token.empty() && is_ascii_numeric(token) && (is_one(token.size()) ||
+        token.front() != '0') && deserialize(out, token);
 }
 
 static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
@@ -46,9 +46,10 @@ static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
         emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
 }
 
-code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
+code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
 {
-    if (path.empty())
+    const auto clean = split(path, "?", false, false).front();
+    if (clean.empty())
         return error::empty_path;
 
     // Avoid conflict with node type.
@@ -65,7 +66,7 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
 
     auto& method = out.method;
     auto& params = std::get<object_t>(out.params.value());
-    const auto segments = split(path, "/", false, true);
+    const auto segments = split(clean, "/", false, true);
     BC_ASSERT(!segments.empty());
 
     size_t segment{};
@@ -113,7 +114,7 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto hash = to_hash(segments[segment++]);
         if (!hash) return error::invalid_hash;
 
-        method = "inputs";
+        method = "input";
         params["hash"] = hash;
     }
     else if (target == "outputs")
@@ -124,7 +125,7 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto hash = to_hash(segments[segment++]);
         if (!hash) return error::invalid_hash;
 
-        method = "outputs";
+        method = "output";
         params["hash"] = hash;
     }
     else if (target == "input")
@@ -142,11 +143,11 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto component = segments[segment++];
         if (component == "scripts")
         {
-            method = "input_scripts";
+            method = "input_script";
         }
         else if (component == "witnesses")
         {
-            method = "input_witnesses";
+            method = "input_witness";
         }
         else
         {
@@ -186,11 +187,11 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto component = segments[segment++];
         if (component == "scripts")
         {
-            method = "output_scripts";
+            method = "output_script";
         }
         else if (component == "spenders")
         {
-            method = "output_spenders";
+            method = "output_spender";
         }
         else
         {

@@ -16,16 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PARSE_HPP
-#define LIBBITCOIN_NODE_PARSE_HPP
+#ifndef LIBBITCOIN_NODE_PARSE_QUERY_HPP
+#define LIBBITCOIN_NODE_PARSE_QUERY_HPP
 
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-BCN_API code parse_request(network::rpc::request_t& out,
-    const std::string_view& path) NOEXCEPT;
+BCN_API bool parse_query(network::rpc::request_t& out,
+    const network::http::request& request) NOEXCEPT;
 
 } // namespace network
 } // namespace libbitcoin

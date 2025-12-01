@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_EXPLORE_HPP
 
 #include <memory>
+#include <optional>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_html.hpp>
 
@@ -32,6 +33,8 @@ class BCN_API protocol_explore
 {
 public:
     typedef std::shared_ptr<protocol_explore> ptr;
+    using interface = network::rpc::interface::explore;
+    using dispatcher = network::rpc::dispatcher<interface>;
 
     protocol_explore(const auto& session,
         const network::channel::ptr& channel,
@@ -41,16 +44,68 @@ public:
     {
     }
 
-    /// Public start is required.
-    void start() NOEXCEPT override
-    {
-        node::protocol_html::start();
-    }
+    void start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    template <class Derived, typename Method, typename... Args>
+    inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
+    {
+        dispatcher_.subscribe(BIND_SHARED(method, args));
+    }
+
     /// Dispatch.
     bool try_dispatch_object(
         const network::http::request& request) NOEXCEPT override;
+
+    /// REST interface handlers.
+
+    bool handle_get_block(const code& ec, interface::block,
+        uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height, bool witness) NOEXCEPT;
+    bool handle_get_header(const code& ec, interface::header,
+        uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height) NOEXCEPT;
+    ////bool handle_get_filter(const code& ec, interface::filter,
+    ////    uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
+    ////    std::optional<uint32_t> height) NOEXCEPT;
+    ////bool handle_get_block_txs(const code& ec, interface::block_txs,
+    ////    uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
+    ////    std::optional<uint32_t> height) NOEXCEPT;
+    ////
+    ////bool handle_get_block_tx(const code& ec, interface::block_tx,
+    ////    uint8_t version, uint8_t media, uint32_t position,
+    ////    std::optional<system::hash_cptr> hash,
+    ////    std::optional<uint32_t> height, bool witness) NOEXCEPT;
+    ////
+    bool handle_get_transaction(const code& ec, interface::transaction,
+        uint8_t version, uint8_t media, system::hash_cptr hash,
+        bool witness) NOEXCEPT;
+    ////bool handle_get_address(const code& ec, interface::address,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash) NOEXCEPT;
+    ////
+    ////bool handle_get_input(const code& ec, interface::input,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
+    ////    std::optional<uint32_t> index) NOEXCEPT;
+    ////bool handle_get_input_script(const code& ec, interface::input_script,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
+    ////    std::optional<uint32_t> index) NOEXCEPT;
+    ////bool handle_get_input_witness(const code& ec, interface::input_witness,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
+    ////    std::optional<uint32_t> index) NOEXCEPT;
+    ////
+    ////bool handle_get_output(const code& ec, interface::output,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
+    ////    std::optional<uint32_t> index) NOEXCEPT;
+    ////bool handle_get_output_script(const code& ec, interface::output_script,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
+    ////    std::optional<uint32_t> index) NOEXCEPT;
+    ////bool handle_get_output_spender(const code& ec, interface::output_spender,
+    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
+    ////    std::optional<uint32_t> index) NOEXCEPT;
+
+private:
+    dispatcher dispatcher_{};
 };
 
 } // namespace node

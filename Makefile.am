@@ -53,6 +53,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_template.cpp \
     src/chasers/chaser_transaction.cpp \
     src/chasers/chaser_validate.cpp \
+    src/parse/query.cpp \
+    src/parse/target.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_block_in_106.cpp \
     src/protocols/protocol_block_in_31800.cpp \
@@ -70,8 +72,6 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_performer.cpp \
     src/protocols/protocol_transaction_in_106.cpp \
     src/protocols/protocol_transaction_out_106.cpp \
-    src/rest/media.cpp \
-    src/rest/parse.cpp \
     src/sessions/session.cpp \
     src/sessions/session_inbound.cpp \
     src/sessions/session_manual.cpp \
@@ -107,9 +107,9 @@ test_libbitcoin_node_test_SOURCES = \
     test/chasers/chaser_template.cpp \
     test/chasers/chaser_transaction.cpp \
     test/chasers/chaser_validate.cpp \
+    test/parse/query.cpp \
+    test/parse/target.cpp \
     test/protocols/protocol.cpp \
-    test/rest/media.cpp \
-    test/rest/parse.cpp \
     test/sessions/session.cpp
 
 endif WITH_TESTS
@@ -200,6 +200,12 @@ include_bitcoin_node_impl_chasersdir = ${includedir}/bitcoin/node/impl/chasers
 include_bitcoin_node_impl_chasers_HEADERS = \
     include/bitcoin/node/impl/chasers/chaser_organize.ipp
 
+include_bitcoin_node_parsedir = ${includedir}/bitcoin/node/parse
+include_bitcoin_node_parse_HEADERS = \
+    include/bitcoin/node/parse/parse.hpp \
+    include/bitcoin/node/parse/query.hpp \
+    include/bitcoin/node/parse/target.hpp
+
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol.hpp \
@@ -228,11 +234,6 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_web.hpp \
     include/bitcoin/node/protocols/protocol_ws.hpp \
     include/bitcoin/node/protocols/protocols.hpp
-
-include_bitcoin_node_restdir = ${includedir}/bitcoin/node/rest
-include_bitcoin_node_rest_HEADERS = \
-    include/bitcoin/node/rest/media.hpp \
-    include/bitcoin/node/rest/parse.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \

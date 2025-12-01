@@ -115,7 +115,8 @@ enum error_t : uint8_t
     missing_component,
     invalid_component,
     invalid_subcomponent,
-    extra_segment
+    extra_segment,
+    unexpected_parse
 };
 
 // No current need for error_code equivalence mapping.

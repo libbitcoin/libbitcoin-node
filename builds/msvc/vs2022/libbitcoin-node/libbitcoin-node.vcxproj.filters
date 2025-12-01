@@ -28,10 +28,10 @@
     <Filter Include="include\bitcoin\node\impl\chasers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000F}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\protocols">
+    <Filter Include="include\bitcoin\node\parse">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000C}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\rest">
+    <Filter Include="include\bitcoin\node\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000D}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\bitcoin\node\sessions">
@@ -49,10 +49,10 @@
     <Filter Include="src\chasers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000002}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\protocols">
+    <Filter Include="src\parse">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000003}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\rest">
+    <Filter Include="src\protocols">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000004}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\sessions">
@@ -108,6 +108,12 @@
     <ClCompile Include="..\..\..\..\src\full_node.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parse\query.cpp">
+      <Filter>src\parse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parse\target.cpp">
+      <Filter>src\parse</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\parser.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -161,12 +167,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp">
       <Filter>src\protocols</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\rest\media.cpp">
-      <Filter>src\rest</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\rest\parse.cpp">
-      <Filter>src\rest</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp">
       <Filter>src\sessions</Filter>
@@ -269,6 +269,15 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\parse.hpp">
+      <Filter>include\bitcoin\node\parse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\query.hpp">
+      <Filter>include\bitcoin\node\parse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\target.hpp">
+      <Filter>include\bitcoin\node\parse</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
@@ -349,12 +358,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\media.hpp">
-      <Filter>include\bitcoin\node\rest</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\parse.hpp">
-      <Filter>include\bitcoin\node\rest</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
