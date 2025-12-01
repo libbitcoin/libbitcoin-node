@@ -121,7 +121,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
 void full_node::start_web(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
@@ -136,7 +136,7 @@ void full_node::start_web(const code& ec,
 void full_node::start_explore(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
@@ -151,7 +151,7 @@ void full_node::start_explore(const code& ec,
 void full_node::start_websocket(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
@@ -166,7 +166,7 @@ void full_node::start_websocket(const code& ec,
 void full_node::start_bitcoind(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
@@ -181,7 +181,7 @@ void full_node::start_bitcoind(const code& ec,
 void full_node::start_electrum(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
@@ -196,7 +196,7 @@ void full_node::start_electrum(const code& ec,
 void full_node::start_stratum_v1(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
@@ -211,7 +211,7 @@ void full_node::start_stratum_v1(const code& ec,
 void full_node::start_stratum_v2(const code& ec,
     const result_handler& handler) NOEXCEPT
 {
-    BC_ASSERT_MSG(stranded(), "strand");
+    BC_ASSERT(stranded());
 
     if (ec)
     {
