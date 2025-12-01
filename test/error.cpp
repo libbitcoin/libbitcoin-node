@@ -362,4 +362,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__extra_segment__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "extra_segment");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__unexpected_parse__true_exected_message)
+{
+    constexpr auto value = error::unexpected_parse;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "unexpected_parse");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

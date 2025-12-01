@@ -16,18 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_MEDIA_HPP
-#define LIBBITCOIN_NODE_MEDIA_HPP
+#ifndef LIBBITCOIN_NODE_PARSE_PARSE_HPP
+#define LIBBITCOIN_NODE_PARSE_PARSE_HPP
 
-#include <bitcoin/node/define.hpp>
-
-namespace libbitcoin {
-namespace node {
-
-BCN_API bool get_acceptable_media_type(network::http::media_type& out,
-    const network::http::request& request) NOEXCEPT;
-
-} // namespace network
-} // namespace libbitcoin
+#include <bitcoin/node/parse/query.hpp>
+#include <bitcoin/node/parse/target.hpp>
 
 #endif

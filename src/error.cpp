@@ -105,7 +105,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { missing_component, "missing_component" },
     { invalid_component, "invalid_component" },
     { invalid_subcomponent, "invalid_subcomponent" },
-    { extra_segment, "extra_segment" }
+    { extra_segment, "extra_segment" },
+    { unexpected_parse, "unexpected_parse" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

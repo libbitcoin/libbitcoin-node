@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/rest/media.hpp>
+#include <bitcoin/node/parse/query.hpp>
 
 #include <bitcoin/node/define.hpp>
 
@@ -24,10 +24,10 @@ namespace libbitcoin {
 namespace node {
 
 using namespace system;
+using namespace network;
 using namespace network::http;
 
-bool get_acceptable_media_type(media_type& out,
-    const request& request) NOEXCEPT
+bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
 {
     wallet::uri uri{};
     if (!uri.decode(request.target()))
@@ -36,24 +36,42 @@ bool get_acceptable_media_type(media_type& out,
     constexpr auto text = media_type::text_plain;
     constexpr auto json = media_type::application_json;
     constexpr auto data = media_type::application_octet_stream;
+
+    auto query = uri.decode_query();
+    const auto format = query["format"];
+
+    if (!out.params.has_value() ||
+        !std::holds_alternative<rpc::object_t>(out.params.value()))
+        return false;
+
+    auto& params = std::get<rpc::object_t>(out.params.value());
+    const auto& witness = query["witness"];
+
+    // Validate prper bool value if set.
+    if (!witness.empty() && witness != "true" && witness != "false")
+        return false;
+
+    // Witness is optional<true> (where applicable) so only set if false.
+    if (witness == "false")
+        params["witness"] = false;
+
     const auto accepts = to_media_types((request)[field::accept]);
-    const auto format = uri.decode_query()["format"];
 
     if (contains(accepts, json) || format == "json")
     {
-        out = json;
+        params["media"] = to_value(json);
         return true;
     }
 
     if (contains(accepts, text) || format == "text")
     {
-        out = text;
+        params["media"] = to_value(text);
         return true;
     }
 
     if (contains(accepts, data) || format == "data")
     {
-        out = data;
+        params["media"] = to_value(data);
         return true;
     }
 

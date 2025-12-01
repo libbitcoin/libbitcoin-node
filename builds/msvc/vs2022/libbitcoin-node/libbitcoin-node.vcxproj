@@ -137,6 +137,8 @@
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
+    <ClCompile Include="..\..\..\..\src\parse\query.cpp" />
+    <ClCompile Include="..\..\..\..\src\parse\target.cpp" />
     <ClCompile Include="..\..\..\..\src\parser.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp" />
@@ -155,8 +157,6 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_performer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp" />
-    <ClCompile Include="..\..\..\..\src\rest\media.cpp" />
-    <ClCompile Include="..\..\..\..\src\rest\parse.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp" />
     <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
@@ -192,6 +192,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\parse.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\query.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\target.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_bitcoind.hpp" />
@@ -219,8 +222,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_web.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_ws.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\media.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\rest\parse.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />

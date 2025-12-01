@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/rest/parse.hpp>
+#include <bitcoin/node/parse/target.hpp>
 
 #include <ranges>
 #include <optional>
@@ -46,7 +46,7 @@ static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
         emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
 }
 
-code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
+code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
 {
     if (path.empty())
         return error::empty_path;
@@ -113,7 +113,7 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto hash = to_hash(segments[segment++]);
         if (!hash) return error::invalid_hash;
 
-        method = "inputs";
+        method = "input";
         params["hash"] = hash;
     }
     else if (target == "outputs")
@@ -124,7 +124,7 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto hash = to_hash(segments[segment++]);
         if (!hash) return error::invalid_hash;
 
-        method = "outputs";
+        method = "output";
         params["hash"] = hash;
     }
     else if (target == "input")
@@ -142,11 +142,11 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto component = segments[segment++];
         if (component == "scripts")
         {
-            method = "input_scripts";
+            method = "input_script";
         }
         else if (component == "witnesses")
         {
-            method = "input_witnesses";
+            method = "input_witness";
         }
         else
         {
@@ -186,11 +186,11 @@ code parse_request(request_t& out, const std::string_view& path) NOEXCEPT
         const auto component = segments[segment++];
         if (component == "scripts")
         {
-            method = "output_scripts";
+            method = "output_script";
         }
         else if (component == "spenders")
         {
-            method = "output_spenders";
+            method = "output_spender";
         }
         else
         {

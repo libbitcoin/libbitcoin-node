@@ -16,16 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../test.hpp"
+#ifndef LIBBITCOIN_NODE_PARSE_TARGET_HPP
+#define LIBBITCOIN_NODE_PARSE_TARGET_HPP
 
-BOOST_AUTO_TEST_SUITE(media_tests)
+#include <bitcoin/node/define.hpp>
 
-using namespace network::http;
+namespace libbitcoin {
+namespace node {
 
-BOOST_AUTO_TEST_CASE(media__get_acceptable_media_type__empty__false)
-{
-    media_type out{};
-    BOOST_REQUIRE(!get_acceptable_media_type(out, request{}));
-}
+BCN_API code parse_target(network::rpc::request_t& out,
+    const std::string_view& path) NOEXCEPT;
 
-BOOST_AUTO_TEST_SUITE_END()
+} // namespace network
+} // namespace libbitcoin
+
+#endif
