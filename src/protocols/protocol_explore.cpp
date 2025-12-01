@@ -101,7 +101,7 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 // ----------------------------------------------------------------------------
 
 bool protocol_explore::handle_get_block(const code& ec, interface::block,
-    uint8_t, uint8_t media, std::optional<system::hash_cptr> hash,
+    uint8_t, uint8_t media, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height, bool witness) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -139,7 +139,7 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
 }
 
 bool protocol_explore::handle_get_header(const code& ec, interface::header,
-    uint8_t, uint8_t media, std::optional<system::hash_cptr> hash,
+    uint8_t, uint8_t media, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -177,7 +177,7 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
 }
 
 bool protocol_explore::handle_get_transaction(const code& ec,
-    interface::transaction, uint8_t, uint8_t media, system::hash_cptr hash,
+    interface::transaction, uint8_t, uint8_t media, const hash_cptr& hash,
     bool witness) NOEXCEPT
 {
     BC_ASSERT(stranded());
