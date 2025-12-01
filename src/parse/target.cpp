@@ -35,8 +35,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 template <typename Number>
 static bool to_number(Number& out, const std::string_view& token) NOEXCEPT
 {
-    return !token.empty() && is_ascii_numeric(token) && token.front() != '0' &&
-        deserialize(out, token);
+    return !token.empty() && is_ascii_numeric(token) && (is_one(token.size()) ||
+        token.front() != '0') && deserialize(out, token);
 }
 
 static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
