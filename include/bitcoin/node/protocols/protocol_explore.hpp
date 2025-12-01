@@ -86,7 +86,7 @@ protected:
     ////
     ////bool handle_get_input(const code& ec, interface::input,
     ////    uint8_t version, uint8_t media, system::hash_cptr hash,
-    ////    std::optional<uint32_t> index, bool witness) NOEXCEPT;
+    ////    std::optional<uint32_t> index) NOEXCEPT;
     ////bool handle_get_input_script(const code& ec, interface::input_script,
     ////    uint8_t version, uint8_t media, system::hash_cptr hash,
     ////    std::optional<uint32_t> index) NOEXCEPT;

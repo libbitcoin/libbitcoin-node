@@ -57,7 +57,7 @@ void protocol_explore::start() NOEXCEPT
     ////SUBSCRIBE_EXPLORE(handle_get_block_tx, _1, _2, _3, _4, _5, _6, _7, _8);
     SUBSCRIBE_EXPLORE(handle_get_transaction, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5);
-    ////SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6, _7);
+    ////SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_input_script, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_input_witness, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_output, _1, _2, _3, _4, _5, _6);
