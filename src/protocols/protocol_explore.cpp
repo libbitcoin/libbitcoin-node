@@ -39,6 +39,9 @@ using namespace std::placeholders;
 using object_type = network::rpc::object_t;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+BC_PUSH_WARNING(NO_INCOMPLETE_SWITCH)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // Start.
 // ----------------------------------------------------------------------------
@@ -107,8 +110,9 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
         return false;
 
     const auto& query = archive();
-    const auto link = hash.has_value() ? query.to_header(*(hash.value())) :
-        query.to_confirmed(height.value());
+    const auto link = hash.has_value() ?
+        query.to_header(*(hash.value())) : (height.has_value() ?
+            query.to_confirmed(height.value()) : database::header_link{});
 
     // TODO: there's no request.
     const network::http::request request{};
@@ -144,8 +148,9 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
         return false;
 
     const auto& query = archive();
-    const auto link = hash.has_value() ? query.to_header(*(hash.value())) :
-        query.to_confirmed(height.value());
+    const auto link = hash.has_value() ?
+        query.to_header(*(hash.value())) : (height.has_value() ?
+            query.to_confirmed(height.value()) : database::header_link{});
 
     // TODO: there's no request.
     const network::http::request request{};
@@ -206,6 +211,9 @@ bool protocol_explore::handle_get_transaction(const code& ec,
     return true;
 }
 
+BC_POP_WARNING()
+BC_POP_WARNING()
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 #undef SUBSCRIBE_EXPLORE
