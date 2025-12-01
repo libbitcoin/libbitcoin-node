@@ -55,7 +55,7 @@ void protocol_explore::start() NOEXCEPT
     ////SUBSCRIBE_EXPLORE(handle_get_filter, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_block_txs, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_block_tx, _1, _2, _3, _4, _5, _6, _7, _8);
-    ////SUBSCRIBE_EXPLORE(handle_get_transaction, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_transaction, _1, _2, _3, _4, _5, _6);
     ////SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5);
     ////SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6, _7);
     ////SUBSCRIBE_EXPLORE(handle_get_input_script, _1, _2, _3, _4, _5, _6);
@@ -163,6 +163,41 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
             case to_value(media_type::application_json):
                 send_json(request, value_from(ptr),
                     chain::header::serialized_size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_transaction(const code& ec,
+    interface::transaction, uint8_t, uint8_t media, system::hash_cptr hash,
+    bool witness) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+
+    // TODO: there's no request.
+    const network::http::request request{};
+
+    if (const auto ptr = query.get_transaction(query.to_tx(*hash), witness))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_data(request, ptr->to_data(witness));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data(witness)));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size(witness));
                 return true;
         }
     }

@@ -78,9 +78,9 @@ protected:
     ////    std::optional<system::hash_cptr> hash,
     ////    std::optional<uint32_t> height, bool witness) NOEXCEPT;
     ////
-    ////bool handle_get_transaction(const code& ec, interface::transaction,
-    ////    uint8_t version, uint8_t media, system::hash_cptr hash,
-    ////    bool witness) NOEXCEPT;
+    bool handle_get_transaction(const code& ec, interface::transaction,
+        uint8_t version, uint8_t media, system::hash_cptr hash,
+        bool witness) NOEXCEPT;
     ////bool handle_get_address(const code& ec, interface::address,
     ////    uint8_t version, uint8_t media, system::hash_cptr hash) NOEXCEPT;
     ////
