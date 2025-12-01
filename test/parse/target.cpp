@@ -29,7 +29,7 @@ using object_t = network::rpc::object_t;
 BOOST_AUTO_TEST_CASE(parse__parse_target__empty_path__empty_path)
 {
     request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, ""), node::error::empty_path);
+    BOOST_REQUIRE_EQUAL(parse_target(out, "?foo=bar"), node::error::empty_path);
 }
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__missing_version__missing_version)
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__invalid_target__invalid_target)
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__block_hash_valid__expected)
 {
-    const std::string path = "//v42//block//hash//0000000000000000000000000000000000000000000000000000000000000042//";
+    const std::string path = "//v42//block//hash//0000000000000000000000000000000000000000000000000000000000000042//?foo=bar";
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));

@@ -48,7 +48,8 @@ static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
 
 code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
 {
-    if (path.empty())
+    const auto clean = split(path, "?", false, false).front();
+    if (clean.empty())
         return error::empty_path;
 
     // Avoid conflict with node type.
@@ -65,7 +66,7 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
 
     auto& method = out.method;
     auto& params = std::get<object_t>(out.params.value());
-    const auto segments = split(path, "/", false, true);
+    const auto segments = split(clean, "/", false, true);
     BC_ASSERT(!segments.empty());
 
     size_t segment{};
