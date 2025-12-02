@@ -102,6 +102,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { missing_position, "missing_position" },
     { missing_id_type, "missing_id_type" },
     { invalid_id_type, "invalid_id_type" },
+    { missing_type_id, "missing_type_id" },
     { missing_component, "missing_component" },
     { invalid_component, "invalid_component" },
     { invalid_subcomponent, "invalid_subcomponent" },

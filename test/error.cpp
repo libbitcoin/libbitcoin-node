@@ -326,6 +326,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__invalid_id_type__true_exected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "invalid_id_type");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__missing_type_id__true_exected_message)
+{
+    constexpr auto value = error::missing_type_id;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "missing_type_id");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__missing_component__true_exected_message)
 {
     constexpr auto value = error::missing_component;

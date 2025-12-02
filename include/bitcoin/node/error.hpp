@@ -112,6 +112,7 @@ enum error_t : uint8_t
     missing_position,
     missing_id_type,
     invalid_id_type,
+    missing_type_id,
     missing_component,
     invalid_component,
     invalid_subcomponent,
