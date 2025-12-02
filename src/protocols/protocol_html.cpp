@@ -186,7 +186,7 @@ void protocol_html::send_text(const request& request,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_html::send_data(const request& request,
+void protocol_html::send_chunk(const request& request,
     system::data_chunk&& bytes) NOEXCEPT
 {
     BC_ASSERT(stranded());

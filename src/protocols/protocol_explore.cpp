@@ -33,6 +33,7 @@ namespace node {
 using namespace system;
 using namespace network::rpc;
 using namespace network::http;
+using namespace network::messages::peer;
 using namespace std::placeholders;
 
 // Avoiding namespace conflict.
@@ -55,17 +56,26 @@ void protocol_explore::start() NOEXCEPT
 
     SUBSCRIBE_EXPLORE(handle_get_block, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_EXPLORE(handle_get_header, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_filter, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_block_txs, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_block_tx, _1, _2, _3, _4, _5, _6, _7, _8);
+    SUBSCRIBE_EXPLORE(handle_get_block_txs, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_block_tx, _1, _2, _3, _4, _5, _6, _7, _8);
     SUBSCRIBE_EXPLORE(handle_get_transaction, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5);
-    ////SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_input_script, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_input_witness, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_output, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_output_script, _1, _2, _3, _4, _5, _6);
-    ////SUBSCRIBE_EXPLORE(handle_get_output_spender, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_tx_block, _1, _2, _3, _4, _5);
+
+    SUBSCRIBE_EXPLORE(handle_get_inputs, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6, _7);
+    SUBSCRIBE_EXPLORE(handle_get_input_script, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_input_witness, _1, _2, _3, _4, _5, _6);
+
+    SUBSCRIBE_EXPLORE(handle_get_outputs, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_output, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_output_script, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_output_spender, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_output_spenders, _1, _2, _3, _4, _5, _6);
+
+    SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_filter, _1, _2, _3, _4, _5, _6, _7);
+    SUBSCRIBE_EXPLORE(handle_get_filter_hash, _1, _2, _3, _4, _5, _6, _7);
+    SUBSCRIBE_EXPLORE(handle_get_filter_header, _1, _2, _3, _4, _5, _6, _7);
     protocol_html::start();
 }
 
@@ -109,20 +119,15 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    const auto link = hash.has_value() ?
-        query.to_header(*(hash.value())) : (height.has_value() ?
-            query.to_confirmed(height.value()) : database::header_link{});
-
     // TODO: there's no request.
-    const network::http::request request{};
+    const request request{};
 
-    if (const auto ptr = query.get_block(link, witness))
+    if (const auto ptr = archive().get_block(to_header(height, hash), witness))
     {
         switch (media)
         {
             case to_value(media_type::application_octet_stream):
-                send_data(request, ptr->to_data(witness));
+                send_chunk(request, ptr->to_data(witness));
                 return true;
             case to_value(media_type::text_plain):
                 send_text(request, encode_base16(ptr->to_data(witness)));
@@ -147,20 +152,15 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    const auto link = hash.has_value() ?
-        query.to_header(*(hash.value())) : (height.has_value() ?
-            query.to_confirmed(height.value()) : database::header_link{});
-
     // TODO: there's no request.
-    const network::http::request request{};
+    const request request{};
 
-    if (const auto ptr = query.get_header(link))
+    if (const auto ptr = archive().get_header(to_header(height, hash)))
     {
         switch (media)
         {
             case to_value(media_type::application_octet_stream):
-                send_data(request, ptr->to_data());
+                send_chunk(request, ptr->to_data());
                 return true;
             case to_value(media_type::text_plain):
                 send_text(request, encode_base16(ptr->to_data()));
@@ -168,6 +168,87 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
             case to_value(media_type::application_json):
                 send_json(request, value_from(ptr),
                     chain::header::serialized_size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_block_txs(const code& ec,
+    interface::block_txs, uint8_t, uint8_t media,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    // TODO: iterate.
+    const auto& query = archive();
+    if (const auto hashes = query.get_tx_keys(to_header(height, hash));
+        !hashes.empty())
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+            {
+                const auto data = pointer_cast<const uint8_t>(hashes.data());
+                const auto size = hashes.size() * hash_size;
+                send_chunk(request, to_chunk({ data, std::next(data, size) }));
+                return true;
+            }
+            case to_value(media_type::text_plain):
+            {
+                const auto data = pointer_cast<const uint8_t>(hashes.data());
+                const auto size = hashes.size() * hash_size;
+                const auto end = std::next(data, size);
+                send_text(request, encode_base16({ data, end }));
+                return true;
+            }
+            case to_value(media_type::application_json):
+            {
+                // TODO: json array of base16 hashes.
+                return true;
+            }
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
+    uint8_t, uint8_t media, uint32_t position, std::optional<hash_cptr> hash,
+    std::optional<uint32_t> height, bool witness) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    if (const auto ptr = query.get_transaction(query.to_transaction(
+        to_header(height, hash), position), witness))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data(witness));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data(witness)));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size(witness));
                 return true;
         }
     }
@@ -185,17 +266,16 @@ bool protocol_explore::handle_get_transaction(const code& ec,
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-
     // TODO: there's no request.
-    const network::http::request request{};
+    const request request{};
 
+    const auto& query = archive();
     if (const auto ptr = query.get_transaction(query.to_tx(*hash), witness))
     {
         switch (media)
         {
             case to_value(media_type::application_octet_stream):
-                send_data(request, ptr->to_data(witness));
+                send_chunk(request, ptr->to_data(witness));
                 return true;
             case to_value(media_type::text_plain):
                 send_text(request, encode_base16(ptr->to_data(witness)));
@@ -209,6 +289,583 @@ bool protocol_explore::handle_get_transaction(const code& ec,
 
     send_not_found(request);
     return true;
+}
+
+bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
+    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    const auto block = query.to_block(query.to_tx(*hash));
+    if (block.is_terminal())
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    const auto key = query.get_header_key(block);
+    if (key == null_hash)
+    {
+        send_internal_server_error(request, database::error::integrity);
+        return true;
+    }
+
+    switch (media)
+    {
+        case to_value(media_type::application_octet_stream):
+            // TODO: serialize key to buffer.
+            return true;
+        case to_value(media_type::text_plain):
+            // TODO: serialize key to buffer and encode
+            return true;
+        case to_value(media_type::application_json):
+            // TODO: json base16 key.
+            return true;
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
+    uint8_t, uint8_t media, const hash_cptr& hash, bool) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    const auto tx = query.to_tx(*hash);
+    if (tx.is_terminal())
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    // TODO: there is no canonical serialization for input + witness.
+    // TODO: so the witness parameter is presently ignored for input/inputs.
+    const auto ptr = query.get_inputs(tx, false);
+    if (!ptr || ptr->empty())
+    {
+        send_internal_server_error(request, database::error::integrity);
+        return true;
+    }
+
+    // TODO: iterate.
+    switch (media)
+    {
+        case to_value(media_type::application_octet_stream):
+            send_chunk(request, ptr->front()->to_data());
+            return true;
+        case to_value(media_type::text_plain):
+            send_text(request, encode_base16(ptr->front()->to_data()));
+            return true;
+        case to_value(media_type::application_json):
+            send_json(request, value_from(ptr->front()),
+                ptr->front()->serialized_size(false));
+            return true;
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_input(const code& ec, interface::input,
+    uint8_t, uint8_t media, const hash_cptr& hash, uint32_t index,
+    bool) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    // TODO: there is no canonical serialization for input + witness.
+    // TODO: so the witness parameter is presently ignored for input/inputs.
+    const auto& query = archive();
+    if (const auto ptr = query.get_input(query.to_tx(*hash), index, false))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data());
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data()));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size(false));
+            return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_input_script(const code& ec,
+    interface::input_script, uint8_t, uint8_t media, const hash_cptr& hash,
+    uint32_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    if (const auto ptr = query.get_input_script(query.to_point(
+        query.to_tx(*hash), index)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data(false));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data(false)));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size(false));
+            return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_input_witness(const code& ec,
+    interface::input_witness, uint8_t, uint8_t media, const hash_cptr& hash,
+    uint32_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    if (const auto ptr = query.get_witness(query.to_point(
+        query.to_tx(*hash), index)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data(false));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data(false)));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size(false));
+            return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
+    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+    const auto& query = archive();
+
+    // TODO: iterate.
+    if (const auto ptr = query.get_outputs(query.to_tx(*hash)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->front()->to_data());
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->front()->to_data()));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr->front()),
+                    ptr->front()->serialized_size());
+            return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_output(const code& ec, interface::output,
+    uint8_t, uint8_t media, const hash_cptr& hash,
+    uint32_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    if (const auto ptr = query.get_output(query.to_tx(*hash), index))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data());
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data()));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size());
+            return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_output_script(const code& ec,
+    interface::output_script, uint8_t, uint8_t media, const hash_cptr& hash,
+    uint32_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    if (const auto ptr = query.get_output_script(query.to_output(
+        query.to_tx(*hash), index)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data(false));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data(false)));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size(false));
+            return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_output_spender(const code& ec,
+    interface::output_spender, uint8_t, uint8_t media, const hash_cptr& hash,
+    uint32_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    // TODO: query only confirmed spender.
+    const auto& query = archive();
+    const auto spenders = query.to_spenders(*hash, index);
+    if (spenders.empty())
+    {
+        send_not_found(request);
+        return true;
+    }
+    
+    if (const auto point = query.get_point(spenders.front());
+        point.hash() != null_hash)
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, point.to_data());
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(point.to_data()));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(point), point.serialized_size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_output_spenders(const code& ec,
+    interface::output_spender, uint8_t, uint8_t media, const hash_cptr& hash,
+    uint32_t index) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    const auto spenders = query.to_spenders(*hash, index);
+
+    // TODO: iterate.
+    if (spenders.empty())
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    if (const auto point = query.get_point(spenders.front());
+        point.hash() != null_hash)
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, point.to_data());
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(point.to_data()));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(point), point.serialized_size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_address(const code& ec, interface::address,
+    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    const auto& query = archive();
+    if (!query.address_enabled())
+    {
+        send_not_implemented(request);
+        return true;
+    }
+
+    database::output_links outputs{};
+    if (!query.to_address_outputs(outputs, *hash))
+    {
+        send_internal_server_error(request, database::error::integrity);
+        return true;
+    }
+
+    if (outputs.empty())
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    // TODO: iterate.
+    if (const auto ptr = query.get_output(outputs.front()))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, ptr->to_data());
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(ptr->to_data()));
+                return true;
+            case to_value(media_type::application_json):
+                send_json(request, value_from(ptr),
+                    ptr->serialized_size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
+    uint8_t, uint8_t media, uint8_t type,
+    std::optional<system::hash_cptr> hash,
+    std::optional<uint32_t> height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    if (type != client_filter::type_id::neutrino)
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    data_chunk filter{};
+    if (archive().get_filter_body(filter, to_header(height, hash)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, std::move(filter));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(filter));
+                return true;
+            case to_value(media_type::application_json):
+                const auto base16 = encode_base16(filter);
+                send_json(request, value_from(base16), base16.size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_filter_hash(const code& ec,
+    interface::filter_hash, uint8_t, uint8_t media, uint8_t type,
+    std::optional<system::hash_cptr> hash,
+    std::optional<uint32_t> height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    if (type != client_filter::type_id::neutrino)
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    data_chunk chunk{ hash_size };
+    auto& filter_hash = unsafe_array_cast<uint8_t, hash_size>(chunk.data());
+    if (archive().get_filter_hash(filter_hash, to_header(height, hash)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, std::move(chunk));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(filter_hash));
+                return true;
+            case to_value(media_type::application_json):
+                const auto base16 = encode_base16(filter_hash);
+                send_json(request, value_from(base16), base16.size());
+                return true;
+        }
+    }
+
+    send_not_found(request);
+    return true;
+}
+
+bool protocol_explore::handle_get_filter_header(const code& ec,
+    interface::filter_header, uint8_t, uint8_t media, uint8_t type,
+    std::optional<system::hash_cptr> hash,
+    std::optional<uint32_t> height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    // TODO: there's no request.
+    const request request{};
+
+    if (type != client_filter::type_id::neutrino)
+    {
+        send_not_found(request);
+        return true;
+    }
+
+    data_chunk chunk{ hash_size };
+    auto& filter_head = unsafe_array_cast<uint8_t, hash_size>(chunk.data());
+    if (archive().get_filter_head(filter_head, to_header(height, hash)))
+    {
+        switch (media)
+        {
+            case to_value(media_type::application_octet_stream):
+                send_chunk(request, std::move(chunk));
+                return true;
+            case to_value(media_type::text_plain):
+                send_text(request, encode_base16(filter_head));
+                return true;
+            case to_value(media_type::application_json):
+                const auto base16 = encode_base16(filter_head);
+                send_json(request, value_from(base16), base16.size());
+                return true;
+        }
+    }
+}
+
+// private
+// ----------------------------------------------------------------------------
+
+database::header_link protocol_explore::to_header(
+    const std::optional<uint32_t>& height,
+    const std::optional<hash_cptr>& hash) NOEXCEPT
+{
+    const auto& query = archive();
+
+    if (hash.has_value())
+        return query.to_header(*(hash.value()));
+
+    if (height.has_value())
+        return query.to_confirmed(height.value());
+
+    return {};
 }
 
 BC_POP_WARNING()
