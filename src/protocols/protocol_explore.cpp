@@ -188,7 +188,7 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
     // TODO: there's no request.
     const request request{};
 
-    // TODO: iterate.
+    // TODO: iterate, naturally sorted by position.
     const auto& query = archive();
     if (const auto hashes = query.get_tx_keys(to_header(height, hash));
         !hashes.empty())
@@ -362,7 +362,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
         return true;
     }
 
-    // TODO: iterate.
+    // TODO: iterate, naturally sorted by position.
     switch (media)
     {
         case to_value(media_type::application_octet_stream):
@@ -499,7 +499,7 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
     const request request{};
     const auto& query = archive();
 
-    // TODO: iterate.
+    // TODO: iterate, naturally sorted by position.
     if (const auto ptr = query.get_outputs(query.to_tx(*hash)))
     {
         switch (media)
@@ -644,16 +644,16 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     // TODO: there's no request.
     const request request{};
 
+    // TODO: iterate, sort by height/position/index.
     const auto& query = archive();
     const auto spenders = query.to_spenders(*hash, index);
-
-    // TODO: iterate.
     if (spenders.empty())
     {
         send_not_found(request);
         return true;
     }
 
+    // TODO: iterate, sort in query.
     if (const auto point = query.get_point(spenders.front());
         point.hash() != null_hash)
     {
@@ -693,6 +693,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
+    // TODO: iterate, sort by height/position/index.
     database::output_links outputs{};
     if (!query.to_address_outputs(outputs, *hash))
     {
@@ -706,7 +707,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
-    // TODO: iterate.
+    // TODO: iterate, sort in query.
     if (const auto ptr = query.get_output(outputs.front()))
     {
         switch (media)
@@ -741,6 +742,13 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     // TODO: there's no request.
     const request request{};
 
+    const auto& query = archive();
+    if (!query.filter_enabled())
+    {
+        send_not_implemented(request);
+        return true;
+    }
+
     if (type != client_filter::type_id::neutrino)
     {
         send_not_found(request);
@@ -748,7 +756,7 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     }
 
     data_chunk filter{};
-    if (archive().get_filter_body(filter, to_header(height, hash)))
+    if (query.get_filter_body(filter, to_header(height, hash)))
     {
         switch (media)
         {
@@ -782,6 +790,13 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
     // TODO: there's no request.
     const request request{};
 
+    const auto& query = archive();
+    if (!query.filter_enabled())
+    {
+        send_not_implemented(request);
+        return true;
+    }
+
     if (type != client_filter::type_id::neutrino)
     {
         send_not_found(request);
@@ -790,7 +805,7 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
 
     data_chunk chunk{ hash_size };
     auto& filter_hash = unsafe_array_cast<uint8_t, hash_size>(chunk.data());
-    if (archive().get_filter_hash(filter_hash, to_header(height, hash)))
+    if (query.get_filter_hash(filter_hash, to_header(height, hash)))
     {
         switch (media)
         {
@@ -824,6 +839,13 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
     // TODO: there's no request.
     const request request{};
 
+    const auto& query = archive();
+    if (!query.filter_enabled())
+    {
+        send_not_implemented(request);
+        return true;
+    }
+
     if (type != client_filter::type_id::neutrino)
     {
         send_not_found(request);
@@ -832,7 +854,7 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
 
     data_chunk chunk{ hash_size };
     auto& filter_head = unsafe_array_cast<uint8_t, hash_size>(chunk.data());
-    if (archive().get_filter_head(filter_head, to_header(height, hash)))
+    if (query.get_filter_head(filter_head, to_header(height, hash)))
     {
         switch (media)
         {
