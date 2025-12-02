@@ -194,7 +194,7 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
             case text:
             {
                 const auto data = pointer_cast<const uint8_t>(hashes.data());
-                send_wire(media, { data, std::next(data, size) });
+                send_wire(media, to_chunk({ data, std::next(data, size) }));
                 return true;
             }
             case json:
@@ -760,15 +760,6 @@ void protocol_explore::send_wire(uint8_t media, data_chunk&& chunk) NOEXCEPT
         send_chunk({}, std::move(chunk));
     else
         send_text({}, encode_base16(chunk));
-}
-
-void protocol_explore::send_wire(uint8_t media,
-    const data_slice& slice) NOEXCEPT
-{
-    if (media == data)
-        send_chunk({}, to_chunk(slice));
-    else
-        send_text({}, encode_base16(slice));
 }
 
 database::header_link protocol_explore::to_header(
