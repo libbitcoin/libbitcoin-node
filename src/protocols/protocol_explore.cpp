@@ -312,8 +312,6 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
         return true;
     }
 
-    // TODO: there is no canonical serialization for input + witness.
-    // TODO: so the witness parameter is presently ignored for input/inputs.
     const auto ptr = query.get_inputs(tx, false);
     if (!ptr || ptr->empty())
     {
@@ -345,8 +343,6 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
     if (stopped(ec))
         return false;
 
-    // TODO: there is no canonical serialization for input + witness.
-    // TODO: so the witness parameter is presently ignored for input/inputs.
     const auto& query = archive();
     if (const auto ptr = query.get_input(query.to_tx(*hash), index, false))
     {
