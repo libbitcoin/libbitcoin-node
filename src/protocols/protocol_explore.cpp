@@ -292,11 +292,10 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
     {
         case data:
         case text:
-            // TODO: serialize key to buffer.
-            send_wire(media, data_chunk{});
+            send_wire(media, to_chunk(key));
             return true;
         case json:
-            // TODO: json base16 key.
+            send_json({}, value_from(encode_base16(key)), two * hash_size);
             return true;
     }
 
