@@ -140,7 +140,7 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(witness));
+                    two * ptr->serialized_size(witness));
                 return true;
         }
     }
@@ -166,7 +166,7 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    chain::header::serialized_size());
+                    two * chain::header::serialized_size());
                 return true;
         }
     }
@@ -202,7 +202,7 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
                 array out(hashes.size());
                 std::ranges::transform(hashes, out.begin(),
                     [](const auto& hash) { return encode_base16(hash); });
-                send_json({}, out, size);
+                send_json({}, out, two * size);
                 return true;
             }
         }
@@ -231,7 +231,7 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(witness));
+                    two * ptr->serialized_size(witness));
                 return true;
         }
     }
@@ -258,7 +258,7 @@ bool protocol_explore::handle_get_transaction(const code& ec,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(witness));
+                    two * ptr->serialized_size(witness));
                 return true;
         }
     }
@@ -334,7 +334,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
             return true;
         case json:
             send_json({}, value_from(ptr->front()),
-                ptr->front()->serialized_size(false));
+                two * ptr->front()->serialized_size(false));
             return true;
     }
 
@@ -360,7 +360,7 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(false));
+                    two * ptr->serialized_size(false));
             return true;
         }
     }
@@ -388,7 +388,7 @@ bool protocol_explore::handle_get_input_script(const code& ec,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(false));
+                    two * ptr->serialized_size(false));
             return true;
         }
     }
@@ -416,7 +416,7 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(false));
+                    two * ptr->serialized_size(false));
             return true;
         }
     }
@@ -444,7 +444,7 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
                 return true;
             case json:
                 send_json({}, value_from(ptr->front()),
-                    ptr->front()->serialized_size());
+                    two * ptr->front()->serialized_size());
             return true;
         }
     }
@@ -471,7 +471,7 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size());
+                    two * ptr->serialized_size());
             return true;
         }
     }
@@ -499,7 +499,7 @@ bool protocol_explore::handle_get_output_script(const code& ec,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size(false));
+                    two * ptr->serialized_size(false));
             return true;
         }
     }
@@ -534,7 +534,8 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
                 send_wire(media, point.to_data());
                 return true;
             case json:
-                send_json({}, value_from(point), point.serialized_size());
+                send_json({}, value_from(point),
+                    two * point.serialized_size());
                 return true;
         }
     }
@@ -570,7 +571,8 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
                 send_wire(media, point.to_data());
                 return true;
             case json:
-                send_json({}, value_from(point), point.serialized_size());
+                send_json({}, value_from(point),
+                    two * point.serialized_size());
                 return true;
         }
     }
@@ -617,7 +619,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
                 return true;
             case json:
                 send_json({}, value_from(ptr),
-                    ptr->serialized_size());
+                    two * ptr->serialized_size());
                 return true;
         }
     }
