@@ -18,7 +18,9 @@
  */
 #include <bitcoin/node/protocols/protocol_explore.hpp>
 
+#include <algorithm>
 #include <optional>
+#include <ranges>
 #include <utility>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/parse/parse.hpp>
@@ -36,6 +38,7 @@ using namespace network::rpc;
 using namespace network::http;
 using namespace network::messages::peer;
 using namespace std::placeholders;
+using namespace boost::json;
 
 // Avoiding namespace conflict.
 using object_type = network::rpc::object_t;
@@ -179,24 +182,27 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
     if (stopped(ec))
         return false;
 
-    // TODO: iterate, naturally sorted by position.
     const auto& query = archive();
     if (const auto hashes = query.get_tx_keys(to_header(height, hash));
         !hashes.empty())
     {
+        const auto size = hashes.size() * hash_size;
+
         switch (media)
         {
             case data:
             case text:
             {
-                const auto size = hashes.size() * hash_size;
                 const auto data = pointer_cast<const uint8_t>(hashes.data());
                 send_wire(media, { data, std::next(data, size) });
                 return true;
             }
             case json:
             {
-                // TODO: json array of base16 hashes.
+                array out(hashes.size());
+                std::ranges::transform(hashes, out.begin(),
+                    [](const auto& hash) { return encode_base16(hash); });
+                send_json({}, out, size);
                 return true;
             }
         }
