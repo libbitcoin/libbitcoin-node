@@ -870,6 +870,9 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
                 return true;
         }
     }
+
+    send_not_found(request);
+    return true;
 }
 
 // private
