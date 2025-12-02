@@ -136,13 +136,13 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
                 send_wire(media, ptr->to_data(witness));
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(witness));
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -162,13 +162,13 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
                 send_wire(media, ptr->to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     chain::header::serialized_size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -202,7 +202,7 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -224,13 +224,13 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
                 send_wire(media, ptr->to_data(witness));
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(witness));
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -251,13 +251,13 @@ bool protocol_explore::handle_get_transaction(const code& ec,
                 send_wire(media, ptr->to_data(witness));
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(witness));
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -271,14 +271,14 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
     const auto block = query.to_block(query.to_tx(*hash));
     if (block.is_terminal())
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
     const auto key = query.get_header_key(block);
     if (key == null_hash)
     {
-        send_internal_server_error(request{}, database::error::integrity);
+        send_internal_server_error({}, database::error::integrity);
         return true;
     }
 
@@ -294,7 +294,7 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
             return true;
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -308,14 +308,14 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
     const auto tx = query.to_tx(*hash);
     if (tx.is_terminal())
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
     const auto ptr = query.get_inputs(tx, false);
     if (!ptr || ptr->empty())
     {
-        send_internal_server_error(request{}, database::error::integrity);
+        send_internal_server_error({}, database::error::integrity);
         return true;
     }
 
@@ -327,12 +327,12 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
             send_wire(media, ptr->front()->to_data());
             return true;
         case json:
-            send_json(request{}, value_from(ptr->front()),
+            send_json({}, value_from(ptr->front()),
                 ptr->front()->serialized_size(false));
             return true;
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -353,13 +353,13 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
                 send_wire(media, ptr->to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -381,13 +381,13 @@ bool protocol_explore::handle_get_input_script(const code& ec,
                 send_wire(media, ptr->to_data(false));
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -409,13 +409,13 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
                 send_wire(media, ptr->to_data(false));
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -437,13 +437,13 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
                 send_wire(media, ptr->front()->to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(ptr->front()),
+                send_json({}, value_from(ptr->front()),
                     ptr->front()->serialized_size());
             return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -464,13 +464,13 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
                 send_wire(media, ptr->to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size());
             return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -492,13 +492,13 @@ bool protocol_explore::handle_get_output_script(const code& ec,
                 send_wire(media, ptr->to_data(false));
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -514,7 +514,7 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     const auto spenders = query.to_spenders(*hash, index);
     if (spenders.empty())
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
     
@@ -528,12 +528,12 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
                 send_wire(media, point.to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(point), point.serialized_size());
+                send_json({}, value_from(point), point.serialized_size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -549,7 +549,7 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     const auto spenders = query.to_spenders(*hash, index);
     if (spenders.empty())
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
@@ -564,12 +564,12 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
                 send_wire(media, point.to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(point), point.serialized_size());
+                send_json({}, value_from(point), point.serialized_size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -582,7 +582,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     const auto& query = archive();
     if (!query.address_enabled())
     {
-        send_not_implemented(request{});
+        send_not_implemented({});
         return true;
     }
 
@@ -590,13 +590,13 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     database::output_links outputs{};
     if (!query.to_address_outputs(outputs, *hash))
     {
-        send_internal_server_error(request{}, database::error::integrity);
+        send_internal_server_error({}, database::error::integrity);
         return true;
     }
 
     if (outputs.empty())
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
@@ -610,13 +610,13 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
                 send_wire(media, ptr->to_data());
                 return true;
             case json:
-                send_json(request{}, value_from(ptr),
+                send_json({}, value_from(ptr),
                     ptr->serialized_size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -631,13 +631,13 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented(request{});
+        send_not_implemented({});
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
@@ -652,12 +652,12 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
                 return true;
             case json:
                 const auto base16 = encode_base16(filter);
-                send_json(request{}, value_from(base16), base16.size());
+                send_json({}, value_from(base16), base16.size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -672,13 +672,13 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented(request{});
+        send_not_implemented({});
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
@@ -694,12 +694,12 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
                 return true;
             case json:
                 const auto base16 = encode_base16(chunk);
-                send_json(request{}, value_from(base16), base16.size());
+                send_json({}, value_from(base16), base16.size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
@@ -714,13 +714,13 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented(request{});
+        send_not_implemented({});
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found(request{});
+        send_not_found({});
         return true;
     }
 
@@ -736,12 +736,12 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
                 return true;
             case json:
                 const auto base16 = encode_base16(chunk);
-                send_json(request{}, value_from(base16), base16.size());
+                send_json({}, value_from(base16), base16.size());
                 return true;
         }
     }
 
-    send_not_found(request{});
+    send_not_found({});
     return true;
 }
 
