@@ -19,6 +19,7 @@
 #include <bitcoin/node/protocols/protocol_explore.hpp>
 
 #include <optional>
+#include <utility>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/parse/parse.hpp>
 
@@ -91,9 +92,14 @@ void protocol_explore::stopping(const code& ec) NOEXCEPT
 
 bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     request_t model{};
-    if (const auto ec = parse_target(model, request.target()))
+    if (LOG_ONLY(const auto ec =) parse_target(model, request.target()))
+    {
+        LOGA("Request parse [" << request.target() << "] " << ec.message());
         return false;
+    }
 
     if (!parse_query(model, request))
     {
@@ -110,36 +116,33 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 // Handlers.
 // ----------------------------------------------------------------------------
 
+constexpr auto data = to_value(media_type::application_octet_stream);
+constexpr auto json = to_value(media_type::application_json);
+constexpr auto text = to_value(media_type::text_plain);
+
 bool protocol_explore::handle_get_block(const code& ec, interface::block,
     uint8_t, uint8_t media, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height, bool witness) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
-
-    // TODO: there's no request.
-    const request request{};
 
     if (const auto ptr = archive().get_block(to_header(height, hash), witness))
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request, ptr->to_data(witness));
+            case data:
+            case text:
+                send_wire(media, ptr->to_data(witness));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request, encode_base16(ptr->to_data(witness)));
-                return true;
-            case to_value(media_type::application_json):
-                send_json(request, value_from(ptr),
+            case json:
+                send_json(request{}, value_from(ptr),
                     ptr->serialized_size(witness));
                 return true;
         }
     }
 
-    send_not_found(request);
+    send_not_found(request{});
     return true;
 }
 
@@ -147,8 +150,6 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
     uint8_t, uint8_t media, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -156,13 +157,11 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data());
+            case data:
+            case text:
+                send_wire(media, ptr->to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     chain::header::serialized_size());
                 return true;
@@ -177,8 +176,6 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
     interface::block_txs, uint8_t, uint8_t media,
     std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -189,22 +186,15 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
+            case data:
+            case text:
             {
-                const auto data = pointer_cast<const uint8_t>(hashes.data());
                 const auto size = hashes.size() * hash_size;
-                send_chunk(request{}, to_chunk({ data, std::next(data, size) }));
+                const auto data = pointer_cast<const uint8_t>(hashes.data());
+                send_wire(media, { data, std::next(data, size) });
                 return true;
             }
-            case to_value(media_type::text_plain):
-            {
-                const auto data = pointer_cast<const uint8_t>(hashes.data());
-                const auto size = hashes.size() * hash_size;
-                const auto end = std::next(data, size);
-                send_text(request{}, encode_base16({ data, end }));
-                return true;
-            }
-            case to_value(media_type::application_json):
+            case json:
             {
                 // TODO: json array of base16 hashes.
                 return true;
@@ -220,8 +210,6 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
     uint8_t, uint8_t media, uint32_t position, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height, bool witness) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -231,13 +219,11 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data(witness));
+            case data:
+            case text:
+                send_wire(media, ptr->to_data(witness));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data(witness)));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size(witness));
                 return true;
@@ -252,8 +238,6 @@ bool protocol_explore::handle_get_transaction(const code& ec,
     interface::transaction, uint8_t, uint8_t media, const hash_cptr& hash,
     bool witness) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -262,13 +246,11 @@ bool protocol_explore::handle_get_transaction(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data(witness));
+            case data:
+            case text:
+                send_wire(media, ptr->to_data(witness));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data(witness)));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size(witness));
                 return true;
@@ -282,8 +264,6 @@ bool protocol_explore::handle_get_transaction(const code& ec,
 bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
     uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -304,13 +284,12 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
 
     switch (media)
     {
-        case to_value(media_type::application_octet_stream):
+        case data:
+        case text:
             // TODO: serialize key to buffer.
+            send_wire(media, data_chunk{});
             return true;
-        case to_value(media_type::text_plain):
-            // TODO: serialize key to buffer and encode
-            return true;
-        case to_value(media_type::application_json):
+        case json:
             // TODO: json base16 key.
             return true;
     }
@@ -322,8 +301,6 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
 bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
     uint8_t, uint8_t media, const hash_cptr& hash, bool) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -347,13 +324,11 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
     // TODO: iterate, naturally sorted by position.
     switch (media)
     {
-        case to_value(media_type::application_octet_stream):
-            send_chunk(request{}, ptr->front()->to_data());
+        case data:
+        case text:
+            send_wire(media, ptr->front()->to_data());
             return true;
-        case to_value(media_type::text_plain):
-            send_text(request{}, encode_base16(ptr->front()->to_data()));
-            return true;
-        case to_value(media_type::application_json):
+        case json:
             send_json(request{}, value_from(ptr->front()),
                 ptr->front()->serialized_size(false));
             return true;
@@ -367,8 +342,6 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
     uint8_t, uint8_t media, const hash_cptr& hash, uint32_t index,
     bool) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -379,13 +352,11 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data());
+            case data:
+            case text:
+                send_wire(media, ptr->to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
@@ -400,8 +371,6 @@ bool protocol_explore::handle_get_input_script(const code& ec,
     interface::input_script, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -411,13 +380,11 @@ bool protocol_explore::handle_get_input_script(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data(false));
+            case data:
+            case text:
+                send_wire(media, ptr->to_data(false));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data(false)));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
@@ -432,8 +399,6 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
     interface::input_witness, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -443,13 +408,11 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data(false));
+            case data:
+            case text:
+                send_wire(media, ptr->to_data(false));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data(false)));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
@@ -463,8 +426,6 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
 bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
     uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -475,13 +436,11 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->front()->to_data());
+            case data:
+            case text:
+                send_wire(media, ptr->front()->to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->front()->to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr->front()),
                     ptr->front()->serialized_size());
             return true;
@@ -496,8 +455,6 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
     uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -506,13 +463,11 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data());
+            case data:
+            case text:
+                send_wire(media, ptr->to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size());
             return true;
@@ -527,8 +482,6 @@ bool protocol_explore::handle_get_output_script(const code& ec,
     interface::output_script, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -538,13 +491,11 @@ bool protocol_explore::handle_get_output_script(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data(false));
+            case data:
+            case text:
+                send_wire(media, ptr->to_data(false));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data(false)));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size(false));
             return true;
@@ -559,8 +510,6 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     interface::output_spender, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -578,13 +527,11 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, point.to_data());
+            case data:
+            case text:
+                send_wire(media, point.to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(point.to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(point), point.serialized_size());
                 return true;
         }
@@ -598,8 +545,6 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     interface::output_spender, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -618,13 +563,11 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, point.to_data());
+            case data:
+            case text:
+                send_wire(media, point.to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(point.to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(point), point.serialized_size());
                 return true;
         }
@@ -637,8 +580,6 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
 bool protocol_explore::handle_get_address(const code& ec, interface::address,
     uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -668,13 +609,11 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, ptr->to_data());
+            case data:
+            case text:
+                send_wire(media, ptr->to_data());
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(ptr->to_data()));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 send_json(request{}, value_from(ptr),
                     ptr->serialized_size());
                 return true;
@@ -690,8 +629,6 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     std::optional<system::hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -713,13 +650,11 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, std::move(filter));
+            case data:
+            case text:
+                send_wire(media, std::move(filter));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(filter));
-                return true;
-            case to_value(media_type::application_json):
+            case json:
                 const auto base16 = encode_base16(filter);
                 send_json(request{}, value_from(base16), base16.size());
                 return true;
@@ -735,8 +670,6 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
     std::optional<system::hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -759,14 +692,12 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, std::move(chunk));
+            case data:
+            case text:
+                send_wire(media, std::move(chunk));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(filter_hash));
-                return true;
-            case to_value(media_type::application_json):
-                const auto base16 = encode_base16(filter_hash);
+            case json:
+                const auto base16 = encode_base16(chunk);
                 send_json(request{}, value_from(base16), base16.size());
                 return true;
         }
@@ -781,8 +712,6 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
     std::optional<system::hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (stopped(ec))
         return false;
 
@@ -805,14 +734,12 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
     {
         switch (media)
         {
-            case to_value(media_type::application_octet_stream):
-                send_chunk(request{}, std::move(chunk));
+            case data:
+            case text:
+                send_wire(media, std::move(chunk));
                 return true;
-            case to_value(media_type::text_plain):
-                send_text(request{}, encode_base16(filter_head));
-                return true;
-            case to_value(media_type::application_json):
-                const auto base16 = encode_base16(filter_head);
+            case json:
+                const auto base16 = encode_base16(chunk);
                 send_json(request{}, value_from(base16), base16.size());
                 return true;
         }
@@ -824,6 +751,23 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
 
 // private
 // ----------------------------------------------------------------------------
+
+void protocol_explore::send_wire(uint8_t media, data_chunk&& chunk) NOEXCEPT
+{
+    if (media == data)
+        send_chunk({}, std::move(chunk));
+    else
+        send_text({}, encode_base16(chunk));
+}
+
+void protocol_explore::send_wire(uint8_t media,
+    const data_slice& slice) NOEXCEPT
+{
+    if (media == data)
+        send_chunk({}, to_chunk(slice));
+    else
+        send_text({}, encode_base16(slice));
+}
 
 database::header_link protocol_explore::to_header(
     const std::optional<uint32_t>& height,
