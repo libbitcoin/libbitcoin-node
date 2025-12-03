@@ -159,7 +159,7 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -185,7 +185,7 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -221,7 +221,7 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -263,7 +263,7 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -304,7 +304,7 @@ bool protocol_explore::handle_get_transaction(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -318,7 +318,7 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
     const auto block = query.to_confirmed(*hash);
     if (block.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -340,7 +340,7 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
             return true;
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -354,7 +354,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
     const auto tx = query.to_tx(*hash);
     if (tx.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -402,7 +402,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -429,7 +429,7 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -457,7 +457,7 @@ bool protocol_explore::handle_get_input_script(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -485,7 +485,7 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -499,7 +499,7 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
     const auto tx = query.to_tx(*hash);
     if (tx.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -547,7 +547,7 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -574,7 +574,7 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -602,7 +602,7 @@ bool protocol_explore::handle_get_output_script(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -618,7 +618,7 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     const auto spenders = query.to_spenders(*hash, index);
     if (spenders.empty())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
     
@@ -638,7 +638,7 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -654,7 +654,7 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     const auto spenders = query.to_spenders(*hash, index);
     if (spenders.empty())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -674,7 +674,7 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -687,7 +687,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     const auto& query = archive();
     if (!query.address_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
@@ -701,7 +701,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
 
     if (outputs.empty())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -720,7 +720,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -734,13 +734,13 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -760,7 +760,7 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -774,13 +774,13 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -800,7 +800,7 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -814,13 +814,13 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -840,7 +840,7 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
