@@ -937,7 +937,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_spender_extra_segment__extra_se
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__output_spenders_valid__expected)
 {
-    const std::string path = "/v255/output/0000000000000000000000000000000000000000000000000000000000000042/spenders";
+    const std::string path = "/v255/output/0000000000000000000000000000000000000000000000000000000000000042/1/spenders";
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));
@@ -948,13 +948,16 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_spenders_valid__expected)
     BOOST_REQUIRE(std::holds_alternative<object_t>(params));
 
     const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
 
     const auto version = std::get<uint8_t>(object.at("version").value());
     BOOST_REQUIRE_EQUAL(version, 255u);
 
     const auto& any = std::get<any_t>(object.at("hash").value());
     BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto index = std::get<uint32_t>(object.at("index").value());
+    BOOST_REQUIRE_EQUAL(index, 1u);
 
     const auto& hash_cptr = any.get<const hash_digest>();
     BOOST_REQUIRE(hash_cptr);
@@ -963,7 +966,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_spenders_valid__expected)
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__output_spenders_extra_segment__extra_segment)
 {
-    const std::string path = "/v3/output/0000000000000000000000000000000000000000000000000000000000000000/spenders/extra";
+    const std::string path = "/v3/output/0000000000000000000000000000000000000000000000000000000000000000/1/spenders/extra";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
 }

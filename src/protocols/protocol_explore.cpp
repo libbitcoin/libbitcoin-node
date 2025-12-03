@@ -651,7 +651,7 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
 }
 
 bool protocol_explore::handle_get_output_spenders(const code& ec,
-    interface::output_spender, uint8_t, uint8_t media, const hash_cptr& hash,
+    interface::output_spenders, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
     if (stopped(ec))

@@ -130,16 +130,6 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
             return error::missing_component;
 
         const auto component = segments[segment++];
-        ////if (component == "scripts")
-        ////{
-        ////    method = "input_scripts";
-        ////}
-        ////else if (component == "witnesses")
-        ////{
-        ////    method = "input_witnesses";
-        ////}
-        ////else
-        ////{
         uint32_t index{};
         if (!to_number(index, component))
             return error::invalid_number;
@@ -151,7 +141,7 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
         }
         else
         {
-            auto subcomponent = segments[segment++];
+            const auto subcomponent = segments[segment++];
             if (subcomponent == "script")
                 method = "input_script";
             else if (subcomponent == "witness")
@@ -159,7 +149,6 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
             else
                 return error::invalid_subcomponent;
         }
-        ////}
     }
     else if (target == "output")
     {
@@ -174,36 +163,26 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
             return error::missing_component;
 
         const auto component = segments[segment++];
-        ////if (component == "scripts")
-        ////{
-        ////    method = "output_scripts";
-        ////}
-        ////else
-        if (component == "spenders")
+        uint32_t index{};
+        if (!to_number(index, component))
+            return error::invalid_number;
+
+        params["index"] = index;
+        if (segment == segments.size())
         {
-            method = "output_spenders";
+            method = "output";
         }
         else
         {
-            uint32_t index{};
-            if (!to_number(index, component))
-                return error::invalid_number;
-
-            params["index"] = index;
-            if (segment == segments.size())
-            {
-                method = "output";
-            }
+            const auto subcomponent = segments[segment++];
+            if (subcomponent == "script")
+                method = "output_script";
+            else if (subcomponent == "spender")
+                method = "output_spender";
+            else if (subcomponent == "spenders")
+                method = "output_spenders";
             else
-            {
-                auto subcomponent = segments[segment++];
-                if (subcomponent == "script")
-                    method = "output_script";
-                else if (subcomponent == "spender")
-                    method = "output_spender";
-                else
-                    return error::invalid_subcomponent;
-            }
+                return error::invalid_subcomponent;
         }
     }
     else if (target == "transaction")
