@@ -130,17 +130,31 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
     if (stopped(ec))
         return false;
 
-    if (const auto ptr = archive().get_block(to_header(height, hash), witness))
+    if (const auto block = archive().get_block(to_header(height, hash), witness))
     {
         switch (media)
         {
             case data:
-            case text:
-                send_wire(media, ptr->to_data(witness));
+            {
+                data_chunk out(block->serialized_size(witness));
+                stream::out::fast sink{ out };
+                write::bytes::fast writer{ sink };
+                block->to_data(writer);
+                send_chunk({}, std::move(out));
                 return true;
+            }
+            case text:
+            {
+                std::string out(two * block->serialized_size(witness), '\0');
+                stream::out::fast sink{ out };
+                write::base16::fast writer{ sink };
+                block->to_data(writer);
+                send_text({}, std::move(out));
+                return true;
+            }
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+                send_json({}, value_from(block),
+                    two * block->serialized_size(witness));
                 return true;
         }
     }
@@ -156,16 +170,16 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
     if (stopped(ec))
         return false;
 
-    if (const auto ptr = archive().get_header(to_header(height, hash)))
+    if (const auto header = archive().get_header(to_header(height, hash)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data());
+                send_wire(media, header->to_data());
                 return true;
             case json:
-                send_json({}, value_from(ptr),
+                send_json({}, value_from(header),
                     two * chain::header::serialized_size());
                 return true;
         }
@@ -220,18 +234,18 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_transaction(query.to_transaction(
+    if (const auto tx = query.get_transaction(query.to_transaction(
         to_header(height, hash), position), witness))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(witness));
+                send_wire(media, tx->to_data(witness));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+                send_json({}, value_from(tx),
+                    two * tx->serialized_size(witness));
                 return true;
         }
     }
@@ -248,17 +262,17 @@ bool protocol_explore::handle_get_transaction(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_transaction(query.to_tx(*hash), witness))
+    if (const auto tx = query.get_transaction(query.to_tx(*hash), witness))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(witness));
+                send_wire(media, tx->to_data(witness));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+                send_json({}, value_from(tx),
+                    two * tx->serialized_size(witness));
                 return true;
         }
     }
@@ -324,10 +338,10 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
         return true;
     }
 
-    // Wire serialization size of inputs set.
+    // Wire serialization size of inputs set (no witness in wire inputs).
     const auto size = std::accumulate(inputs->begin(), inputs->end(), zero,
         [&witness](size_t total, const auto& output) NOEXCEPT
-        { return total + output->serialized_size(witness); });
+        { return total + output->serialized_size(false); });
 
     switch (media)
     {
@@ -344,8 +358,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
         }
         case text:
         {
-            std::string out{};
-            out.resize(two * size);
+            std::string out(two * size, '\0');
             stream::out::fast sink{ out };
             write::base16::fast writer{ sink };
             for (const auto& output: *inputs)
@@ -356,6 +369,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
         }
         case json:
         {
+            // Json input serialization includes witness (if queried).
             send_json({}, value_from(*inputs), two * size);
             return true;
         }
@@ -373,17 +387,17 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_input(query.to_tx(*hash), index, witness))
+    if (const auto input = query.get_input(query.to_tx(*hash), index, witness))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data());
+                send_wire(media, input->to_data());
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+                send_json({}, value_from(input),
+                    two * input->serialized_size(witness));
             return true;
         }
     }
@@ -400,18 +414,18 @@ bool protocol_explore::handle_get_input_script(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_input_script(query.to_point(
+    if (const auto script = query.get_input_script(query.to_point(
         query.to_tx(*hash), index)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(false));
+                send_wire(media, script->to_data(false));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(false));
+                send_json({}, value_from(script),
+                    two * script->serialized_size(false));
             return true;
         }
     }
@@ -428,18 +442,18 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_witness(query.to_point(
+    if (const auto witness = query.get_witness(query.to_point(
         query.to_tx(*hash), index)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(false));
+                send_wire(media, witness->to_data(false));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(false));
+                send_json({}, value_from(witness),
+                    two * witness->serialized_size(false));
             return true;
         }
     }
@@ -518,17 +532,17 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_output(query.to_tx(*hash), index))
+    if (const auto output = query.get_output(query.to_tx(*hash), index))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data());
+                send_wire(media, output->to_data());
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size());
+                send_json({}, value_from(output),
+                    two * output->serialized_size());
             return true;
         }
     }
@@ -545,18 +559,18 @@ bool protocol_explore::handle_get_output_script(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_output_script(query.to_output(
+    if (const auto script = query.get_output_script(query.to_output(
         query.to_tx(*hash), index)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(false));
+                send_wire(media, script->to_data(false));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(false));
+                send_json({}, value_from(script),
+                    two * script->serialized_size(false));
             return true;
         }
     }
@@ -684,8 +698,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
 }
 
 bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
-    uint8_t, uint8_t media, uint8_t type,
-    std::optional<system::hash_cptr> hash,
+    uint8_t, uint8_t media, uint8_t type, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
@@ -726,8 +739,7 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
 
 bool protocol_explore::handle_get_filter_hash(const code& ec,
     interface::filter_hash, uint8_t, uint8_t media, uint8_t type,
-    std::optional<system::hash_cptr> hash,
-    std::optional<uint32_t> height) NOEXCEPT
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -768,8 +780,7 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
 
 bool protocol_explore::handle_get_filter_header(const code& ec,
     interface::filter_header, uint8_t, uint8_t media, uint8_t type,
-    std::optional<system::hash_cptr> hash,
-    std::optional<uint32_t> height) NOEXCEPT
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
         return false;
