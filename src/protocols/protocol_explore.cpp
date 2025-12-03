@@ -141,7 +141,7 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
                 data_chunk out(size);
                 stream::out::fast sink{ out };
                 write::bytes::fast writer{ sink };
-                block->to_data(writer);
+                block->to_data(writer, witness);
                 send_chunk(std::move(out));
                 return true;
             }
@@ -150,7 +150,7 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
                 std::string out(two * size, '\0');
                 stream::out::fast sink{ out };
                 write::base16::fast writer{ sink };
-                block->to_data(writer);
+                block->to_data(writer, witness);
                 send_text(std::move(out));
                 return true;
             }
@@ -247,7 +247,7 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
                 data_chunk out(size);
                 stream::out::fast sink{ out };
                 write::bytes::fast writer{ sink };
-                tx->to_data(writer);
+                tx->to_data(writer, witness);
                 send_chunk(std::move(out));
                 return true;
             }
@@ -256,7 +256,7 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
                 std::string out(two * size, '\0');
                 stream::out::fast sink{ out };
                 write::base16::fast writer{ sink };
-                tx->to_data(writer);
+                tx->to_data(writer, witness);
                 send_text(std::move(out));
                 return true;
             }
@@ -290,7 +290,7 @@ bool protocol_explore::handle_get_transaction(const code& ec,
                 data_chunk out(size);
                 stream::out::fast sink{ out };
                 write::bytes::fast writer{ sink };
-                tx->to_data(writer);
+                tx->to_data(writer, witness);
                 send_chunk(std::move(out));
                 return true;
             }
@@ -299,7 +299,7 @@ bool protocol_explore::handle_get_transaction(const code& ec,
                 std::string out(two * size, '\0');
                 stream::out::fast sink{ out };
                 write::base16::fast writer{ sink };
-                tx->to_data(writer);
+                tx->to_data(writer, witness);
                 send_text(std::move(out));
                 return true;
             }
