@@ -762,15 +762,9 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
         return false;
 
     const auto& query = archive();
-    if (!query.filter_enabled())
+    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
     {
         send_not_implemented();
-        return true;
-    }
-
-    if (type != client_filter::type_id::neutrino)
-    {
-        send_not_found();
         return true;
     }
 
@@ -802,30 +796,24 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (!query.filter_enabled())
+    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
     {
         send_not_implemented();
         return true;
     }
 
-    if (type != client_filter::type_id::neutrino)
-    {
-        send_not_found();
-        return true;
-    }
-
-    data_chunk chunk{ hash_size };
-    auto& filter_hash = unsafe_array_cast<uint8_t, hash_size>(chunk.data());
+    hash_digest filter_hash{ hash_size };
     if (query.get_filter_hash(filter_hash, to_header(height, hash)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, std::move(chunk));
+                send_wire(media, to_chunk(filter_hash));
                 return true;
             case json:
-                send_json(value_from(encode_hash(chunk)), two * chunk.size());
+                send_json(value_from(encode_hash(filter_hash)),
+                    two * hash_size);
                 return true;
         }
     }
@@ -842,30 +830,24 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (!query.filter_enabled())
+    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
     {
         send_not_implemented();
         return true;
     }
 
-    if (type != client_filter::type_id::neutrino)
-    {
-        send_not_found();
-        return true;
-    }
-
-    data_chunk chunk{ hash_size };
-    auto& filter_head = unsafe_array_cast<uint8_t, hash_size>(chunk.data());
+    hash_digest filter_head{ hash_size };
     if (query.get_filter_head(filter_head, to_header(height, hash)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, std::move(chunk));
+                send_wire(media, to_chunk(filter_head));
                 return true;
             case json:
-                send_json(value_from(encode_hash(chunk)), two * chunk.size());
+                send_json(value_from(encode_hash(filter_head)),
+                    two * hash_size);
                 return true;
         }
     }
