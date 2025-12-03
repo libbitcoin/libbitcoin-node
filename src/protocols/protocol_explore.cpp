@@ -471,7 +471,7 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
 
     const auto& query = archive();
     if (const auto witness = query.get_witness(query.to_point(
-        query.to_tx(*hash), index)))
+        query.to_tx(*hash), index)); !is_null(witness) && witness->is_valid())
     {
         switch (media)
         {
