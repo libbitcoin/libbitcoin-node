@@ -315,7 +315,7 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
         return false;
 
     const auto& query = archive();
-    const auto block = query.to_strong(*hash);
+    const auto block = query.to_confirmed(*hash);
     if (block.is_terminal())
     {
         send_not_found({});
