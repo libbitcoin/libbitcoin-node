@@ -125,7 +125,6 @@ protected:
         std::optional<uint32_t> height) NOEXCEPT;
 
 private:
-    void send_wire(uint8_t media, system::data_chunk&& data) NOEXCEPT;
     database::header_link to_header(const std::optional<uint32_t>& height,
         const std::optional<system::hash_cptr>& hash) NOEXCEPT;
 
