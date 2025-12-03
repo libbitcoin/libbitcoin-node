@@ -155,8 +155,10 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
                 return true;
             }
             case json:
+            {
                 send_json(value_from(block), two * size);
                 return true;
+            }
         }
     }
 
@@ -259,8 +261,10 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
                 return true;
             }
             case json:
+            {
                 send_json(value_from(tx), two * size);
                 return true;
+            }
         }
     }
 
@@ -300,8 +304,10 @@ bool protocol_explore::handle_get_transaction(const code& ec,
                 return true;
             }
             case json:
+            {
                 send_json(value_from(tx), two * size);
                 return true;
+            }
         }
     }
 
@@ -531,8 +537,7 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
         }
         case text:
         {
-            std::string out{};
-            out.resize(two * size);
+            std::string out(two * size, '\0');
             stream::out::fast sink{ out };
             write::base16::fast writer{ sink };
             for (const auto& output: *outputs)
@@ -652,28 +657,51 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     if (stopped(ec))
         return false;
 
-    // TODO: iterate, sort by height/position/index.
     const auto& query = archive();
-    const auto spenders = query.to_spenders(*hash, index);
-    if (spenders.empty())
+    const auto links = query.to_spenders(*hash, index);
+    if (links.empty())
     {
         send_not_found();
         return true;
     }
 
-    // TODO: iterate, sort in query.
-    if (const auto point = query.get_point(spenders.front());
-        point.hash() != null_hash)
+    const auto size = links.size() * chain::point::serialized_size();
+    chain::points points(links.size());
+    std::ranges::transform(links, points.begin(),
+        [&](const auto& link) NOEXCEPT { return query.get_point(link); });
+
+    // TODO: dedup and sort by height/position/index in query.
+    if (true)
     {
         switch (media)
         {
             case data:
+            {
+                data_chunk out(size);
+                stream::out::fast sink{ out };
+                write::bytes::fast writer{ sink };
+                for (const auto& point: points)
+                    point.to_data(writer);
+
+                send_chunk(std::move(out));
+                return true;
+            }
             case text:
-                send_wire(media, {});
+            {
+                std::string out(two * size, '\0');
+                stream::out::fast sink{ out };
+                write::base16::fast writer{ sink };
+                for (const auto& point: points)
+                    point.to_data(writer);
+
+                send_text(std::move(out));
                 return true;
+            }
             case json:
-                send_json(value_from(point), {});
+            {
+                send_json(value_from(points), two * size);
                 return true;
+            }
         }
     }
 
@@ -694,7 +722,6 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
-    // TODO: iterate, sort by height/position/index.
     database::output_links outputs{};
     if (!query.to_address_outputs(outputs, *hash))
     {
@@ -708,7 +735,7 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
-    // TODO: iterate, sort in query.
+    // TODO: dedup and sort by height/position/index in query.
     if (const auto ptr = query.get_output(outputs.front()))
     {
         switch (media)
