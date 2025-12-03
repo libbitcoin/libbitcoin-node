@@ -60,20 +60,21 @@ protected:
         const network::http::request& request) NOEXCEPT;
 
     /// Senders.
-    virtual void send_json(const network::http::request& request,
-        boost::json::value&& model, size_t size_hint) NOEXCEPT;
-    virtual void send_text(const network::http::request& request,
-        std::string&& hexidecimal) NOEXCEPT;
-    virtual void send_chunk(const network::http::request& request,
-        system::data_chunk&& bytes) NOEXCEPT;
-    virtual void send_file(const network::http::request& request,
-        network::http::file&& file, network::http::media_type type) NOEXCEPT;
-    virtual void send_span(const network::http::request& request,
-        network::http::span_body::value_type&& span,
-        network::http::media_type type) NOEXCEPT;
-    virtual void send_buffer(const network::http::request& request,
-        network::http::buffer_body::value_type&& buffer,
-        network::http::media_type type) NOEXCEPT;
+    virtual void send_json(boost::json::value&& model, size_t size_hint,
+        const network::http::request& request={}) NOEXCEPT;
+    virtual void send_text(std::string&& hexidecimal,
+        const network::http::request& request={}) NOEXCEPT;
+    virtual void send_chunk(system::data_chunk&& bytes,
+        const network::http::request& request={}) NOEXCEPT;
+    virtual void send_file(network::http::file&& file,
+        network::http::media_type type,
+        const network::http::request& request={}) NOEXCEPT;
+    virtual void send_span(network::http::span_body::value_type&& span,
+        network::http::media_type type,
+        const network::http::request& request={}) NOEXCEPT;
+    virtual void send_buffer(network::http::buffer_body::value_type&& buffer,
+        network::http::media_type type,
+        const network::http::request& request={}) NOEXCEPT;
 
     /// Utilities.
     bool is_allowed_origin(const network::http::fields& fields,

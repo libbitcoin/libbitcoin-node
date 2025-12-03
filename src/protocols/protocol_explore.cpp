@@ -111,7 +111,7 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
     }
 
     if (const auto ec = dispatcher_.notify(model))
-        send_internal_server_error(request, ec);
+        send_internal_server_error(ec, request);
 
     return true;
 }
@@ -130,22 +130,39 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
     if (stopped(ec))
         return false;
 
-    if (const auto ptr = archive().get_block(to_header(height, hash), witness))
+    if (const auto block = archive().get_block(to_header(height, hash),
+        witness))
     {
+        const auto size = block->serialized_size(witness);
         switch (media)
         {
             case data:
+            {
+                data_chunk out(size);
+                stream::out::fast sink{ out };
+                write::bytes::fast writer{ sink };
+                block->to_data(writer, witness);
+                send_chunk(std::move(out));
+                return true;
+            }
             case text:
-                send_wire(media, ptr->to_data(witness));
+            {
+                std::string out(two * size, '\0');
+                stream::out::fast sink{ out };
+                write::base16::fast writer{ sink };
+                block->to_data(writer, witness);
+                send_text(std::move(out));
                 return true;
+            }
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+            {
+                send_json(value_from(block), two * size);
                 return true;
+            }
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -156,22 +173,22 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
     if (stopped(ec))
         return false;
 
-    if (const auto ptr = archive().get_header(to_header(height, hash)))
+    if (const auto header = archive().get_header(to_header(height, hash)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data());
+                send_wire(media, header->to_data());
                 return true;
             case json:
-                send_json({}, value_from(ptr),
+                send_json(value_from(header),
                     two * chain::header::serialized_size());
                 return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -187,7 +204,6 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
         !hashes.empty())
     {
         const auto size = hashes.size() * hash_size;
-
         switch (media)
         {
             case data:
@@ -201,14 +217,14 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
             {
                 array out(hashes.size());
                 std::ranges::transform(hashes, out.begin(),
-                    [](const auto& hash) { return encode_base16(hash); });
-                send_json({}, out, two * size);
+                    [](const auto& hash) { return encode_hash(hash); });
+                send_json(out, two * size);
                 return true;
             }
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -220,23 +236,39 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_transaction(query.to_transaction(
+    if (const auto tx = query.get_transaction(query.to_transaction(
         to_header(height, hash), position), witness))
     {
+        const auto size = tx->serialized_size(witness);
         switch (media)
         {
             case data:
+            {
+                data_chunk out(size);
+                stream::out::fast sink{ out };
+                write::bytes::fast writer{ sink };
+                tx->to_data(writer, witness);
+                send_chunk(std::move(out));
+                return true;
+            }
             case text:
-                send_wire(media, ptr->to_data(witness));
+            {
+                std::string out(two * size, '\0');
+                stream::out::fast sink{ out };
+                write::base16::fast writer{ sink };
+                tx->to_data(writer, witness);
+                send_text(std::move(out));
                 return true;
+            }
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+            {
+                send_json(value_from(tx), two * size);
                 return true;
+            }
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -248,22 +280,38 @@ bool protocol_explore::handle_get_transaction(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_transaction(query.to_tx(*hash), witness))
+    if (const auto tx = query.get_transaction(query.to_tx(*hash), witness))
     {
+        const auto size = tx->serialized_size(witness);
         switch (media)
         {
             case data:
+            {
+                data_chunk out(size);
+                stream::out::fast sink{ out };
+                write::bytes::fast writer{ sink };
+                tx->to_data(writer, witness);
+                send_chunk(std::move(out));
+                return true;
+            }
             case text:
-                send_wire(media, ptr->to_data(witness));
+            {
+                std::string out(two * size, '\0');
+                stream::out::fast sink{ out };
+                write::base16::fast writer{ sink };
+                tx->to_data(writer, witness);
+                send_text(std::move(out));
                 return true;
+            }
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+            {
+                send_json(value_from(tx), two * size);
                 return true;
+            }
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -274,17 +322,17 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
         return false;
 
     const auto& query = archive();
-    const auto block = query.to_block(query.to_tx(*hash));
+    const auto block = query.to_confirmed_block(*hash);
     if (block.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
     const auto key = query.get_header_key(block);
     if (key == null_hash)
     {
-        send_internal_server_error({}, database::error::integrity);
+        send_internal_server_error(database::error::integrity);
         return true;
     }
 
@@ -295,11 +343,11 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
             send_wire(media, to_chunk(key));
             return true;
         case json:
-            send_json({}, value_from(encode_base16(key)), two * hash_size);
+            send_json(value_from(encode_hash(key)), two * hash_size);
             return true;
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -313,21 +361,21 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
     const auto tx = query.to_tx(*hash);
     if (tx.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
     const auto inputs = query.get_inputs(tx, witness);
     if (!inputs || inputs->empty())
     {
-        send_internal_server_error({}, database::error::integrity);
+        send_internal_server_error(database::error::integrity);
         return true;
     }
 
-    // Wire serialization size of inputs set.
+    // Wire serialization size of inputs set (no witness in wire inputs).
     const auto size = std::accumulate(inputs->begin(), inputs->end(), zero,
         [&witness](size_t total, const auto& output) NOEXCEPT
-        { return total + output->serialized_size(witness); });
+        { return total + output->serialized_size(false); });
 
     switch (media)
     {
@@ -339,29 +387,29 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
             for (const auto& output: *inputs)
                 output->to_data(writer);
 
-            send_chunk({}, std::move(out));
+            send_chunk(std::move(out));
             return true;
         }
         case text:
         {
-            std::string out{};
-            out.resize(two * size);
+            std::string out(two * size, '\0');
             stream::out::fast sink{ out };
             write::base16::fast writer{ sink };
             for (const auto& output: *inputs)
                 output->to_data(writer);
 
-            send_text({}, std::move(out));
+            send_text(std::move(out));
             return true;
         }
         case json:
         {
-            send_json({}, value_from(*inputs), two * size);
+            // Json input serialization includes witness (if queried).
+            send_json(value_from(*inputs), two * size);
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -373,22 +421,22 @@ bool protocol_explore::handle_get_input(const code& ec, interface::input,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_input(query.to_tx(*hash), index, witness))
+    if (const auto input = query.get_input(query.to_tx(*hash), index, witness))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data());
+                send_wire(media, input->to_data());
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(witness));
+                send_json(value_from(input),
+                    two * input->serialized_size(witness));
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -400,23 +448,23 @@ bool protocol_explore::handle_get_input_script(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_input_script(query.to_point(
+    if (const auto script = query.get_input_script(query.to_point(
         query.to_tx(*hash), index)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(false));
+                send_wire(media, script->to_data(false));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(false));
+                send_json(value_from(script),
+                    two * script->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -428,23 +476,23 @@ bool protocol_explore::handle_get_input_witness(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_witness(query.to_point(
-        query.to_tx(*hash), index)))
+    if (const auto witness = query.get_witness(query.to_point(
+        query.to_tx(*hash), index)); !is_null(witness) && witness->is_valid())
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(false));
+                send_wire(media, witness->to_data(false));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(false));
+                send_json(value_from(witness),
+                    two * witness->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -458,14 +506,14 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
     const auto tx = query.to_tx(*hash);
     if (tx.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
     const auto outputs = query.get_outputs(tx);
     if (!outputs || outputs->empty())
     {
-        send_internal_server_error({}, database::error::integrity);
+        send_internal_server_error(database::error::integrity);
         return true;
     }
 
@@ -484,29 +532,28 @@ bool protocol_explore::handle_get_outputs(const code& ec, interface::outputs,
             for (const auto& output: *outputs)
                 output->to_data(writer);
 
-            send_chunk({}, std::move(out));
+            send_chunk(std::move(out));
             return true;
         }
         case text:
         {
-            std::string out{};
-            out.resize(two * size);
+            std::string out(two * size, '\0');
             stream::out::fast sink{ out };
             write::base16::fast writer{ sink };
             for (const auto& output: *outputs)
                 output->to_data(writer);
 
-            send_text({}, std::move(out));
+            send_text(std::move(out));
             return true;
         }
         case json:
         {
-            send_json({}, value_from(*outputs), two * size);
+            send_json(value_from(*outputs), two * size);
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -518,22 +565,22 @@ bool protocol_explore::handle_get_output(const code& ec, interface::output,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_output(query.to_tx(*hash), index))
+    if (const auto output = query.get_output(query.to_tx(*hash), index))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data());
+                send_wire(media, output->to_data());
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size());
+                send_json(value_from(output),
+                    two * output->serialized_size());
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -545,23 +592,23 @@ bool protocol_explore::handle_get_output_script(const code& ec,
         return false;
 
     const auto& query = archive();
-    if (const auto ptr = query.get_output_script(query.to_output(
+    if (const auto script = query.get_output_script(query.to_output(
         query.to_tx(*hash), index)))
     {
         switch (media)
         {
             case data:
             case text:
-                send_wire(media, ptr->to_data(false));
+                send_wire(media, script->to_data(false));
                 return true;
             case json:
-                send_json({}, value_from(ptr),
-                    two * ptr->serialized_size(false));
+                send_json(value_from(script),
+                    two * script->serialized_size(false));
             return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -572,68 +619,93 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     if (stopped(ec))
         return false;
 
-    // TODO: query only confirmed spender.
     const auto& query = archive();
-    const auto spenders = query.to_spenders(*hash, index);
-    if (spenders.empty())
+    const auto spender = query.to_confirmed_spender({ *hash, index });
+    if (spender.is_terminal())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
-    
-    if (const auto point = query.get_point(spenders.front());
-        point.hash() != null_hash)
+
+    const auto point = query.get_point(spender);
+    if (point.hash() == null_hash)
     {
-        switch (media)
-        {
-            case data:
-            case text:
-                send_wire(media, point.to_data());
-                return true;
-            case json:
-                send_json({}, value_from(point),
-                    two * chain::point::serialized_size());
-                return true;
-        }
+        send_internal_server_error(database::error::integrity);
+        return true;
     }
 
-    send_not_found({});
+    switch (media)
+    {
+        case data:
+        case text:
+            send_wire(media, point.to_data());
+            return true;
+        case json:
+            send_json(value_from(point),
+                two * chain::point::serialized_size());
+            return true;
+    }
+
+    send_not_found();
     return true;
 }
 
 bool protocol_explore::handle_get_output_spenders(const code& ec,
-    interface::output_spender, uint8_t, uint8_t media, const hash_cptr& hash,
+    interface::output_spenders, uint8_t, uint8_t media, const hash_cptr& hash,
     uint32_t index) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    // TODO: iterate, sort by height/position/index.
     const auto& query = archive();
-    const auto spenders = query.to_spenders(*hash, index);
-    if (spenders.empty())
+    const auto links = query.to_spenders(*hash, index);
+    if (links.empty())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
-    // TODO: iterate, sort in query.
-    if (const auto point = query.get_point(spenders.front());
-        point.hash() != null_hash)
+    const auto size = links.size() * chain::point::serialized_size();
+    chain::points points(links.size());
+    std::ranges::transform(links, points.begin(),
+        [&](const auto& link) NOEXCEPT { return query.get_point(link); });
+
+    // TODO: dedup and sort by height/position/index in query.
+    if (true)
     {
         switch (media)
         {
             case data:
+            {
+                data_chunk out(size);
+                stream::out::fast sink{ out };
+                write::bytes::fast writer{ sink };
+                for (const auto& point: points)
+                    point.to_data(writer);
+
+                send_chunk(std::move(out));
+                return true;
+            }
             case text:
-                send_wire(media, {});
+            {
+                std::string out(two * size, '\0');
+                stream::out::fast sink{ out };
+                write::base16::fast writer{ sink };
+                for (const auto& point: points)
+                    point.to_data(writer);
+
+                send_text(std::move(out));
                 return true;
+            }
             case json:
-                send_json({}, value_from(point), {});
+            {
+                send_json(value_from(points), two * size);
                 return true;
+            }
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -646,25 +718,24 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     const auto& query = archive();
     if (!query.address_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
-    // TODO: iterate, sort by height/position/index.
     database::output_links outputs{};
     if (!query.to_address_outputs(outputs, *hash))
     {
-        send_internal_server_error({}, database::error::integrity);
+        send_internal_server_error(database::error::integrity);
         return true;
     }
 
     if (outputs.empty())
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
-    // TODO: iterate, sort in query.
+    // TODO: dedup and sort by height/position/index in query.
     if (const auto ptr = query.get_output(outputs.front()))
     {
         switch (media)
@@ -674,18 +745,17 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
                 send_wire(media, {});
                 return true;
             case json:
-                send_json({}, value_from(*ptr), {});
+                send_json(value_from(*ptr), {});
                 return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
 bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
-    uint8_t, uint8_t media, uint8_t type,
-    std::optional<system::hash_cptr> hash,
+    uint8_t, uint8_t media, uint8_t type, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
@@ -694,13 +764,13 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -714,20 +784,19 @@ bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
                 send_wire(media, std::move(filter));
                 return true;
             case json:
-                send_json({}, value_from(encode_base16(filter)),
+                send_json(value_from(encode_base16(filter)),
                     two * filter.size());
                 return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
 bool protocol_explore::handle_get_filter_hash(const code& ec,
     interface::filter_hash, uint8_t, uint8_t media, uint8_t type,
-    std::optional<system::hash_cptr> hash,
-    std::optional<uint32_t> height) NOEXCEPT
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -735,13 +804,13 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -756,20 +825,18 @@ bool protocol_explore::handle_get_filter_hash(const code& ec,
                 send_wire(media, std::move(chunk));
                 return true;
             case json:
-                send_json({}, value_from(encode_base16(chunk)),
-                    two * chunk.size());
+                send_json(value_from(encode_hash(chunk)), two * chunk.size());
                 return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
 bool protocol_explore::handle_get_filter_header(const code& ec,
     interface::filter_header, uint8_t, uint8_t media, uint8_t type,
-    std::optional<system::hash_cptr> hash,
-    std::optional<uint32_t> height) NOEXCEPT
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -777,13 +844,13 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
     const auto& query = archive();
     if (!query.filter_enabled())
     {
-        send_not_implemented({});
+        send_not_implemented();
         return true;
     }
 
     if (type != client_filter::type_id::neutrino)
     {
-        send_not_found({});
+        send_not_found();
         return true;
     }
 
@@ -798,13 +865,12 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
                 send_wire(media, std::move(chunk));
                 return true;
             case json:
-                const auto base16 = encode_base16(chunk);
-                send_json({}, value_from(base16), base16.size());
+                send_json(value_from(encode_hash(chunk)), two * chunk.size());
                 return true;
         }
     }
 
-    send_not_found({});
+    send_not_found();
     return true;
 }
 
@@ -814,9 +880,9 @@ bool protocol_explore::handle_get_filter_header(const code& ec,
 void protocol_explore::send_wire(uint8_t media, data_chunk&& chunk) NOEXCEPT
 {
     if (media == data)
-        send_chunk({}, std::move(chunk));
+        send_chunk(std::move(chunk));
     else
-        send_text({}, encode_base16(chunk));
+        send_text(encode_base16(chunk));
 }
 
 database::header_link protocol_explore::to_header(

@@ -105,7 +105,7 @@ protected:
     bool handle_get_output_spender(const code& ec, interface::output_spender,
         uint8_t version, uint8_t media, const system::hash_cptr& hash,
         uint32_t index) NOEXCEPT;
-    bool handle_get_output_spenders(const code& ec, interface::output_spender,
+    bool handle_get_output_spenders(const code& ec, interface::output_spenders,
         uint8_t version, uint8_t media, const system::hash_cptr& hash,
         uint32_t index) NOEXCEPT;
 
