@@ -130,7 +130,8 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
     if (stopped(ec))
         return false;
 
-    if (const auto block = archive().get_block(to_header(height, hash), witness))
+    if (const auto block = archive().get_block(to_header(height, hash),
+        witness))
     {
         const auto size = block->serialized_size(witness);
         switch (media)
@@ -315,7 +316,7 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
         return false;
 
     const auto& query = archive();
-    const auto block = query.to_confirmed(*hash);
+    const auto block = query.to_confirmed_block(*hash);
     if (block.is_terminal())
     {
         send_not_found();
@@ -613,29 +614,31 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     if (stopped(ec))
         return false;
 
-    // TODO: query only confirmed spender.
     const auto& query = archive();
-    const auto spenders = query.to_spenders(*hash, index);
-    if (spenders.empty())
+    const auto spender = query.to_confirmed_spender({ *hash, index });
+    if (spender.is_terminal())
     {
         send_not_found();
         return true;
     }
-    
-    if (const auto point = query.get_point(spenders.front());
-        point.hash() != null_hash)
+
+    const auto point = query.get_point(spender);
+    if (point.hash() == null_hash)
     {
-        switch (media)
-        {
-            case data:
-            case text:
-                send_wire(media, point.to_data());
-                return true;
-            case json:
-                send_json(value_from(point),
-                    two * chain::point::serialized_size());
-                return true;
-        }
+        send_internal_server_error(database::error::integrity);
+        return true;
+    }
+
+    switch (media)
+    {
+        case data:
+        case text:
+            send_wire(media, point.to_data());
+            return true;
+        case json:
+            send_json(value_from(point),
+                two * chain::point::serialized_size());
+            return true;
     }
 
     send_not_found();
