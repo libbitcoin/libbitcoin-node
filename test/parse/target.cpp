@@ -63,6 +63,48 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__invalid_target__invalid_target)
     BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/invalid"), node::error::invalid_target);
 }
 
+// block/height
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__block_height_valid__expected)
+{
+    const std::string path = "/v42/block/height/123456";
+
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "block");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto height = std::get<uint32_t>(object.at("height").value());
+    BOOST_REQUIRE_EQUAL(height, 123456u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__block_height_missing_height__missing_height)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height"), node::error::missing_height);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__block_height_invalid_height__invalid_number)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/invalid"), node::error::invalid_number);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__block_height_invalid_component__invalid_component)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/extra"), node::error::invalid_component);
+}
+
 // block/hash
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__block_hash_valid__expected)
@@ -175,69 +217,6 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__header_hash_valid__expected)
 BOOST_AUTO_TEST_CASE(parse__parse_target__header_hash_extra_segment__extra_segment)
 {
     const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/header/extra";
-    request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
-}
-
-// filter/height
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__filter_height_valid__expected)
-{
-    request_t request{};
-    BOOST_REQUIRE(!parse_target(request, "v42/block/height/123456/filter/"));
-    BOOST_REQUIRE_EQUAL(request.method, "filter");
-    BOOST_REQUIRE(request.params.has_value());
-
-    const auto& params = request.params.value();
-    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
-
-    const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 2u);
-
-    const auto version = std::get<uint8_t>(object.at("version").value());
-    BOOST_REQUIRE_EQUAL(version, 42u);
-
-    const auto height = std::get<uint32_t>(object.at("height").value());
-    BOOST_REQUIRE_EQUAL(height, 123456u);
-}
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__filter_height_extra_segment__extra_segment)
-{
-    request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/extra"), node::error::extra_segment);
-}
-
-// filter/hash
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_valid__expected)
-{
-    const std::string path = "/v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/filter";
-
-    request_t request{};
-    BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "filter");
-    BOOST_REQUIRE(request.params.has_value());
-
-    const auto& params = request.params.value();
-    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
-
-    const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 2u);
-
-    const auto version = std::get<uint8_t>(object.at("version").value());
-    BOOST_REQUIRE_EQUAL(version, 42u);
-
-    const auto& any = std::get<any_t>(object.at("hash").value());
-    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
-
-    const auto& hash_cptr = any.get<const hash_digest>();
-    BOOST_REQUIRE(hash_cptr);
-    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
-}
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_extra_segment__extra_segment)
-{
-    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/extra";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
 }
@@ -398,6 +377,95 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__block_tx_hash_extra_segment__extra_seg
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
 }
 
+// transaction
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__transaction_valid__expected)
+{
+    const std::string path = "/v42/transaction/0000000000000000000000000000000000000000000000000000000000000042";
+
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "transaction");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto& any = std::get<any_t>(object.at("hash").value());
+    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto& hash_cptr = any.get<const hash_digest>();
+    BOOST_REQUIRE(hash_cptr);
+    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__transaction_missing_hash__missing_hash)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/transaction"), node::error::missing_hash);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__transaction_invalid_hash__invalid_hash)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/transaction/invalidhex"), node::error::invalid_hash);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__transaction_invalid_component__invalid_component)
+{
+    const std::string path = "/v3/transaction/0000000000000000000000000000000000000000000000000000000000000000/extra";
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_component);
+}
+
+// tx_block
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_valid__expected)
+{
+    const std::string path = "/v42/transaction/0000000000000000000000000000000000000000000000000000000000000042/block";
+
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "tx_block");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto& any = std::get<any_t>(object.at("hash").value());
+    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto& hash_cptr = any.get<const hash_digest>();
+    BOOST_REQUIRE(hash_cptr);
+    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_invalid_component__invalid_component)
+{
+    const std::string path = "/v3/transaction/0000000000000000000000000000000000000000000000000000000000000000/invalid";
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_component);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_extra_segment__extra_segment)
+{
+    const std::string path = "/v3/transaction/0000000000000000000000000000000000000000000000000000000000000000/block/extra";
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+}
+
 // inputs
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__inputs_valid__expected)
@@ -406,7 +474,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__inputs_valid__expected)
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "input");
+    BOOST_REQUIRE_EQUAL(request.method, "inputs");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -549,38 +617,38 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__input_script_extra_segment__extra_segm
 
 // input_scripts
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__input_scripts_valid__expected)
-{
-    const std::string path = "/v255/input/0000000000000000000000000000000000000000000000000000000000000042/scripts";
-
-    request_t request{};
-    BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "input_script");
-    BOOST_REQUIRE(request.params.has_value());
-
-    const auto& params = request.params.value();
-    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
-
-    const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 2u);
-
-    const auto version = std::get<uint8_t>(object.at("version").value());
-    BOOST_REQUIRE_EQUAL(version, 255u);
-
-    const auto& any = std::get<any_t>(object.at("hash").value());
-    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
-
-    const auto& hash_cptr = any.get<const hash_digest>();
-    BOOST_REQUIRE(hash_cptr);
-    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
-}
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__input_scripts_extra_segment__extra_segment)
-{
-    const std::string path = "/v3/input/0000000000000000000000000000000000000000000000000000000000000000/scripts/extra";
-    request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
-}
+////BOOST_AUTO_TEST_CASE(parse__parse_target__input_scripts_valid__expected)
+////{
+////    const std::string path = "/v255/input/0000000000000000000000000000000000000000000000000000000000000042/scripts";
+////
+////    request_t request{};
+////    BOOST_REQUIRE(!parse_target(request, path));
+////    BOOST_REQUIRE_EQUAL(request.method, "input_scripts");
+////    BOOST_REQUIRE(request.params.has_value());
+////
+////    const auto& params = request.params.value();
+////    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+////
+////    const auto& object = std::get<object_t>(request.params.value());
+////    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+////
+////    const auto version = std::get<uint8_t>(object.at("version").value());
+////    BOOST_REQUIRE_EQUAL(version, 255u);
+////
+////    const auto& any = std::get<any_t>(object.at("hash").value());
+////    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+////
+////    const auto& hash_cptr = any.get<const hash_digest>();
+////    BOOST_REQUIRE(hash_cptr);
+////    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+////}
+////
+////BOOST_AUTO_TEST_CASE(parse__parse_target__input_scripts_extra_segment__extra_segment)
+////{
+////    const std::string path = "/v3/input/0000000000000000000000000000000000000000000000000000000000000000/scripts/extra";
+////    request_t out{};
+////    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+////}
 
 // input_witness
 
@@ -622,38 +690,38 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__input_witness_extra_segment__extra_seg
 
 // input_witnesses
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__input_witnesses_valid__expected)
-{
-    const std::string path = "/v255/input/0000000000000000000000000000000000000000000000000000000000000042/witnesses";
-
-    request_t request{};
-    BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "input_witness");
-    BOOST_REQUIRE(request.params.has_value());
-
-    const auto& params = request.params.value();
-    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
-
-    const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 2u);
-
-    const auto version = std::get<uint8_t>(object.at("version").value());
-    BOOST_REQUIRE_EQUAL(version, 255u);
-
-    const auto& any = std::get<any_t>(object.at("hash").value());
-    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
-
-    const auto& hash_cptr = any.get<const hash_digest>();
-    BOOST_REQUIRE(hash_cptr);
-    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
-}
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__input_witnesses_extra_segment__extra_segment)
-{
-    const std::string path = "/v3/input/0000000000000000000000000000000000000000000000000000000000000000/witnesses/extra";
-    request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
-}
+////BOOST_AUTO_TEST_CASE(parse__parse_target__input_witnesses_valid__expected)
+////{
+////    const std::string path = "/v255/input/0000000000000000000000000000000000000000000000000000000000000042/witnesses";
+////
+////    request_t request{};
+////    BOOST_REQUIRE(!parse_target(request, path));
+////    BOOST_REQUIRE_EQUAL(request.method, "input_witnesses");
+////    BOOST_REQUIRE(request.params.has_value());
+////
+////    const auto& params = request.params.value();
+////    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+////
+////    const auto& object = std::get<object_t>(request.params.value());
+////    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+////
+////    const auto version = std::get<uint8_t>(object.at("version").value());
+////    BOOST_REQUIRE_EQUAL(version, 255u);
+////
+////    const auto& any = std::get<any_t>(object.at("hash").value());
+////    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+////
+////    const auto& hash_cptr = any.get<const hash_digest>();
+////    BOOST_REQUIRE(hash_cptr);
+////    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+////}
+////
+////BOOST_AUTO_TEST_CASE(parse__parse_target__input_witnesses_extra_segment__extra_segment)
+////{
+////    const std::string path = "/v3/input/0000000000000000000000000000000000000000000000000000000000000000/witnesses/extra";
+////    request_t out{};
+////    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+////}
 
 // outputs
 
@@ -663,7 +731,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__outputs_valid__expected)
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "output");
+    BOOST_REQUIRE_EQUAL(request.method, "outputs");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -794,38 +862,38 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_script_extra_segment__extra_seg
 
 // output_scripts
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__output_scripts_valid__expected)
-{
-    const std::string path = "/v255/output/0000000000000000000000000000000000000000000000000000000000000042/scripts";
-
-    request_t request{};
-    BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "output_script");
-    BOOST_REQUIRE(request.params.has_value());
-
-    const auto& params = request.params.value();
-    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
-
-    const auto& object = std::get<object_t>(request.params.value());
-    BOOST_REQUIRE_EQUAL(object.size(), 2u);
-
-    const auto version = std::get<uint8_t>(object.at("version").value());
-    BOOST_REQUIRE_EQUAL(version, 255u);
-
-    const auto& any = std::get<any_t>(object.at("hash").value());
-    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
-
-    const auto& hash_cptr = any.get<const hash_digest>();
-    BOOST_REQUIRE(hash_cptr);
-    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
-}
-
-BOOST_AUTO_TEST_CASE(parse__parse_target__output_scripts_extra_segment__extra_segment)
-{
-    const std::string path = "/v3/output/0000000000000000000000000000000000000000000000000000000000000000/scripts/extra";
-    request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
-}
+////BOOST_AUTO_TEST_CASE(parse__parse_target__output_scripts_valid__expected)
+////{
+////    const std::string path = "/v255/output/0000000000000000000000000000000000000000000000000000000000000042/scripts";
+////
+////    request_t request{};
+////    BOOST_REQUIRE(!parse_target(request, path));
+////    BOOST_REQUIRE_EQUAL(request.method, "output_scripts");
+////    BOOST_REQUIRE(request.params.has_value());
+////
+////    const auto& params = request.params.value();
+////    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+////
+////    const auto& object = std::get<object_t>(request.params.value());
+////    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+////
+////    const auto version = std::get<uint8_t>(object.at("version").value());
+////    BOOST_REQUIRE_EQUAL(version, 255u);
+////
+////    const auto& any = std::get<any_t>(object.at("hash").value());
+////    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+////
+////    const auto& hash_cptr = any.get<const hash_digest>();
+////    BOOST_REQUIRE(hash_cptr);
+////    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+////}
+////
+////BOOST_AUTO_TEST_CASE(parse__parse_target__output_scripts_extra_segment__extra_segment)
+////{
+////    const std::string path = "/v3/output/0000000000000000000000000000000000000000000000000000000000000000/scripts/extra";
+////    request_t out{};
+////    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+////}
 
 // output_spender
 
@@ -873,7 +941,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_spenders_valid__expected)
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "output_spender");
+    BOOST_REQUIRE_EQUAL(request.method, "output_spenders");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -945,6 +1013,234 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__address_extra_segment__extra_segment)
     const std::string path = "/v3/address/0000000000000000000000000000000000000000000000000000000000000000/extra";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+}
+
+// filter/height
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_height_valid__expected)
+{
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, "v42/block/height/123456/filter/255"));
+    BOOST_REQUIRE_EQUAL(request.method, "filter");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto height = std::get<uint32_t>(object.at("height").value());
+    BOOST_REQUIRE_EQUAL(height, 123456u);
+
+    const auto type = std::get<uint8_t>(object.at("type").value());
+    BOOST_REQUIRE_EQUAL(type, 255u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_height_invalid_subcomponent__invalid_subcomponent)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/42/extra"), node::error::invalid_subcomponent);
+}
+
+// filter/hash
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_valid__expected)
+{
+    const std::string path = "/v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/filter/255";
+
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "filter");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto& any = std::get<any_t>(object.at("hash").value());
+    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto& hash_cptr = any.get<const hash_digest>();
+    BOOST_REQUIRE(hash_cptr);
+    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+
+    const auto type = std::get<uint8_t>(object.at("type").value());
+    BOOST_REQUIRE_EQUAL(type, 255u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_invalid_subcomponent__invalid_subcomponent)
+{
+    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/extra";
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_subcomponent);
+}
+
+// filter_hash/height
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_height_valid__expected)
+{
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, "/v42/block/height/123456/filter/255/hash"));
+    BOOST_REQUIRE_EQUAL(request.method, "filter_hash");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto height = std::get<uint32_t>(object.at("height").value());
+    BOOST_REQUIRE_EQUAL(height, 123456u);
+
+    const auto type = std::get<uint8_t>(object.at("type").value());
+    BOOST_REQUIRE_EQUAL(type, 255u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_height_extra_segment__extra_segment)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/42/hash/extra"), node::error::extra_segment);
+}
+
+// filter_hash/hash
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_hash_valid__expected)
+{
+    const std::string path = "/v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/filter/255/hash";
+
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "filter_hash");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto& any = std::get<any_t>(object.at("hash").value());
+    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto& hash_cptr = any.get<const hash_digest>();
+    BOOST_REQUIRE(hash_cptr);
+    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+
+    const auto type = std::get<uint8_t>(object.at("type").value());
+    BOOST_REQUIRE_EQUAL(type, 255u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_hash_hash_extra_segment__extra_segment)
+{
+    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/hash/extra";
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+}
+
+// filter_header/height
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_header_height_valid__expected)
+{
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, "/v42/block/height/123456/filter/255/header"));
+    BOOST_REQUIRE_EQUAL(request.method, "filter_header");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto height = std::get<uint32_t>(object.at("height").value());
+    BOOST_REQUIRE_EQUAL(height, 123456u);
+
+    const auto type = std::get<uint8_t>(object.at("type").value());
+    BOOST_REQUIRE_EQUAL(type, 255u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_header_height_extra_segment__extra_segment)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/42/header/extra"), node::error::extra_segment);
+}
+
+// filter_header/hash
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_header_hash_valid__expected)
+{
+    const std::string path = "/v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/filter/255/header";
+
+    request_t request{};
+    BOOST_REQUIRE(!parse_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "filter_header");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 3u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto& any = std::get<any_t>(object.at("hash").value());
+    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto& hash_cptr = any.get<const hash_digest>();
+    BOOST_REQUIRE(hash_cptr);
+    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+
+    const auto type = std::get<uint8_t>(object.at("type").value());
+    BOOST_REQUIRE_EQUAL(type, 255u);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_header_hash_extra_segment__extra_segment)
+{
+    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/header/extra";
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_missing_type_id__missing_type_id)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter"), node::error::missing_type_id);
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter"), node::error::missing_type_id);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_invalid_type__invalid_number)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/invalid"), node::error::invalid_number);
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/invalid"), node::error::invalid_number);
+}
+
+BOOST_AUTO_TEST_CASE(parse__parse_target__filter_invalid_subcomponent__invalid_subcomponent)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/42/invalid"), node::error::invalid_subcomponent);
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/invalid"), node::error::invalid_subcomponent);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

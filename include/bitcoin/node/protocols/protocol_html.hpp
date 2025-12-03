@@ -64,7 +64,7 @@ protected:
         boost::json::value&& model, size_t size_hint) NOEXCEPT;
     virtual void send_text(const network::http::request& request,
         std::string&& hexidecimal) NOEXCEPT;
-    virtual void send_data(const network::http::request& request,
+    virtual void send_chunk(const network::http::request& request,
         system::data_chunk&& bytes) NOEXCEPT;
     virtual void send_file(const network::http::request& request,
         network::http::file&& file, network::http::media_type type) NOEXCEPT;

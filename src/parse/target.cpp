@@ -84,18 +84,7 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
     // transaction, address, inputs, and outputs are identical excluding names;
     // input and output are identical excluding names; block is unique.
     const auto target = segments[segment++];
-    if (target == "transaction")
-    {
-        if (segment == segments.size())
-            return error::missing_hash;
-
-        const auto hash = to_hash(segments[segment++]);
-        if (!hash) return error::invalid_hash;
-
-        method = "transaction";
-        params["hash"] = hash;
-    }
-    else if (target == "address")
+    if (target == "address")
     {
         if (segment == segments.size())
             return error::missing_hash;
@@ -114,7 +103,7 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
         const auto hash = to_hash(segments[segment++]);
         if (!hash) return error::invalid_hash;
 
-        method = "input";
+        method = "inputs";
         params["hash"] = hash;
     }
     else if (target == "outputs")
@@ -125,7 +114,7 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
         const auto hash = to_hash(segments[segment++]);
         if (!hash) return error::invalid_hash;
 
-        method = "output";
+        method = "outputs";
         params["hash"] = hash;
     }
     else if (target == "input")
@@ -141,36 +130,36 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
             return error::missing_component;
 
         const auto component = segments[segment++];
-        if (component == "scripts")
+        ////if (component == "scripts")
+        ////{
+        ////    method = "input_scripts";
+        ////}
+        ////else if (component == "witnesses")
+        ////{
+        ////    method = "input_witnesses";
+        ////}
+        ////else
+        ////{
+        uint32_t index{};
+        if (!to_number(index, component))
+            return error::invalid_number;
+
+        params["index"] = index;
+        if (segment == segments.size())
         {
-            method = "input_script";
-        }
-        else if (component == "witnesses")
-        {
-            method = "input_witness";
+            method = "input";
         }
         else
         {
-            uint32_t index{};
-            if (!to_number(index, component))
-                return error::invalid_number;
-
-            params["index"] = index;
-            if (segment == segments.size())
-            {
-                method = "input";
-            }
+            auto subcomponent = segments[segment++];
+            if (subcomponent == "script")
+                method = "input_script";
+            else if (subcomponent == "witness")
+                method = "input_witness";
             else
-            {
-                auto subcomponent = segments[segment++];
-                if (subcomponent == "script")
-                    method = "input_script";
-                else if (subcomponent == "witness")
-                    method = "input_witness";
-                else
-                    return error::invalid_subcomponent;
-            }
+                return error::invalid_subcomponent;
         }
+        ////}
     }
     else if (target == "output")
     {
@@ -185,13 +174,14 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
             return error::missing_component;
 
         const auto component = segments[segment++];
-        if (component == "scripts")
+        ////if (component == "scripts")
+        ////{
+        ////    method = "output_scripts";
+        ////}
+        ////else
+        if (component == "spenders")
         {
-            method = "output_script";
-        }
-        else if (component == "spenders")
-        {
-            method = "output_spender";
+            method = "output_spenders";
         }
         else
         {
@@ -214,6 +204,28 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
                 else
                     return error::invalid_subcomponent;
             }
+        }
+    }
+    else if (target == "transaction")
+    {
+        if (segment == segments.size())
+            return error::missing_hash;
+
+        const auto hash = to_hash(segments[segment++]);
+        if (!hash) return error::invalid_hash;
+
+        params["hash"] = hash;
+        if (segment == segments.size())
+        {
+            method = "transaction";
+        }
+        else
+        {
+            const auto component = segments[segment++];
+            if (component == "block")
+                method = "tx_block";
+            else
+                return error::invalid_component;
         }
     }
     else if (target == "block")
@@ -273,10 +285,33 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
             }
             else if (component == "header")
                 method = "header";
-            else if (component == "filter")
-                method = "filter";
             else if (component == "transactions")
                 method = "block_txs";
+            else if (component == "filter")
+            {
+                if (segment == segments.size())
+                    return error::missing_type_id;
+
+                uint8_t type{};
+                if (!to_number(type, segments[segment++]))
+                    return error::invalid_number;
+
+                params["type"] = type;
+                if (segment == segments.size())
+                {
+                    method = "filter";
+                }
+                else
+                {
+                    const auto subcomponent = segments[segment++];
+                    if (subcomponent == "hash")
+                        method = "filter_hash";
+                    else if (subcomponent == "header")
+                        method = "filter_header";
+                    else
+                        return error::invalid_subcomponent;
+                }
+            }
             else
                 return error::invalid_component;
         }
