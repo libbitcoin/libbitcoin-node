@@ -44,7 +44,7 @@ void protocol_html::handle_receive_get(const code& ec,
     // Enforce http origin form for get.
     if (!is_origin_form(get->target()))
     {
-        send_bad_target(*get);
+        send_bad_target({}, *get);
         return;
     }
 
@@ -98,22 +98,22 @@ void protocol_html::dispatch_embedded(const request& request) NOEXCEPT
     switch (const auto media = file_media_type(to_path(request.target())))
     {
         case media_type::text_css:
-            send_span(request, pages.css(), media);
+            send_span(pages.css(), media, request);
             break;
         case media_type::text_html:
-            send_span(request, pages.html(), media);
+            send_span(pages.html(), media, request);
             break;
         case media_type::application_javascript:
-            send_span(request, pages.ecma(), media);
+            send_span(pages.ecma(), media, request);
             break;
         case media_type::font_woff:
         case media_type::font_woff2:
-            send_span(request, pages.font(), media);
+            send_span(pages.font(), media, request);
             break;
         case media_type::image_png:
         case media_type::image_gif:
         case media_type::image_jpeg:
-            send_span(request, pages.icon(), media);
+            send_span(pages.icon(), media, request);
             break;
         default:
             send_not_found(request);
@@ -126,7 +126,7 @@ void protocol_html::dispatch_file(const request& request) NOEXCEPT
     auto path = to_local_path(request.target());
     if (path.empty())
     {
-        send_bad_target(request);
+        send_bad_target({}, request);
         return;
     }
 
@@ -152,7 +152,7 @@ void protocol_html::dispatch_file(const request& request) NOEXCEPT
     }
 
     const auto octet_stream = media_type::application_octet_stream;
-    send_file(request, std::move(file), file_media_type(path, octet_stream));
+    send_file(std::move(file), file_media_type(path, octet_stream), request);
 }
 
 // Senders.
@@ -162,8 +162,8 @@ constexpr auto data = media_type::application_octet_stream;
 constexpr auto json = media_type::application_json;
 constexpr auto text = media_type::text_plain;
 
-void protocol_html::send_json(const request& request,
-    boost::json::value&& model, size_t size_hint) NOEXCEPT
+void protocol_html::send_json(boost::json::value&& model, size_t size_hint,
+    const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
@@ -174,8 +174,8 @@ void protocol_html::send_json(const request& request,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_html::send_text(const request& request,
-    std::string&& hexidecimal) NOEXCEPT
+void protocol_html::send_text(std::string&& hexidecimal,
+    const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
@@ -186,8 +186,8 @@ void protocol_html::send_text(const request& request,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_html::send_chunk(const request& request,
-    system::data_chunk&& bytes) NOEXCEPT
+void protocol_html::send_chunk(system::data_chunk&& bytes,
+    const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
@@ -198,8 +198,8 @@ void protocol_html::send_chunk(const request& request,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_html::send_file(const request& request, file&& file,
-    media_type type) NOEXCEPT
+void protocol_html::send_file(file&& file, media_type type,
+    const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
@@ -211,8 +211,8 @@ void protocol_html::send_file(const request& request, file&& file,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_html::send_span(const request& request,
-    span_body::value_type&& span, media_type type) NOEXCEPT
+void protocol_html::send_span(span_body::value_type&& span,
+    media_type type, const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
@@ -223,8 +223,8 @@ void protocol_html::send_span(const request& request,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_html::send_buffer(const request& request,
-    buffer_body::value_type&& buffer, media_type type) NOEXCEPT
+void protocol_html::send_buffer(buffer_body::value_type&& buffer,
+    media_type type, const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
