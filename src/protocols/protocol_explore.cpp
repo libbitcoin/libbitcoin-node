@@ -637,15 +637,16 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
         return false;
 
     const auto& query = archive();
-    const auto spender = query.to_confirmed_spender({ *hash, index });
-    if (spender.is_terminal())
+    const chain::point spent{ *hash, index };
+    const auto link = query.to_confirmed_spender(spent);
+    if (link.is_terminal())
     {
         send_not_found();
         return true;
     }
 
-    const auto point = query.get_point(spender);
-    if (point.hash() == null_hash)
+    const auto spender = query.get_spender(link);
+    if (spender.index() == chain::point::null_index)
     {
         send_internal_server_error(database::error::integrity);
         return true;
@@ -655,13 +656,13 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
     switch (media)
     {
         case data:
-            send_chunk(to_bin(point, size));
+            send_chunk(to_bin(spender, size));
             return true;
         case text:
-            send_text(to_hex(point, size));
+            send_text(to_hex(spender, size));
             return true;
         case json:
-            send_json(value_from(point), two * size);
+            send_json(value_from(spender), two * size);
             return true;
     }
 
