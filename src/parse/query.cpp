@@ -57,12 +57,6 @@ bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
 
     const auto accepts = to_media_types((request)[field::accept]);
 
-    if (contains(accepts, json) || format == "json")
-    {
-        params["media"] = to_value(json);
-        return true;
-    }
-
     if (contains(accepts, text) || format == "text")
     {
         params["media"] = to_value(text);
@@ -75,7 +69,15 @@ bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
         return true;
     }
 
-    return false;
+    ////if (contains(accepts, json) || format == "json")
+    ////{
+    ////    params["media"] = to_value(json);
+    ////    return true;
+    ////}
+
+    // Default to json.
+    params["media"] = to_value(json);
+    return true;
 }
 
 } // namespace node
