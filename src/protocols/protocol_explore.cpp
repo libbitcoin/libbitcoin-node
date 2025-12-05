@@ -879,12 +879,14 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
         return true;
     }
 
-    const auto size = points.size() * chain::point::serialized_size();
+    // TODO: dedup and lexical sort.
     chain::points out(points.size());
-    std::ranges::transform(points, out.begin(),
-        [&](const auto& link) NOEXCEPT { return query.get_point(link); });
+    std::ranges::transform(points, out.begin(), [&](const auto& link) NOEXCEPT
+    {
+        return query.get_spender(link);
+    });
 
-    // TODO: dedup and sort by height/position/index in query.
+    const auto size = out.size() * chain::point::serialized_size();
     switch (media)
     {
         case data:
@@ -928,21 +930,25 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
-    // TODO: dedup and sort by height/position/index in query.
-    if (const auto ptr = query.get_output(outputs.front()))
+    // TODO: dedup and lexical sort.
+    chain::points out(outputs.size());
+    std::ranges::transform(outputs, out.begin(), [&](const auto& link) NOEXCEPT
     {
-        switch (media)
-        {
-            case data:
-                send_chunk({});
-                return true;
-            case text:
-                send_text(encode_base16({}));
-                return true;
-            case json:
-                send_json(value_from(*ptr), {});
-                return true;
-        }
+        return query.get_spent(link);
+    });
+
+    const auto size = out.size() * chain::point::serialized_size();
+    switch (media)
+    {
+        case data:
+            send_chunk(to_bin_array(out, size));
+            return true;
+        case text:
+            send_text(to_hex_array(out, size));
+            return true;
+        case json:
+            send_json(value_from(out), two * size);
+            return true;
     }
 
     send_not_found();
