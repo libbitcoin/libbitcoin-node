@@ -59,11 +59,17 @@ void protocol_explore::start() NOEXCEPT
         return;
 
     SUBSCRIBE_EXPLORE(handle_get_block, _1, _2, _3, _4, _5, _6, _7);
-    SUBSCRIBE_EXPLORE(handle_get_header, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_block_header, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_block_txs, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_block_fees, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_block_filter, _1, _2, _3, _4, _5, _6, _7);
+    SUBSCRIBE_EXPLORE(handle_get_block_filter_hash, _1, _2, _3, _4, _5, _6, _7);
+    SUBSCRIBE_EXPLORE(handle_get_block_filter_header, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_EXPLORE(handle_get_block_tx, _1, _2, _3, _4, _5, _6, _7, _8);
-    SUBSCRIBE_EXPLORE(handle_get_transaction, _1, _2, _3, _4, _5, _6);
+
+    SUBSCRIBE_EXPLORE(handle_get_tx, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_tx_block, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_tx_fee, _1, _2, _3, _4, _5);
 
     SUBSCRIBE_EXPLORE(handle_get_inputs, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6, _7);
@@ -77,9 +83,9 @@ void protocol_explore::start() NOEXCEPT
     SUBSCRIBE_EXPLORE(handle_get_output_spenders, _1, _2, _3, _4, _5, _6);
 
     SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5);
-    SUBSCRIBE_EXPLORE(handle_get_filter, _1, _2, _3, _4, _5, _6, _7);
-    SUBSCRIBE_EXPLORE(handle_get_filter_hash, _1, _2, _3, _4, _5, _6, _7);
-    SUBSCRIBE_EXPLORE(handle_get_filter_header, _1, _2, _3, _4, _5, _6, _7);
+    SUBSCRIBE_EXPLORE(handle_get_address_confirmed, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_address_unconfirmed, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_address_balance, _1, _2, _3, _4, _5);
     protocol_html::start();
 }
 
@@ -202,8 +208,8 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
     if (stopped(ec))
         return false;
 
-    if (const auto block = archive().get_block(to_header(height, hash),
-        witness))
+    const auto link = to_header(height, hash);
+    if (const auto block = archive().get_block(link, witness))
     {
         const auto size = block->serialized_size(witness);
         switch (media)
@@ -215,7 +221,9 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
                 send_text(to_hex(*block, size, witness));
                 return true;
             case json:
-                send_json(value_from(block), two * size);
+                auto model = value_from(block);
+                inject(model.at("header"), height, link);
+                send_json(std::move(model), two * size);
                 return true;
         }
     }
@@ -224,14 +232,15 @@ bool protocol_explore::handle_get_block(const code& ec, interface::block,
     return true;
 }
 
-bool protocol_explore::handle_get_header(const code& ec, interface::header,
-    uint8_t, uint8_t media, std::optional<hash_cptr> hash,
-    std::optional<uint32_t> height) NOEXCEPT
+bool protocol_explore::handle_get_block_header(const code& ec,
+    interface::block_header, uint8_t, uint8_t media,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    if (const auto header = archive().get_header(to_header(height, hash)))
+    const auto link = to_header(height, hash);
+    if (const auto header = archive().get_header(link))
     {
         constexpr auto size = chain::header::serialized_size();
         switch (media)
@@ -243,7 +252,9 @@ bool protocol_explore::handle_get_header(const code& ec, interface::header,
                 send_text(to_hex(*header, size));
                 return true;
             case json:
-                send_json(value_from(header), two * size);
+                auto model = value_from(header);
+                inject(model, height, link);
+                send_json(std::move(model), two * size);
                 return true;
         }
     }
@@ -293,6 +304,129 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
     return true;
 }
 
+bool protocol_explore::handle_get_block_fees(const code& ec,
+    interface::block_fees, uint8_t, uint8_t ,
+    std::optional<hash_cptr> , std::optional<uint32_t> ) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    // TODO.
+
+    send_not_implemented();
+    return true;
+}
+
+bool protocol_explore::handle_get_block_filter(const code& ec,
+    interface::block_filter, uint8_t, uint8_t media, uint8_t type,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
+    {
+        send_not_implemented();
+        return true;
+    }
+
+    data_chunk filter{};
+    if (query.get_filter_body(filter, to_header(height, hash)))
+    {
+        switch (media)
+        {
+            case data:
+                send_chunk(std::move(filter));
+                return true;
+            case text:
+                send_text(encode_base16(filter));
+                return true;
+            case json:
+                send_json(value_from(encode_base16(filter)),
+                    two * filter.size());
+                return true;
+        }
+    }
+
+    send_not_found();
+    return true;
+}
+
+bool protocol_explore::handle_get_block_filter_hash(const code& ec,
+    interface::block_filter_hash, uint8_t, uint8_t media, uint8_t type,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
+    {
+        send_not_implemented();
+        return true;
+    }
+
+    hash_digest filter_hash{ hash_size };
+    if (query.get_filter_hash(filter_hash, to_header(height, hash)))
+    {
+        switch (media)
+        {
+            case data:
+                send_chunk(to_chunk(filter_hash));
+                return true;
+            case text:
+                send_text(encode_base16(filter_hash));
+                return true;
+            case json:
+                send_json(value_from(encode_hash(filter_hash)),
+                    two * hash_size);
+                return true;
+        }
+    }
+
+    send_not_found();
+    return true;
+}
+
+bool protocol_explore::handle_get_block_filter_header(const code& ec,
+    interface::block_filter_header, uint8_t, uint8_t media, uint8_t type,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
+    {
+        send_not_implemented();
+        return true;
+    }
+
+    hash_digest filter_head{ hash_size };
+    if (query.get_filter_head(filter_head, to_header(height, hash)))
+    {
+        switch (media)
+        {
+            case data:
+            {
+                send_chunk(to_chunk(filter_head));
+                return true;
+            }
+            case text:
+                send_text(encode_base16(filter_head));
+                return true;
+            case json:
+                send_json(value_from(encode_hash(filter_head)),
+                    two * hash_size);
+                return true;
+        }
+    }
+
+    send_not_found();
+    return true;
+}
+
 bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
     uint8_t, uint8_t media, uint32_t position, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height, bool witness) NOEXCEPT
@@ -323,9 +457,8 @@ bool protocol_explore::handle_get_block_tx(const code& ec, interface::block_tx,
     return true;
 }
 
-bool protocol_explore::handle_get_transaction(const code& ec,
-    interface::transaction, uint8_t, uint8_t media, const hash_cptr& hash,
-    bool witness) NOEXCEPT
+bool protocol_explore::handle_get_tx(const code& ec, interface::tx, uint8_t,
+    uint8_t media, const hash_cptr& hash, bool witness) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -387,6 +520,18 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
     }
 
     send_not_found();
+    return true;
+}
+
+bool protocol_explore::handle_get_tx_fee(const code& ec, interface::tx_fee,
+    uint8_t, uint8_t , const hash_cptr& ) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    // TODO:
+
+    send_not_implemented();
     return true;
 }
 
@@ -757,118 +902,54 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     return true;
 }
 
-bool protocol_explore::handle_get_filter(const code& ec, interface::filter,
-    uint8_t, uint8_t media, uint8_t type, std::optional<hash_cptr> hash,
-    std::optional<uint32_t> height) NOEXCEPT
+bool protocol_explore::handle_get_address_confirmed(const code& ec,
+    interface::address_confirmed, uint8_t, uint8_t ,
+    const hash_cptr& ) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
-    {
-        send_not_implemented();
-        return true;
-    }
+    // TODO.
 
-    data_chunk filter{};
-    if (query.get_filter_body(filter, to_header(height, hash)))
-    {
-        switch (media)
-        {
-            case data:
-                send_chunk(std::move(filter));
-                return true;
-            case text:
-                send_text(encode_base16(filter));
-                return true;
-            case json:
-                send_json(value_from(encode_base16(filter)),
-                    two * filter.size());
-                return true;
-        }
-    }
-
-    send_not_found();
+    send_not_implemented();
     return true;
 }
 
-bool protocol_explore::handle_get_filter_hash(const code& ec,
-    interface::filter_hash, uint8_t, uint8_t media, uint8_t type,
-    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
+    interface::address_unconfirmed, uint8_t, uint8_t ,
+    const hash_cptr& ) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
-    {
-        send_not_implemented();
-        return true;
-    }
+    // TODO.
 
-    hash_digest filter_hash{ hash_size };
-    if (query.get_filter_hash(filter_hash, to_header(height, hash)))
-    {
-        switch (media)
-        {
-            case data:
-                send_chunk(to_chunk(filter_hash));
-                return true;
-            case text:
-                send_text(encode_base16(filter_hash));
-                return true;
-            case json:
-                send_json(value_from(encode_hash(filter_hash)),
-                    two * hash_size);
-                return true;
-        }
-    }
-
-    send_not_found();
+    send_not_implemented();
     return true;
 }
 
-bool protocol_explore::handle_get_filter_header(const code& ec,
-    interface::filter_header, uint8_t, uint8_t media, uint8_t type,
-    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+bool protocol_explore::handle_get_address_balance(const code& ec,
+    interface::address_balance, uint8_t, uint8_t,
+    const hash_cptr&) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    if (!query.filter_enabled() || type != client_filter::type_id::neutrino)
-    {
-        send_not_implemented();
-        return true;
-    }
+    // TODO.
 
-    hash_digest filter_head{ hash_size };
-    if (query.get_filter_head(filter_head, to_header(height, hash)))
-    {
-        switch (media)
-        {
-            case data:
-            {
-                send_chunk(to_chunk(filter_head));
-                return true;
-            }
-            case text:
-                send_text(encode_base16(filter_head));
-                return true;
-            case json:
-                send_json(value_from(encode_hash(filter_head)),
-                    two * hash_size);
-                return true;
-        }
-    }
-
-    send_not_found();
+    send_not_implemented();
     return true;
 }
 
 // private
 // ----------------------------------------------------------------------------
+
+void protocol_explore::inject(value& out, std::optional<uint32_t> height,
+    const database::header_link& link) const NOEXCEPT
+{
+    out.as_object().emplace("height", height.has_value() ? height.value() :
+        archive().get_height(link).value);
+}
 
 database::header_link protocol_explore::to_header(
     const std::optional<uint32_t>& height,

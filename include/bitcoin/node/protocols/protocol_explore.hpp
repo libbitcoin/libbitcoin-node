@@ -63,20 +63,39 @@ protected:
     bool handle_get_block(const code& ec, interface::block,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height, bool witness) NOEXCEPT;
-    bool handle_get_header(const code& ec, interface::header,
+    bool handle_get_block_header(const code& ec, interface::block_header,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height) NOEXCEPT;
     bool handle_get_block_txs(const code& ec, interface::block_txs,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height) NOEXCEPT;
+    bool handle_get_block_fees(const code& ec, interface::block_fees,
+        uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height) NOEXCEPT;
+    bool handle_get_block_filter(const code& ec, interface::block_filter,
+        uint8_t version, uint8_t media, uint8_t type,
+        std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height) NOEXCEPT;
+    bool handle_get_block_filter_hash(const code& ec,
+        interface::block_filter_hash, uint8_t version, uint8_t media,
+        uint8_t type, std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height) NOEXCEPT;
+    bool handle_get_block_filter_header(const code& ec,
+        interface::block_filter_header, uint8_t version, uint8_t media,
+        uint8_t type, std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height) NOEXCEPT;
     bool handle_get_block_tx(const code& ec, interface::block_tx,
         uint8_t version, uint8_t media, uint32_t position,
         std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height, bool witness) NOEXCEPT;
-    bool handle_get_transaction(const code& ec, interface::transaction,
+
+    bool handle_get_tx(const code& ec, interface::tx,
         uint8_t version, uint8_t media, const system::hash_cptr& hash,
         bool witness) NOEXCEPT;
     bool handle_get_tx_block(const code& ec, interface::tx_block,
+        uint8_t version, uint8_t media,
+        const system::hash_cptr& hash) NOEXCEPT;
+    bool handle_get_tx_fee(const code& ec, interface::tx_fee,
         uint8_t version, uint8_t media,
         const system::hash_cptr& hash) NOEXCEPT;
 
@@ -112,19 +131,20 @@ protected:
     bool handle_get_address(const code& ec, interface::address,
         uint8_t version, uint8_t media,
         const system::hash_cptr& hash) NOEXCEPT;
-    bool handle_get_filter(const code& ec, interface::filter, uint8_t version,
-        uint8_t media, uint8_t type, std::optional<system::hash_cptr> hash,
-        std::optional<uint32_t> height) NOEXCEPT;
-    bool handle_get_filter_hash(const code& ec, interface::filter_hash,
-        uint8_t version, uint8_t media, uint8_t type,
-        std::optional<system::hash_cptr> hash,
-        std::optional<uint32_t> height) NOEXCEPT;
-    bool handle_get_filter_header(const code& ec, interface::filter_header,
-        uint8_t version, uint8_t media, uint8_t type,
-        std::optional<system::hash_cptr> hash,
-        std::optional<uint32_t> height) NOEXCEPT;
+    bool handle_get_address_confirmed(const code& ec,
+        interface::address_confirmed, uint8_t version, uint8_t media,
+        const system::hash_cptr& hash) NOEXCEPT;
+    bool handle_get_address_unconfirmed(const code& ec,
+        interface::address_unconfirmed, uint8_t version, uint8_t media,
+        const system::hash_cptr& hash) NOEXCEPT;
+    bool handle_get_address_balance(const code& ec,
+        interface::address_balance, uint8_t version, uint8_t media,
+        const system::hash_cptr& hash) NOEXCEPT;
 
 private:
+    void inject(boost::json::value& out, std::optional<uint32_t> height,
+        const database::header_link& link) const NOEXCEPT;
+
     database::header_link to_header(const std::optional<uint32_t>& height,
         const std::optional<system::hash_cptr>& hash) NOEXCEPT;
 
