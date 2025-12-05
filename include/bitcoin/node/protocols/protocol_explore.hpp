@@ -60,6 +60,9 @@ protected:
 
     /// REST interface handlers.
 
+    bool handle_get_top(const code& ec, interface::top,
+        uint8_t version, uint8_t media) NOEXCEPT;
+
     bool handle_get_block(const code& ec, interface::block,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height, bool witness) NOEXCEPT;

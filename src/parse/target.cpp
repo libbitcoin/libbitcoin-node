@@ -91,7 +91,11 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
     // transaction, address, inputs, and outputs are identical excluding names;
     // input and output are identical excluding names; block is unique.
     const auto target = segments[segment++];
-    if (target == "address")
+    if (target == "top")
+    {
+        method = "top";
+    }
+    else if (target == "address")
     {
         if (segment == segments.size())
             return error::missing_hash;

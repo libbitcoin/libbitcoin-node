@@ -207,6 +207,30 @@ std::string to_hex_ptr_array(const Collection& collection, size_t size,
     return out;
 }
 
+bool protocol_explore::handle_get_top(const code& ec, interface::top,
+    uint8_t, uint8_t media) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    const auto height = archive().get_top_confirmed();
+    switch (media)
+    {
+        case data:
+            send_chunk(to_little_endian_size(height));
+            return true;
+        case text:
+            send_text(encode_base16(to_little_endian_size(height)));
+            return true;
+        case json:
+            send_json(height, two * sizeof(height));
+            return true;
+    }
+
+    send_not_found();
+    return true;
+}
+
 bool protocol_explore::handle_get_block(const code& ec, interface::block,
     uint8_t, uint8_t media, std::optional<hash_cptr> hash,
     std::optional<uint32_t> height, bool witness) NOEXCEPT
