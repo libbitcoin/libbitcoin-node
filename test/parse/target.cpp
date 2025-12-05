@@ -847,9 +847,9 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_spenders_extra_segment__extra_s
 
 // address
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__address_valid__expected)
+BOOST_AUTO_TEST_CASE(parse__parse_target__address_valid__unreversed_expected)
 {
-    const std::string path = "/v255/address/0000000000000000000000000000000000000000000000000000000000000042";
+    const std::string path = "/v255/address/4200000000000000000000000000000000000000000000000000000000000000";
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));
