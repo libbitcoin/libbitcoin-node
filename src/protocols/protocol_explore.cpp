@@ -311,15 +311,36 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
 }
 
 bool protocol_explore::handle_get_block_fees(const code& ec,
-    interface::block_fees, uint8_t, uint8_t ,
-    std::optional<hash_cptr> , std::optional<uint32_t> ) NOEXCEPT
+    interface::block_fees, uint8_t, uint8_t media,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    // TODO.
+    if (const auto fees = archive().get_block_fees(to_header(height, hash));
+        fees != max_uint64)
+    {
+        switch (media)
+        {
+            case data:
+            {
+                send_chunk(to_little_endian_size(fees));
+                return true;
+            }
+            case text:
+            {
+                send_text(encode_base16(to_little_endian_size(fees)));
+                return true;
+            }
+            case json:
+            {
+                send_json(fees, two * sizeof(fees));
+                return true;
+            }
+        }
+    }
 
-    send_not_implemented();
+    send_not_found();
     return true;
 }
 
@@ -530,14 +551,36 @@ bool protocol_explore::handle_get_tx_block(const code& ec, interface::tx_block,
 }
 
 bool protocol_explore::handle_get_tx_fee(const code& ec, interface::tx_fee,
-    uint8_t, uint8_t , const hash_cptr& ) NOEXCEPT
+    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    // TODO:
+    const auto& query = archive();
+    if (const auto fee = query.get_tx_fee(query.to_tx(*hash));
+        fee != max_uint64)
+    {
+        switch (media)
+        {
+            case data:
+            {
+                send_chunk(to_little_endian_size(fee));
+                return true;
+            }
+            case text:
+            {
+                send_text(encode_base16(to_little_endian_size(fee)));
+                return true;
+            }
+            case json:
+            {
+                send_json(fee, two * sizeof(fee));
+                return true;
+            }
+        }
+    }
 
-    send_not_implemented();
+    send_not_found();
     return true;
 }
 
@@ -891,10 +934,8 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         switch (media)
         {
             case data:
-            {
                 send_chunk({});
                 return true;
-            }
             case text:
                 send_text(encode_base16({}));
                 return true;
