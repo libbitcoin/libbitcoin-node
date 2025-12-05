@@ -323,20 +323,14 @@ bool protocol_explore::handle_get_block_fees(const code& ec,
         switch (media)
         {
             case data:
-            {
                 send_chunk(to_little_endian_size(fees));
                 return true;
-            }
             case text:
-            {
                 send_text(encode_base16(to_little_endian_size(fees)));
                 return true;
-            }
             case json:
-            {
                 send_json(fees, two * sizeof(fees));
                 return true;
-            }
         }
     }
 
@@ -563,20 +557,14 @@ bool protocol_explore::handle_get_tx_fee(const code& ec, interface::tx_fee,
         switch (media)
         {
             case data:
-            {
                 send_chunk(to_little_endian_size(fee));
                 return true;
-            }
             case text:
-            {
                 send_text(encode_base16(to_little_endian_size(fee)));
                 return true;
-            }
             case json:
-            {
                 send_json(fee, two * sizeof(fee));
                 return true;
-            }
         }
     }
 
