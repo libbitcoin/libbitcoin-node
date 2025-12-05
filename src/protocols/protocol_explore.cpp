@@ -136,16 +136,18 @@ data_chunk to_bin(const Object& object, size_t size, Args&&... args) NOEXCEPT
     stream::out::fast sink{ out };
     write::bytes::fast writer{ sink };
     object.to_data(writer, std::forward<Args>(args)...);
+    BC_ASSERT(writer);
     return out;
 }
 
 template <typename Object, typename ...Args>
 std::string to_hex(const Object& object, size_t size, Args&&... args) NOEXCEPT
 {
-    std::string out(size, '\0');
+    std::string out(two * size, '\0');
     stream::out::fast sink{ out };
     write::base16::fast writer{ sink };
     object.to_data(writer, std::forward<Args>(args)...);
+    BC_ASSERT(writer);
     return out;
 }
 
@@ -159,6 +161,7 @@ data_chunk to_bin_array(const Collection& collection, size_t size,
     for (const auto& element: collection)
         element.to_data(writer, std::forward<Args>(args)...);
 
+    BC_ASSERT(writer);
     return out;
 }
 
@@ -166,12 +169,13 @@ template <typename Collection, typename ...Args>
 std::string to_hex_array(const Collection& collection, size_t size,
     Args&&... args) NOEXCEPT
 {
-    std::string out(size, '\0');
+    std::string out(two * size, '\0');
     stream::out::fast sink{ out };
     write::base16::fast writer{ sink };
     for (const auto& element: collection)
         element.to_data(writer, std::forward<Args>(args)...);
 
+    BC_ASSERT(writer);
     return out;
 }
 
@@ -185,6 +189,7 @@ data_chunk to_bin_ptr_array(const Collection& collection, size_t size,
     for (const auto& ptr: collection)
         ptr->to_data(writer, std::forward<Args>(args)...);
 
+    BC_ASSERT(writer);
     return out;
 }
 
@@ -192,12 +197,13 @@ template <typename Collection, typename ...Args>
 std::string to_hex_ptr_array(const Collection& collection, size_t size,
     Args&&... args) NOEXCEPT
 {
-    std::string out(size, '\0');
+    std::string out(two * size, '\0');
     stream::out::fast sink{ out };
     write::base16::fast writer{ sink };
     for (const auto& ptr: collection)
         ptr->to_data(writer, std::forward<Args>(args)...);
 
+    BC_ASSERT(writer);
     return out;
 }
 
