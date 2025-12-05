@@ -58,6 +58,8 @@ void protocol_explore::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_EXPLORE(handle_get_top, _1, _2, _3, _4);
+
     SUBSCRIBE_EXPLORE(handle_get_block, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_EXPLORE(handle_get_block_header, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_block_txs, _1, _2, _3, _4, _5, _6);
