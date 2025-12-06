@@ -55,8 +55,8 @@ public:
     bool collisions{};
 
     /// Ad-hoc Testing.
-    bool test{};
-    bool write{};
+    system::config::hash256 test{};
+    system::config::hash256 write{};
 
     /// Settings.
     log::settings log;

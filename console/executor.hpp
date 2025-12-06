@@ -109,8 +109,8 @@ private:
     bool do_slabs();
     bool do_buckets();
     bool do_collisions();
-    bool do_read();
-    bool do_write();
+    bool do_read(const system::hash_digest& hash);
+    bool do_write(const system::hash_digest& hash);
 
     // Runtime options.
     void do_hot_backup();
@@ -126,8 +126,8 @@ private:
     void subscribe_capture();
 
     // Built in tests.
-    void read_test(bool dump) const;
-    void write_test(bool dump);
+    void read_test(const system::hash_digest& hash) const;
+    void write_test(const system::hash_digest& hash);
 
     // Logging.
     database::file::stream::out::rotator create_log_sink() const;

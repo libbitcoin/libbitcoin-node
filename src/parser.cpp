@@ -256,14 +256,14 @@ options_metadata parser::load_options() THROWS
     // Ad-hoc Testing.
     (
         BN_READ_VARIABLE ",t",
-        value<bool>(&configured.test)->
-            default_value(false)->zero_tokens(),
+        value<config::hash256>(&configured.test)->
+            default_value(system::null_hash),
         "Run built-in read test and display."
     )
     (
         BN_WRITE_VARIABLE ",w",
-        value<bool>(&configured.write)->
-            default_value(false)->zero_tokens(),
+        value<config::hash256>(&configured.write)->
+            default_value(system::null_hash),
         "Run built-in write test and display."
     );
 

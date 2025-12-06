@@ -197,7 +197,7 @@ void executor::do_menu() const
 // [t]est
 void executor::do_test() const
 {
-    read_test(false);
+    read_test(system::null_hash);
 }
 
 // [w]ork

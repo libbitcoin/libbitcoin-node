@@ -30,14 +30,14 @@ using namespace network;
 using namespace system;
 
 // arbitrary testing (non-const).
-void executor::write_test(bool)
+void executor::write_test(const hash_digest&)
 {
     logger("No write test implemented.");
 }
 
 #if defined(UNDEFINED)
 
-void executor::write_test(bool)
+void executor::write_test(const system::hash_digest&)
 {
     for (database::header_link link{ 793'008_u32 }; link < 885'000_u32; ++link)
     {
@@ -51,7 +51,7 @@ void executor::write_test(bool)
     logger(format("set_block_unknown complete."));
 }
 
-void executor::write_test(bool)
+void executor::write_test(const system::hash_digest&)
 {
     code ec{};
     size_t count{};
@@ -97,7 +97,7 @@ void executor::write_test(bool)
         span.count());
 }
 
-void executor::write_test(bool)
+void executor::write_test(const system::hash_digest&)
 {
     using namespace database;
     constexpr auto frequency = 10'000;
@@ -134,7 +134,7 @@ void executor::write_test(bool)
     logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
-void executor::write_test(bool)
+void executor::write_test(const system::hash_digest&)
 {
     using namespace database;
     ////constexpr uint64_t fees = 99;
@@ -201,7 +201,7 @@ void executor::write_test(bool)
     logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
-void executor::write_test(bool)
+void executor::write_test(const system::hash_digest&)
 {
     constexpr auto hash251684 = base16_hash(
         "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
