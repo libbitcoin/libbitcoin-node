@@ -42,6 +42,14 @@ public:
     void stop() NOEXCEPT override;
 
 protected:
+    /// Post a method in base or derived class in parallel (use PARALLEL).
+    template <class Derived, typename Method, typename... Args>
+    inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
+    {
+        return boost::asio::post(threadpool_.service(),
+            BIND_THIS(method, args));
+    }
+
     typedef network::race_unity<const code&, const database::tx_link&> race;
 
     virtual bool handle_event(const code& ec, chase event_,
