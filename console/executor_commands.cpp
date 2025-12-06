@@ -168,26 +168,26 @@ bool executor::do_collisions()
 }
 
 // --[t]read
-bool executor::do_read()
+bool executor::do_read(const system::hash_digest& hash)
 {
     log_.stop();
     if (!check_store_path() ||
         !open_store())
         return false;
 
-    read_test(true);
+    read_test(hash);
     return close_store();
 }
 
 // --[w]rite
-bool executor::do_write()
+bool executor::do_write(const system::hash_digest& hash)
 {
     log_.stop();
     if (!check_store_path() ||
         !open_store())
         return false;
 
-    write_test(true);
+    write_test(hash);
     return close_store();
 }
 
@@ -210,6 +210,9 @@ bool executor::dispatch()
     if (config.backup)
         return do_backup();
 
+    if (config.restore)
+        return do_restore();
+
     if (config.hardware)
         return do_hardware();
 
@@ -228,20 +231,17 @@ bool executor::dispatch()
     if (config.information)
         return do_information();
 
-    if (config.test)
-        return do_read();
-
     if (config.settings)
         return do_settings();
 
     if (config.version)
         return do_version();
 
-    if (config.write)
-        return do_write();
+    if (config.test != system::null_hash)
+        return do_read(config.test);
 
-    if (config.restore)
-        return do_restore();
+    if (config.write != system::null_hash)
+        return do_write(config.write);
 
     return do_run();
 }

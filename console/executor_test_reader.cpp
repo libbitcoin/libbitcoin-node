@@ -31,7 +31,7 @@ using namespace network;
 using namespace system;
 
 // arbitrary testing (const).
-void executor::read_test(bool) const
+void executor::read_test(const hash_digest&) const
 {
     logger(format("Point table body searches: %1% / (%2% + %1%)") %
         store_.point.positive_search_count() %
@@ -40,11 +40,12 @@ void executor::read_test(bool) const
 
 #if defined(UNDEFINED)
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     using namespace database;
     constexpr auto start_tx = 1'000'000_u32;
     constexpr auto target_count = 100_size;
+    constexpr auto dump{ false };
 
     // Set ensures unique addresses.
     std::set<hash_digest> keys{};
@@ -271,7 +272,7 @@ void executor::read_test(bool dump) const
     }
 }
 
-void executor::read_test(bool) const
+void executor::read_test(const hash_digest&) const
 {
     database::header_link link{ 350'017_u32 };
     const auto ec = query_.block_confirmable(link);
@@ -279,7 +280,7 @@ void executor::read_test(bool) const
         query_.get_height(link));
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     logger("Wire size computation.");
     const auto start = fine_clock::now();
@@ -310,7 +311,7 @@ void executor::read_test(bool dump) const
         size % last % span.count());
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     auto start = fine_clock::now();
     auto count = query_.header_records();
@@ -350,7 +351,7 @@ void executor::read_test(bool dump) const
     logger(format("Top strong tx is [%1%] in [%2%] ms.") % sub1(tx) % span.count());
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     const auto from = 481'824_u32;
     const auto top = 840'000_u32; ////query_.get_top_associated();
@@ -376,7 +377,7 @@ void executor::read_test(bool dump) const
         % total % top % average % span.count());
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     // Binance wallet address with 1,380,169 transaction count.
     // blockstream.info/address/bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h
@@ -398,7 +399,7 @@ void executor::read_test(bool dump) const
 // This was caused by concurrent redundant downloads at tail following restart.
 // The earlier transactions were marked as confirmed and during validation the
 // most recent are found via point.hash association priot to to_block() test.
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     const auto height = 839'287_size;
     const auto block = query_.to_confirmed(height);
@@ -570,7 +571,7 @@ void executor::read_test(bool dump) const
     logger(format("Confirm [%1%] test (%2%).") % height % ec.message());
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     const auto bk_link = query_.to_candidate(804'001_size);
     const auto block = query_.get_block(bk_link);
@@ -627,7 +628,7 @@ void executor::read_test(bool dump) const
     logger(format("Confirm test 2 complete (%1%).") % ec.message());
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     using namespace database;
     constexpr auto frequency = 100'000u;
@@ -683,7 +684,7 @@ void executor::read_test(bool dump) const
     logger(format("get_transaction" BN_READ_ROW) % tx % span.count());
 }
 
-void executor::read_test(bool dump) const
+void executor::read_test(const hash_digest&) const
 {
     constexpr auto hash492224 = base16_hash(
         "0000000000000000003277b639e56dffe2b4e60d18aeedb1fe8b7e4256b2a526");
@@ -806,7 +807,7 @@ void executor::read_test(bool dump) const
 }
 
 // TODO: create a block/tx dumper.
-void executor::read_test(bool) const
+void executor::read_test(const hash_digest&) const
 {
     constexpr auto link = 600'000_size;
     const auto start = logger::now();
