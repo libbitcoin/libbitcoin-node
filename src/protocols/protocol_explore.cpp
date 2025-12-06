@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <optional>
 #include <ranges>
-#include <set>
 #include <utility>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/parse/parse.hpp>
@@ -40,9 +39,6 @@ using namespace network::http;
 using namespace network::messages::peer;
 using namespace std::placeholders;
 using namespace boost::json;
-
-using point_set = std::set<chain::point>;
-using outpoint_set = std::set<chain::outpoint>;
 
 DEFINE_JSON_TO_TAG(point_set)
 {
@@ -941,55 +937,100 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     return true;
 }
 
+// handle_get_address
+// ----------------------------------------------------------------------------
+
 bool protocol_explore::handle_get_address(const code& ec, interface::address,
     uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    if (!query.address_enabled())
+    if (!archive().address_enabled())
     {
         send_not_implemented();
         return true;
     }
 
-    // TODO: post queries to thread (both stopping() and this are stranded).
+    address_handler complete = BIND(complete_get_address, _1, _2, _3);
+    PARALLEL(do_get_address, media, hash, std::move(complete));
+    return true;
+}
 
+// private
+void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
+    const address_handler& handler) NOEXCEPT
+{
+    // Not stranded, query is threadsafe.
+    const auto& query = archive();
+
+    // TODO: push into database as single call, generalize outpoint_set.
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // TODO: change query to return code to differentiate cancel vs. integrity.
     database::output_links outputs{};
     if (!query.to_address_outputs(stopping_, outputs, *hash))
     {
-        send_internal_server_error(database::error::integrity);
-        return true;
+        handler(network::error::operation_canceled, {}, {});
+        return;
     }
 
-    if (outputs.empty())
+    const auto set = to_shared<outpoint_set>();
+    for (const auto& output: outputs)
+    {
+        if (stopping_)
+        {
+            handler(network::error::operation_canceled, {}, {});
+            return;
+        }
+
+        set->insert(query.get_spent(output));
+    }
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    handler(network::error::success, media, set);
+}
+
+// This is shared by the tree get_address.. methods.
+void protocol_explore::complete_get_address(const code& ec, uint8_t media,
+    const outpoints_cptr& set) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // This suppresses the error response resulting from cancelation.
+    if (stopped())
+        return;
+
+    if (ec)
+    {
+        send_internal_server_error(ec);
+        return;
+    }
+
+    if (set->empty())
     {
         send_not_found();
-        return true;
+        return;
     }
 
-    outpoint_set out{};
-    for (const auto& output: outputs)
-        out.insert(query.get_spent(output));
-
-    const auto size = out.size() * chain::outpoint::serialized_size();
+    const auto size = set->size() * chain::outpoint::serialized_size();
     switch (media)
     {
         case data:
-            send_chunk(to_bin_array(out, size));
-            return true;
+            send_chunk(to_bin_array(*set, size));
+            return;
         case text:
-            send_text(to_hex_array(out, size));
-            return true;
+            send_text(to_hex_array(*set, size));
+            return;
         case json:
-            send_json(value_from(out), two * size);
-            return true;
+            send_json(value_from(*set), two * size);
+            return;
     }
 
     send_not_found();
-    return true;
 }
+
+// handle_get_address_confirmed
+// ----------------------------------------------------------------------------
 
 bool protocol_explore::handle_get_address_confirmed(const code& ec,
     interface::address_confirmed, uint8_t, uint8_t media,
@@ -998,61 +1039,77 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    if (!query.address_enabled())
+    if (!archive().address_enabled())
     {
         send_not_implemented();
         return true;
     }
 
-    // TODO: post queries to thread (both stopping() and this are stranded).
-
-    database::output_links outputs{};
-    if (!query.to_confirmed_unspent_outputs(stopping_, outputs, *hash))
-    {
-        send_internal_server_error(database::error::integrity);
-        return true;
-    }
-
-    if (outputs.empty())
-    {
-        send_not_found();
-        return true;
-    }
-
-    outpoint_set out{};
-    for (const auto& output: outputs)
-        out.insert(query.get_spent(output));
-
-    const auto size = out.size() * chain::outpoint::serialized_size();
-    switch (media)
-    {
-        case data:
-            send_chunk(to_bin_array(out, size));
-            return true;
-        case text:
-            send_text(to_hex_array(out, size));
-            return true;
-        case json:
-            send_json(value_from(out), two * size);
-            return true;
-    }
-
-    send_not_found();
+    address_handler complete = BIND(complete_get_address, _1, _2, _3);
+    PARALLEL(do_get_address_confirmed, media, hash, std::move(complete));
     return true;
 }
 
+// private
+void protocol_explore::do_get_address_confirmed(uint8_t media,
+    const hash_cptr& hash, const address_handler& handler) NOEXCEPT
+{
+    // Not stranded, query is threadsafe.
+    const auto& query = archive();
+
+    // TODO: push into database as single call, generalize outpoint_set.
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // TODO: change query to return code to differentiate cancel vs. integrity.
+    database::output_links outputs{};
+    if (!query.to_confirmed_unspent_outputs(stopping_, outputs, *hash))
+    {
+        handler(network::error::operation_canceled, {}, {});
+        return;
+    }
+
+    const auto set = to_shared<outpoint_set>();
+    for (const auto& output : outputs)
+    {
+        if (stopping_)
+        {
+            handler(network::error::operation_canceled, {}, {});
+            return;
+        }
+
+        set->insert(query.get_spent(output));
+    }
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    handler(network::error::success, media, set);
+}
+
+// handle_get_address_unconfirmed
+// ----------------------------------------------------------------------------
+
 bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
-    interface::address_unconfirmed, uint8_t, uint8_t, const hash_cptr&) NOEXCEPT
+    interface::address_unconfirmed, uint8_t, uint8_t media,
+    const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
     // TODO: there are currently no unconfirmed txs.
-
     send_not_implemented();
     return true;
+        
+    address_handler complete = BIND(complete_get_address, _1, _2, _3);
+    PARALLEL(do_get_address_unconfirmed, media, hash, std::move(complete));
+    return true;
 }
+
+void protocol_explore::do_get_address_unconfirmed(uint8_t media,
+    const system::hash_cptr&, const address_handler& handler) NOEXCEPT
+{
+    handler(network::error::success, media, {});
+}
+
+// handle_get_address_balance
+// ----------------------------------------------------------------------------
 
 bool protocol_explore::handle_get_address_balance(const code& ec,
     interface::address_balance, uint8_t, uint8_t media,
@@ -1068,30 +1125,60 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
         return true;
     }
 
-    // TODO: post queries to thread (both stopping() and this are stranded).
+    balance_handler complete = BIND(complete_get_address_balance, _1, _2, _3);
+    PARALLEL(do_get_address_balance, media, hash, std::move(complete));
+    return true;
+}
 
+void protocol_explore::do_get_address_balance(uint8_t media,
+    const system::hash_cptr& hash, const balance_handler& handler) NOEXCEPT
+{
+    // Not stranded, query is threadsafe.
+    const auto& query = archive();
+
+    // TODO: push into database as single call, generalize outpoint_set.
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // TODO: change query to return code to differentiate cancel vs. integrity.
     uint64_t balance{};
     if (!query.get_confirmed_balance(stopping_, balance, *hash))
     {
         send_internal_server_error(database::error::integrity);
-        return true;
+        return;
+    }
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    handler(network::error::success, media, balance);
+}
+
+void protocol_explore::complete_get_address_balance(const code& ec,
+    uint8_t media, uint64_t balance) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // This suppresses the error response resulting from cancelation.
+    if (stopped())
+        return;
+
+    if (ec)
+    {
+        send_internal_server_error(ec);
+        return;
     }
 
     switch (media)
     {
         case data:
             send_chunk(to_little_endian_size(balance));
-            return true;
+            return;
         case text:
             send_text(encode_base16(to_little_endian_size(balance)));
-            return true;
+            return;
         case json:
             send_json(balance, two * sizeof(balance));
-            return true;
+            return;
     }
 
     send_not_found();
-    return true;
 }
 
 // private
