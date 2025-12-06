@@ -992,41 +992,105 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
 }
 
 bool protocol_explore::handle_get_address_confirmed(const code& ec,
-    interface::address_confirmed, uint8_t, uint8_t ,
-    const hash_cptr& ) NOEXCEPT
+    interface::address_confirmed, uint8_t, uint8_t media,
+    const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    // TODO.
+    const auto& query = archive();
+    if (!query.address_enabled())
+    {
+        send_not_implemented();
+        return true;
+    }
 
-    send_not_implemented();
+    // TODO: post queries to thread (both stopping() and this are stranded).
+
+    database::output_links outputs{};
+    if (!query.to_confirmed_unspent_outputs(stopping_, outputs, *hash))
+    {
+        send_internal_server_error(database::error::integrity);
+        return true;
+    }
+
+    if (outputs.empty())
+    {
+        send_not_found();
+        return true;
+    }
+
+    outpoint_set out{};
+    for (const auto& output: outputs)
+        out.insert(query.get_spent(output));
+
+    const auto size = out.size() * chain::outpoint::serialized_size();
+    switch (media)
+    {
+        case data:
+            send_chunk(to_bin_array(out, size));
+            return true;
+        case text:
+            send_text(to_hex_array(out, size));
+            return true;
+        case json:
+            send_json(value_from(out), two * size);
+            return true;
+    }
+
+    send_not_found();
     return true;
 }
 
 bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
-    interface::address_unconfirmed, uint8_t, uint8_t ,
-    const hash_cptr& ) NOEXCEPT
+    interface::address_unconfirmed, uint8_t, uint8_t, const hash_cptr&) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    // TODO.
+    // TODO: there are currently no unconfirmed txs.
 
-    send_not_implemented();
+    send_not_found();
     return true;
 }
 
 bool protocol_explore::handle_get_address_balance(const code& ec,
-    interface::address_balance, uint8_t, uint8_t,
-    const hash_cptr&) NOEXCEPT
+    interface::address_balance, uint8_t, uint8_t media,
+    const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    // TODO.
+    const auto& query = archive();
+    if (!query.address_enabled())
+    {
+        send_not_implemented();
+        return true;
+    }
 
-    send_not_implemented();
+    // TODO: post queries to thread (both stopping() and this are stranded).
+
+    uint64_t balance{};
+    if (!query.get_confirmed_balance(stopping_, balance, *hash))
+    {
+        send_internal_server_error(database::error::integrity);
+        return true;
+    }
+
+    switch (media)
+    {
+        case data:
+            send_chunk(to_little_endian_size(balance));
+            return true;
+        case text:
+            send_text(encode_base16(to_little_endian_size(balance)));
+            return true;
+        case json:
+            send_json(balance, two * sizeof(balance));
+            return true;
+    }
+
+    send_not_found();
     return true;
 }
 
