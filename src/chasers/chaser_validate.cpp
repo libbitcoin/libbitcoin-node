@@ -140,10 +140,11 @@ void chaser_validate::do_bump(height_t) NOEXCEPT
     const auto ec = query.get_block_state(link);
 
     // First block state should be unvalidated, valid, or confirmable. This is
-    // assured in do_checked by chasing block checks.
+    // assured in do_checked by chasing block checks. unknown_state is a reset.
     const auto ready =
         (ec == database::error::unvalidated) ||
         (ec == database::error::block_valid) ||
+        (ec == database::error::unknown_state) ||
         (ec == database::error::block_confirmable);
 
     if (ready)
@@ -186,6 +187,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         else switch (ec.value())
         {
             case database::error::unvalidated:
+            case database::error::unknown_state:
             {
                 post_block(link, bypass);
                 break;
