@@ -25,17 +25,17 @@
 namespace libbitcoin {
 namespace node {
 
-////using boost::format;
+using boost::format;
 using namespace network;
 using namespace system;
+
+#if defined(UNDEFINED)
 
 // arbitrary testing (non-const).
 void executor::write_test(const hash_digest&)
 {
     logger("No write test implemented.");
 }
-
-#if defined(UNDEFINED)
 
 void executor::write_test(const system::hash_digest&)
 {
@@ -201,40 +201,25 @@ void executor::write_test(const system::hash_digest&)
     logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
-void executor::write_test(const system::hash_digest&)
-{
-    constexpr auto hash251684 = base16_hash(
-        "00000000000000720e4c59ad28a8b61f38015808e92465e53111e3463aed80de");
-    const auto link = query_.to_header(hash251684);
+#endif // UNDEFINED
 
+void executor::write_test(const system::hash_digest& hash)
+{
+    const auto id = encode_hash(hash);
+    const auto link = query_.to_header(hash);
     if (link.is_terminal())
     {
-        logger("link.is_terminal()");
-        return;
+        logger(format("Block [%1%] not found.") % id);
     }
-
-    if (query_.confirmed_records() != 251684u)
+    else if (query_.set_block_unknown(link))
     {
-        logger("!query_.confirmed_records() != 251684u");
-        return;
+        logger(format("Successfully reset block [%1%].") % id);
     }
-
-    if (!query_.push_confirmed(link, true))
+    else
     {
-        logger("!query_.push_confirmed(link)");
-        return;
+        logger(format("Failed to reset block [%1%].") % id);
     }
-
-    if (query_.confirmed_records() != 251685u)
-    {
-        logger("!query_.confirmed_records() != 251685u");
-        return;
-    }
-
-    logger("Successfully confirmed block 251684.");
 }
-
-#endif // UNDEFINED
 
 } // namespace node
 } // namespace libbitcoin
