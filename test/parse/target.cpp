@@ -424,15 +424,15 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__tx_invalid_component__invalid_componen
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_component);
 }
 
-// tx_block
+// tx_header
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_valid__expected)
+BOOST_AUTO_TEST_CASE(parse__parse_target__tx_header_valid__expected)
 {
-    const std::string path = "/v42/tx/0000000000000000000000000000000000000000000000000000000000000042/block";
+    const std::string path = "/v42/tx/0000000000000000000000000000000000000000000000000000000000000042/header";
 
     request_t request{};
     BOOST_REQUIRE(!parse_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "tx_block");
+    BOOST_REQUIRE_EQUAL(request.method, "tx_header");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -452,16 +452,16 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_valid__expected)
     BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
 }
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_invalid_component__invalid_component)
+BOOST_AUTO_TEST_CASE(parse__parse_target__tx_header_invalid_component__invalid_component)
 {
     const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/invalid";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_component);
 }
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__tx_block_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parse__parse_target__tx_header_extra_segment__extra_segment)
 {
-    const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/block/extra";
+    const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/header/extra";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
 }

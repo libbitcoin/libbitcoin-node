@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_EXPLORE_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_EXPLORE_HPP
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <bitcoin/node/define.hpp>
@@ -95,7 +96,7 @@ protected:
     bool handle_get_tx(const code& ec, interface::tx,
         uint8_t version, uint8_t media, const system::hash_cptr& hash,
         bool witness) NOEXCEPT;
-    bool handle_get_tx_block(const code& ec, interface::tx_block,
+    bool handle_get_tx_header(const code& ec, interface::tx_header,
         uint8_t version, uint8_t media,
         const system::hash_cptr& hash) NOEXCEPT;
     bool handle_get_tx_fee(const code& ec, interface::tx_fee,
@@ -152,6 +153,7 @@ private:
         const std::optional<system::hash_cptr>& hash) NOEXCEPT;
 
     dispatcher dispatcher_{};
+    std::atomic_bool stopping_{};
 };
 
 } // namespace node
