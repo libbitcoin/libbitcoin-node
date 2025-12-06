@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__block_height_invalid_height__invalid_n
 BOOST_AUTO_TEST_CASE(parse__parse_target__block_height_invalid_component__invalid_component)
 {
     request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/extra"), node::error::invalid_component);
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/invalid"), node::error::invalid_component);
 }
 
 // block/hash
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__transaction_invalid_hash__invalid_hash
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__tx_invalid_component__invalid_component)
 {
-    const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/extra";
+    const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/invalid";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_component);
 }
@@ -757,7 +757,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__output_script_valid__expected)
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__output_script_invalid_subcomponent__invalid_subcomponent)
 {
-    const std::string path = "/v3/output/0000000000000000000000000000000000000000000000000000000000000000/3/extra";
+    const std::string path = "/v3/output/0000000000000000000000000000000000000000000000000000000000000000/3/invalid";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_subcomponent);
 }
@@ -885,12 +885,17 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__address_invalid_hash__invalid_hash)
     BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/address/invalidhex"), node::error::invalid_hash);
 }
 
-BOOST_AUTO_TEST_CASE(parse__parse_target__address_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parse__parse_target__address_invalid_subcomponent__invalid_subcomponent)
 {
-    const std::string path = "/v3/address/0000000000000000000000000000000000000000000000000000000000000000/extra";
+    const std::string path = "/v3/address/0000000000000000000000000000000000000000000000000000000000000000/invalid";
     request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::extra_segment);
+    BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_subcomponent);
 }
+
+// TODO:
+// address/confirmed
+// address/unconfirmed
+// address/balance
 
 // block_filter/height
 
@@ -920,7 +925,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__block_filter_height_valid__expected)
 BOOST_AUTO_TEST_CASE(parse__parse_target__block_filter_height_invalid_subcomponent__invalid_subcomponent)
 {
     request_t out{};
-    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/42/extra"), node::error::invalid_subcomponent);
+    BOOST_REQUIRE_EQUAL(parse_target(out, "/v3/block/height/123/filter/42/invalid"), node::error::invalid_subcomponent);
 }
 
 // block_filter/hash
@@ -956,7 +961,7 @@ BOOST_AUTO_TEST_CASE(parse__parse_target__block_filter_hash_valid__expected)
 
 BOOST_AUTO_TEST_CASE(parse__parse_target__block_filter_hash_invalid_subcomponent__invalid_subcomponent)
 {
-    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/extra";
+    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/invalid";
     request_t out{};
     BOOST_REQUIRE_EQUAL(parse_target(out, path), node::error::invalid_subcomponent);
 }

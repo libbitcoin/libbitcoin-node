@@ -104,8 +104,23 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
         const auto base16 = to_base16(segments[segment++]);
         if (!base16) return error::invalid_hash;
 
-        method = "address";
         params["hash"] = base16;
+        if (segment == segments.size())
+        {
+            method = "address";
+        }
+        else
+        {
+            const auto subcomponent = segments[segment++];
+            if (subcomponent == "confirmed")
+                method = "address_confirmed";
+            else if (subcomponent == "unconfirmed")
+                method = "address_unconfirmed";
+            else if (subcomponent == "balance")
+                method = "address_balance";
+            else
+                return error::invalid_subcomponent;
+        }
     }
     else if (target == "input")
     {

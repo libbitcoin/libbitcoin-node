@@ -1050,7 +1050,7 @@ bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
 
     // TODO: there are currently no unconfirmed txs.
 
-    send_not_found();
+    send_not_implemented();
     return true;
 }
 
