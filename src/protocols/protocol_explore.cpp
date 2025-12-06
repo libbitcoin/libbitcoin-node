@@ -551,8 +551,9 @@ bool protocol_explore::handle_get_tx(const code& ec, interface::tx, uint8_t,
     return true;
 }
 
-bool protocol_explore::handle_get_tx_header(const code& ec, interface::tx_header,
-    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
+bool protocol_explore::handle_get_tx_header(const code& ec,
+    interface::tx_header, uint8_t, uint8_t media,
+    const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
