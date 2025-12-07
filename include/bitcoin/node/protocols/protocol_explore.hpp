@@ -151,9 +151,8 @@ protected:
         const system::hash_cptr& hash) NOEXCEPT;
 
 private:
-    using outpoints_cptr = std::shared_ptr<outpoint_set>;
     using balance_handler = std::function<void(code, uint8_t, uint64_t)>;
-    using address_handler = std::function<void(code, uint8_t, outpoints_cptr)>;
+    using address_handler = std::function<void(code, uint8_t, outpoint_set&&)>;
 
     void do_get_address(uint8_t media, const system::hash_cptr& hash,
         const address_handler& handler) NOEXCEPT;
@@ -164,7 +163,7 @@ private:
         const address_handler& handler) NOEXCEPT;
 
     void complete_get_address(const code& ec, uint8_t media,
-        const outpoints_cptr& set) NOEXCEPT;
+        const outpoint_set& set) NOEXCEPT;
 
     void do_get_address_balance(uint8_t media, const system::hash_cptr& hash,
         const balance_handler& handler) NOEXCEPT;

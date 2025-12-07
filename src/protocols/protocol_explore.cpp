@@ -975,7 +975,7 @@ void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
         return;
     }
 
-    const auto set = to_shared<outpoint_set>();
+    outpoint_set set{};
     for (const auto& output: outputs)
     {
         if (stopping_)
@@ -984,16 +984,16 @@ void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
             return;
         }
 
-        set->insert(query.get_spent(output));
+        set.insert(query.get_spent(output));
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    handler(network::error::success, media, set);
+    handler(network::error::success, media, std::move(set));
 }
 
 // This is shared by the tree get_address.. methods.
 void protocol_explore::complete_get_address(const code& ec, uint8_t media,
-    const outpoints_cptr& set) NOEXCEPT
+    const outpoint_set& set) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -1007,23 +1007,23 @@ void protocol_explore::complete_get_address(const code& ec, uint8_t media,
         return;
     }
 
-    if (set->empty())
+    if (set.empty())
     {
         send_not_found();
         return;
     }
 
-    const auto size = set->size() * chain::outpoint::serialized_size();
+    const auto size = set.size() * chain::outpoint::serialized_size();
     switch (media)
     {
         case data:
-            send_chunk(to_bin_array(*set, size));
+            send_chunk(to_bin_array(set, size));
             return;
         case text:
-            send_text(to_hex_array(*set, size));
+            send_text(to_hex_array(set, size));
             return;
         case json:
-            send_json(value_from(*set), two * size);
+            send_json(value_from(set), two * size);
             return;
     }
 
@@ -1068,7 +1068,7 @@ void protocol_explore::do_get_address_confirmed(uint8_t media,
         return;
     }
 
-    const auto set = to_shared<outpoint_set>();
+    outpoint_set set{};
     for (const auto& output : outputs)
     {
         if (stopping_)
@@ -1077,11 +1077,11 @@ void protocol_explore::do_get_address_confirmed(uint8_t media,
             return;
         }
 
-        set->insert(query.get_spent(output));
+        set.insert(query.get_spent(output));
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    handler(network::error::success, media, set);
+    handler(network::error::success, media, std::move(set));
 }
 
 // handle_get_address_unconfirmed
