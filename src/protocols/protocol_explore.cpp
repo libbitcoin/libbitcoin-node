@@ -40,20 +40,25 @@ using namespace network::messages::peer;
 using namespace std::placeholders;
 using namespace boost::json;
 
-DEFINE_JSON_TO_TAG(point_set)
+using inpoint = database::inpoint;
+using outpoint = database::outpoint;
+using inpoints = database::inpoints;
+using outpoints = database::outpoints;
+
+DEFINE_JSON_TO_TAG(inpoints)
 {
-    point_set out{};
-    for (const auto& point : value.as_array())
-        out.insert(value_to<chain::point>(point));
+    inpoints out{};
+    for (const auto& point: value.as_array())
+        out.insert(value_to<inpoint>(point));
 
     return out;
 }
 
-DEFINE_JSON_TO_TAG(outpoint_set)
+DEFINE_JSON_TO_TAG(outpoints)
 {
-    outpoint_set out{};
-    for (const auto& outpoint : value.as_array())
-        out.insert(value_to<chain::outpoint>(outpoint));
+    outpoints out{};
+    for (const auto& point: value.as_array())
+        out.insert(value_to<outpoint>(point));
 
     return out;
 }
@@ -869,17 +874,10 @@ bool protocol_explore::handle_get_output_spender(const code& ec,
 
     const auto& query = archive();
     const chain::point spent{ *hash, index };
-    const auto link = query.to_confirmed_spender(spent);
-    if (link.is_terminal())
-    {
-        send_not_found();
-        return true;
-    }
-
-    const auto spender = query.get_spender(link);
+    const auto spender = query.get_spender(query.to_confirmed_spender(spent));
     if (spender.index() == chain::point::null_index)
     {
-        send_internal_server_error(database::error::integrity);
+        send_not_found();
         return true;
     }
 
@@ -908,29 +906,24 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    const auto points = query.to_spenders(*hash, index);
-    if (points.empty())
+    const auto ins = archive().get_spenders({ *hash, index });
+    if (ins.empty())
     {
         send_not_found();
         return true;
     }
 
-    point_set out{};
-    for (const auto& point: points)
-        out.insert(query.get_spender(point));
-
-    const auto size = out.size() * chain::point::serialized_size();
+    const auto size = ins.size() * inpoint::serialized_size();
     switch (media)
     {
         case data:
-            send_chunk(to_bin_array(out, size));
+            send_chunk(to_bin_array(ins, size));
             return true;
         case text:
-            send_text(to_hex_array(out, size));
+            send_text(to_hex_array(ins, size));
             return true;
         case json:
-            send_json(value_from(out), two * size);
+            send_json(value_from(ins), two * size);
             return true;
     }
 
@@ -962,21 +955,20 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
 void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
     const address_handler& handler) NOEXCEPT
 {
-    // Not stranded, query is threadsafe.
     const auto& query = archive();
 
-    // TODO: push into database as single call, generalize outpoint_set.
+    // TODO: push into database as single call.
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // TODO: change query to return code to differentiate cancel vs. integrity.
-    database::output_links outputs{};
-    if (!query.to_address_outputs(stopping_, outputs, *hash))
+    database::output_links links{};
+    if (!query.to_address_outputs(stopping_, links, *hash))
     {
         handler(network::error::operation_canceled, {}, {});
         return;
     }
 
-    outpoint_set set{};
-    for (const auto& output: outputs)
+    outpoints set{};
+    for (const auto& link: links)
     {
         if (stopping_)
         {
@@ -984,7 +976,7 @@ void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
             return;
         }
 
-        set.insert(query.get_spent(output));
+        set.insert(query.get_spent(link));
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -993,7 +985,7 @@ void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
 
 // This is shared by the tree get_address.. methods.
 void protocol_explore::complete_get_address(const code& ec, uint8_t media,
-    const outpoint_set& set) NOEXCEPT
+    const outpoints& set) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -1056,18 +1048,18 @@ void protocol_explore::do_get_address_confirmed(uint8_t media,
 {
     const auto& query = archive();
 
-    // TODO: push into database as single call, generalize outpoint_set.
+    // TODO: push into database as single call.
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // TODO: change query to return code to differentiate cancel vs. integrity.
-    database::output_links outputs{};
-    if (!query.to_confirmed_unspent_outputs(stopping_, outputs, *hash))
+    database::output_links links{};
+    if (!query.to_confirmed_unspent_outputs(stopping_, links, *hash))
     {
         handler(network::error::operation_canceled, {}, {});
         return;
     }
 
-    outpoint_set set{};
-    for (const auto& output : outputs)
+    outpoints set{};
+    for (const auto& link: links)
     {
         if (stopping_)
         {
@@ -1075,7 +1067,7 @@ void protocol_explore::do_get_address_confirmed(uint8_t media,
             return;
         }
 
-        set.insert(query.get_spent(output));
+        set.insert(query.get_spent(link));
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

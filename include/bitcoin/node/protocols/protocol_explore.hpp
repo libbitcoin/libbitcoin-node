@@ -22,16 +22,11 @@
 #include <atomic>
 #include <memory>
 #include <optional>
-#include <set>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_html.hpp>
 
 namespace libbitcoin {
 namespace node {
-
-// TODO: establish a place for endpoint types.
-using point_set = std::set<system::chain::point>;
-using outpoint_set = std::set<system::chain::outpoint>;
 
 class BCN_API protocol_explore
   : public node::protocol_html,
@@ -152,7 +147,8 @@ protected:
 
 private:
     using balance_handler = std::function<void(code, uint8_t, uint64_t)>;
-    using address_handler = std::function<void(code, uint8_t, outpoint_set&&)>;
+    using address_handler = std::function<void(code, uint8_t,
+        database::outpoints&&)>;
 
     void do_get_address(uint8_t media, const system::hash_cptr& hash,
         const address_handler& handler) NOEXCEPT;
@@ -161,9 +157,8 @@ private:
     void do_get_address_unconfirmed(uint8_t media,
         const system::hash_cptr& hash,
         const address_handler& handler) NOEXCEPT;
-
     void complete_get_address(const code& ec, uint8_t media,
-        const outpoint_set& set) NOEXCEPT;
+        const database::outpoints& set) NOEXCEPT;
 
     void do_get_address_balance(uint8_t media, const system::hash_cptr& hash,
         const balance_handler& handler) NOEXCEPT;
