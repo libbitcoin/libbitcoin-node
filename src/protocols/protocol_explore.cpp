@@ -997,7 +997,6 @@ void protocol_explore::complete_get_address(const code& ec, uint8_t media,
 {
     BC_ASSERT(stranded());
 
-    // This suppresses the error response resulting from cancelation.
     if (stopped())
         return;
 
@@ -1055,7 +1054,6 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
 void protocol_explore::do_get_address_confirmed(uint8_t media,
     const hash_cptr& hash, const address_handler& handler) NOEXCEPT
 {
-    // Not stranded, query is threadsafe.
     const auto& query = archive();
 
     // TODO: push into database as single call, generalize outpoint_set.
@@ -1134,10 +1132,8 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
 void protocol_explore::do_get_address_balance(uint8_t media,
     const system::hash_cptr& hash, const balance_handler& handler) NOEXCEPT
 {
-    // Not stranded, query is threadsafe.
     const auto& query = archive();
 
-    // TODO: push into database as single call, generalize outpoint_set.
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // TODO: change query to return code to differentiate cancel vs. integrity.
     uint64_t balance{};
