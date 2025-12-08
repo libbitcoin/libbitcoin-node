@@ -480,10 +480,8 @@ bool protocol_explore::handle_get_block_filter_header(const code& ec,
         switch (media)
         {
             case data:
-            {
                 send_chunk(to_chunk(filter_head));
                 return true;
-            }
             case text:
                 send_text(encode_base16(filter_head));
                 return true;
