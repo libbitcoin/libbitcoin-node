@@ -956,7 +956,7 @@ void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
     const address_handler& handler) NOEXCEPT
 {
     outpoints set{};
-    if (const auto ec = archive().to_address_outputs(stopping_, set, *hash))
+    if (const auto ec = archive().get_address_outputs(stopping_, set, *hash))
     {
         handler(ec, {}, {});
         return;
@@ -1029,7 +1029,7 @@ void protocol_explore::do_get_address_confirmed(uint8_t media,
     const hash_cptr& hash, const address_handler& handler) NOEXCEPT
 {
     outpoints set{};
-    if (const auto ec = archive().to_confirmed_unspent_outputs(stopping_, set,
+    if (const auto ec = archive().get_confirmed_unspent_outputs(stopping_, set,
         *hash))
     {
         handler(ec, {}, {});
