@@ -107,10 +107,10 @@ void protocol_explore::start() NOEXCEPT
     SUBSCRIBE_EXPLORE(handle_get_output_spender, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_output_spenders, _1, _2, _3, _4, _5, _6);
 
-    SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5);
-    SUBSCRIBE_EXPLORE(handle_get_address_confirmed, _1, _2, _3, _4, _5);
-    SUBSCRIBE_EXPLORE(handle_get_address_unconfirmed, _1, _2, _3, _4, _5);
-    SUBSCRIBE_EXPLORE(handle_get_address_balance, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_address, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_address_confirmed, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_address_unconfirmed, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_address_balance, _1, _2, _3, _4, _5, _6);
     protocol_html::start();
 }
 
@@ -480,10 +480,8 @@ bool protocol_explore::handle_get_block_filter_header(const code& ec,
         switch (media)
         {
             case data:
-            {
                 send_chunk(to_chunk(filter_head));
                 return true;
-            }
             case text:
                 send_text(encode_base16(filter_head));
                 return true;
@@ -935,7 +933,7 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
 // ----------------------------------------------------------------------------
 
 bool protocol_explore::handle_get_address(const code& ec, interface::address,
-    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
+    uint8_t, uint8_t media, const hash_cptr& hash, bool turbo) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -947,16 +945,17 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
     }
 
     address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    PARALLEL(do_get_address, media, hash, std::move(complete));
+    PARALLEL(do_get_address, media, turbo, hash, std::move(complete));
     return true;
 }
 
 // private
-void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
-    const address_handler& handler) NOEXCEPT
+void protocol_explore::do_get_address(uint8_t media, bool turbo,
+    const hash_cptr& hash, const address_handler& handler) NOEXCEPT
 {
     outpoints set{};
-    if (const auto ec = archive().get_address_outputs(stopping_, set, *hash))
+    if (const auto ec = archive().get_address_outputs(stopping_, set,
+        *hash, turbo))
     {
         handler(ec, {}, {});
         return;
@@ -965,7 +964,7 @@ void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
     handler(network::error::success, media, std::move(set));
 }
 
-// This is shared by the tree get_address.. methods.
+// This is shared by the three get_address... methods.
 void protocol_explore::complete_get_address(const code& ec, uint8_t media,
     const outpoints& set) NOEXCEPT
 {
@@ -1008,7 +1007,7 @@ void protocol_explore::complete_get_address(const code& ec, uint8_t media,
 
 bool protocol_explore::handle_get_address_confirmed(const code& ec,
     interface::address_confirmed, uint8_t, uint8_t media,
-    const hash_cptr& hash) NOEXCEPT
+    const hash_cptr& hash, bool turbo) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -1020,17 +1019,17 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
     }
 
     address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    PARALLEL(do_get_address_confirmed, media, hash, std::move(complete));
+    PARALLEL(do_get_address_confirmed, media, turbo, hash, std::move(complete));
     return true;
 }
 
 // private
-void protocol_explore::do_get_address_confirmed(uint8_t media,
+void protocol_explore::do_get_address_confirmed(uint8_t media, bool turbo,
     const hash_cptr& hash, const address_handler& handler) NOEXCEPT
 {
     outpoints set{};
-    if (const auto ec = archive().get_confirmed_unspent_outputs(stopping_, set,
-        *hash))
+    if (const auto ec = archive().get_confirmed_unspent_outputs(stopping_,
+        set, *hash, turbo))
     {
         handler(ec, {}, {});
         return;
@@ -1044,7 +1043,7 @@ void protocol_explore::do_get_address_confirmed(uint8_t media,
 
 bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
     interface::address_unconfirmed, uint8_t, uint8_t media,
-    const hash_cptr& hash) NOEXCEPT
+    const hash_cptr& hash, bool turbo) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -1054,11 +1053,11 @@ bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
     return true;
         
     address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    PARALLEL(do_get_address_unconfirmed, media, hash, std::move(complete));
+    PARALLEL(do_get_address_unconfirmed, media, turbo, hash, std::move(complete));
     return true;
 }
 
-void protocol_explore::do_get_address_unconfirmed(uint8_t media,
+void protocol_explore::do_get_address_unconfirmed(uint8_t media, bool,
     const system::hash_cptr&, const address_handler& handler) NOEXCEPT
 {
     handler(network::error::success, media, {});
@@ -1069,7 +1068,7 @@ void protocol_explore::do_get_address_unconfirmed(uint8_t media,
 
 bool protocol_explore::handle_get_address_balance(const code& ec,
     interface::address_balance, uint8_t, uint8_t media,
-    const hash_cptr& hash) NOEXCEPT
+    const hash_cptr& hash, bool turbo) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -1082,16 +1081,16 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
     }
 
     balance_handler complete = BIND(complete_get_address_balance, _1, _2, _3);
-    PARALLEL(do_get_address_balance, media, hash, std::move(complete));
+    PARALLEL(do_get_address_balance, media, turbo, hash, std::move(complete));
     return true;
 }
 
-void protocol_explore::do_get_address_balance(uint8_t media,
+void protocol_explore::do_get_address_balance(uint8_t media, bool turbo,
     const system::hash_cptr& hash, const balance_handler& handler) NOEXCEPT
 {
     uint64_t balance{};
     if (const auto ec = archive().get_confirmed_balance(stopping_, balance,
-        *hash))
+        *hash, turbo))
     {
         handler(ec, {}, {});
         return;
