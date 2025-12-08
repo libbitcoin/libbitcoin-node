@@ -955,30 +955,12 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
 void protocol_explore::do_get_address(uint8_t media, const hash_cptr& hash,
     const address_handler& handler) NOEXCEPT
 {
-    const auto& query = archive();
-
-    // TODO: push into database as single call.
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // TODO: change query to return code to differentiate cancel vs. integrity.
-    database::output_links links{};
-    if (!query.to_address_outputs(stopping_, links, *hash))
+    outpoints set{};
+    if (const auto ec = archive().to_address_outputs(stopping_, set, *hash))
     {
-        handler(network::error::operation_canceled, {}, {});
+        handler(ec, {}, {});
         return;
     }
-
-    outpoints set{};
-    for (const auto& link: links)
-    {
-        if (stopping_)
-        {
-            handler(network::error::operation_canceled, {}, {});
-            return;
-        }
-
-        set.insert(query.get_spent(link));
-    }
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     handler(network::error::success, media, std::move(set));
 }
@@ -1046,30 +1028,13 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
 void protocol_explore::do_get_address_confirmed(uint8_t media,
     const hash_cptr& hash, const address_handler& handler) NOEXCEPT
 {
-    const auto& query = archive();
-
-    // TODO: push into database as single call.
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // TODO: change query to return code to differentiate cancel vs. integrity.
-    database::output_links links{};
-    if (!query.to_confirmed_unspent_outputs(stopping_, links, *hash))
+    outpoints set{};
+    if (const auto ec = archive().to_confirmed_unspent_outputs(stopping_, set,
+        *hash))
     {
-        handler(network::error::operation_canceled, {}, {});
+        handler(ec, {}, {});
         return;
     }
-
-    outpoints set{};
-    for (const auto& link: links)
-    {
-        if (stopping_)
-        {
-            handler(network::error::operation_canceled, {}, {});
-            return;
-        }
-
-        set.insert(query.get_spent(link));
-    }
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     handler(network::error::success, media, std::move(set));
 }
@@ -1124,17 +1089,13 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
 void protocol_explore::do_get_address_balance(uint8_t media,
     const system::hash_cptr& hash, const balance_handler& handler) NOEXCEPT
 {
-    const auto& query = archive();
-
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // TODO: change query to return code to differentiate cancel vs. integrity.
     uint64_t balance{};
-    if (!query.get_confirmed_balance(stopping_, balance, *hash))
+    if (const auto ec = archive().get_confirmed_balance(stopping_, balance,
+        *hash))
     {
-        send_internal_server_error(database::error::integrity);
+        handler(ec, {}, {});
         return;
     }
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     handler(network::error::success, media, balance);
 }
