@@ -1125,6 +1125,11 @@ options_metadata parser::load_settings() THROWS
         value<std::filesystem::path>(&configured.database.path),
         "The blockchain database directory, defaults to 'blockchain'."
     )
+    (
+        "database.turbo",
+        value<bool>(&configured.database.turbo),
+        "Allow indiviudal non-validation queries to use all CPUs, defaults to false."
+    )
 
     /* header */
     (

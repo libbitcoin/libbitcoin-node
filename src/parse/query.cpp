@@ -27,6 +27,9 @@ using namespace system;
 using namespace network;
 using namespace network::http;
 
+BC_PUSH_WARNING(NO_ARRAY_INDEXING)
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
 bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
 {
     wallet::uri uri{};
@@ -45,15 +48,30 @@ bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
         return false;
 
     auto& params = std::get<rpc::object_t>(out.params.value());
-    const auto& witness = query["witness"];
 
-    // Validate prper bool value if set.
-    if (!witness.empty() && witness != "true" && witness != "false")
-        return false;
+    // Validate proper witness bool value if set.
+    const auto witness = query.find("witness");
+    if (witness != query.end())
+    {
+        if (witness->second != "true" && witness->second != "false")
+            return false;
 
-    // Witness is optional<true> (where applicable) so only set if false.
-    if (witness == "false")
-        params["witness"] = false;
+        // Witness is optional<true> (where applicable), so only set if false.
+        if (witness->second == "false")
+            params["witness"] = false;
+    }
+
+    // Validate proper turbo bool value if set.
+    const auto turbo = query.find("turbo");
+    if (turbo != query.end())
+    {
+        if (turbo->second != "true" && turbo->second != "false")
+            return false;
+
+        // Turbo is optional<true> (where applicable), so only set if false.
+        if (turbo->second == "false")
+            params["turbo"] = false;
+    }
 
     const auto accepts = to_media_types((request)[field::accept]);
 
@@ -79,6 +97,9 @@ bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
     params["media"] = to_value(json);
     return true;
 }
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
