@@ -27,10 +27,9 @@
 namespace libbitcoin {
 namespace node {
 
-/// Abstract base HTTP channel state for the node.
 class BCN_API channel_http
-  : public network::channel_http,
-    public node::channel
+  : public node::channel,
+    public network::channel_http
 {
 public:
     typedef std::shared_ptr<node::channel_http> ptr;
@@ -38,8 +37,8 @@ public:
     channel_http(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
-      : network::channel_http(log, socket, identifier, config.network, options),
-        node::channel(log, socket, identifier, config)
+      : node::channel(log, socket, identifier, config),
+        network::channel_http(log, socket, identifier, config.network, options)
     {
     }
 };

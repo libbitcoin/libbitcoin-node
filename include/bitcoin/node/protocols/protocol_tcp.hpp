@@ -32,19 +32,18 @@ namespace node {
     
 /// Abstract base for TCP protocols, thread safe.
 class BCN_API protocol_tcp
-  : public network::protocol_tcp,
-    public node::protocol
+  : public node::protocol,
+    public network::protocol
 {
 public:
-    // Replace base class channel_t (network::channel_tcp). 
+    // Replace base class channel_t (network::channel). 
     using channel_t = node::channel_tcp;
 
 protected:
     protocol_tcp(const auto& session,
-        const network::channel::ptr& channel,
-        const options_t& options) NOEXCEPT
-      : network::protocol_tcp(session, channel, options),
-        node::protocol(session, channel),
+        const network::channel::ptr& channel, const options_t&) NOEXCEPT
+      : node::protocol(session, channel),
+        network::protocol(session, channel),
         channel_(std::static_pointer_cast<node::channel_tcp>(channel)),
         session_(session)
     {
