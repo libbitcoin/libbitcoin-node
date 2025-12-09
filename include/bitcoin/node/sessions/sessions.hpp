@@ -25,12 +25,13 @@
 #include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/session_server.hpp>
-#include <bitcoin/node/sessions/session_tcp.hpp>
+
+#include <bitcoin/node/protocols/protocols.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-// Alias server sessions derived from session_tcp.
+/// Alias server sessions, all derived from node::session.
 using session_web = session_server<protocol_web>;
 using session_explore = session_server<protocol_explore>;
 using session_websocket = session_server<protocol_ws>;

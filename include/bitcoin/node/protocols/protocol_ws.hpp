@@ -29,8 +29,8 @@ namespace node {
 // TODO: make this an intermediate base class for websocket.
 // TODO: and then create a distinct concrete class for deployment.
 class BCN_API protocol_ws
-  : public network::protocol_ws,
-    public node::protocol,
+  : public node::protocol,
+    public network::protocol_ws,
     protected network::tracker<protocol_ws>
 {
 public:
@@ -42,8 +42,8 @@ public:
     protocol_ws(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_ws(session, channel, options),
-        node::protocol(session, channel),
+      : node::protocol(session, channel),
+        network::protocol_ws(session, channel, options),
         network::tracker<protocol_ws>(session->log)
     {
     }

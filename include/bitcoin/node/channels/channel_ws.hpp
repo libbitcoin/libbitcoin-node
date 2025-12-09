@@ -27,11 +27,9 @@
 namespace libbitcoin {
 namespace node {
 
-/// Abstract base websocket channel state for the node.
-/// Does not inherit node::channel_http but does inherit network::channel_http.
 class BCN_API channel_ws
-  : public network::channel_ws,
-    public node::channel
+  : public node::channel,
+    public network::channel_ws
 {
 public:
     typedef std::shared_ptr<node::channel_ws> ptr;
@@ -39,8 +37,8 @@ public:
     channel_ws(const network::logger& log, const network::socket::ptr& socket,
         uint64_t identifier, const node::configuration& config,
         const options_t& options) NOEXCEPT
-      : network::channel_ws(log, socket, identifier, config.network, options),
-        node::channel(log, socket, identifier, config)
+      : node::channel(log, socket, identifier, config),
+        network::channel_ws(log, socket, identifier, config.network, options)
     {
     }
 };

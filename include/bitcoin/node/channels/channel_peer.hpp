@@ -29,8 +29,8 @@ namespace node {
 
 /// Abstract base peer channel state for the node.
 class BCN_API channel_peer
-  : public network::channel_peer,
-    public node::channel
+  : public node::channel,
+    public network::channel_peer
 {
 public:
     typedef std::shared_ptr<node::channel_peer> ptr;
@@ -38,9 +38,9 @@ public:
     channel_peer(network::memory& allocator, const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
-      : network::channel_peer(allocator, log, socket, identifier,
+      : node::channel(log, socket, identifier, config),
+        network::channel_peer(allocator, log, socket, identifier,
           config.network, options),
-        node::channel(log, socket, identifier, config),
         announced_(config.node.announcement_cache)
     {
     }

@@ -80,7 +80,6 @@
 #include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
 #include <bitcoin/node/sessions/session_server.hpp>
-#include <bitcoin/node/sessions/session_tcp.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 #endif

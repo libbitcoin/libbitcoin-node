@@ -29,8 +29,8 @@ namespace node {
 
 /// Abstract base TCP channel state for the node.
 class BCN_API channel_tcp
-  : public network::channel_tcp,
-    public node::channel
+  : public node::channel,
+    public network::channel
 {
 public:
     typedef std::shared_ptr<node::channel_tcp> ptr;
@@ -38,8 +38,8 @@ public:
     channel_tcp(const network::logger& log, const network::socket::ptr& socket,
         uint64_t identifier, const node::configuration& config,
         const options_t& options) NOEXCEPT
-      : network::channel_tcp(log, socket, identifier, config.network, options),
-        node::channel(log, socket, identifier, config)
+      : node::channel(log, socket, identifier, config),
+        network::channel(log, socket, identifier, config.network, options)
     {
     }
 };

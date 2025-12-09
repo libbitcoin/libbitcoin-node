@@ -28,7 +28,6 @@ namespace node {
  class full_node;
 
 /// Common session context, presumes will be joined with network::session.
-/// This could be templatized on the sibling, but there only one implemented.
 class BCN_API session
 {
 public:

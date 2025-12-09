@@ -32,8 +32,8 @@ namespace node {
     
 /// Abstract base for HTTP protocols, thread safe.
 class BCN_API protocol_http
-  : public network::protocol_http,
-    public node::protocol
+  : public node::protocol,
+    public network::protocol_http
 {
 public:
     // Replace base class channel_t (network::channel_http). 
@@ -43,8 +43,8 @@ protected:
     protocol_http(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : network::protocol_http(session, channel, options),
-        node::protocol(session, channel),
+      : node::protocol(session, channel),
+        network::protocol_http(session, channel, options),
         channel_(std::static_pointer_cast<node::channel_tcp>(channel)),
         session_(session)
     {

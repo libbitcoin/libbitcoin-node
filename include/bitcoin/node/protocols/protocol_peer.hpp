@@ -32,8 +32,8 @@ namespace node {
 
 /// Abstract base for node peer protocols, thread safe.
 class BCN_API protocol_peer
-  : public network::protocol_peer,
-    public node::protocol
+  : public node::protocol,
+    public network::protocol_peer
 {
 public:
     // Replace base class channel_t (network::channel_peer). 
@@ -46,8 +46,8 @@ protected:
 
     protocol_peer(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : network::protocol_peer(session, channel),
-        node::protocol(session, channel),
+      : node::protocol(session, channel),
+        network::protocol_peer(session, channel),
         channel_(std::static_pointer_cast<node::channel_peer>(channel)),
         session_(session)
     {
