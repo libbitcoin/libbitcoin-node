@@ -34,7 +34,7 @@ class BCN_API protocol_bitcoind
 public:
     typedef std::shared_ptr<protocol_bitcoind> ptr;
 
-    protocol_bitcoind(const auto& session,
+    inline protocol_bitcoind(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_http(session, channel, options),
@@ -43,7 +43,7 @@ public:
     }
 
     /// Public start is required.
-    void start() NOEXCEPT override
+    inline void start() NOEXCEPT override
     {
         node::protocol_http::start();
     }

@@ -34,7 +34,7 @@ class BCN_API protocol_electrum
 public:
     typedef std::shared_ptr<protocol_electrum> ptr;
 
-    protocol_electrum(const auto& session,
+    inline protocol_electrum(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_tcp(session, channel, options),
@@ -43,7 +43,7 @@ public:
     }
 
     /// Public start is required.
-    void start() NOEXCEPT override
+    inline void start() NOEXCEPT override
     {
         node::protocol_tcp::start();
     }

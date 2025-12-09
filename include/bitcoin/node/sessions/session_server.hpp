@@ -39,8 +39,8 @@ class full_node;
 /// and attachment can be overridden and/or augmented with other protocols.
 template <typename Protocol>
 class session_server
-  : public network::session_server,
-    public node::session,
+  : public node::session,
+    public network::session_server,
     protected network::tracker<session_server<Protocol>>
 {
 public:
@@ -53,10 +53,10 @@ public:
     /// Construct an instance (network should be started).
     inline session_server(full_node& node, uint64_t identifier,
         const options_t& options) NOEXCEPT
-      : network::session_server((network::net&)node, identifier, options),
-        node::session(node),
-        network::tracker<session_server<Protocol>>(node),
-        options_(options)
+      : node::session(node),
+        network::session_server((network::net&)node, identifier, options),
+        options_(options),
+        network::tracker<session_server<Protocol>>(node)
     {
     }
 

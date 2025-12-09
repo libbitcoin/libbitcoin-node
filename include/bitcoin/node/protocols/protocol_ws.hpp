@@ -39,7 +39,7 @@ public:
     // Replace base class channel_t (network::channel_ws). 
     using channel_t = node::channel_ws;
 
-    protocol_ws(const auto& session,
+    inline protocol_ws(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol(session, channel),
@@ -49,7 +49,7 @@ public:
     }
 
     /// Public start is required.
-    void start() NOEXCEPT override
+    inline void start() NOEXCEPT override
     {
         network::protocol_ws::start();
     }
