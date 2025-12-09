@@ -23,6 +23,7 @@
 #include <memory>
 #include <optional>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 #include <bitcoin/node/protocols/protocol_html.hpp>
 
 namespace libbitcoin {
@@ -34,7 +35,7 @@ class BCN_API protocol_explore
 {
 public:
     typedef std::shared_ptr<protocol_explore> ptr;
-    using interface = network::rpc::interface::explore;
+    using interface = interface::explore;
     using dispatcher = network::rpc::dispatcher<interface>;
 
     protocol_explore(const auto& session,
