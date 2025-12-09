@@ -34,12 +34,71 @@ class BCN_API channel_ws
 public:
     typedef std::shared_ptr<node::channel_ws> ptr;
 
-    channel_ws(const network::logger& log, const network::socket::ptr& socket,
-        uint64_t identifier, const node::configuration& config,
-        const options_t& options) NOEXCEPT
+    /// Subscribe to messages post-upgrade (requires strand).
+    /// Event handler is always invoked on the channel strand.
+    template <class Message>
+    inline void subscribe(auto&& ) NOEXCEPT
+    {
+        BC_ASSERT(stranded());
+        ////using message_handler = distributor_ws::handler<Message>;
+        ////ws_distributor_.subscribe(std::forward<message_handler>(handler));
+    }
+    
+    /// Serialize and write websocket message to peer (requires strand).
+    /// Completion handler is always invoked on the channel strand.
+    inline void send(system::data_chunk&& message, bool binary,
+        network::result_handler&& handler) NOEXCEPT
+    {
+        BC_ASSERT(stranded());
+        using namespace std::placeholders;
+    
+        // TODO: Serialize message.
+        const auto ptr = system::move_shared(std::move(message));
+        network::count_handler complete = std::bind(&channel_ws::handle_send,
+            shared_from_base<channel_ws>(), _1, _2, ptr,
+            std::move(handler));
+    
+        if (!ptr)
+        {
+            complete(network::error::bad_alloc, {});
+            return;
+        }
+    
+        // TODO: serialize message to send.
+        // TODO: websocket is full duplex, so writes must be queued.
+        ws_write(network::asio::const_buffer{ ptr->data(), ptr->size() },
+            binary, std::move(complete));
+    }
+
+    inline channel_ws(const network::logger& log,
+        const network::socket::ptr& socket, uint64_t identifier,
+        const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
         network::channel_ws(log, socket, identifier, config.network, options)
     {
+    }
+
+protected:
+    /// Dispatch websocket buffer via derived handlers (override to handle).
+    /// Override to handle dispatch, must invoke read_request() on complete.
+    inline void dispatch_websocket(const network::http::flat_buffer&,
+        size_t) NOEXCEPT override
+    {
+        const std::string welcome{ "Websocket libbitcoin/4.0" };
+        send(system::to_chunk(welcome), false, [this](const code& ec) NOEXCEPT
+        {
+            // handle_send alread stops channel on ec.
+            // One and only one handler of message must restart read loop.
+            // In half duplex this happens only after send (ws full duplex).
+            if (!ec) read_request();
+        });
+    }
+
+    inline void handle_send(const code& ec, size_t, const system::chunk_ptr&,
+        const network::result_handler& handler) NOEXCEPT
+    {
+        if (ec) stop(ec);
+        handler(ec);
     }
 };
 

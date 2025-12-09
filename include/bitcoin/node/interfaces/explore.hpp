@@ -103,7 +103,7 @@ struct explore_methods
 /// ?format=data|text|json (via query string).
 /// -----------------------------------------------------------------------
 
-/// /v1/block/top {1}
+/// /v1/top {1}
 
 /// /v1/block/hash/[bkhash] {1}
 /// /v1/block/height/[height] {1}
