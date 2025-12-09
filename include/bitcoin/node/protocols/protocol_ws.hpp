@@ -51,7 +51,14 @@ public:
     /// Public start is required.
     inline void start() NOEXCEPT override
     {
+        BC_ASSERT(stranded());
         network::protocol_ws::start();
+    }
+
+    inline void stopping(const code& ec) NOEXCEPT override
+    {
+        BC_ASSERT(stranded());
+        network::protocol_ws::stopping(ec);
     }
 
 private:
