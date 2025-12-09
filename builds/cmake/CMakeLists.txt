@@ -287,8 +287,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/sessions/session.cpp"
     "../../src/sessions/session_inbound.cpp"
     "../../src/sessions/session_manual.cpp"
-    "../../src/sessions/session_outbound.cpp"
-    "../../src/sessions/session_tcp.cpp" )
+    "../../src/sessions/session_outbound.cpp" )
 
 # ${CANONICAL_LIB_NAME} project specific include directory normalization for build.
 #------------------------------------------------------------------------------

@@ -22,25 +22,25 @@
 #include <memory>
 #include <utility>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/sessions/session_tcp.hpp>
+#include <bitcoin/node/sessions/session.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class full_node;
-
-// make_shared<>
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+class full_node;
+
 /// Declare a concrete instance of this type for client-server protocols built
-/// on tcp/ip. session_tcp processing performs all connection management and
+/// on tcp/ip. session_base processing performs all connection management and
 /// session tracking. This includes start/stop/disable/enable/black/whitelist.
 /// Protocol must declare options_t and channel_t. This protocol is constructed
 /// and attached to a constructed instance of channel_t. The protocol construct
 /// and attachment can be overridden and/or augmented with other protocols.
 template <typename Protocol>
 class session_server
-  : public session_tcp,
+  : public network::session_server,
+    public node::session,
     protected network::tracker<session_server<Protocol>>
 {
 public:
@@ -51,12 +51,12 @@ public:
     using channel_t = typename Protocol::channel_t;
 
     /// Construct an instance (network should be started).
-    template <typename... Args>
-    session_server(full_node& node, uint64_t identifier, const options_t& options,
-        Args&&... args) NOEXCEPT
-      : session_tcp(node, identifier, options, std::forward<Args>(args)...),
-        options_(options),
-        network::tracker<session_server<Protocol>>(node)
+    inline session_server(full_node& node, uint64_t identifier,
+        const options_t& options) NOEXCEPT
+      : network::session_server((network::net&)node, identifier, options),
+        node::session(node),
+        network::tracker<session_server<Protocol>>(node),
+        options_(options)
     {
     }
 
@@ -64,10 +64,18 @@ protected:
     using socket_ptr = network::socket::ptr;
     using channel_ptr = network::channel::ptr;
 
+    /// Inbound connection attempts are dropped unless confirmed is current.
+    /// Used instead of suspension because that has independent start/stop.
+    inline bool enabled() const NOEXCEPT override
+    {
+        return !config().node.delay_inbound || is_recent();
+    }
+
     /// Override to construct channel. This allows the implementation to pass
     /// other values to protocol construction and/or select the desired channel
     /// based on available factors (e.g. a distinct protocol version).
-    channel_ptr create_channel(const socket_ptr& socket) NOEXCEPT override
+    inline channel_ptr create_channel(
+        const socket_ptr& socket) NOEXCEPT override
     {
         BC_ASSERT(stranded());
 
@@ -82,25 +90,25 @@ protected:
     /// is used to implement TLS and WebSocket upgrade from http (for example).
     /// Handshake protocol(s) must invoke handler one time at completion.
     /// Use std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
-    void attach_handshake(const channel_ptr& channel,
+    inline void attach_handshake(const channel_ptr& channel,
         network::result_handler&& handler) NOEXCEPT override
     {
         BC_ASSERT(channel->stranded());
         BC_ASSERT(channel->paused());
 
-        session_tcp::attach_handshake(channel, std::move(handler));
+        network::session_server::attach_handshake(channel, std::move(handler));
     }
 
     /// Overridden to set channel protocols. This allows the implementation to
     /// pass other values to protocol construction and/or select the desired
     /// protocol based on available factors (e.g. a distinct protocol version).
     /// Use std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
-    void attach_protocols(const channel_ptr& channel) NOEXCEPT override
+    inline void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
         BC_ASSERT(channel->stranded());
         BC_ASSERT(channel->paused());
 
-        const auto self = shared_from_base<session_tcp>();
+        const auto self = shared_from_base<session_server<Protocol>>();
         channel->attach<Protocol>(self, options_)->start();
     }
 

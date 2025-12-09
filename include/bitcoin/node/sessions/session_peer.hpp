@@ -32,21 +32,21 @@ namespace node {
 /// Template for network::session derivation with node::session.
 /// node::session does not derive from network::session (siblings).
 /// This avoids the diamond inheritance problem between network/node.
-template <class Session>
+template <class NetworkSession>
 class session_peer
-  : public Session,
-    public node::session
+  : public node::session,
+    public NetworkSession
 {
 public:
-    typedef std::shared_ptr<session_peer<Session>> ptr;
-    using options_t = typename Session::options_t;
+    typedef std::shared_ptr<session_peer<NetworkSession>> ptr;
+    using options_t = typename NetworkSession::options_t;
     using channel_t = node::channel_peer;
 
     /// Construct an instance.
     template <typename Node, typename... Args>
     session_peer(Node& node, Args&&... args) NOEXCEPT
-      : Session(node, std::forward<Args>(args)...),
-        node::session(node)
+      : node::session(node),
+        NetworkSession(node, std::forward<Args>(args)...)
     {
     }
 
@@ -79,7 +79,7 @@ protected:
         peer->set_start_height(top);
 
         // Attach and execute appropriate version protocol.
-        Session::attach_handshake(channel, std::move(handler));
+        NetworkSession::attach_handshake(channel, std::move(handler));
     }
 
     void attach_protocols(const channel_ptr& channel) NOEXCEPT override
@@ -90,7 +90,7 @@ protected:
         using namespace system;
         using namespace network;
         using namespace messages::peer;
-        using base = session_peer<Session>;
+        using base = session_peer<NetworkSession>;
 
         const auto self = this->template shared_from_base<base>();
         const auto relay = this->config().network.enable_relay;
@@ -108,7 +108,7 @@ protected:
         ));
 
         // Attach appropriate alert, reject, ping, and/or address protocols.
-        Session::attach_protocols(channel);
+        NetworkSession::attach_protocols(channel);
 
         // Channel suspensions.
         channel->attach<protocol_observer>(self)->start();

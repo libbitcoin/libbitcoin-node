@@ -180,9 +180,6 @@
     <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp">
       <Filter>src\sessions</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\sessions\session_tcp.cpp">
-      <Filter>src\sessions</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -375,9 +372,6 @@
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_server.hpp">
-      <Filter>include\bitcoin\node\sessions</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_tcp.hpp">
       <Filter>include\bitcoin\node\sessions</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp">
