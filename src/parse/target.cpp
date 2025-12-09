@@ -46,12 +46,12 @@ static hash_cptr to_hash(const std::string_view& token) NOEXCEPT
         emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
 }
 
-static hash_cptr to_base16(const std::string_view& token) NOEXCEPT
-{
-    hash_digest out{};
-    return decode_base16(out, token) ?
-        emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
-}
+////static hash_cptr to_base16(const std::string_view& token) NOEXCEPT
+////{
+////    hash_digest out{};
+////    return decode_base16(out, token) ?
+////        emplace_shared<const hash_digest>(std::move(out)) : hash_cptr{};
+////}
 
 code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
 {
@@ -100,8 +100,8 @@ code parse_target(request_t& out, const std::string_view& path) NOEXCEPT
         if (segment == segments.size())
             return error::missing_hash;
 
-        // address hash is a single sha256, and conventionally not reversed.
-        const auto base16 = to_base16(segments[segment++]);
+        // address hash is a single sha256, in reversed display endianness.
+        const auto base16 = to_hash(segments[segment++]);
         if (!base16) return error::invalid_hash;
 
         params["hash"] = base16;
