@@ -1042,8 +1042,8 @@ void protocol_explore::do_get_address_confirmed(uint8_t media, bool turbo,
 // ----------------------------------------------------------------------------
 
 bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
-    interface::address_unconfirmed, uint8_t, uint8_t media,
-    const hash_cptr& hash, bool turbo) NOEXCEPT
+    interface::address_unconfirmed, uint8_t, uint8_t,
+    const hash_cptr&, bool) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -1052,9 +1052,9 @@ bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
     send_not_implemented();
     return true;
         
-    address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    PARALLEL(do_get_address_unconfirmed, media, turbo, hash, std::move(complete));
-    return true;
+    ////address_handler complete = BIND(complete_get_address, _1, _2, _3);
+    ////PARALLEL(do_get_address_unconfirmed, media, turbo, hash, std::move(complete));
+    ////return true;
 }
 
 void protocol_explore::do_get_address_unconfirmed(uint8_t media, bool,
