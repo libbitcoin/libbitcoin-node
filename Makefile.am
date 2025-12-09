@@ -199,6 +199,15 @@ include_bitcoin_node_impl_chasersdir = ${includedir}/bitcoin/node/impl/chasers
 include_bitcoin_node_impl_chasers_HEADERS = \
     include/bitcoin/node/impl/chasers/chaser_organize.ipp
 
+include_bitcoin_node_interfacesdir = ${includedir}/bitcoin/node/interfaces
+include_bitcoin_node_interfaces_HEADERS = \
+    include/bitcoin/node/interfaces/bitcoind.hpp \
+    include/bitcoin/node/interfaces/electrum.hpp \
+    include/bitcoin/node/interfaces/explore.hpp \
+    include/bitcoin/node/interfaces/interfaces.hpp \
+    include/bitcoin/node/interfaces/stratum_v1.hpp \
+    include/bitcoin/node/interfaces/stratum_v2.hpp
+
 include_bitcoin_node_parsedir = ${includedir}/bitcoin/node/parse
 include_bitcoin_node_parse_HEADERS = \
     include/bitcoin/node/parse/parse.hpp \

@@ -45,6 +45,12 @@
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
+#include <bitcoin/node/interfaces/bitcoind.hpp>
+#include <bitcoin/node/interfaces/electrum.hpp>
+#include <bitcoin/node/interfaces/explore.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
+#include <bitcoin/node/interfaces/stratum_v1.hpp>
+#include <bitcoin/node/interfaces/stratum_v2.hpp>
 #include <bitcoin/node/parse/parse.hpp>
 #include <bitcoin/node/parse/query.hpp>
 #include <bitcoin/node/parse/target.hpp>
