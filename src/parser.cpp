@@ -72,7 +72,7 @@ parser::parser(system::chain::selection context,
     configured.network.outbound.seeds.clear();
     configured.network.outbound.seeds.emplace_back("seed.bitcoin.sipa.be", 8333_u16);
     configured.network.outbound.seeds.emplace_back("dnsseed.bluematt.me", 8333_u16);
-    configured.network.outbound.seeds.emplace_back("dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us", 8333_u16);
+    ////configured.network.outbound.seeds.emplace_back("dnsseed.bitcoin.dashjr-list-of-p2p-nodes.us", 8333_u16);
     configured.network.outbound.seeds.emplace_back("seed.bitcoin.jonasschnelli.ch", 8333_u16);
     configured.network.outbound.seeds.emplace_back("seed.btc.petertodd.net", 8333_u16);
     configured.network.outbound.seeds.emplace_back("seed.bitcoin.sprovoost.nl", 8333_u16);
