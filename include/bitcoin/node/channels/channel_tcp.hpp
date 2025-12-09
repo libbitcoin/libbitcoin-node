@@ -31,16 +31,18 @@ namespace node {
 /// This is a placeholder for electrum, bitcoind, and stratum v1/v2 channels.
 class BCN_API channel_tcp
   : public node::channel,
-    public network::channel
+    public network::channel,
+    protected network::tracker<channel_tcp>
 {
 public:
-    typedef std::shared_ptr<node::channel_tcp> ptr;
+    typedef std::shared_ptr<channel_tcp> ptr;
 
-    channel_tcp(const network::logger& log, const network::socket::ptr& socket,
-        uint64_t identifier, const node::configuration& config,
-        const options_t& options) NOEXCEPT
+    inline channel_tcp(const network::logger& log,
+        const network::socket::ptr& socket, uint64_t identifier,
+        const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
-        network::channel(log, socket, identifier, config.network, options)
+        network::channel(log, socket, identifier, config.network, options),
+        network::tracker<channel_tcp>(log)
     {
     }
 };

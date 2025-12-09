@@ -29,16 +29,18 @@ namespace node {
 
 class BCN_API channel_http
   : public node::channel,
-    public network::channel_http
+    public network::channel_http,
+    protected network::tracker<channel_http>
 {
 public:
-    typedef std::shared_ptr<node::channel_http> ptr;
+    typedef std::shared_ptr<channel_http> ptr;
 
-    channel_http(const network::logger& log,
+    inline channel_http(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
-        network::channel_http(log, socket, identifier, config.network, options)
+        network::channel_http(log, socket, identifier, config.network, options),
+        network::tracker<channel_http>(log)
     {
     }
 };
