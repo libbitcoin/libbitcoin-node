@@ -50,7 +50,6 @@ public:
         network::result_handler&& handler) NOEXCEPT
     {
         BC_ASSERT(stranded());
-        BC_ASSERT(upgraded_);
         using namespace std::placeholders;
     
         // TODO: Serialize message.
