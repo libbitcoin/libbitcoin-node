@@ -145,21 +145,6 @@ void full_node::start_explore(const code& ec,
     }
 
     attach_explore_session()->start(
-        std::bind(&full_node::start_websocket, this, _1, handler));
-}
-
-void full_node::start_websocket(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_websocket_session()->start(
         std::bind(&full_node::start_bitcoind, this, _1, handler));
 }
 
@@ -543,11 +528,6 @@ session_web::ptr full_node::attach_web_session() NOEXCEPT
 session_explore::ptr full_node::attach_explore_session() NOEXCEPT
 {
     return net::attach<session_explore>(*this, config_.server.explore);
-}
-
-session_websocket::ptr full_node::attach_websocket_session() NOEXCEPT
-{
-    return net::attach<session_websocket>(*this, config_.server.socket);
 }
 
 session_bitcoind::ptr full_node::attach_bitcoind_session() NOEXCEPT

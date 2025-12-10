@@ -175,7 +175,7 @@ bool settings::embedded_pages::enabled() const NOEXCEPT
 // settings::html_server
 settings::html_server::html_server(const std::string_view& logging_name,
     const embedded_pages& embedded) NOEXCEPT
-  : network::settings::http_server(logging_name),
+  : network::settings::websocket_server(logging_name),
     pages(embedded)
 {
 }

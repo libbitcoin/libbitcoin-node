@@ -112,6 +112,7 @@ BOOST_AUTO_TEST_CASE(server__html_server__defaults__expected)
     BOOST_REQUIRE(instance.pages.ecma().empty());
     BOOST_REQUIRE(instance.pages.font().empty());
     BOOST_REQUIRE(instance.pages.icon().empty());
+    BOOST_REQUIRE(instance.websocket);
     BOOST_REQUIRE(instance.path.empty());
     BOOST_REQUIRE_EQUAL(instance.default_, "index.html");
     BOOST_REQUIRE(instance.origins.empty());
@@ -149,6 +150,7 @@ BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
     BOOST_REQUIRE(server.pages.font().empty());
     BOOST_REQUIRE(server.pages.icon().empty());
     BOOST_REQUIRE(server.path.empty());
+    BOOST_REQUIRE(server.websocket);
     BOOST_REQUIRE_EQUAL(server.default_, "index.html");
     BOOST_REQUIRE(server.origins.empty());
     BOOST_REQUIRE(server.origin_names().empty());
@@ -185,35 +187,13 @@ BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
     BOOST_REQUIRE(server.pages.font().empty());
     BOOST_REQUIRE(server.pages.icon().empty());
     BOOST_REQUIRE(server.path.empty());
+    BOOST_REQUIRE(server.websocket);
     BOOST_REQUIRE_EQUAL(server.default_, "index.html");
     BOOST_REQUIRE(server.origins.empty());
     BOOST_REQUIRE(server.origin_names().empty());
 }
 
-BOOST_AUTO_TEST_CASE(server__websocket_server__defaults__expected)
-{
-    const server::settings::embedded_pages web{};
-    const server::settings::embedded_pages explorer{};
-    const server::settings instance{ selection::none, explorer, web };
-    const auto& server = instance.socket;
-
-    // tcp_server
-    BOOST_REQUIRE_EQUAL(server.name, "socket");
-    BOOST_REQUIRE(!server.secure);
-    BOOST_REQUIRE(server.binds.empty());
-    BOOST_REQUIRE_EQUAL(server.connections, 0u);
-    BOOST_REQUIRE_EQUAL(server.inactivity_minutes, 10u);
-    BOOST_REQUIRE_EQUAL(server.expiration_minutes, 60u);
-    BOOST_REQUIRE(!server.enabled());
-    BOOST_REQUIRE(server.inactivity() == minutes(10));
-    BOOST_REQUIRE(server.expiration() == minutes(60));
-
-    // http_server
-    BOOST_REQUIRE_EQUAL(server.server, "libbitcoin/4.0");
-    BOOST_REQUIRE(server.hosts.empty());
-    BOOST_REQUIRE(server.host_names().empty());
-}
-
+// TODO: could add websocket under bitcoind as a custom property.
 BOOST_AUTO_TEST_CASE(server__bitcoind_server__defaults__expected)
 {
     const server::settings::embedded_pages web{};
