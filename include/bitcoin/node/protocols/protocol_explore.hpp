@@ -38,7 +38,7 @@ public:
     using interface = interface::explore;
     using dispatcher = network::rpc::dispatcher<interface>;
 
-    protocol_explore(const auto& session,
+    inline protocol_explore(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_html(session, channel, options),

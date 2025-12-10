@@ -36,8 +36,8 @@ public:
     DELETE_COPY_MOVE_DESTRUCT(channel);
 
 protected:
-    channel(const network::logger&, const network::socket::ptr&, uint64_t,
-        const node::configuration&) NOEXCEPT
+    inline channel(const network::logger&, const network::socket::ptr&,
+        uint64_t, const node::configuration&) NOEXCEPT
     {
     }
 };

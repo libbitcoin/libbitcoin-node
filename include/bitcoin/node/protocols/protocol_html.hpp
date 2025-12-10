@@ -30,7 +30,8 @@ namespace node {
 /// Abstract base for HTML protocols, thread safe.
 class BCN_API protocol_html
   : public node::protocol,
-    public network::protocol_http
+    public network::protocol_http,
+    protected network::tracker<protocol_html>
 {
 public:
     /// http channel, but html settings.
@@ -38,12 +39,13 @@ public:
     using channel_t = node::channel_http;
 
 protected:
-    protocol_html(const auto& session,
+    inline protocol_html(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol(session, channel),
         network::protocol_http(session, channel, options),
-        options_(options)
+        options_(options),
+        network::tracker<protocol_html>(session->log)
     {
     }
 

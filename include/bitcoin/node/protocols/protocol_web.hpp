@@ -34,7 +34,7 @@ class BCN_API protocol_web
 public:
     typedef std::shared_ptr<protocol_web> ptr;
 
-    protocol_web(const auto& session,
+    inline protocol_web(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_html(session, channel, options),
@@ -43,7 +43,7 @@ public:
     }
 
     /// Public start is required.
-    void start() NOEXCEPT override
+    inline void start() NOEXCEPT override
     {
         node::protocol_html::start();
     }

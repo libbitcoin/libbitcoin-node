@@ -44,7 +44,7 @@ protected:
     /// -----------------------------------------------------------------------
     /// static_pointer_cast relies on create_channel().
 
-    protocol_peer(const auto& session,
+    inline protocol_peer(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol(session, channel),
         network::protocol_peer(session, channel),

@@ -29,7 +29,8 @@ namespace node {
 
 class BCN_API channel_ws
   : public node::channel,
-    public network::channel_ws
+    public network::channel_ws,
+    protected network::tracker<channel_ws>
 {
 public:
     typedef std::shared_ptr<node::channel_ws> ptr;
@@ -74,7 +75,8 @@ public:
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
-        network::channel_ws(log, socket, identifier, config.network, options)
+        network::channel_ws(log, socket, identifier, config.network, options),
+        network::tracker<channel_ws>(log)
     {
     }
 

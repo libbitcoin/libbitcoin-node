@@ -40,7 +40,7 @@ public:
     using channel_t = node::channel_http;
 
 protected:
-    protocol_http(const auto& session,
+    inline protocol_http(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol(session, channel),
