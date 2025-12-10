@@ -126,7 +126,7 @@ public:
     /// html (http/s) document server settings (has directory/default).
     /// This is for web servers that expose a local file system directory.
     struct html_server
-      : public network::settings::http_server
+      : public network::settings::websocket_server
     {
         // embedded_pages reference precludes copy.
         DELETE_COPY(html_server);
@@ -137,6 +137,9 @@ public:
         /// Embeded single page with html, css, js, favicon resource.
         /// This is a reference to the caller's resource (retained instance).
         const embedded_pages& pages;
+
+        /// Set false to disable http->websocket http upgrade processing.
+        bool websocket{ true };
 
         /// Directory to serve.
         std::filesystem::path path{};
@@ -163,11 +166,8 @@ public:
     /// native admin web interface, isolated (http/s, stateless html)
     server::settings::html_server web;
 
-    /// native RESTful block explorer (http/s, stateless html/json)
+    /// native RESTful block explorer (http/s, stateless html/websocket)
     server::settings::html_server explore;
-
-    /// native websocket query interface (http/s->tcp/s, json, handshake)
-    network::settings::websocket_server socket{ "socket" };
 
     /// bitcoind compat interface (http/s, stateless json-rpc-v2)
     network::settings::http_server bitcoind{ "bitcoind" };

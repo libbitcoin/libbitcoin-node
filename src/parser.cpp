@@ -83,7 +83,6 @@ parser::parser(system::chain::selection context,
     // admin
     configured.server.web.binds.emplace_back(asio::address{}, 8080_u16);
     configured.server.explore.binds.emplace_back(asio::address{}, 8180_u16);
-    configured.server.socket.binds.emplace_back(asio::address{}, 8280_u16);
     configured.server.bitcoind.binds.emplace_back(asio::address{}, 8380_u16);
     configured.server.electrum.binds.emplace_back(asio::address{}, 8480_u16);
     configured.server.stratum_v1.binds.emplace_back(asio::address{}, 8580_u16);
@@ -865,42 +864,10 @@ options_metadata parser::load_settings() THROWS
         value<std::string>(&configured.server.explore.default_),
         "The path of the default source page, defaults to 'index.html'."
     )
-
-    /* [socket] */
-    ////(
-    ////    "socket.secure",
-    ////    value<bool>(&configured.network.socket.secure),
-    ////    "Require transport layer security, defaults to 'false' (not implemented)."
-    ////)
     (
-        "socket.bind",
-        value<network::config::authorities>(&configured.server.socket.binds),
-        "IP address to bind, multiple allowed, defaults to '0.0.0.0:8280' (all IPv4)."
-    )
-    (
-        "socket.connections",
-        value<uint16_t>(&configured.server.socket.connections),
-        "The required maximum number of connections, defaults to '0'."
-    )
-    (
-        "socket.inactivity_minutes",
-        value<uint32_t>(&configured.server.socket.inactivity_minutes),
-        "The idle timeout (http keep-alive), defaults to '10'."
-    )
-    (
-        "socket.expiration_minutes",
-        value<uint32_t>(&configured.server.socket.expiration_minutes),
-        "The idle timeout (http keep-alive), defaults to '60'."
-    )
-    (
-        "socket.server",
-        value<std::string>(&configured.server.socket.server),
-        "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
-    )
-    (
-        "socket.host",
-        value<network::config::endpoints>(&configured.server.socket.hosts),
-        "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+        "explore.websocket",
+        value<bool>(&configured.server.explore.websocket),
+        "Enable websocket interface, defaults to true."
     )
 
     /* [bitcoind] */
