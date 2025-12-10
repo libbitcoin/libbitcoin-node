@@ -44,11 +44,9 @@
 /// server
 #include <bitcoin/node/protocols/protocol_web.hpp>
 #include <bitcoin/node/protocols/protocol_explore.hpp>
-#include <bitcoin/node/protocols/protocol_ws.hpp>
 #include <bitcoin/node/protocols/protocol_bitcoind.hpp>
 #include <bitcoin/node/protocols/protocol_electrum.hpp>
 #include <bitcoin/node/protocols/protocol_stratum_v1.hpp>
 #include <bitcoin/node/protocols/protocol_stratum_v2.hpp>
-#include <bitcoin/node/protocols/protocol_ws.hpp>
 
 #endif

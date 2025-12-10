@@ -78,7 +78,6 @@
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_web.hpp>
-#include <bitcoin/node/protocols/protocol_ws.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
