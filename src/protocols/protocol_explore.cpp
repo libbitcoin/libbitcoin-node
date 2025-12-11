@@ -29,7 +29,6 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS protocol_explore
-
 #define SUBSCRIBE_EXPLORE(method, ...) \
     subscribe<CLASS>(&CLASS::method, __VA_ARGS__)
     
@@ -1161,6 +1160,7 @@ BC_POP_WARNING()
 BC_POP_WARNING()
 
 #undef SUBSCRIBE_EXPLORE
+#undef CLASS
 
 } // namespace node
 } // namespace libbitcoin

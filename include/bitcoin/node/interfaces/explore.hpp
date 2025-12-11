@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_INTERFACES_EXPLORE_HPP
 
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/types.hpp>
 
 namespace libbitcoin {
 namespace node {

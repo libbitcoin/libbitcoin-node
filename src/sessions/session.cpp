@@ -26,8 +26,6 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS session
-
 using namespace system::chain;
 using namespace database;
 using namespace network;

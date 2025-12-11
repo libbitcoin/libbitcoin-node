@@ -123,6 +123,9 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_bitcoind.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
@@ -285,6 +288,9 @@
       <Filter>include\bitcoin\node\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\stratum_v2.hpp">
+      <Filter>include\bitcoin\node\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\types.hpp">
       <Filter>include\bitcoin\node\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\parse.hpp">

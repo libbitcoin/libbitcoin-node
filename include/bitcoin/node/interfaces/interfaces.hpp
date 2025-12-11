@@ -19,42 +19,12 @@
 #ifndef LIBBITCOIN_NODE_INTERFACES_HPP
 #define LIBBITCOIN_NODE_INTERFACES_HPP
 
-namespace libbitcoin {
-namespace node {
-namespace interface {
-    
-/// Alias network::rpc names within interface::.
-
-template <text_t Text, typename ...Args>
-using method = network::rpc::method<Text, Args...>;
-template <auto& Methods, size_t Index>
-using method_at = network::rpc::method_at<Methods, Index>;
-template <typename Methods, network::rpc::grouping Mode =
-    network::rpc::grouping::either>
-using publish = network::rpc::publish<Methods, Mode>;
-
-template <auto Default>
-using optional = network::rpc::optional<Default>;
-template <typename Type>
-using nullable = network::rpc::nullable<Type>;
-using boolean_t = network::rpc::boolean_t;
-using string_t = network::rpc::string_t;
-using number_t = network::rpc::number_t;
-using object_t = network::rpc::object_t;
-using array_t = network::rpc::array_t;
-
-namespace empty { constexpr auto array = network::rpc::empty::array; };
-namespace empty { constexpr auto object = network::rpc::empty::object; };
-
-} // namespace interface
-} // namespace node
-} // namespace libbitcoin
-
 #include <bitcoin/node/interfaces/bitcoind.hpp>
 #include <bitcoin/node/interfaces/electrum.hpp>
 #include <bitcoin/node/interfaces/explore.hpp>
 #include <bitcoin/node/interfaces/stratum_v1.hpp>
 #include <bitcoin/node/interfaces/stratum_v2.hpp>
+#include <bitcoin/node/interfaces/types.hpp>
 
 namespace libbitcoin {
 namespace node {

@@ -51,6 +51,7 @@
 #include <bitcoin/node/interfaces/interfaces.hpp>
 #include <bitcoin/node/interfaces/stratum_v1.hpp>
 #include <bitcoin/node/interfaces/stratum_v2.hpp>
+#include <bitcoin/node/interfaces/types.hpp>
 #include <bitcoin/node/parse/parse.hpp>
 #include <bitcoin/node/parse/query.hpp>
 #include <bitcoin/node/parse/target.hpp>

@@ -172,8 +172,11 @@ private:
     database::header_link to_header(const std::optional<uint32_t>& height,
         const std::optional<system::hash_cptr>& hash) NOEXCEPT;
 
-    dispatcher dispatcher_{};
+    // This is thread safe.
     std::atomic_bool stopping_{};
+
+    // This is protected by strand.
+    dispatcher dispatcher_{};
 };
 
 } // namespace node
