@@ -87,15 +87,17 @@ bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
         return true;
     }
 
-    ////if (contains(accepts, json) || format == "json")
-    ////{
-    ////    params["media"] = to_value(json);
-    ////    return true;
-    ////}
+    ////// Default format to json.
+    ////params["media"] = to_value(json);
+    ////return true;
 
-    // Default to json.
-    params["media"] = to_value(json);
-    return true;
+    if (contains(accepts, json) || format == "json")
+    {
+        params["media"] = to_value(json);
+        return true;
+    }
+
+    return false;
 }
 
 BC_POP_WARNING()
