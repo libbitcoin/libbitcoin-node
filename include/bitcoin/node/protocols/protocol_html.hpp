@@ -37,9 +37,8 @@ class BCN_API protocol_html
     protected network::tracker<protocol_html>
 {
 public:
-    /// http channel, but html settings.
     using options_t = server::settings::html_server;
-    using channel_t = node::channel_http;
+    using channel_t = node::channel_ws;
 
 protected:
     inline protocol_html(const auto& session,

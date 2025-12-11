@@ -240,7 +240,6 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocol_web.hpp \
-    include/bitcoin/node/protocols/protocol_ws.hpp \
     include/bitcoin/node/protocols/protocols.hpp
 
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
