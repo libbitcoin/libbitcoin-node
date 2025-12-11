@@ -117,6 +117,8 @@ enum error_t : uint8_t
     invalid_component,
     invalid_subcomponent,
     extra_segment,
+
+    /// server (json-rpc parse codes)
     unexpected_parse
 };
 

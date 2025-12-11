@@ -56,6 +56,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/parse/query.cpp \
     src/parse/target.cpp \
     src/protocols/protocol.cpp \
+    src/protocols/protocol_bitcoind.cpp \
     src/protocols/protocol_block_in_106.cpp \
     src/protocols/protocol_block_in_31800.cpp \
     src/protocols/protocol_block_out_106.cpp \
@@ -206,7 +207,8 @@ include_bitcoin_node_interfaces_HEADERS = \
     include/bitcoin/node/interfaces/explore.hpp \
     include/bitcoin/node/interfaces/interfaces.hpp \
     include/bitcoin/node/interfaces/stratum_v1.hpp \
-    include/bitcoin/node/interfaces/stratum_v2.hpp
+    include/bitcoin/node/interfaces/stratum_v2.hpp \
+    include/bitcoin/node/interfaces/types.hpp
 
 include_bitcoin_node_parsedir = ${includedir}/bitcoin/node/parse
 include_bitcoin_node_parse_HEADERS = \

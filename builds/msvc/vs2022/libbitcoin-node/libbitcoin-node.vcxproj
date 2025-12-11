@@ -141,6 +141,7 @@
     <ClCompile Include="..\..\..\..\src\parse\target.cpp" />
     <ClCompile Include="..\..\..\..\src\parser.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_bitcoind.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_31800.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_106.cpp" />
@@ -197,6 +198,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\interfaces.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\stratum_v1.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\stratum_v2.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\types.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\parse.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\query.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\target.hpp" />
