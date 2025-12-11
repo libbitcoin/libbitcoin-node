@@ -23,20 +23,21 @@ namespace server {
 
 // Simple test html for embedded page, links in css and page icon.
 DEFINE_EMBEDDED_PAGE(explore_pages, char, html,
-R"(<html>
-<head>
-    <title>Libbitcoin Block Explorer</title>
-    <meta charset="utf-8">
-    <meta name="description" content="libbitcoin block explorer site">
-    <link rel="stylesheet" href="style.css"/>
-    <link rel="icon" href="icon.png" type="image/png"/>
-    <link rel="preload" href="boston.woff2" type="font/woff2" as="font">
-    <script src="script.js" defer></script>
-</head>
-<body>
-    <p>Hello world!</p>
-</body>
-</html>)")
+    R"DELIM(<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>libbitcoin Explorer</title>
+    <script type="module" crossorigin src="/script.js"></script>
+    <link rel="stylesheet" crossorigin href="/style.css">
+  </head>
+  <body class="h-full bg-background text-white">
+    <div id="root" class="h-full"></div>
+  </body>
+</html>
+)DELIM"
+)
 
 } // namespace server
 } // namespace libbitcoin
