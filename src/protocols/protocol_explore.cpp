@@ -943,24 +943,20 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
-    address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    PARALLEL(do_get_address, media, turbo, hash, std::move(complete));
+    PARALLEL(do_get_address, media, turbo, hash);
     return true;
 }
 
 // private
 void protocol_explore::do_get_address(uint8_t media, bool turbo,
-    const hash_cptr& hash, const address_handler& handler) NOEXCEPT
+    const hash_cptr& hash) NOEXCEPT
 {
-    outpoints set{};
-    if (const auto ec = archive().get_address_outputs(stopping_, set,
-        *hash, turbo))
-    {
-        handler(ec, {}, {});
-        return;
-    }
+    BC_ASSERT(!stranded());
 
-    handler(network::error::success, media, std::move(set));
+    outpoints set{};
+    const auto& query = archive();
+    const auto ec = query.get_address_outputs(stopping_, set, *hash, turbo);
+    POST(complete_get_address, ec, media, std::move(set));
 }
 
 // This is shared by the three get_address... methods.
@@ -1017,24 +1013,20 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
         return true;
     }
 
-    address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    PARALLEL(do_get_address_confirmed, media, turbo, hash, std::move(complete));
+    PARALLEL(do_get_address_confirmed, media, turbo, hash);
     return true;
 }
 
 // private
 void protocol_explore::do_get_address_confirmed(uint8_t media, bool turbo,
-    const hash_cptr& hash, const address_handler& handler) NOEXCEPT
+    const hash_cptr& hash) NOEXCEPT
 {
-    outpoints set{};
-    if (const auto ec = archive().get_confirmed_unspent_outputs(stopping_,
-        set, *hash, turbo))
-    {
-        handler(ec, {}, {});
-        return;
-    }
+    BC_ASSERT(!stranded());
 
-    handler(network::error::success, media, std::move(set));
+    outpoints set{};
+    const auto& query = archive();
+    auto ec = query.get_confirmed_unspent_outputs(stopping_, set, *hash, turbo);
+    POST(complete_get_address, ec, media, std::move(set));
 }
 
 // handle_get_address_unconfirmed
@@ -1050,16 +1042,6 @@ bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
     // TODO: there are currently no unconfirmed txs.
     send_not_implemented();
     return true;
-        
-    ////address_handler complete = BIND(complete_get_address, _1, _2, _3);
-    ////PARALLEL(do_get_address_unconfirmed, media, turbo, hash, std::move(complete));
-    ////return true;
-}
-
-void protocol_explore::do_get_address_unconfirmed(uint8_t media, bool,
-    const system::hash_cptr&, const address_handler& handler) NOEXCEPT
-{
-    handler(network::error::success, media, {});
 }
 
 // handle_get_address_balance
@@ -1079,23 +1061,19 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
         return true;
     }
 
-    balance_handler complete = BIND(complete_get_address_balance, _1, _2, _3);
-    PARALLEL(do_get_address_balance, media, turbo, hash, std::move(complete));
+    PARALLEL(do_get_address_balance, media, turbo, hash);
     return true;
 }
 
 void protocol_explore::do_get_address_balance(uint8_t media, bool turbo,
-    const system::hash_cptr& hash, const balance_handler& handler) NOEXCEPT
+    const system::hash_cptr& hash) NOEXCEPT
 {
-    uint64_t balance{};
-    if (const auto ec = archive().get_confirmed_balance(stopping_, balance,
-        *hash, turbo))
-    {
-        handler(ec, {}, {});
-        return;
-    }
+    BC_ASSERT(!stranded());
 
-    handler(network::error::success, media, balance);
+    uint64_t balance{};
+    const auto& query = archive();
+    auto ec = query.get_confirmed_balance(stopping_, balance, *hash, turbo);
+    POST(complete_get_address_balance, ec, media, balance);
 }
 
 void protocol_explore::complete_get_address_balance(const code& ec,
@@ -1103,7 +1081,7 @@ void protocol_explore::complete_get_address_balance(const code& ec,
 {
     BC_ASSERT(stranded());
 
-    // This suppresses the error response resulting from cancelation.
+    // Suppresses cancelation error response.
     if (stopped())
         return;
 

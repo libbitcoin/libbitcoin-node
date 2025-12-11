@@ -148,21 +148,17 @@ protected:
         const system::hash_cptr& hash, bool turbo) NOEXCEPT;
 
 private:
-    using balance_handler = std::function<void(code, uint8_t, uint64_t)>;
-    using address_handler = std::function<void(code, uint8_t,
-        database::outpoints&&)>;
-
     void do_get_address(uint8_t media, bool turbo,
-        const system::hash_cptr& hash, const address_handler& handler) NOEXCEPT;
+        const system::hash_cptr& hash) NOEXCEPT;
     void do_get_address_confirmed(uint8_t media, bool turbo,
-        const system::hash_cptr& hash, const address_handler& handler) NOEXCEPT;
-    void do_get_address_unconfirmed(uint8_t media, bool turbo,
-        const system::hash_cptr& hash, const address_handler& handler) NOEXCEPT;
+        const system::hash_cptr& hash) NOEXCEPT;
+    ////void do_get_address_unconfirmed(uint8_t media, bool turbo,
+    ////    const system::hash_cptr& hash) NOEXCEPT;
     void complete_get_address(const code& ec, uint8_t media,
         const database::outpoints& set) NOEXCEPT;
 
     void do_get_address_balance(uint8_t media, bool turbo,
-        const system::hash_cptr& hash, const balance_handler& handler) NOEXCEPT;
+        const system::hash_cptr& hash) NOEXCEPT;
     void complete_get_address_balance(const code& ec, uint8_t media,
         const uint64_t balance) NOEXCEPT;
 
