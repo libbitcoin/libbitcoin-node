@@ -943,6 +943,9 @@ bool protocol_explore::handle_get_address(const code& ec, interface::address,
         return true;
     }
 
+    // Monitor socket for close.
+    monitor(true);
+
     PARALLEL(do_get_address, media, turbo, hash);
     return true;
 }
@@ -964,6 +967,9 @@ void protocol_explore::complete_get_address(const code& ec, uint8_t media,
     const outpoints& set) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // Stop monitoring socket.
+    monitor(false);
 
     if (stopped())
         return;
@@ -1013,6 +1019,9 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
         return true;
     }
 
+    // Monitor socket for close.
+    monitor(true);
+
     PARALLEL(do_get_address_confirmed, media, turbo, hash);
     return true;
 }
@@ -1061,6 +1070,9 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
         return true;
     }
 
+    // Monitor socket for close.
+    monitor(true);
+
     PARALLEL(do_get_address_balance, media, turbo, hash);
     return true;
 }
@@ -1080,6 +1092,9 @@ void protocol_explore::complete_get_address_balance(const code& ec,
     uint8_t media, uint64_t balance) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // Stop monitoring socket.
+    monitor(false);
 
     // Suppresses cancelation error response.
     if (stopped())
