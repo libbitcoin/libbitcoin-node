@@ -171,7 +171,9 @@ namespace node {
 #define BN_NODE_INTERRUPT \
     "Press CTRL-C to stop the node."
 #define BN_DATABASE_STARTED \
-    "Database is started."
+    "Database is started (clean)."
+#define BN_DATABASE_STARTED_DIRTY \
+    "Database is started (dirty)."
 #define BN_NETWORK_STARTING \
     "Please wait while network is starting..."
 #define BN_NODE_START_FAIL \
