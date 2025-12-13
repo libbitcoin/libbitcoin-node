@@ -56,18 +56,18 @@ void protocol_bitcoind::start() NOEXCEPT
     SUBSCRIBE_BITCOIND(handle_get_block_chain_info, _1, _2);
     SUBSCRIBE_BITCOIND(handle_get_block_count, _1, _2);
     SUBSCRIBE_BITCOIND(handle_get_block_filter, _1, _2, _3, _4);
-    ////SUBSCRIBE_BITCOIND(handle_get_block_hash, _1, _2, _3);
+    SUBSCRIBE_BITCOIND(handle_get_block_hash, _1, _2, _3);
     SUBSCRIBE_BITCOIND(handle_get_block_header, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_get_block_stats, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_get_chain_tx_stats, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_get_chain_work, _1, _2);
     SUBSCRIBE_BITCOIND(handle_get_tx_out, _1, _2, _3, _4, _5);
     SUBSCRIBE_BITCOIND(handle_get_tx_out_set_info, _1, _2);
-    ////SUBSCRIBE_BITCOIND(handle_prune_block_chain, _1, _2, _3);
+    SUBSCRIBE_BITCOIND(handle_prune_block_chain, _1, _2, _3);
     SUBSCRIBE_BITCOIND(handle_save_mem_pool, _1, _2);
     SUBSCRIBE_BITCOIND(handle_scan_tx_out_set, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_verify_chain, _1, _2, _3, _4);
-    ////SUBSCRIBE_BITCOIND(handle_verify_tx_out_set, _1, _2, _3);
+    SUBSCRIBE_BITCOIND(handle_verify_tx_out_set, _1, _2, _3);
     protocol_bitcoind::start();
 }
 
@@ -145,12 +145,12 @@ bool protocol_bitcoind::handle_get_block_filter(const code& ec,
     return !ec;
 }
 
-////// method<"getblockhash", number_t>{ "height" },
-////bool protocol_bitcoind::handle_get_block_hash(const code& ec,
-////    interface::get_block_hash, network::rpc::number_t) NOEXCEPT
-////{
-////    return !ec;
-////}
+// method<"getblockhash", number_t>{ "height" },
+bool protocol_bitcoind::handle_get_block_hash(const code& ec,
+    interface::get_block_hash, network::rpc::number_t) NOEXCEPT
+{
+    return !ec;
+}
 
 // method<"getblockheader", string_t, optional<true>>{ "blockhash", "verbose" },
 bool protocol_bitcoind::handle_get_block_header(const code& ec,
@@ -193,12 +193,12 @@ bool protocol_bitcoind::handle_get_tx_out_set_info(const code& ec,
     return !ec;
 }
 
-////// method<"pruneblockchain", number_t>{ "height" },
-////bool protocol_bitcoind::handle_prune_block_chain(const code& ec,
-////    interface::prune_block_chain, double) NOEXCEPT
-////{
-////    return !ec;
-////}
+// method<"pruneblockchain", number_t>{ "height" },
+bool protocol_bitcoind::handle_prune_block_chain(const code& ec,
+    interface::prune_block_chain, double) NOEXCEPT
+{
+    return !ec;
+}
 
 bool protocol_bitcoind::handle_save_mem_pool(const code& ec,
     interface::save_mem_pool) NOEXCEPT
@@ -221,12 +221,12 @@ bool protocol_bitcoind::handle_verify_chain(const code& ec,
     return !ec;
 }
 
-////// method<"verifytxoutset", string_t>{ "input_verify_flag" },
-////bool protocol_bitcoind::handle_verify_tx_out_set(const code& ec,
-////    interface::verify_tx_out_set, const std::string&) NOEXCEPT
-////{
-////    return !ec;
-////}
+// method<"verifytxoutset", string_t>{ "input_verify_flag" },
+bool protocol_bitcoind::handle_verify_tx_out_set(const code& ec,
+    interface::verify_tx_out_set, const std::string&) NOEXCEPT
+{
+    return !ec;
+}
 
 BC_POP_WARNING()
 BC_POP_WARNING()
