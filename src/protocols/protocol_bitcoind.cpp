@@ -68,7 +68,7 @@ void protocol_bitcoind::start() NOEXCEPT
     SUBSCRIBE_BITCOIND(handle_scan_tx_out_set, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_verify_chain, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_verify_tx_out_set, _1, _2, _3);
-    protocol_bitcoind::start();
+    protocol_http::start();
 }
 
 // Dispatch.
