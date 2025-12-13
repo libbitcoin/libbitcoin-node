@@ -36,18 +36,18 @@ struct bitcoind_methods
         method<"getblockchaininfo">{},
         method<"getblockcount">{},
         method<"getblockfilter", string_t, optional<"basic"_t>>{ "blockhash", "filtertype" },
-        ////method<"getblockhash", double>{ "height" },
+        method<"getblockhash", number_t>{ "height" },
         method<"getblockheader", string_t, optional<true>>{ "blockhash", "verbose" },
         method<"getblockstats", string_t, optional<empty::array>>{ "hash_or_height", "stats" },
         method<"getchaintxstats", optional<-1>, optional<""_t>>{ "nblocks", "blockhash" },
         method<"getchainwork">{},
         method<"gettxout", string_t, number_t, optional<true>>{ "txid", "n", "include_mempool" },
         method<"gettxoutsetinfo">{},
-        ////method<"pruneblockchain", number_t>{ "height" },
+        method<"pruneblockchain", number_t>{ "height" },
         method<"savemempool">{},
         method<"scantxoutset", string_t, optional<empty::array>>{ "action", "scanobjects" },
         method<"verifychain", optional<4>, optional<288>>{ "checklevel", "nblocks" },
-        ////method<"verifytxoutset", string_t>{ "input_verify_flag" },
+        method<"verifytxoutset", string_t>{ "input_verify_flag" },
 
         /////// Control methods.
         ////method<"getmemoryinfo", optional<"stats"_t>>{ "mode" },
@@ -158,18 +158,18 @@ struct bitcoind_methods
     using get_block_chain_info = at<2>;
     using get_block_count = at<3>;
     using get_block_filter = at<4>;
-    ////using get_block_hash = at<5>;
-    using get_block_header = at<5>;
-    using get_block_stats = at<6>;
-    using get_chain_tx_stats = at<7>;
-    using get_chain_work = at<8>;
-    using get_tx_out = at<9>;
-    using get_tx_out_set_info = at<10>;
-    ////using prune_block_chain = at<12>;
-    using save_mem_pool = at<11>;
-    using scan_tx_out_set = at<12>;
-    using verify_chain = at<13>;
-    ////using verify_tx_out_set = at<16>;
+    using get_block_hash = at<5>;
+    using get_block_header = at<6>;
+    using get_block_stats = at<7>;
+    using get_chain_tx_stats = at<8>;
+    using get_chain_work = at<9>;
+    using get_tx_out = at<10>;
+    using get_tx_out_set_info = at<11>;
+    using prune_block_chain = at<12>;
+    using save_mem_pool = at<13>;
+    using scan_tx_out_set = at<14>;
+    using verify_chain = at<15>;
+    using verify_tx_out_set = at<16>;
 
     ////using get_memory_info = at<17>;
     ////using get_rpc_info = at<18>;

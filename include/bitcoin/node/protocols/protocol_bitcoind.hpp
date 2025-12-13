@@ -71,8 +71,8 @@ protected:
     bool handle_get_block_filter(const code& ec,
         interface::get_block_filter, const std::string&,
         const std::string&) NOEXCEPT;
-    ////bool handle_get_block_hash(const code& ec,
-    ////    interface::get_block_hash, double) NOEXCEPT;
+    bool handle_get_block_hash(const code& ec,
+        interface::get_block_hash, double) NOEXCEPT;
     bool handle_get_block_header(const code& ec,
         interface::get_block_header, const std::string&, bool) NOEXCEPT;
     bool handle_get_block_stats(const code& ec,
@@ -86,8 +86,8 @@ protected:
         interface::get_tx_out, const std::string&, double, bool) NOEXCEPT;
     bool handle_get_tx_out_set_info(const code& ec,
         interface::get_tx_out_set_info) NOEXCEPT;
-    ////bool handle_prune_block_chain(const code& ec,
-    ////    interface::prune_block_chain, double) NOEXCEPT;
+    bool handle_prune_block_chain(const code& ec,
+        interface::prune_block_chain, double) NOEXCEPT;
     bool handle_save_mem_pool(const code& ec,
         interface::save_mem_pool) NOEXCEPT;
     bool handle_scan_tx_out_set(const code& ec,
@@ -95,8 +95,8 @@ protected:
         const network::rpc::array_t&) NOEXCEPT;
     bool handle_verify_chain(const code& ec,
         interface::verify_chain, double, double) NOEXCEPT;
-    //bool handle_verify_tx_out_set(const code& ec,
-    //    interface::verify_tx_out_set, const std::string&) NOEXCEPT;
+    bool handle_verify_tx_out_set(const code& ec,
+        interface::verify_tx_out_set, const std::string&) NOEXCEPT;
 
 private:
     // This is thread safe.
