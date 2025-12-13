@@ -32,7 +32,7 @@ struct bitcoind_methods
     {
         /// Blockchain methods.
         method<"getbestblockhash">{},
-        method<"getblock", string_t, optional<0>>{ "blockhash", "verbosity" },
+        method<"getblock", string_t, optional<1>>{ "blockhash", "verbosity" },
         method<"getblockchaininfo">{},
         method<"getblockcount">{},
         method<"getblockfilter", string_t, optional<"basic"_t>>{ "blockhash", "filtertype" },
