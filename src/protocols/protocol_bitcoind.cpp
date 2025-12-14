@@ -74,7 +74,7 @@ void protocol_bitcoind::start() NOEXCEPT
 // ----------------------------------------------------------------------------
 
 void protocol_bitcoind::handle_receive_options(const code& ec,
-    const network::http::method::options::cptr& options) NOEXCEPT
+    const options::cptr& options) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -100,7 +100,7 @@ void protocol_bitcoind::handle_receive_options(const code& ec,
 
 // TODO: also handle_receive_get and dispatch based on URL parse.
 void protocol_bitcoind::handle_receive_post(const code& ec,
-    const network::http::method::post::cptr& post) NOEXCEPT
+    const post::cptr& post) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -145,14 +145,14 @@ void protocol_bitcoind::handle_receive_post(const code& ec,
         return;
     }
 
-    // TODO: post-process request.
-    // github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md
+    set_post(post);
     if (const auto code = dispatcher_.notify(request))
         stop(code);
 }
 
 // Handlers.
 // ----------------------------------------------------------------------------
+// github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md
 // TODO: precompute size for buffer hints.
 
 // {"jsonrpc": "1.0", "id": "curltest", "method": "getbestblockhash", "params": []}
@@ -283,14 +283,28 @@ bool protocol_bitcoind::handle_verify_tx_out_set(const code& ec,
 // private
 // ----------------------------------------------------------------------------
 
+void protocol_bitcoind::set_post(const post::cptr& post) NOEXCEPT
+{
+    BC_ASSERT(post);
+    post_ = post;
+}
+
+const protocol_bitcoind::post& protocol_bitcoind::get_post() const NOEXCEPT
+{
+    BC_ASSERT(post_);
+    return *post_;
+}
+
 // TODO: post-process response for json-rpc version.
-void protocol_bitcoind::send_json(boost::json::value&& model, size_t size_hint,
-    const request& request) NOEXCEPT
+void protocol_bitcoind::send_json(boost::json::value&& model,
+    size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    const auto& post = get_post();
     constexpr auto json = media_type::application_json;
-    response response{ status::ok, request.version() };
-    add_common_headers(response, request);
+    response response{ status::ok, post.version() };
+    add_common_headers(response, post);
+    add_access_control_headers(response, post);
     response.set(field::content_type, from_media_type(json));
     response.body() = { std::move(model), size_hint };
     response.prepare_payload();
