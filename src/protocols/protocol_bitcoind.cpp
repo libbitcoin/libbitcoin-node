@@ -146,17 +146,29 @@ void protocol_bitcoind::handle_receive_post(const code& ec,
     }
 
     // TODO: post-process request.
+    // github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md
     if (const auto code = dispatcher_.notify(request))
         stop(code);
 }
 
 // Handlers.
 // ----------------------------------------------------------------------------
+// TODO: precompute size for buffer hints.
 
+// {"jsonrpc": "1.0", "id": "curltest", "method": "getbestblockhash", "params": []}
 bool protocol_bitcoind::handle_get_best_block_hash(const code& ec,
     interface::get_best_block_hash) NOEXCEPT
 {
-    return !ec;
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    const auto hash = query.get_header_key(query.to_confirmed(
+        query.get_top_confirmed()));
+
+    const response_t model{ .result = encode_hash(hash) };
+    send_json(value_from(model), two * system::hash_size);
+    return true;
 }
 
 // method<"getblock", string_t, optional<0_u32>>{ "blockhash", "verbosity" },
