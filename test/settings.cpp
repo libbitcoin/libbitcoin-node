@@ -115,8 +115,6 @@ BOOST_AUTO_TEST_CASE(server__html_server__defaults__expected)
     BOOST_REQUIRE(instance.websocket);
     BOOST_REQUIRE(instance.path.empty());
     BOOST_REQUIRE_EQUAL(instance.default_, "index.html");
-    BOOST_REQUIRE(instance.origins.empty());
-    BOOST_REQUIRE(instance.origin_names().empty());
 }
 
 BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
@@ -152,8 +150,6 @@ BOOST_AUTO_TEST_CASE(server__web_server__defaults__expected)
     BOOST_REQUIRE(server.path.empty());
     BOOST_REQUIRE(server.websocket);
     BOOST_REQUIRE_EQUAL(server.default_, "index.html");
-    BOOST_REQUIRE(server.origins.empty());
-    BOOST_REQUIRE(server.origin_names().empty());
 }
 
 BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
@@ -189,8 +185,6 @@ BOOST_AUTO_TEST_CASE(server__explore_server__defaults__expected)
     BOOST_REQUIRE(server.path.empty());
     BOOST_REQUIRE(server.websocket);
     BOOST_REQUIRE_EQUAL(server.default_, "index.html");
-    BOOST_REQUIRE(server.origins.empty());
-    BOOST_REQUIRE(server.origin_names().empty());
 }
 
 // TODO: could add websocket under bitcoind as a custom property.

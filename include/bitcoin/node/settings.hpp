@@ -147,12 +147,6 @@ public:
         /// Default page for default URL (recommended).
         std::string default_{ "index.html" };
 
-        /// Validated against origins if configured (recommended).
-        network::config::endpoints origins{};
-
-        /// Normalized origins.
-        virtual system::string_list origin_names() const NOEXCEPT;
-
         /// !path.empty() && http_server::enabled() [hidden, not virtual]
         virtual bool enabled() const NOEXCEPT;
     };

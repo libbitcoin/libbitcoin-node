@@ -238,19 +238,6 @@ void protocol_html::send_buffer(buffer_body::value_type&& buffer,
 // Utilities.
 // ----------------------------------------------------------------------------
 
-bool protocol_html::is_allowed_origin(const fields& fields,
-    size_t version) const NOEXCEPT
-{
-    // Allow same-origin and no-origin requests.
-    // Origin header field is not available until http 1.1.
-    const auto origin = fields[field::origin];
-    if (origin.empty() || version < version_1_1)
-        return true;
-
-    return options_.origins.empty() || system::contains(options_.origins,
-        network::config::to_normal_host(origin, default_port()));
-}
-
 std::filesystem::path protocol_html::to_path(
     const std::string& target) const NOEXCEPT
 {
