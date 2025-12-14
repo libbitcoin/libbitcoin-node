@@ -1160,8 +1160,5 @@ BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 
-#undef SUBSCRIBE_EXPLORE
-#undef CLASS
-
 } // namespace node
 } // namespace libbitcoin
