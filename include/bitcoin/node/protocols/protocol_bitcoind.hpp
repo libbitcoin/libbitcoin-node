@@ -49,6 +49,9 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    using post = network::http::method::post;
+    using options = network::http::method::options;
+
     template <class Derived, typename Method, typename... Args>
     inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
     {
@@ -56,8 +59,10 @@ protected:
     }
 
     /// Dispatch.
+    void handle_receive_options(const code& ec,
+        const network::http::method::options::cptr& options) NOEXCEPT override;
     void handle_receive_post(const code& ec,
-        const network::http::method::post::cptr& post) NOEXCEPT override;
+        const post::cptr& post) NOEXCEPT override;
 
     /// Handlers.
     bool handle_get_best_block_hash(const code& ec,
@@ -99,11 +104,19 @@ protected:
         interface::verify_tx_out_set, const std::string&) NOEXCEPT;
 
 private:
+    // Provide the request for serialization, keeping it out of dispatch.
+    void set_post(const post::cptr& post) NOEXCEPT;
+    const post& get_post() const NOEXCEPT;
+
+    // Send the response.
+    void send_json(boost::json::value&& model, size_t size_hint) NOEXCEPT;
+
     // This is thread safe.
     ////const options_t& options_;
 
-    // This is protected by strand.
+    // These are protected by strand.
     dispatcher dispatcher_{};
+    post::cptr post_{};
 };
 
 } // namespace node

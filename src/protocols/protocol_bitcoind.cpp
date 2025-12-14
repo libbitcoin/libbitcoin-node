@@ -34,8 +34,7 @@ using namespace network::http;
 using namespace std::placeholders;
 using namespace boost::json;
 
-using json_t = json_body::value_type;
-
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -74,14 +73,55 @@ void protocol_bitcoind::start() NOEXCEPT
 // Dispatch.
 // ----------------------------------------------------------------------------
 
-void protocol_bitcoind::handle_receive_post(const code& ec,
-    const network::http::method::post::cptr& post) NOEXCEPT
+void protocol_bitcoind::handle_receive_options(const code& ec,
+    const options::cptr& options) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped(ec))
         return;
 
+    // Enforce http host header (if any hosts are configured).
+    if (!is_allowed_host(*options, options->version()))
+    {
+        send_bad_host(*options);
+        return;
+    }
+
+    // Enforce http origin policy (if any origins are configured).
+    if (!is_allowed_origin(*options, options->version()))
+    {
+        send_forbidden(*options);
+        return;
+    }
+
+    send_ok(*options);
+}
+
+// TODO: also handle_receive_get and dispatch based on URL parse.
+void protocol_bitcoind::handle_receive_post(const code& ec,
+    const post::cptr& post) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return;
+
+    // Enforce http host header (if any hosts are configured).
+    if (!is_allowed_host(*post, post->version()))
+    {
+        send_bad_host(*post);
+        return;
+    }
+
+    // Enforce http origin policy (if any origins are configured).
+    if (!is_allowed_origin(*post, post->version()))
+    {
+        send_forbidden(*post);
+        return;
+    }
+
+    using json_t = json_body::value_type;
     const auto& body = post->body();
     if (!body.contains<json_t>())
     {
@@ -105,18 +145,30 @@ void protocol_bitcoind::handle_receive_post(const code& ec,
         return;
     }
 
-    // TODO: post-process request.
+    set_post(post);
     if (const auto code = dispatcher_.notify(request))
         stop(code);
 }
 
 // Handlers.
 // ----------------------------------------------------------------------------
+// github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md
+// TODO: precompute size for buffer hints.
 
+// {"jsonrpc": "1.0", "id": "curltest", "method": "getbestblockhash", "params": []}
 bool protocol_bitcoind::handle_get_best_block_hash(const code& ec,
     interface::get_best_block_hash) NOEXCEPT
 {
-    return !ec;
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    const auto hash = query.get_header_key(query.to_confirmed(
+        query.get_top_confirmed()));
+
+    const response_t model{ .result = encode_hash(hash) };
+    send_json(value_from(model), two * system::hash_size);
+    return true;
 }
 
 // method<"getblock", string_t, optional<0_u32>>{ "blockhash", "verbosity" },
@@ -228,6 +280,38 @@ bool protocol_bitcoind::handle_verify_tx_out_set(const code& ec,
     return !ec;
 }
 
+// private
+// ----------------------------------------------------------------------------
+
+void protocol_bitcoind::set_post(const post::cptr& post) NOEXCEPT
+{
+    BC_ASSERT(post);
+    post_ = post;
+}
+
+const protocol_bitcoind::post& protocol_bitcoind::get_post() const NOEXCEPT
+{
+    BC_ASSERT(post_);
+    return *post_;
+}
+
+// TODO: post-process response for json-rpc version.
+void protocol_bitcoind::send_json(boost::json::value&& model,
+    size_t size_hint) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& post = get_post();
+    constexpr auto json = media_type::application_json;
+    response response{ status::ok, post.version() };
+    add_common_headers(response, post);
+    add_access_control_headers(response, post);
+    response.set(field::content_type, from_media_type(json));
+    response.body() = { std::move(model), size_hint };
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 

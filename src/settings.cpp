@@ -180,13 +180,6 @@ settings::html_server::html_server(const std::string_view& logging_name,
 {
 }
 
-system::string_list settings::html_server::origin_names() const NOEXCEPT
-{
-    // secure changes default port from 80 to 443.
-    const auto port = secure ? http::default_tls : http::default_http;
-    return network::config::to_host_names(hosts, port);
-}
-
 bool settings::html_server::enabled() const NOEXCEPT
 {
     return (!path.empty() || pages.enabled()) && http_server::enabled();

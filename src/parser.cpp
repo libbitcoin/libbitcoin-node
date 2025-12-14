@@ -800,7 +800,12 @@ options_metadata parser::load_settings() THROWS
     (
         "web.origin",
         value<network::config::endpoints>(&configured.server.web.origins),
-        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
+        "The allowed origin (see CORS), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "web.allow_opaque_origin",
+        value<bool>(&configured.server.web.allow_opaque_origin),
+        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to false."
     )
     (
         "web.path",
@@ -852,7 +857,12 @@ options_metadata parser::load_settings() THROWS
     (
         "explore.origin",
         value<network::config::endpoints>(&configured.server.explore.origins),
-        "The allowed origin (http verification), multiple allowed, defaults to empty (disabled)."
+        "The allowed origin (see CORS), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "explore.allow_opaque_origin",
+        value<bool>(&configured.server.explore.allow_opaque_origin),
+        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to false."
     )
     (
         "explore.path",
@@ -905,6 +915,16 @@ options_metadata parser::load_settings() THROWS
         "bitcoind.host",
         value<network::config::endpoints>(&configured.server.bitcoind.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "bitcoind.origin",
+        value<network::config::endpoints>(&configured.server.bitcoind.origins),
+        "The allowed origin (see CORS), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "bitcoind.allow_opaque_origin",
+        value<bool>(&configured.server.bitcoind.allow_opaque_origin),
+        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to false."
     )
 
     /* [electrum] */

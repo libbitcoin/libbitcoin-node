@@ -934,6 +934,8 @@ bool protocol_explore::handle_get_output_spenders(const code& ec,
 bool protocol_explore::handle_get_address(const code& ec, interface::address,
     uint8_t, uint8_t media, const hash_cptr& hash, bool turbo) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     if (stopped(ec))
         return false;
 
@@ -1010,6 +1012,8 @@ bool protocol_explore::handle_get_address_confirmed(const code& ec,
     interface::address_confirmed, uint8_t, uint8_t media,
     const hash_cptr& hash, bool turbo) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     if (stopped(ec))
         return false;
 
@@ -1045,6 +1049,8 @@ bool protocol_explore::handle_get_address_unconfirmed(const code& ec,
     interface::address_unconfirmed, uint8_t, uint8_t,
     const hash_cptr&, bool) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     if (stopped(ec))
         return false;
 
@@ -1060,6 +1066,8 @@ bool protocol_explore::handle_get_address_balance(const code& ec,
     interface::address_balance, uint8_t, uint8_t media,
     const hash_cptr& hash, bool turbo) NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     if (stopped(ec))
         return false;
 

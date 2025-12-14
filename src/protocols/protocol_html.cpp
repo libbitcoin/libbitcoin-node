@@ -168,6 +168,7 @@ void protocol_html::send_json(boost::json::value&& model, size_t size_hint,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(json));
     response.body() = { std::move(model), size_hint };
     response.prepare_payload();
@@ -180,6 +181,7 @@ void protocol_html::send_text(std::string&& hexidecimal,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(text));
     response.body() = std::move(hexidecimal);
     response.prepare_payload();
@@ -192,6 +194,7 @@ void protocol_html::send_chunk(system::data_chunk&& bytes,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(data));
     response.body() = std::move(bytes);
     response.prepare_payload();
@@ -205,6 +208,7 @@ void protocol_html::send_file(file&& file, media_type type,
     BC_ASSERT_MSG(file.is_open(), "sending closed file handle");
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(type));
     response.body() = std::move(file);
     response.prepare_payload();
@@ -217,6 +221,7 @@ void protocol_html::send_span(span_body::value_type&& span,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(type));
     response.body() = std::move(span);
     response.prepare_payload();
@@ -229,6 +234,7 @@ void protocol_html::send_buffer(buffer_body::value_type&& buffer,
     BC_ASSERT(stranded());
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(type));
     response.body() = std::move(buffer);
     response.prepare_payload();
@@ -237,19 +243,6 @@ void protocol_html::send_buffer(buffer_body::value_type&& buffer,
 
 // Utilities.
 // ----------------------------------------------------------------------------
-
-bool protocol_html::is_allowed_origin(const fields& fields,
-    size_t version) const NOEXCEPT
-{
-    // Allow same-origin and no-origin requests.
-    // Origin header field is not available until http 1.1.
-    const auto origin = fields[field::origin];
-    if (origin.empty() || version < version_1_1)
-        return true;
-
-    return options_.origins.empty() || system::contains(options_.origins,
-        network::config::to_normal_host(origin, default_port()));
-}
 
 std::filesystem::path protocol_html::to_path(
     const std::string& target) const NOEXCEPT
