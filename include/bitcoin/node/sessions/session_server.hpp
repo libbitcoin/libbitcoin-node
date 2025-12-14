@@ -34,21 +34,27 @@ class full_node;
 /// Declare a concrete instance of this type for client-server protocols built
 /// on tcp/ip. session_base processing performs all connection management and
 /// session tracking. This includes start/stop/disable/enable/black/whitelist.
-/// Protocol must declare options_t and channel_t. This protocol is constructed
-/// and attached to a constructed instance of channel_t. The protocol construct
-/// and attachment can be overridden and/or augmented with other protocols.
-template <typename Protocol>
+/// First protocol must declare options_t and channel_t. Each of the protocols
+/// are constructed and attached to a constructed instance of channel_t. The
+/// protocol construct and attachment can be overridden and/or augmented with
+/// other protocols.
+template <typename ...Protocols>
 class session_server
   : public node::session,
     public network::session_server,
-    protected network::tracker<session_server<Protocol>>
+    protected network::tracker<session_server<Protocols...>>
 {
 public:
-    typedef std::shared_ptr<session_server<Protocol>> ptr;
+    typedef std::shared_ptr<session_server<Protocols...>> ptr;
 
-    /// The protocol must define these public types.
-    using options_t = typename Protocol::options_t;
-    using channel_t = typename Protocol::channel_t;
+    /// Extract the first protocol type from the pack.
+    template <typename Protocol, typename...>
+    struct first_protocol { using type = Protocol; };
+
+    /// The first protocol must define these public types.
+    using first = typename first_protocol<Protocols...>::type;
+    using options_t = typename first::options_t;
+    using channel_t = typename first::channel_t;
 
     /// Construct an instance (network should be started).
     inline session_server(full_node& node, uint64_t identifier,
@@ -56,7 +62,7 @@ public:
       : node::session(node),
         network::session_server((network::net&)node, identifier, options),
         options_(options),
-        network::tracker<session_server<Protocol>>(node)
+        network::tracker<session_server<Protocols...>>(node)
     {
     }
 
@@ -68,7 +74,7 @@ protected:
     /// Used instead of suspension because that has independent start/stop.
     inline bool enabled() const NOEXCEPT override
     {
-        return !config().node.delay_inbound || is_recent();
+        return !this->config().node.delay_inbound || this->is_recent();
     }
 
     /// Override to construct channel. This allows the implementation to pass
@@ -80,7 +86,7 @@ protected:
         BC_ASSERT(stranded());
 
         const auto channel = std::make_shared<channel_t>(log, socket,
-            create_key(), config(), options_);
+            this->create_key(), this->config(), options_);
 
         return std::static_pointer_cast<network::channel>(channel);
     }
@@ -99,6 +105,16 @@ protected:
         network::session_server::attach_handshake(channel, std::move(handler));
     }
 
+    template <typename ...Rest, bool_if<is_zero(sizeof...(Rest))> = true>
+    inline void attach_rest(const channel_ptr&, const ptr&) NOEXCEPT{}
+
+    template <typename Next, typename ...Rest>
+    inline void attach_rest(const channel_ptr& channel, const ptr& self) NOEXCEPT
+    {
+        channel->attach<Next>(self, options_)->start();
+        attach_rest<Rest...>(channel, self);
+    }
+
     /// Overridden to set channel protocols. This allows the implementation to
     /// pass other values to protocol construction and/or select the desired
     /// protocol based on available factors (e.g. a distinct protocol version).
@@ -108,8 +124,8 @@ protected:
         BC_ASSERT(channel->stranded());
         BC_ASSERT(channel->paused());
 
-        const auto self = shared_from_base<session_server<Protocol>>();
-        channel->attach<Protocol>(self, options_)->start();
+        const auto self = shared_from_base<session_server<Protocols...>>();
+        attach_rest<Protocols...>(channel, self);
     }
 
 private:
