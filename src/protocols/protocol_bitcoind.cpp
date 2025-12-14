@@ -34,8 +34,7 @@ using namespace network::http;
 using namespace std::placeholders;
 using namespace boost::json;
 
-using json_t = json_body::value_type;
-
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -74,6 +73,32 @@ void protocol_bitcoind::start() NOEXCEPT
 // Dispatch.
 // ----------------------------------------------------------------------------
 
+void protocol_bitcoind::handle_receive_options(const code& ec,
+    const network::http::method::options::cptr& options) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return;
+
+    // Enforce http host header (if any hosts are configured).
+    if (!is_allowed_host(*options, options->version()))
+    {
+        send_bad_host(*options);
+        return;
+    }
+
+    // Enforce http origin policy (if any origins are configured).
+    if (!is_allowed_origin(*options, options->version()))
+    {
+        send_forbidden(*options);
+        return;
+    }
+
+    send_ok(*options);
+}
+
+// TODO: also handle_receive_get and dispatch based on URL parse.
 void protocol_bitcoind::handle_receive_post(const code& ec,
     const network::http::method::post::cptr& post) NOEXCEPT
 {
@@ -82,6 +107,21 @@ void protocol_bitcoind::handle_receive_post(const code& ec,
     if (stopped(ec))
         return;
 
+    // Enforce http host header (if any hosts are configured).
+    if (!is_allowed_host(*post, post->version()))
+    {
+        send_bad_host(*post);
+        return;
+    }
+
+    // Enforce http origin policy (if any origins are configured).
+    if (!is_allowed_origin(*post, post->version()))
+    {
+        send_forbidden(*post);
+        return;
+    }
+
+    using json_t = json_body::value_type;
     const auto& body = post->body();
     if (!body.contains<json_t>())
     {
@@ -228,6 +268,24 @@ bool protocol_bitcoind::handle_verify_tx_out_set(const code& ec,
     return !ec;
 }
 
+// private
+// ----------------------------------------------------------------------------
+
+// TODO: post-process response for json-rpc version.
+void protocol_bitcoind::send_json(boost::json::value&& model, size_t size_hint,
+    const request& request) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    constexpr auto json = media_type::application_json;
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    response.set(field::content_type, from_media_type(json));
+    response.body() = { std::move(model), size_hint };
+    response.prepare_payload();
+    SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 

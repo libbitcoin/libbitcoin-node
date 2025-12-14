@@ -56,6 +56,8 @@ protected:
     }
 
     /// Dispatch.
+    void handle_receive_options(const code& ec,
+        const network::http::method::options::cptr& options) NOEXCEPT override;
     void handle_receive_post(const code& ec,
         const network::http::method::post::cptr& post) NOEXCEPT override;
 
@@ -99,6 +101,9 @@ protected:
         interface::verify_tx_out_set, const std::string&) NOEXCEPT;
 
 private:
+    void send_json(boost::json::value&& model, size_t size_hint,
+        const network::http::request& request={}) NOEXCEPT;
+
     // This is thread safe.
     ////const options_t& options_;
 
