@@ -916,6 +916,16 @@ options_metadata parser::load_settings() THROWS
         value<network::config::endpoints>(&configured.server.bitcoind.hosts),
         "The host name (http verification), multiple allowed, defaults to empty (disabled)."
     )
+    (
+        "bitcoind.origin",
+        value<network::config::endpoints>(&configured.server.bitcoind.origins),
+        "The allowed origin (see CORS), multiple allowed, defaults to empty (disabled)."
+    )
+    (
+        "bitcoind.allow_opaque_origin",
+        value<bool>(&configured.server.bitcoind.allow_opaque_origin),
+        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to false."
+    )
 
     /* [electrum] */
     ////(
