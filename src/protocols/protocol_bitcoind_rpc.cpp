@@ -121,9 +121,8 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
         return;
     }
 
-    using json_t = json_body::value_type;
     const auto& body = post->body();
-    if (!body.contains<json_t>())
+    if (!body.contains<json_body::value_type>())
     {
         send_not_acceptable(*post);
         return;
@@ -132,7 +131,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     request_t request{};
     try
     {
-        request = value_to<request_t>(body.get<json_t>().model);
+        request = value_to<request_t>(body.get<json_body::value_type>().model);
     }
     catch (const boost::system::system_error& e)
     {
@@ -145,7 +144,10 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
         return;
     }
 
+    // The post is saved off during asynchonous handling and used in send_json
+    // to formulate response headers, isolating handlers from http semantics.
     set_post(post);
+
     if (const auto code = dispatcher_.notify(request))
         stop(code);
 }
@@ -283,18 +285,6 @@ bool protocol_bitcoind_rpc::handle_verify_tx_out_set(const code& ec,
 // private
 // ----------------------------------------------------------------------------
 
-void protocol_bitcoind_rpc::set_post(const post::cptr& post) NOEXCEPT
-{
-    BC_ASSERT(post);
-    post_ = post;
-}
-
-const protocol_bitcoind_rpc::post& protocol_bitcoind_rpc::get_post() const NOEXCEPT
-{
-    BC_ASSERT(post_);
-    return *post_;
-}
-
 // TODO: post-process response for json-rpc version.
 void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
     size_t size_hint) NOEXCEPT
@@ -309,6 +299,18 @@ void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
     response.body() = { std::move(model), size_hint };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+void protocol_bitcoind_rpc::set_post(const post::cptr& post) NOEXCEPT
+{
+    BC_ASSERT(post);
+    post_ = post;
+}
+
+const protocol_bitcoind_rpc::post& protocol_bitcoind_rpc::get_post() const NOEXCEPT
+{
+    BC_ASSERT(post_);
+    return *post_;
 }
 
 BC_POP_WARNING()

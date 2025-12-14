@@ -104,12 +104,12 @@ protected:
         interface::verify_tx_out_set, const std::string&) NOEXCEPT;
 
 private:
+    // Send the response.
+    void send_json(boost::json::value&& model, size_t size_hint) NOEXCEPT;
+
     // Provide the request for serialization, keeping it out of dispatch.
     void set_post(const post::cptr& post) NOEXCEPT;
     const post& get_post() const NOEXCEPT;
-
-    // Send the response.
-    void send_json(boost::json::value&& model, size_t size_hint) NOEXCEPT;
 
     // This is thread safe.
     ////const options_t& options_;
