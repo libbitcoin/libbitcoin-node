@@ -805,7 +805,7 @@ options_metadata parser::load_settings() THROWS
     (
         "web.allow_opaque_origin",
         value<bool>(&configured.server.web.allow_opaque_origin),
-        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to true."
+        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to false."
     )
     (
         "web.path",
@@ -862,7 +862,7 @@ options_metadata parser::load_settings() THROWS
     (
         "explore.allow_opaque_origin",
         value<bool>(&configured.server.explore.allow_opaque_origin),
-        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to true."
+        "Allow requests from opaue origin (see CORS), multiple allowed, defaults to false."
     )
     (
         "explore.path",
