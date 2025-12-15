@@ -70,6 +70,13 @@ void protocol_bitcoind_rpc::start() NOEXCEPT
     protocol_http::start();
 }
 
+void protocol_bitcoind_rpc::stopping(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    rpc_dispatcher_.stop(ec);
+    protocol_http::stopping(ec);
+}
+
 // Dispatch.
 // ----------------------------------------------------------------------------
 

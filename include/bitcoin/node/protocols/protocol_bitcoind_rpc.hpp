@@ -47,6 +47,7 @@ public:
 
     /// Public start is required.
     void start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
     using post = network::http::method::post;
