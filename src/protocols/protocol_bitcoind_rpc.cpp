@@ -73,6 +73,7 @@ void protocol_bitcoind_rpc::start() NOEXCEPT
 // Dispatch.
 // ----------------------------------------------------------------------------
 
+// Handled here for rpc and derived rest protocol.
 void protocol_bitcoind_rpc::handle_receive_options(const code& ec,
     const options::cptr& options) NOEXCEPT
 {
@@ -98,7 +99,7 @@ void protocol_bitcoind_rpc::handle_receive_options(const code& ec,
     send_ok(*options);
 }
 
-// TODO: also handle_receive_get and dispatch based on URL parse.
+// Derived rest protocol handles get and rpc handles post.
 void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     const post::cptr& post) NOEXCEPT
 {
