@@ -56,7 +56,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/parse/query.cpp \
     src/parse/target.cpp \
     src/protocols/protocol.cpp \
-    src/protocols/protocol_bitcoind.cpp \
+    src/protocols/protocol_bitcoind_rest.cpp \
+    src/protocols/protocol_bitcoind_rpc.cpp \
     src/protocols/protocol_block_in_106.cpp \
     src/protocols/protocol_block_in_31800.cpp \
     src/protocols/protocol_block_out_106.cpp \
@@ -202,7 +203,8 @@ include_bitcoin_node_impl_chasers_HEADERS = \
 
 include_bitcoin_node_interfacesdir = ${includedir}/bitcoin/node/interfaces
 include_bitcoin_node_interfaces_HEADERS = \
-    include/bitcoin/node/interfaces/bitcoind.hpp \
+    include/bitcoin/node/interfaces/bitcoind_rest.hpp \
+    include/bitcoin/node/interfaces/bitcoind_rpc.hpp \
     include/bitcoin/node/interfaces/electrum.hpp \
     include/bitcoin/node/interfaces/explore.hpp \
     include/bitcoin/node/interfaces/interfaces.hpp \
@@ -219,7 +221,8 @@ include_bitcoin_node_parse_HEADERS = \
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol.hpp \
-    include/bitcoin/node/protocols/protocol_bitcoind.hpp \
+    include/bitcoin/node/protocols/protocol_bitcoind_rest.hpp \
+    include/bitcoin/node/protocols/protocol_bitcoind_rpc.hpp \
     include/bitcoin/node/protocols/protocol_block_in_106.hpp \
     include/bitcoin/node/protocols/protocol_block_in_31800.hpp \
     include/bitcoin/node/protocols/protocol_block_out_106.hpp \

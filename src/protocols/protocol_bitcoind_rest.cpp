@@ -16,30 +16,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_INTERFACES_HPP
-#define LIBBITCOIN_NODE_INTERFACES_HPP
+#include <bitcoin/node/protocols/protocol_bitcoind_rest.hpp>
 
-#include <bitcoin/node/interfaces/bitcoind_rest.hpp>
-#include <bitcoin/node/interfaces/bitcoind_rpc.hpp>
-#include <bitcoin/node/interfaces/electrum.hpp>
-#include <bitcoin/node/interfaces/explore.hpp>
-#include <bitcoin/node/interfaces/stratum_v1.hpp>
-#include <bitcoin/node/interfaces/stratum_v2.hpp>
-#include <bitcoin/node/interfaces/types.hpp>
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 
 namespace libbitcoin {
 namespace node {
-namespace interface {
 
-using bitcoind_rest = publish<bitcoind_rest_methods>;
-using bitcoind_rpc  = publish<bitcoind_rpc_methods>;
-using electrum      = publish<electrum_methods>;
-using explore       = publish<explore_methods>;
-using stratum_v1    = publish<stratum_v1_methods>;
-using stratum_v2    = publish<stratum_v2_methods>;
+// Start.
+// ----------------------------------------------------------------------------
 
-} // namespace interface
+void protocol_bitcoind_rest::start() NOEXCEPT
+{
+    using namespace std::placeholders;
+
+    BC_ASSERT(stranded());
+
+    if (started())
+        return;
+
+    protocol_bitcoind_rpc::start();
+}
+
 } // namespace node
 } // namespace libbitcoin
-
-#endif

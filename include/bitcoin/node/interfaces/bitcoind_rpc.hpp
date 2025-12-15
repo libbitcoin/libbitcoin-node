@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_INTERFACES_BITCOIND_HPP
-#define LIBBITCOIN_NODE_INTERFACES_BITCOIND_HPP
+#ifndef LIBBITCOIN_NODE_INTERFACES_BITCOIND_RPC_HPP
+#define LIBBITCOIN_NODE_INTERFACES_BITCOIND_RPC_HPP
 
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/types.hpp>
@@ -26,7 +26,7 @@ namespace libbitcoin {
 namespace node {
 namespace interface {
 
-struct bitcoind_methods
+struct bitcoind_rpc_methods
 {
     static constexpr std::tuple methods
     {

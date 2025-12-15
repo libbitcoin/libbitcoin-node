@@ -123,7 +123,10 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\protocols\protocol_bitcoind.cpp">
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_bitcoind_rest.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_bitcoind_rpc.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp">
@@ -272,7 +275,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\bitcoind.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\bitcoind_rest.hpp">
+      <Filter>include\bitcoin\node\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\bitcoind_rpc.hpp">
       <Filter>include\bitcoin\node\interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\electrum.hpp">
@@ -308,7 +314,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_bitcoind.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_bitcoind_rest.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_bitcoind_rpc.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_106.hpp">

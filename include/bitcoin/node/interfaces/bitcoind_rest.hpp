@@ -16,27 +16,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_INTERFACES_HPP
-#define LIBBITCOIN_NODE_INTERFACES_HPP
+#ifndef LIBBITCOIN_NODE_INTERFACES_BITCOIND_REST_HPP
+#define LIBBITCOIN_NODE_INTERFACES_BITCOIND_REST_HPP
 
-#include <bitcoin/node/interfaces/bitcoind_rest.hpp>
-#include <bitcoin/node/interfaces/bitcoind_rpc.hpp>
-#include <bitcoin/node/interfaces/electrum.hpp>
-#include <bitcoin/node/interfaces/explore.hpp>
-#include <bitcoin/node/interfaces/stratum_v1.hpp>
-#include <bitcoin/node/interfaces/stratum_v2.hpp>
+#include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/types.hpp>
 
 namespace libbitcoin {
 namespace node {
 namespace interface {
 
-using bitcoind_rest = publish<bitcoind_rest_methods>;
-using bitcoind_rpc  = publish<bitcoind_rpc_methods>;
-using electrum      = publish<electrum_methods>;
-using explore       = publish<explore_methods>;
-using stratum_v1    = publish<stratum_v1_methods>;
-using stratum_v2    = publish<stratum_v2_methods>;
+struct bitcoind_rest_methods
+{
+    static constexpr std::tuple methods
+    {
+        method<"rest1">{},
+    };
+
+    template <typename... Args>
+    using subscriber = network::unsubscriber<Args...>;
+
+    template <size_t Index>
+    using at = method_at<methods, Index>;
+
+    // Derive this from above in c++26 using reflection.
+    using rest1 = at<0>;
+};
 
 } // namespace interface
 } // namespace node

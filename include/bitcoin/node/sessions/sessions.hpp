@@ -34,7 +34,7 @@ namespace node {
 /// Alias server sessions, all derived from node::session.
 using session_web = session_server<protocol_web>;
 using session_explore = session_server<protocol_explore>;
-using session_bitcoind = session_server<protocol_bitcoind>;
+using session_bitcoind = session_server<protocol_bitcoind_rest>;
 using session_electrum = session_server<protocol_electrum>;
 using session_stratum_v1 = session_server<protocol_stratum_v1>;
 using session_stratum_v2 = session_server<protocol_stratum_v2>;

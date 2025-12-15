@@ -45,7 +45,8 @@
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
-#include <bitcoin/node/interfaces/bitcoind.hpp>
+#include <bitcoin/node/interfaces/bitcoind_rest.hpp>
+#include <bitcoin/node/interfaces/bitcoind_rpc.hpp>
 #include <bitcoin/node/interfaces/electrum.hpp>
 #include <bitcoin/node/interfaces/explore.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
@@ -56,7 +57,8 @@
 #include <bitcoin/node/parse/query.hpp>
 #include <bitcoin/node/parse/target.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_bitcoind.hpp>
+#include <bitcoin/node/protocols/protocol_bitcoind_rest.hpp>
+#include <bitcoin/node/protocols/protocol_bitcoind_rpc.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>

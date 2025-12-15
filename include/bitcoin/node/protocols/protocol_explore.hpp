@@ -36,7 +36,7 @@ class BCN_API protocol_explore
 {
 public:
     typedef std::shared_ptr<protocol_explore> ptr;
-    using interface = interface::explore;
+    using interface = node::interface::explore;
     using dispatcher = network::rpc::dispatcher<interface>;
 
     inline protocol_explore(const auto& session,
