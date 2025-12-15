@@ -23,24 +23,24 @@
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
-#include <bitcoin/node/protocols/protocol_http.hpp>
+#include <bitcoin/node/protocols/protocol_bitcoind_rpc.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_bitcoind_rest
-  : public node::protocol_http,
+  : public node::protocol_bitcoind_rpc,
     protected network::tracker<protocol_bitcoind_rest>
 {
 public:
     typedef std::shared_ptr<protocol_bitcoind_rest> ptr;
-    using interface = interface::bitcoind_rest;
-    using dispatcher = network::rpc::dispatcher<interface>;
+    using rest_interface = interface::bitcoind_rest;
+    using rest_dispatcher = network::rpc::dispatcher<rest_interface>;
 
     inline protocol_bitcoind_rest(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_http(session, channel, options),
+      : node::protocol_bitcoind_rpc(session, channel, options),
         network::tracker<protocol_bitcoind_rest>(session->log)
     {
     }
@@ -49,17 +49,18 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    template <class Derived, typename Method, typename... Args>
-    inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
-    {
-        dispatcher_.subscribe(BIND_SHARED(method, args));
-    }
-
+    /// TODO: Dispatch.
     /// TODO: Handlers.
 
 private:
+    template <class Derived, typename Method, typename... Args>
+    inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
+    {
+        rest_dispatcher_.subscribe(BIND_SHARED(method, args));
+    }
+
     // This is protected by strand.
-    dispatcher dispatcher_{};
+    rest_dispatcher rest_dispatcher_{};
 };
 
 } // namespace node

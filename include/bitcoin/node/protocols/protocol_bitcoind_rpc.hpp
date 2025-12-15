@@ -34,8 +34,8 @@ class BCN_API protocol_bitcoind_rpc
 {
 public:
     typedef std::shared_ptr<protocol_bitcoind_rpc> ptr;
-    using interface = interface::bitcoind_rpc;
-    using dispatcher = network::rpc::dispatcher<interface>;
+    using rpc_interface = interface::bitcoind_rpc;
+    using rpc_dispatcher = network::rpc::dispatcher<rpc_interface>;
 
     inline protocol_bitcoind_rpc(const auto& session,
         const network::channel::ptr& channel,
@@ -52,12 +52,6 @@ protected:
     using post = network::http::method::post;
     using options = network::http::method::options;
 
-    template <class Derived, typename Method, typename... Args>
-    inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
-    {
-        dispatcher_.subscribe(BIND_SHARED(method, args));
-    }
-
     /// Dispatch.
     void handle_receive_options(const code& ec,
         const network::http::method::options::cptr& options) NOEXCEPT override;
@@ -66,44 +60,50 @@ protected:
 
     /// Handlers.
     bool handle_get_best_block_hash(const code& ec,
-        interface::get_best_block_hash) NOEXCEPT;
+        rpc_interface::get_best_block_hash) NOEXCEPT;
     bool handle_get_block(const code& ec,
-        interface::get_block, const std::string&, double) NOEXCEPT;
+        rpc_interface::get_block, const std::string&, double) NOEXCEPT;
     bool handle_get_block_chain_info(const code& ec,
-        interface::get_block_chain_info) NOEXCEPT;
+        rpc_interface::get_block_chain_info) NOEXCEPT;
     bool handle_get_block_count(const code& ec,
-        interface::get_block_count) NOEXCEPT;
+        rpc_interface::get_block_count) NOEXCEPT;
     bool handle_get_block_filter(const code& ec,
-        interface::get_block_filter, const std::string&,
+        rpc_interface::get_block_filter, const std::string&,
         const std::string&) NOEXCEPT;
     bool handle_get_block_hash(const code& ec,
-        interface::get_block_hash, double) NOEXCEPT;
+        rpc_interface::get_block_hash, double) NOEXCEPT;
     bool handle_get_block_header(const code& ec,
-        interface::get_block_header, const std::string&, bool) NOEXCEPT;
+        rpc_interface::get_block_header, const std::string&, bool) NOEXCEPT;
     bool handle_get_block_stats(const code& ec,
-        interface::get_block_stats, const std::string&,
+        rpc_interface::get_block_stats, const std::string&,
         const network::rpc::array_t&) NOEXCEPT;
     bool handle_get_chain_tx_stats(const code& ec,
-        interface::get_chain_tx_stats, double, const std::string&) NOEXCEPT;
+        rpc_interface::get_chain_tx_stats, double, const std::string&) NOEXCEPT;
     bool handle_get_chain_work(const code& ec,
-        interface::get_chain_work) NOEXCEPT;
+        rpc_interface::get_chain_work) NOEXCEPT;
     bool handle_get_tx_out(const code& ec,
-        interface::get_tx_out, const std::string&, double, bool) NOEXCEPT;
+        rpc_interface::get_tx_out, const std::string&, double, bool) NOEXCEPT;
     bool handle_get_tx_out_set_info(const code& ec,
-        interface::get_tx_out_set_info) NOEXCEPT;
+        rpc_interface::get_tx_out_set_info) NOEXCEPT;
     bool handle_prune_block_chain(const code& ec,
-        interface::prune_block_chain, double) NOEXCEPT;
+        rpc_interface::prune_block_chain, double) NOEXCEPT;
     bool handle_save_mem_pool(const code& ec,
-        interface::save_mem_pool) NOEXCEPT;
+        rpc_interface::save_mem_pool) NOEXCEPT;
     bool handle_scan_tx_out_set(const code& ec,
-        interface::scan_tx_out_set, const std::string&,
+        rpc_interface::scan_tx_out_set, const std::string&,
         const network::rpc::array_t&) NOEXCEPT;
     bool handle_verify_chain(const code& ec,
-        interface::verify_chain, double, double) NOEXCEPT;
+        rpc_interface::verify_chain, double, double) NOEXCEPT;
     bool handle_verify_tx_out_set(const code& ec,
-        interface::verify_tx_out_set, const std::string&) NOEXCEPT;
+        rpc_interface::verify_tx_out_set, const std::string&) NOEXCEPT;
 
 private:
+    template <class Derived, typename Method, typename... Args>
+    inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
+    {
+        rpc_dispatcher_.subscribe(BIND_SHARED(method, args));
+    }
+
     // Send the response.
     void send_json(boost::json::value&& model, size_t size_hint) NOEXCEPT;
 
@@ -115,7 +115,7 @@ private:
     ////const options_t& options_;
 
     // These are protected by strand.
-    dispatcher dispatcher_{};
+    rpc_dispatcher rpc_dispatcher_{};
     post::cptr post_{};
 };
 

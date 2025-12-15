@@ -36,7 +36,7 @@ void protocol_bitcoind_rest::start() NOEXCEPT
     if (started())
         return;
 
-    protocol_http::start();
+    protocol_bitcoind_rpc::start();
 }
 
 } // namespace node

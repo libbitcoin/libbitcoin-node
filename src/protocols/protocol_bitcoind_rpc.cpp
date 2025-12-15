@@ -148,7 +148,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     // to formulate response headers, isolating handlers from http semantics.
     set_post(post);
 
-    if (const auto code = dispatcher_.notify(request))
+    if (const auto code = rpc_dispatcher_.notify(request))
         stop(code);
 }
 
@@ -159,7 +159,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
 
 // {"jsonrpc": "1.0", "id": "curltest", "method": "getbestblockhash", "params": []}
 bool protocol_bitcoind_rpc::handle_get_best_block_hash(const code& ec,
-    interface::get_best_block_hash) NOEXCEPT
+    rpc_interface::get_best_block_hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
@@ -175,47 +175,48 @@ bool protocol_bitcoind_rpc::handle_get_best_block_hash(const code& ec,
 
 // method<"getblock", string_t, optional<0_u32>>{ "blockhash", "verbosity" },
 bool protocol_bitcoind_rpc::handle_get_block(const code& ec,
-    interface::get_block, const std::string&, double) NOEXCEPT
+    rpc_interface::get_block, const std::string&, double) NOEXCEPT
 {
     return !ec;
 }
 
 bool protocol_bitcoind_rpc::handle_get_block_chain_info(const code& ec,
-    interface::get_block_chain_info) NOEXCEPT
+    rpc_interface::get_block_chain_info) NOEXCEPT
 {
     return !ec;
 }
 
 bool protocol_bitcoind_rpc::handle_get_block_count(const code& ec,
-    interface::get_block_count) NOEXCEPT
+    rpc_interface::get_block_count) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"getblockfilter", string_t, optional<"basic"_t>>{ "blockhash", "filtertype" },
 bool protocol_bitcoind_rpc::handle_get_block_filter(const code& ec,
-    interface::get_block_filter, const std::string&, const std::string&) NOEXCEPT
+    rpc_interface::get_block_filter, const std::string&,
+    const std::string&) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"getblockhash", number_t>{ "height" },
 bool protocol_bitcoind_rpc::handle_get_block_hash(const code& ec,
-    interface::get_block_hash, network::rpc::number_t) NOEXCEPT
+    rpc_interface::get_block_hash, network::rpc::number_t) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"getblockheader", string_t, optional<true>>{ "blockhash", "verbose" },
 bool protocol_bitcoind_rpc::handle_get_block_header(const code& ec,
-    interface::get_block_header, const std::string&, bool) NOEXCEPT
+    rpc_interface::get_block_header, const std::string&, bool) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"getblockstats", string_t, optional<empty::array>>{ "hash_or_height", "stats" },
 bool protocol_bitcoind_rpc::handle_get_block_stats(const code& ec,
-    interface::get_block_stats, const std::string&,
+    rpc_interface::get_block_stats, const std::string&,
     const network::rpc::array_t&) NOEXCEPT
 {
     return !ec;
@@ -223,46 +224,46 @@ bool protocol_bitcoind_rpc::handle_get_block_stats(const code& ec,
 
 // method<"getchaintxstats", optional<-1_i32>, optional<""_t>>{ "nblocks", "blockhash" },
 bool protocol_bitcoind_rpc::handle_get_chain_tx_stats(const code& ec,
-    interface::get_chain_tx_stats, double, const std::string&) NOEXCEPT
+    rpc_interface::get_chain_tx_stats, double, const std::string&) NOEXCEPT
 {
     return !ec;
 }
 
 bool protocol_bitcoind_rpc::handle_get_chain_work(const code& ec,
-    interface::get_chain_work) NOEXCEPT
+    rpc_interface::get_chain_work) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"gettxout", string_t, number_t, optional<true>>{ "txid", "n", "include_mempool" },
 bool protocol_bitcoind_rpc::handle_get_tx_out(const code& ec,
-    interface::get_tx_out, const std::string&, double, bool) NOEXCEPT
+    rpc_interface::get_tx_out, const std::string&, double, bool) NOEXCEPT
 {
     return !ec;
 }
 
 bool protocol_bitcoind_rpc::handle_get_tx_out_set_info(const code& ec,
-    interface::get_tx_out_set_info) NOEXCEPT
+    rpc_interface::get_tx_out_set_info) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"pruneblockchain", number_t>{ "height" },
 bool protocol_bitcoind_rpc::handle_prune_block_chain(const code& ec,
-    interface::prune_block_chain, double) NOEXCEPT
+    rpc_interface::prune_block_chain, double) NOEXCEPT
 {
     return !ec;
 }
 
 bool protocol_bitcoind_rpc::handle_save_mem_pool(const code& ec,
-    interface::save_mem_pool) NOEXCEPT
+    rpc_interface::save_mem_pool) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"scantxoutset", string_t, optional<empty::array>>{ "action", "scanobjects" },
 bool protocol_bitcoind_rpc::handle_scan_tx_out_set(const code& ec,
-    interface::scan_tx_out_set, const std::string&,
+    rpc_interface::scan_tx_out_set, const std::string&,
     const network::rpc::array_t&) NOEXCEPT
 {
     return !ec;
@@ -270,14 +271,14 @@ bool protocol_bitcoind_rpc::handle_scan_tx_out_set(const code& ec,
 
 // method<"verifychain", optional<4_u32>, optional<288_u32>>{ "checklevel", "nblocks" },
 bool protocol_bitcoind_rpc::handle_verify_chain(const code& ec,
-    interface::verify_chain, double, double) NOEXCEPT
+    rpc_interface::verify_chain, double, double) NOEXCEPT
 {
     return !ec;
 }
 
 // method<"verifytxoutset", string_t>{ "input_verify_flag" },
 bool protocol_bitcoind_rpc::handle_verify_tx_out_set(const code& ec,
-    interface::verify_tx_out_set, const std::string&) NOEXCEPT
+    rpc_interface::verify_tx_out_set, const std::string&) NOEXCEPT
 {
     return !ec;
 }
