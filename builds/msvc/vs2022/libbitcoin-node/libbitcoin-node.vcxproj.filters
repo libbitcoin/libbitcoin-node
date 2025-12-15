@@ -31,7 +31,7 @@
     <Filter Include="include\bitcoin\node\interfaces">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000C}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\bitcoin\node\parse">
+    <Filter Include="include\bitcoin\node\parsers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-00000000000D}</UniqueIdentifier>
     </Filter>
     <Filter Include="include\bitcoin\node\protocols">
@@ -52,7 +52,7 @@
     <Filter Include="src\chasers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000002}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\parse">
+    <Filter Include="src\parsers">
       <UniqueIdentifier>{5FFB5F52-0772-4404-0000-000000000003}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\protocols">
@@ -111,14 +111,20 @@
     <ClCompile Include="..\..\..\..\src\full_node.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\parse\query.cpp">
-      <Filter>src\parse</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\src\parse\target.cpp">
-      <Filter>src\parse</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\parser.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parsers\bitcoind_query.cpp">
+      <Filter>src\parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parsers\bitcoind_target.cpp">
+      <Filter>src\parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parsers\explore_query.cpp">
+      <Filter>src\parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\parsers\explore_target.cpp">
+      <Filter>src\parsers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>
@@ -160,6 +166,9 @@
       <Filter>src\protocols</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_html.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_http.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_observer.cpp">
@@ -299,17 +308,23 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\interfaces\types.hpp">
       <Filter>include\bitcoin\node\interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\parse.hpp">
-      <Filter>include\bitcoin\node\parse</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\query.hpp">
-      <Filter>include\bitcoin\node\parse</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\parse\target.hpp">
-      <Filter>include\bitcoin\node\parse</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp">
       <Filter>include\bitcoin\node</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\bitcoind_query.hpp">
+      <Filter>include\bitcoin\node\parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\bitcoind_target.hpp">
+      <Filter>include\bitcoin\node\parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\explore_query.hpp">
+      <Filter>include\bitcoin\node\parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\explore_target.hpp">
+      <Filter>include\bitcoin\node\parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\parsers.hpp">
+      <Filter>include\bitcoin\node\parsers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>

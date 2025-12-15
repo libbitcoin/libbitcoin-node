@@ -21,7 +21,7 @@
 
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
+#include <bitcoin/node/protocols/protocol_http.hpp>
 #include <bitcoin/node/settings.hpp>
 
 namespace libbitcoin {
@@ -32,7 +32,7 @@ namespace node {
 /// derives from protocol_http (as required). So any html server is able to
 /// operate as a websocket server.
 class BCN_API protocol_html
-  : public node::protocol,
+  : public node::protocol_http,
     public network::protocol_ws,
     protected network::tracker<protocol_html>
 {
@@ -44,7 +44,7 @@ protected:
     inline protocol_html(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol(session, channel),
+      : node::protocol_http(session, channel),
         network::protocol_ws(session, channel, options),
         options_(options),
         network::tracker<protocol_html>(session->log)

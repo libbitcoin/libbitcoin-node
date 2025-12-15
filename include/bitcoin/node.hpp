@@ -53,9 +53,11 @@
 #include <bitcoin/node/interfaces/stratum_v1.hpp>
 #include <bitcoin/node/interfaces/stratum_v2.hpp>
 #include <bitcoin/node/interfaces/types.hpp>
-#include <bitcoin/node/parse/parse.hpp>
-#include <bitcoin/node/parse/query.hpp>
-#include <bitcoin/node/parse/target.hpp>
+#include <bitcoin/node/parsers/bitcoind_query.hpp>
+#include <bitcoin/node/parsers/bitcoind_target.hpp>
+#include <bitcoin/node/parsers/explore_query.hpp>
+#include <bitcoin/node/parsers/explore_target.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_bitcoind_rest.hpp>
 #include <bitcoin/node/protocols/protocol_bitcoind_rpc.hpp>

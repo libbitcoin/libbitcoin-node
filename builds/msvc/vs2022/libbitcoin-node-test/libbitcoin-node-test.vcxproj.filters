@@ -13,7 +13,7 @@
     <Filter Include="src\chasers">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000001}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\parse">
+    <Filter Include="src\parsers">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000002}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\protocols">
@@ -72,11 +72,17 @@
     <ClCompile Include="..\..\..\..\test\node.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\parse\query.cpp">
-      <Filter>src\parse</Filter>
+    <ClCompile Include="..\..\..\..\test\parsers\bitcoind_query.cpp">
+      <Filter>src\parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\test\parse\target.cpp">
-      <Filter>src\parse</Filter>
+    <ClCompile Include="..\..\..\..\test\parsers\bitcoind_target.cpp">
+      <Filter>src\parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\parsers\explore_query.cpp">
+      <Filter>src\parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\parsers\explore_target.cpp">
+      <Filter>src\parsers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>

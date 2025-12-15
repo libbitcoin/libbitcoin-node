@@ -53,8 +53,10 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_template.cpp \
     src/chasers/chaser_transaction.cpp \
     src/chasers/chaser_validate.cpp \
-    src/parse/query.cpp \
-    src/parse/target.cpp \
+    src/parsers/bitcoind_query.cpp \
+    src/parsers/bitcoind_target.cpp \
+    src/parsers/explore_query.cpp \
+    src/parsers/explore_target.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_bitcoind_rest.cpp \
     src/protocols/protocol_bitcoind_rpc.cpp \
@@ -69,6 +71,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_header_out_31800.cpp \
     src/protocols/protocol_header_out_70012.cpp \
     src/protocols/protocol_html.cpp \
+    src/protocols/protocol_http.cpp \
     src/protocols/protocol_observer.cpp \
     src/protocols/protocol_peer.cpp \
     src/protocols/protocol_performer.cpp \
@@ -108,8 +111,10 @@ test_libbitcoin_node_test_SOURCES = \
     test/chasers/chaser_template.cpp \
     test/chasers/chaser_transaction.cpp \
     test/chasers/chaser_validate.cpp \
-    test/parse/query.cpp \
-    test/parse/target.cpp \
+    test/parsers/bitcoind_query.cpp \
+    test/parsers/bitcoind_target.cpp \
+    test/parsers/explore_query.cpp \
+    test/parsers/explore_target.cpp \
     test/protocols/protocol.cpp \
     test/sessions/session.cpp
 
@@ -212,11 +217,13 @@ include_bitcoin_node_interfaces_HEADERS = \
     include/bitcoin/node/interfaces/stratum_v2.hpp \
     include/bitcoin/node/interfaces/types.hpp
 
-include_bitcoin_node_parsedir = ${includedir}/bitcoin/node/parse
-include_bitcoin_node_parse_HEADERS = \
-    include/bitcoin/node/parse/parse.hpp \
-    include/bitcoin/node/parse/query.hpp \
-    include/bitcoin/node/parse/target.hpp
+include_bitcoin_node_parsersdir = ${includedir}/bitcoin/node/parsers
+include_bitcoin_node_parsers_HEADERS = \
+    include/bitcoin/node/parsers/bitcoind_query.hpp \
+    include/bitcoin/node/parsers/bitcoind_target.hpp \
+    include/bitcoin/node/parsers/explore_query.hpp \
+    include/bitcoin/node/parsers/explore_target.hpp \
+    include/bitcoin/node/parsers/parsers.hpp
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \

@@ -16,40 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTTP_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTTP_HPP
+#ifndef LIBBITCOIN_NODE_PARSERS_EXPLORE_TARGET_HPP
+#define LIBBITCOIN_NODE_PARSERS_EXPLORE_TARGET_HPP
 
-#include <memory>
-#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-/// Abstract base for HTTP protocols, thread safe.
-class BCN_API protocol_http
-  : public node::protocol
-{
-protected:
-    inline protocol_http(const auto& session,
-        const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol(session, channel)
-    {
-    }
 
-    /// Cache request for serialization (requires strand).
-    void set_request(const network::http::request_cptr& request) NOEXCEPT;
+BCN_API code explore_target(network::rpc::request_t& out,
+    const std::string_view& path) NOEXCEPT;
 
-    /// Obtain cached request and clear cache (requires strand).
-    network::http::request_cptr reset_request() NOEXCEPT;
-
-private:
-    // This is protected by strand.
-    network::http::request_cptr request_{};
-};
-
-} // namespace node
+} // namespace network
 } // namespace libbitcoin
 
 #endif

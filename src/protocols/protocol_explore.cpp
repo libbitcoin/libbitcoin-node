@@ -23,7 +23,7 @@
 #include <ranges>
 #include <utility>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/parse/parse.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -129,13 +129,13 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
     BC_ASSERT(stranded());
 
     request_t model{};
-    if (LOG_ONLY(const auto ec =) parse_target(model, request.target()))
+    if (LOG_ONLY(const auto ec =) explore_target(model, request.target()))
     {
         LOGA("Request parse [" << request.target() << "] " << ec.message());
         return false;
     }
 
-    if (!parse_query(model, request))
+    if (!explore_query(model, request))
     {
         send_not_acceptable(request);
         return true;

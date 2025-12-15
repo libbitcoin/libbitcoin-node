@@ -16,40 +16,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTTP_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_HTTP_HPP
+#include <bitcoin/node/parsers/bitcoind_target.hpp>
 
-#include <memory>
-#include <bitcoin/node/channels/channels.hpp>
+#include <ranges>
+#include <optional>
+#include <variant>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
-    
-/// Abstract base for HTTP protocols, thread safe.
-class BCN_API protocol_http
-  : public node::protocol
+
+using namespace system;
+using namespace network::rpc;
+
+BC_PUSH_WARNING(NO_ARRAY_INDEXING)
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
+code bitcoind_target(request_t& , const std::string_view& ) NOEXCEPT
 {
-protected:
-    inline protocol_http(const auto& session,
-        const network::channel::ptr& channel) NOEXCEPT
-      : node::protocol(session, channel)
-    {
-    }
+    return {};
+}
 
-    /// Cache request for serialization (requires strand).
-    void set_request(const network::http::request_cptr& request) NOEXCEPT;
-
-    /// Obtain cached request and clear cache (requires strand).
-    network::http::request_cptr reset_request() NOEXCEPT;
-
-private:
-    // This is protected by strand.
-    network::http::request_cptr request_{};
-};
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 } // namespace node
 } // namespace libbitcoin
-
-#endif

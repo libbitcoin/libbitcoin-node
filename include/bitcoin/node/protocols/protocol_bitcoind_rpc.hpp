@@ -30,9 +30,13 @@ namespace node {
 
 class BCN_API protocol_bitcoind_rpc
   : public node::protocol_http,
+    public network::protocol_http,
     protected network::tracker<protocol_bitcoind_rpc>
 {
 public:
+    // Replace base class channel_t (network::channel_http). 
+    using channel_t = node::channel_http;
+
     typedef std::shared_ptr<protocol_bitcoind_rpc> ptr;
     using rpc_interface = interface::bitcoind_rpc;
     using rpc_dispatcher = network::rpc::dispatcher<rpc_interface>;
@@ -40,7 +44,8 @@ public:
     inline protocol_bitcoind_rpc(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_http(session, channel, options),
+      : node::protocol_http(session, channel),
+        network::protocol_http(session, channel, options),
         network::tracker<protocol_bitcoind_rpc>(session->log)
     {
     }
@@ -79,7 +84,8 @@ protected:
         rpc_interface::get_block_stats, const std::string&,
         const network::rpc::array_t&) NOEXCEPT;
     bool handle_get_chain_tx_stats(const code& ec,
-        rpc_interface::get_chain_tx_stats, double, const std::string&) NOEXCEPT;
+        rpc_interface::get_chain_tx_stats, double,
+        const std::string&) NOEXCEPT;
     bool handle_get_chain_work(const code& ec,
         rpc_interface::get_chain_work) NOEXCEPT;
     bool handle_get_tx_out(const code& ec,
@@ -108,16 +114,8 @@ private:
     // Send the response.
     void send_json(boost::json::value&& model, size_t size_hint) NOEXCEPT;
 
-    // Provide the request for serialization, keeping it out of dispatch.
-    void set_post(const post::cptr& post) NOEXCEPT;
-    const post& get_post() const NOEXCEPT;
-
-    // This is thread safe.
-    ////const options_t& options_;
-
-    // These are protected by strand.
+    // This is protected by strand.
     rpc_dispatcher rpc_dispatcher_{};
-    post::cptr post_{};
 };
 
 } // namespace node
