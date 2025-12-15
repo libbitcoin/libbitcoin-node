@@ -154,7 +154,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
 
     // The post is saved off during asynchonous handling and used in send_json
     // to formulate response headers, isolating handlers from http semantics.
-    set_post(post);
+    set_request(post);
 
     if (const auto code = rpc_dispatcher_.notify(request))
         stop(code);
@@ -310,13 +310,14 @@ void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_bitcoind_rpc::set_post(const post::cptr& post) NOEXCEPT
+void protocol_bitcoind_rpc::set_request(const post::cptr& post) NOEXCEPT
 {
     BC_ASSERT(post);
     post_ = post;
 }
 
-const protocol_bitcoind_rpc::post& protocol_bitcoind_rpc::get_post() const NOEXCEPT
+const protocol_bitcoind_rpc::post& protocol_bitcoind_rpc::
+set_request() const NOEXCEPT
 {
     BC_ASSERT(post_);
     return *post_;

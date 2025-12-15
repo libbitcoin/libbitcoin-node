@@ -28,9 +28,32 @@ namespace interface {
 
 struct bitcoind_rest_methods
 {
+    // github.com/bitcoin/bitcoin/blob/master/doc/REST-interface.md
     static constexpr std::tuple methods
     {
-        method<"rest1">{},
+        // blocks (block_part is bin|hex only)
+        method<"block", uint8_t, system::hash_cptr>{ "media", "hash" },
+        method<"block_hash", uint8_t, uint32_t>{ "media", "height" },
+        method<"block_txs", uint8_t, system::hash_cptr>{ "media", "hash" },
+        method<"block_headers", uint8_t, system::hash_cptr, uint32_t>{ "media", "hash", "count" },
+        method<"block_part", uint8_t, system::hash_cptr, uint32_t, uint32_t>{ "media", "hash", "offset", "size" },
+        method<"block_spent_tx_outputs", uint8_t, system::hash_cptr>{ "media", "hash" },
+
+        // client filters
+        method<"block_filter", uint8_t, system::hash_cptr, uint8_t>{ "media", "hash", "type" },
+        method<"block_filter_headers", uint8_t, system::hash_cptr, uint8_t>{ "media", "hash", "type" },
+
+        // unspent outputs
+        method<"get_utxos", uint8_t, system::hash_cptr, uint8_t>{ "media", "hash", "type" },
+        method<"get_utxos_confirmed", uint8_t, system::hash_cptr, uint8_t>{ "media", "hash", "type" },
+
+        // mempool (json only)
+        method<"mempool", optional<true>, optional<false>>{ "verbose", "sequence" },
+
+        // info (json only)
+        method<"chain_information">{},
+        method<"mempool_information">{},
+        method<"fork_information", nullable<system::hash_cptr>>{ "hash" }
     };
 
     template <typename... Args>
@@ -40,7 +63,20 @@ struct bitcoind_rest_methods
     using at = method_at<methods, Index>;
 
     // Derive this from above in c++26 using reflection.
-    using rest1 = at<0>;
+    using block = at<0>;
+    using block_hash = at<1>;
+    using block_txs = at<2>;
+    using block_headers = at<3>;
+    using block_part = at<4>;
+    using block_spent_tx_outputs = at<5>;
+    using block_filter = at<6>;
+    using block_filter_headers = at<7>;
+    using get_utxos = at<8>;
+    using get_utxos_confirmed = at<9>;
+    using mempool = at<10>;
+    using chain_information = at<11>;
+    using mempool_information = at<12>;
+    using fork_information = at<13>;
 };
 
 } // namespace interface

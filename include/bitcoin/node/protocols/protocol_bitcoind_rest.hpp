@@ -47,10 +47,18 @@ public:
 
     /// Public start is required.
     void start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
-    /// TODO: Dispatch.
-    /// TODO: Handlers.
+    using get = network::http::method::get;
+
+    /// Dispatch.
+    void handle_receive_get(const code& ec,
+        const get::cptr& get) NOEXCEPT override;
+
+    /// REST interface handlers.
+    bool handle_get_block(const code& ec, rest_interface::block,
+        uint8_t media, system::hash_cptr hash) NOEXCEPT;
 
 private:
     template <class Derived, typename Method, typename... Args>
