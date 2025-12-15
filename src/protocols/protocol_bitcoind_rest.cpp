@@ -20,6 +20,7 @@
 
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 
 namespace libbitcoin {
 namespace node {

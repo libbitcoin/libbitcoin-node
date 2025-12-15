@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/parse/query.hpp>
+#include <bitcoin/node/parsers/explore_query.hpp>
 
 #include <bitcoin/node/define.hpp>
 
@@ -30,7 +30,7 @@ using namespace network::http;
 BC_PUSH_WARNING(NO_ARRAY_INDEXING)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
-bool parse_query(rpc::request_t& out, const request& request) NOEXCEPT
+bool explore_query(rpc::request_t& out, const request& request) NOEXCEPT
 {
     wallet::uri uri{};
     if (!uri.decode(request.target()))

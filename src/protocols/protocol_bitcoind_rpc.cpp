@@ -299,28 +299,27 @@ void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& post = get_post();
+    const auto& request = get_request();
     constexpr auto json = media_type::application_json;
-    response response{ status::ok, post.version() };
-    add_common_headers(response, post);
-    add_access_control_headers(response, post);
+    response response{ status::ok, request.version() };
+    add_common_headers(response, request);
+    add_access_control_headers(response, request);
     response.set(field::content_type, from_media_type(json));
     response.body() = { std::move(model), size_hint };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
 
-void protocol_bitcoind_rpc::set_request(const post::cptr& post) NOEXCEPT
+void protocol_bitcoind_rpc::set_request(const request_cptr& request) NOEXCEPT
 {
-    BC_ASSERT(post);
-    post_ = post;
+    BC_ASSERT(request);
+    request_ = request;
 }
 
-const protocol_bitcoind_rpc::post& protocol_bitcoind_rpc::
-set_request() const NOEXCEPT
+const request& protocol_bitcoind_rpc::get_request() const NOEXCEPT
 {
-    BC_ASSERT(post_);
-    return *post_;
+    BC_ASSERT(request_);
+    return *request_;
 }
 
 BC_POP_WARNING()

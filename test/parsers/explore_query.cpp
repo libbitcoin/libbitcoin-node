@@ -18,14 +18,14 @@
  */
 #include "../test.hpp"
 
-BOOST_AUTO_TEST_SUITE(media_tests)
+BOOST_AUTO_TEST_SUITE(explore_query_tests)
 
 using namespace network::http;
 
-BOOST_AUTO_TEST_CASE(media__parse_query__empty__false)
+BOOST_AUTO_TEST_CASE(parsers__explore_query__empty__false)
 {
     network::rpc::request_t out{};
-    BOOST_REQUIRE(!parse_query(out, network::http::request{}));
+    BOOST_REQUIRE(!explore_query(out, network::http::request{}));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
