@@ -67,14 +67,14 @@ void protocol_bitcoind_rpc::start() NOEXCEPT
     SUBSCRIBE_BITCOIND(handle_scan_tx_out_set, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_verify_chain, _1, _2, _3, _4);
     SUBSCRIBE_BITCOIND(handle_verify_tx_out_set, _1, _2, _3);
-    protocol_http::start();
+    network::protocol_http::start();
 }
 
 void protocol_bitcoind_rpc::stopping(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
     rpc_dispatcher_.stop(ec);
-    protocol_http::stopping(ec);
+    network::protocol_http::stopping(ec);
 }
 
 // Dispatch.
@@ -299,27 +299,15 @@ void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& request = get_request();
+    const auto request = reset_request();
     constexpr auto json = media_type::application_json;
-    response response{ status::ok, request.version() };
-    add_common_headers(response, request);
-    add_access_control_headers(response, request);
+    response response{ status::ok, request->version() };
+    add_common_headers(response, *request);
+    add_access_control_headers(response, *request);
     response.set(field::content_type, from_media_type(json));
     response.body() = { std::move(model), size_hint };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
-}
-
-void protocol_bitcoind_rpc::set_request(const request_cptr& request) NOEXCEPT
-{
-    BC_ASSERT(request);
-    request_ = request;
-}
-
-const request& protocol_bitcoind_rpc::get_request() const NOEXCEPT
-{
-    BC_ASSERT(request_);
-    return *request_;
 }
 
 BC_POP_WARNING()

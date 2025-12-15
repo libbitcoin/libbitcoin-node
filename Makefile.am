@@ -71,6 +71,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_header_out_31800.cpp \
     src/protocols/protocol_header_out_70012.cpp \
     src/protocols/protocol_html.cpp \
+    src/protocols/protocol_http.cpp \
     src/protocols/protocol_observer.cpp \
     src/protocols/protocol_peer.cpp \
     src/protocols/protocol_performer.cpp \

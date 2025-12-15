@@ -168,6 +168,9 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_html.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_http.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\protocols\protocol_observer.cpp">
       <Filter>src\protocols</Filter>
     </ClCompile>
