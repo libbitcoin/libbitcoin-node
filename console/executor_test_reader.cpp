@@ -31,14 +31,49 @@ using namespace network;
 using namespace system;
 
 // arbitrary testing (const).
+
+void executor::read_test(const hash_digest&) const
+{
+    logger("Wire size computation.");
+    const auto start = fine_clock::now();
+    const auto last = metadata_.configured.node.maximum_height_();
+    const auto concurrency = metadata_.configured.node.maximum_concurrency_();
+
+    size_t size{};
+    for (auto height = zero; !cancel_ && height <= last; ++height)
+    {
+        const auto link = query_.to_candidate(height);
+        if (link.is_terminal())
+        {
+            logger(format("Max candidate height is (%1%).") % sub1(height));
+            return;
+        }
+
+        const auto bytes = query_.get_block_size(link);
+        if (is_zero(bytes))
+        {
+            logger(format("Block (%1%) is not associated.") % height);
+            return;
+        }
+
+        size += bytes;
+        if (is_zero(height % concurrency))
+        {
+            const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+            logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
+                size % height % span.count());
+        }
+    }
+}
+
+#if defined(UNDEFINED)
+
 void executor::read_test(const hash_digest&) const
 {
     logger(format("Point table body searches: %1% / (%2% + %1%)") %
         store_.point.positive_search_count() %
         store_.point.negative_search_count());
 }
-
-#if defined(UNDEFINED)
 
 void executor::read_test(const hash_digest&) const
 {
@@ -278,37 +313,6 @@ void executor::read_test(const hash_digest&) const
     const auto ec = query_.block_confirmable(link);
     logger(format("block_confirmable [%1%] at height [%2%].") % ec.message() %
         query_.get_height(link));
-}
-
-void executor::read_test(const hash_digest&) const
-{
-    logger("Wire size computation.");
-    const auto start = fine_clock::now();
-    const auto last = metadata_.configured.node.maximum_height;
-
-    size_t size{};
-    for (auto height = zero; !cancel_ && height <= last; ++height)
-    {
-        const auto link = query_.to_candidate(height);
-        if (link.is_terminal())
-        {
-            logger(format("Max candidate height is (%1%).") % sub1(height));
-            return;
-        }
-
-        const auto bytes = query_.get_block_size(link);
-        if (is_zero(bytes))
-        {
-            logger(format("Block (%1%) is not associated.") % height);
-            return;
-        }
-
-        size += bytes;
-    }
-
-    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
-    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
-        size % last % span.count());
 }
 
 void executor::read_test(const hash_digest&) const
