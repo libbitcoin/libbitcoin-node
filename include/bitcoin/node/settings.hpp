@@ -74,6 +74,8 @@ public:
     bool headers_first;
     bool thread_priority;
     bool memory_priority;
+    bool defer_validation;
+    bool defer_confirmation;
     float allowed_deviation;
     uint16_t announcement_cache;
     uint16_t allocation_multiple;

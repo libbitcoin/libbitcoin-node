@@ -1029,6 +1029,16 @@ options_metadata parser::load_settings() THROWS
         value<bool>(&configured.node.delay_inbound),
         "Delay accepting inbound connections until node is current, defaults to 'true'."
     )
+    (
+        "node.defer_validation",
+        value<bool>(&configured.node.defer_validation),
+        "Defer validation, defaults to 'false'."
+    )
+    (
+        "node.defer_confirmation",
+        value<bool>(&configured.node.defer_confirmation),
+        "Defer confirmation, defaults to 'false'."
+    )
     ////(
     ////    "node.headers_first",
     ////    value<bool>(&configured.node.headers_first),

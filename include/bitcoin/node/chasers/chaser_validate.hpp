@@ -89,6 +89,7 @@ private:
     const size_t maximum_backlog_;
     const bool node_witness_;
     const bool filter_;
+    const bool defer_;
 };
 
 } // namespace node

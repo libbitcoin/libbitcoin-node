@@ -85,6 +85,8 @@ settings::settings() NOEXCEPT
     headers_first{ true },
     memory_priority{ true },
     thread_priority{ true },
+    defer_validation{ false },
+    defer_confirmation{ false },
     allowed_deviation{ 1.5 },
     announcement_cache{ 42 },
     allocation_multiple{ 20 },
