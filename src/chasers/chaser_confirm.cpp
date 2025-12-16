@@ -35,7 +35,8 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    filter_(node.archive().filter_enabled())
+    filter_(node.archive().filter_enabled()),
+    defer_(node.config().node.defer_confirmation)
 {
 }
 
@@ -49,7 +50,11 @@ code chaser_confirm::start() NOEXCEPT
         LOGN("Node is current at startup block [" << position() << "].");
     }
 
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    if (!defer_)
+    {
+        SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    }
+
     return error::success;
 }
 
