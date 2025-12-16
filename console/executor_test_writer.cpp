@@ -29,13 +29,13 @@ using boost::format;
 using namespace network;
 using namespace system;
 
-#if defined(UNDEFINED)
-
 // arbitrary testing (non-const).
 void executor::write_test(const hash_digest&)
 {
     logger("No write test implemented.");
 }
+
+#if defined(UNDEFINED)
 
 void executor::write_test(const system::hash_digest&)
 {
@@ -201,7 +201,6 @@ void executor::write_test(const system::hash_digest&)
     logger(format("block" BN_WRITE_ROW) % height % span.count());
 }
 
-#endif // UNDEFINED
 
 void executor::write_test(const system::hash_digest& hash)
 {
@@ -220,6 +219,8 @@ void executor::write_test(const system::hash_digest& hash)
         logger(format("Failed to reset block [%1%].") % id);
     }
 }
+
+#endif // UNDEFINED
 
 } // namespace node
 } // namespace libbitcoin
