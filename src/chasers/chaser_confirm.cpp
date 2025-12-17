@@ -138,6 +138,10 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
     if (closed())
         return;
 
+    // Stop while suspended as iteration is O(N^2) if blocks not organized.
+    if (suspended())
+        return;
+
     // Guarded by candidate interlock.
     size_t fork_point{};
     auto fork = query.get_validated_fork(fork_point, checkpoint(), filter_);
