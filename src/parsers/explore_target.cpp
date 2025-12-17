@@ -209,8 +209,8 @@ code explore_target(request_t& out, const std::string_view& path) NOEXCEPT
             const auto component = segments[segment++];
             if (component == "header")
                 method = "tx_header";
-            else if (component == "fee")
-                method = "tx_fee";
+            else if (component == "details")
+                method = "tx_details";
             else
                 return error::invalid_component;
         }
@@ -267,11 +267,24 @@ code explore_target(request_t& out, const std::string_view& path) NOEXCEPT
                 method = "block_tx";
             }
             else if (component == "header")
-                method = "block_header";
+            {
+                if (segment == segments.size())
+                {
+                    method = "block_header";
+                }
+                else
+                {
+                    const auto subcomponent = segments[segment++];
+                    if (subcomponent == "context")
+                        method = "block_header_context";
+                    else
+                        return error::invalid_subcomponent;
+                }
+            }
             else if (component == "txs")
                 method = "block_txs";
-            else if (component == "fees")
-                method = "block_fees";
+            else if (component == "details")
+                method = "block_details";
             else if (component == "filter")
             {
                 if (segment == segments.size())

@@ -33,8 +33,9 @@ struct explore_methods
         method<"top", uint8_t, uint8_t>{ "version", "media" },
         method<"block", uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>, optional<true>>{ "version", "media", "hash", "height", "witness" },
         method<"block_header", uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "hash", "height" },
+        method<"block_header_context", uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "hash", "height" },
+        method<"block_details", uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "hash", "height" },
         method<"block_txs", uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "hash", "height" },
-        method<"block_fees", uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "hash", "height" },
         method<"block_filter", uint8_t, uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "type", "hash", "height" },
         method<"block_filter_hash", uint8_t, uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "type", "hash", "height" },
         method<"block_filter_header", uint8_t, uint8_t, uint8_t, nullable<system::hash_cptr>, nullable<uint32_t>>{ "version", "media", "type", "hash", "height" },
@@ -42,7 +43,7 @@ struct explore_methods
 
         method<"tx", uint8_t, uint8_t, system::hash_cptr, optional<true>>{ "version", "media", "hash", "witness" },
         method<"tx_header", uint8_t, uint8_t, system::hash_cptr>{ "version", "media", "hash" },
-        method<"tx_fee", uint8_t, uint8_t, system::hash_cptr>{ "version", "media", "hash" },
+        method<"tx_details", uint8_t, uint8_t, system::hash_cptr>{ "version", "media", "hash" },
 
         method<"inputs", uint8_t, uint8_t, system::hash_cptr, optional<true>>{ "version", "media", "hash", "witness" },
         method<"input", uint8_t, uint8_t, system::hash_cptr, uint32_t, optional<true>>{ "version", "media", "hash", "index", "witness" },
@@ -73,32 +74,33 @@ struct explore_methods
 
     using block = at<1>;
     using block_header = at<2>;
-    using block_txs = at<3>;
-    using block_fees = at<4>;
-    using block_filter = at<5>;
-    using block_filter_hash = at<6>;
-    using block_filter_header = at<7>;
-    using block_tx = at<8>;
+    using block_header_context = at<3>;
+    using block_details = at<4>;
+    using block_txs = at<5>;
+    using block_filter = at<6>;
+    using block_filter_hash = at<7>;
+    using block_filter_header = at<8>;
+    using block_tx = at<9>;
 
-    using tx = at<9>;
-    using tx_header = at<10>;
-    using tx_fee = at<11>;
+    using tx = at<10>;
+    using tx_header = at<11>;
+    using tx_details = at<12>;
 
-    using inputs = at<12>;
-    using input = at<13>;
-    using input_script = at<14>;
-    using input_witness = at<15>;
+    using inputs = at<13>;
+    using input = at<14>;
+    using input_script = at<15>;
+    using input_witness = at<16>;
 
-    using outputs = at<16>;
-    using output = at<17>;
-    using output_script = at<18>;
-    using output_spender = at<19>;
-    using output_spenders = at<20>;
+    using outputs = at<17>;
+    using output = at<18>;
+    using output_script = at<19>;
+    using output_spender = at<20>;
+    using output_spenders = at<21>;
 
-    using address = at<21>;
-    using address_confirmed = at<22>;
-    using address_unconfirmed = at<23>;
-    using address_balance = at<24>;
+    using address = at<22>;
+    using address_confirmed = at<23>;
+    using address_unconfirmed = at<24>;
+    using address_balance = at<25>;
 };
 
 /// ?format=data|text|json (via query string).
