@@ -36,11 +36,11 @@ void executor::read_test(const hash_digest&) const
 {
     logger("Wire size computation.");
     const auto start = fine_clock::now();
-    const auto last = metadata_.configured.node.maximum_height_();
+    const auto top = query_.get_top_associated();
     const auto concurrency = metadata_.configured.node.maximum_concurrency_();
 
     size_t size{};
-    for (auto height = zero; !cancel_ && height <= last; ++height)
+    for (auto height = zero; !cancel_ && height <= top; ++height)
     {
         const auto link = query_.to_candidate(height);
         if (link.is_terminal())
@@ -64,6 +64,10 @@ void executor::read_test(const hash_digest&) const
                 size % height % span.count());
         }
     }
+
+    const auto span = duration_cast<milliseconds>(fine_clock::now() - start);
+    logger(format("Wire size (%1%) at (%2%) in (%3%) ms.") %
+        size % top % span.count());
 }
 
 #if defined(UNDEFINED)
