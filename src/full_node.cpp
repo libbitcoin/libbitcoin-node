@@ -379,6 +379,7 @@ void full_node::fault(const code& ec) NOEXCEPT
         LOGF("Node fault, " << ec.message());
     }
 
+    // If a call does not get all of the channels, subsequent failures do so.
     suspend(ec);
 }
 

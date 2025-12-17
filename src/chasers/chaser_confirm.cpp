@@ -65,6 +65,7 @@ bool chaser_confirm::handle_event(const code&, chase event_,
         return false;
 
     // Stop generating query during suspension.
+    // Incoming events may already be flushed to the strand at this point.
     if (suspended())
         return true;
 
@@ -132,13 +133,17 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 void chaser_confirm::do_bumped(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
 
     if (closed())
         return;
 
+    // Stop while suspended as iteration is O(N^2) if blocks not organized.
+    if (suspended())
+        return;
+
     // Guarded by candidate interlock.
     size_t fork_point{};
+    const auto& query = archive();
     auto fork = query.get_validated_fork(fork_point, checkpoint(), filter_);
 
     // Fork may be empty if candidates were reorganized.
@@ -221,6 +226,7 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
     auto& query = archive();
     auto height = add1(fork_point);
 
+    // Continue when suspended as write error terminates synchronous loop.
     for (const auto& state: fork)
     {
         switch (state.ec.value())
@@ -238,6 +244,7 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
             }
             case database::error::block_valid:
             {
+                // False always sets a store fault (including for disk full).
                 if (!confirm_block(state.link, height, popped, fork_point))
                     return;
 

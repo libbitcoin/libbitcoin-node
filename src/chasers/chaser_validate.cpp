@@ -67,6 +67,7 @@ bool chaser_validate::handle_event(const code&, chase event_,
         return false;
 
     // Stop generating query during suspension.
+    // Incoming events may already be flushed to the strand at this point.
     if (suspended())
         return true;
 
@@ -161,6 +162,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     const auto& query = archive();
 
     // Bypass until next event if validation backlog is full.
+    // Stop when suspended as write error des not terminate asynchronous loop.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
