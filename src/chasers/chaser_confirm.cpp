@@ -133,7 +133,6 @@ void chaser_confirm::do_bump(height_t) NOEXCEPT
 void chaser_confirm::do_bumped(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
 
     if (closed())
         return;
@@ -144,6 +143,7 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
 
     // Guarded by candidate interlock.
     size_t fork_point{};
+    const auto& query = archive();
     auto fork = query.get_validated_fork(fork_point, checkpoint(), filter_);
 
     // Fork may be empty if candidates were reorganized.
