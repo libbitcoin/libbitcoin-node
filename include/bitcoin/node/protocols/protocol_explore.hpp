@@ -72,10 +72,13 @@ protected:
     bool handle_get_block_header(const code& ec, interface::block_header,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height) NOEXCEPT;
-    bool handle_get_block_txs(const code& ec, interface::block_txs,
+    bool handle_get_block_header_context(const code& ec, interface::block_header_context,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height) NOEXCEPT;
-    bool handle_get_block_fees(const code& ec, interface::block_fees,
+    bool handle_get_block_details(const code& ec, interface::block_details,
+        uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
+        std::optional<uint32_t> height) NOEXCEPT;
+    bool handle_get_block_txs(const code& ec, interface::block_txs,
         uint8_t version, uint8_t media, std::optional<system::hash_cptr> hash,
         std::optional<uint32_t> height) NOEXCEPT;
     bool handle_get_block_filter(const code& ec, interface::block_filter,
@@ -101,7 +104,7 @@ protected:
     bool handle_get_tx_header(const code& ec, interface::tx_header,
         uint8_t version, uint8_t media,
         const system::hash_cptr& hash) NOEXCEPT;
-    bool handle_get_tx_fee(const code& ec, interface::tx_fee,
+    bool handle_get_tx_details(const code& ec, interface::tx_details,
         uint8_t version, uint8_t media,
         const system::hash_cptr& hash) NOEXCEPT;
 

@@ -84,8 +84,9 @@ void protocol_explore::start() NOEXCEPT
 
     SUBSCRIBE_EXPLORE(handle_get_block, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_EXPLORE(handle_get_block_header, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_block_header_context, _1, _2, _3, _4, _5, _6);
+    SUBSCRIBE_EXPLORE(handle_get_block_details, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_block_txs, _1, _2, _3, _4, _5, _6);
-    SUBSCRIBE_EXPLORE(handle_get_block_fees, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_block_filter, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_EXPLORE(handle_get_block_filter_hash, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_EXPLORE(handle_get_block_filter_header, _1, _2, _3, _4, _5, _6, _7);
@@ -93,7 +94,7 @@ void protocol_explore::start() NOEXCEPT
 
     SUBSCRIBE_EXPLORE(handle_get_tx, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_tx_header, _1, _2, _3, _4, _5);
-    SUBSCRIBE_EXPLORE(handle_get_tx_fee, _1, _2, _3, _4, _5);
+    SUBSCRIBE_EXPLORE(handle_get_tx_details, _1, _2, _3, _4, _5);
 
     SUBSCRIBE_EXPLORE(handle_get_inputs, _1, _2, _3, _4, _5, _6);
     SUBSCRIBE_EXPLORE(handle_get_input, _1, _2, _3, _4, _5, _6, _7);
@@ -318,6 +319,100 @@ bool protocol_explore::handle_get_block_header(const code& ec,
     return true;
 }
 
+bool protocol_explore::handle_get_block_header_context(const code& ec,
+    interface::block_header_context, uint8_t, uint8_t media,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    // states:
+    // block_valid
+    // block_confirmable
+    // block_unconfirmable
+    // get_header_state->unvalidated can be no header or no txs.
+    ////const auto state = query.get_header_state(link);
+    ////if (state == database::error::unvalidated)
+    ////{
+    ////    send_not_found();
+    ////    return true;
+    ////}
+
+    const auto& query = archive();
+    const auto link = to_header(height, hash);
+    database::context context{};
+    if (query.get_context(context, link))
+    {
+        switch (media)
+        {
+            case data:
+                send_chunk(to_little_endian_size(context.flags));
+                return true;
+            case text:
+                send_text(encode_base16(to_little_endian_size(context.flags)));
+                return true;
+            case json:
+                send_json(context.flags, two * sizeof(context.flags));
+                return true;
+        }
+    }
+
+    send_not_found();
+    return true;
+}
+
+bool protocol_explore::handle_get_block_details(const code& ec,
+    interface::block_details, uint8_t, uint8_t media,
+    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
+{
+    if (stopped(ec))
+        return false;
+
+    const auto& query = archive();
+    const auto link = to_header(height, hash);
+    const auto state = query.get_block_state(link);
+
+    // get_block_state->unassociated can be no header or no txs.
+    if (state == database::error::unassociated)
+    {
+        send_not_found();
+        return true;
+    }
+
+    // states:
+    // unvalidated
+    // block_valid
+    // block_confirmable
+    // block_unconfirmable
+
+    // both txs table (can get from details)
+    //const auto size = query.get_block_size(link);
+    //const auto count = query.get_tx_count(link);
+
+    // TODO:
+    // query (whole block and all prevouts, same as get_block_fees)
+    // fees, claim, reward, subsidy, weight, size, count.
+
+    if (const auto fees = query.get_block_fees(link); fees != max_uint64)
+    {
+        switch (media)
+        {
+            case data:
+                send_chunk(to_little_endian_size(fees));
+                return true;
+            case text:
+                send_text(encode_base16(to_little_endian_size(fees)));
+                return true;
+            case json:
+                send_json(fees, two * sizeof(fees));
+                return true;
+        }
+    }
+
+    send_not_found();
+    return true;
+}
+
 bool protocol_explore::handle_get_block_txs(const code& ec,
     interface::block_txs, uint8_t, uint8_t media,
     std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
@@ -352,34 +447,6 @@ bool protocol_explore::handle_get_block_txs(const code& ec,
                 send_json(out, two * size);
                 return true;
             }
-        }
-    }
-
-    send_not_found();
-    return true;
-}
-
-bool protocol_explore::handle_get_block_fees(const code& ec,
-    interface::block_fees, uint8_t, uint8_t media,
-    std::optional<hash_cptr> hash, std::optional<uint32_t> height) NOEXCEPT
-{
-    if (stopped(ec))
-        return false;
-
-    if (const auto fees = archive().get_block_fees(to_header(height, hash));
-        fees != max_uint64)
-    {
-        switch (media)
-        {
-            case data:
-                send_chunk(to_little_endian_size(fees));
-                return true;
-            case text:
-                send_text(encode_base16(to_little_endian_size(fees)));
-                return true;
-            case json:
-                send_json(fees, two * sizeof(fees));
-                return true;
         }
     }
 
@@ -595,12 +662,14 @@ bool protocol_explore::handle_get_tx_header(const code& ec,
     return true;
 }
 
-bool protocol_explore::handle_get_tx_fee(const code& ec, interface::tx_fee,
-    uint8_t, uint8_t media, const hash_cptr& hash) NOEXCEPT
+bool protocol_explore::handle_get_tx_details(const code& ec,
+    interface::tx_details, uint8_t, uint8_t media,
+    const hash_cptr& hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
+    // TODO: expand details to include tx.size and tx.weight.
     const auto& query = archive();
     if (const auto fee = query.get_tx_fee(query.to_tx(*hash));
         fee != max_uint64)

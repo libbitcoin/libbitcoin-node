@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__block_invalid_id_type__invalid_id_
 
 // block_header/height
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__header_height_valid__expected)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_height_valid__expected)
 {
     request_t request{};
     BOOST_REQUIRE(!explore_target(request, "/v42/block/height/123456/header/"));
@@ -180,15 +180,15 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__header_height_valid__expected)
     BOOST_REQUIRE_EQUAL(height, 123456u);
 }
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__header_height_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_height_invalid_subcomponent__invalid_subcomponent)
 {
     request_t out{};
-    BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/height/123/header/extra"), node::error::extra_segment);
+    BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/height/123/header/invalid"), node::error::invalid_subcomponent);
 }
 
 // block_header/hash
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__header_hash_valid__expected)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_hash_valid__expected)
 {
     const std::string path = "v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/header";
 
@@ -214,11 +214,73 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__header_hash_valid__expected)
     BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
 }
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__header_hash_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_hash_invalid_subcomponent__invalid_subcomponent)
 {
-    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/header/extra";
+    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/header/invalid";
     request_t out{};
-    BOOST_REQUIRE_EQUAL(explore_target(out, path), node::error::extra_segment);
+    BOOST_REQUIRE_EQUAL(explore_target(out, path), node::error::invalid_subcomponent);
+}
+
+// block_header_context/height
+
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_context_height_valid__expected)
+{
+    request_t request{};
+    BOOST_REQUIRE(!explore_target(request, "/v42/block/height/123456/header/context"));
+    BOOST_REQUIRE_EQUAL(request.method, "block_header_context");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto height = std::get<uint32_t>(object.at("height").value());
+    BOOST_REQUIRE_EQUAL(height, 123456u);
+}
+
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_context_height_extra_segment__extra_segment)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/height/123/header/context/extra"), node::error::extra_segment);
+}
+
+// block_header_context/hash
+
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_context_hash_valid__expected)
+{
+    const std::string path = "v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/header/context";
+
+    request_t request{};
+    BOOST_REQUIRE(!explore_target(request, path));
+    BOOST_REQUIRE_EQUAL(request.method, "block_header_context");
+    BOOST_REQUIRE(request.params.has_value());
+
+    const auto& params = request.params.value();
+    BOOST_REQUIRE(std::holds_alternative<object_t>(params));
+
+    const auto& object = std::get<object_t>(request.params.value());
+    BOOST_REQUIRE_EQUAL(object.size(), 2u);
+
+    const auto version = std::get<uint8_t>(object.at("version").value());
+    BOOST_REQUIRE_EQUAL(version, 42u);
+
+    const auto& any = std::get<any_t>(object.at("hash").value());
+    BOOST_REQUIRE(any.holds_alternative<const hash_digest>());
+
+    const auto& hash_cptr = any.get<const hash_digest>();
+    BOOST_REQUIRE(hash_cptr);
+    BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
+}
+
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_header_context_hash_extra_segment__extra_segment)
+{
+    request_t out{};
+    BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/header/context/extra"), node::error::extra_segment);
 }
 
 // block_txs/height
@@ -1125,15 +1187,15 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__block_filter_invalid_subcomponent_
     BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/filter/42/invalid"), node::error::invalid_subcomponent);
 }
 
-// tx_fee
+// tx_details
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__tx_fee_valid__expected)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__tx_details_valid__expected)
 {
-    const std::string path = "/v42/tx/0000000000000000000000000000000000000000000000000000000000000042/fee";
+    const std::string path = "/v42/tx/0000000000000000000000000000000000000000000000000000000000000042/details";
 
     request_t request{};
     BOOST_REQUIRE(!explore_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "tx_fee");
+    BOOST_REQUIRE_EQUAL(request.method, "tx_details");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -1153,20 +1215,20 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__tx_fee_valid__expected)
     BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
 }
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__tx_fee_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__tx_details_extra_segment__extra_segment)
 {
-    const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/fee/extra";
+    const std::string path = "/v3/tx/0000000000000000000000000000000000000000000000000000000000000000/details/extra";
     request_t out{};
     BOOST_REQUIRE_EQUAL(explore_target(out, path), node::error::extra_segment);
 }
 
-// block_fees/height
+// block_details/height
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__block_fees_height_valid__expected)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_details_height_valid__expected)
 {
     request_t request{};
-    BOOST_REQUIRE(!explore_target(request, "/v42/block/height/123456/fees"));
-    BOOST_REQUIRE_EQUAL(request.method, "block_fees");
+    BOOST_REQUIRE(!explore_target(request, "/v42/block/height/123456/details"));
+    BOOST_REQUIRE_EQUAL(request.method, "block_details");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -1182,21 +1244,21 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__block_fees_height_valid__expected)
     BOOST_REQUIRE_EQUAL(height, 123456u);
 }
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__block_fees_height_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_details_height_extra_segment__extra_segment)
 {
     request_t out{};
-    BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/height/123/fees/extra"), node::error::extra_segment);
+    BOOST_REQUIRE_EQUAL(explore_target(out, "/v3/block/height/123/details/extra"), node::error::extra_segment);
 }
 
-// block_fees/hash
+// block_details/hash
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__block_fees_hash_valid__expected)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_details_hash_valid__expected)
 {
-    const std::string path = "/v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/fees";
+    const std::string path = "/v42/block/hash/0000000000000000000000000000000000000000000000000000000000000042/details";
 
     request_t request{};
     BOOST_REQUIRE(!explore_target(request, path));
-    BOOST_REQUIRE_EQUAL(request.method, "block_fees");
+    BOOST_REQUIRE_EQUAL(request.method, "block_details");
     BOOST_REQUIRE(request.params.has_value());
 
     const auto& params = request.params.value();
@@ -1216,11 +1278,12 @@ BOOST_AUTO_TEST_CASE(parsers__explore_target__block_fees_hash_valid__expected)
     BOOST_REQUIRE_EQUAL(to_uintx(*hash_cptr), uint256_t{ 0x42 });
 }
 
-BOOST_AUTO_TEST_CASE(parsers__explore_target__block_fees_hash_extra_segment__extra_segment)
+BOOST_AUTO_TEST_CASE(parsers__explore_target__block_details_hash_extra_segment__extra_segment)
 {
-    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/fees/extra";
+    const std::string path = "/v3/block/hash/0000000000000000000000000000000000000000000000000000000000000000/details/extra";
     request_t out{};
     BOOST_REQUIRE_EQUAL(explore_target(out, path), node::error::extra_segment);
 }
+
 
 BOOST_AUTO_TEST_SUITE_END()
