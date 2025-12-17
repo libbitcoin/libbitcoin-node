@@ -58,6 +58,7 @@ bool chaser_transaction::handle_event(const code&, chase event_,
 
     // TODO: allow required messages.
     ////// Stop generating query during suspension.
+    ////// Incoming events may already be flushed to the strand at this point.
     ////if (suspended())
     ////    return true;
 
