@@ -44,8 +44,8 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     initial_subsidy_(node.config().bitcoin.initial_subsidy()),
     maximum_backlog_(node.config().node.maximum_concurrency_()),
     node_witness_(node.config().network.witness_node()),
-    filter_(node.archive().filter_enabled()),
-    defer_(node.config().node.defer_validation)
+    defer_(node.config().node.defer_validation),
+    filter_(!defer_ && node.archive().filter_enabled())
 {
 }
 
@@ -174,34 +174,18 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         const auto bypass = defer_ || is_under_checkpoint(height) ||
             query.is_milestone(link);
 
-        if (bypass)
-        {
-            // Filters will be set on subsequent unsupressed run.
-            if (filter_ && !defer_)
-            {
-                post_block(link, bypass);
-            }
-            else
-            {
-                complete_block(error::success, link, height, true);
-            }
-        }
-        else switch (ec.value())
+        switch (ec.value())
         {
             case database::error::unvalidated:
             case database::error::unknown_state:
             {
-                post_block(link, bypass);
-                break;
-            }
-            case database::error::block_valid:
-            {
-                if (query.is_prevouts_cached(link))
-                    post_block(link, true);
+                if (!bypass || filter_)
+                    post_block(link, bypass);
                 else
                     complete_block(error::success, link, height, true);
                 break;
             }
+            case database::error::block_valid:
             case database::error::block_confirmable:
             {
                 complete_block(error::success, link, height, true);
@@ -283,6 +267,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 
     if (bypass)
     {
+        // Populating for filters only (no validation metadata required).
         block.populate();
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
@@ -316,6 +301,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         if ((ec = block.connect(ctx)))
             return ec;
 
+        // Prevouts optimize confirmation.
         if (!query.set_prevouts(link, block))
             return error::validate6;
     }
@@ -323,7 +309,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if (!query.set_filter_body(link, block))
         return error::validate7;
 
-    // After set_prevouts and set_filter_body.
+    // Valid must be set after set_prevouts and set_filter_body.
     if (!bypass && !query.set_block_valid(link, block.fees()))
         return error::validate8;
 
