@@ -299,13 +299,14 @@ void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    using namespace network::monad;
     const auto request = reset_request();
     constexpr auto json = media_type::application_json;
     response response{ status::ok, request->version() };
     add_common_headers(response, *request);
     add_access_control_headers(response, *request);
     response.set(field::content_type, from_media_type(json));
-    response.body() = { std::move(model), size_hint };
+    response.body() = json_value{ std::move(model), size_hint };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
 }
