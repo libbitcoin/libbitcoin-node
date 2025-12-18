@@ -31,6 +31,7 @@ namespace node {
 using namespace system;
 using namespace network::rpc;
 using namespace network::http;
+using namespace network::monad;
 using namespace std::placeholders;
 using namespace boost::json;
 
@@ -130,25 +131,9 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     }
 
     const auto& body = post->body();
-    if (!body.contains<json_body::value_type>())
+    if (!body.contains<rpcin_value>())
     {
         send_not_acceptable(*post);
-        return;
-    }
-
-    request_t request{};
-    try
-    {
-        request = value_to<request_t>(body.get<json_body::value_type>().model);
-    }
-    catch (const boost::system::system_error& e)
-    {
-        send_bad_target(e.code(), *post);
-        return;
-    }
-    catch (...)
-    {
-        send_bad_target(error::unexpected_parse, *post);
         return;
     }
 
@@ -156,6 +141,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     // to formulate response headers, isolating handlers from http semantics.
     set_request(post);
 
+    const auto& request = body.get<rpcin_value>().message;
     if (const auto code = rpc_dispatcher_.notify(request))
         stop(code);
 }
