@@ -132,24 +132,9 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const auto& query = archive();
 
-    // TODO: make store query?
-
-    // Only necessary when bumping as next position may not be associated.
     const auto height = add1(position());
-    const auto link = query.to_candidate(height);
-    const auto ec = query.get_block_state(link);
-
-    // First block state should be unvalidated, valid, or confirmable. This is
-    // assured in do_checked by chasing block checks. unknown_state is a reset.
-    const auto ready =
-        (ec == database::error::unvalidated) ||
-        (ec == database::error::block_valid) ||
-        (ec == database::error::unknown_state) ||
-        (ec == database::error::block_confirmable);
-
-    if (ready)
+    if (archive().is_validateable(height))
         do_bumped(height);
 }
 
