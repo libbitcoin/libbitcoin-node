@@ -37,6 +37,7 @@ DEFINE_EMBEDDED_PAGE(explore_pages, char, html,
   </body>
 </html>
 )DELIM"
+
 )
 
 } // namespace server
