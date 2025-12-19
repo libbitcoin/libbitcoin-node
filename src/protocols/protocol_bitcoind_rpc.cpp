@@ -347,7 +347,7 @@ void protocol_bitcoind_rpc::send_error(const code& ec, value_option&& error,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    send_rpc(response_t
+    send_rpc(
     {
         .jsonrpc = version_,
         .id = id_,
@@ -370,7 +370,7 @@ void protocol_bitcoind_rpc::send_result(value_option&& result,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    send_rpc(response_t
+    send_rpc(
     {
         .jsonrpc = version_,
         .id = id_,
@@ -391,8 +391,7 @@ void protocol_bitcoind_rpc::send_rpc(response_t&& model,
     response.set(field::content_type, json);
     response.body() = rpcout_value
     {
-        network::json::json_value{ .size_hint = size_hint },
-        std::move(model),
+        { .size_hint = size_hint }, std::move(model),
     };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
