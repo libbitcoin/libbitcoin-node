@@ -118,8 +118,10 @@ enum error_t : uint8_t
     invalid_subcomponent,
     extra_segment,
 
-    /// server (json-rpc parse codes)
-    unexpected_parse
+    /// server (rpc response codes)
+    not_found,
+    invalid_argument,
+    not_implemented
 };
 
 // No current need for error_code equivalence mapping.

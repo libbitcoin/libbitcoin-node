@@ -32,21 +32,21 @@ struct bitcoind_rpc_methods
     {
         /// Blockchain methods.
         method<"getbestblockhash">{},
-        method<"getblock", string_t, optional<1>>{ "blockhash", "verbosity" },
+        method<"getblock", string_t, optional<1.0>>{ "blockhash", "verbosity" },
         method<"getblockchaininfo">{},
         method<"getblockcount">{},
         method<"getblockfilter", string_t, optional<"basic"_t>>{ "blockhash", "filtertype" },
         method<"getblockhash", number_t>{ "height" },
         method<"getblockheader", string_t, optional<true>>{ "blockhash", "verbose" },
         method<"getblockstats", string_t, optional<empty::array>>{ "hash_or_height", "stats" },
-        method<"getchaintxstats", optional<-1>, optional<""_t>>{ "nblocks", "blockhash" },
+        method<"getchaintxstats", optional<-1.0>, optional<""_t>>{ "nblocks", "blockhash" },
         method<"getchainwork">{},
         method<"gettxout", string_t, number_t, optional<true>>{ "txid", "n", "include_mempool" },
         method<"gettxoutsetinfo">{},
         method<"pruneblockchain", number_t>{ "height" },
         method<"savemempool">{},
         method<"scantxoutset", string_t, optional<empty::array>>{ "action", "scanobjects" },
-        method<"verifychain", optional<4>, optional<288>>{ "checklevel", "nblocks" },
+        method<"verifychain", optional<4.0>, optional<288.0>>{ "checklevel", "nblocks" },
         method<"verifytxoutset", string_t>{ "input_verify_flag" },
 
         /////// Control methods.
