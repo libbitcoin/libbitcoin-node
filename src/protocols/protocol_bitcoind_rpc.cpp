@@ -31,6 +31,7 @@ namespace node {
 using namespace system;
 using namespace network::rpc;
 using namespace network::http;
+using namespace network::json;
 using namespace network::monad;
 using namespace std::placeholders;
 using namespace boost::json;
@@ -130,20 +131,36 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
         return;
     }
 
-    const auto& body = post->body();
-    if (!body.contains<rpcin_value>())
+    // Endpoint accepts only json-rpc posts.
+    if (!post->body().contains<rpcin_value>())
     {
         send_not_acceptable(*post);
         return;
     }
 
+    // Get the parsed json-rpc request object.
+    // v1 or v2 both supported, batch not yet supported.
+    // v1 null id and v2 missing id implies notification and no response.
+    const auto& request = post->body().get<rpcin_value>().message;
+
     // The post is saved off during asynchonous handling and used in send_json
     // to formulate response headers, isolating handlers from http semantics.
-    set_request(post);
+    set_rpc_request(request.jsonrpc, request.id, post);
 
-    const auto& request = body.get<rpcin_value>().message;
+    // Dispatch the request to subscribers.
     if (const auto code = rpc_dispatcher_.notify(request))
         stop(code);
+}
+
+template <typename Object, typename ...Args>
+std::string to_hex(const Object& object, size_t size, Args&&... args) NOEXCEPT
+{
+    std::string out(two * size, '\0');
+    stream::out::fast sink{ out };
+    write::base16::fast writer{ sink };
+    object.to_data(writer, std::forward<Args>(args)...);
+    BC_ASSERT(writer);
+    return out;
 }
 
 // Handlers.
@@ -151,27 +168,62 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
 // github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md
 // TODO: precompute size for buffer hints.
 
-// {"jsonrpc": "1.0", "id": "curltest", "method": "getbestblockhash", "params": []}
 bool protocol_bitcoind_rpc::handle_get_best_block_hash(const code& ec,
     rpc_interface::get_best_block_hash) NOEXCEPT
 {
     if (stopped(ec))
         return false;
 
-    const auto& query = archive();
-    const auto hash = query.get_header_key(query.to_confirmed(
-        query.get_top_confirmed()));
-
-    const response_t model{ .result = encode_hash(hash) };
-    send_json(value_from(model), two * system::hash_size);
+    const auto hash = archive().get_top_confirmed_hash();
+    send_result(encode_hash(hash), two * system::hash_size);
     return true;
 }
 
-// method<"getblock", string_t, optional<0_u32>>{ "blockhash", "verbosity" },
 bool protocol_bitcoind_rpc::handle_get_block(const code& ec,
-    rpc_interface::get_block, const std::string&, double) NOEXCEPT
+    rpc_interface::get_block, const std::string& blockhash,
+    double verbosity) NOEXCEPT
 {
-    return !ec;
+    if (stopped(ec))
+        return false;
+
+    hash_digest hash{};
+    if (!decode_hash(hash, blockhash))
+    {
+        send_error(error::not_found, blockhash, blockhash.size());
+        return true;
+    }
+
+    constexpr auto witness = true;
+    const auto& query = archive();
+    const auto link = query.to_header(hash);
+
+    if (verbosity == 0.0)
+    {
+        const auto block = query.get_block(link, witness);
+        if (is_null(block))
+        {
+            send_error(error::not_found, blockhash, blockhash.size());
+            return true;
+        }
+
+        send_text(to_hex(*block, block->serialized_size(witness), witness));
+        return true;
+    }
+
+    if (verbosity == 1.0)
+    {
+        send_error(error::not_implemented);
+        return true;
+    }
+
+    if (verbosity == 2.0)
+    {
+        send_error(error::not_implemented);
+        return true;
+    }
+
+    send_error(error::invalid_argument);
+    return true;
 }
 
 bool protocol_bitcoind_rpc::handle_get_block_chain_info(const code& ec,
@@ -277,24 +329,92 @@ bool protocol_bitcoind_rpc::handle_verify_tx_out_set(const code& ec,
     return !ec;
 }
 
-// private
+// Senders
 // ----------------------------------------------------------------------------
 
-// TODO: post-process response for json-rpc version.
-void protocol_bitcoind_rpc::send_json(boost::json::value&& model,
+void protocol_bitcoind_rpc::send_error(const code& ec) NOEXCEPT
+{
+    send_error(ec, two * ec.message().size());
+}
+
+void protocol_bitcoind_rpc::send_error(const code& ec,
+    size_t size_hint) NOEXCEPT
+{
+    send_error(ec, {}, size_hint);
+}
+
+void protocol_bitcoind_rpc::send_error(const code& ec, value_option&& error,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    using namespace network::monad;
-    const auto request = reset_request();
-    constexpr auto json = media_type::application_json;
+    send_rpc(response_t
+    {
+        .jsonrpc = version_,
+        .id = id_,
+        .error = result_t
+        {
+            .code = ec.value(),
+            .message = ec.message(),
+            .data = std::move(error)
+        }
+    }, size_hint);
+}
+
+void protocol_bitcoind_rpc::send_text(std::string&& hexidecimal) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    send_result(hexidecimal, hexidecimal.size());
+}
+
+void protocol_bitcoind_rpc::send_result(value_option&& result,
+    size_t size_hint) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    send_rpc(response_t
+    {
+        .jsonrpc = version_,
+        .id = id_,
+        .result = std::move(result)
+    }, size_hint);
+}
+
+// private
+void protocol_bitcoind_rpc::send_rpc(response_t&& model,
+    size_t size_hint) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    static const auto json = from_media_type(media_type::application_json);
+    const auto request = reset_rpc_request();
     response response{ status::ok, request->version() };
     add_common_headers(response, *request);
     add_access_control_headers(response, *request);
-    response.set(field::content_type, from_media_type(json));
-    response.body() = json_value{ std::move(model), size_hint };
+    response.set(field::content_type, json);
+    response.body() = rpcout_value
+    {
+        network::json::json_value{ .size_hint = size_hint },
+        std::move(model),
+    };
     response.prepare_payload();
     SEND(std::move(response), handle_complete, _1, error::success);
+}
+
+// private
+void protocol_bitcoind_rpc::set_rpc_request(version version,
+    const id_option& id, const request_cptr& request) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    id_ = id;
+    version_ = version;
+    set_request(request);
+}
+
+// private
+request_cptr protocol_bitcoind_rpc::reset_rpc_request() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    id_.reset();
+    version_ = version::undefined;
+    return reset_request();
 }
 
 BC_POP_WARNING()

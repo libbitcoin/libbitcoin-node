@@ -68,7 +68,8 @@ protected:
     bool handle_get_best_block_hash(const code& ec,
         rpc_interface::get_best_block_hash) NOEXCEPT;
     bool handle_get_block(const code& ec,
-        rpc_interface::get_block, const std::string&, double) NOEXCEPT;
+        rpc_interface::get_block, const std::string&,
+        double verbosity) NOEXCEPT;
     bool handle_get_block_chain_info(const code& ec,
         rpc_interface::get_block_chain_info) NOEXCEPT;
     bool handle_get_block_count(const code& ec,
@@ -104,6 +105,15 @@ protected:
     bool handle_verify_tx_out_set(const code& ec,
         rpc_interface::verify_tx_out_set, const std::string&) NOEXCEPT;
 
+    /// Senders.
+    void send_error(const code& ec) NOEXCEPT;
+    void send_error(const code& ec, size_t size_hint) NOEXCEPT;
+    void send_error(const code& ec, network::rpc::value_option&& error,
+        size_t size_hint) NOEXCEPT;
+    void send_text(std::string&& hexidecimal) NOEXCEPT;
+    void send_result(network::rpc::value_option&& result,
+        size_t size_hint) NOEXCEPT;
+
 private:
     template <class Derived, typename Method, typename... Args>
     inline void subscribe(Method&& method, Args&&... args) NOEXCEPT
@@ -111,11 +121,22 @@ private:
         rpc_dispatcher_.subscribe(BIND_SHARED(method, args));
     }
 
-    // Send the response.
-    void send_json(boost::json::value&& model, size_t size_hint) NOEXCEPT;
+    // Senders.
+    void send_rpc(network::rpc::response_t&& model,
+        size_t size_hint) NOEXCEPT;
 
-    // This is protected by strand.
+    // Cache request for serialization (requires strand).
+    void set_rpc_request(network::rpc::version version,
+        const network::rpc::id_option& id,
+        const network::http::request_cptr& request) NOEXCEPT;
+
+    // Obtain cached request and clear cache (requires strand).
+    network::http::request_cptr reset_rpc_request() NOEXCEPT;
+
+    // These are protected by strand.
     rpc_dispatcher rpc_dispatcher_{};
+    network::rpc::version version_{};
+    network::rpc::id_option id_{};
 };
 
 } // namespace node
