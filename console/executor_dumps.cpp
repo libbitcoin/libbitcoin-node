@@ -152,9 +152,9 @@ void executor::dump_progress() const
     logger(format(BN_MEASURE_PROGRESS) %
         query_.get_fork() %
         query_.get_top_confirmed() %
-        encode_hash(query_.get_header_key(query_.to_confirmed(query_.get_top_confirmed()))) %
+        encode_hash(query_.get_top_confirmed_hash()) %
         query_.get_top_candidate() %
-        encode_hash(query_.get_header_key(query_.to_candidate(query_.get_top_candidate()))) %
+        encode_hash(query_.get_top_candidate_hash()) %
         query_.get_top_associated() %
         (query_.get_top_candidate() - query_.get_unassociated_count()) %
         query_.get_confirmed_size() %
