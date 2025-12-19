@@ -34,7 +34,6 @@ using namespace network::http;
 using namespace network::json;
 using namespace network::monad;
 using namespace std::placeholders;
-using namespace boost::json;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
