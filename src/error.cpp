@@ -49,7 +49,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { duplicate_block, "duplicate block" },
     { duplicate_header, "duplicate header" },
 
-    /// faults
+    // faults
     { protocol1, "protocol1" },
     { protocol2, "protocol2" },
     { header1, "header1" },
@@ -90,7 +90,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm12, "confirm12" },
     { confirm13, "confirm13" },
 
-    /// server (url parse codes)
+    // server (url parse codes)
     { empty_path, "empty_path" },
     { invalid_number, "invalid_number" },
     { invalid_hash, "invalid_hash" },
@@ -107,7 +107,11 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { invalid_component, "invalid_component" },
     { invalid_subcomponent, "invalid_subcomponent" },
     { extra_segment, "extra_segment" },
-    { unexpected_parse, "unexpected_parse" }
+
+    // server (rpc response codes)
+    { not_found, "not_found" },
+    { invalid_argument, "invalid_argument" },
+    { not_implemented, "not_implemented" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
