@@ -133,7 +133,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     // Endpoint accepts only json-rpc posts.
     if (!post->body().contains<rpcin_value>())
     {
-        send_not_acceptable(*post);
+        send_bad_request(*post);
         return;
     }
 
