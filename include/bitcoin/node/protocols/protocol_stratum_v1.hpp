@@ -33,7 +33,7 @@ class BCN_API protocol_stratum_v1
 public:
     typedef std::shared_ptr<protocol_stratum_v1> ptr;
 
-    protocol_stratum_v1(const auto& session,
+    inline protocol_stratum_v1(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_rpc(session, channel, options),
