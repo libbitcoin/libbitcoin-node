@@ -28,7 +28,7 @@ namespace libbitcoin {
 namespace node {
 
 /// Abstract base TCP channel state for the node.
-/// This is a placeholder for electrum, bitcoind, and stratum v1/v2 channels.
+/// This is a placeholder for stratum v2 (any unimplemented).
 class BCN_API channel_tcp
   : public node::channel,
     public network::channel,

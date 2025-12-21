@@ -20,9 +20,10 @@
 #define LIBBITCOIN_NODE_CHANNELS_CHANNELS_HPP
 
 #include <bitcoin/node/channels/channel.hpp>
-#include <bitcoin/node/channels/channel_peer.hpp>
-#include <bitcoin/node/channels/channel_tcp.hpp>
 #include <bitcoin/node/channels/channel_http.hpp>
+#include <bitcoin/node/channels/channel_peer.hpp>
+#include <bitcoin/node/channels/channel_rpc.hpp>
+#include <bitcoin/node/channels/channel_tcp.hpp>
 #include <bitcoin/node/channels/channel_ws.hpp>
 
 #endif
