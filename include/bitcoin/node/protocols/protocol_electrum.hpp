@@ -22,13 +22,13 @@
 #include <memory>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_tcp.hpp>
+#include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_electrum
-  : public node::protocol_tcp,
+  : public node::protocol_rpc,
     protected network::tracker<protocol_electrum>
 {
 public:
@@ -37,7 +37,7 @@ public:
     inline protocol_electrum(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_tcp(session, channel, options),
+      : node::protocol_rpc(session, channel, options),
         network::tracker<protocol_electrum>(session->log)
     {
     }
@@ -45,12 +45,8 @@ public:
     /// Public start is required.
     inline void start() NOEXCEPT override
     {
-        node::protocol_tcp::start();
+        node::protocol_rpc::start();
     }
-
-private:
-    // This is thread safe.
-    ////const options_t& options_;
 };
 
 } // namespace node

@@ -16,35 +16,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V1_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V1_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_RPC_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_RPC_HPP
 
 #include <memory>
+#include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class BCN_API protocol_stratum_v1
-  : public node::protocol_rpc,
-    protected network::tracker<protocol_stratum_v1>
+/// Channel for electrum and stratum v1 channels (non-http json-rpc).
+class BCN_API channel_rpc
+  : public node::channel,
+    public network::channel_rpc,
+    protected network::tracker<channel_rpc>
 {
 public:
-    typedef std::shared_ptr<protocol_stratum_v1> ptr;
+    typedef std::shared_ptr<channel_rpc> ptr;
 
-    inline protocol_stratum_v1(const auto& session,
-        const network::channel::ptr& channel,
-        const options_t& options) NOEXCEPT
-      : node::protocol_rpc(session, channel, options),
-        network::tracker<protocol_stratum_v1>(session->log)
+    inline channel_rpc(const network::logger& log,
+        const network::socket::ptr& socket, uint64_t identifier,
+        const node::configuration& config, const options_t& options) NOEXCEPT
+      : node::channel(log, socket, identifier, config),
+        network::channel_rpc(log, socket, identifier, config.network, options),
+        network::tracker<channel_rpc>(log)
     {
-    }
-
-    /// Public start is required.
-    void start() NOEXCEPT override
-    {
-        node::protocol_rpc::start();
     }
 };
 

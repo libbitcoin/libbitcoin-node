@@ -221,6 +221,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_rpc.hpp">
+      <Filter>include\bitcoin\node\channels</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_tcp.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
@@ -381,6 +384,9 @@
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_performer.hpp">
+      <Filter>include\bitcoin\node\protocols</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_rpc.hpp">
       <Filter>include\bitcoin\node\protocols</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_stratum_v1.hpp">

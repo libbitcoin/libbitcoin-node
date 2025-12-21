@@ -40,7 +40,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     // reinterpret_pointer_cast because channel is abstract.
-    protocol(const auto& session,
+    inline protocol(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : channel_(std::reinterpret_pointer_cast<node::channel>(channel)),
         session_(session)
