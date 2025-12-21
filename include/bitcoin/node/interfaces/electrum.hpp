@@ -31,8 +31,8 @@ struct electrum_methods
     static constexpr std::tuple methods
     {
         /// Blockchain methods.
-        method<"blockchain.block.header", number_t, optional<0>>{ "height", "cp_height" },
-        method<"blockchain.block.headers", number_t, number_t, optional<0>>{ "start_height", "count", "cp_height" },
+        method<"blockchain.block.header", number_t, optional<0.0>>{ "height", "cp_height" },
+        method<"blockchain.block.headers", number_t, number_t, optional<0.0>>{ "start_height", "count", "cp_height" },
         method<"blockchain.estimatefee", number_t>{ "number" },
         method<"blockchain.headers.subscribe">{},
         method<"blockchain.relayfee">{},
