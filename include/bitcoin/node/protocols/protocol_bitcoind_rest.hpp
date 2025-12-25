@@ -45,7 +45,6 @@ public:
     {
     }
 
-    /// Public start is required.
     void start() NOEXCEPT override;
     void stopping(const code& ec) NOEXCEPT override;
 
