@@ -41,12 +41,6 @@ public:
         network::tracker<protocol_web>(session->log)
     {
     }
-
-    /// Public start is required.
-    inline void start() NOEXCEPT override
-    {
-        node::protocol_html::start();
-    }
 };
 
 } // namespace node

@@ -43,7 +43,7 @@ public:
     }
 
     /// Public start is required.
-    void start() NOEXCEPT override
+    inline void start() NOEXCEPT override
     {
         node::protocol_tcp::start();
     }
