@@ -166,7 +166,6 @@ void protocol_html::send_json(boost::json::value&& model, size_t size_hint,
     const request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    using namespace network::monad;
     response response{ status::ok, request.version() };
     add_common_headers(response, request);
     add_access_control_headers(response, request);
