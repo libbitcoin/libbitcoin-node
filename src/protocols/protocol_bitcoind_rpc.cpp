@@ -32,7 +32,6 @@ using namespace system;
 using namespace network::rpc;
 using namespace network::http;
 using namespace network::json;
-using namespace network::monad;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -131,7 +130,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     }
 
     // Endpoint accepts only json-rpc posts.
-    if (!post->body().contains<rpcin_value>())
+    if (!post->body().contains<in_value>())
     {
         send_bad_request(*post);
         return;
@@ -140,7 +139,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     // Get the parsed json-rpc request object.
     // v1 or v2 both supported, batch not yet supported.
     // v1 null id and v2 missing id implies notification and no response.
-    const auto& request = post->body().get<rpcin_value>().message;
+    const auto& request = post->body().get<in_value>().message;
 
     // The post is saved off during asynchonous handling and used in send_json
     // to formulate response headers, isolating handlers from http semantics.
@@ -408,7 +407,7 @@ void protocol_bitcoind_rpc::send_rpc(response_t&& model,
     add_common_headers(response, *request);
     add_access_control_headers(response, *request);
     response.set(field::content_type, json);
-    response.body() = rpcout_value
+    response.body() = out_value
     {
         { .size_hint = size_hint }, std::move(model),
     };
