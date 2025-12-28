@@ -33,8 +33,7 @@ namespace node {
     subscribe<CLASS>(&CLASS::method, __VA_ARGS__)
     
 using namespace system;
-using namespace network::rpc;
-using namespace network::http;
+using namespace network;
 using namespace network::messages::peer;
 using namespace std::placeholders;
 using namespace boost::json;
@@ -125,11 +124,11 @@ void protocol_explore::stopping(const code& ec) NOEXCEPT
 // Dispatch.
 // ----------------------------------------------------------------------------
 
-bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
+bool protocol_explore::try_dispatch_object(const http::request& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    request_t model{};
+    rpc::request_t model{};
     if (LOG_ONLY(const auto ec =) explore_target(model, request.target()))
     {
         LOGA("Request parse [" << request.target() << "] " << ec.message());
@@ -151,9 +150,9 @@ bool protocol_explore::try_dispatch_object(const request& request) NOEXCEPT
 // Handlers.
 // ----------------------------------------------------------------------------
 
-constexpr auto data = to_value(media_type::application_octet_stream);
-constexpr auto json = to_value(media_type::application_json);
-constexpr auto text = to_value(media_type::text_plain);
+constexpr auto data = to_value(http::media_type::application_octet_stream);
+constexpr auto json = to_value(http::media_type::application_json);
+constexpr auto text = to_value(http::media_type::text_plain);
 
 template <typename Object, typename ...Args>
 data_chunk to_bin(const Object& object, size_t size, Args&&... args) NOEXCEPT
