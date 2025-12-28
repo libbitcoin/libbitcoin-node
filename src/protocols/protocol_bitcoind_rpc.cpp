@@ -29,8 +29,7 @@ namespace node {
     subscribe<CLASS>(&CLASS::method, __VA_ARGS__)
 
 using namespace system;
-using namespace network::rpc;
-using namespace network::http;
+using namespace network;
 using namespace network::json;
 using namespace std::placeholders;
 
@@ -130,7 +129,7 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     }
 
     // Endpoint accepts only json-rpc posts.
-    if (!post->body().contains<in_value>())
+    if (!post->body().contains<rpc::request>())
     {
         send_bad_request(*post);
         return;
@@ -139,14 +138,14 @@ void protocol_bitcoind_rpc::handle_receive_post(const code& ec,
     // Get the parsed json-rpc request object.
     // v1 or v2 both supported, batch not yet supported.
     // v1 null id and v2 missing id implies notification and no response.
-    const auto& request = post->body().get<in_value>().message;
+    const auto& message = post->body().get<rpc::request>().message;
 
     // The post is saved off during asynchonous handling and used in send_json
     // to formulate response headers, isolating handlers from http semantics.
-    set_rpc_request(request.jsonrpc, request.id, post);
+    set_rpc_request(message.jsonrpc, message.id, post);
 
     // Dispatch the request to subscribers.
-    if (const auto code = rpc_dispatcher_.notify(request))
+    if (const auto code = rpc_dispatcher_.notify(message))
         stop(code);
 }
 
@@ -361,15 +360,15 @@ void protocol_bitcoind_rpc::send_error(const code& ec,
     send_error(ec, {}, size_hint);
 }
 
-void protocol_bitcoind_rpc::send_error(const code& ec, value_option&& error,
-    size_t size_hint) NOEXCEPT
+void protocol_bitcoind_rpc::send_error(const code& ec,
+    rpc::value_option&& error, size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
     send_rpc(
     {
         .jsonrpc = version_,
         .id = id_,
-        .error = result_t
+        .error = rpc::result_t
         {
             .code = ec.value(),
             .message = ec.message(),
@@ -384,7 +383,7 @@ void protocol_bitcoind_rpc::send_text(std::string&& hexidecimal) NOEXCEPT
     send_result(hexidecimal, hexidecimal.size());
 }
 
-void protocol_bitcoind_rpc::send_result(value_option&& result,
+void protocol_bitcoind_rpc::send_result(rpc::value_option&& result,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -397,27 +396,28 @@ void protocol_bitcoind_rpc::send_result(value_option&& result,
 }
 
 // private
-void protocol_bitcoind_rpc::send_rpc(response_t&& model,
+void protocol_bitcoind_rpc::send_rpc(rpc::response_t&& model,
     size_t size_hint) NOEXCEPT
 {
     BC_ASSERT(stranded());
+    using namespace http;
     static const auto json = from_media_type(media_type::application_json);
     const auto request = reset_rpc_request();
-    response response{ status::ok, request->version() };
-    add_common_headers(response, *request);
-    add_access_control_headers(response, *request);
-    response.set(field::content_type, json);
-    response.body() = out_value
+    http::response message{ status::ok, request->version() };
+    add_common_headers(message, *request);
+    add_access_control_headers(message, *request);
+    message.set(field::content_type, json);
+    message.body() = rpc::response
     {
         { .size_hint = size_hint }, std::move(model),
     };
-    response.prepare_payload();
-    SEND(std::move(response), handle_complete, _1, error::success);
+    message.prepare_payload();
+    SEND(std::move(message), handle_complete, _1, error::success);
 }
 
 // private
-void protocol_bitcoind_rpc::set_rpc_request(version version,
-    const id_option& id, const request_cptr& request) NOEXCEPT
+void protocol_bitcoind_rpc::set_rpc_request(rpc::version version,
+    const rpc::id_option& id, const http::request_cptr& request) NOEXCEPT
 {
     BC_ASSERT(stranded());
     id_ = id;
@@ -426,11 +426,11 @@ void protocol_bitcoind_rpc::set_rpc_request(version version,
 }
 
 // private
-request_cptr protocol_bitcoind_rpc::reset_rpc_request() NOEXCEPT
+http::request_cptr protocol_bitcoind_rpc::reset_rpc_request() NOEXCEPT
 {
     BC_ASSERT(stranded());
     id_.reset();
-    version_ = version::undefined;
+    version_ = rpc::version::undefined;
     return reset_request();
 }
 
