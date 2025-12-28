@@ -55,9 +55,8 @@ public:
     
         // TODO: Serialize message.
         const auto ptr = system::move_shared(std::move(message));
-        network::count_handler complete = std::bind(&channel_ws::handle_send,
-            shared_from_base<channel_ws>(), _1, _2, ptr,
-            std::move(handler));
+        network::count_handler complete = std::bind(&channel_ws::handle_send_ws,
+            shared_from_base<channel_ws>(), _1, _2, ptr, std::move(handler));
     
         if (!ptr)
         {
@@ -96,7 +95,7 @@ protected:
         });
     }
 
-    inline void handle_send(const code& ec, size_t, const system::chunk_ptr&,
+    inline void handle_send_ws(const code& ec, size_t, const system::chunk_ptr&,
         const network::result_handler& handler) NOEXCEPT
     {
         if (ec) stop(ec);
