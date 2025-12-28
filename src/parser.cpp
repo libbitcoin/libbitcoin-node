@@ -610,11 +610,6 @@ options_metadata parser::load_settings() THROWS
         "The maximum allowable channel clock skew, defaults to '120'."
     )
     (
-        "network.minimum_buffer",
-        value<uint32_t>(&configured.network.minimum_buffer),
-        "The minimum retained read buffer size, defaults to '4000000'."
-    )
-    (
         "network.rate_limit",
         value<uint32_t>(&configured.network.rate_limit),
         "The peer download rate limit in bytes per second, defaults to 1024 (not implemented)."
@@ -665,6 +660,16 @@ options_metadata parser::load_settings() THROWS
         "outbound.expiration_minutes",
         value<uint32_t>(&configured.network.outbound.expiration_minutes),
         "The age limit for any connection, defaults to '60'."
+    )
+    (
+        "outbound.minimum_buffer",
+        value<uint32_t>(&configured.network.outbound.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "outbound.maximum_request",
+        value<uint32_t>(&configured.network.outbound.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
     )
     (
         "outbound.use_ipv6",
@@ -719,6 +724,16 @@ options_metadata parser::load_settings() THROWS
         "The age limit for any connection, defaults to '60'."
     )
     (
+        "inbound.minimum_buffer",
+        value<uint32_t>(&configured.network.inbound.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "inbound.maximum_request",
+        value<uint32_t>(&configured.network.inbound.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
+    )
+    (
         "inbound.enable_loopback",
         value<bool>(&configured.network.inbound.enable_loopback),
         "Allow connections from the node to itself, defaults to 'false'."
@@ -756,6 +771,16 @@ options_metadata parser::load_settings() THROWS
         "The age limit for any connection, defaults to '60' (will attempt reconnect)."
     )
     (
+        "manual.minimum_buffer",
+        value<uint32_t>(&configured.network.manual.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "manual.maximum_request",
+        value<uint32_t>(&configured.network.manual.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
+    )
+    (
         "manual.peer",
         value<network::config::endpoints>(&configured.network.manual.peers),
         "A persistent peer node, multiple allowed."
@@ -786,6 +811,16 @@ options_metadata parser::load_settings() THROWS
         "web.expiration_minutes",
         value<uint32_t>(&configured.server.web.expiration_minutes),
         "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "web.minimum_buffer",
+        value<uint32_t>(&configured.server.web.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "web.maximum_request",
+        value<uint32_t>(&configured.server.web.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
     )
     (
         "web.server",
@@ -843,6 +878,16 @@ options_metadata parser::load_settings() THROWS
         "explore.expiration_minutes",
         value<uint32_t>(&configured.server.explore.expiration_minutes),
         "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "explore.minimum_buffer",
+        value<uint32_t>(&configured.server.explore.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "explore.maximum_request",
+        value<uint32_t>(&configured.server.explore.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
     )
     (
         "explore.server",
@@ -907,6 +952,16 @@ options_metadata parser::load_settings() THROWS
         "The idle timeout (http keep-alive), defaults to '60'."
     )
     (
+        "bitcoind.minimum_buffer",
+        value<uint32_t>(&configured.server.bitcoind.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "bitcoind.maximum_request",
+        value<uint32_t>(&configured.server.bitcoind.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
+    )
+    (
         "bitcoind.server",
         value<std::string>(&configured.server.bitcoind.server),
         "The server name (http header), defaults to '" BC_HTTP_SERVER_NAME "'."
@@ -953,6 +1008,16 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.server.electrum.expiration_minutes),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
+    (
+        "electrum.minimum_buffer",
+        value<uint32_t>(&configured.server.electrum.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "electrum.maximum_request",
+        value<uint32_t>(&configured.server.electrum.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
+    )
 
     /* [stratum_v1] */
     ////(
@@ -980,6 +1045,16 @@ options_metadata parser::load_settings() THROWS
         value<uint32_t>(&configured.server.stratum_v1.expiration_minutes),
         "The idle timeout (http keep-alive), defaults to '60'."
     )
+    (
+        "stratum_v1.minimum_buffer",
+        value<uint32_t>(&configured.server.stratum_v1.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "stratum_v1.maximum_request",
+        value<uint32_t>(&configured.server.stratum_v1.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
+    )
 
     /* [stratum_v2] */
     ////(
@@ -1006,6 +1081,16 @@ options_metadata parser::load_settings() THROWS
         "stratum_v2.expiration_minutes",
         value<uint32_t>(&configured.server.stratum_v2.expiration_minutes),
         "The idle timeout (http keep-alive), defaults to '60'."
+    )
+    (
+        "stratum_v2.minimum_buffer",
+        value<uint32_t>(&configured.server.stratum_v2.minimum_buffer),
+        "The minimum retained read buffer size, defaults to '4000000'."
+    )
+    (
+        "stratum_v2.maximum_request",
+        value<uint32_t>(&configured.server.stratum_v2.maximum_request),
+        "The maximum allowed request size, defaults to '4000000'."
     )
 
     /* [node] */
