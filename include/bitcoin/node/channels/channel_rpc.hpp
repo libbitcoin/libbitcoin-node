@@ -28,19 +28,22 @@ namespace libbitcoin {
 namespace node {
 
 /// Channel for electrum and stratum v1 channels (non-http json-rpc).
+template <typename Interface>
 class BCN_API channel_rpc
   : public node::channel,
-    public network::channel_rpc,
-    protected network::tracker<channel_rpc>
+    public network::channel_rpc<Interface>,
+    protected network::tracker<channel_rpc<Interface>>
 {
 public:
     typedef std::shared_ptr<channel_rpc> ptr;
+    using options_t = typename network::channel_rpc<Interface>::options_t;
 
     inline channel_rpc(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
-        network::channel_rpc(log, socket, identifier, config.network, options),
+        network::channel_rpc<Interface>(log, socket, identifier,
+            config.network, options),
         network::tracker<channel_rpc>(log)
     {
     }
