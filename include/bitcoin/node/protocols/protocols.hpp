@@ -25,7 +25,6 @@
 #include <bitcoin/node/protocols/protocol_http.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
-#include <bitcoin/node/protocols/protocol_tcp.hpp>
 
 /// peer
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>

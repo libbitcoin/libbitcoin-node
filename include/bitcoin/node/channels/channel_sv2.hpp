@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_TCP_HPP
-#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_TCP_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_SV2_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_SV2_HPP
 
 #include <memory>
 #include <bitcoin/node/channels/channel.hpp>
@@ -27,22 +27,21 @@
 namespace libbitcoin {
 namespace node {
 
-/// Abstract base TCP channel state for the node.
-/// This is a placeholder for stratum v2 (any unimplemented).
-class BCN_API channel_tcp
+/// Channel for stratum v2 (custom protocol, not implemented).
+class BCN_API channel_sv2
   : public node::channel,
     public network::channel,
-    protected network::tracker<channel_tcp>
+    protected network::tracker<channel_sv2>
 {
 public:
-    typedef std::shared_ptr<channel_tcp> ptr;
+    typedef std::shared_ptr<channel_sv2> ptr;
 
-    inline channel_tcp(const network::logger& log,
+    inline channel_sv2(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
         network::channel(log, socket, identifier, config.network, options),
-        network::tracker<channel_tcp>(log)
+        network::tracker<channel_sv2>(log)
     {
     }
 };

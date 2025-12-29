@@ -20,24 +20,26 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V2_HPP
 
 #include <memory>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol_tcp.hpp>
+#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_stratum_v2
-  : public node::protocol_tcp,
+  : public node::protocol,
+    public network::protocol,
     protected network::tracker<protocol_stratum_v2>
 {
 public:
     typedef std::shared_ptr<protocol_stratum_v2> ptr;
+    using channel_t = node::channel_sv2;
 
     inline protocol_stratum_v2(const auto& session,
-        const network::channel::ptr& channel,
-        const options_t& options) NOEXCEPT
-      : node::protocol_tcp(session, channel, options),
-        ////options_(options),
+        const network::channel::ptr& channel, const options_t&) NOEXCEPT
+      : node::protocol(session, channel),
+        network::protocol(session, channel),
         network::tracker<protocol_stratum_v2>(session->log)
     {
     }
@@ -45,12 +47,8 @@ public:
     /// Public start is required.
     inline void start() NOEXCEPT override
     {
-        node::protocol_tcp::start();
+        network::protocol::start();
     }
-
-private:
-    // This is thread safe.
-    ////const options_t& options_;
 };
 
 } // namespace node

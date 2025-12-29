@@ -184,7 +184,7 @@ include_bitcoin_node_channels_HEADERS = \
     include/bitcoin/node/channels/channel_http.hpp \
     include/bitcoin/node/channels/channel_peer.hpp \
     include/bitcoin/node/channels/channel_rpc.hpp \
-    include/bitcoin/node/channels/channel_tcp.hpp \
+    include/bitcoin/node/channels/channel_sv2.hpp \
     include/bitcoin/node/channels/channel_ws.hpp \
     include/bitcoin/node/channels/channels.hpp
 
@@ -250,7 +250,6 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_rpc.hpp \
     include/bitcoin/node/protocols/protocol_stratum_v1.hpp \
     include/bitcoin/node/protocols/protocol_stratum_v2.hpp \
-    include/bitcoin/node/protocols/protocol_tcp.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocol_web.hpp \
