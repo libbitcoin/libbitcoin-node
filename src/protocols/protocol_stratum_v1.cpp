@@ -18,11 +18,12 @@
  */
 #include <bitcoin/node/protocols/protocol_stratum_v1.hpp>
 
+#include <bitcoin/node/protocols/protocol_rpc.hpp>
+
 namespace libbitcoin {
 namespace node {
 
 #define CLASS protocol_stratum_v1
-#define SUBSCRIBE_RPC(...) SUBSCRIBE_CHANNEL(void, __VA_ARGS__)
 
 using namespace std::placeholders;
 

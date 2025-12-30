@@ -344,7 +344,7 @@ bool protocol_bitcoind_rpc::handle_verify_tx_out_set(const code& ec,
     return true;
 }
 
-// Senders
+// Senders.
 // ----------------------------------------------------------------------------
 
 void protocol_bitcoind_rpc::send_error(const code& ec) NOEXCEPT

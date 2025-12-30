@@ -26,7 +26,7 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
 /// Abstract base for RPC protocols, thread safe.
 template <typename Interface>
 class BCN_API protocol_rpc
@@ -46,6 +46,10 @@ protected:
     {
     }
 };
+
+#define SUBSCRIBE_RPC(...) SUBSCRIBE_CHANNEL(void, __VA_ARGS__)
+#define SEND_RPC(message, size_hint, method, ...) \
+    send<CLASS>(message, size_hint, &CLASS::method, __VA_ARGS__)
 
 } // namespace node
 } // namespace libbitcoin
