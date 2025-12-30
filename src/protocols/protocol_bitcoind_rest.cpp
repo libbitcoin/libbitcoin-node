@@ -44,8 +44,6 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 void protocol_bitcoind_rest::start() NOEXCEPT
 {
-    using namespace std::placeholders;
-
     BC_ASSERT(stranded());
 
     if (started())

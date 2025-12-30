@@ -64,6 +64,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_in_31800.cpp \
     src/protocols/protocol_block_out_106.cpp \
     src/protocols/protocol_block_out_70012.cpp \
+    src/protocols/protocol_electrum.cpp \
     src/protocols/protocol_explore.cpp \
     src/protocols/protocol_filter_out_70015.cpp \
     src/protocols/protocol_header_in_31800.cpp \
@@ -75,6 +76,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_observer.cpp \
     src/protocols/protocol_peer.cpp \
     src/protocols/protocol_performer.cpp \
+    src/protocols/protocol_stratum_v1.cpp \
     src/protocols/protocol_transaction_in_106.cpp \
     src/protocols/protocol_transaction_out_106.cpp \
     src/sessions/session.cpp \

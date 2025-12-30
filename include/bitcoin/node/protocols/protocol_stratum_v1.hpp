@@ -33,20 +33,22 @@ class BCN_API protocol_stratum_v1
 {
 public:
     typedef std::shared_ptr<protocol_stratum_v1> ptr;
+    using rpc_interface = interface::stratum_v1;
 
     inline protocol_stratum_v1(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_rpc<interface::stratum_v1>(session, channel, options),
+      : node::protocol_rpc<rpc_interface>(session, channel, options),
         network::tracker<protocol_stratum_v1>(session->log)
     {
     }
 
-    /// Public start is required.
-    inline void start() NOEXCEPT override
-    {
-        node::protocol_rpc<interface::stratum_v1>::start();
-    }
+    void start() NOEXCEPT override;
+
+protected:
+    /// Handlers.
+    bool handle_mining_extranonce_subscribe(const code& ec,
+        rpc_interface::mining_extranonce_subscribe) NOEXCEPT;
 };
 
 } // namespace node

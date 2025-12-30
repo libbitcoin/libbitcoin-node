@@ -44,7 +44,7 @@ public:
     {
     }
 
-    /// Public start is required.
+    // TODO: subscribe to and handle messages.
     inline void start() NOEXCEPT override
     {
         network::protocol::start();
