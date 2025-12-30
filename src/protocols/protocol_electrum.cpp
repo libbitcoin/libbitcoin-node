@@ -18,6 +18,8 @@
  */
 #include <bitcoin/node/protocols/protocol_electrum.hpp>
 
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
@@ -25,7 +27,7 @@ namespace node {
 
 #define CLASS protocol_electrum
 
-using namespace network;
+using namespace interface;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -212,7 +214,7 @@ bool protocol_electrum::handle_blockchain_transaction_id_from_pos(const code& ec
 // ----------------------------------------------------------------------------
 
 bool protocol_electrum::handle_server_add_peer(const code& ec,
-    rpc_interface::server_add_peer, const rpc::object_t& ) NOEXCEPT
+    rpc_interface::server_add_peer, const interface::object_t& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
     send_code(error::not_implemented);
@@ -262,7 +264,7 @@ bool protocol_electrum::handle_server_ping(const code& ec,
 // value_t can be string_t or array_t of two string_t.
 bool protocol_electrum::handle_server_version(const code& ec,
     rpc_interface::server_version, const std::string& ,
-    const rpc::value_t& ) NOEXCEPT
+    const value_t& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
     send_code(error::not_implemented);

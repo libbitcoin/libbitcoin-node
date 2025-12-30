@@ -94,7 +94,7 @@ protected:
     /// Handlers (server).
     bool handle_server_add_peer(const code& ec,
         rpc_interface::server_add_peer,
-        const network::rpc::object_t& features) NOEXCEPT;
+        const interface::object_t& features) NOEXCEPT;
     bool handle_server_banner(const code& ec,
         rpc_interface::server_banner) NOEXCEPT;
     bool handle_server_donation_address(const code& ec,
@@ -107,7 +107,7 @@ protected:
         rpc_interface::server_ping) NOEXCEPT;
     bool handle_server_version(const code& ec,
         rpc_interface::server_version, const std::string& client_name,
-        const network::rpc::value_t& protocol_version) NOEXCEPT;
+        const interface::value_t& protocol_version) NOEXCEPT;
 
     /// Handlers (mempool).
     bool handle_mempool_get_fee_histogram(const code& ec,
