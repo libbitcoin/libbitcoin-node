@@ -18,12 +18,14 @@
  */
 #include <bitcoin/node/protocols/protocol_electrum.hpp>
 
+#include <bitcoin/node/protocols/protocol_rpc.hpp>
+
 namespace libbitcoin {
 namespace node {
 
 #define CLASS protocol_electrum
-#define SUBSCRIBE_RPC(...) SUBSCRIBE_CHANNEL(void, __VA_ARGS__)
 
+using namespace network;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -40,26 +42,242 @@ void protocol_electrum::start() NOEXCEPT
     if (started())
         return;
 
+    // Blockchain methods.
+    SUBSCRIBE_RPC(handle_blockchain_block_header, _1, _2, _3, _4);
+    SUBSCRIBE_RPC(handle_blockchain_block_headers, _1, _2, _3, _4, _5);
     SUBSCRIBE_RPC(handle_blockchain_headers_subscribe, _1, _2);
+    SUBSCRIBE_RPC(handle_blockchain_estimatefee, _1, _2, _3);
     SUBSCRIBE_RPC(handle_blockchain_relayfee, _1, _2);
+    SUBSCRIBE_RPC(handle_blockchain_scripthash_get_balance, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_scripthash_get_history, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_scripthash_get_mempool, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_scripthash_listunspent, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_scripthash_subscribe, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_scripthash_unsubscribe, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_transaction_broadcast, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_blockchain_transaction_get, _1, _2, _3, _4);
+    SUBSCRIBE_RPC(handle_blockchain_transaction_get_merkle, _1, _2, _3, _4);
+    SUBSCRIBE_RPC(handle_blockchain_transaction_id_from_pos, _1, _2, _3, _4, _5);
+
+    // Server methods
+    SUBSCRIBE_RPC(handle_server_add_peer, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_server_banner, _1, _2);
+    SUBSCRIBE_RPC(handle_server_donation_address, _1, _2);
+    SUBSCRIBE_RPC(handle_server_features, _1, _2);
+    SUBSCRIBE_RPC(handle_server_peers_subscribe, _1, _2);
+    SUBSCRIBE_RPC(handle_server_ping, _1, _2);
+    SUBSCRIBE_RPC(handle_server_version, _1, _2, _3, _4);
+
+    // Mempool methods.
+    SUBSCRIBE_RPC(handle_mempool_get_fee_histogram, _1, _2);
     node::protocol_rpc<rpc_interface>::start();
 }
 
-// Handlers.
+// Handlers (blockchain).
 // ----------------------------------------------------------------------------
+
+bool protocol_electrum::handle_blockchain_block_header(const code& ec,
+    rpc_interface::blockchain_block_header, double ,
+    double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_block_headers(const code& ec,
+    rpc_interface::blockchain_block_headers, double ,
+    double , double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
 
 bool protocol_electrum::handle_blockchain_headers_subscribe(const code& ec,
     rpc_interface::blockchain_headers_subscribe) NOEXCEPT
 {
-    // TODO:
-    return !ec;
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_estimatefee(const code& ec,
+    rpc_interface::blockchain_estimatefee, double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
 }
 
 bool protocol_electrum::handle_blockchain_relayfee(const code& ec,
     rpc_interface::blockchain_relayfee) NOEXCEPT
 {
-    // TODO:
-    return !ec;
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_scripthash_get_balance(const code& ec,
+    rpc_interface::blockchain_scripthash_get_balance,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_scripthash_get_history(const code& ec,
+    rpc_interface::blockchain_scripthash_get_history,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_scripthash_get_mempool(const code& ec,
+    rpc_interface::blockchain_scripthash_get_mempool,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_scripthash_listunspent(const code& ec,
+    rpc_interface::blockchain_scripthash_listunspent,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_scripthash_subscribe(const code& ec,
+    rpc_interface::blockchain_scripthash_subscribe,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_scripthash_unsubscribe(const code& ec,
+    rpc_interface::blockchain_scripthash_unsubscribe,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_transaction_broadcast(const code& ec,
+    rpc_interface::blockchain_transaction_broadcast,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_transaction_get(const code& ec,
+    rpc_interface::blockchain_transaction_get, const std::string& ,
+    bool ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_transaction_get_merkle(const code& ec,
+    rpc_interface::blockchain_transaction_get_merkle, const std::string& ,
+    double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_blockchain_transaction_id_from_pos(const code& ec,
+    rpc_interface::blockchain_transaction_id_from_pos, double ,
+    double , bool ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+// Handlers (server).
+// ----------------------------------------------------------------------------
+
+bool protocol_electrum::handle_server_add_peer(const code& ec,
+    rpc_interface::server_add_peer, const rpc::object_t& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_server_banner(const code& ec,
+    rpc_interface::server_banner) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_server_donation_address(const code& ec,
+    rpc_interface::server_donation_address) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_server_features(const code& ec,
+    rpc_interface::server_features) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_server_peers_subscribe(const code& ec,
+    rpc_interface::server_peers_subscribe) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+bool protocol_electrum::handle_server_ping(const code& ec,
+    rpc_interface::server_ping) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+// value_t can be string_t or array_t of two string_t.
+bool protocol_electrum::handle_server_version(const code& ec,
+    rpc_interface::server_version, const std::string& ,
+    const rpc::value_t& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
+}
+
+// Handlers (mempool).
+// ----------------------------------------------------------------------------
+
+bool protocol_electrum::handle_mempool_get_fee_histogram(const code& ec,
+    rpc_interface::mempool_get_fee_histogram) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_error(error::not_implemented);
+    return true;
 }
 
 BC_POP_WARNING()

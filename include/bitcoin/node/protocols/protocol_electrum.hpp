@@ -47,11 +47,71 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Handlers.
+    /// Handlers (blockchain).
+    bool handle_blockchain_block_header(const code& ec,
+        rpc_interface::blockchain_block_header, double height,
+        double cp_height) NOEXCEPT;
+    bool handle_blockchain_block_headers(const code& ec,
+        rpc_interface::blockchain_block_headers, double start_height,
+        double count, double cp_height) NOEXCEPT;
     bool handle_blockchain_headers_subscribe(const code& ec,
         rpc_interface::blockchain_headers_subscribe) NOEXCEPT;
+    bool handle_blockchain_estimatefee(const code& ec,
+        rpc_interface::blockchain_estimatefee, double) NOEXCEPT;
     bool handle_blockchain_relayfee(const code& ec,
         rpc_interface::blockchain_relayfee) NOEXCEPT;
+    bool handle_blockchain_scripthash_get_balance(const code& ec,
+        rpc_interface::blockchain_scripthash_get_balance,
+        const std::string& scripthash) NOEXCEPT;
+    bool handle_blockchain_scripthash_get_history(const code& ec,
+        rpc_interface::blockchain_scripthash_get_history,
+        const std::string& scripthash) NOEXCEPT;
+    bool handle_blockchain_scripthash_get_mempool(const code& ec,
+        rpc_interface::blockchain_scripthash_get_mempool,
+        const std::string& scripthash) NOEXCEPT;
+    bool handle_blockchain_scripthash_listunspent(const code& ec,
+        rpc_interface::blockchain_scripthash_listunspent,
+        const std::string& scripthash) NOEXCEPT;
+    bool handle_blockchain_scripthash_subscribe(const code& ec,
+        rpc_interface::blockchain_scripthash_subscribe,
+        const std::string& scripthash) NOEXCEPT;
+    bool handle_blockchain_scripthash_unsubscribe(const code& ec,
+        rpc_interface::blockchain_scripthash_unsubscribe,
+        const std::string& scripthash) NOEXCEPT;
+    bool handle_blockchain_transaction_broadcast(const code& ec,
+        rpc_interface::blockchain_transaction_broadcast,
+        const std::string& raw_tx) NOEXCEPT;
+    bool handle_blockchain_transaction_get(const code& ec,
+        rpc_interface::blockchain_transaction_get, const std::string& tx_hash,
+        bool verbose) NOEXCEPT;
+    bool handle_blockchain_transaction_get_merkle(const code& ec,
+        rpc_interface::blockchain_transaction_get_merkle,
+        const std::string& tx_hash, double height) NOEXCEPT;
+    bool handle_blockchain_transaction_id_from_pos(const code& ec,
+        rpc_interface::blockchain_transaction_id_from_pos, double height,
+        double tx_pos, bool merkle) NOEXCEPT;
+
+    /// Handlers (server).
+    bool handle_server_add_peer(const code& ec,
+        rpc_interface::server_add_peer,
+        const network::rpc::object_t& features) NOEXCEPT;
+    bool handle_server_banner(const code& ec,
+        rpc_interface::server_banner) NOEXCEPT;
+    bool handle_server_donation_address(const code& ec,
+        rpc_interface::server_donation_address) NOEXCEPT;
+    bool handle_server_features(const code& ec,
+        rpc_interface::server_features) NOEXCEPT;
+    bool handle_server_peers_subscribe(const code& ec,
+        rpc_interface::server_peers_subscribe) NOEXCEPT;
+    bool handle_server_ping(const code& ec,
+        rpc_interface::server_ping) NOEXCEPT;
+    bool handle_server_version(const code& ec,
+        rpc_interface::server_version, const std::string& client_name,
+        const network::rpc::value_t& protocol_version) NOEXCEPT;
+
+    /// Handlers (mempool).
+    bool handle_mempool_get_fee_histogram(const code& ec,
+        rpc_interface::mempool_get_fee_histogram) NOEXCEPT;
 };
 
 } // namespace node
