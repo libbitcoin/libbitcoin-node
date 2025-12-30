@@ -81,7 +81,7 @@ bool protocol_electrum::handle_blockchain_block_header(const code& ec,
     double ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -90,7 +90,7 @@ bool protocol_electrum::handle_blockchain_block_headers(const code& ec,
     double , double ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -98,7 +98,7 @@ bool protocol_electrum::handle_blockchain_headers_subscribe(const code& ec,
     rpc_interface::blockchain_headers_subscribe) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -106,7 +106,7 @@ bool protocol_electrum::handle_blockchain_estimatefee(const code& ec,
     rpc_interface::blockchain_estimatefee, double ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -114,7 +114,7 @@ bool protocol_electrum::handle_blockchain_relayfee(const code& ec,
     rpc_interface::blockchain_relayfee) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -123,7 +123,7 @@ bool protocol_electrum::handle_blockchain_scripthash_get_balance(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -132,7 +132,7 @@ bool protocol_electrum::handle_blockchain_scripthash_get_history(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -141,7 +141,7 @@ bool protocol_electrum::handle_blockchain_scripthash_get_mempool(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -150,7 +150,7 @@ bool protocol_electrum::handle_blockchain_scripthash_listunspent(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -159,7 +159,7 @@ bool protocol_electrum::handle_blockchain_scripthash_subscribe(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -168,7 +168,7 @@ bool protocol_electrum::handle_blockchain_scripthash_unsubscribe(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -177,7 +177,7 @@ bool protocol_electrum::handle_blockchain_transaction_broadcast(const code& ec,
     const std::string& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -186,7 +186,7 @@ bool protocol_electrum::handle_blockchain_transaction_get(const code& ec,
     bool ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -195,7 +195,7 @@ bool protocol_electrum::handle_blockchain_transaction_get_merkle(const code& ec,
     double ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -204,7 +204,7 @@ bool protocol_electrum::handle_blockchain_transaction_id_from_pos(const code& ec
     double , bool ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -215,7 +215,7 @@ bool protocol_electrum::handle_server_add_peer(const code& ec,
     rpc_interface::server_add_peer, const rpc::object_t& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -223,7 +223,7 @@ bool protocol_electrum::handle_server_banner(const code& ec,
     rpc_interface::server_banner) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -231,7 +231,7 @@ bool protocol_electrum::handle_server_donation_address(const code& ec,
     rpc_interface::server_donation_address) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -239,7 +239,7 @@ bool protocol_electrum::handle_server_features(const code& ec,
     rpc_interface::server_features) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -247,7 +247,7 @@ bool protocol_electrum::handle_server_peers_subscribe(const code& ec,
     rpc_interface::server_peers_subscribe) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -255,7 +255,7 @@ bool protocol_electrum::handle_server_ping(const code& ec,
     rpc_interface::server_ping) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -265,7 +265,7 @@ bool protocol_electrum::handle_server_version(const code& ec,
     const rpc::value_t& ) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
@@ -276,7 +276,7 @@ bool protocol_electrum::handle_mempool_get_fee_histogram(const code& ec,
     rpc_interface::mempool_get_fee_histogram) NOEXCEPT
 {
     if (stopped(ec)) return false;
-    send_error(error::not_implemented);
+    send_code(error::not_implemented);
     return true;
 }
 
