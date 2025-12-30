@@ -24,26 +24,25 @@
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 
- // Only session.hpp.
-#include <bitcoin/node/sessions/session.hpp>
-
 namespace libbitcoin {
 namespace node {
     
 /// Abstract base for RPC protocols, thread safe.
+template <typename Interface>
 class BCN_API protocol_rpc
   : public node::protocol,
-    public network::protocol_rpc
+    public network::protocol_rpc<Interface>
 {
 public:
-    using channel_t = node::channel_rpc;
+    using channel_t = node::channel_rpc<Interface>;
+    using options_t = channel_t::options_t;
 
 protected:
     inline protocol_rpc(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol(session, channel),
-        network::protocol_rpc(session, channel, options)
+        network::protocol_rpc<Interface>(session, channel, options)
     {
     }
 };

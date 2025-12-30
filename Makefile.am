@@ -64,6 +64,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_in_31800.cpp \
     src/protocols/protocol_block_out_106.cpp \
     src/protocols/protocol_block_out_70012.cpp \
+    src/protocols/protocol_electrum.cpp \
     src/protocols/protocol_explore.cpp \
     src/protocols/protocol_filter_out_70015.cpp \
     src/protocols/protocol_header_in_31800.cpp \
@@ -75,6 +76,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_observer.cpp \
     src/protocols/protocol_peer.cpp \
     src/protocols/protocol_performer.cpp \
+    src/protocols/protocol_stratum_v1.cpp \
     src/protocols/protocol_transaction_in_106.cpp \
     src/protocols/protocol_transaction_out_106.cpp \
     src/sessions/session.cpp \
@@ -184,7 +186,7 @@ include_bitcoin_node_channels_HEADERS = \
     include/bitcoin/node/channels/channel_http.hpp \
     include/bitcoin/node/channels/channel_peer.hpp \
     include/bitcoin/node/channels/channel_rpc.hpp \
-    include/bitcoin/node/channels/channel_tcp.hpp \
+    include/bitcoin/node/channels/channel_sv2.hpp \
     include/bitcoin/node/channels/channel_ws.hpp \
     include/bitcoin/node/channels/channels.hpp
 
@@ -250,7 +252,6 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_rpc.hpp \
     include/bitcoin/node/protocols/protocol_stratum_v1.hpp \
     include/bitcoin/node/protocols/protocol_stratum_v2.hpp \
-    include/bitcoin/node/protocols/protocol_tcp.hpp \
     include/bitcoin/node/protocols/protocol_transaction_in_106.hpp \
     include/bitcoin/node/protocols/protocol_transaction_out_106.hpp \
     include/bitcoin/node/protocols/protocol_web.hpp \

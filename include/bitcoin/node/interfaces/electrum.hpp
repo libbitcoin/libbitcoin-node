@@ -86,8 +86,6 @@ struct electrum_methods
     using server_peers_subscribe = at<19>;
     using server_ping = at<20>;
     using server_version = at<21>;
-
-    ////using subscribers = unsubscriber<external_t<decltype(methods)>>;
 };
 
 } // namespace interface

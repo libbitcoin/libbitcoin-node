@@ -22,31 +22,36 @@
 #include <memory>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_electrum
-  : public node::protocol_rpc,
+  : public node::protocol_rpc<interface::electrum>,
     protected network::tracker<protocol_electrum>
 {
 public:
     typedef std::shared_ptr<protocol_electrum> ptr;
+    using rpc_interface = interface::electrum;
 
     inline protocol_electrum(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_rpc(session, channel, options),
+      : node::protocol_rpc<rpc_interface>(session, channel, options),
         network::tracker<protocol_electrum>(session->log)
     {
     }
 
-    /// Public start is required.
-    inline void start() NOEXCEPT override
-    {
-        node::protocol_rpc::start();
-    }
+    void start() NOEXCEPT override;
+
+protected:
+    /// Handlers.
+    bool handle_blockchain_headers_subscribe(const code& ec,
+        rpc_interface::blockchain_headers_subscribe) NOEXCEPT;
+    bool handle_blockchain_relayfee(const code& ec,
+        rpc_interface::blockchain_relayfee) NOEXCEPT;
 };
 
 } // namespace node
