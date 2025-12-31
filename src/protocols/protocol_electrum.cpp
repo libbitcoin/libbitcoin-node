@@ -244,6 +244,7 @@ void protocol_electrum::handle_server_ping(const code& ec,
     send_code(error::not_implemented);
 }
 
+// TODO: move to handshake protocol.
 // TODO: strip extraneous args before dispatch.
 // Changed in version 1.6: server must tolerate and ignore extraneous args.
 void protocol_electrum::handle_server_version(const code& ec,
@@ -268,7 +269,7 @@ void protocol_electrum::handle_server_version(const code& ec,
                 { string_t{ get_server() } },
                 { string_t{ get_version() } }
             }
-        }, 100);
+        }, 70);
 }
 
 // Handlers (mempool).
@@ -347,6 +348,9 @@ bool protocol_electrum::set_version(const value_t& version) NOEXCEPT
     const auto upper = std::min(client_max, maximum);
     if (lower > upper)
         return false;
+
+    LOGA("Electrum [" << authority() << "] version ("
+        << version_to_string(client_max) << ") " << get_client());
 
     version_ = upper;
     return true;
