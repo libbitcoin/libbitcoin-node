@@ -92,10 +92,9 @@ protected:
     }
 
     /// Override to implement a connection handshake as required. By default
-    /// this is bypassed, which applies to basic http services. A handshake
-    /// is used to implement TLS and WebSocket upgrade from http (for example).
-    /// Handshake protocol(s) must invoke handler one time at completion.
-    /// Use std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
+    /// this is bypassed, which applies to basic http services. Handshake 
+    /// protocol(s) must invoke handler one time at completion. Use 
+    /// std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
     inline void attach_handshake(const channel_ptr& channel,
         network::result_handler&& handler) NOEXCEPT override
     {
