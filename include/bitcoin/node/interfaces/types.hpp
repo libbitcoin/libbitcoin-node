@@ -45,6 +45,7 @@ using number_t = network::rpc::number_t;
 using object_t = network::rpc::object_t;
 using array_t = network::rpc::array_t;
 using value_t = network::rpc::value_t;
+using null_t = network::rpc::null_t;
 
 namespace empty { constexpr auto array = network::rpc::empty::array; };
 namespace empty { constexpr auto object = network::rpc::empty::object; };

@@ -18,6 +18,8 @@
  */
 #include <bitcoin/node/protocols/protocol_stratum_v1.hpp>
 
+#include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
@@ -25,6 +27,7 @@ namespace node {
 
 #define CLASS protocol_stratum_v1
 
+using namespace interface;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -41,18 +44,128 @@ void protocol_stratum_v1::start() NOEXCEPT
     if (started())
         return;
 
+    // Client requests.
+    SUBSCRIBE_RPC(handle_mining_subscribe, _1, _2, _3, _4);
+    SUBSCRIBE_RPC(handle_mining_authorize, _1, _2, _3, _4);
+    SUBSCRIBE_RPC(handle_mining_submit, _1, _2, _3, _4, _5, _6, _7);
     SUBSCRIBE_RPC(handle_mining_extranonce_subscribe, _1, _2);
+    SUBSCRIBE_RPC(handle_mining_extranonce_unsubscribe, _1, _2, _3);
+
+    // Server notifications.
+    SUBSCRIBE_RPC(handle_mining_configure, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_mining_set_difficulty, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_mining_notify, _1, _2, _3, _4, _5, _6, _7, _8, _9,
+        _10, _11, _12, _13);
+    SUBSCRIBE_RPC(handle_client_reconnect, _1, _2, _3, _4, _5);
+    SUBSCRIBE_RPC(handle_client_hello, _1, _2, _3);
+    SUBSCRIBE_RPC(handle_client_rejected, _1, _2, _3, _4);
     node::protocol_rpc<rpc_interface>::start();
 }
 
-// Handlers.
+// Handlers (client requests).
 // ----------------------------------------------------------------------------
+
+bool protocol_stratum_v1::handle_mining_subscribe(const code& ec,
+    rpc_interface::mining_subscribe, const std::string& ,
+    double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_mining_authorize(const code& ec,
+    rpc_interface::mining_authorize, const std::string& ,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_mining_submit(const code& ec,
+    rpc_interface::mining_submit, const std::string& ,
+    const std::string& , const std::string& ,
+    double , const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
 
 bool protocol_stratum_v1::handle_mining_extranonce_subscribe(const code& ec,
     rpc_interface::mining_extranonce_subscribe) NOEXCEPT
 {
-    // TODO:
-    return !ec;
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_mining_extranonce_unsubscribe(const code& ec,
+    rpc_interface::mining_extranonce_unsubscribe, double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+// Handlers (server notifications).
+// ----------------------------------------------------------------------------
+
+bool protocol_stratum_v1::handle_mining_configure(const code& ec,
+    rpc_interface::mining_configure,
+    const interface::object_t& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_mining_set_difficulty(const code& ec,
+    rpc_interface::mining_set_difficulty, double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_mining_notify(const code& ec,
+    rpc_interface::mining_notify, const std::string& ,
+    const std::string& , const std::string& ,
+    const std::string& , const interface::array_t& ,
+    double , double , double , bool ,
+    bool , bool ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_client_reconnect(const code& ec,
+    rpc_interface::client_reconnect, const std::string& , double ,
+    double ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_client_hello(const code& ec,
+    rpc_interface::client_hello,
+    const interface::object_t& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
+}
+
+bool protocol_stratum_v1::handle_client_rejected(const code& ec,
+    rpc_interface::client_rejected, const std::string& ,
+    const std::string& ) NOEXCEPT
+{
+    if (stopped(ec)) return false;
+    send_code(error::not_implemented);
+    return true;
 }
 
 BC_POP_WARNING()

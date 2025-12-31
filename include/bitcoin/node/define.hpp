@@ -102,6 +102,37 @@ using type_id = network::messages::peer::inventory_item::type_id;
 } // namespace node
 } // namespace libbitcoin
 
+/// Augment limited xcode placeholder defines (10 vs. common 20).
+/// ---------------------------------------------------------------------------
+#if defined (HAVE_XCODE)
+
+/// Define custom placeholder types in the global namespace to avoid conflicts.
+struct placeholder_11 {};
+struct placeholder_12 {};
+struct placeholder_13 {};
+
+/// Specialize std::is_placeholder within the std namespace.
+namespace std
+{
+    template <>
+    struct is_placeholder<::placeholder_11> : integral_constant<int, 11> {};
+    template <>
+    struct is_placeholder<::placeholder_12> : integral_constant<int, 12> {};
+    template <>
+    struct is_placeholder<::placeholder_13> : integral_constant<int, 13> {};
+}
+
+/// Add instances to std::placeholders for standard usage syntax.
+namespace std::placeholders
+{
+    inline constexpr ::placeholder_11 _11{};
+    inline constexpr ::placeholder_12 _12{};
+    inline constexpr ::placeholder_13 _13{};
+}
+
+#endif // HAVE_XCODE
+/// ---------------------------------------------------------------------------
+
 #endif
 
 // define.hpp is the common include for /node.

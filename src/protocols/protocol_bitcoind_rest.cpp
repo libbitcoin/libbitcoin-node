@@ -98,9 +98,9 @@ void protocol_bitcoind_rest::handle_receive_get(const code& ec,
 // Handlers.
 // ----------------------------------------------------------------------------
 
-constexpr auto data = to_value(media_type::application_octet_stream);
-constexpr auto json = to_value(media_type::application_json);
-constexpr auto text = to_value(media_type::text_plain);
+////constexpr auto data = to_value(media_type::application_octet_stream);
+////constexpr auto json = to_value(media_type::application_json);
+////constexpr auto text = to_value(media_type::text_plain);
 
 bool protocol_bitcoind_rest::handle_get_block(const code& ec,
     rest_interface::block, uint8_t , system::hash_cptr ) NOEXCEPT
