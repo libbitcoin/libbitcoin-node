@@ -714,7 +714,7 @@ bool protocol_explore::handle_get_inputs(const code& ec, interface::inputs,
 
     // Wire serialization of input does not include witness.
     const auto size = std::accumulate(inputs->begin(), inputs->end(), zero,
-        [&witness](size_t total, const auto& input) NOEXCEPT
+        [&](size_t total, const auto& input) NOEXCEPT
         { return total + input->serialized_size(false); });
 
     switch (media)
