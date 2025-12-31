@@ -34,7 +34,7 @@ class BCN_API protocol_stratum_v2
 {
 public:
     typedef std::shared_ptr<protocol_stratum_v2> ptr;
-    using channel_t = node::channel_sv2;
+    using channel_t = node::channel_stratum_v2;
 
     inline protocol_stratum_v2(const auto& session,
         const network::channel::ptr& channel, const options_t&) NOEXCEPT

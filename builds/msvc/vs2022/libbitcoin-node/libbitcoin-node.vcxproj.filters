@@ -230,10 +230,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_sv1.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_stratum_v1.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_sv2.hpp">
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_stratum_v2.hpp">
       <Filter>include\bitcoin\node\channels</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_ws.hpp">

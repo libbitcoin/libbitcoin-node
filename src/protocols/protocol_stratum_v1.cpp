@@ -59,7 +59,7 @@ void protocol_stratum_v1::start() NOEXCEPT
     SUBSCRIBE_RPC(handle_client_reconnect, _1, _2, _3, _4, _5);
     SUBSCRIBE_RPC(handle_client_hello, _1, _2, _3);
     SUBSCRIBE_RPC(handle_client_rejected, _1, _2, _3, _4);
-    node::protocol_rpc<channel_sv1>::start();
+    node::protocol_rpc<channel_stratum_v1>::start();
 }
 
 // Handlers (client requests).

@@ -31,8 +31,8 @@
 #include <bitcoin/node/channels/channel_electrum.hpp>
 #include <bitcoin/node/channels/channel_http.hpp>
 #include <bitcoin/node/channels/channel_peer.hpp>
-#include <bitcoin/node/channels/channel_sv1.hpp>
-#include <bitcoin/node/channels/channel_sv2.hpp>
+#include <bitcoin/node/channels/channel_stratum_v1.hpp>
+#include <bitcoin/node/channels/channel_stratum_v2.hpp>
 #include <bitcoin/node/channels/channel_ws.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>

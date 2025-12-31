@@ -29,7 +29,7 @@ namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_stratum_v1
-  : public node::protocol_rpc<channel_sv1>,
+  : public node::protocol_rpc<channel_stratum_v1>,
     protected network::tracker<protocol_stratum_v1>
 {
 public:
@@ -39,7 +39,7 @@ public:
     inline protocol_stratum_v1(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_rpc<channel_sv1>(session, channel, options),
+      : node::protocol_rpc<channel_stratum_v1>(session, channel, options),
         network::tracker<protocol_stratum_v1>(session->log)
     {
     }
