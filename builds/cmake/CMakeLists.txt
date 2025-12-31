@@ -277,6 +277,7 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/protocols/protocol_block_out_106.cpp"
     "../../src/protocols/protocol_block_out_70012.cpp"
     "../../src/protocols/protocol_electrum.cpp"
+    "../../src/protocols/protocol_electrum_version.cpp"
     "../../src/protocols/protocol_explore.cpp"
     "../../src/protocols/protocol_filter_out_70015.cpp"
     "../../src/protocols/protocol_header_in_31800.cpp"

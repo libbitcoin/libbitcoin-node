@@ -150,6 +150,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70012.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_electrum.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_electrum_version.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_explore.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_filter_out_70015.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in_31800.cpp" />
@@ -222,6 +223,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70012.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_electrum.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_electrum_version.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_explore.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_filter_out_70015.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in_31800.hpp" />
@@ -241,6 +243,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_web.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_handshake.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />

@@ -83,25 +83,10 @@ protected:
     inline channel_ptr create_channel(
         const socket_ptr& socket) NOEXCEPT override
     {
-        BC_ASSERT(stranded());
-
         const auto channel = std::make_shared<channel_t>(log, socket,
-            this->create_key(), this->config(), options_);
+            this->create_key(), this->config(), this->options_);
 
         return std::static_pointer_cast<network::channel>(channel);
-    }
-
-    /// Override to implement a connection handshake as required. By default
-    /// this is bypassed, which applies to basic http services. Handshake 
-    /// protocol(s) must invoke handler one time at completion. Use 
-    /// std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
-    inline void attach_handshake(const channel_ptr& channel,
-        network::result_handler&& handler) NOEXCEPT override
-    {
-        BC_ASSERT(channel->stranded());
-        BC_ASSERT(channel->paused());
-
-        network::session_server::attach_handshake(channel, std::move(handler));
     }
 
     template <typename ...Rest, bool_if<is_zero(sizeof...(Rest))> = true>
@@ -110,7 +95,7 @@ protected:
     template <typename Next, typename ...Rest>
     inline void attach_rest(const channel_ptr& channel, const ptr& self) NOEXCEPT
     {
-        channel->attach<Next>(self, options_)->start();
+        channel->attach<Next>(self, this->options_)->start();
         attach_rest<Rest...>(channel, self);
     }
 
@@ -120,14 +105,12 @@ protected:
     /// Use std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
     inline void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
-        BC_ASSERT(channel->stranded());
-        BC_ASSERT(channel->paused());
-
-        const auto self = shared_from_base<session_server<Protocols...>>();
+        using base = session_server<Protocols...>;
+        const auto self = this->shared_from_base<base>();
         attach_rest<Protocols...>(channel, self);
     }
 
-private:
+protected:
     // This is thread safe.
     const options_t& options_;
 };
