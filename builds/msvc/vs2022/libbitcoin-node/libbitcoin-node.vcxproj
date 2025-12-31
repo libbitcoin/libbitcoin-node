@@ -175,9 +175,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_electrum.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_http.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_rpc.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_sv1.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_sv2.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_ws.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp" />

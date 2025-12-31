@@ -30,7 +30,7 @@ namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_electrum
-  : public node::protocol_rpc<interface::electrum>,
+  : public node::protocol_rpc<channel_electrum>,
     protected network::tracker<protocol_electrum>
 {
 public:
@@ -40,7 +40,7 @@ public:
     inline protocol_electrum(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_rpc<rpc_interface>(session, channel, options),
+      : node::protocol_rpc<channel_electrum>(session, channel, options),
         network::tracker<protocol_electrum>(session->log)
     {
     }

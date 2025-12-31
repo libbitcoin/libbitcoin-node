@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V1_HPP
 
 #include <memory>
+#include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
@@ -28,7 +29,7 @@ namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_stratum_v1
-  : public node::protocol_rpc<interface::stratum_v1>,
+  : public node::protocol_rpc<channel_sv1>,
     protected network::tracker<protocol_stratum_v1>
 {
 public:
@@ -38,7 +39,7 @@ public:
     inline protocol_stratum_v1(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_rpc<rpc_interface>(session, channel, options),
+      : node::protocol_rpc<channel_sv1>(session, channel, options),
         network::tracker<protocol_stratum_v1>(session->log)
     {
     }

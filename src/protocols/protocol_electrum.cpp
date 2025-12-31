@@ -76,7 +76,7 @@ void protocol_electrum::start() NOEXCEPT
 
     // Mempool methods.
     SUBSCRIBE_RPC(handle_mempool_get_fee_histogram, _1, _2);
-    node::protocol_rpc<rpc_interface>::start();
+    node::protocol_rpc<channel_electrum>::start();
 }
 
 // Handlers (blockchain).
@@ -244,8 +244,6 @@ void protocol_electrum::handle_server_ping(const code& ec,
     send_code(error::not_implemented);
 }
 
-// TODO: move to handshake protocol.
-// TODO: strip extraneous args before dispatch.
 // Changed in version 1.6: server must tolerate and ignore extraneous args.
 void protocol_electrum::handle_server_version(const code& ec,
     rpc_interface::server_version, const std::string& client_name,

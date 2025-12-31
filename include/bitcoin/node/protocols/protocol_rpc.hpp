@@ -28,13 +28,13 @@ namespace libbitcoin {
 namespace node {
 
 /// Abstract base for RPC protocols, thread safe.
-template <typename Interface>
+template <typename Channel>
 class BCN_API protocol_rpc
   : public node::protocol,
-    public network::protocol_rpc<Interface>
+    public network::protocol_rpc<typename Channel::interface_t>
 {
 public:
-    using channel_t = node::channel_rpc<Interface>;
+    using channel_t = Channel;
     using options_t = channel_t::options_t;
 
 protected:
@@ -42,7 +42,8 @@ protected:
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol(session, channel),
-        network::protocol_rpc<Interface>(session, channel, options)
+        network::protocol_rpc<typename Channel::interface_t>(
+            session, channel, options)
     {
     }
 };
