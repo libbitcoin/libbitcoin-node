@@ -117,26 +117,52 @@ protected:
 protected:
     enum class protocol_version
     {
+        /// Invalid version.
         v0_0,
+
+        /// 2011, initial protocol negotiation.
         v0_6,
+
+        /// 2012, enhanced protocol negotiation.
         v0_8,
+
+        /// 2012, added pruning limits and transport indicators.
         v0_9,
+
+        /// 2013, baseline for core methods in the official specification.
         v0_10,
+
+        /// 2014, 1.x series, deprecations of utxo and block number methods.
         v1_0,
+
+        /// 2015, updated version response and introduced scripthash methods.
         v1_1,
+
+        /// 2017, added optional parameters for transactions and headers.
         v1_2,
+
+        /// 2018, defaulted raw headers and introduced new block methods.
         v1_3,
+
+        /// 2019, removed deserialized headers and added merkle proof features.
         v1_4,
+
+        /// 2019, modifications for auxiliary proof-of-work handling.
         v1_4_1,
+
+        /// 2020, added scripthash unsubscribe functionality.
         v1_4_2,
+
+        /// 2022, updated response formats and added fee estimation modes.
         v1_6
     };
 
     static constexpr protocol_version minimum = protocol_version::v1_4;
-    static constexpr protocol_version maximum = protocol_version::v1_6;
+    static constexpr protocol_version maximum = protocol_version::v1_4_2;
 
     protocol_version version() const NOEXCEPT;
     std::string_view get_version() const NOEXCEPT;
+    bool is_version(protocol_version version) const NOEXCEPT;
     bool set_version(const interface::value_t& version) NOEXCEPT;
     bool get_versions(protocol_version& min, protocol_version& max,
         const interface::value_t& version) NOEXCEPT;

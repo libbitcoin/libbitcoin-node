@@ -321,6 +321,11 @@ std::string protocol_electrum::escape_client(const std::string& in) NOEXCEPT
 // Negotiated version.
 // ----------------------------------------------------------------------------
 
+bool protocol_electrum::is_version(protocol_version version) const NOEXCEPT
+{
+    return version_ >= version;
+}
+
 protocol_electrum::protocol_version protocol_electrum::version() const NOEXCEPT
 {
     return version_;
