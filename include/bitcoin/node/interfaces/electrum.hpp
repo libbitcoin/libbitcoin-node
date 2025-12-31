@@ -55,14 +55,14 @@ struct electrum_methods
         method<"server.features">{},
         method<"server.peers.subscribe">{},
         method<"server.ping">{},
-        method<"server.version", string_t, value_t>{ "client_name", "protocol_version" },
+        method<"server.version", string_t, optional<empty::value>>{ "client_name", "protocol_version" },
 
         /// Mempool methods.
         method<"mempool.get_fee_histogram">{}
     };
 
     template <typename... Args>
-    using subscriber = network::unsubscriber<Args...>;
+    using subscriber = network::subscriber<Args...>;
 
     template <size_t Index>
     using at = method_at<methods, Index>;
