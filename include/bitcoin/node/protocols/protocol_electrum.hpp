@@ -24,6 +24,7 @@
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {

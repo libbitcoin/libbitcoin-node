@@ -212,6 +212,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parser.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\bitcoind_query.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\bitcoind_target.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\electrum_version.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\explore_query.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\explore_target.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\parsers.hpp" />

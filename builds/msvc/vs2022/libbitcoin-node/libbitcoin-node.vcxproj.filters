@@ -332,6 +332,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\bitcoind_target.hpp">
       <Filter>include\bitcoin\node\parsers</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\electrum_version.hpp">
+      <Filter>include\bitcoin\node\parsers</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\include\bitcoin\node\parsers\explore_query.hpp">
       <Filter>include\bitcoin\node\parsers</Filter>
     </ClInclude>

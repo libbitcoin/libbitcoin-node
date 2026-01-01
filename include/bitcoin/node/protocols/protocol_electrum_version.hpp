@@ -24,6 +24,7 @@
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
@@ -54,55 +55,13 @@ protected:
         const interface::value_t& protocol_version) NOEXCEPT;
 
 protected:
-    enum class protocol_version
-    {
-        /// Invalid version.
-        v0_0,
+    static constexpr electrum_version minimum = electrum_version::v1_4;
+    static constexpr electrum_version maximum = electrum_version::v1_4_2;
 
-        /// 2011, initial protocol negotiation.
-        v0_6,
-
-        /// 2012, enhanced protocol negotiation.
-        v0_8,
-
-        /// 2012, added pruning limits and transport indicators.
-        v0_9,
-
-        /// 2013, baseline for core methods in the official specification.
-        v0_10,
-
-        /// 2014, 1.x series, deprecations of utxo and block number methods.
-        v1_0,
-
-        /// 2015, updated version response and introduced scripthash methods.
-        v1_1,
-
-        /// 2017, added optional parameters for transactions and headers.
-        v1_2,
-
-        /// 2018, defaulted raw headers and introduced new block methods.
-        v1_3,
-
-        /// 2019, removed deserialized headers and added merkle proof features.
-        v1_4,
-
-        /// 2019, modifications for auxiliary proof-of-work handling.
-        v1_4_1,
-
-        /// 2020, added scripthash unsubscribe functionality.
-        v1_4_2,
-
-        /// 2022, updated response formats and added fee estimation modes.
-        v1_6
-    };
-
-    static constexpr protocol_version minimum = protocol_version::v1_4;
-    static constexpr protocol_version maximum = protocol_version::v1_4_2;
-
-    protocol_version version() const NOEXCEPT;
+    electrum_version version() const NOEXCEPT;
     std::string_view get_version() const NOEXCEPT;
     bool set_version(const interface::value_t& version) NOEXCEPT;
-    bool get_versions(protocol_version& min, protocol_version& max,
+    bool get_versions(electrum_version& min, electrum_version& max,
         const interface::value_t& version) NOEXCEPT;
 
     std::string_view get_server() const NOEXCEPT;
@@ -112,13 +71,13 @@ protected:
 
 private:
     static std::string_view version_to_string(
-        protocol_version version) NOEXCEPT;
-    static protocol_version version_from_string(
+        electrum_version version) NOEXCEPT;
+    static electrum_version version_from_string(
         const std::string_view& version) NOEXCEPT;
 
     // These are protected by strand.
     std::shared_ptr<network::result_handler> handler_{};
-    protocol_version version_{ protocol_version::v0_0 };
+    electrum_version version_{ electrum_version::v0_0 };
     std::string name_{};
 };
 

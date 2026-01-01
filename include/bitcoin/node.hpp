@@ -57,6 +57,7 @@
 #include <bitcoin/node/interfaces/types.hpp>
 #include <bitcoin/node/parsers/bitcoind_query.hpp>
 #include <bitcoin/node/parsers/bitcoind_target.hpp>
+#include <bitcoin/node/parsers/electrum_version.hpp>
 #include <bitcoin/node/parsers/explore_query.hpp>
 #include <bitcoin/node/parsers/explore_target.hpp>
 #include <bitcoin/node/parsers/parsers.hpp>
