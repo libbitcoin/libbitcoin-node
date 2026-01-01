@@ -65,6 +65,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/protocols/protocol_block_out_106.cpp \
     src/protocols/protocol_block_out_70012.cpp \
     src/protocols/protocol_electrum.cpp \
+    src/protocols/protocol_electrum_version.cpp \
     src/protocols/protocol_explore.cpp \
     src/protocols/protocol_filter_out_70015.cpp \
     src/protocols/protocol_header_in_31800.cpp \
@@ -183,10 +184,11 @@ include_bitcoin_node_HEADERS = \
 include_bitcoin_node_channelsdir = ${includedir}/bitcoin/node/channels
 include_bitcoin_node_channels_HEADERS = \
     include/bitcoin/node/channels/channel.hpp \
+    include/bitcoin/node/channels/channel_electrum.hpp \
     include/bitcoin/node/channels/channel_http.hpp \
     include/bitcoin/node/channels/channel_peer.hpp \
-    include/bitcoin/node/channels/channel_rpc.hpp \
-    include/bitcoin/node/channels/channel_sv2.hpp \
+    include/bitcoin/node/channels/channel_stratum_v1.hpp \
+    include/bitcoin/node/channels/channel_stratum_v2.hpp \
     include/bitcoin/node/channels/channel_ws.hpp \
     include/bitcoin/node/channels/channels.hpp
 
@@ -224,6 +226,7 @@ include_bitcoin_node_parsersdir = ${includedir}/bitcoin/node/parsers
 include_bitcoin_node_parsers_HEADERS = \
     include/bitcoin/node/parsers/bitcoind_query.hpp \
     include/bitcoin/node/parsers/bitcoind_target.hpp \
+    include/bitcoin/node/parsers/electrum_version.hpp \
     include/bitcoin/node/parsers/explore_query.hpp \
     include/bitcoin/node/parsers/explore_target.hpp \
     include/bitcoin/node/parsers/parsers.hpp
@@ -238,6 +241,7 @@ include_bitcoin_node_protocols_HEADERS = \
     include/bitcoin/node/protocols/protocol_block_out_106.hpp \
     include/bitcoin/node/protocols/protocol_block_out_70012.hpp \
     include/bitcoin/node/protocols/protocol_electrum.hpp \
+    include/bitcoin/node/protocols/protocol_electrum_version.hpp \
     include/bitcoin/node/protocols/protocol_explore.hpp \
     include/bitcoin/node/protocols/protocol_filter_out_70015.hpp \
     include/bitcoin/node/protocols/protocol_header_in_31800.hpp \
@@ -260,6 +264,7 @@ include_bitcoin_node_protocols_HEADERS = \
 include_bitcoin_node_sessionsdir = ${includedir}/bitcoin/node/sessions
 include_bitcoin_node_sessions_HEADERS = \
     include/bitcoin/node/sessions/session.hpp \
+    include/bitcoin/node/sessions/session_handshake.hpp \
     include/bitcoin/node/sessions/session_inbound.hpp \
     include/bitcoin/node/sessions/session_manual.hpp \
     include/bitcoin/node/sessions/session_outbound.hpp \

@@ -24,13 +24,14 @@
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 #include <bitcoin/node/protocols/protocol_rpc.hpp>
 
 namespace libbitcoin {
 namespace node {
 
 class BCN_API protocol_electrum
-  : public node::protocol_rpc<interface::electrum>,
+  : public node::protocol_rpc<channel_electrum>,
     protected network::tracker<protocol_electrum>
 {
 public:
@@ -40,7 +41,7 @@ public:
     inline protocol_electrum(const auto& session,
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
-      : node::protocol_rpc<rpc_interface>(session, channel, options),
+      : node::protocol_rpc<channel_electrum>(session, channel, options),
         network::tracker<protocol_electrum>(session->log)
     {
     }
@@ -106,81 +107,19 @@ protected:
         rpc_interface::server_peers_subscribe) NOEXCEPT;
     void handle_server_ping(const code& ec,
         rpc_interface::server_ping) NOEXCEPT;
-    void handle_server_version(const code& ec,
-        rpc_interface::server_version, const std::string& client_name,
-        const interface::value_t& protocol_version) NOEXCEPT;
+    ////void handle_server_version(const code& ec,
+    ////    rpc_interface::server_version, const std::string& client_name,
+    ////    const interface::value_t& protocol_version) NOEXCEPT;
 
     /// Handlers (mempool).
     void handle_mempool_get_fee_histogram(const code& ec,
         rpc_interface::mempool_get_fee_histogram) NOEXCEPT;
 
 protected:
-    enum class protocol_version
-    {
-        /// Invalid version.
-        v0_0,
-
-        /// 2011, initial protocol negotiation.
-        v0_6,
-
-        /// 2012, enhanced protocol negotiation.
-        v0_8,
-
-        /// 2012, added pruning limits and transport indicators.
-        v0_9,
-
-        /// 2013, baseline for core methods in the official specification.
-        v0_10,
-
-        /// 2014, 1.x series, deprecations of utxo and block number methods.
-        v1_0,
-
-        /// 2015, updated version response and introduced scripthash methods.
-        v1_1,
-
-        /// 2017, added optional parameters for transactions and headers.
-        v1_2,
-
-        /// 2018, defaulted raw headers and introduced new block methods.
-        v1_3,
-
-        /// 2019, removed deserialized headers and added merkle proof features.
-        v1_4,
-
-        /// 2019, modifications for auxiliary proof-of-work handling.
-        v1_4_1,
-
-        /// 2020, added scripthash unsubscribe functionality.
-        v1_4_2,
-
-        /// 2022, updated response formats and added fee estimation modes.
-        v1_6
-    };
-
-    static constexpr protocol_version minimum = protocol_version::v1_4;
-    static constexpr protocol_version maximum = protocol_version::v1_4_2;
-
-    protocol_version version() const NOEXCEPT;
-    std::string_view get_version() const NOEXCEPT;
-    bool is_version(protocol_version version) const NOEXCEPT;
-    bool set_version(const interface::value_t& version) NOEXCEPT;
-    bool get_versions(protocol_version& min, protocol_version& max,
-        const interface::value_t& version) NOEXCEPT;
-
-    static std::string_view get_server() NOEXCEPT;
-    std::string_view get_client() const NOEXCEPT;
-    std::string escape_client(const std::string& in) NOEXCEPT;
-    bool set_client(const std::string& name) NOEXCEPT;
-
-private:
-    static std::string_view version_to_string(
-        protocol_version version) NOEXCEPT;
-    static protocol_version version_from_string(
-        const std::string_view& version) NOEXCEPT;
-
-    // These are protected by strand.
-    protocol_version version_{ protocol_version::v0_0 };
-    std::string name_{};
+    ////bool is_version(protocol_version version) const NOEXCEPT
+    ////{
+    ////    return version_ >= version;
+    ////}
 };
 
 } // namespace node

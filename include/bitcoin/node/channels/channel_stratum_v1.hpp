@@ -16,35 +16,36 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_RPC_HPP
-#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_RPC_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_STRATUM_V1_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_STRATUM_V1_HPP
 
 #include <memory>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Channel for electrum and stratum v1 channels (non-http json-rpc).
-template <typename Interface>
-class BCN_API channel_rpc
+/// Channel for stratum v1 channels (non-http json-rpc).
+class BCN_API channel_stratum_v1
   : public node::channel,
-    public network::channel_rpc<Interface>,
-    protected network::tracker<channel_rpc<Interface>>
+    public network::channel_rpc<interface::stratum_v1>,
+    protected network::tracker<channel_stratum_v1>
 {
 public:
-    typedef std::shared_ptr<channel_rpc> ptr;
-    using options_t = typename network::channel_rpc<Interface>::options_t;
+    typedef std::shared_ptr<channel_stratum_v1> ptr;
+    using interface_t = interface::stratum_v1;
+    using options_t = typename network::channel_rpc<interface_t>::options_t;
 
-    inline channel_rpc(const network::logger& log,
+    inline channel_stratum_v1(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
-        network::channel_rpc<Interface>(log, socket, identifier,
+        network::channel_rpc<interface::stratum_v1>(log, socket, identifier,
             config.network, options),
-        network::tracker<channel_rpc>(log)
+        network::tracker<channel_stratum_v1>(log)
     {
     }
 };

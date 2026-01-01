@@ -16,38 +16,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V2_HPP
-#define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_STRATUM_V2_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_STRATUM_V2_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_STRATUM_V2_HPP
 
 #include <memory>
-#include <bitcoin/node/channels/channels.hpp>
+#include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
-#include <bitcoin/node/protocols/protocol.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-class BCN_API protocol_stratum_v2
-  : public node::protocol,
-    public network::protocol,
-    protected network::tracker<protocol_stratum_v2>
+/// Channel for stratum v2 (custom protocol, not implemented).
+class BCN_API channel_stratum_v2
+  : public node::channel,
+    public network::channel,
+    protected network::tracker<channel_stratum_v2>
 {
 public:
-    typedef std::shared_ptr<protocol_stratum_v2> ptr;
-    using channel_t = node::channel_stratum_v2;
+    typedef std::shared_ptr<channel_stratum_v2> ptr;
 
-    inline protocol_stratum_v2(const auto& session,
-        const network::channel::ptr& channel, const options_t&) NOEXCEPT
-      : node::protocol(session, channel),
-        network::protocol(session, channel),
-        network::tracker<protocol_stratum_v2>(session->log)
+    inline channel_stratum_v2(const network::logger& log,
+        const network::socket::ptr& socket, uint64_t identifier,
+        const node::configuration& config, const options_t& options) NOEXCEPT
+      : node::channel(log, socket, identifier, config),
+        network::channel(log, socket, identifier, config.network, options),
+        network::tracker<channel_stratum_v2>(log)
     {
-    }
-
-    // TODO: subscribe to and handle messages.
-    inline void start() NOEXCEPT override
-    {
-        network::protocol::start();
     }
 };
 

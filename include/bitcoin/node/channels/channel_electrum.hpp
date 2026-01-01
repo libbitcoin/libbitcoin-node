@@ -16,32 +16,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_SV2_HPP
-#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_SV2_HPP
+#ifndef LIBBITCOIN_NODE_CHANNELS_CHANNEL_ELECTRUM_HPP
+#define LIBBITCOIN_NODE_CHANNELS_CHANNEL_ELECTRUM_HPP
 
 #include <memory>
 #include <bitcoin/node/channels/channel.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/interfaces/interfaces.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-/// Channel for stratum v2 (custom protocol, not implemented).
-class BCN_API channel_sv2
+// TODO: strip extraneous args before electrum version dispatch.
+// TODO: move version_ and name_ members into channel with set/get.
+// TODO: move to electrum version method to handshake protocol.
+/// Channel for electrum channels (non-http json-rpc).
+class BCN_API channel_electrum
   : public node::channel,
-    public network::channel,
-    protected network::tracker<channel_sv2>
+    public network::channel_rpc<interface::electrum>,
+    protected network::tracker<channel_electrum>
 {
 public:
-    typedef std::shared_ptr<channel_sv2> ptr;
+    typedef std::shared_ptr<channel_electrum> ptr;
+    using interface_t = interface::electrum;
+    using options_t = typename network::channel_rpc<interface_t>::options_t;
 
-    inline channel_sv2(const network::logger& log,
+    inline channel_electrum(const network::logger& log,
         const network::socket::ptr& socket, uint64_t identifier,
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
-        network::channel(log, socket, identifier, config.network, options),
-        network::tracker<channel_sv2>(log)
+        network::channel_rpc<interface::electrum>(log, socket, identifier,
+            config.network, options),
+        network::tracker<channel_electrum>(log)
     {
     }
 };

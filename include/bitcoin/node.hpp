@@ -28,10 +28,11 @@
 #include <bitcoin/node/settings.hpp>
 #include <bitcoin/node/version.hpp>
 #include <bitcoin/node/channels/channel.hpp>
+#include <bitcoin/node/channels/channel_electrum.hpp>
 #include <bitcoin/node/channels/channel_http.hpp>
 #include <bitcoin/node/channels/channel_peer.hpp>
-#include <bitcoin/node/channels/channel_rpc.hpp>
-#include <bitcoin/node/channels/channel_sv2.hpp>
+#include <bitcoin/node/channels/channel_stratum_v1.hpp>
+#include <bitcoin/node/channels/channel_stratum_v2.hpp>
 #include <bitcoin/node/channels/channel_ws.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
@@ -56,6 +57,7 @@
 #include <bitcoin/node/interfaces/types.hpp>
 #include <bitcoin/node/parsers/bitcoind_query.hpp>
 #include <bitcoin/node/parsers/bitcoind_target.hpp>
+#include <bitcoin/node/parsers/electrum_version.hpp>
 #include <bitcoin/node/parsers/explore_query.hpp>
 #include <bitcoin/node/parsers/explore_target.hpp>
 #include <bitcoin/node/parsers/parsers.hpp>
@@ -67,6 +69,7 @@
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70012.hpp>
 #include <bitcoin/node/protocols/protocol_electrum.hpp>
+#include <bitcoin/node/protocols/protocol_electrum_version.hpp>
 #include <bitcoin/node/protocols/protocol_explore.hpp>
 #include <bitcoin/node/protocols/protocol_filter_out_70015.hpp>
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
@@ -86,6 +89,7 @@
 #include <bitcoin/node/protocols/protocol_web.hpp>
 #include <bitcoin/node/protocols/protocols.hpp>
 #include <bitcoin/node/sessions/session.hpp>
+#include <bitcoin/node/sessions/session_handshake.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
