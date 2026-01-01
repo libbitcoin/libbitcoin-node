@@ -110,10 +110,9 @@ void protocol_electrum_version::handle_server_version(const code& ec,
 // Client/server names.
 // ----------------------------------------------------------------------------
 
-// static
-std::string_view protocol_electrum_version::get_server() NOEXCEPT
+std::string_view protocol_electrum_version::get_server() const NOEXCEPT
 {
-    return BC_USER_AGENT;
+    return settings().user_agent;
 }
 
 std::string_view protocol_electrum_version::get_client() const NOEXCEPT

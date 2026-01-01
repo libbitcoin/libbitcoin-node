@@ -105,7 +105,7 @@ protected:
     bool get_versions(protocol_version& min, protocol_version& max,
         const interface::value_t& version) NOEXCEPT;
 
-    static std::string_view get_server() NOEXCEPT;
+    std::string_view get_server() const NOEXCEPT;
     std::string_view get_client() const NOEXCEPT;
     std::string escape_client(const std::string& in) NOEXCEPT;
     bool set_client(const std::string& name) NOEXCEPT;
