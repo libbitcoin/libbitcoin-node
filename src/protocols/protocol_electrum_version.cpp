@@ -70,7 +70,7 @@ void protocol_electrum_version::complete(const code& ec,
     // Calls after handshake completion are allowed and will skip this.
     if (handler_)
     {
-        // shake error will result in stopped channel.
+        // Invoke handshake completion, error will result in stopped channel.
         (*handler_)(shake);
         handler_.reset();
     }
@@ -105,6 +105,9 @@ void protocol_electrum_version::handle_server_version(const code& ec,
                 }
             }, 70, BIND(complete, _1, error::success));
     }
+
+    // Handshake must leave channel paused, before leaving stranded handler.
+    if (handler_) pause();
 }
 
 // Client/server names.
