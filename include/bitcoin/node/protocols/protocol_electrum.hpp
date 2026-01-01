@@ -42,6 +42,7 @@ public:
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_rpc<channel_electrum>(session, channel, options),
+        channel_(std::dynamic_pointer_cast<channel_t>(channel)),
         network::tracker<protocol_electrum>(session->log)
     {
     }
@@ -116,10 +117,14 @@ protected:
         rpc_interface::mempool_get_fee_histogram) NOEXCEPT;
 
 protected:
-    ////bool is_version(protocol_version version) const NOEXCEPT
-    ////{
-    ////    return version_ >= version;
-    ////}
+    inline bool is_version(electrum_version version) const NOEXCEPT
+    {
+        return channel_->version() >= version;
+    }
+
+private:
+    // This is mostly thread safe, and used in a thread safe manner.
+    const channel_t::ptr channel_;
 };
 
 } // namespace node

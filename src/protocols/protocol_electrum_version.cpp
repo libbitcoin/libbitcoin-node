@@ -34,8 +34,6 @@ using namespace network;
 using namespace interface;
 using namespace std::placeholders;
 
-constexpr auto max_client_name_length = 1024u;
-
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
@@ -84,14 +82,14 @@ void protocol_electrum_version::complete(const code& ec,
 // Changed in version 1.6: server must tolerate and ignore extraneous args.
 void protocol_electrum_version::handle_server_version(const code& ec,
     rpc_interface::server_version, const std::string& client_name,
-    const value_t& electrum_version) NOEXCEPT
+    const value_t& protocol_version) NOEXCEPT
 {
     if (stopped(ec))
         return;
 
     // v0_0 implies version has not been set (first call).
-    if ((version() == electrum_version::v0_0) &&
-        (!set_client(client_name) || !set_version(electrum_version)))
+    if ((channel_->version() == electrum_version::v0_0) &&
+        (!set_client(client_name) || !set_version(protocol_version)))
     {
         const auto reason = error::invalid_argument;
         send_code(reason, BIND(complete, _1, reason));
@@ -102,8 +100,8 @@ void protocol_electrum_version::handle_server_version(const code& ec,
             {
                 array_t
                 {
-                    { string_t{ get_server() } },
-                    { string_t{ get_version() } }
+                    { string_t{ server_name() } },
+                    { string_t{ negotiated_version() } }
                 }
             }, 70, BIND(complete, _1, error::success));
     }
@@ -112,14 +110,14 @@ void protocol_electrum_version::handle_server_version(const code& ec,
 // Client/server names.
 // ----------------------------------------------------------------------------
 
-std::string_view protocol_electrum_version::get_server() const NOEXCEPT
+std::string_view protocol_electrum_version::server_name() const NOEXCEPT
 {
     return settings().user_agent;
 }
 
-std::string_view protocol_electrum_version::get_client() const NOEXCEPT
+std::string_view protocol_electrum_version::client_name() const NOEXCEPT
 {
-    return name_;
+    return channel_->client();
 }
 
 bool protocol_electrum_version::set_client(const std::string& name) NOEXCEPT
@@ -129,11 +127,12 @@ bool protocol_electrum_version::set_client(const std::string& name) NOEXCEPT
         return false;
 
     // Do not put to log without escaping.
-    name_ = escape_client(name);
+    channel_->set_client(escape_client(name));
     return true;
 }
 
-std::string protocol_electrum_version::escape_client(const std::string& in) NOEXCEPT
+std::string protocol_electrum_version::escape_client(
+    const std::string& in) NOEXCEPT
 {
     std::string out(in.size(), '*');
     std::transform(in.begin(), in.end(), out.begin(), [](char c) NOEXCEPT
@@ -148,14 +147,9 @@ std::string protocol_electrum_version::escape_client(const std::string& in) NOEX
 // Negotiated version.
 // ----------------------------------------------------------------------------
 
-electrum_version protocol_electrum_version::version() const NOEXCEPT
+std::string_view protocol_electrum_version::negotiated_version() const NOEXCEPT
 {
-    return version_;
-}
-
-std::string_view protocol_electrum_version::get_version() const NOEXCEPT
-{
-    return version_to_string(version_);
+    return version_to_string(channel_->version());
 }
 
 bool protocol_electrum_version::set_version(const value_t& version) NOEXCEPT
@@ -171,9 +165,9 @@ bool protocol_electrum_version::set_version(const value_t& version) NOEXCEPT
         return false;
 
     LOGA("Electrum [" << authority() << "] version ("
-        << version_to_string(client_max) << ") " << get_client());
+        << version_to_string(client_max) << ") " << client_name());
 
-    version_ = upper;
+    channel_->set_version(upper);
     return true;
 }
 

@@ -42,6 +42,7 @@ public:
         const network::channel::ptr& channel,
         const options_t& options) NOEXCEPT
       : node::protocol_rpc<channel_electrum>(session, channel, options),
+        channel_(std::dynamic_pointer_cast<channel_t>(channel)),
         network::tracker<protocol_electrum_version>(session->log)
     {
     }
@@ -50,22 +51,22 @@ public:
     virtual void complete(const code& ec, const code& shake) NOEXCEPT;
 
 protected:
+    static constexpr electrum_version minimum = electrum_version::v1_4;
+    static constexpr electrum_version maximum = electrum_version::v1_4_2;
+    static constexpr size_t max_client_name_length = 1024;
+
     void handle_server_version(const code& ec,
         rpc_interface::server_version, const std::string& client_name,
         const interface::value_t& protocol_version) NOEXCEPT;
 
-protected:
-    static constexpr electrum_version minimum = electrum_version::v1_4;
-    static constexpr electrum_version maximum = electrum_version::v1_4_2;
-
     electrum_version version() const NOEXCEPT;
-    std::string_view get_version() const NOEXCEPT;
+    std::string_view negotiated_version() const NOEXCEPT;
     bool set_version(const interface::value_t& version) NOEXCEPT;
     bool get_versions(electrum_version& min, electrum_version& max,
         const interface::value_t& version) NOEXCEPT;
 
-    std::string_view get_server() const NOEXCEPT;
-    std::string_view get_client() const NOEXCEPT;
+    std::string_view server_name() const NOEXCEPT;
+    std::string_view client_name() const NOEXCEPT;
     std::string escape_client(const std::string& in) NOEXCEPT;
     bool set_client(const std::string& name) NOEXCEPT;
 
@@ -75,10 +76,11 @@ private:
     static electrum_version version_from_string(
         const std::string_view& version) NOEXCEPT;
 
-    // These are protected by strand.
+    // This is mostly thread safe, and used in a thread safe manner.
+    const channel_t::ptr channel_;
+
+    // This is protected by strand.
     std::shared_ptr<network::result_handler> handler_{};
-    electrum_version version_{ electrum_version::v0_0 };
-    std::string name_{};
 };
 
 } // namespace node

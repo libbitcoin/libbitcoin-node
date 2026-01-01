@@ -24,6 +24,7 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/interfaces/interfaces.hpp>
+#include <bitcoin/node/parsers/parsers.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -51,6 +52,34 @@ public:
         network::tracker<channel_electrum>(log)
     {
     }
+
+    /// Properties.
+    /// -----------------------------------------------------------------------
+
+    inline void set_client(const std::string& name) NOEXCEPT
+    {
+        name_ = name;
+    }
+
+    inline const std::string& client() const NOEXCEPT
+    {
+        return name_;
+    }
+
+    inline void set_version(electrum_version version) NOEXCEPT
+    {
+        version_ = version;
+    }
+
+    inline electrum_version version() const NOEXCEPT
+    {
+        return version_;
+    }
+
+private:
+    // These are protected by strand.
+    electrum_version version_{ electrum_version::v0_0 };
+    std::string name_{};
 };
 
 } // namespace node
