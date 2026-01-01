@@ -57,8 +57,8 @@ protected:
         network::result_handler&& handler) NOEXCEPT override
     {
         using own = session_handshake<Handshake, Protocols...>;
-        const auto self = this->shared_from_base<own>();
-        channel->attach<Handshake>(self, this->options_)->
+        const auto self = this->template shared_from_base<own>();
+        channel->template attach<Handshake>(self, this->options_)->
             shake(std::move(handler));
     }
 

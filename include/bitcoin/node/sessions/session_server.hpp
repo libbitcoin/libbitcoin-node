@@ -95,7 +95,7 @@ protected:
     template <typename Next, typename ...Rest>
     inline void attach_rest(const channel_ptr& channel, const ptr& self) NOEXCEPT
     {
-        channel->attach<Next>(self, this->options_)->start();
+        channel->template attach<Next>(self, this->options_)->start();
         attach_rest<Rest...>(channel, self);
     }
 
@@ -105,8 +105,8 @@ protected:
     /// Use std::dynamic_pointer_cast<channel_t>(channel) to obtain channel_t.
     inline void attach_protocols(const channel_ptr& channel) NOEXCEPT override
     {
-        using base = session_server<Protocols...>;
-        const auto self = this->shared_from_base<base>();
+        using own = session_server<Protocols...>;
+        const auto self = this->template shared_from_base<own>();
         attach_rest<Protocols...>(channel, self);
     }
 
