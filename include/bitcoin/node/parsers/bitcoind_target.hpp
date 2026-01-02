@@ -27,7 +27,7 @@ namespace node {
 BCN_API code bitcoind_target(network::rpc::request_t& out,
     const std::string_view& path) NOEXCEPT;
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin
 
 #endif

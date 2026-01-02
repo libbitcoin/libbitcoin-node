@@ -41,7 +41,7 @@ using session_stratum_v2 = session_server<protocol_stratum_v2>;
 using session_electrum = session_handshake<protocol_electrum_version,
     protocol_electrum>;
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin
 
 #endif

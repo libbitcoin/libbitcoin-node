@@ -27,7 +27,7 @@ namespace node {
 BCN_API bool bitcoind_query(network::rpc::request_t& out,
     const network::http::request& request) NOEXCEPT;
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin
 
 #endif

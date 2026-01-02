@@ -66,7 +66,7 @@ enum class electrum_version
     v1_6
 };
 
-} // namespace network
+} // namespace node
 } // namespace libbitcoin
 
 #endif
