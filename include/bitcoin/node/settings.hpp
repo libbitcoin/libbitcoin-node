@@ -102,7 +102,7 @@ public:
 
 namespace server {
 
-/// HACK: must cast writer to non-const.
+// HACK: must cast writer to non-const.
 using span_value = network::http::span_body::value_type;
 
 /// [server] settings.

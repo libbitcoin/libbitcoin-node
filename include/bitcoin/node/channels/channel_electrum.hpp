@@ -30,8 +30,6 @@ namespace libbitcoin {
 namespace node {
 
 // TODO: strip extraneous args before electrum version dispatch.
-// TODO: move version_ and name_ members into channel with set/get.
-// TODO: move to electrum version method to handshake protocol.
 /// Channel for electrum channels (non-http json-rpc).
 class BCN_API channel_electrum
   : public node::channel,
