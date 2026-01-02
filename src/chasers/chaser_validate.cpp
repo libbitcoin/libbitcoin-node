@@ -37,21 +37,21 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Independent threadpool and strand (base class strand uses network pool).
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
-    threadpool_(node.config().node.threads_(),
-        node.config().node.thread_priority_()),
+    threadpool_(node.node_settings().threads_(),
+        node.node_settings().thread_priority_()),
     independent_strand_(threadpool_.service().get_executor()),
-    subsidy_interval_(node.config().bitcoin.subsidy_interval_blocks),
-    initial_subsidy_(node.config().bitcoin.initial_subsidy()),
-    maximum_backlog_(node.config().node.maximum_concurrency_()),
-    node_witness_(node.config().network.witness_node()),
-    defer_(node.config().node.defer_validation),
+    subsidy_interval_(node.system_settings().subsidy_interval_blocks),
+    initial_subsidy_(node.system_settings().initial_subsidy()),
+    maximum_backlog_(node.node_settings().maximum_concurrency_()),
+    node_witness_(node.network_settings().witness_node()),
+    defer_(node.node_settings().defer_validation),
     filter_(!defer_ && node.archive().filter_enabled())
 {
 }
 
 code chaser_validate::start() NOEXCEPT
 {
-    if (!config().node.headers_first)
+    if (!node_settings().headers_first)
         return error::success;
 
     const auto& query = archive();

@@ -44,10 +44,10 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
-    maximum_concurrency_(node.config().node.maximum_concurrency_()),
-    maximum_height_(node.config().node.maximum_height_()),
-    connections_(node.config().network.outbound.connections),
-    allowed_deviation_(node.config().node.allowed_deviation)
+    maximum_concurrency_(node.node_settings().maximum_concurrency_()),
+    maximum_height_(node.node_settings().maximum_height_()),
+    connections_(node.network_settings().outbound.connections),
+    allowed_deviation_(node.node_settings().allowed_deviation)
 {
 }
 
@@ -518,7 +518,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
     // Either condition means blocks shouldn't be getting downloaded (yet).
-    const size_t peers = config().network.outbound.connections;
+    const size_t peers = network_settings().outbound.connections;
     if (is_zero(peers) || !is_current(false))
         return zero;
 

@@ -40,10 +40,10 @@ protected:
     protocol_performer(const auto& session,
         const network::channel::ptr& channel, bool enabled) NOEXCEPT
       : node::protocol_peer(session, channel),
-        deviation_(session->config().node.allowed_deviation > 0.0),
-        enabled_(enabled && to_bool(session->config().node.sample_period_seconds)),
+        deviation_(session->node_settings().allowed_deviation > 0.0),
+        enabled_(enabled && to_bool(session->node_settings().sample_period_seconds)),
         performance_timer_(std::make_shared<network::deadline>(session->log,
-            channel->strand(), session->config().node.sample_period())),
+            channel->strand(), session->node_settings().sample_period())),
         network::tracker<protocol_performer>(session->log)
     {
     }

@@ -54,7 +54,11 @@ protected:
     query& archive() const NOEXCEPT;
 
     /// Configuration settings for all libraries.
-    const configuration& config() const NOEXCEPT;
+    virtual const node::configuration& node_config() const NOEXCEPT;
+    virtual const system::settings& system_settings() const NOEXCEPT;
+    virtual const database::settings& database_settings() const NOEXCEPT;
+    ////const network::settings& network_settings() const NOEXCEPT override;
+    virtual const node::settings& node_settings() const NOEXCEPT;
 
     /// The candidate|confirmed chain is current.
     virtual bool is_current(bool confirmed) const NOEXCEPT;

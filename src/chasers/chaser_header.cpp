@@ -29,7 +29,7 @@ using namespace system::chain;
 
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser_organize<header>(node),
-    milestone_(config().bitcoin.milestone)
+    milestone_(system_settings().milestone)
 {
 }
 

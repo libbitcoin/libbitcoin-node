@@ -34,7 +34,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser::chaser(full_node& node) NOEXCEPT
   : node_(node),
     strand_(node.service().get_executor()),
-    top_checkpoint_height_(node.config().bitcoin.top_checkpoint().height()),
+    top_checkpoint_height_(node.system_settings().top_checkpoint().height()),
     reporter(node.log)
 {
 }
@@ -122,14 +122,34 @@ bool chaser::stranded() const NOEXCEPT
 // Properties.
 // ----------------------------------------------------------------------------
 
-const node::configuration& chaser::config() const NOEXCEPT
-{
-    return node_.config();
-}
-
 query& chaser::archive() const NOEXCEPT
 {
     return node_.archive();
+}
+
+const node::configuration& chaser::node_config() const NOEXCEPT
+{
+    return node_.node_config();
+}
+
+const system::settings& chaser::system_settings() const NOEXCEPT
+{
+    return node_.system_settings();
+}
+
+const database::settings& chaser::database_settings() const NOEXCEPT
+{
+    return node_.database_settings();
+}
+
+const network::settings& chaser::network_settings() const NOEXCEPT
+{
+    return node_.network_settings();
+}
+
+const node::settings& chaser::node_settings() const NOEXCEPT
+{
+    return node_.node_settings();
 }
 
 bool chaser::is_current(bool confirmed) const NOEXCEPT

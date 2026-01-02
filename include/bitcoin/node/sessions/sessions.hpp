@@ -20,28 +20,9 @@
 #define LIBBITCOIN_NODE_SESSIONS_SESSIONS_HPP
 
 #include <bitcoin/node/sessions/session.hpp>
-#include <bitcoin/node/sessions/session_handshake.hpp>
 #include <bitcoin/node/sessions/session_inbound.hpp>
 #include <bitcoin/node/sessions/session_manual.hpp>
 #include <bitcoin/node/sessions/session_outbound.hpp>
 #include <bitcoin/node/sessions/session_peer.hpp>
-#include <bitcoin/node/sessions/session_server.hpp>
-
-#include <bitcoin/node/protocols/protocols.hpp>
-
-namespace libbitcoin {
-namespace node {
-
-/// Alias server sessions, all derived from node::session.
-using session_web = session_server<protocol_web>;
-using session_explore = session_server<protocol_explore>;
-using session_bitcoind = session_server<protocol_bitcoind_rest>;
-using session_stratum_v1 = session_server<protocol_stratum_v1>;
-using session_stratum_v2 = session_server<protocol_stratum_v2>;
-using session_electrum = session_handshake<protocol_electrum_version,
-    protocol_electrum>;
-
-} // namespace node
-} // namespace libbitcoin
 
 #endif

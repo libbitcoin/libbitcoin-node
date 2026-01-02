@@ -31,7 +31,7 @@ using namespace system::chain;
 
 chaser_block::chaser_block(full_node& node) NOEXCEPT
   : chaser_organize<block>(node),
-    node_witness_(node.config().network.witness_node())
+    node_witness_(node.network_settings().witness_node())
 {
 }
 

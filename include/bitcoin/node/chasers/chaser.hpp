@@ -120,11 +120,15 @@ protected:
     /// Properties.
     /// -----------------------------------------------------------------------
 
-    /// Node configuration settings.
-    const node::configuration& config() const NOEXCEPT;
-
     /// Thread safe synchronous archival interface.
     query& archive() const NOEXCEPT;
+
+    /// Configuration settings for all libraries.
+    const node::configuration& node_config() const NOEXCEPT;
+    const system::settings& system_settings() const NOEXCEPT;
+    const database::settings& database_settings() const NOEXCEPT;
+    const network::settings& network_settings() const NOEXCEPT;
+    const node::settings& node_settings() const NOEXCEPT;
 
     /// Top candidate|confirmed is within configured span from current time.
     bool is_current(bool confirmed) const NOEXCEPT;

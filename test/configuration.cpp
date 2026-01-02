@@ -25,31 +25,12 @@ BOOST_AUTO_TEST_SUITE(configuration_tests)
 
 BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
 {
-    const server::settings::embedded_pages web{};
-    const server::settings::embedded_pages explorer{};
-    const node::configuration instance(chain::selection::none, explorer, web);
-
-    BOOST_REQUIRE(instance.file.empty());
-    BOOST_REQUIRE(!instance.help);
-    BOOST_REQUIRE(!instance.hardware);
-    BOOST_REQUIRE(!instance.settings);
-    BOOST_REQUIRE(!instance.version);
-    BOOST_REQUIRE(!instance.newstore);
-    BOOST_REQUIRE(!instance.backup);
-    BOOST_REQUIRE(!instance.restore);
-    BOOST_REQUIRE(!instance.flags);
-    BOOST_REQUIRE(!instance.information);
-    BOOST_REQUIRE(!instance.slabs);
-    BOOST_REQUIRE(!instance.buckets);
-    BOOST_REQUIRE(!instance.collisions);
-    BOOST_REQUIRE_EQUAL(instance.test, null_hash);
-    BOOST_REQUIRE_EQUAL(instance.write, null_hash);
+    const node::configuration instance(chain::selection::none);
 
     // Just a sample of settings.
     BOOST_REQUIRE(instance.node.headers_first);
     BOOST_REQUIRE_EQUAL(instance.network.threads, 1_u32);
     BOOST_REQUIRE_EQUAL(instance.bitcoin.first_version, 1_u32);
-    BOOST_REQUIRE_EQUAL(instance.log.application, levels::application_defined);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

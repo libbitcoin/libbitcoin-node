@@ -19,14 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 
-/// base
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_html.hpp>
-#include <bitcoin/node/protocols/protocol_http.hpp>
-#include <bitcoin/node/protocols/protocol_peer.hpp>
-#include <bitcoin/node/protocols/protocol_rpc.hpp>
-
-/// peer
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
@@ -37,18 +30,9 @@
 #include <bitcoin/node/protocols/protocol_header_out_31800.hpp>
 #include <bitcoin/node/protocols/protocol_header_out_70012.hpp>
 #include <bitcoin/node/protocols/protocol_observer.hpp>
+#include <bitcoin/node/protocols/protocol_peer.hpp>
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
-
-/// server
-#include <bitcoin/node/protocols/protocol_web.hpp>
-#include <bitcoin/node/protocols/protocol_explore.hpp>
-#include <bitcoin/node/protocols/protocol_bitcoind_rest.hpp>
-#include <bitcoin/node/protocols/protocol_bitcoind_rpc.hpp>
-#include <bitcoin/node/protocols/protocol_electrum.hpp>
-#include <bitcoin/node/protocols/protocol_electrum_version.hpp>
-#include <bitcoin/node/protocols/protocol_stratum_v1.hpp>
-#include <bitcoin/node/protocols/protocol_stratum_v2.hpp>
 
 #endif

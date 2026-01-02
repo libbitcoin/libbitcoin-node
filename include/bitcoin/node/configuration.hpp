@@ -29,42 +29,13 @@ namespace node {
 class BCN_API configuration
 {
 public:
-    configuration(system::chain::selection context,
-        const server::settings::embedded_pages& explore,
-        const server::settings::embedded_pages& web) NOEXCEPT;
-
-    /// Environment.
-    std::filesystem::path file;
-
-    /// Information.
-    bool help{};
-    bool hardware{};
-    bool settings{};
-    bool version{};
-
-    /// Actions.
-    bool newstore{};
-    bool backup{};
-    bool restore{};
-
-    /// Chain scans.
-    bool flags{};
-    bool information{};
-    bool slabs{};
-    bool buckets{};
-    bool collisions{};
-
-    /// Ad-hoc Testing.
-    system::config::hash256 test{};
-    system::config::hash256 write{};
+    configuration(system::chain::selection context) NOEXCEPT;
 
     /// Settings.
-    log::settings log;
-    server::settings server;
-    node::settings node;
-    network::settings network;
-    database::settings database;
     system::settings bitcoin;
+    database::settings database;
+    network::settings network;
+    node::settings node;
 };
 
 } // namespace node

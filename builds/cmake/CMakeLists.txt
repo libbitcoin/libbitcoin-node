@@ -252,7 +252,6 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/configuration.cpp"
     "../../src/error.cpp"
     "../../src/full_node.cpp"
-    "../../src/parser.cpp"
     "../../src/settings.cpp"
     "../../src/channels/channel_peer.cpp"
     "../../src/chasers/chaser.cpp"
@@ -265,31 +264,19 @@ add_library( ${CANONICAL_LIB_NAME}
     "../../src/chasers/chaser_template.cpp"
     "../../src/chasers/chaser_transaction.cpp"
     "../../src/chasers/chaser_validate.cpp"
-    "../../src/parsers/bitcoind_query.cpp"
-    "../../src/parsers/bitcoind_target.cpp"
-    "../../src/parsers/explore_query.cpp"
-    "../../src/parsers/explore_target.cpp"
     "../../src/protocols/protocol.cpp"
-    "../../src/protocols/protocol_bitcoind_rest.cpp"
-    "../../src/protocols/protocol_bitcoind_rpc.cpp"
     "../../src/protocols/protocol_block_in_106.cpp"
     "../../src/protocols/protocol_block_in_31800.cpp"
     "../../src/protocols/protocol_block_out_106.cpp"
     "../../src/protocols/protocol_block_out_70012.cpp"
-    "../../src/protocols/protocol_electrum.cpp"
-    "../../src/protocols/protocol_electrum_version.cpp"
-    "../../src/protocols/protocol_explore.cpp"
     "../../src/protocols/protocol_filter_out_70015.cpp"
     "../../src/protocols/protocol_header_in_31800.cpp"
     "../../src/protocols/protocol_header_in_70012.cpp"
     "../../src/protocols/protocol_header_out_31800.cpp"
     "../../src/protocols/protocol_header_out_70012.cpp"
-    "../../src/protocols/protocol_html.cpp"
-    "../../src/protocols/protocol_http.cpp"
     "../../src/protocols/protocol_observer.cpp"
     "../../src/protocols/protocol_peer.cpp"
     "../../src/protocols/protocol_performer.cpp"
-    "../../src/protocols/protocol_stratum_v1.cpp"
     "../../src/protocols/protocol_transaction_in_106.cpp"
     "../../src/protocols/protocol_transaction_out_106.cpp"
     "../../src/sessions/session.cpp"
@@ -356,10 +343,6 @@ if (with-tests)
         "../../test/chasers/chaser_template.cpp"
         "../../test/chasers/chaser_transaction.cpp"
         "../../test/chasers/chaser_validate.cpp"
-        "../../test/parsers/bitcoind_query.cpp"
-        "../../test/parsers/bitcoind_target.cpp"
-        "../../test/parsers/explore_query.cpp"
-        "../../test/parsers/explore_target.cpp"
         "../../test/protocols/protocol.cpp"
         "../../test/sessions/session.cpp" )
 
@@ -381,51 +364,6 @@ if (with-tests)
     target_link_libraries( libbitcoin-node-test
         ${CANONICAL_LIB_NAME}
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY} )
-
-endif()
-
-# Define bn project.
-#------------------------------------------------------------------------------
-if (with-console)
-    add_executable( bn
-        "../../console/executor.cpp"
-        "../../console/executor.hpp"
-        "../../console/executor_commands.cpp"
-        "../../console/executor_dumps.cpp"
-        "../../console/executor_events.cpp"
-        "../../console/executor_logging.cpp"
-        "../../console/executor_options.cpp"
-        "../../console/executor_runner.cpp"
-        "../../console/executor_scans.cpp"
-        "../../console/executor_store.cpp"
-        "../../console/executor_test_reader.cpp"
-        "../../console/executor_test_writer.cpp"
-        "../../console/libbitcoin.ico"
-        "../../console/localize.hpp"
-        "../../console/main.cpp"
-        "../../console/stack_trace.cpp"
-        "../../console/stack_trace.hpp"
-        "../../console/embedded/embedded.hpp"
-        "../../console/embedded/explore_css.cpp"
-        "../../console/embedded/explore_ecma.cpp"
-        "../../console/embedded/explore_font.cpp"
-        "../../console/embedded/explore_html.cpp"
-        "../../console/embedded/explore_icon.cpp"
-        "../../console/embedded/web_css.cpp"
-        "../../console/embedded/web_ecma.cpp"
-        "../../console/embedded/web_font.cpp"
-        "../../console/embedded/web_html.cpp"
-        "../../console/embedded/web_icon.cpp" )
-
-#     bn project specific include directories.
-#------------------------------------------------------------------------------
-    target_include_directories( bn PRIVATE
-        "../../include" )
-
-#     bn project specific libraries/linker flags.
-#------------------------------------------------------------------------------
-    target_link_libraries( bn
-        ${CANONICAL_LIB_NAME} )
 
 endif()
 
@@ -458,34 +396,8 @@ install( TARGETS ${CANONICAL_LIB_NAME}
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include )
 
-# Manage bn installation.
-#------------------------------------------------------------------------------
-if (with-console)
-    install( TARGETS bn
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        PUBLIC_HEADER DESTINATION include )
-endif()
-
 # Manage include installation.
 #------------------------------------------------------------------------------
 install( DIRECTORY "../../include/bitcoin"
     DESTINATION include )
-
-# Manage data installation for bash_completion prefixed product.
-#------------------------------------------------------------------------------
-if (bash-completiondir)
-    install( FILES
-        "../../data/bn"
-        DESTINATION etc/libbitcoin )
-endif()
-
-# Manage data installation for sysconf prefixed product.
-#------------------------------------------------------------------------------
-if (with-console)
-    install( FILES
-        "../../data/bn.cfg"
-        DESTINATION etc/libbitcoin )
-endif()
 

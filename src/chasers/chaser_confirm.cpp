@@ -36,7 +36,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
     filter_(node.archive().filter_enabled()),
-    defer_(node.config().node.defer_confirmation)
+    defer_(node.node_settings().defer_confirmation)
 {
 }
 

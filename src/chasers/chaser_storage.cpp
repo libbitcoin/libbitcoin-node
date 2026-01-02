@@ -38,7 +38,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_storage::chaser_storage(full_node& node) NOEXCEPT
   : chaser(node),
-    store_(node.config().database.path)
+    store_(node.database_settings().path)
 {
 }
 

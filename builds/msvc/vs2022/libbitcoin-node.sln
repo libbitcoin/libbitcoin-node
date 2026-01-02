@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbitcoin-node", "libbitco
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbitcoin-node-test", "libbitcoin-node-test\libbitcoin-node-test.vcxproj", "{4BD50864-D3BC-4F64-AEBB-DDEB8A622FA8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bn", "bn\bn.vcxproj", "{D3404804-C83F-46CE-A5A6-3A39EF93DE46}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		StaticDebug|Win32 = StaticDebug|Win32
@@ -53,22 +51,6 @@ Global
 		{4BD50864-D3BC-4F64-AEBB-DDEB8A622FA8}.StaticRelease|ARM.Build.0 = ReleaseSEXE|ARM
 		{4BD50864-D3BC-4F64-AEBB-DDEB8A622FA8}.StaticRelease|ARM64.ActiveCfg = ReleaseSEXE|ARM64
 		{4BD50864-D3BC-4F64-AEBB-DDEB8A622FA8}.StaticRelease|ARM64.Build.0 = ReleaseSEXE|ARM64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|Win32.ActiveCfg = DebugSEXE|Win32
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|Win32.Build.0 = DebugSEXE|Win32
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|x64.ActiveCfg = DebugSEXE|x64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|x64.Build.0 = DebugSEXE|x64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|Win32.ActiveCfg = ReleaseSEXE|Win32
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|Win32.Build.0 = ReleaseSEXE|Win32
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|x64.ActiveCfg = ReleaseSEXE|x64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|x64.Build.0 = ReleaseSEXE|x64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|ARM.ActiveCfg = DebugSEXE|ARM
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|ARM.Build.0 = DebugSEXE|ARM
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|ARM64.ActiveCfg = DebugSEXE|ARM64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticDebug|ARM64.Build.0 = DebugSEXE|ARM64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|ARM.ActiveCfg = ReleaseSEXE|ARM
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|ARM.Build.0 = ReleaseSEXE|ARM
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|ARM64.ActiveCfg = ReleaseSEXE|ARM64
-		{D3404804-C83F-46CE-A5A6-3A39EF93DE46}.StaticRelease|ARM64.Build.0 = ReleaseSEXE|ARM64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
