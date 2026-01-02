@@ -22,8 +22,6 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/settings.hpp>
 
-#define BC_HTTP_SERVER_NAME "libbitcoin/4.0"
-
 ////std::filesystem::path config_default_path() NOEXCEPT
 ////{
 ////    return { "libbitcoin/bn.cfg" };
