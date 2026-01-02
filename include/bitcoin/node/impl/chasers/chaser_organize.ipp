@@ -33,8 +33,8 @@ namespace node {
 TEMPLATE
 CLASS::chaser_organize(full_node& node) NOEXCEPT
   : chaser(node),
-    settings_(config().bitcoin),
-    checkpoints_(config().bitcoin.checkpoints)
+    settings_(system_settings()),
+    checkpoints_(system_settings().checkpoints)
 {
 }
 

@@ -38,8 +38,8 @@ public:
         const network::channel::ptr& channel, bool performance_enabled=true) NOEXCEPT
       : protocol_performer(session, channel, performance_enabled),
         top_checkpoint_height_(
-            session->config().bitcoin.top_checkpoint().height()),
-        block_type_(session->config().network.witness_node() ?
+            session->system_settings().top_checkpoint().height()),
+        block_type_(session->network_settings().witness_node() ?
             type_id::witness_block : type_id::block),
         map_(chaser_check::empty_map()),
         network::tracker<protocol_block_in_31800>(session->log)

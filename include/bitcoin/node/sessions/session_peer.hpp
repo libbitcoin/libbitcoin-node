@@ -62,7 +62,7 @@ protected:
 
         const auto channel = std::make_shared<channel_t>(
             this->get_memory(), this->log, socket, this->create_key(),
-            this->config(), this->options());
+            this->node_config(), this->options());
 
         return std::static_pointer_cast<network::channel>(channel);
     }
@@ -93,17 +93,17 @@ protected:
         using base = session_peer<NetworkSession>;
 
         const auto self = this->template shared_from_base<base>();
-        const auto relay = this->config().network.enable_relay;
-        const auto delay = this->config().node.delay_inbound;
-        const auto headers = this->config().node.headers_first;
+        const auto relay = this->network_settings().enable_relay;
+        const auto delay = this->node_settings().delay_inbound;
+        const auto headers = this->node_settings().headers_first;
         const auto node_network = to_bool(bit_and<uint64_t>
         (
-            this->config().network.services_maximum,
+            this->network_settings().services_maximum,
             service::node_network
         ));
         const auto node_client_filters = to_bool(bit_and<uint64_t>
         (
-            this->config().network.services_maximum,
+            this->network_settings().services_maximum,
             service::node_client_filters
         ));
 

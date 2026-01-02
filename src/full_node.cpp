@@ -76,7 +76,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
     code ec{};
 
-    if (((ec = (config().node.headers_first ?
+    if (((ec = (config_.node.headers_first ?
             chaser_header_.start() :
             chaser_block_.start()))) ||
         ((ec = chaser_check_.start())) ||
@@ -115,96 +115,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
     do_notify(error::success, chase::start, height_t{});
 
     // Start services after network is running.
-    net::do_run(std::bind(&full_node::start_web, this, _1, handler));
-}
-
-void full_node::start_web(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_web_session()->start(
-        std::bind(&full_node::start_explore, this, _1, handler));
-}
-
-void full_node::start_explore(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_explore_session()->start(
-        std::bind(&full_node::start_bitcoind, this, _1, handler));
-}
-
-void full_node::start_bitcoind(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_bitcoind_session()->start(
-        std::bind(&full_node::start_electrum, this, _1, handler));
-}
-
-void full_node::start_electrum(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_electrum_session()->start(
-        std::bind(&full_node::start_stratum_v1, this, _1, handler));
-}
-
-void full_node::start_stratum_v1(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_stratum_v1_session()->start(
-        std::bind(&full_node::start_stratum_v2, this, _1, handler));
-}
-
-void full_node::start_stratum_v2(const code& ec,
-    const result_handler& handler) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (ec)
-    {
-        handler(ec);
-        return;
-    }
-
-    attach_stratum_v2_session()->start(move_copy(handler));
+    net::do_run(handler);
 }
 
 void full_node::close() NOEXCEPT
@@ -458,9 +369,29 @@ query& full_node::archive() const NOEXCEPT
     return query_;
 }
 
-const configuration& full_node::config() const NOEXCEPT
+const node::configuration& full_node::node_config() const NOEXCEPT
 {
     return config_;
+}
+
+const system::settings& full_node::system_settings() const NOEXCEPT
+{
+    return config_.bitcoin;
+}
+
+const database::settings& full_node::database_settings() const NOEXCEPT
+{
+    return config_.database;
+}
+
+////const network::settings& full_node::network_settings() const NOEXCEPT
+////{
+////    return network_.network_settings();
+////}
+
+const node::settings& full_node::node_settings() const NOEXCEPT
+{
+    return config_.node;
 }
 
 bool full_node::is_current(bool confirmed) const NOEXCEPT
@@ -523,36 +454,6 @@ network::session_inbound::ptr full_node::attach_inbound_session() NOEXCEPT
 network::session_outbound::ptr full_node::attach_outbound_session() NOEXCEPT
 {
     return net::attach<node::session_outbound>(*this);
-}
-
-session_web::ptr full_node::attach_web_session() NOEXCEPT
-{
-    return net::attach<session_web>(*this, config_.server.web);
-}
-
-session_explore::ptr full_node::attach_explore_session() NOEXCEPT
-{
-    return net::attach<session_explore>(*this, config_.server.explore);
-}
-
-session_bitcoind::ptr full_node::attach_bitcoind_session() NOEXCEPT
-{
-    return net::attach<session_bitcoind>(*this, config_.server.bitcoind);
-}
-
-session_electrum::ptr full_node::attach_electrum_session() NOEXCEPT
-{
-    return net::attach<session_electrum>(*this, config_.server.electrum);
-}
-
-session_stratum_v1::ptr full_node::attach_stratum_v1_session() NOEXCEPT
-{
-    return net::attach<session_stratum_v1>(*this, config_.server.stratum_v1);
-}
-
-session_stratum_v2::ptr full_node::attach_stratum_v2_session() NOEXCEPT
-{
-    return net::attach<session_stratum_v2>(*this, config_.server.stratum_v2);
 }
 
 BC_POP_WARNING()

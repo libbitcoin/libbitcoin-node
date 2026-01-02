@@ -25,7 +25,7 @@ namespace node {
 // Used instead of suspension because suspension has independent start/stop.
 bool session_inbound::enabled() const NOEXCEPT
 {
-    return !config().node.delay_inbound || is_recent();
+    return !node_settings().delay_inbound || is_recent();
 }
 
 } // namespace node

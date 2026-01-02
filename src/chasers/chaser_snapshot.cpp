@@ -38,9 +38,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_snapshot::chaser_snapshot(full_node& node) NOEXCEPT
   : chaser(node)
-    ////snapshot_bytes_(node.config().node.snapshot_bytes),
-    ////snapshot_valid_(node.config().node.snapshot_valid),
-    ////snapshot_confirm_(node.config().node.snapshot_confirm),
+    ////snapshot_bytes_(node.node_settings().snapshot_bytes),
+    ////snapshot_valid_(node.node_settings().snapshot_valid),
+    ////snapshot_confirm_(node.node_settings().snapshot_confirm),
     ////enabled_bytes_(to_bool(snapshot_bytes_)),
     ////enabled_valid_(to_bool(snapshot_valid_)),
     ////enabled_confirm_(to_bool(snapshot_confirm_))

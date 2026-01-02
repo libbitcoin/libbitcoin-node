@@ -23,18 +23,12 @@
 namespace libbitcoin {
 namespace node {
 
-using namespace bc::system;
-
 // Construct with defaults derived from given context.
-configuration::configuration(system::chain::selection context,
-    const server::settings::embedded_pages& explore,
-    const server::settings::embedded_pages& web) NOEXCEPT
-  : log(context),
-    server(context, explore, web),
-    node(context),
-    network(context),
+configuration::configuration(system::chain::selection context) NOEXCEPT
+  : bitcoin(context),
     database(context),
-    bitcoin(context)
+    network(context),
+    node(context)
 {
 }
 

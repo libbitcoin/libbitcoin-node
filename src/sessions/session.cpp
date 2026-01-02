@@ -124,9 +124,29 @@ full_node::query& session::archive() const NOEXCEPT
     return node_.archive();
 }
 
-const configuration& session::config() const NOEXCEPT
+const node::configuration& session::node_config() const NOEXCEPT
 {
-    return node_.config();
+    return node_.node_config();
+}
+
+const system::settings& session::system_settings() const NOEXCEPT
+{
+    return node_.system_settings();
+}
+
+const database::settings& session::database_settings() const NOEXCEPT
+{
+    return node_.database_settings();
+}
+
+////const network::settings& session::network_settings() const NOEXCEPT
+////{
+////    return node_.network_settings();
+////}
+
+const node::settings& session::node_settings() const NOEXCEPT
+{
+    return node_.node_settings();
 }
 
 bool session::is_current(bool confirmed) const NOEXCEPT

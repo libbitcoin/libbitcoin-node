@@ -32,9 +32,29 @@ query& protocol::archive() const NOEXCEPT
     return session_->archive();
 }
 
-const configuration& protocol::config() const NOEXCEPT
+const node::configuration& protocol::node_config() const NOEXCEPT
 {
-    return session_->config();
+    return session_->node_config();
+}
+
+const system::settings& protocol::system_settings() const NOEXCEPT
+{
+    return session_->system_settings();
+}
+
+const database::settings& protocol::database_settings() const NOEXCEPT
+{
+    return session_->database_settings();
+}
+
+////const network::settings& protocol::network_settings() const NOEXCEPT
+////{
+////    return session_->network_settings();
+////}
+
+const node::settings& protocol::node_settings() const NOEXCEPT
+{
+    return session_->node_settings();
 }
 
 bool protocol::is_current(bool confirmed) const NOEXCEPT

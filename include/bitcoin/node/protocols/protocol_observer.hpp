@@ -43,9 +43,9 @@ public:
         (
             std::dynamic_pointer_cast<network::channel_peer>(channel)->
                 is_negotiated(network::messages::peer::level::bip37) &&
-            !session->config().network.enable_relay
+            !session->network_settings().enable_relay
         ),
-        node_witness_(session->config().network.witness_node()),
+        node_witness_(session->network_settings().witness_node()),
         network::tracker<protocol_observer>(session->log)
     {
     }

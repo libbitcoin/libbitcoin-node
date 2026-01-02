@@ -98,30 +98,7 @@ enum error_t : uint8_t
     confirm10,
     confirm11,
     confirm12,
-    confirm13,
-
-    /// server (url parse codes)
-    empty_path,
-    invalid_number,
-    invalid_hash,
-    missing_version,
-    missing_target,
-    invalid_target,
-    missing_hash,
-    missing_height,
-    missing_position,
-    missing_id_type,
-    invalid_id_type,
-    missing_type_id,
-    missing_component,
-    invalid_component,
-    invalid_subcomponent,
-    extra_segment,
-
-    /// server (rpc response codes)
-    not_found,
-    invalid_argument,
-    not_implemented
+    confirm13
 };
 
 // No current need for error_code equivalence mapping.

@@ -125,8 +125,7 @@
             "hidden": true,
             "targets": [
                 "bitcoin-node",
-                "libbitcoin-node-test",
-                "bn"
+                "libbitcoin-node-test"
             ]
         },
         {
