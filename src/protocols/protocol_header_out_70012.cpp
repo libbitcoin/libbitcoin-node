@@ -100,7 +100,7 @@ bool protocol_header_out_70012::do_announce(header_t link) NOEXCEPT
     if (was_announced(hash))
     {
         LOGP("Suppress " << encode_hash(hash) << " to ["
-            << authority() << "].");
+            << opposite() << "].");
         return true;
     }
 
@@ -112,7 +112,7 @@ bool protocol_header_out_70012::do_announce(header_t link) NOEXCEPT
         return true;
     }
 
-    LOGN("Announce " << encode_hash(hash) << " to [" << authority() << "].");
+    LOGN("Announce " << encode_hash(hash) << " to [" << opposite() << "].");
     SEND(headers{ { ptr } }, handle_send, _1);
     return true;
 }

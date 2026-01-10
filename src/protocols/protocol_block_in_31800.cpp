@@ -183,7 +183,7 @@ void protocol_block_in_31800::do_purge(peer_t) NOEXCEPT
 
     if (!map_->empty())
     {
-        LOGV("Purge work (" << map_->size() << ") from [" << authority() << "].");
+        LOGV("Purge work (" << map_->size() << ") from [" << opposite() << "].");
         map_->clear();
         stop(error::sacrificed_channel);
     }
@@ -196,7 +196,7 @@ void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
     if (stopped())
         return;
 
-    LOGV("Divide work (" << map_->size() << ") from [" << authority() << "].");
+    LOGV("Divide work (" << map_->size() << ") from [" << opposite() << "].");
     restore(chaser_check::split(map_));
     restore(map_);
     map_ = chaser_check::empty_map();
@@ -209,7 +209,7 @@ void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
 
     // Uses application logging since it outputs to a runtime option.
     LOGA("Work report [" << sequence << "] is (" << map_->size() << ") for ["
-        << authority() << "].");
+        << opposite() << "].");
 }
 
 // request hashes
@@ -279,7 +279,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     {
         // Allow unrequested block, not counted toward performance.
         LOGR("Unrequested block [" << encode_hash(hash) << "] from ["
-            << authority() << "].");
+            << opposite() << "].");
         return true;
     }
 
@@ -302,7 +302,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             code == system::error::invalid_witness_commitment)
         {
             LOGR("Malleated block [" << encode_hash(hash) << ":" << height
-                << "] from [" << authority() << "] " << code.message()
+                << "] from [" << opposite() << "] " << code.message()
                 << " txs(" << block->transactions() << ")"
                 << " segregated(" << block->is_segregated() << ").");
             stop(code);
@@ -316,7 +316,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         }
 
         LOGR("Block failed check [" << encode_hash(hash) << ":" << height
-            << "] from [" << authority() << "] " << code.message());
+            << "] from [" << opposite() << "] " << code.message());
         notify(error::success, chase::unchecked, link);
         fire(events::block_unconfirmable, height);
         stop(code);
@@ -329,7 +329,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     if (const auto code = query.set_code(*block, link, checked))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
-            << "] from [" << authority() << "] " << code.message());
+            << "] from [" << opposite() << "] " << code.message());
 
         stop(fault(code));
         return false;
@@ -339,7 +339,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // ........................................................................
 
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
-        << "] from [" << authority() << "].");
+        << "] from [" << opposite() << "].");
 
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
@@ -388,18 +388,18 @@ void protocol_block_in_31800::restore(const map_ptr& map) NOEXCEPT
 void protocol_block_in_31800::handle_put_hashes(const code& ec,
     size_t count) NOEXCEPT
 {
-    LOGV("Put (" << count << ") work for [" << authority() << "].");
+    LOGV("Put (" << count << ") work for [" << opposite() << "].");
 
     if (ec)
     {
-        LOGF("Error putting work for [" << authority() << "] " << ec.message());
+        LOGF("Error putting work for [" << opposite() << "] " << ec.message());
     }
 }
 
 void protocol_block_in_31800::handle_get_hashes(const code& ec,
     const map_ptr& map, const job::ptr& job) NOEXCEPT
 {
-    LOGV("Got (" << map->size() << ") work for [" << authority() << "].");
+    LOGV("Got (" << map->size() << ") work for [" << opposite() << "].");
 
     if (stopped())
     {
@@ -409,7 +409,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
     if (ec)
     {
-        LOGF("Error getting work for [" << authority() << "] " << ec.message());
+        LOGF("Error getting work for [" << opposite() << "] " << ec.message());
         stop(ec);
         return;
     }

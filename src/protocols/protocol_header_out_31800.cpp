@@ -60,7 +60,7 @@ bool protocol_header_out_31800::handle_receive_get_headers(const code& ec,
         return false;
 
     LOGP("Get headers above " << encode_hash(message->start_hash())
-        << " from [" << authority() << "].");
+        << " from [" << opposite() << "].");
 
     SEND(create_headers(*message), handle_send, _1);
     return true;

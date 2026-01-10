@@ -81,14 +81,14 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
     if (!tracker_.ids.empty())
     {
         LOGP("Unrequested (" << block_count << ") block inventory from ["
-            << authority() << "] with (" << tracker_.ids.size()
+            << opposite() << "] with (" << tracker_.ids.size()
             << ") pending.");
         return true;
     }
 
     const auto getter = create_get_data(*message);
     LOGP("Received (" << block_count << ") block inventory from ["
-        << authority() << "] with (" << getter.items.size()
+        << opposite() << "] with (" << getter.items.size()
         << ") new blocks.");
 
     // If getter is empty it may be because we have them all.
@@ -103,12 +103,12 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
 
         // A non-maximal inventory has no new blocks, assume complete.
         // Inventory completeness assumes empty response if caught up at 500.
-        LOGP("Completed block inventory from [" << authority() << "].");
+        LOGP("Completed block inventory from [" << opposite() << "].");
         return true;
     }
 
     LOGP("Requested (" << getter.items.size() << ") blocks from ["
-        << authority() << "].");
+        << opposite() << "].");
 
     // Track inventory and request blocks (to_hashes order is reversed).
     tracker_.announced = block_count;
@@ -136,7 +136,7 @@ bool protocol_block_in_106::handle_receive_block(const code& ec,
     if (tracker_.ids.find(block_ptr->get_hash()) == tracker_.ids.end())
     {
         LOGP("Unrequested block [" << encode_hash(block_ptr->get_hash())
-            << "] from [" << authority() << "].");
+            << "] from [" << opposite() << "].");
         return true;
     }
 
@@ -176,12 +176,12 @@ void protocol_block_in_106::do_handle_organize(const code& ec, size_t height,
             // Many peers blindly broadcast blocks even at/above v31800, ugh.
             // If we are not caught up on headers this is useless information.
             LOGP("Block [" << encode_hash(block_ptr->get_hash()) << "] from ["
-                << authority() << "] " << ec.message());
+                << opposite() << "] " << ec.message());
         }
         else
         {
             LOGR("Block [" << encode_hash(block_ptr->hash()) << ":" << height
-                << "] from [" << authority() << "] " << ec.message());
+                << "] from [" << opposite() << "] " << ec.message());
         }
 
         stop(ec);
@@ -189,7 +189,7 @@ void protocol_block_in_106::do_handle_organize(const code& ec, size_t height,
     }
 
     LOGP("Block [" << encode_hash(block_ptr->get_hash()) << ":" << height
-        << "] from [" << authority() << "].");
+        << "] from [" << opposite() << "].");
 
     // Completion of tracked inventory.
     if (tracker_.ids.empty())
@@ -203,7 +203,7 @@ void protocol_block_in_106::do_handle_organize(const code& ec, size_t height,
         {
             // Completeness stalls if on 500 as empty message is ambiguous.
             // This is ok, since complete is not used for anything essential.
-            LOGP("Completed blocks from [" << authority() << "] with ("
+            LOGP("Completed blocks from [" << opposite() << "] with ("
                 << tracker_.announced << ") announced.");
         }
     }
@@ -238,13 +238,13 @@ get_blocks protocol_block_in_106::create_get_inventory(
     if (hashes.size() == one)
     {
         LOGP("Request block inventory after [" << encode_hash(hashes.front())
-            << "] from [" << authority() << "].");
+            << "] from [" << opposite() << "].");
     }
     else
     {
         LOGP("Request block inventory (" << hashes.size() << ") after ["
             << encode_hash(hashes.front()) << "] from ["
-            << authority() << "].");
+            << opposite() << "].");
     }
 
     return { std::move(hashes) };

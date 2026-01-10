@@ -131,7 +131,7 @@ bool protocol_block_out_106::handle_receive_get_blocks(const code& ec,
         return false;
 
     LOGP("Get headers above " << encode_hash(message->start_hash())
-        << " from [" << authority() << "].");
+        << " from [" << opposite() << "].");
 
     SEND(create_inventory(*message), handle_send, _1);
     return true;
@@ -178,7 +178,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     const auto witness = item.is_witness_type();
     if (!node_witness_ && witness)
     {
-        LOGR("Unsupported witness get_data from [" << authority() << "].");
+        LOGR("Unsupported witness get_data from [" << opposite() << "].");
         stop(network::error::protocol_violation);
         return;
     }
@@ -192,7 +192,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     if (!ptr)
     {
         LOGR("Requested block " << encode_hash(item.hash)
-            << " from [" << authority() << "] not found.");
+            << " from [" << opposite() << "] not found.");
 
         // This block could not have been advertised to the peer.
         stop(system::error::not_found);

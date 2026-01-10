@@ -36,7 +36,7 @@ void protocol_header_in_70012::complete() NOEXCEPT
     {
         subscribed = true;
         SEND(send_headers{}, handle_send, _1);
-        LOGP("Subscribed to header announcements at [" << authority() << "].");
+        LOGP("Subscribed to header announcements at [" << opposite() << "].");
     }
 
     // Must come after subscribed is updated.

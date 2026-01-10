@@ -135,14 +135,14 @@ void protocol_performer::do_handle_performance(const code& ec) NOEXCEPT
     // Caused only by performance(zero|xxx) - had outstanding work.
     if (ec == error::stalled_channel || ec == error::slow_channel)
     {
-        LOGP("Channel dropped [" << authority() << "] " << ec.message());
+        LOGP("Channel dropped [" << opposite() << "] " << ec.message());
         stop(ec);
         return;
     }
 
     if (ec)
     {
-        LOGF("Performance failure [" << authority() << "] " << ec.message());
+        LOGF("Performance failure [" << opposite() << "] " << ec.message());
         stop(ec);
         return;
     }
