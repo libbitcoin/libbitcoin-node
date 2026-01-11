@@ -63,7 +63,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
         return false;
 
     LOGP("Headers (" << message->header_ptrs.size() << ") from ["
-        << authority() << "].");
+        << opposite() << "].");
 
     // Store each header, drop channel if invalid.
     for (const auto& ptr: message->header_ptrs)
@@ -89,7 +89,7 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     {
         // Protocol presumes max_get_headers unless complete.
         // Completeness assumes empty response from peer if caught up at 2000.
-        LOGP("Completed headers from [" << authority() << "].");
+        LOGP("Completed headers from [" << opposite() << "].");
         complete();
     }
 
@@ -111,12 +111,12 @@ void protocol_header_in_31800::handle_organize(const code& ec,
         if (is_zero(height))
         {
             LOGP("Header [" << encode_hash(header_ptr->get_hash()) << "] from ["
-                << authority() << "] " << ec.message());
+                << opposite() << "] " << ec.message());
         }
         else
         {
             LOGR("Header [" << encode_hash(header_ptr->get_hash()) << ":"
-                << height << "] from [" << authority() << "] " << ec.message());
+                << height << "] from [" << opposite() << "] " << ec.message());
         }
 
         stop(ec);
@@ -124,7 +124,7 @@ void protocol_header_in_31800::handle_organize(const code& ec,
     }
 
     LOGP("Header [" << encode_hash(header_ptr->get_hash()) << ":" << height
-        << "] from [" << authority() << "] " << ec.message());
+        << "] from [" << opposite() << "] " << ec.message());
 }
 
 // This could be the end of a catch-up sequence, or a singleton announcement.
@@ -138,7 +138,7 @@ void protocol_header_in_31800::complete() NOEXCEPT
     {
         subscribed = true;
         SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
-        LOGP("Subscribed to block announcements at [" << authority() << "].");
+        LOGP("Subscribed to block announcements at [" << opposite() << "].");
     }
 }
 
@@ -199,13 +199,13 @@ get_headers protocol_header_in_31800::create_get_headers(
     if (is_one(hashes.size()))
     {
         LOGP("Request headers after [" << encode_hash(hashes.front())
-            << "] from [" << authority() << "].");
+            << "] from [" << opposite() << "].");
     }
     else
     {
-        LOGP("Request headers (" << hashes.size() << ") after ["
-            << encode_hash(hashes.front()) << "] from ["
-            << authority() << "].");
+        LOGP("Request headers (" << hashes.size()
+            << ") after [" << encode_hash(hashes.front())
+            << "] from [" << opposite() << "].");
     }
 
     return { std::move(hashes) };

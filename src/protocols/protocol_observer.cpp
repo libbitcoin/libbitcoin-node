@@ -109,7 +109,7 @@ bool protocol_observer::handle_receive_inventory(const code& ec,
     //  Common with Satoshi 25.0 and 25.1.
     if (relay_disallowed_ && message->any_transaction())
     {
-        LOGR("Unrequested tx relay from [" << authority() << "] "
+        LOGR("Unrequested tx relay from [" << opposite() << "] "
             << peer_version()->user_agent);
 
         stop(network::error::protocol_violation);
@@ -119,7 +119,7 @@ bool protocol_observer::handle_receive_inventory(const code& ec,
     ////// Witness types never allowed in inventory (wxtid excluded).
     ////if (message->any_witness())
     ////{
-    ////    LOGR("Unsupported witness inventory from [" << authority() << "].");
+    ////    LOGR("Unsupported witness inventory from [" << opposite() << "].");
     ////    stop(network::error::protocol_violation);
     ////    return false;
     ////}
@@ -138,7 +138,7 @@ bool protocol_observer::handle_receive_inventory(const code& ec,
 ////    // Witness types only allowed in get_data if witness service advertised.
 ////    if (!node_witness_ && message->any_witness())
 ////    {
-////        LOGR("Unsupported witness get_data from [" << authority() << "].");
+////        LOGR("Unsupported witness get_data from [" << authority42() << "].");
 ////        stop(network::error::protocol_violation);
 ////        return false;
 ////    }

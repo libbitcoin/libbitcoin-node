@@ -163,7 +163,7 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     const auto witness = item.is_witness_type();
     if (!node_witness_ && witness)
     {
-        LOGR("Unsupported witness get_data from [" << authority() << "].");
+        LOGR("Unsupported witness get_data from [" << opposite() << "].");
         stop(network::error::protocol_violation);
         return;
     }
@@ -176,7 +176,7 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     if (!ptr)
     {
         LOGR("Requested tx " << encode_hash(item.hash)
-            << " from [" << authority() << "] not found.");
+            << " from [" << opposite() << "] not found.");
 
         // This tx could not have been advertised to the peer.
         stop(system::error::not_found);
