@@ -326,7 +326,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    if (const auto code = query.set_code(*block, link, checked))
+    if (const auto code = query.set_code(*block, link, checked, bypass))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << opposite() << "] " << code.message());
