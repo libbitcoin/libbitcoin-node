@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <bitcoin/node/define.hpp>
 
 using namespace bc::system;
 using namespace bc::network;

@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_EVENTS_HPP
 #define LIBBITCOIN_NODE_EVENTS_HPP
 
-#include <bitcoin/system.hpp>
 #include <bitcoin/node/error.hpp>
 
 namespace libbitcoin {
