@@ -18,7 +18,7 @@
  */
 #include <bitcoin/node/error.hpp>
 
-#include <bitcoin/system.hpp>
+#include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
