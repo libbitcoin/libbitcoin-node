@@ -52,6 +52,7 @@ public:
 
 private:
     // This is protected by strand.
+    // boost::circular_buffer is included by network.
     boost::circular_buffer<system::hash_digest> announced_;
 };
 
