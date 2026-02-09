@@ -24,7 +24,7 @@
 #include <utility>
 #include <variant>
 
-/// Pulls in common /node headers (excluding settings/config/parser/full_node).
+/// Pulls in common /node headers (excluding settings/config/full_node).
 #include <bitcoin/node/chase.hpp>
 
 /// Now we use the generic helper definitions above to define BCN_API
