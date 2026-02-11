@@ -31,6 +31,11 @@ namespace libbitcoin {
 namespace node {
 
 /// Abstract base for node protocols, thread safe.
+/// This node::protocol is not derived from network::protocol, but given the
+/// channel constructor parameter is derived from network::channel, the strand
+/// is accessible despite lack of bind/post/parallel templates access. This
+/// allows event subscription by derived protocols without the need to derive
+/// from protocol_peer (which would prevent derivation from service protocols).
 class BCN_API protocol
 {
 protected:
@@ -42,8 +47,7 @@ protected:
     // reinterpret_pointer_cast because channel is abstract.
     inline protocol(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
-      : channel_(std::reinterpret_pointer_cast<node::channel>(channel)),
-        session_(session)
+      : channel_(channel), session_(session)
     {
     }
 
@@ -63,12 +67,35 @@ protected:
     /// The candidate|confirmed chain is current.
     virtual bool is_current(bool confirmed) const NOEXCEPT;
 
+    /// Events subscription.
+    /// -----------------------------------------------------------------------
+
+    /// Subscribe to chaser events (max one active per protocol).
+    virtual void subscribe_events(event_notifier&& handler) NOEXCEPT;
+
+    /// Override to handle subscription completion (stranded).
+    virtual void subscribed(const code& ec, object_key key) NOEXCEPT;
+
+    /// Unsubscribe from chaser events.
+    /// Subscribing protocol must invoke from overridden stopping().
+    virtual void unsubscribe_events() NOEXCEPT;
+
+    /// Get the subscription key (for notify_one).
+    virtual object_key events_key() const NOEXCEPT;
+
 private:
+    void handle_subscribed(const code& ec, object_key key) NOEXCEPT;
+    void handle_subscribe(const code& ec, object_key key,
+        const event_completer& complete) NOEXCEPT;
+
     // This channel requires stranded calls, base is thread safe.
-    const node::channel::ptr channel_;
+    const network::channel::ptr channel_;
 
     // This is thread safe.
     const node::session::ptr session_;
+
+    // This is protected by singular subscription.
+    object_key key_{};
 };
 
 } // namespace node

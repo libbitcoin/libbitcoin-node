@@ -102,35 +102,12 @@ protected:
     virtual void notify_one(object_key key, const code& ec, chase event_,
         event_value value) const NOEXCEPT;
 
-    /// Events subscription.
-    /// -----------------------------------------------------------------------
-
-    /// Subscribe to chaser events (max one active per protocol).
-    virtual void subscribe_events(event_notifier&& handler) NOEXCEPT;
-
-    /// Override to handle subscription completion (stranded).
-    virtual void subscribed(const code& ec, object_key key) NOEXCEPT;
-
-    /// Unsubscribe from chaser events.
-    /// Subscribing protocol must invoke from overridden stopping().
-    virtual void unsubscribe_events() NOEXCEPT;
-
-    /// Get the subscription key (for notify_one).
-    virtual object_key events_key() const NOEXCEPT;
-
 private:
-    void handle_subscribed(const code& ec, object_key key) NOEXCEPT;
-    void handle_subscribe(const code& ec, object_key key,
-        const event_completer& complete) NOEXCEPT;
-
     // This derived channel requires stranded calls, base is thread safe.
     const node::channel_peer::ptr channel_;
 
     // This is thread safe.
     const node::session::ptr session_;
-
-    // This is protected by singular subscription.
-    object_key key_{};
 };
 
 } // namespace node

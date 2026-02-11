@@ -110,8 +110,8 @@ bool chaser_snapshot::handle_event(const code&, chase event_,
         ////    if (!enabled_confirm_ || ec)
         ////        break;
         ////
-        ////    BC_ASSERT(std::holds_alternative<height_t>(value));
-        ////    POST(do_confirm, std::get<height_t>(value));
+        ////    BC_ASSERT(std::holds_alternative<header_t>(value));
+        ////    POST(do_confirm, std::get<header_t>(value));
         ////    break;
         ////}
         case chase::block:
@@ -207,7 +207,7 @@ void chaser_snapshot::do_snap(size_t height) NOEXCEPT
 ////    take_snapshot(height);
 ////}
 //// 
-////void chaser_snapshot::do_confirm(size_t height) NOEXCEPT
+////void chaser_snapshot::do_confirm(header_t link) NOEXCEPT
 ////{
 ////    BC_ASSERT(stranded());
 ////    if (closed() || !update_confirm(height))
