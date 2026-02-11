@@ -23,11 +23,8 @@
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_peer
-
 using namespace system;
 using namespace network;
-using namespace std::placeholders;
 
 // Organizers.
 // ----------------------------------------------------------------------------
@@ -62,7 +59,7 @@ void protocol_peer::performance(uint64_t speed,
     network::result_handler&& handler) const NOEXCEPT
 {
     // Passed protocol->session->full_node->check_chaser.post->do_update.
-    session_->performance(key_, speed, std::move(handler));
+    session_->performance(events_key(), speed, std::move(handler));
 }
 
 code protocol_peer::fault(const code& ec) NOEXCEPT
@@ -101,60 +98,6 @@ void protocol_peer::notify_one(object_key key, const code& ec, chase event_,
     event_value value) const NOEXCEPT
 {
     session_->notify_one(key, ec, event_, value);
-}
-
-// Events subscription.
-// ----------------------------------------------------------------------------
-
-void protocol_peer::subscribe_events(event_notifier&& handler) NOEXCEPT
-{
-    event_completer completer = BIND(handle_subscribed, _1, _2);
-    session_->subscribe_events(std::move(handler),
-        BIND(handle_subscribe, _1, _2, std::move(completer)));
-}
-
-// private
-void protocol_peer::handle_subscribe(const code& ec, object_key key,
-    const event_completer& complete) NOEXCEPT
-{
-    // The key member is protected by one event subscription per protocol.
-    BC_ASSERT_MSG(is_zero(key_), "unsafe access");
-
-    // Protocol stop is thread safe.
-    if (ec)
-    {
-        stop(ec);
-        return;
-    }
-
-    key_ = key;
-    complete(ec, key_);
-}
-
-void protocol_peer::handle_subscribed(const code& ec, object_key key) NOEXCEPT
-{
-    POST(subscribed, ec, key);
-}
-
-void protocol_peer::subscribed(const code& ec, object_key) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Unsubscriber race is ok.
-    if (stopped(ec))
-        unsubscribe_events();
-}
-
-// As this has no completion handler resubscription is not allowed.
-void protocol_peer::unsubscribe_events() NOEXCEPT
-{
-    session_->unsubscribe_events(key_);
-    key_ = {};
-}
-
-object_key protocol_peer::events_key() const NOEXCEPT
-{
-    return key_;
 }
 
 } // namespace node

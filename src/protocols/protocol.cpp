@@ -24,6 +24,10 @@
 namespace libbitcoin {
 namespace node {
 
+#define CLASS protocol
+
+using namespace std::placeholders;
+
 // Properties.
 // ----------------------------------------------------------------------------
 
@@ -60,6 +64,72 @@ const node::settings& protocol::node_settings() const NOEXCEPT
 bool protocol::is_current(bool confirmed) const NOEXCEPT
 {
     return session_->is_current(confirmed);
+}
+
+// Events subscription.
+// ----------------------------------------------------------------------------
+
+void protocol::subscribe_events(event_notifier&& handler) NOEXCEPT
+{
+    // This is a shared instance multiply-derived from network::protocol.
+    const auto self = dynamic_cast<network::protocol&>(*this)
+        .shared_from_sibling<node::protocol, network::protocol>();
+
+    event_completer completer = std::bind(&protocol::handle_subscribed, self,
+        _1, _2);
+
+    session_->subscribe_events(std::move(handler),
+        std::bind(&protocol::handle_subscribe,
+            self, _1, _2, std::move(completer)));
+}
+
+// private
+void protocol::handle_subscribe(const code& ec, object_key key,
+    const event_completer& complete) NOEXCEPT
+{
+    // The key member is protected by one event subscription per protocol.
+    BC_ASSERT_MSG(is_zero(key_), "unsafe access");
+
+    // Protocol stop is thread safe.
+    if (ec)
+    {
+        channel_->stop(ec);
+        return;
+    }
+
+    key_ = key;
+    complete(ec, key_);
+}
+
+void protocol::handle_subscribed(const code& ec, object_key key) NOEXCEPT
+{
+    // This is a shared instance multiply-derived from network::protocol.
+    const auto self = dynamic_cast<network::protocol&>(*this)
+        .shared_from_sibling<node::protocol, network::protocol>();
+
+    boost::asio::post(channel_->strand(),
+        std::bind(&protocol::subscribed, self, ec, key));
+}
+
+void protocol::subscribed(const code& ec, object_key) NOEXCEPT
+{
+    BC_ASSERT(channel_->stranded());
+
+    // Unsubscriber race is ok.
+    if (channel_->stopped() || ec)
+        unsubscribe_events();
+}
+
+// As this has no completion handler resubscription is not allowed.
+void protocol::unsubscribe_events() NOEXCEPT
+{
+    session_->unsubscribe_events(key_);
+    key_ = {};
+}
+
+object_key protocol::events_key() const NOEXCEPT
+{
+    return key_;
 }
 
 } // namespace node
