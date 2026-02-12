@@ -326,7 +326,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
     // VALID BLOCK
     // Under deferral there is no state change, but downloads will stall unless
-    // he window is closed out, so notify the check chaser of the increment.
+    // the window is closed out, so notify the check chaser of the increment.
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
 
     if (!defer_)
