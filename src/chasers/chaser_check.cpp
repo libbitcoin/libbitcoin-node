@@ -269,7 +269,8 @@ void chaser_check::do_update(object_key channel, uint64_t speed,
     }
 
     // Integer to floating point.
-    speeds_[channel] = to_floating(speed);
+    const auto fast = to_floating(speed);
+    speeds_[channel] = fast;
 
     // Three elements are required to measure deviation, don't drop below.
     const auto count = speeds_.size();
@@ -288,7 +289,7 @@ void chaser_check::do_update(object_key channel, uint64_t speed,
     }
 
     const auto mean = sum / count;
-    if (speed >= mean)
+    if (fast >= mean)
     {
         handler(error::success);
         return;
@@ -296,14 +297,14 @@ void chaser_check::do_update(object_key channel, uint64_t speed,
 
     const auto variance = (sum_squares - (sum * sum) / count) / sub1(count);
     const auto sdev = std::sqrt(variance);
-    const auto slow = (mean - speed) > (allowed_deviation_ * sdev);
+    const auto slow = (mean - fast) > (allowed_deviation_ * sdev);
 
     // Only speed < mean channels are logged.
     LOGV("Below average channel (" << count << ") rate ("
         << to_kilobits_per_second(sum)  << ") mean ("
         << to_kilobits_per_second(mean) << ") sdev ("
         << to_kilobits_per_second(sdev) << ") Kbps [" << (slow ? "*" : "")
-        << to_kilobits_per_second(to_floating(speed)) << "].");
+        << to_kilobits_per_second(fast) << "].");
 
     if (slow)
     {
