@@ -41,6 +41,8 @@ public:
     bool defer_validation;
     bool defer_confirmation;
     float allowed_deviation;
+    float minimum_free_rate;
+    float minimum_bump_rate;
     uint16_t announcement_cache;
     uint16_t allocation_multiple;
     ////uint64_t snapshot_bytes;
