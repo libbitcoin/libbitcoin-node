@@ -297,7 +297,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         return error::validate7;
 
     // Valid must be set after set_prevouts and set_filter_body.
-    if (!bypass && !query.set_block_valid(link, 0 /* block.fees() */))
+    if (!bypass && !query.set_block_valid(link))
         return error::validate8;
 
     return error::success;
