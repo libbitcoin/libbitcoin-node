@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.defer_validation, false);
     BOOST_REQUIRE_EQUAL(node.defer_confirmation, false);
-    BOOST_REQUIRE_EQUAL(node.minimum_free_rate, 0.0);
+    BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.0);
     BOOST_REQUIRE_EQUAL(node.minimum_bump_rate, 0.0);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
     BOOST_REQUIRE_EQUAL(node.announcement_cache, 42_u16);
