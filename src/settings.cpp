@@ -35,7 +35,7 @@ settings::settings() NOEXCEPT
     thread_priority{ true },
     defer_validation{ false },
     defer_confirmation{ false },
-    minimum_free_rate{ 0.0 },
+    minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
     announcement_cache{ 42 },
