@@ -63,8 +63,11 @@ void chaser_storage::stopping(const code& ec) NOEXCEPT
 void chaser_storage::do_stopping(const code&) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    disk_timer_->stop();
-    disk_timer_.reset();
+    if (disk_timer_)
+    {
+        disk_timer_->stop();
+        disk_timer_.reset();
+    }
 }
 
 // event handlers
