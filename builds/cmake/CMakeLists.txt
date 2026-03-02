@@ -331,7 +331,6 @@ if (with-tests)
         "../../test/error.cpp"
         "../../test/full_node.cpp"
         "../../test/main.cpp"
-        "../../test/node.cpp"
         "../../test/settings.cpp"
         "../../test/test.cpp"
         "../../test/test.hpp"
