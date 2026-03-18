@@ -1,0 +1,17 @@
+###############################################################################
+#  Copyright (c) 2014-2026 libbitcoin-node developers (see COPYING).
+#
+#         GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY
+#
+###############################################################################
+@PACKAGE_INIT@
+
+include( CMakeFindDependencyMacro )
+
+include( "${CMAKE_CURRENT_LIST_DIR}/libbitcoin-node-targets.cmake" )
+
+find_dependency( libbitcoin-database 4.0.0 REQUIRED )
+
+find_dependency( libbitcoin-network 4.0.0 REQUIRED )
+
+check_required_components(@PROJECT_NAME@)
