@@ -46,7 +46,7 @@ settings::settings() NOEXCEPT
     maximum_height{ 0 },
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
-    currency_window_minutes{ 60 },
+    currency_window_minutes{ 1440 },
     threads{ 1 }
 {
 }
