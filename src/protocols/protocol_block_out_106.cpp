@@ -130,7 +130,7 @@ bool protocol_block_out_106::handle_receive_get_blocks(const code& ec,
     if (stopped(ec))
         return false;
 
-    LOGP("Get headers above " << encode_hash(message->start_hash())
+    LOGP("Get blocks above " << encode_hash(message->start_hash())
         << " from [" << opposite() << "].");
 
     SEND(create_inventory(*message), handle_send, _1);
