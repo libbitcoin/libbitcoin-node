@@ -200,7 +200,7 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     }
 
     span<milliseconds>(events::block_msecs, start);
-    SEND(block{ ptr }, send_block, _1, sub1(index), message);
+    SEND(block{ ptr }, send_block, _1, add1(index), message);
 }
 
 // utilities
