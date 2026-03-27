@@ -28,7 +28,6 @@ namespace node {
 
 using namespace system;
 using namespace network;
-using namespace network::messages::peer;
 using namespace std::chrono;
 using namespace std::placeholders;
 
@@ -147,7 +146,16 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (!message->any_block())
+    if (!node_witness_ && message->any_witness())
+    {
+        LOGR("Unsupported witness get_data from [" << opposite() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    constexpr auto only = get_data::selector::blocks;
+    const auto blocks = emplace_shared<inventory_items>(message->select(only));
+    if (blocks->empty())
         return true;
 
     if (busy_)
@@ -158,32 +166,22 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
     }
 
     busy_ = true;
-    send_block(error::success, zero, message);
+    send_block(error::success, blocks);
     return true;
 }
 
 // Outbound (block).
 // ----------------------------------------------------------------------------
 
-void protocol_block_out_106::send_block(const code& ec, size_t index,
-    const get_data::cptr& message) NOEXCEPT
+void protocol_block_out_106::send_block(const code& ec,
+    const inventory_items_ptr& items) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return;
 
-    // Skip over non-block requests.
-    const auto& items = message->items;
-    for (; index < items.size() && !items.at(index).is_block_type(); ++index);
-
-    // No more block requests.
-    if (index == items.size())
-    {
-        busy_ = false;
-        return;
-    }
-
-    const auto& item = items.at(index);
+    if (items->empty()) return;
+    const auto item = pop(*items);
     const auto witness = item.is_witness_type();
     if (!node_witness_ && witness)
     {
@@ -206,13 +204,14 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     }
 
     span<microseconds>(events::block_usecs, start);
-    SEND(block{ ptr }, send_block, _1, add1(index), message);
+    if (items->empty()) busy_ = false;
+    SEND(messages::peer::block{ ptr }, send_block, _1, items);
 }
 
 // utilities
 // ----------------------------------------------------------------------------
 
-inventory protocol_block_out_106::create_inventory(
+protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
     const get_blocks& locator) const NOEXCEPT
 {
     // Empty response implies complete (success).
@@ -222,7 +221,7 @@ inventory protocol_block_out_106::create_inventory(
     return inventory::factory
     (
         archive().get_blocks(locator.start_hashes, locator.stop_hash,
-            max_get_blocks), type_id::block
+            messages::peer::max_get_blocks), type_id::block
     );
 }
 

@@ -47,6 +47,12 @@ public:
     void stopping(const code& ec) NOEXCEPT override;
 
 protected:
+    using get_data = network::messages::peer::get_data;
+    using get_blocks = network::messages::peer::get_blocks;
+    using inventory = network::messages::peer::inventory;
+    using inventory_items = network::messages::peer::inventory_items;
+    using inventory_items_ptr = std::shared_ptr<inventory_items>;
+
     /// Block announcements are superseded by send_headers.
     virtual bool superseded() const NOEXCEPT;
 
@@ -58,15 +64,14 @@ protected:
     virtual bool do_announce(header_t link) NOEXCEPT;
 
     virtual bool handle_receive_get_blocks(const code& ec,
-        const network::messages::peer::get_blocks::cptr& message) NOEXCEPT;
+        const get_blocks::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_data(const code& ec,
-        const network::messages::peer::get_data::cptr& message) NOEXCEPT;
-    virtual void send_block(const code& ec, size_t index,
-        const network::messages::peer::get_data::cptr& message) NOEXCEPT;
+        const get_data::cptr& message) NOEXCEPT;
+    virtual void send_block(const code& ec,
+        const inventory_items_ptr& items) NOEXCEPT;
 
 private:
-    network::messages::peer::inventory create_inventory(
-        const network::messages::peer::get_blocks& locator) const NOEXCEPT;
+    inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
 
 private:
     // This is thread safe.
