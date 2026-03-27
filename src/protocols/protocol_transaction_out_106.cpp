@@ -152,6 +152,7 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         if (message->items.at(index).is_transaction_type())
             break;
 
+    // BUGBUG: registration race.
     if (index >= message->items.size())
     {
         // Complete, resubscribe to transaction requests.

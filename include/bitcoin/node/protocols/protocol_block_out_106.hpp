@@ -69,8 +69,11 @@ private:
         const network::messages::peer::get_blocks& locator) const NOEXCEPT;
 
 private:
-    // These are thread safe.
+    // This is thread safe.
     const bool node_witness_;
+
+    // This is protected by strand.
+    bool busy_{};
 };
 
 } // namespace node

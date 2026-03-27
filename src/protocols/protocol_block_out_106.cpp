@@ -147,9 +147,19 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Send and desubscribe.
+    if (!message->any_block())
+        return true;
+
+    if (busy_)
+    {
+        LOGR("Overlapping block requests [" << opposite() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    busy_ = true;
     send_block(error::success, zero, message);
-    return false;
+    return true;
 }
 
 // Outbound (block).
@@ -162,19 +172,18 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
     if (stopped(ec))
         return;
 
-    // Skip over non-block inventory.
-    for (; index < message->items.size(); ++index)
-        if (message->items.at(index).is_block_type())
-            break;
+    // Skip over non-block requests.
+    const auto& items = message->items;
+    for (; index < items.size() && !items.at(index).is_block_type(); ++index);
 
-    if (index >= message->items.size())
+    // No more block requests.
+    if (index == items.size())
     {
-        // Complete, resubscribe to block requests.
-        SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
+        busy_ = false;
         return;
     }
 
-    const auto& item = message->items.at(index);
+    const auto& item = items.at(index);
     const auto witness = item.is_witness_type();
     if (!node_witness_ && witness)
     {
@@ -183,23 +192,20 @@ void protocol_block_out_106::send_block(const code& ec, size_t index,
         return;
     }
 
-    // Block could be always queried with witness and therefore safely cached.
-    // If can then be serialized according to channel configuration, however
-    // that is currently fixed to witness as available in the object.
     const auto& query = archive();
     const auto start = logger::now();
     const auto ptr = query.get_block(query.to_header(item.hash), witness);
     if (!ptr)
     {
-        LOGR("Requested block " << encode_hash(item.hash)
-            << " from [" << opposite() << "] not found.");
+        LOGR("Requested block " << encode_hash(item.hash) << " from ["
+            << opposite() << "] not found.");
 
         // This block could not have been advertised to the peer.
         stop(system::error::not_found);
         return;
     }
 
-    span<milliseconds>(events::block_msecs, start);
+    span<microseconds>(events::block_usecs, start);
     SEND(block{ ptr }, send_block, _1, add1(index), message);
 }
 
