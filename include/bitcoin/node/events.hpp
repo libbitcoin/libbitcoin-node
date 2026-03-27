@@ -57,7 +57,7 @@ enum events : uint8_t
     snapshot_secs,        // snapshot timespan in seconds.
     prune_msecs,          // prune timespan in milliseconds.
     reload_msecs,         // store reload timespan in milliseconds.
-    block_msecs,          // getblock timespan in milliseconds.
+    block_usecs,          // getblock timespan in microseconds.
     ancestry_msecs,       // getancestry timespan in milliseconds.
     filter_msecs,         // getfilter timespan in milliseconds.
     filterhashes_msecs,   // getfilterhashes timespan in milliseconds.
