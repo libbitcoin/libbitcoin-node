@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_OUT_106_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_OUT_106_HPP
 
+#include <deque>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 
@@ -36,6 +37,7 @@ public:
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
         node_witness_(session->network_settings().witness_node()),
+        allow_overlapped_(session->node_settings().allow_overlapped),
         network::tracker<protocol_block_out_106>(session->log)
     {
     }
@@ -49,9 +51,6 @@ public:
 protected:
     using get_data = network::messages::peer::get_data;
     using get_blocks = network::messages::peer::get_blocks;
-    using inventory = network::messages::peer::inventory;
-    using inventory_items = network::messages::peer::inventory_items;
-    using inventory_items_ptr = std::shared_ptr<inventory_items>;
 
     /// Block announcements are superseded by send_headers.
     virtual bool superseded() const NOEXCEPT;
@@ -67,18 +66,22 @@ protected:
         const get_blocks::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_data(const code& ec,
         const get_data::cptr& message) NOEXCEPT;
-    virtual void send_block(const code& ec,
-        const inventory_items_ptr& items) NOEXCEPT;
+    virtual void send_block(const code& ec) NOEXCEPT;
 
 private:
+    using inventory = network::messages::peer::inventory;
+    using inventory_item = network::messages::peer::inventory_item;
+    using inventory_items = network::messages::peer::inventory_items;
+
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
+    void merge_inventory(const inventory_items& items) NOEXCEPT;
 
-private:
-    // This is thread safe.
+    // These are thread safe.
     const bool node_witness_;
+    const bool allow_overlapped_;
 
     // This is protected by strand.
-    bool busy_{};
+    std::deque<inventory_item> backlog_{};
 };
 
 } // namespace node
