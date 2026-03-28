@@ -153,35 +153,53 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
         return false;
     }
 
-    constexpr auto only = get_data::selector::blocks;
-    const auto blocks = emplace_shared<inventory_items>(message->select(only));
-    if (blocks->empty())
+    const auto size = message->count(get_data::selector::blocks);
+    if (is_zero(size))
         return true;
 
-    if (busy_)
+    const auto total = ceilinged_add(backlog_.size(), size);
+    if (total > messages::peer::max_inventory)
+    {
+        LOGR("Blocks requested (" << total << ") exceeds inv limit ["
+            << opposite() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    // Satoshi sends overlapping get_data requests, but assumes that the
+    // recipient is blocking *all traffic* until the previous is completed.
+    // So to prevent frequent drops of satoshi peers, and not let one protocol
+    // block all others, we must accumulate the requests into a backlog. If the
+    // backlog exceeds the *individual* message limit we drop the peer.
+    const auto idle = backlog_.empty();
+    if (!allow_overlapped_ && !idle)
     {
         LOGR("Overlapping block requests [" << opposite() << "].");
         stop(network::error::protocol_violation);
         return false;
     }
 
-    busy_ = true;
-    send_block(error::success, blocks);
+    // Append the new inventory the request queue.
+    merge_inventory(message->items);
+
+    // Bump the idle async send loop if no pending send.
+    if (idle)
+        send_block(error::success);
+
     return true;
 }
 
 // Outbound (block).
 // ----------------------------------------------------------------------------
 
-void protocol_block_out_106::send_block(const code& ec,
-    const inventory_items_ptr& items) NOEXCEPT
+void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
         return;
 
-    if (items->empty()) return;
-    const auto item = pop(*items);
+    if (backlog_.empty()) return;
+    const auto& item = backlog_.front();
     const auto witness = item.is_witness_type();
     if (!node_witness_ && witness)
     {
@@ -203,13 +221,21 @@ void protocol_block_out_106::send_block(const code& ec,
         return;
     }
 
+    backlog_.pop_front();
     span<microseconds>(events::block_usecs, start);
-    if (items->empty()) busy_ = false;
-    SEND(messages::peer::block{ ptr }, send_block, _1, items);
+    SEND(messages::peer::block{ ptr }, send_block, _1);
 }
 
 // utilities
 // ----------------------------------------------------------------------------
+
+void protocol_block_out_106::merge_inventory(
+    const inventory_items& items) NOEXCEPT
+{
+    for (const auto& item: items)
+        if (item.is_block())
+            backlog_.push_back(item);
+}
 
 protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
     const get_blocks& locator) const NOEXCEPT

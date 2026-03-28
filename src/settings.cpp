@@ -33,6 +33,7 @@ settings::settings() NOEXCEPT
     headers_first{ true },
     memory_priority{ true },
     thread_priority{ true },
+    allow_overlapped{ true },
     defer_validation{ false },
     defer_confirmation{ false },
     minimum_fee_rate{ 0.0 },
