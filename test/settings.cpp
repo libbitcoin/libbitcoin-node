@@ -30,9 +30,11 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     using namespace network;
 
     const node::settings node{};
-    BOOST_REQUIRE_EQUAL(node.thread_priority, true);
     BOOST_REQUIRE_EQUAL(node.delay_inbound, true);
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
+    BOOST_REQUIRE_EQUAL(node.memory_priority, true);
+    BOOST_REQUIRE_EQUAL(node.thread_priority, true);
+    BOOST_REQUIRE_EQUAL(node.allow_overlapped, true);
     BOOST_REQUIRE_EQUAL(node.defer_validation, false);
     BOOST_REQUIRE_EQUAL(node.defer_confirmation, false);
     BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.0);

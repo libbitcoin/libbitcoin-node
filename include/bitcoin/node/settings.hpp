@@ -38,6 +38,7 @@ public:
     bool headers_first;
     bool thread_priority;
     bool memory_priority;
+    bool allow_overlapped;
     bool defer_validation;
     bool defer_confirmation;
     float allowed_deviation;
