@@ -123,5 +123,6 @@ using type_id = network::messages::peer::inventory_item::type_id;
 // /channels      : define configuration
 // full_node      : define /chasers
 // session        : define                   [forward: full_node]
+// /messages      : define
 // /protocols     : define /channels         [session.hpp]
 // /sessions      : define /protocols        [forward: full_node]

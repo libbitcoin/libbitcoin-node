@@ -41,6 +41,9 @@
 #include <bitcoin/node/chasers/chaser_transaction.hpp>
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
+#include <bitcoin/node/messages/block.hpp>
+#include <bitcoin/node/messages/messages.hpp>
+#include <bitcoin/node/messages/transaction.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>

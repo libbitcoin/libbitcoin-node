@@ -137,6 +137,8 @@
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
+    <ClCompile Include="..\..\..\..\src\messages\block.cpp" />
+    <ClCompile Include="..\..\..\..\src\messages\transaction.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_31800.cpp" />
@@ -183,6 +185,9 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\block.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\messages.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\transaction.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_31800.hpp" />
