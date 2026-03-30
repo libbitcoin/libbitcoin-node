@@ -220,6 +220,7 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
             << opposite() << "] not found.");
 
         // This block could not have been advertised to the peer.
+        // TODO: send not_found message in protocol override.
         stop(system::error::not_found);
         return;
     }
