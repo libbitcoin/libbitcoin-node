@@ -94,10 +94,11 @@ private:
     bool purging() const NOEXCEPT;
 
     // These are thread safe.
+    const float allowed_deviation_;
     const size_t maximum_concurrency_;
     const size_t maximum_height_;
     const size_t connections_;
-    const float allowed_deviation_;
+    const size_t step_;
 
     // These are protected by strand.
     size_t inventory_{};
