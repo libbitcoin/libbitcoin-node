@@ -42,12 +42,30 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
+size_t get_target_connections(const network::settings& network) NOEXCEPT
+{
+    // Only divide among manual and target outbound, but will also use inbound.
+    const auto outgoing = ceilinged_add(network.outbound.connections,
+        network.manual.peers.size());
+
+    // Only divide by inbound config if there are no outgoing connections.
+    return is_zero(outgoing) ? network.inbound.connections : outgoing;
+}
+
+size_t get_step(size_t connections, size_t maximum_concurrency) NOEXCEPT
+{
+    constexpr auto max = messages::peer::max_inventory;
+    const auto span = ceilinged_multiply(max, connections);
+    return std::min(maximum_concurrency, span);
+}
+
 chaser_check::chaser_check(full_node& node) NOEXCEPT
   : chaser(node),
+    allowed_deviation_(node.node_settings().allowed_deviation),
     maximum_concurrency_(node.node_settings().maximum_concurrency_()),
     maximum_height_(node.node_settings().maximum_height_()),
-    connections_(node.network_settings().outbound.connections),
-    allowed_deviation_(node.node_settings().allowed_deviation)
+    connections_(get_target_connections(node.network_settings())),
+    step_(get_step(connections_, maximum_concurrency_))
 {
 }
 
@@ -515,18 +533,13 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 
 size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
-    // Either condition means blocks shouldn't be getting downloaded (yet).
-    const size_t peers = network_settings().outbound.connections;
-    if (is_zero(peers) || !is_current(false))
+    if (is_zero(connections_) || !is_current(false))
         return zero;
 
     const auto& query = archive();
     const auto fork = query.get_fork();
-
-    const auto span = ceilinged_multiply(messages::peer::max_inventory, peers);
-    const auto step = std::min(maximum_concurrency_, span);
-    const auto inventory = query.get_unassociated_count_above(fork, step);
-    return ceilinged_divide(inventory, peers);
+    const auto inventory = query.get_unassociated_count_above(fork, step_);
+    return ceilinged_divide(inventory, connections_);
 }
 
 BC_POP_WARNING()
