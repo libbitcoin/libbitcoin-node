@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/messages/messages.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -158,7 +159,7 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
         return true;
 
     const auto total = ceilinged_add(backlog_.size(), size);
-    if (total > messages::peer::max_inventory)
+    if (total > network::messages::peer::max_inventory)
     {
         LOGR("Blocks requested (" << total << ") exceeds inv limit ["
             << opposite() << "].");
@@ -210,8 +211,10 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 
     const auto& query = archive();
     const auto start = logger::now();
-    const auto ptr = query.get_block(query.to_header(item.hash), witness);
-    if (!ptr)
+    const auto link = query.to_header(item.hash);
+
+    node::messages::block out{ query.get_wire_block(link, witness), witness };
+    if (out.block_data.empty())
     {
         LOGR("Requested block " << encode_hash(item.hash) << " from ["
             << opposite() << "] not found.");
@@ -223,7 +226,7 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 
     backlog_.pop_front();
     span<microseconds>(events::block_usecs, start);
-    SEND(messages::peer::block{ ptr }, send_block, _1);
+    SEND(std::move(out), send_block, _1);
 }
 
 // utilities
@@ -247,7 +250,7 @@ protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
     return inventory::factory
     (
         archive().get_blocks(locator.start_hashes, locator.stop_hash,
-            messages::peer::max_get_blocks), type_id::block
+            network::messages::peer::max_get_blocks), type_id::block
     );
 }
 

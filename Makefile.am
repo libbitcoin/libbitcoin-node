@@ -52,6 +52,8 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_template.cpp \
     src/chasers/chaser_transaction.cpp \
     src/chasers/chaser_validate.cpp \
+    src/messages/block.cpp \
+    src/messages/transaction.cpp \
     src/protocols/protocol.cpp \
     src/protocols/protocol_block_in_106.cpp \
     src/protocols/protocol_block_in_31800.cpp \
@@ -148,6 +150,12 @@ include_bitcoin_node_chasers_HEADERS = \
 include_bitcoin_node_impl_chasersdir = ${includedir}/bitcoin/node/impl/chasers
 include_bitcoin_node_impl_chasers_HEADERS = \
     include/bitcoin/node/impl/chasers/chaser_organize.ipp
+
+include_bitcoin_node_messagesdir = ${includedir}/bitcoin/node/messages
+include_bitcoin_node_messages_HEADERS = \
+    include/bitcoin/node/messages/block.hpp \
+    include/bitcoin/node/messages/messages.hpp \
+    include/bitcoin/node/messages/transaction.hpp
 
 include_bitcoin_node_protocolsdir = ${includedir}/bitcoin/node/protocols
 include_bitcoin_node_protocols_HEADERS = \

@@ -89,7 +89,7 @@ protected:
 
         using namespace system;
         using namespace network;
-        using namespace messages::peer;
+        using namespace network::messages::peer;
         using base = session_peer<NetworkSession>;
 
         const auto self = this->template shared_from_base<base>();
