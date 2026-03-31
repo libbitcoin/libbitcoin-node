@@ -151,6 +151,10 @@ include_bitcoin_node_impl_chasersdir = ${includedir}/bitcoin/node/impl/chasers
 include_bitcoin_node_impl_chasers_HEADERS = \
     include/bitcoin/node/impl/chasers/chaser_organize.ipp
 
+include_bitcoin_node_impl_sessionsdir = ${includedir}/bitcoin/node/impl/sessions
+include_bitcoin_node_impl_sessions_HEADERS = \
+    include/bitcoin/node/impl/sessions/session_peer.ipp
+
 include_bitcoin_node_messagesdir = ${includedir}/bitcoin/node/messages
 include_bitcoin_node_messages_HEADERS = \
     include/bitcoin/node/messages/block.hpp \

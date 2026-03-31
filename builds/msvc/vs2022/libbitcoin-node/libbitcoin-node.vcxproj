@@ -216,6 +216,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\include\bitcoin\node\impl\chasers\chaser_organize.ipp" />
+    <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

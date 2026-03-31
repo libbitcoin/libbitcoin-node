@@ -54,141 +54,26 @@ protected:
     using socket_ptr = network::socket::ptr;
     using channel_ptr = network::channel::ptr;
 
-    // this-> is required for dependent base access in CRTP.
-
-    channel_ptr create_channel(const socket_ptr& socket) NOEXCEPT override
-    {
-        BC_ASSERT(this->stranded());
-
-        const auto channel = std::make_shared<channel_t>(
-            this->get_memory(), this->log, socket, this->create_key(),
-            this->node_config(), this->options());
-
-        return std::static_pointer_cast<network::channel>(channel);
-    }
-
-    void attach_handshake(const channel_ptr& channel,
-        network::result_handler&& handler) NOEXCEPT override
-    {
-        BC_ASSERT(channel->stranded());
-        BC_ASSERT(channel->paused());
-
-        // Set the current top for version protocol, before handshake.
-        const auto top = this->archive().get_top_confirmed();
-        const auto peer = std::dynamic_pointer_cast<channel_t>(channel);
-        peer->set_start_height(top);
-
-        // Attach and execute appropriate version protocol.
-        NetworkSession::attach_handshake(channel, std::move(handler));
-    }
-
-    void attach_protocols(const channel_ptr& channel) NOEXCEPT override
-    {
-        BC_ASSERT(channel->stranded());
-        BC_ASSERT(channel->paused());
-
-        using namespace system;
-        using namespace network;
-        using namespace network::messages::peer;
-        using base = session_peer<NetworkSession>;
-
-        const auto self = this->template shared_from_base<base>();
-        const auto relay = this->network_settings().enable_relay;
-        const auto delay = this->node_settings().delay_inbound;
-        const auto headers = this->node_settings().headers_first;
-        const auto node_network = to_bool(bit_and<uint64_t>
-        (
-            this->network_settings().services_maximum,
-            service::node_network
-        ));
-        const auto node_client_filters = to_bool(bit_and<uint64_t>
-        (
-            this->network_settings().services_maximum,
-            service::node_client_filters
-        ));
-
-        // Attach appropriate alert, reject, ping, and/or address protocols.
-        NetworkSession::attach_protocols(channel);
-
-        // Channel suspensions.
-        channel->attach<protocol_observer>(self)->start();
-
-        // Ready to relay blocks or block filters.
-        const auto blocks_out = !delay || this->is_recent();
-
-        ///////////////////////////////////////////////////////////////////////
-        // bip152: "Upon receipt of a `sendcmpct` message with the first and
-        // second integers set to 1, the node SHOULD announce new blocks by
-        // sending a cmpctblock message." IOW at 70014 bip152 is optional.
-        // This allows the node to support bip157 without supporting bip152.
-        ///////////////////////////////////////////////////////////////////////
-
-        const auto peer = std::dynamic_pointer_cast<channel_t>(channel);
-
-        // Node must advertise node_client_filters or no out filters.
-        if (node_client_filters && blocks_out &&
-            peer->is_negotiated(level::bip157))
-            channel->attach<protocol_filter_out_70015>(self)->start();
-
-        // Node must advertise node_network or no in|out blocks|txs.
-        if (!node_network)
-            return;
-
-        // Ready to relay transactions.
-        const auto txs_in_out = relay && peer->is_negotiated(level::bip37) &&
-            (!delay || is_current(true));
-
-        // Peer advertises chain (blocks in).
-        if (peer->is_peer_service(service::node_network))
-        {
-            if (headers && peer->is_negotiated(level::bip130))
-            {
-                channel->attach<protocol_header_in_70012>(self)->start();
-                channel->attach<protocol_block_in_31800>(self)->start();
-
-            }
-            else if (headers && peer->is_negotiated(level::headers_protocol))
-            {
-                channel->attach<protocol_header_in_31800>(self)->start();
-                channel->attach<protocol_block_in_31800>(self)->start();
-            }
-            else
-            {
-                // Very hard to find < 31800 peer to connect with.
-                // Blocks-first synchronization (not base of block_in_31800).
-                channel->attach<protocol_block_in_106>(self)->start();
-            }
-        }
-
-        // Blocks are ready (blocks out).
-        if (blocks_out)
-        {
-            if (headers && peer->is_negotiated(level::bip130))
-            {
-                channel->attach<protocol_header_out_70012>(self)->start();
-                channel->attach<protocol_block_out_70012>(self)->start();
-            }
-            else if (headers && peer->is_negotiated(level::headers_protocol))
-            {
-                channel->attach<protocol_header_out_31800>(self)->start();
-                channel->attach<protocol_block_out_106>(self)->start();
-            }
-            else
-            {
-                channel->attach<protocol_block_out_106>(self)->start();
-            }
-        }
-
-        // Relay is configured, active, and txs are ready (txs in/out).
-        if (txs_in_out)
-        {
-            if (peer->peer_version()->relay)
-                channel->attach<protocol_transaction_out_106>(self)->start();
-        }
-    }
+    inline channel_ptr create_channel(
+        const socket_ptr& socket) NOEXCEPT override;
+    inline void attach_handshake(const channel_ptr& channel,
+        network::result_handler&& handler) NOEXCEPT override;
+    inline void attach_protocols(const channel_ptr& channel) NOEXCEPT override;
 };
 
 } // namespace node
 } // namespace libbitcoin
+
+#define TEMPLATE template <typename NetworkSession>
+#define CLASS session_peer<NetworkSession>
+
+////BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+
+#include <bitcoin/node/impl/sessions/session_peer.ipp>
+
+////BC_POP_WARNING()
+
+#undef CLASS
+#undef TEMPLATE
 
 #endif
