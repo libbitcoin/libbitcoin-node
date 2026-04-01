@@ -42,7 +42,7 @@ protected:
       : node::protocol_peer(session, channel),
         deviation_(session->node_settings().allowed_deviation > 0.0),
         enabled_(enabled && to_bool(session->node_settings().sample_period_seconds)),
-        performance_timer_(std::make_shared<network::deadline>(session->log,
+        performance_timer_(system::emplace_shared<network::deadline>(session->log,
             channel->strand(), session->node_settings().sample_period())),
         network::tracker<protocol_performer>(session->log)
     {
