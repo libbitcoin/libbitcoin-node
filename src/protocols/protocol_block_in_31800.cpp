@@ -92,6 +92,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
 
 bool protocol_block_in_31800::is_idle() const NOEXCEPT
 {
+    BC_ASSERT(stranded());
     return map_->empty();
 }
 
@@ -116,22 +117,14 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
             // If this channel has divisible work, split it and stop.
             // There are no channels reporting work, either stalled or done.
             // This is initiated by any channel notifying chase::starved.
-            if (map_->size() > one)
-            {
-                POST(do_split, peer_t{});
-            }
-
+            POST(do_stall, peer_t{});
             break;
         }
         case chase::purge:
         {
             // If have work clear it and stop.
             // This is initiated by chase::regressed/disorganized.
-            if (map_->size() > one)
-            {
-                POST(do_purge, peer_t{});
-            }
-
+            POST(do_purge, peer_t{});
             break;
         }
         case chase::download:
@@ -162,38 +155,44 @@ bool protocol_block_in_31800::handle_event(const code&, chase event_,
     return true;
 }
 
+void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Uses application logging since it outputs to a runtime option.
+    LOGA("Work report [" << sequence << "] is (" << map_->size() << ") for ["
+        << opposite() << "].");
+}
+
 void protocol_block_in_31800::do_get_downloads(count_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped())
+    if (stopped() || !is_idle())
         return;
 
-    if (is_idle())
-    {
-        // Assume performance was stopped due to exhaustion.
-        start_performance();
-        get_hashes(BIND(handle_get_hashes, _1, _2, _3));
-    }
+    // Assume performance was stopped due to exhaustion.
+    start_performance();
+    get_hashes(BIND(handle_get_hashes, _1, _2, _3));
 }
 
 void protocol_block_in_31800::do_purge(peer_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (!map_->empty())
-    {
-        LOGV("Purge work (" << map_->size() << ") from [" << opposite() << "].");
-        map_->clear();
-        stop(error::sacrificed_channel);
-    }
+    if (map_->empty())
+        return;
+
+    LOGV("Purge work (" << map_->size() << ") from [" << opposite() << "].");
+    map_->clear();
+    stop(error::sacrificed_channel);
 }
 
-void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
+void protocol_block_in_31800::do_stall(peer_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (stopped())
+    if (stopped() || (map_->size() <= one))
         return;
 
     LOGV("Divide work (" << map_->size() << ") from [" << opposite() << "].");
@@ -203,13 +202,18 @@ void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
     stop(error::sacrificed_channel);
 }
 
-void protocol_block_in_31800::do_report(count_t sequence) NOEXCEPT
+void protocol_block_in_31800::do_split(peer_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Uses application logging since it outputs to a runtime option.
-    LOGA("Work report [" << sequence << "] is (" << map_->size() << ") for ["
-        << opposite() << "].");
+    if (stopped() || (map_->size() <= one))
+        return;
+
+    LOGV("Split work (" << map_->size() << ") from [" << opposite() << "].");
+    restore(chaser_check::split(map_));
+    restore(map_);
+    map_ = chaser_check::empty_map();
+    stop(error::sacrificed_channel);
 }
 
 // request hashes
