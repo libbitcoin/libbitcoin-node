@@ -350,7 +350,7 @@ bool chaser_confirm::complete_block(const code& ec, const header_link& link,
     // CONFIRMABLE BLOCK
     notify(error::success, chase::confirmable, link);
     fire(events::block_confirmed, height);
-    LOGV("Block confirmable: " << height << (bypass ? " (bypass)" : ""));
+    LOGV("Block confirmed: " << height << (bypass ? " (bypass)" : ""));
     return true;
 }
 
