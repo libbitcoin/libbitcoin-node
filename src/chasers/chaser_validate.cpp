@@ -255,7 +255,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     if (bypass)
     {
         // Populating for filters only (no validation metadata required).
-        block.populate();
+        block.populate(ctx);
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
     }
@@ -263,7 +263,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     {
         // Internal maturity and time locks are verified here because they are
         // the only necessary confirmation checks for internal spends.
-        if (const auto ec = block.populate_with_metadata(ctx))
+        if (const auto ec = block.populate(ctx))
             return ec;
 
         // Metadata identifies internal spends alowing confirmation bypass.

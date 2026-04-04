@@ -115,7 +115,7 @@ code chaser_block::validate(const block& block,
         if (((ec = block.check())) || ((ec = block.check(ctx))))
             return ec;
 
-        if (!populate(block))
+        if (!populate(block, ctx))
             return system::error::missing_previous_output;
 
         if ((ec = block.accept(ctx,
@@ -204,9 +204,10 @@ void chaser_block::set_prevout(const input& input) const NOEXCEPT
 }
 
 // Populate prevouts from self/tree/store (without metadata).
-bool chaser_block::populate(const block& block) const NOEXCEPT
+bool chaser_block::populate(const block& block,
+    const chain::context& ctx) const NOEXCEPT
 {
-    block.populate();
+    block.populate(ctx);
 
     const auto& ins = *block.inputs_ptr();
     std::ranges::for_each(ins, [&](const auto& in) NOEXCEPT

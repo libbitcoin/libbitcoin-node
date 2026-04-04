@@ -279,29 +279,23 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
     handle_event(error::success, chase::bump, height_t{});
 }
 
-bool chaser_confirm::confirm_block(const header_link& link,
-    size_t height, const header_links& popped, size_t fork_point) NOEXCEPT
+bool chaser_confirm::confirm_block(const header_link& link, size_t height,
+    const header_links& popped, size_t fork_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
     auto& query = archive();
 
     if (const auto ec = query.block_confirmable(link))
     {
-        if (!query.set_unstrong(link))
+        if (!query.set_block_unconfirmable(link))
         {
             fault(error::confirm9);
             return false;
         }
 
-        if (!query.set_block_unconfirmable(link))
-        {
-            fault(error::confirm10);
-            return false;
-        }
-
         if (!roll_back(popped, fork_point, sub1(height)))
         {
-            fault(error::confirm11);
+            fault(error::confirm10);
             return false;
         }
 
@@ -311,13 +305,13 @@ bool chaser_confirm::confirm_block(const header_link& link,
     // Before set_block_confirmable.
     if (!query.set_filter_head(link))
     {
-        fault(error::confirm12);
+        fault(error::confirm11);
         return false;
     }
 
     if (!query.set_block_confirmable(link))
     {
-        fault(error::confirm13);
+        fault(error::confirm12);
         return false;
     }
 
