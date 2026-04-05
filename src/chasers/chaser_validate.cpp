@@ -266,7 +266,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
         if (const auto ec = block.populate(ctx))
             return ec;
 
-        // Metadata identifies internal spends alowing confirmation bypass.
+        // Metadata identifies internal spends allowing confirmation bypass.
         if (!query.populate_with_metadata(block))
             return system::error::missing_previous_output;
     }
