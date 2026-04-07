@@ -145,6 +145,17 @@ enum class chase
     /// Issued by 'confirm' [and handled by 'transaction'].
     reorganized,
 
+    /// Wallet.
+    /// -----------------------------------------------------------------------
+
+    /// An input spent|unspent the given address (address_t).
+    /// Issued by 'confirm' [and handled by services].
+    spent,
+
+    /// An address of given address received|unreceived payment (address_t).
+    /// Issued by 'confirm' [and handled by services].
+    received,
+
     /// Mining.
     /// -----------------------------------------------------------------------
 
