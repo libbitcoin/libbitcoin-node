@@ -22,7 +22,7 @@ endif()
 #------------------------------------------------------------------------------
 # Project options.
 #------------------------------------------------------------------------------
-option( with-test "Build test." ON )
+option( with-tests "Build tests." ON )
 
 #------------------------------------------------------------------------------
 # Dependencies.
@@ -191,15 +191,15 @@ set_target_properties( libbitcoin-node
 )
 
 #------------------------------------------------------------------------------
-# libbitcoin-node-tests tests
+# libbitcoin-node-test tests
 #------------------------------------------------------------------------------
-if ( with-test )
-  add_executable( libbitcoin-node-tests )
+if ( with-tests )
+  add_executable( libbitcoin-node-test )
 
   enable_testing()
 
-  add_test( NAME libbitcoin-node-tests
-    COMMAND libbitcoin-node-tests
+  add_test( NAME libbitcoin-node-test
+    COMMAND libbitcoin-node-test
     --run_test=*
     --log_level=warning
     --show_progress=no
@@ -208,12 +208,12 @@ if ( with-test )
     --build_info=yes
   )
 
-  target_compile_features( libbitcoin-node-tests
+  target_compile_features( libbitcoin-node-test
     PUBLIC
       cxx_std_20
   )
 
-  target_compile_options( libbitcoin-node-tests
+  target_compile_options( libbitcoin-node-test
     PRIVATE
       -Wall
       -Wextra
@@ -229,23 +229,23 @@ if ( with-test )
       -fstack-protector-all
   )
 
-  file( GLOB_RECURSE libbitcoin_node_tests_SOURCES CONFIGURE_DEPENDS
+  file( GLOB_RECURSE libbitcoin_node_test_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/../../test/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../test/*.cpp"
   )
 
-  target_sources( libbitcoin-node-tests
+  target_sources( libbitcoin-node-test
     PRIVATE
-      ${libbitcoin_node_tests_SOURCES}
+      ${libbitcoin_node_test_SOURCES}
   )
 
-  target_link_libraries( libbitcoin-node-tests
+  target_link_libraries( libbitcoin-node-test
     PRIVATE
       Boost::unit_test_framework
       bitcoin::node
   )
 
-  set_target_properties( libbitcoin-node-tests
+  set_target_properties( libbitcoin-node-test
     PROPERTIES
       VERSION ${PROJECT_VERSION}
       SOVERSION ${PROJECT_VERSION_MAJOR}
