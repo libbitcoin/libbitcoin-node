@@ -17,6 +17,8 @@ REM --build-version version     Build MSVC version.
 REM --build-src-dir path        Location of sources.
 REM --build-full-repositories   Sync full github repositories.
 REM --build-use-local-src       Use existing sources in build-src-dir path.
+REM --build-symbols mode        Determines treatment of symbols.
+REM                               Values: default, disabled, public-only
 REM --verbose                   Display verbose script output.
 REM --help, -h                  Display usage, overriding script execution.
 REM
@@ -30,28 +32,28 @@ if "!NUGET_EXE!" == "" (
 )
 
 if "!libbitcoin_system_OWNER!" == "" (
-    set "libbitcoin_system_OWNER=libbitcoin"
+    set "libbitcoin_system_OWNER=pmienk"
 )
 if "!libbitcoin_system_TAG!" == "" (
     set "libbitcoin_system_TAG=master"
 )
 
 if "!libbitcoin_database_OWNER!" == "" (
-    set "libbitcoin_database_OWNER=libbitcoin"
+    set "libbitcoin_database_OWNER=pmienk"
 )
 if "!libbitcoin_database_TAG!" == "" (
     set "libbitcoin_database_TAG=master"
 )
 
 if "!libbitcoin_network_OWNER!" == "" (
-    set "libbitcoin_network_OWNER=libbitcoin"
+    set "libbitcoin_network_OWNER=pmienk"
 )
 if "!libbitcoin_network_TAG!" == "" (
     set "libbitcoin_network_TAG=master"
 )
 
 if "!libbitcoin_node_OWNER!" == "" (
-    set "libbitcoin_node_OWNER=libbitcoin"
+    set "libbitcoin_node_OWNER=pmienk"
 )
 if "!libbitcoin_node_TAG!" == "" (
     set "libbitcoin_node_TAG=master"
@@ -127,6 +129,20 @@ if "!libbitcoin_node_TAG!" == "" (
         )
     )
 
+    if "!BUILD_SYMBOLS!" == "" (
+        call :msg_verbose "BUILD_SYMBOLS not defined or empty, defaulting to 'default' behavior."
+    ) else if "!BUILD_SYMBOLS!" == "default" (
+        call :msg_verbose "BUILD_SYMBOLS 'default'."
+    ) else if "!BUILD_SYMBOLS!" == "disabled" (
+        call :msg_verbose "BUILD_SYMBOLS 'disabled'."
+    ) else if "!BUILD_SYMBOLS!" == "public-only" (
+        call :msg_verbose "BUILD_SYMBOLS 'public-only'."
+    ) else (
+        call :msg_error "BUILD_SYMBOLS value '!BUILD_SYMBOLS!' unrecognized."
+        call :help
+        exit /b 1
+    )
+
     call :msg_heading "Configuration"
     call :display_build_variables
 
@@ -174,9 +190,15 @@ if "!libbitcoin_node_TAG!" == "" (
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
-    call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%"
+    call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%" "libbitcoin-node"
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
+    )
+    if "!BUILD_SKIP_TESTS!" != "yes" (
+        call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%" "libbitcoin-node-test"
+    if %ERRORLEVEL% neq 0 (
+        exit /b %ERRORLEVEL%
+    )
     )
 
     call :pop_directory
@@ -206,10 +228,15 @@ if "!libbitcoin_node_TAG!" == "" (
     ) else if "%~1" == "--build-version" (
         set "BUILD_VERSION=%~2"
         shift
+    ) else if "%!1" == "--build-symbols" (
+        set "BUILD_SYMBOLS=%~2"
+        shift
     ) else if "%~1" == "--build-full-repositories" (
         set "BUILD_FULL_REPOSITORIES=yes"
     ) else if "%~1" == "--build-use-local-src" (
         set "BUILD_USE_LOCAL_SRC=yes"
+    ) else if "%~1" == "--build-skip-tests" (
+        set "BUILD_SKIP_TESTS=yes"
     ) else if "%~1" == "--verbose" (
         set "DISPLAY_VERBOSE=yes"
     ) else if "%~1" == "-v" (
@@ -218,6 +245,12 @@ if "!libbitcoin_node_TAG!" == "" (
         set "SHOW_HELP=yes"
     ) else if "%~1" == "-h" (
         set "SHOW_HELP=yes"
+    ) else (
+        if "!UNHANDLED_ARGS!" == "" (
+            set "UNHANDLED_ARGS=%1"
+        ) else (
+            set "UNHANDLED_ARGS=!UNHANDLED_ARGS! %1"
+        )
     )
 
     shift
@@ -279,6 +312,13 @@ if "!libbitcoin_node_TAG!" == "" (
         set "TARGET_ARG=/target:%TARGET%:Rebuild"
     )
 
+    set "SYMBOLS_ARG="
+    if "!BUILD_SYMBOLS!" == "disabled" (
+        set "SYMBOLS_ARG=/p:LinkerOptions=/PDBSTRIPPED "
+    ) else if "!BUILD_SYMBOLS!" == "public-only" (
+        set "SYMBOLS_ARG=/p:DebugSymbols=false "
+    )
+
     call :push_directory "!BUILD_SRC_DIR!\%PROJECT%\%RELATIVE_PATH%\!BUILD_VERSION!"
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
@@ -289,10 +329,10 @@ if "!libbitcoin_node_TAG!" == "" (
         exit /b %ERRORLEVEL%
     )
 
-    !MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! /p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false
+    !MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! !SYMBOLS_ARG!/p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false !UNHANDLED_ARGS!
 
     if %ERRORLEVEL% neq 0 (
-        call :msg_error "!MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! /p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false"
+        call :msg_error "!MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! !SYMBOLS_ARG!/p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false !UNHANDLED_ARGS!"
         call :pop_directory
         exit /b 1
     )
@@ -319,6 +359,7 @@ if "!libbitcoin_node_TAG!" == "" (
     call :msg "BUILD_SRC_DIR                   : !BUILD_SRC_DIR!"
     call :msg "BUILD_FULL_REPOSITORIES         : !BUILD_FULL_REPOSITORIES!"
     call :msg "BUILD_USE_LOCAL_SRC             : !BUILD_USE_LOCAL_SRC!"
+    call :msg "BUILD_SYMBOLS                   : !BUILD_SYMBOLS!"
     call :msg "DISPLAY_VERBOSE                 : !DISPLAY_VERBOSE!"
     call :msg "SHOW_HELP                       : !SHOW_HELP!"
     exit /b %ERRORLEVEL%
@@ -350,6 +391,8 @@ if "!libbitcoin_node_TAG!" == "" (
     call :msg "--build-src-dir path        Location of sources."
     call :msg "--build-full-repositories   Sync full github repositories."
     call :msg "--build-use-local-src       Use existing sources in build-src-dir path."
+    call :msg "--build-symbols mode        Determines treatment of symbols."
+    call :msg "                              Values: default, disabled, public-only"
     call :msg "--verbose                   Display verbose script output."
     call :msg "--help, -h                  Display usage, overriding script execution."
     exit /b %ERRORLEVEL%
