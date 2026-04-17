@@ -73,7 +73,6 @@ using peer_t = uint64_t;
 using object_t = object_key;
 using header_t = database::header_link::integer;
 using transaction_t = database::tx_link::integer;
-using address_t = database::address_link::integer;
 
 /// std::variant types must be distinct, and xcode size_t is neither uint32_t 
 /// nor uint64_t, so this ensures we have the distinct set of necessary types.
