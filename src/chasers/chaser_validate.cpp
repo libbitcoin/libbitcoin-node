@@ -37,9 +37,9 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Independent threadpool and strand (base class strand uses network pool).
 chaser_validate::chaser_validate(full_node& node) NOEXCEPT
   : chaser(node),
-    threadpool_(node.node_settings().threads_(),
+    validation_threadpool_(node.node_settings().threads_(),
         node.node_settings().thread_priority_()),
-    independent_strand_(threadpool_.service().get_executor()),
+    validation_strand_(validation_threadpool_.service().get_executor()),
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
@@ -342,13 +342,13 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 void chaser_validate::stopping(const code& ec) NOEXCEPT
 {
     // Stop threadpool keep-alive, all work must self-terminate to affect join.
-    threadpool_.stop();
+    validation_threadpool_.stop();
     chaser::stopping(ec);
 }
 
 void chaser_validate::stop() NOEXCEPT
 {
-    if (!threadpool_.join())
+    if (!validation_threadpool_.join())
     {
         BC_ASSERT_MSG(false, "failed to join threadpool");
         std::abort();
@@ -357,12 +357,12 @@ void chaser_validate::stop() NOEXCEPT
 
 network::asio::strand& chaser_validate::strand() NOEXCEPT
 {
-    return independent_strand_;
+    return validation_strand_;
 }
 
 bool chaser_validate::stranded() const NOEXCEPT
 {
-    return independent_strand_.running_in_this_thread();
+    return validation_strand_.running_in_this_thread();
 }
 
 BC_POP_WARNING()
