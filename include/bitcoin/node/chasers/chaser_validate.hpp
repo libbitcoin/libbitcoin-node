@@ -46,7 +46,7 @@ protected:
     template <class Derived, typename Method, typename... Args>
     inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
     {
-        return boost::asio::post(threadpool_.service(),
+        return boost::asio::post(validation_threadpool_.service(),
             BIND_THIS(method, args));
     }
 
@@ -79,11 +79,11 @@ protected:
 
 private:
     // This is protected by strand.
-    network::threadpool threadpool_;
+    network::threadpool validation_threadpool_;
 
     // These are thread safe.
     std::atomic<size_t> backlog_{};
-    network::asio::strand independent_strand_;
+    network::asio::strand validation_strand_;
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
