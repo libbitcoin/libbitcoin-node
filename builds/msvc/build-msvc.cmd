@@ -11,6 +11,7 @@ REM ###########################################################################
 REM Script managing the build of libbitcoin-node.
 REM
 REM Script options:
+REM --enable-shani              Use Intel/ARM SHA Extensions.
 REM --build-config config       Build configuration.
 REM --build-platform platform   Build platform.
 REM --build-version version     Build MSVC version.
@@ -148,6 +149,16 @@ if "!libbitcoin_node_TAG!" == "" (
         exit /b 1
     )
 
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-system_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-system-examples_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-system-test_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-database_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-database-tools_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-database-test_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-network_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-network-test_PARAMS!"
+    set "REMAPPED_PARAMS=!REMAPPED_PARAMS! !libbitcoin-node_PARAMS!"
+
     call :msg_heading "Configuration"
     call :display_build_variables
 
@@ -168,7 +179,7 @@ if "!libbitcoin_node_TAG!" == "" (
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
-    call :build_msbuild "libbitcoin-system" "builds\msvc\%proj_version%" "libbitcoin-system"
+    call :build_msbuild "libbitcoin-system" "builds\msvc\%proj_version%" "libbitcoin-system" "!REMAPPED_PARAMS!"
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
@@ -177,7 +188,7 @@ if "!libbitcoin_node_TAG!" == "" (
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
-    call :build_msbuild "libbitcoin-database" "builds\msvc\%proj_version%" "libbitcoin-database"
+    call :build_msbuild "libbitcoin-database" "builds\msvc\%proj_version%" "libbitcoin-database" "!REMAPPED_PARAMS!"
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
@@ -186,7 +197,7 @@ if "!libbitcoin_node_TAG!" == "" (
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
-    call :build_msbuild "libbitcoin-network" "builds\msvc\%proj_version%" "libbitcoin-network"
+    call :build_msbuild "libbitcoin-network" "builds\msvc\%proj_version%" "libbitcoin-network" "!REMAPPED_PARAMS!"
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
@@ -195,15 +206,15 @@ if "!libbitcoin_node_TAG!" == "" (
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
-    call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%" "libbitcoin-node"
+    call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%" "libbitcoin-node" "!REMAPPED_PARAMS!"
     if %ERRORLEVEL% neq 0 (
         exit /b %ERRORLEVEL%
     )
     if not "!BUILD_SKIP_TESTS!" == "yes" (
-        call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%" "libbitcoin-node-test"
-    if %ERRORLEVEL% neq 0 (
-        exit /b %ERRORLEVEL%
-    )
+        call :build_msbuild "libbitcoin-node" "builds\msvc\%proj_version%" "libbitcoin-node-test" "!REMAPPED_PARAMS!"
+        if %ERRORLEVEL% neq 0 (
+            exit /b %ERRORLEVEL%
+        )
     )
 
     call :pop_directory
@@ -221,6 +232,12 @@ if "!libbitcoin_node_TAG!" == "" (
 :parse_input
     if "%~1" == "" (
         goto :end_parse_input
+    ) else if "%~1" == "--enable-shani" (
+        if "!libbitcoin-system_PARAMS!" == "" (
+            set "libbitcoin-system_PARAMS=/p:Option-sha=true"
+        ) else (
+            set "libbitcoin-system_PARAMS=!libbitcoin-system_PARAMS! /p:Option-sha=true"
+        )
     ) else if "%~1" == "--build-config" (
         set "BUILD_CONFIG=%~2"
         shift
@@ -253,7 +270,7 @@ if "!libbitcoin_node_TAG!" == "" (
         set "DISPLAY_HELP=yes"
     ) else (
         if "!UNHANDLED_ARGS!" == "" (
-            set "UNHANDLED_ARGS=%1"
+            set "UNHANDLED_ARGS=%~1"
         ) else (
             set "UNHANDLED_ARGS=!UNHANDLED_ARGS! %1"
         )
@@ -311,6 +328,24 @@ if "!libbitcoin_node_TAG!" == "" (
     set "PROJECT=%~1"
     set "RELATIVE_PATH=%~2"
     set "TARGET=%~3"
+    shift
+    shift
+    shift
+
+    set "ADDITIONAL_PARAMS="
+:build_msbuild_parse_remaining
+    if "%~1" == "" (
+        goto :end_build_msbuild_parse_remaining
+    ) else (
+        if "!ADDITIONAL_PARAMS!" == "" (
+            set "ADDITIONAL_PARAMS=%~1"
+        ) else (
+            set "ADDITIONAL_PARAMS=!ADDITIONAL_PARAMS! %~1"
+        )
+    )
+    shift
+    goto :build_msbuild_parse_remaining
+:end_build_msbuild_parse_remaining
 
     if not "%TARGET%" == "" (
         if not "!BUILD_MODE!" == "" (
@@ -341,10 +376,10 @@ if "!libbitcoin_node_TAG!" == "" (
         exit /b %ERRORLEVEL%
     )
 
-    !MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! !SYMBOLS_ARG!/p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false !UNHANDLED_ARGS!
+    !MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! !SYMBOLS_ARG!/p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false !UNHANDLED_ARGS! !ADDITIONAL_PARAMS!
 
     if %ERRORLEVEL% neq 0 (
-        call :msg_error "!MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! !SYMBOLS_ARG!/p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false !UNHANDLED_ARGS!"
+        call :msg_error "!MSBUILD_EXE! /verbosity:!MSBUILD_VERBOSE! !SYMBOLS_ARG!/p:Platform=!BUILD_PLATFORM! /p:Configuration=!BUILD_CONFIG! /p:PreferredToolArchitecture=x64 %TARGET_ARG% %PROJECT%.sln /p:PreBuildEventUseInBuild=false /p:PostBuildEventUseInBuild=false !UNHANDLED_ARGS! !ADDITIONAL_PARAMS!"
         call :pop_directory
         exit /b 1
     )
@@ -365,6 +400,9 @@ if "!libbitcoin_node_TAG!" == "" (
     exit /b %ERRORLEVEL%
 
 :display_build_variables
+    call :msg "libbitcoin-system_PARAMS        : !libbitcoin-system_PARAMS!"
+    call :msg "REMAPPED_PARAMS                 : !REMAPPED_PARAMS!"
+    call :msg "UNHANDLED_ARGS                  : !UNHANDLED_ARGS!"
     call :msg "BUILD_CONFIG                    : !BUILD_CONFIG!"
     call :msg "BUILD_PLATFORM                  : !BUILD_PLATFORM!"
     call :msg "BUILD_VERSION                   : !BUILD_VERSION!"
@@ -398,6 +436,7 @@ if "!libbitcoin_node_TAG!" == "" (
     call :msg "Script managing the build of libbitcoin-node."
     call :msg ""
     call :msg "Script options:"
+    call :msg "--enable-shani              Use Intel/ARM SHA Extensions."
     call :msg "--build-config config       Build configuration."
     call :msg "--build-platform platform   Build platform."
     call :msg "--build-version version     Build MSVC version."
