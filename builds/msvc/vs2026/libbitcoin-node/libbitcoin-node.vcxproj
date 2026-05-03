@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ |  Copyright (c) 2014-2026 libbitcoin-node developers (see COPYING).
+ |
+ |         GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY
+ |
+ -->
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <PlatformToolset>v145</PlatformToolset>
+    <ProjectGuid>{5FFB5F52-0772-4404-BB2F-39BE5F82A158}</ProjectGuid>
+    <ProjectName>libbitcoin-node</ProjectName>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugDLL|Win32">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|Win32">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugDLL|x64">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|x64">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|Win32">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|Win32">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|x64">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|x64">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|Win32">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|Win32">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|x64">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|x64">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugDLL|ARM">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|ARM">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugDLL|ARM64">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|ARM64">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|ARM">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|ARM">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLTCG|ARM64">
+      <Configuration>DebugLTCG</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLTCG|ARM64">
+      <Configuration>ReleaseLTCG</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|ARM">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|ARM">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugLIB|ARM64">
+      <Configuration>DebugLIB</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseLIB|ARM64">
+      <Configuration>ReleaseLIB</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) == -1">StaticLibrary</ConfigurationType>
+    <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) != -1">DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(ProjectDir)..\..\properties\$(Configuration).props" />
+    <Import Project="$(ProjectDir)..\..\properties\Output.props" />
+    <Import Project="$(ProjectDir)$(ProjectName).props" />
+  </ImportGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
+    <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
+    <ClCompile Include="..\..\..\..\src\channels\channel_peer.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_header.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_snapshot.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_storage.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_template.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_validate.cpp" />
+    <ClCompile Include="..\..\..\..\src\configuration.cpp" />
+    <ClCompile Include="..\..\..\..\src\error.cpp" />
+    <ClCompile Include="..\..\..\..\src\full_node.cpp" />
+    <ClCompile Include="..\..\..\..\src\messages\block.cpp" />
+    <ClCompile Include="..\..\..\..\src\messages\transaction.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_31800.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_106.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70012.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_filter_out_70015.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in_31800.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_in_70012.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_out_31800.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_header_out_70012.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_observer.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_peer.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_performer.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_106.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp" />
+    <ClCompile Include="..\..\..\..\src\sessions\session.cpp" />
+    <ClCompile Include="..\..\..\..\src\sessions\session_inbound.cpp" />
+    <ClCompile Include="..\..\..\..\src\sessions\session_manual.cpp" />
+    <ClCompile Include="..\..\..\..\src\sessions\session_outbound.cpp" />
+    <ClCompile Include="..\..\..\..\src\settings.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channel_peer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_organize.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_snapshot.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_storage.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_template.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_transaction.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_validate.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chasers.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\block.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\messages.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\transaction.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_106.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_31800.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_106.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70012.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_filter_out_70015.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in_31800.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_in_70012.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_out_31800.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_header_out_70012.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_observer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_peer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_performer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_106.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_106.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocols.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_inbound.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_manual.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_outbound.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_peer.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />
+    <ClInclude Include="..\..\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\include\bitcoin\node\impl\chasers\chaser_organize.ipp" />
+    <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(NuGetPackageRoot)libbitcoin-boost.1.91.0\build\native\libbitcoin-boost.targets" Condition="Exists('$(NuGetPackageRoot)libbitcoin-boost.1.91.0\build\native\libbitcoin-boost.targets')" />
+    <Import Project="$(NuGetPackageRoot)libbitcoin-boost_iostreams-vc145.1.91.0\build\native\libbitcoin-boost_iostreams-vc145.targets" Condition="Exists('$(NuGetPackageRoot)libbitcoin-boost_iostreams-vc145.1.91.0\build\native\libbitcoin-boost_iostreams-vc145.targets')" />
+    <Import Project="$(NuGetPackageRoot)libbitcoin-boost_locale-vc145.1.91.0\build\native\libbitcoin-boost_locale-vc145.targets" Condition="Exists('$(NuGetPackageRoot)libbitcoin-boost_locale-vc145.1.91.0\build\native\libbitcoin-boost_locale-vc145.targets')" />
+    <Import Project="$(NuGetPackageRoot)libbitcoin-boost_program_options-vc145.1.91.0\build\native\libbitcoin-boost_program_options-vc145.targets" Condition="Exists('$(NuGetPackageRoot)libbitcoin-boost_program_options-vc145.1.91.0\build\native\libbitcoin-boost_program_options-vc145.targets')" />
+    <Import Project="$(NuGetPackageRoot)libbitcoin-boost_thread-vc145.1.91.0\build\native\libbitcoin-boost_thread-vc145.targets" Condition="Exists('$(NuGetPackageRoot)libbitcoin-boost_thread-vc145.1.91.0\build\native\libbitcoin-boost_thread-vc145.targets')" />
+    <Import Project="$(NuGetPackageRoot)libbitcoin-boost_url-vc145.1.91.0\build\native\libbitcoin-boost_url-vc145.targets" Condition="Exists('$(NuGetPackageRoot)libbitcoin-boost_url-vc145.1.91.0\build\native\libbitcoin-boost_url-vc145.targets')" />
+    <Import Project="$(NuGetPackageRoot)secp256k1_vc145.0.6.1\build\native\secp256k1_vc145.targets" Condition="Exists('$(NuGetPackageRoot)secp256k1_vc145.0.6.1\build\native\secp256k1_vc145.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(NuGetPackageRoot)libbitcoin-boost.1.91.0\build\native\libbitcoin-boost.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)libbitcoin-boost.1.91.0\build\native\libbitcoin-boost.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)libbitcoin-boost_iostreams-vc145.1.91.0\build\native\libbitcoin-boost_iostreams-vc145.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)libbitcoin-boost_iostreams-vc145.1.91.0\build\native\libbitcoin-boost_iostreams-vc145.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)libbitcoin-boost_locale-vc145.1.91.0\build\native\libbitcoin-boost_locale-vc145.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)libbitcoin-boost_locale-vc145.1.91.0\build\native\libbitcoin-boost_locale-vc145.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)libbitcoin-boost_program_options-vc145.1.91.0\build\native\libbitcoin-boost_program_options-vc145.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)libbitcoin-boost_program_options-vc145.1.91.0\build\native\libbitcoin-boost_program_options-vc145.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)libbitcoin-boost_thread-vc145.1.91.0\build\native\libbitcoin-boost_thread-vc145.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)libbitcoin-boost_thread-vc145.1.91.0\build\native\libbitcoin-boost_thread-vc145.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)libbitcoin-boost_url-vc145.1.91.0\build\native\libbitcoin-boost_url-vc145.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)libbitcoin-boost_url-vc145.1.91.0\build\native\libbitcoin-boost_url-vc145.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)secp256k1_vc145.0.6.1\build\native\secp256k1_vc145.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)secp256k1_vc145.0.6.1\build\native\secp256k1_vc145.targets'))" />
+  </Target>
+  <ItemGroup>
+    <Natvis Include="..\..\debug.natvis" />
+  </ItemGroup>
+</Project>
