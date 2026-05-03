@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ |  Copyright (c) 2014-2026 libbitcoin-node developers (see COPYING).
+ |
+ |         GENERATED SOURCE CODE, DO NOT EDIT EXCEPT EXPERIMENTALLY
+ |
+ -->
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000000}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\chasers">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\protocols">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\test\block_arena.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\block_memory.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\channel_peer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_block.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_check.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_template.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_transaction.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_validate.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\configuration.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\error.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\full_node.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp">
+      <Filter>src\protocols</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\sessions\session.cpp">
+      <Filter>src\sessions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\settings.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\test.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\test\test.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\debug.natvis" />
+  </ItemGroup>
+</Project>
