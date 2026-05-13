@@ -292,7 +292,7 @@ void chaser_check::do_update(object_key channel, uint64_t speed,
 
     // Three elements are required to measure deviation, don't drop below.
     const auto count = speeds_.size();
-    if (count <= minimum_for_standard_deviation)
+    if (count < minimum_for_standard_deviation)
     {
         handler(error::success);
         return;
