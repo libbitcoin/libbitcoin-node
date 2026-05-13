@@ -184,7 +184,7 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         return;
     }
 
-    SEND(transaction{ ptr }, send_transaction, _1, sub1(index), message);
+    SEND(transaction{ ptr }, send_transaction, _1, add1(index), message);
 }
 
 BC_POP_WARNING()
