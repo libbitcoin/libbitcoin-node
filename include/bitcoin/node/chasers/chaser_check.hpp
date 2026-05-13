@@ -80,7 +80,7 @@ protected:
         const network::result_handler& handler) NOEXCEPT;
 
 private:
-    static constexpr size_t minimum_for_standard_deviation = 3;
+    static constexpr size_t minimum_for_standard_deviation = 4;
     typedef std::unordered_map<object_key, double> speeds;
     typedef std::deque<map_ptr> maps;
 
