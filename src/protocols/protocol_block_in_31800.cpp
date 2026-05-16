@@ -50,7 +50,7 @@ void protocol_block_in_31800::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2, _3));
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     protocol_performer::start();
 }
@@ -63,7 +63,7 @@ void protocol_block_in_31800::subscribed(const code& ec, object_key) NOEXCEPT
     // stopped() is true before stopping() is called (by base).
     if (stopped(ec))
     {
-        unsubscribe_events();
+        unsubscribe_chase();
         return;
     }
 
@@ -83,7 +83,7 @@ void protocol_block_in_31800::stopping(const code& ec) NOEXCEPT
     restore(map_);
     map_ = chaser_check::empty_map();
     stop_performance();
-    unsubscribe_events();
+    unsubscribe_chase();
     protocol_performer::stopping(ec);
 }
 
@@ -96,7 +96,7 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
     return map_->empty();
 }
 
-bool protocol_block_in_31800::handle_event(const code&, chase event_,
+bool protocol_block_in_31800::handle_chase(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.

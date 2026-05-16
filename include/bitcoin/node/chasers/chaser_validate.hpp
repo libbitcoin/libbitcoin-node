@@ -52,7 +52,7 @@ protected:
 
     typedef network::race_unity<const code&, const database::tx_link&> race;
 
-    virtual bool handle_event(const code& ec, chase event_,
+    virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;

@@ -63,14 +63,14 @@ public:
         event_value value) const NOEXCEPT;
 
     /// Subscribe to chaser events (requires node strand).
-    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
+    virtual object_key subscribe_chase(event_notifier&& handler) NOEXCEPT;
 
     /// Subscribe to chaser events.
-    virtual void subscribe_events(event_notifier&& handler,
+    virtual void subscribe_chase(event_notifier&& handler,
         event_completer&& complete) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
-    virtual void unsubscribe_events(object_key key) NOEXCEPT;
+    virtual void unsubscribe_chase(object_key key) NOEXCEPT;
 
     /// Methods.
     /// -----------------------------------------------------------------------
@@ -115,7 +115,7 @@ protected:
     session(full_node& node) NOEXCEPT;
 
 private:
-    void do_subscribe_events(const event_notifier& handler,
+    void do_subscribe_chase(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
 
 private:

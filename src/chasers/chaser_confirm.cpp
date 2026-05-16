@@ -52,13 +52,13 @@ code chaser_confirm::start() NOEXCEPT
 
     if (!defer_)
     {
-        SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+        SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     }
 
     return error::success;
 }
 
-bool chaser_confirm::handle_event(const code&, chase event_,
+bool chaser_confirm::handle_chase(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
@@ -276,7 +276,7 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
 
     // Prevent stall by posting internal event, avoiding external handlers.
     // Posts new work, preventing recursion and releasing reorganization lock.
-    handle_event(error::success, chase::bump, height_t{});
+    handle_chase(error::success, chase::bump, height_t{});
 }
 
 bool chaser_confirm::confirm_block(const header_link& link, size_t height,

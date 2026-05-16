@@ -216,7 +216,7 @@ void full_node::do_notify_one(object_key key, const code& ec, chase event_,
     event_subscriber_.notify_one(key, ec, event_, value);
 }
 
-object_key full_node::subscribe_events(event_notifier&& handler) NOEXCEPT
+object_key full_node::subscribe_chase(event_notifier&& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
     const auto key = create_key();
@@ -224,16 +224,16 @@ object_key full_node::subscribe_events(event_notifier&& handler) NOEXCEPT
     return key;
 }
 
-void full_node::subscribe_events(event_notifier&& handler,
+void full_node::subscribe_chase(event_notifier&& handler,
     event_completer&& complete) NOEXCEPT
 {
     boost::asio::post(strand(),
-        std::bind(&full_node::do_subscribe_events,
+        std::bind(&full_node::do_subscribe_chase,
             this, std::move(handler), std::move(complete)));
 }
 
 // private
-void full_node::do_subscribe_events(const event_notifier& handler,
+void full_node::do_subscribe_chase(const event_notifier& handler,
     const event_completer& complete) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -241,7 +241,7 @@ void full_node::do_subscribe_events(const event_notifier& handler,
     complete(event_subscriber_.subscribe(move_copy(handler), key), key);
 }
 
-void full_node::unsubscribe_events(object_key key) NOEXCEPT
+void full_node::unsubscribe_chase(object_key key) NOEXCEPT
 {
     notify_one(key, network::error::service_stopped, chase::stop, {});
 }

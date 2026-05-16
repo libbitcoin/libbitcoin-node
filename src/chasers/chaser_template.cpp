@@ -43,14 +43,14 @@ chaser_template::chaser_template(full_node& node) NOEXCEPT
 // TODO: initialize template state.
 code chaser_template::start() NOEXCEPT
 {
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_template::handle_event(const code&, chase event_,
+bool chaser_template::handle_chase(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())

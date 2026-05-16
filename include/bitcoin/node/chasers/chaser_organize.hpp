@@ -86,7 +86,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Handle chaser events.
-    virtual bool handle_event(const code&, chase event_,
+    virtual bool handle_chase(const code&, chase event_,
         event_value value) NOEXCEPT;
 
     /// Organize a discovered Block.

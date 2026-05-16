@@ -61,7 +61,7 @@ code CLASS::start() NOEXCEPT
     LOGN("Candidate top [" << system::encode_hash(state_->hash()) << ":"
         << state_->height() << "].");
 
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 
@@ -79,7 +79,7 @@ void CLASS::organize(const typename Block::cptr& block,
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-bool CLASS::handle_event(const code&, chase event_, event_value value) NOEXCEPT
+bool CLASS::handle_chase(const code&, chase event_, event_value value) NOEXCEPT
 {
     if (closed())
         return false;

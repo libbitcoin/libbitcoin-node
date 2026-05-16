@@ -89,9 +89,9 @@ code chaser::reload(const store::event_handler& handler) NOEXCEPT
 // Events.
 // ----------------------------------------------------------------------------
 
-object_key chaser::subscribe_events(event_notifier&& handler) NOEXCEPT
+object_key chaser::subscribe_chase(event_notifier&& handler) NOEXCEPT
 {
-    return node_.subscribe_events(std::move(handler));
+    return node_.subscribe_chase(std::move(handler));
 }
 
 void chaser::notify(const code& ec, chase event_,

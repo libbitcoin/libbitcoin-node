@@ -43,14 +43,14 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 // TODO: initialize tx graph from store, log and stop on error.
 code chaser_transaction::start() NOEXCEPT
 {
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_transaction::handle_event(const code&, chase event_,
+bool chaser_transaction::handle_chase(const code&, chase event_,
     event_value) NOEXCEPT
 {
     if (closed())

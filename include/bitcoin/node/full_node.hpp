@@ -93,14 +93,14 @@ public:
         event_value value) NOEXCEPT;
 
     /// Call from chaser start() methods (requires strand).
-    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
+    virtual object_key subscribe_chase(event_notifier&& handler) NOEXCEPT;
 
     /// Call from protocol start() methods.
-    virtual void subscribe_events(event_notifier&& handler,
+    virtual void subscribe_chase(event_notifier&& handler,
         event_completer&& complete) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
-    virtual void unsubscribe_events(object_key key) NOEXCEPT;
+    virtual void unsubscribe_chase(object_key key) NOEXCEPT;
 
     /// Suspensions.
     /// -----------------------------------------------------------------------
@@ -174,7 +174,7 @@ protected:
     void do_close() NOEXCEPT override;
 
 private:
-    void do_subscribe_events(const event_notifier& handler,
+    void do_subscribe_chase(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
     void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;
     void do_notify_one(object_key key, const code& ec, chase event_,

@@ -78,20 +78,20 @@ void session::notify_one(object_key key, const code& ec, chase event_,
     node_.notify_one(key, ec, event_, value);
 }
 
-object_key session::subscribe_events(event_notifier&& handler) NOEXCEPT
+object_key session::subscribe_chase(event_notifier&& handler) NOEXCEPT
 {
-    return node_.subscribe_events(std::move(handler));
+    return node_.subscribe_chase(std::move(handler));
 }
 
-void session::subscribe_events(event_notifier&& handler,
+void session::subscribe_chase(event_notifier&& handler,
     event_completer&& complete) NOEXCEPT
 {
-    node_.subscribe_events(std::move(handler), std::move(complete));
+    node_.subscribe_chase(std::move(handler), std::move(complete));
 }
 
-void session::unsubscribe_events(object_key key) NOEXCEPT
+void session::unsubscribe_chase(object_key key) NOEXCEPT
 {
-    node_.unsubscribe_events(key);
+    node_.unsubscribe_chase(key);
 }
 
 // Methods.
