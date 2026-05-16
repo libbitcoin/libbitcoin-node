@@ -96,7 +96,7 @@ code chaser_check::start() NOEXCEPT
     const auto added = set_unassociated();
     LOGN("Fork point (" << requested_ << ") unassociated (" << added << ").");
 
-    SUBSCRIBE_EVENTS(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 

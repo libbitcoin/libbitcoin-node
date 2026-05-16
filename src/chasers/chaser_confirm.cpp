@@ -52,7 +52,7 @@ code chaser_confirm::start() NOEXCEPT
 
     if (!defer_)
     {
-        SUBSCRIBE_EVENTS(handle_chase, _1, _2, _3);
+        SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     }
 
     return error::success;

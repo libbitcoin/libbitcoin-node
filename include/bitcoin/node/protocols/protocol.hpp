@@ -71,14 +71,14 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Subscribe to chaser events (max one active per protocol).
-    virtual void subscribe_events(event_notifier&& handler) NOEXCEPT;
+    virtual void subscribe_chase(event_notifier&& handler) NOEXCEPT;
 
     /// Override to handle subscription completion (stranded).
     virtual void subscribed(const code& ec, object_key key) NOEXCEPT;
 
     /// Unsubscribe from chaser events.
     /// Subscribing protocol must invoke from overridden stopping().
-    virtual void unsubscribe_events() NOEXCEPT;
+    virtual void unsubscribe_chase() NOEXCEPT;
 
     /// Get the subscription key (for notify_one).
     virtual object_key events_key() const NOEXCEPT;

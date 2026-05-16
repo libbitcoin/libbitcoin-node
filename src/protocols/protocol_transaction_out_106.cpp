@@ -44,7 +44,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_chase, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2, _3));
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol_peer::start();
 }
@@ -53,7 +53,7 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 {
     // Unsubscriber race is ok.
     BC_ASSERT(stranded());
-    unsubscribe_events();
+    unsubscribe_chase();
     protocol_peer::stopping(ec);
 }
 

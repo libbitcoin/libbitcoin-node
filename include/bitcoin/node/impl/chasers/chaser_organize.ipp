@@ -61,7 +61,7 @@ code CLASS::start() NOEXCEPT
     LOGN("Candidate top [" << system::encode_hash(state_->hash()) << ":"
         << state_->height() << "].");
 
-    SUBSCRIBE_EVENTS(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 

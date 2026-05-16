@@ -69,7 +69,7 @@ bool protocol::is_current(bool confirmed) const NOEXCEPT
 // Events subscription.
 // ----------------------------------------------------------------------------
 
-void protocol::subscribe_events(event_notifier&& handler) NOEXCEPT
+void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT
 {
     // This is a shared instance multiply-derived from network::protocol.
     const auto self = dynamic_cast<network::protocol&>(*this)
@@ -78,7 +78,7 @@ void protocol::subscribe_events(event_notifier&& handler) NOEXCEPT
     event_completer completer = std::bind(&protocol::handle_subscribed, self,
         _1, _2);
 
-    session_->subscribe_events(std::move(handler),
+    session_->subscribe_chase(std::move(handler),
         std::bind(&protocol::handle_subscribe,
             self, _1, _2, std::move(completer)));
 }
@@ -117,13 +117,13 @@ void protocol::subscribed(const code& ec, object_key) NOEXCEPT
 
     // Unsubscriber race is ok.
     if (channel_->stopped() || ec)
-        unsubscribe_events();
+        unsubscribe_chase();
 }
 
 // As this has no completion handler resubscription is not allowed.
-void protocol::unsubscribe_events() NOEXCEPT
+void protocol::unsubscribe_chase() NOEXCEPT
 {
-    session_->unsubscribe_events(key_);
+    session_->unsubscribe_chase(key_);
     key_ = {};
 }
 

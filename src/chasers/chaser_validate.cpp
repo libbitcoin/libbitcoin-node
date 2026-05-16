@@ -56,7 +56,7 @@ code chaser_validate::start() NOEXCEPT
 
     const auto& query = archive();
     set_position(query.get_fork());
-    SUBSCRIBE_EVENTS(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 

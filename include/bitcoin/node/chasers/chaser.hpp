@@ -98,7 +98,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Call from chaser start methods (requires node strand).
-    virtual object_key subscribe_events(event_notifier&& handler) NOEXCEPT;
+    virtual object_key subscribe_chase(event_notifier&& handler) NOEXCEPT;
 
     /// Set event (does not require node strand).
     virtual void notify(const code& ec, chase event_,
@@ -164,8 +164,8 @@ private:
     size_t position_{};
 };
 
-#define SUBSCRIBE_EVENTS(method, ...) \
-    subscribe_events(BIND(method, __VA_ARGS__))
+#define SUBSCRIBE_CHASE(method, ...) \
+    subscribe_chase(BIND(method, __VA_ARGS__))
 
 } // namespace node
 } // namespace libbitcoin

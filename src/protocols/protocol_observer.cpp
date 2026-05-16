@@ -43,7 +43,7 @@ void protocol_observer::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_chase, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2, _3));
 
     if (relay_disallowed_)
     {
@@ -58,7 +58,7 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
 {
     // Unsubscriber race is ok.
     BC_ASSERT(stranded());
-    unsubscribe_events();
+    unsubscribe_chase();
     protocol_peer::stopping(ec);
 }
 

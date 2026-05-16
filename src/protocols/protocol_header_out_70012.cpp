@@ -52,7 +52,7 @@ void protocol_header_out_70012::stopping(const code& ec) NOEXCEPT
 {
     // Unsubscriber race is ok.
     BC_ASSERT(stranded());
-    unsubscribe_events();
+    unsubscribe_chase();
     protocol_header_out_31800::stopping(ec);
 }
 
@@ -130,7 +130,7 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
         return false;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_chase, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2, _3));
     return false;
 }
 
