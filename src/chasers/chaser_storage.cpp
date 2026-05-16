@@ -50,7 +50,7 @@ code chaser_storage::start() NOEXCEPT
     // Construct is too early to create the unstarted timer.
     disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1});
 
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_chase, _1, _2, _3);
     return error::success;
 }
 
@@ -73,7 +73,7 @@ void chaser_storage::do_stopping(const code&) NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_storage::handle_event(const code&, chase event_,
+bool chaser_storage::handle_chase(const code&, chase event_,
     event_value) NOEXCEPT
 {
     if (closed())

@@ -56,11 +56,11 @@ code chaser_validate::start() NOEXCEPT
 
     const auto& query = archive();
     set_position(query.get_fork());
-    SUBSCRIBE_EVENTS(handle_event, _1, _2, _3);
+    SUBSCRIBE_EVENTS(handle_chase, _1, _2, _3);
     return error::success;
 }
 
-bool chaser_validate::handle_event(const code&, chase event_,
+bool chaser_validate::handle_chase(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     if (closed())
@@ -244,7 +244,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     // Prevent stall by posting internal event, avoiding external handlers.
     if (is_one(backlog_.fetch_sub(one, std::memory_order_relaxed)))
-        handle_event(error::success, chase::bump, height_t{});
+        handle_chase(error::success, chase::bump, height_t{});
 }
 
 code chaser_validate::populate(bool bypass, const chain::block& block,

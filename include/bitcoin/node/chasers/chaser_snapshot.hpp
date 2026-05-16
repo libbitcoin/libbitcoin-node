@@ -46,7 +46,7 @@ protected:
     ////virtual void do_valid(height_t height) NOEXCEPT;
     ////virtual void do_confirm(height_t height) NOEXCEPT;
 
-    virtual bool handle_event(const code& ec, chase event_,
+    virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
 private:

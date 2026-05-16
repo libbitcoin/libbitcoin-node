@@ -43,7 +43,7 @@ protected:
     using header_links = database::header_links;
     using header_states = database::header_states;
 
-    virtual bool handle_event(const code& ec, chase event_,
+    virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;

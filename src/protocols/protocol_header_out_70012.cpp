@@ -59,7 +59,7 @@ void protocol_header_out_70012::stopping(const code& ec) NOEXCEPT
 // handle events (block)
 // ----------------------------------------------------------------------------
 
-bool protocol_header_out_70012::handle_event(const code&, chase event_,
+bool protocol_header_out_70012::handle_chase(const code&, chase event_,
     event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
@@ -130,7 +130,7 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
         return false;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3));
+    subscribe_events(BIND(handle_chase, _1, _2, _3));
     return false;
 }
 

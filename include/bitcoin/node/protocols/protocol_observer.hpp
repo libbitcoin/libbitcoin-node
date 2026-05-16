@@ -58,7 +58,7 @@ public:
 
 protected:
     /// Handle chaser events.
-    virtual bool handle_event(const code& ec, chase event_,
+    virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
     /////// Accept incoming get_data message.

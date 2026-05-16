@@ -43,7 +43,7 @@ void protocol_observer::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_events(BIND(handle_event, _1, _2, _3));
+    subscribe_events(BIND(handle_chase, _1, _2, _3));
 
     if (relay_disallowed_)
     {
@@ -65,7 +65,7 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
 // handle events (suspend)
 // ----------------------------------------------------------------------------
 
-bool protocol_observer::handle_event(const code&, chase event_,
+bool protocol_observer::handle_chase(const code&, chase event_,
     event_value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
