@@ -116,6 +116,7 @@ using type_id = network::messages::peer::inventory_item::type_id;
 // Other directory common includes are not internally chained.
 // Each header includes only its required common headers.
 
+// estimator      : define
 // settings       : define
 // configuration  : define settings
 // parser         : define configuration

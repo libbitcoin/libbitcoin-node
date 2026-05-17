@@ -22,6 +22,7 @@
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/error.hpp>
+#include <bitcoin/node/estimator.hpp>
 #include <bitcoin/node/events.hpp>
 #include <bitcoin/node/full_node.hpp>
 #include <bitcoin/node/settings.hpp>
@@ -33,6 +34,7 @@
 #include <bitcoin/node/chasers/chaser_block.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
+#include <bitcoin/node/chasers/chaser_estimate.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
 #include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>

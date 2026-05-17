@@ -47,6 +47,7 @@ full_node::full_node(query& query, const configuration& configuration,
     chaser_confirm_(*this),
     chaser_transaction_(*this),
     chaser_template_(*this),
+    chaser_estimate_(*this),
     chaser_snapshot_(*this),
     chaser_storage_(*this)
 {
@@ -84,6 +85,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
         ((ec = chaser_confirm_.start())) ||
         ((ec = chaser_transaction_.start())) ||
         ((ec = chaser_template_.start())) ||
+        ((ec = chaser_estimate_.start())) ||
         ((ec = chaser_snapshot_.start())) ||
         ((ec = chaser_storage_.start())))
     {
@@ -131,6 +133,7 @@ void full_node::close() NOEXCEPT
     chaser_confirm_.stop();
     chaser_transaction_.stop();
     chaser_template_.stop();
+    chaser_estimate_.stop();
     chaser_snapshot_.stop();
     chaser_storage_.stop();
 }
@@ -148,6 +151,7 @@ void full_node::do_close() NOEXCEPT
     chaser_confirm_.stopping(network::error::service_stopped);
     chaser_transaction_.stopping(network::error::service_stopped);
     chaser_template_.stopping(network::error::service_stopped);
+    chaser_estimate_.stopping(network::error::service_stopped);
     chaser_snapshot_.stopping(network::error::service_stopped);
     chaser_storage_.stopping(network::error::service_stopped);
 
