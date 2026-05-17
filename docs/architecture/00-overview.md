@@ -155,9 +155,12 @@ its *own* mutations while still running in parallel with the other chasers
 on its own strand … allowing concurrent chaser operations to the extent that
 threads are available"*).
 
-This is the **central source of parallelism** in the node. The chasers form
-a pipeline; each stage runs on its own strand and they communicate by
-publishing events.
+This is one of the two main axes of parallelism in the node. The chasers
+form a pipeline; each stage runs on its own strand and they communicate
+by publishing events. The other axis, equally important, is **per-channel
+strands**: every peer connection also runs on its own strand. Peers and
+chasers therefore execute concurrently with each other, bounded only by
+the shared threadpool size.
 
 ---
 

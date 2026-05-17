@@ -39,6 +39,17 @@ to protocols.
 
 ### 1.1 Session hierarchy
 
+`session_peer<NetworkSession>` is a class template whose
+`NetworkSession` parameter is instantiated separately for each
+concrete session: `network::session_outbound`,
+`network::session_inbound`, and `network::session_manual`. The
+template inherits *from its parameter* (the network base) and *also*
+from `node::session` (the mixin) — so each instantiation produces a
+different concrete network-base parent. The class diagram below shows
+the outbound instantiation explicitly; the inbound and manual
+instantiations are structurally identical, parameterised on their
+respective `network::session_*` base.
+
 ```mermaid
 classDiagram
     class network_session["network::session"] {
@@ -58,11 +69,13 @@ classDiagram
     class network_session_outbound["network::session_outbound"]
     class network_session_inbound["network::session_inbound"]
     class network_session_manual["network::session_manual"]
-    class session_peer["session_peer&lt;NetworkSession&gt; (template)"] {
+    class session_peer_out["session_peer&lt;network::session_outbound&gt;"] {
         +create_channel (override)
         +attach_handshake (override)
         +attach_protocols (override)
     }
+    class session_peer_in["session_peer&lt;network::session_inbound&gt;"]
+    class session_peer_man["session_peer&lt;network::session_manual&gt;"]
     class session_outbound
     class session_inbound {
         +enabled() override
@@ -72,14 +85,21 @@ classDiagram
     network_session <|-- network_session_outbound
     network_session <|-- network_session_inbound
     network_session <|-- network_session_manual
-    network_session_outbound <|-- session_peer
-    node_session <|-- session_peer
-    session_peer <|-- session_outbound
-    session_peer <|-- session_inbound
-    session_peer <|-- session_manual
 
-    note for session_peer "Multiply derived:\n• node::session for chaser/bus access\n• network::session_* for socket lifecycle"
-    note for node_session "All methods forward to full_node"
+    network_session_outbound <|-- session_peer_out
+    network_session_inbound  <|-- session_peer_in
+    network_session_manual   <|-- session_peer_man
+
+    node_session <|-- session_peer_out
+    node_session <|-- session_peer_in
+    node_session <|-- session_peer_man
+
+    session_peer_out <|-- session_outbound
+    session_peer_in  <|-- session_inbound
+    session_peer_man <|-- session_manual
+
+    note for session_peer_out "Three template instantiations,\nidentical except for which\nnetwork::session_* is the\nnetwork-side base."
+    note for node_session "Mixin: all methods\nforward to full_node."
 ```
 
 The `node::session` mixin (`src/sessions/session.cpp:35-160`) is **pure
@@ -115,10 +135,16 @@ bool session_inbound::enabled() const NOEXCEPT
 > **Invariant (Session-Inbound-1).** Inbound connection attempts are
 > rejected (the network layer disables the listener) until either
 > `delay_inbound == false` *or* the confirmed chain is "recent". The
-> definition of "recent" is the same as `full_node::is_recent` — top
-> equals configured max height *or* top timestamp is within the
-> `currency_window` (`src/full_node.cpp:415-425`). This prevents a
-> not-yet-caught-up node from serving stale data.
+> definition of "recent" is `full_node::is_recent` — top equals
+> configured max height *or* top timestamp is within the
+> `currency_window` (`src/full_node.cpp:415-425`). Note that **recent
+> is weaker than current**: "recent" considers the configured
+> `node.maximum_height`, so a node deliberately limited to a fixed
+> height (typically for testing) can activate inbound service at that
+> ceiling even though it would never satisfy the time-based
+> "currentness" test. This prevents a not-yet-caught-up node from
+> serving stale data in normal deployments while still allowing
+> bounded-height test deployments.
 
 This is implemented via `enabled()` rather than the bus
 `suspend`/`resume` mechanism so that the listener has independent

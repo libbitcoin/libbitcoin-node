@@ -213,7 +213,7 @@ void send_transaction(ec, size_t index, get_data::cptr message) {
         return;
     }
 
-    SEND(transaction{ ptr }, send_transaction, _1, sub1(index), message);
+    SEND(transaction{ ptr }, send_transaction, _1, add1(index), message);
 }
 ```
 
@@ -224,21 +224,16 @@ void send_transaction(ec, size_t index, get_data::cptr message) {
 > **Invariant (TxOut-Stream-2).** Resubscription to `get_data`
 > happens only after the entire request's tx items have been served
 > (or skipped). Until then, the channel is unsubscribed from
-> `get_data` — a second incoming `get_data` while streaming will
-> hit the libbitcoin-network "no handler" path.
+> `get_data`. A second incoming `get_data` arriving in that window
+> currently has no handler registered, which the libbitcoin-network
+> channel **ignores**. (Behaviour may be tightened in future to drop
+> peers in that case; do not rely on either policy.)
 
-> ⚠ **Suspect: the `sub1(index)` continuation.** At `:187`,
-> the next iteration is scheduled with `sub1(index)` (= `index - 1`),
-> not `add1(index)` (= `index + 1`). The loop top is
-> `for (; index < size; ++index)`, so the next call enters with
-> `index - 1`, the `for` test passes, the inner `if` either matches
-> at `index - 1` or `++index` runs and matches at the same `index`
-> we just sent. Either way the same tx may be sent again. This
-> reading suggests a possible off-by-one — likely intended
-> `add1(index)`. Worth reviewing against intent before mirroring in
-> a port. Flagged here rather than asserted as a bug because we have
-> not built or run the codebase; there may be a subtlety we are
-> missing.
+> **Note: previously-flagged off-by-one at `:187`.** Earlier
+> revisions of this protocol used `sub1(index)` here, which produced
+> an off-by-one (re-sending the same tx). Fixed in libbitcoin-node
+> PR #1007 (commit 940ccea) to use `add1(index)`. Keep this in mind
+> when reading older checkouts.
 
 ### 3.4 Witness gating
 
@@ -343,7 +338,7 @@ stateDiagram-v2
     [*] --> SUBSCRIBED: start (subscribe bus + get_data)
     SUBSCRIBED --> SUBSCRIBED: chase::transaction → do_announce → SEND inv
     SUBSCRIBED --> STREAMING: get_data → unsubscribe from get_data\nsend_transaction(0, msg)
-    STREAMING --> STREAMING: SEND tx; send_transaction(sub1(i), msg)
+    STREAMING --> STREAMING: SEND tx; send_transaction(add1(i), msg)
     STREAMING --> SUBSCRIBED: index ≥ size → resubscribe to get_data
     STREAMING --> DROPPED: witness mismatch / not_found / send error
     SUBSCRIBED --> [*]: stop / chase::stop
@@ -404,12 +399,11 @@ protocol_transaction_out_106 : Process
 Bounded entirely by upstream. Until `chase::transaction` fires
 frequently, the out protocol is idle.
 
-### 9.4 Open question for the spec
+### 9.4 Historical note
 
-The `sub1(index)` continuation (§3.3) needs verification against
-intended behaviour. If it's a bug, a fix to `add1(index)` is a
-one-character change. If it's intentional, the rationale is non-obvious
-and warrants a comment in the source.
+The `sub1(index)` continuation at `:187` was an off-by-one bug,
+fixed in PR #1007 (commit 940ccea) to `add1(index)`. The spec
+should treat the streamed-tx loop as a simple forward iteration.
 
 ---
 
@@ -419,7 +413,8 @@ and warrants a comment in the source.
   mempool design is settled.
 - The out protocol is a near-clone of block-out: one announce path,
   one streaming serve path. Reuse the same actor template.
-- The `sub1` vs `add1` continuation should be tested when porting.
+- The continuation passes `(index + 1)` forward through `add1`; the
+  loop is a straightforward forward iteration over `message->items`.
 
 ---
 

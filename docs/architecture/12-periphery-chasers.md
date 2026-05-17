@@ -145,7 +145,11 @@ a full-disk fault**, monitor disk free space and **reload + resume**
 once space becomes available.
 
 This is the only chaser that owns a `network::deadline` timer
-directly (separate from any threadpool).
+directly. The timer is constructed against the chaser's own strand
+(`disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1})`,
+`chaser_storage.cpp:51`), which runs on the **network threadpool** —
+not a separate pool. So the timer adds no new execution context; it
+fires callbacks onto the chaser's existing strand.
 
 ### 2.2 State
 

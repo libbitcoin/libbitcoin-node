@@ -17,9 +17,28 @@
 > - it emits `chase::valid(height)` on success or `chase::unvalid(link)`
 >   on failure
 >
-> This is the chaser most directly relevant to **formal verification**: it
-> is the single source of consensus acceptance, and the only place script
-> execution and UTXO availability are checked before confirmation.
+> This is the chaser most directly relevant to **formal verification**:
+> it is where script execution and prevout (UTXO availability) checks
+> happen before confirmation. Consensus is **not** confined to this
+> chaser however — it is split across several stages:
+>
+> - **Headers** (`chaser_header::validate`) — context-free header
+>   consensus (proof-of-work, version, etc.) plus limited-context checks.
+> - **Blocks at receive time** (`protocol_block_in_31800::check`,
+>   `chaser_block::validate` in blocks-first mode) — context-free
+>   block-level consensus (size, sigops, commitments) and limited
+>   context checks (no prevouts yet).
+> - **This chaser** — full block consensus with prevouts populated:
+>   `block.accept(ctx, …)` (block-wide rules) and `block.connect(ctx)`
+>   (script execution per input).
+> - **`chaser_confirm`** — block-relative order-based consensus checks
+>   via `query.block_confirmable(link)`: previous-output is confirmed in
+>   a "strong" tx, maturity, relative-locktime rules (see
+>   [`05 §10.4`](05-chaser-confirm.md#104-the-utxo-oracle)).
+> - **Transactions** (planned) — same shape, not yet implemented.
+>
+> So this chaser is the **largest single block of consensus work** and
+> the natural focal point of a formal model, but not the sole source.
 
 | File                                                                  | Role                                                                                  |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |

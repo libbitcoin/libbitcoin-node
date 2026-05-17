@@ -442,8 +442,8 @@ All terminal (call `fault`, suspend network).
 | `confirm10`           | `chaser_confirm.cpp:298`              | `roll_back` failed                                                                                              |
 | `confirm11`           | `chaser_confirm.cpp:308`              | `set_filter_head` failed before `set_block_confirmable`                                                         |
 | `confirm12`           | `chaser_confirm.cpp:314`              | `set_block_confirmable` failed                                                                                  |
-| `suspended_channel`   | `chaser_confirm.cpp:379` (NDEBUG-only)| `confirmed_height != top+1` in `set_organized` — sequencing bug                                                  |
-| `suspended_service`   | `chaser_confirm.cpp:387` (NDEBUG-only)| `to_parent(link) != to_confirmed(previous_height)` — parent mismatch                                            |
+| `suspended_channel`   | `chaser_confirm.cpp:379` (debug-only check, `!NDEBUG`) | `confirmed_height != top+1` in `set_organized` — sequencing bug. Redundant safety check; no effect in release builds. |
+| `suspended_service`   | `chaser_confirm.cpp:387` (debug-only check, `!NDEBUG`) | `to_parent(link) != to_confirmed(previous_height)` — parent mismatch. Redundant safety check; no effect in release builds. |
 
 > **Spec obligation list.** As with organize/validate, every `confirmN`
 > is unreachable under store-consistency invariants plus the strand
@@ -528,23 +528,55 @@ chaser_confirm : Process
   no stall when `chase::valid` arrived during the in-progress
   iteration.
 
-### 10.4 The UTXO oracle
+### 10.4 What `query.block_confirmable(link)` actually checks
 
-`query.block_confirmable(link)` is the UTXO double-spend check. Its
-correctness is the responsibility of libbitcoin-database. For a formal
-model, treat it as:
+This is a **significant consensus operation**, not a narrow
+double-spend probe. It evaluates *all block-relative, order-based
+consensus constraints* on a block — everything except header chaining
+and the chain-summation rules (cumulative work, MTP). Specifically:
+
+1. **Strong-tx association for every spent prevout.** For every input,
+   the previous output must be in a *strong* transaction — i.e. a tx
+   that is associated to a block which is either (a) confirmed, or (b)
+   in the confirmable candidate fork at *lesser* height than the
+   spending block. This is the property that subsumes the "is the
+   prevout in the UTXO set?" question, expressed in a tx→block
+   association model rather than a separate UTXO snapshot.
+
+2. **Coinbase maturity** (BIP34 / 100-confirmation rule for spending
+   coinbase outputs).
+
+3. **Relative locktime rules** (BIP68 sequence locks).
+
+These checks also exist on the `system::chain` objects (for
+completeness, e.g. for stand-alone validation tools), but driving them
+there requires populating each input's metadata first. The store
+optimizes by performing the queries that *would have populated that
+metadata*, directly — much more efficient than populate-then-check.
+
+So `block_confirmable` is correctly read as: *"under the assumption
+that all lower-height blocks in this fork are confirmable, is this
+block consensus-valid against all order-sensitive rules?"* Its
+correctness is the joint responsibility of the libbitcoin-database
+query implementation and the consensus rules it encodes; a formal
+model should treat the call as a non-trivial proof obligation, not a
+thin UTXO oracle.
+
+For a model:
 
 ```
-block_confirmable(link, store_state) →
-    Right(())               if every input refers to a UTXO present in store_state,
-                            and double-spend checks pass
+block_confirmable(link, fork, store_state) →
+    Right(())               if for every input in block(link):
+                              - prevout tx is strong under (store_state ∪ fork[< height])
+                              - coinbase maturity satisfied
+                              - relative-locktime constraints satisfied
+                              - no double-spends within fork[≤ height]
     Left(error_code)        otherwise
 ```
 
-The chaser sequences calls so that `store_state` at the moment of
-`block_confirmable(link)` reflects all blocks confirmed below `link`'s
-height in this fork (because `set_block_confirmable` for prior heights
-has already run by the loop ordering at `chaser_confirm.cpp:230-275`).
+The chaser sequences calls so that prior fork blocks have already had
+`set_block_confirmable` written by the time `block_confirmable(link)`
+runs for this block (loop ordering at `chaser_confirm.cpp:230-275`).
 
 ---
 

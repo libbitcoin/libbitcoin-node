@@ -291,9 +291,12 @@ void do_handle_organize(ec, height, block_ptr) {
 > "Order is enforced by organize" (`:164`). Out-of-order blocks
 > received from the peer become orphans (parent unknown) and
 > `chaser_block::do_organize` returns `error_orphan` ⇒ this channel
-> is dropped. So this protocol is intolerant of out-of-order
-> delivery — different from headers-first which queues headers in a
-> tree.
+> is dropped. This is the **same policy as headers-first**: headers
+> are required by protocol to arrive in order, and blocks are
+> requested in order; an out-of-order delivery on either side drops
+> the peer. The `tree_` in headers-first does *not* relax this — it
+> caches *weak-branch* candidates whose parent is already known, not
+> orphans whose parent is unknown.
 
 ### 6.1 The strand-hopping for tracker_ access
 
@@ -392,8 +395,8 @@ of the node are:
 | Unrequested inv while pending         | (no action)                           | logged, ignored                                          |
 
 No node-faults. No `protocol_violation` drops either — this protocol
-is *forgiving* of peers (matching the operational reality that BIP31
-peers may be quirky).
+is *forgiving* of peers (matching the operational reality that
+pre-BIP130 peers may be quirky).
 
 ---
 

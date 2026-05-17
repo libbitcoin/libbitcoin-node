@@ -330,9 +330,18 @@ generation. It:
 
 `get_inventory_size` (`chaser_check.cpp:534-543`):
 
-- Returns 0 if no connections OR if the *confirmed* chain isn't current
-  (so no inventory work issues until the node is reasonably caught up).
+- Returns 0 if no connections OR if `is_current(false)` — i.e. the
+  **candidate** (header) chain isn't current.
 - Otherwise: `ceilinged_divide(unassociated_count_above(fork, step), connections)`.
+
+The candidate-current gate is *not* "wait until caught up" — issuing
+zero work until the node is caught up would just stall (you can't get
+caught up without downloading). Instead it guards against dividing
+work over a *weak* header chain: until headers are current, the
+partitioning of unassociated heights into per-peer inventory chunks
+could be meaningless or wrong, so block download is paused until
+header sync has produced a current (and therefore presumed
+near-canonical) candidate.
 
 > **Invariant (Check-Inventory-1).** `inventory_` is computed at most
 > once (latch on first nonzero result). Stored in

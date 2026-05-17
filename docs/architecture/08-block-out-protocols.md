@@ -324,14 +324,15 @@ When `superseded_` flips true:
 
 ### 3.3 Why `superseded_` is `std::atomic_bool`
 
-`superseded_` is written in `handle_receive_send_headers` (channel
-strand) and read in `handle_event` (bus subscriber's strand, which
-posts back to channel strand for actual processing). In practice both
-are the channel strand — see
-[`06 §3.1`](06-sessions-and-protocols.md#31-event-subscription-protocol)
-on subscription posting back to channel strand. The atomic is
-defensive; a non-atomic `bool` would likely be sound, but the cost is
-negligible.
+`protocol_block_out_70012::superseded()` is **`protected`**, so the
+derived class (`protocol_block_out_70012`) exposes read access to
+its own base (`protocol_block_out_106::handle_event`) which uses it
+as the supersede gate. The base reads `superseded()` from its bus
+handler context; the derived class writes `superseded_` from its
+`handle_receive_send_headers` channel handler. Making the flag
+atomic allows that read to happen **without** posting through the
+channel strand — i.e. the gate is non-stranded by design, and the
+atomic is what makes that safe.
 
 ---
 

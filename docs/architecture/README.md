@@ -128,10 +128,19 @@ distilled-for-export view of each subsystem.
    `protocol_transaction_in_106` are stubs. The docs describe their
    wiring and intended design but note clearly where current
    behaviour is "no-op".
-6. **Suspect source line**: [`10 §3.3`](10-tx-protocols.md#33-inbound-get_data--streamed-tx-send)
-   flags `protocol_transaction_out_106.cpp:187` as a possible
-   off-by-one (`sub1(index)` where `add1(index)` looks intended) —
-   not asserted as a bug; worth code review.
+6. **Reviewer-confirmed corrections**: a first pass of reviewer
+   feedback (evoskuil) corrected several claims; the affected docs
+   are 02 (milestone semantics, NDEBUG polarity, tree_ DoS), 03
+   (`is_current(false)` is candidate-chain), 04 (consensus is split
+   across multiple stages, not concentrated here), 05 (NDEBUG
+   polarity, expanded `block_confirmable` description), 06
+   (session-template diagram, "recent" vs "current"), 08
+   (`superseded_` atomic rationale), 09 (no-handler messages are
+   ignored, not protocol violations), 10 (the previously-flagged
+   `sub1`/`add1` at `protocol_transaction_out_106.cpp:187` was an
+   off-by-one bug, fixed in PR #1007), 11 (order-discipline is the
+   same as headers-first; BIP130 typo), and 12 (chaser_storage
+   timer runs on the network threadpool via the chaser's strand).
 
 ---
 

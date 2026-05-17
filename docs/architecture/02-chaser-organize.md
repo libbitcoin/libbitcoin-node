@@ -469,8 +469,13 @@ Exit paths:
 
 ### 6.2 Header milestone tracking (`chaser_header` only)
 
-A *milestone* is a configured `(hash, height)` pair that fixes the chain.
-Functionally similar to a checkpoint but mutable per node settings.
+A *milestone* is a configured `(hash, height)` pair. Unlike a
+checkpoint, a milestone does **not** fix the chain — the node can
+still reorganise around it. What a milestone *does* is allow the
+**bypass of validation** of all blocks up to the milestone height,
+*if* the milestone is found in the active candidate chain. So a
+milestone is an operational optimisation gated on the node's own
+configuration, not a consensus commitment.
 
 State: `active_milestone_height_` is the height of the *most recent
 milestone observed on the current candidate*. Initialised by
@@ -493,8 +498,17 @@ and:
 > the candidate is reorganized below the milestone (a rare event), and
 > only via `update_milestone`.
 
-`chaser_block` skips milestones entirely. The full block already carries
-enough state to validate without the heuristic.
+`chaser_block` skips milestones entirely, for a different reason than
+"the full block carries enough state". The blocks-first design has no
+PoW guard before archival: a peer can flood the node with full
+blocks, and without an upstream headers-first chain to gate which
+blocks are *worth* the work, the node has no cheap way to refuse
+malicious blocks short of validating them. (One could imagine running
+headers-first internally by downloading every block and stripping its
+txs — but that is prohibitively expensive and redundant with running
+headers-first directly.) So in blocks-first mode, **every block must
+be validated before archival**, full stop; bypass-on-milestone would
+defeat the only DoS guard the mode has.
 
 ---
 
@@ -523,8 +537,8 @@ store-corruption error). For a formal model, each is a proof obligation:
 | `organize13`       | `ipp:428-432`                       | disorganize: `get_candidate_chain_state(fork_point)` after rebuild returned null                                                   |
 | `organize14`       | `ipp:515` (in `push_block`)         | `set_organized` failed after a successful `set_code` (we archived but couldn't push to candidate)                                  |
 | `organize15`       | `ipp:521-523` (in `push_block(key)`)| Tree extract returned no handle (item was missing when expected)                                                                   |
-| `stalled_channel`  | `ipp:471-475` (in `set_organized`, NDEBUG-only check) | Candidate height isn't `top+1` (broken sequencing)                                                                    |
-| `suspended_channel`| `ipp:477-483` (in `set_organized`, NDEBUG-only check) | Parent of new candidate isn't current top (broken sequencing)                                                         |
+| `stalled_channel`  | `ipp:471-475` (in `set_organized`, debug-only `!NDEBUG` check) | Candidate height isn't `top+1` (broken sequencing). Redundant safety check; release builds skip it.          |
+| `suspended_channel`| `ipp:477-483` (in `set_organized`, debug-only `!NDEBUG` check) | Parent of new candidate isn't current top (broken sequencing). Redundant safety check; release builds skip it. |
 
 > **Spec obligation list.** A formal model should be able to discharge
 > `organize2` through `organize15` as unreachable, given:
@@ -570,8 +584,11 @@ store-corruption error). For a formal model, each is a proof obligation:
   factoring in §4.1.
 
 - `tree_` is naturally a `hash-table` keyed by header hash. The DoS
-  concern (`§6.1 TODO`) can be enforced by a size cap with a
-  least-recently-used eviction.
+  concern flagged at `§6.1 TODO` is real but the obvious mitigation
+  (an LRU eviction cap) is **not** the right answer — that would open
+  a new DoS vector where an attacker forces eviction of legitimate
+  weak branches. The right fix is more subtle and not solved here;
+  treat the unbounded-tree assumption as load-bearing.
 
 - `update_milestone` walks `tree_` by parent-hash chain — straightforward
   recursion.

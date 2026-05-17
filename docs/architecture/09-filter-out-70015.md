@@ -282,14 +282,19 @@ The pattern exists because of two constraints:
    create unbounded queueing.
 
 Unsubscribing for the duration of the stream **serializes** requests
-without explicit locks: a peer's second `get_client_filters` arrives
-when there is no handler for it, which the libbitcoin-network channel
-treats as a *protocol violation* and drops the peer.
+without explicit locks. A peer's second `get_client_filters` arriving
+while the first is in flight has no handler registered; the
+libbitcoin-network channel currently **ignores** unhandled messages
+(this may be tightened in future). The serializing effect therefore
+comes from the protocol simply not seeing the second request until it
+re-subscribes — not from peer drops.
 
-> **Invariant (Filter-Stream-4).** A peer that issues a second
-> `get_client_filters` before the first completes will be dropped by
-> the channel layer (not by this protocol). This effectively makes
-> `getcfilters` request/response exclusive per channel.
+> **Invariant (Filter-Stream-4).** While streaming, any additional
+> `get_client_filters` from this peer is dropped on the floor (no
+> handler). The first request completes; only after re-subscription
+> can another arrive. `getcfilters` is therefore *effectively*
+> serialized per channel, even though no explicit lock is held and
+> no peer-drop policy enforces it.
 
 ---
 
