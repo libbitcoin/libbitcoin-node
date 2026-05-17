@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\..\..\test\chasers\chaser_confirm.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\test\chasers\chaser_estimate.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\test\chasers\chaser_header.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
@@ -58,6 +61,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\error.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\estimator.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\full_node.cpp">

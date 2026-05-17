@@ -128,6 +128,7 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_estimate.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_header.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_snapshot.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_storage.cpp" />
@@ -136,6 +137,7 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_validate.cpp" />
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
+    <ClCompile Include="..\..\..\..\src\estimator.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\messages\block.cpp" />
     <ClCompile Include="..\..\..\..\src\messages\transaction.cpp" />
@@ -172,6 +174,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_estimate.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_organize.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_snapshot.hpp" />
@@ -183,6 +186,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\configuration.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\define.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\error.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\estimator.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\messages\block.hpp" />

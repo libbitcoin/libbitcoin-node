@@ -16,20 +16,37 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
+#ifndef LIBBITCOIN_NODE_CHASERS_CHASER_ESTIMATE_HPP
+#define LIBBITCOIN_NODE_CHASERS_CHASER_ESTIMATE_HPP
 
 #include <bitcoin/node/chasers/chaser.hpp>
-#include <bitcoin/node/chasers/chaser_block.hpp>
-#include <bitcoin/node/chasers/chaser_check.hpp>
-#include <bitcoin/node/chasers/chaser_confirm.hpp>
-#include <bitcoin/node/chasers/chaser_estimate.hpp>
-#include <bitcoin/node/chasers/chaser_header.hpp>
-#include <bitcoin/node/chasers/chaser_organize.hpp>
-#include <bitcoin/node/chasers/chaser_snapshot.hpp>
-#include <bitcoin/node/chasers/chaser_storage.hpp>
-#include <bitcoin/node/chasers/chaser_template.hpp>
-#include <bitcoin/node/chasers/chaser_transaction.hpp>
-#include <bitcoin/node/chasers/chaser_validate.hpp>
+#include <bitcoin/node/define.hpp>
+
+namespace libbitcoin {
+namespace node {
+
+class full_node;
+
+/// Maintain a running fee estimate cache.
+class BCN_API chaser_estimate
+  : public chaser
+{
+public:
+    DELETE_COPY_MOVE_DESTRUCT(chaser_estimate);
+
+    chaser_estimate(full_node& node) NOEXCEPT;
+
+    code start() NOEXCEPT override;
+
+protected:
+    virtual bool handle_chase(const code& ec, chase event_,
+        event_value value) NOEXCEPT;
+
+    virtual void do_organized(header_t value) NOEXCEPT;
+    virtual void do_reorganized(header_t value) NOEXCEPT;
+};
+
+} // namespace node
+} // namespace libbitcoin
 
 #endif

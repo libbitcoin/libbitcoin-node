@@ -16,20 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
-#define LIBBITCOIN_NODE_CHASERS_CHASERS_HPP
+#include "../test.hpp"
 
-#include <bitcoin/node/chasers/chaser.hpp>
-#include <bitcoin/node/chasers/chaser_block.hpp>
-#include <bitcoin/node/chasers/chaser_check.hpp>
-#include <bitcoin/node/chasers/chaser_confirm.hpp>
-#include <bitcoin/node/chasers/chaser_estimate.hpp>
-#include <bitcoin/node/chasers/chaser_header.hpp>
-#include <bitcoin/node/chasers/chaser_organize.hpp>
-#include <bitcoin/node/chasers/chaser_snapshot.hpp>
-#include <bitcoin/node/chasers/chaser_storage.hpp>
-#include <bitcoin/node/chasers/chaser_template.hpp>
-#include <bitcoin/node/chasers/chaser_transaction.hpp>
-#include <bitcoin/node/chasers/chaser_validate.hpp>
+BOOST_AUTO_TEST_SUITE(chaser_estimate_tests)
 
-#endif
+BOOST_AUTO_TEST_CASE(chaser_estimate_test)
+{
+    BOOST_REQUIRE(true);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
