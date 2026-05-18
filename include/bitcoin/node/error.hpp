@@ -59,6 +59,11 @@ enum error_t : uint8_t
     duplicate_block,
     duplicate_header,
 
+    /// fee estimation
+    estimate_disabled,
+    estimate_premature,
+    estimate_false,
+
     /// faults (terminal, code error and store corruption assumed)
     protocol1,
     protocol2,
@@ -98,10 +103,9 @@ enum error_t : uint8_t
     confirm10,
     confirm11,
     confirm12,
-    estimate_failed,
-    estimates_failed,
-    estimates_disabled,
-    estimates_premature
+    estimates_initialize,
+    estimates_push,
+    estimates_pop
 };
 
 // No current need for error_code equivalence mapping.

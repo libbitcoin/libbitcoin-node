@@ -49,6 +49,11 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { duplicate_block, "duplicate block" },
     { duplicate_header, "duplicate header" },
 
+    // fee estimation
+    { estimate_disabled, "estimate_disabled" },
+    { estimate_premature, "estimate_premature" },
+    { estimate_false, "estimate_false" },
+
     // faults
     { protocol1, "protocol1" },
     { protocol2, "protocol2" },
@@ -88,10 +93,9 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm10, "confirm10" },
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
-    { estimate_failed, "estimate_failed" },
-    { estimates_failed, "estimates_failed" },
-    { estimates_disabled, "estimates_disabled" },
-    { estimates_premature, "estimates_premature" }
+    { estimates_initialize, "estimates_initialize" },
+    { estimates_push, "estimates_push" },
+    { estimates_pop, "estimates_pop" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

@@ -66,7 +66,7 @@ void chaser_estimate::estimate(size_t target, estimator::mode mode,
 {
     if (!node_settings().fee_estimate_enabled())
     {
-        handler(error::estimates_disabled, {});
+        handler(error::estimate_disabled, {});
         return;
     }
 
@@ -82,13 +82,13 @@ void chaser_estimate::do_estimate(size_t target, estimator::mode mode,
     // Check this under strand so that chase can initialize first.
     if (!initialized())
     {
-        handler(error::estimates_premature, {});
+        handler(error::estimate_premature, {});
         return;
     }
 
     const auto value = estimator_->estimate(target, mode);
     const auto ec = (value < to_unsigned(max_int64) ? error::success :
-        error::estimate_failed);
+        error::estimate_false);
 
     // Successful value is always castable to int64_t.
     handler(ec, value);
@@ -181,7 +181,7 @@ bool chaser_estimate::initialize() NOEXCEPT
     estimator_ = std::make_unique<estimator>();
     if (!estimator_->initialize(stopping_, archive(), horizon))
     {
-        fault(error::estimates_failed);
+        fault(error::estimates_initialize);
         estimator_.release();
         return false;
     }
