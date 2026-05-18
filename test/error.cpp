@@ -261,22 +261,40 @@ BOOST_AUTO_TEST_CASE(error_t__code__estimates_initialize__true_expected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "estimates_initialize");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_push__true_expected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__estimates_push1__true_expected_message)
 {
-    constexpr auto value = error::estimates_push;
+    constexpr auto value = error::estimates_push1;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_push");
+    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_push1");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop__true_expected_message)
+BOOST_AUTO_TEST_CASE(error_t__code__estimates_push2__true_expected_message)
 {
-    constexpr auto value = error::estimates_pop;
+    constexpr auto value = error::estimates_push2;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop");
+    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_push2");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop1__true_expected_message)
+{
+    constexpr auto value = error::estimates_pop1;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop1");
+}
+
+BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop2__true_expected_message)
+{
+    constexpr auto value = error::estimates_pop2;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop2");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

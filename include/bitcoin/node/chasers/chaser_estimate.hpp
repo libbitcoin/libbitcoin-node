@@ -55,9 +55,9 @@ protected:
     virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_initialize(header_t value) NOEXCEPT;
-    virtual void do_organized(header_t value) NOEXCEPT;
-    virtual void do_reorganized(header_t value) NOEXCEPT;
+    virtual void do_initialize(header_t link) NOEXCEPT;
+    virtual void do_organized(header_t link) NOEXCEPT;
+    virtual void do_reorganized(header_t link) NOEXCEPT;
 
 private:
     void do_estimate(size_t target, estimator::mode mode,

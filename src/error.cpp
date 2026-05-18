@@ -94,8 +94,10 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
     { estimates_initialize, "estimates_initialize" },
-    { estimates_push, "estimates_push" },
-    { estimates_pop, "estimates_pop" }
+    { estimates_push1, "estimates_push1" },
+    { estimates_push2, "estimates_push2" },
+    { estimates_pop1, "estimates_pop1" },
+    { estimates_pop2, "estimates_pop2" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

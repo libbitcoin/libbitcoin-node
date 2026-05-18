@@ -190,20 +190,52 @@ void chaser_estimate::do_initialize(header_t) NOEXCEPT
     initialized_.store(true, std::memory_order_relaxed);
 }
 
-void chaser_estimate::do_organized(header_t) NOEXCEPT
+void chaser_estimate::do_organized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (initialized() && !estimator_->push(archive()))
-        fault(error::estimates_push);
+    if (initialized())
+    {
+        const auto& query = archive();
+        const auto height = query.get_height(link);
+
+        if (height.is_terminal())
+        {
+            fault(error::estimates_push1);
+            return;
+        }
+
+        // Organization events backlog during initialization.
+        if (height.value <= estimator_->top_height())
+            return;
+
+        if (!estimator_->push(query))
+            fault(error::estimates_push2);
+    }
 }
 
-void chaser_estimate::do_reorganized(header_t) NOEXCEPT
+void chaser_estimate::do_reorganized(header_t link) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (initialized() && !estimator_->pop(archive()))
-        fault(error::estimates_pop);
+    if (initialized())
+    {
+        const auto& query = archive();
+        const auto height = query.get_height(link);
+
+        if (height.is_terminal())
+        {
+            fault(error::estimates_pop1);
+            return;
+        }
+
+        // Organization events backlog during initialization.
+        if (height.value > estimator_->top_height())
+            return;
+
+        if (!estimator_->push(query))
+            fault(error::estimates_pop2);
+    }
 }
 
 BC_POP_WARNING()
