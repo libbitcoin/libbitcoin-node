@@ -18,8 +18,10 @@
  */
 #include <bitcoin/node/chasers/chaser_estimate.hpp>
 
+#include <atomic>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/estimator.hpp>
 #include <bitcoin/node/full_node.hpp>
 
 namespace libbitcoin {
@@ -37,17 +39,69 @@ chaser_estimate::chaser_estimate(full_node& node) NOEXCEPT
 {
 }
 
-// start
+// start/stop
 // ----------------------------------------------------------------------------
 
 code chaser_estimate::start() NOEXCEPT
 {
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    BC_ASSERT(stranded());
+
+    if (is_zero(node_settings().fee_estimate_enabled()))
+    {
+        SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    }
+
     return error::success;
+}
+
+void chaser_estimate::stopping(const code& ec) NOEXCEPT
+{
+    stopping_.store(true);
+    chaser::stopping(ec);
+}
+
+// methods
+// ----------------------------------------------------------------------------
+
+void chaser_estimate::estimate(size_t target, estimator::mode mode,
+    estimate_handler&& handler) NOEXCEPT
+{
+    if (!node_settings().fee_estimate_enabled())
+    {
+        handler(error::estimates_disabled, {});
+        return;
+    }
+
+    if (!initialized())
+    {
+        handler(error::estimates_premature, {});
+        return;
+    }
+
+    POST(do_estimate, target, mode, std::move(handler));
+}
+
+// private
+void chaser_estimate::do_estimate(size_t target, estimator::mode mode,
+    const estimate_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    handler(error::success, estimator_->estimate(target, mode));
+}
+
+size_t chaser_estimate::top_height() const NOEXCEPT
+{
+    return initialized() ? estimator_->top_height() : zero;
+}
+
+bool chaser_estimate::initialized() const NOEXCEPT
+{
+    return initialized_.load(std::memory_order_relaxed);
 }
 
 // event handlers
 // ----------------------------------------------------------------------------
+// protected
 
 bool chaser_estimate::handle_chase(const code&, chase event_,
     event_value value) NOEXCEPT
@@ -58,6 +112,9 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
     // Keep updating the fee accumulator (blocks continue organizing).
     ////if (suspended())
     ////    return true;
+
+    if (!is_current(true))
+        return true;
 
     switch (event_)
     {
@@ -89,11 +146,46 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
 void chaser_estimate::do_organized(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (initialize())
+        estimator_->push(archive());
 }
 
 void chaser_estimate::do_reorganized(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (initialize())
+        estimator_->pop(archive());
+}
+
+// utility
+// ----------------------------------------------------------------------------
+// private
+
+bool chaser_estimate::initialize() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (initialized())
+        return true;
+
+    // Preempt initialize fault when horizon exceeds chain length.
+    const auto horizon = node_settings().fee_estimate_horizon_();
+    if (horizon > add1(archive().get_top_confirmed()))
+        return false;
+
+    // Heap-allocate the estimator due to size.
+    estimator_ = std::make_unique<estimator>();
+    if (!estimator_->initialize(stopping_, archive(), horizon))
+    {
+        fault(error::estimates_failed);
+        estimator_.release();
+        return false;
+    }
+
+    initialized_.store(true, std::memory_order_relaxed);
+    return true;
 }
 
 BC_POP_WARNING()

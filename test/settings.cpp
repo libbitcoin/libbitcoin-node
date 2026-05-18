@@ -42,6 +42,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
     BOOST_REQUIRE_EQUAL(node.announcement_cache, 42_u16);
     BOOST_REQUIRE_EQUAL(node.allocation_multiple, 20_u16);
+    BOOST_REQUIRE_EQUAL(node.fee_estimate_horizon, 0u);
     ////BOOST_REQUIRE_EQUAL(node.snapshot_bytes, 200'000'000'000_u64);
     ////BOOST_REQUIRE_EQUAL(node.snapshot_valid, 250'000_u32);
     ////BOOST_REQUIRE_EQUAL(node.snapshot_confirm, 500'000_u32);
@@ -56,6 +57,8 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.threads_(), one);
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50'000_size);
+    BOOST_REQUIRE_EQUAL(node.fee_estimate_horizon_(), 0_size);
+    BOOST_REQUIRE(!node.fee_estimate_enabled());
     BOOST_REQUIRE(node.sample_period() == steady_clock::duration(seconds(10)));
     BOOST_REQUIRE(node.currency_window() == steady_clock::duration(minutes(1440)));
     BOOST_REQUIRE(node.thread_priority_() == network::processing_priority::high);

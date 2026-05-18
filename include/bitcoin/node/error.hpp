@@ -97,7 +97,10 @@ enum error_t : uint8_t
     confirm9,
     confirm10,
     confirm11,
-    confirm12
+    confirm12,
+    estimates_failed,
+    estimates_disabled,
+    estimates_premature
 };
 
 // No current need for error_code equivalence mapping.

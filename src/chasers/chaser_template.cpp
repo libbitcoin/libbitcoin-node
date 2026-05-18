@@ -43,6 +43,7 @@ chaser_template::chaser_template(full_node& node) NOEXCEPT
 // TODO: initialize template state.
 code chaser_template::start() NOEXCEPT
 {
+    BC_ASSERT(stranded());
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }

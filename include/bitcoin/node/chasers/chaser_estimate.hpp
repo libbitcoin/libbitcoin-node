@@ -19,8 +19,10 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_ESTIMATE_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_ESTIMATE_HPP
 
+#include <atomic>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/estimator.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -37,6 +39,17 @@ public:
     chaser_estimate(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
+
+    /// Returns max_uint64 when disabled.
+    void estimate(size_t target, estimator::mode mode,
+        estimate_handler&& handler) NOEXCEPT;
+
+    /// Returns zero when disabled (thread safe).
+    size_t top_height() const NOEXCEPT;
+
+    /// Initialization is complete and successful.
+    bool initialized() const NOEXCEPT;
 
 protected:
     virtual bool handle_chase(const code& ec, chase event_,
@@ -44,6 +57,18 @@ protected:
 
     virtual void do_organized(header_t value) NOEXCEPT;
     virtual void do_reorganized(header_t value) NOEXCEPT;
+
+private:
+    bool initialize() NOEXCEPT;
+    void do_estimate(size_t target, estimator::mode mode,
+        const estimate_handler& handler) NOEXCEPT;
+
+    // These are thread safe.
+    std::atomic_bool stopping_{};
+    std::atomic_bool initialized_{};
+
+    // This is protected by strand.
+    estimator::ptr estimator_{};
 };
 
 } // namespace node

@@ -39,7 +39,7 @@ class BCN_API chaser
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser);
 
-    /// Should be called from node strand.
+    /// Must be called from node strand.
     virtual code start() NOEXCEPT = 0;
 
     /// Override to capture non-blocking stopping.
