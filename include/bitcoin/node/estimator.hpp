@@ -46,7 +46,8 @@ public:
         basic,
         geometric,
         economical,
-        conservative
+        conservative,
+        unknown
     };
 
     /// Construct (use heap allocation).
