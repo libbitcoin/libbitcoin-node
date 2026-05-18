@@ -113,12 +113,10 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
     ////if (suspended())
     ////    return true;
 
-    if (!is_current(true))
-        return true;
-
     switch (event_)
     {
-        case chase::organized:
+        // chase::block is only sent when current (may need to file gaps).
+        case chase::block:
         {
             BC_ASSERT(std::holds_alternative<header_t>(value));
             POST(do_organized, std::get<header_t>(value));
@@ -147,7 +145,8 @@ void chaser_estimate::do_organized(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (initialize())
+    // TODO: make gap safe (get estimator top and adjust).
+    if (initialized() || initialize())
         estimator_->push(archive());
 }
 
@@ -155,7 +154,8 @@ void chaser_estimate::do_reorganized(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (initialize())
+    // TODO: make gap safe (get estimator top and adjust).
+    if (initialized())
         estimator_->pop(archive());
 }
 
@@ -166,9 +166,6 @@ void chaser_estimate::do_reorganized(header_t) NOEXCEPT
 bool chaser_estimate::initialize() NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    if (initialized())
-        return true;
 
     // Preempt initialize fault when horizon exceeds chain length.
     const auto horizon = node_settings().fee_estimate_horizon_();
