@@ -35,7 +35,6 @@ chaser_header::chaser_header(full_node& node) NOEXCEPT
 
 code chaser_header::start() NOEXCEPT
 {
-    BC_ASSERT(stranded());
     if (!initialize_milestone())
         return fault(error::header1);
 

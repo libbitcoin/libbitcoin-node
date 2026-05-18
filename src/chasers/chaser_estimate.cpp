@@ -44,8 +44,6 @@ chaser_estimate::chaser_estimate(full_node& node) NOEXCEPT
 
 code chaser_estimate::start() NOEXCEPT
 {
-    BC_ASSERT(stranded());
-
     if (node_settings().fee_estimate_enabled())
     {
         SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);

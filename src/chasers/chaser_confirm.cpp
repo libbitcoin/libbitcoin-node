@@ -42,7 +42,6 @@ chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
 
 code chaser_confirm::start() NOEXCEPT
 {
-    BC_ASSERT(stranded());
     const auto& query = archive();
     set_position(query.get_fork());
 
