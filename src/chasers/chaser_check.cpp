@@ -90,7 +90,6 @@ map_ptr chaser_check::split(const map_ptr& map) NOEXCEPT
 
 code chaser_check::start() NOEXCEPT
 {
-    BC_ASSERT(stranded());
     start_tracking();
     set_position(archive().get_fork());
     requested_ = advanced_ = position();

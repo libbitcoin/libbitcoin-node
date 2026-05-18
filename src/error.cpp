@@ -88,6 +88,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm10, "confirm10" },
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
+    { estimate_failed, "estimate_failed" },
     { estimates_failed, "estimates_failed" },
     { estimates_disabled, "estimates_disabled" },
     { estimates_premature, "estimates_premature" }
