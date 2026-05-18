@@ -47,6 +47,8 @@ chaser_storage::chaser_storage(full_node& node) NOEXCEPT
 
 code chaser_storage::start() NOEXCEPT
 {
+    BC_ASSERT(stranded());
+
     // Construct is too early to create the unstarted timer.
     disk_timer_ = std::make_shared<deadline>(log, strand(), seconds{1});
 
