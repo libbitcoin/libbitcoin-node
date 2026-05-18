@@ -120,18 +120,38 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
 
     switch (event_)
     {
-        // chase::block is only sent when current (may need to file gaps).
+        // chase::block is only sent when current. This is captured as a cheap
+        // way to test currency for initialization. Once initialized it is not
+        // used again. chase::organized is used instead, to ensure that there
+        // are no push() gaps due to falling out of currency.
         case chase::block:
         {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_organized, std::get<header_t>(value));
+            if (!initialized())
+            {
+                BC_ASSERT(std::holds_alternative<header_t>(value));
+                POST(do_initialize, std::get<header_t>(value));
+            }
+
+            break;
+        }
+        case chase::organized:
+        {
+            if (initialized())
+            {
+                BC_ASSERT(std::holds_alternative<header_t>(value));
+                POST(do_organized, std::get<header_t>(value));
+            }
+
             break;
         }
         case chase::reorganized:
         {
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_reorganized, std::get<header_t>(value));
-            break;
+            if (initialized())
+            {
+                BC_ASSERT(std::holds_alternative<header_t>(value));
+                POST(do_reorganized, std::get<header_t>(value));
+                break;
+            }
         }
         case chase::stop:
         {
@@ -146,36 +166,17 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
     return true;
 }
 
-void chaser_estimate::do_organized(header_t) NOEXCEPT
+void chaser_estimate::do_initialize(header_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // TODO: make gap safe (get estimator top and adjust).
-    if (initialized() || initialize())
-        estimator_->push(archive());
-}
-
-void chaser_estimate::do_reorganized(header_t) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // TODO: make gap safe (get estimator top and adjust).
     if (initialized())
-        estimator_->pop(archive());
-}
-
-// utility
-// ----------------------------------------------------------------------------
-// private
-
-bool chaser_estimate::initialize() NOEXCEPT
-{
-    BC_ASSERT(stranded());
+        return;
 
     // Preempt initialize fault when horizon exceeds chain length.
     const auto horizon = node_settings().fee_estimate_horizon_();
     if (horizon > add1(archive().get_top_confirmed()))
-        return false;
+        return;
 
     // Heap-allocate the estimator due to size.
     estimator_ = std::make_unique<estimator>();
@@ -183,11 +184,26 @@ bool chaser_estimate::initialize() NOEXCEPT
     {
         fault(error::estimates_initialize);
         estimator_.release();
-        return false;
+        return;
     }
 
     initialized_.store(true, std::memory_order_relaxed);
-    return true;
+}
+
+void chaser_estimate::do_organized(header_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (initialized() && !estimator_->push(archive()))
+        fault(error::estimates_push);
+}
+
+void chaser_estimate::do_reorganized(header_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (initialized() && !estimator_->pop(archive()))
+        fault(error::estimates_pop);
 }
 
 BC_POP_WARNING()
