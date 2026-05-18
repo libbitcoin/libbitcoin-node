@@ -41,6 +41,7 @@ public:
     bool allow_overlapped;
     bool defer_validation;
     bool defer_confirmation;
+    bool enable_fee_estimator;
     float allowed_deviation;
     float minimum_fee_rate;
     float minimum_bump_rate;

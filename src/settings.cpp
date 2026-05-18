@@ -36,6 +36,7 @@ settings::settings() NOEXCEPT
     allow_overlapped{ true },
     defer_validation{ false },
     defer_confirmation{ false },
+    enable_fee_estimator{ false },
     minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
