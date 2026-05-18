@@ -21,6 +21,7 @@
 #include <utility>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/estimator.hpp>
 #include <bitcoin/node/sessions/sessions.hpp>
 
 namespace libbitcoin {
@@ -428,9 +429,15 @@ bool full_node::is_recent() const NOEXCEPT
     return is_current(query_.get_timestamp(timestamp, link));
 }
 
-// Session attachments.
-
+// Methods.
 // ----------------------------------------------------------------------------
+
+void full_node::estimate(size_t target, estimator::mode mode,
+    estimate_handler&& handler) NOEXCEPT
+{
+    chaser_estimate_.estimate(target, mode, std::move(handler));
+}
+
 void full_node::performance(object_key key, uint64_t speed,
     result_handler&& handler) NOEXCEPT
 {

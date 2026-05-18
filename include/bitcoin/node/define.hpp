@@ -52,6 +52,9 @@ namespace node {
 /// Alias system code.
 typedef std::error_code code;
 
+/// Estimate types.
+typedef std::function<void(const code&, uint64_t)> estimate_handler;
+
 /// Organization types.
 typedef std::function<void(const code&, size_t)> organize_handler;
 typedef database::store<database::map> store;
@@ -120,10 +123,10 @@ using type_id = network::messages::peer::inventory_item::type_id;
 // settings       : define
 // configuration  : define settings
 // parser         : define configuration
-// /chasers       : define configuration     [forward: full_node]
+// /chasers       : define configuration estimator  [forward: full_node]
 // /channels      : define configuration
-// full_node      : define /chasers
-// session        : define                   [forward: full_node]
+// full_node      : define estimator /chasers
+// session        : define estimator                [forward: full_node]
 // /messages      : define
-// /protocols     : define /channels         [session.hpp]
-// /sessions      : define /protocols        [forward: full_node]
+// /protocols     : define estimator /channels      [session.hpp]
+// /sessions      : define /protocols               [forward: full_node]

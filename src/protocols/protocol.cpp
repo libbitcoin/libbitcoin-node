@@ -66,6 +66,15 @@ bool protocol::is_current(bool confirmed) const NOEXCEPT
     return session_->is_current(confirmed);
 }
 
+// Methods.
+// ----------------------------------------------------------------------------
+
+void protocol::estimate(size_t target, estimator::mode mode,
+    estimate_handler&& handler) NOEXCEPT
+{
+    session_->estimate(target, mode, std::move(handler));
+}
+
 // Events subscription.
 // ----------------------------------------------------------------------------
 
