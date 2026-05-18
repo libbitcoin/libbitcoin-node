@@ -46,7 +46,7 @@ code chaser_estimate::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (node_settings().enable_fee_estimator)
+    if (is_zero(node_settings().fee_estimate_enabled()))
     {
         SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     }
@@ -66,7 +66,7 @@ void chaser_estimate::stopping(const code& ec) NOEXCEPT
 void chaser_estimate::estimate(size_t target, estimator::mode mode,
     estimate_handler&& handler) NOEXCEPT
 {
-    if (!node_settings().enable_fee_estimator)
+    if (!node_settings().fee_estimate_enabled())
     {
         handler(error::estimates_disabled, {});
         return;
@@ -171,9 +171,8 @@ bool chaser_estimate::initialize() NOEXCEPT
         return true;
 
     // Preempt initialize fault when horizon exceeds chain length.
-    constexpr auto horizon = estimator::maximum_horizon;
-    const auto blocks = add1(archive().get_top_confirmed());
-    if (horizon > blocks)
+    const auto horizon = node_settings().fee_estimate_horizon_();
+    if (horizon > add1(archive().get_top_confirmed()))
         return false;
 
     // Heap-allocate the estimator due to size.

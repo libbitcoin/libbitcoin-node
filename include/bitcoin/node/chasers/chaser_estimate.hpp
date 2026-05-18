@@ -63,7 +63,7 @@ private:
     void do_estimate(size_t target, estimator::mode mode,
         const estimate_handler& handler) NOEXCEPT;
 
-    // This is thread safe.
+    // These are thread safe.
     std::atomic_bool stopping_{};
     std::atomic_bool initialized_{};
 

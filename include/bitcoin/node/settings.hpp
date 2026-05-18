@@ -41,12 +41,12 @@ public:
     bool allow_overlapped;
     bool defer_validation;
     bool defer_confirmation;
-    bool enable_fee_estimator;
     float allowed_deviation;
     float minimum_fee_rate;
     float minimum_bump_rate;
     uint16_t announcement_cache;
     uint16_t allocation_multiple;
+    uint16_t fee_estimate_horizon;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;
     ////uint32_t snapshot_confirm;
@@ -60,6 +60,8 @@ public:
     virtual size_t threads_() const NOEXCEPT;
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
+    virtual size_t fee_estimate_horizon_() const NOEXCEPT;
+    virtual bool fee_estimate_enabled() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
     virtual network::processing_priority thread_priority_() const NOEXCEPT;

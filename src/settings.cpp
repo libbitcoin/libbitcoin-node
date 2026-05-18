@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <bitcoin/node/define.hpp>
+#include <bitcoin/node/estimator.hpp>
 
 using namespace bc::system;
 using namespace bc::network;
@@ -36,12 +37,12 @@ settings::settings() NOEXCEPT
     allow_overlapped{ true },
     defer_validation{ false },
     defer_confirmation{ false },
-    enable_fee_estimator{ false },
     minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
     announcement_cache{ 42 },
     allocation_multiple{ 20 },
+    fee_estimate_horizon{ 0 },
     ////snapshot_bytes{ 200'000'000'000 },
     ////snapshot_valid{ 250'000 },
     ////snapshot_confirm{ 500'000 },
@@ -72,6 +73,16 @@ size_t settings::maximum_height_() const NOEXCEPT
 size_t settings::maximum_concurrency_() const NOEXCEPT
 {
     return to_bool(maximum_concurrency) ? maximum_concurrency : max_size_t;
+}
+
+size_t settings::fee_estimate_horizon_() const NOEXCEPT
+{
+    return std::min<size_t>(fee_estimate_horizon, estimator::maximum_horizon);
+}
+
+bool settings::fee_estimate_enabled() const NOEXCEPT
+{
+    return to_bool(fee_estimate_horizon_());
 }
 
 network::steady_clock::duration settings::sample_period() const NOEXCEPT
