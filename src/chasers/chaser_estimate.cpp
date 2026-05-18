@@ -86,7 +86,13 @@ void chaser_estimate::do_estimate(size_t target, estimator::mode mode,
     const estimate_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    handler(error::success, estimator_->estimate(target, mode));
+
+    const auto value = estimator_->estimate(target, mode);
+    const auto ec = (value < to_unsigned(max_int64) ? error::success :
+        error::estimate_failed);
+
+    // Successful value is always castable to int64_t.
+    handler(ec, value);
 }
 
 size_t chaser_estimate::top_height() const NOEXCEPT
