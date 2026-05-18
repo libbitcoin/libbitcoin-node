@@ -72,12 +72,6 @@ void chaser_estimate::estimate(size_t target, estimator::mode mode,
         return;
     }
 
-    if (!initialized())
-    {
-        handler(error::estimates_premature, {});
-        return;
-    }
-
     POST(do_estimate, target, mode, std::move(handler));
 }
 
@@ -86,6 +80,13 @@ void chaser_estimate::do_estimate(size_t target, estimator::mode mode,
     const estimate_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    // Check this under strand so that chase can initialize first.
+    if (!initialized())
+    {
+        handler(error::estimates_premature, {});
+        return;
+    }
 
     const auto value = estimator_->estimate(target, mode);
     const auto ec = (value < to_unsigned(max_int64) ? error::success :
