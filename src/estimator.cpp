@@ -81,14 +81,14 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
     return estimate;
 }
 
-bool estimator::initialize(std::atomic_bool& cancel, const query& query,
+bool estimator::initialize(const std::atomic_bool& cancel, const query& query,
     size_t count) NOEXCEPT
 {
     if (is_zero(count))
         return true;
 
     const auto top = query.get_top_confirmed();
-    if (sub1(count) > top)
+    if (count > add1(top))
         return false;
 
     rate_sets blocks{};
@@ -119,7 +119,7 @@ bool estimator::pop(const query& query) NOEXCEPT
 
 size_t estimator::top_height() const NOEXCEPT
 {
-    return fees_.top_height;
+    return fees_.top_height.load(std::memory_order_relaxed);
 }
 
 // protected
@@ -141,11 +141,11 @@ bool estimator::initialize(const rate_sets& blocks) NOEXCEPT
     if (is_zero(count))
         return true;
 
-    if (system::is_add_overflow(fees_.top_height, sub1(count)))
+    auto height = top_height();
+    if (system::is_add_overflow(height, sub1(count)))
         return false;
 
-    auto height = fees_.top_height;
-    fees_.top_height += sub1(count);
+    fees_.top_height.fetch_add(sub1(count), std::memory_order_relaxed);
 
     // 3-4 secs slower when parallel at 1008 blocks.
     for (const auto& block: blocks)
@@ -159,15 +159,16 @@ bool estimator::initialize(const rate_sets& blocks) NOEXCEPT
 bool estimator::push(const rates& block) NOEXCEPT
 {
     decay(true);
-    return update(block, ++fees_.top_height, true);
+    fees_.top_height.fetch_add(one, std::memory_order_relaxed);
+    return update(block, top_height(), true);
 }
 
 // Blocks must be pushed in order (but independent of chain index).
 bool estimator::pop(const rates& block) NOEXCEPT
 {
-    const auto result = update(block, fees_.top_height, false);
+    const auto result = update(block, top_height(), false);
     decay(false);
-    --fees_.top_height;
+    fees_.top_height.fetch_sub(one, std::memory_order_relaxed);
     return result;
 }
 

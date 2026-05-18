@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_ESTIMATOR_HPP
 #define LIBBITCOIN_NODE_ESTIMATOR_HPP
 
+#include <atomic>
 #include <memory>
 #include <bitcoin/node/define.hpp>
 
@@ -34,7 +35,7 @@ namespace node {
 class BCN_API estimator
 {
 public:
-    typedef std::shared_ptr<estimator> ptr;
+    typedef std::unique_ptr<estimator> ptr;
     static constexpr size_t maximum_horizon = 1008;
 
     DELETE_COPY_MOVE_DESTRUCT(estimator);
@@ -51,19 +52,19 @@ public:
     /// Construct (use heap allocation).
     estimator() NOEXCEPT {};
 
-    /// Fee estimation in satoshis / transaction virtual size.
+    /// Fee estimation in satoshis/transaction virtual size (not thread safe).
     /// Pass zero to target next block for confirmation, range:0..1007.
     uint64_t estimate(size_t target, mode mode) const NOEXCEPT;
 
     /// Populate accumulator with count blocks up to the top confirmed block.
-    bool initialize(std::atomic_bool& cancel, const query& query,
+    bool initialize(const std::atomic_bool& cancel, const query& query,
         size_t count=maximum_horizon) NOEXCEPT;
 
-    /// Update accumulator.
+    /// Update accumulator (not thread safe).
     bool push(const query& query) NOEXCEPT;
     bool pop(const query& query) NOEXCEPT;
 
-    /// Top height of accumulator.
+    /// Top height of accumulator (thread safe).
     size_t top_height() const NOEXCEPT;
 
 protected:
@@ -116,7 +117,7 @@ protected:
         };
 
         /// Current block height of accumulated state.
-        size_t top_height{};
+        std::atomic<size_t> top_height{};
 
         /// Accumulated scaled fee in decayed buckets by horizon.
         /// Array count is the half life of the decay it implies.
