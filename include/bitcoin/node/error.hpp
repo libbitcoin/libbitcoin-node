@@ -98,6 +98,7 @@ enum error_t : uint8_t
     confirm10,
     confirm11,
     confirm12,
+    estimate_failed,
     estimates_failed,
     estimates_disabled,
     estimates_premature

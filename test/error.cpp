@@ -225,6 +225,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__confirm1__true_expected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "confirm1");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__estimate_failed__true_expected_message)
+{
+    constexpr auto value = error::estimate_failed;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "estimate_failed");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__estimates_failed__true_expected_message)
 {
     constexpr auto value = error::estimates_failed;
