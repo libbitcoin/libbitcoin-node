@@ -363,19 +363,12 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 // error::invalid_transaction_commitment is returned. Only identity is required
 // under bypass. Header state is checked by organize. 
 code protocol_block_in_31800::check(const chain::block& block,
-    const chain::context& ctx, bool bypass) const NOEXCEPT
+    const chain::context& ctx, bool) const NOEXCEPT
 {
     code ec{};
-    if (bypass)
-    {
-        if (((ec = block.identify())) || ((ec = block.identify(ctx))))
-            return ec;
-    }
-    else
-    {
-        if (((ec = block.check())) || ((ec = block.check(ctx))))
-            return ec;
-    }
+
+    if (((ec = block.identify())) || ((ec = block.identify(ctx))))
+        return ec;
 
     return error::success;
 }

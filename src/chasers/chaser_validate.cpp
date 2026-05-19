@@ -282,6 +282,16 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if (!bypass)
     {
         code ec{};
+
+        // Skips identity validation (performed in downloader).
+        // This can be performed in donwnloader as well but moving it here with
+        // more order than required allows the downloader to avoid block parse
+        // which significantly reduces memory consumption and CPU during sync.
+        // This slightly increases check() computation under full validation
+        // because a redundant malleation guard is required when downloading.
+        if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
+            return ec;
+
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
