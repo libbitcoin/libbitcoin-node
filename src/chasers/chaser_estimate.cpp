@@ -233,7 +233,7 @@ void chaser_estimate::do_reorganized(header_t link) NOEXCEPT
         if (height.value > estimator_->top_height())
             return;
 
-        if (!estimator_->push(query))
+        if (!estimator_->pop(query))
             fault(error::estimates_pop2);
     }
 }
