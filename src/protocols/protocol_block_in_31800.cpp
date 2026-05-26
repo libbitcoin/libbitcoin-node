@@ -274,8 +274,8 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Preconditions.
     // ........................................................................
 
-    const auto& block = message->block_ptr;
-    const auto& hash = block->get_hash();
+    const auto& block = message->block;
+    const auto hash = block.hash();
     const auto it = map_->find(hash);
     auto& query = archive();
 
@@ -300,15 +300,15 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // only stored when a strong header has been stored, later to be found out
     // as invalid and not malleable. Stored invalidity prevents repeat
     // processing of the same invalid chain but is not necessary or desirable.
-    if (const auto code = check(*block, it->context, bypass))
+    if (const auto code = check(block, it->context, bypass))
     {
         if (code == system::error::invalid_transaction_commitment ||
             code == system::error::invalid_witness_commitment)
         {
             LOGR("Malleated block [" << encode_hash(hash) << ":" << height
                 << "] from [" << opposite() << "] " << code.message()
-                << " txs(" << block->transactions() << ")"
-                << " segregated(" << block->is_segregated() << ").");
+                << " txs(" << block.transactions() << ")"
+                << " segregated(" << block.is_segregated() << ").");
             stop(code);
             return false;
         }
@@ -330,7 +330,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    if (const auto code = query.set_code(*block, link, checked, bypass, height))
+    if (const auto code = query.set_code(block, link, checked, bypass, height))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << opposite() << "] " << code.message());
@@ -348,7 +348,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     notify(ec, chase::checked, height);
     fire(events::block_archived, height);
 
-    count(block->serialized_size(true));
+    count(block.serialized_size(true));
     map_->erase(it);
     if (is_idle())
     {
@@ -359,10 +359,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     return true;
 }
 
-// Identity is correct unless error::invalid_witness_commitment or
-// error::invalid_transaction_commitment is returned. Only identity is required
-// under bypass. Header state is checked by organize. 
-code protocol_block_in_31800::check(const chain::block& block,
+// Header is checked by organize, Check/Accept/Connect are called by validate.
+// While check could be called here, it's more optimal to defer to validate, as
+// requiring only identity here allows the use of the simplified block_view.
+code protocol_block_in_31800::check(const chain::block_view& block,
     const chain::context& ctx, bool) const NOEXCEPT
 {
     code ec{};
