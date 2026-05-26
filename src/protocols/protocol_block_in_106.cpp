@@ -123,25 +123,26 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
 
 // Process block responses in order as dictated by tracker.
 bool protocol_block_in_106::handle_receive_block(const code& ec,
-    const block::cptr& message) NOEXCEPT
+    const block::cptr& ) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
 
-    const auto& block_ptr = message->block_ptr;
-
-    // Unrequested block, may not have been announced via inventory.
-    if (tracker_.ids.find(block_ptr->get_hash()) == tracker_.ids.end())
-    {
-        LOGP("Unrequested block [" << encode_hash(block_ptr->get_hash())
-            << "] from [" << opposite() << "].");
-        return true;
-    }
-
-    // Inventory backlog is limited to 500 per channel.
-    organize(block_ptr, BIND(handle_organize, _1, _2, block_ptr));
+    // TODO: add `chain::block get_block() const` method to message.
+    ////const auto& block_ptr = message->block_ptr;
+    ////
+    ////// Unrequested block, may not have been announced via inventory.
+    ////if (tracker_.ids.find(block_ptr->get_hash()) == tracker_.ids.end())
+    ////{
+    ////    LOGP("Unrequested block [" << encode_hash(block_ptr->get_hash())
+    ////        << "] from [" << opposite() << "].");
+    ////    return true;
+    ////}
+    ////
+    ////// Inventory backlog is limited to 500 per channel.
+    ////organize(block_ptr, BIND(handle_organize, _1, _2, block_ptr));
     return true;
 }
 
