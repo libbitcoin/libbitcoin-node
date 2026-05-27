@@ -45,7 +45,6 @@ public:
     float minimum_fee_rate;
     float minimum_bump_rate;
     uint16_t announcement_cache;
-    uint16_t allocation_multiple;
     uint16_t fee_estimate_horizon;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;

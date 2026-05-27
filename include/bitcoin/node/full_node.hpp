@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_FULL_NODE_HPP
 #define LIBBITCOIN_NODE_FULL_NODE_HPP
 
-#include <bitcoin/node/block_memory.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
@@ -30,19 +29,12 @@ namespace libbitcoin {
 namespace node {
 
 /// Thread safe.
-/// WARNING: when full node is using block_memory controller, all shared block
-/// components invalidate when the block destructs. Lifetime of the block is
-/// assured for the extent of all methods below, however if a sub-object is
-/// retained by shared_ptr, beyond method completion, a copy of the block
-/// shared_ptr must also be be retained. Taking a block or sub-object copy is
-/// insufficient, as copies are shallow (copy internal shared_ptr objects).
 class BCN_API full_node
   : public network::net
 {
 public:
     using store = node::store;
     using query = node::query;
-    using memory_controller = block_memory;
     using result_handler = network::result_handler;
     typedef std::shared_ptr<full_node> ptr;
 
@@ -160,9 +152,6 @@ public:
     virtual void performance(object_key channel, uint64_t speed,
         result_handler&& handler) NOEXCEPT;
 
-    /// Get the memory resource.
-    virtual network::memory& get_memory() NOEXCEPT;
-
 protected:
     /// Session attachments.
     /// -----------------------------------------------------------------------
@@ -187,7 +176,6 @@ private:
 
     // These are thread safe.
     const configuration& config_;
-    memory_controller memory_;
     query& query_;
 
     // These are protected by strand.

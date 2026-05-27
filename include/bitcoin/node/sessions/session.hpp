@@ -84,9 +84,6 @@ public:
     virtual void performance(object_key channel, uint64_t speed,
         network::result_handler&& handler) NOEXCEPT;
 
-    /// Get the memory resource.
-    virtual network::memory& get_memory() const NOEXCEPT;
-
     /// Suspensions.
     /// -----------------------------------------------------------------------
 

@@ -32,8 +32,8 @@ inline CLASS::channel_ptr CLASS::create_channel(
     BC_ASSERT(this->stranded());
 
     const auto channel = system::emplace_shared<channel_t>(
-        this->get_memory(), this->log, socket, this->create_key(),
-        this->node_config(), this->options());
+        this->log, socket, this->create_key(), this->node_config(),
+        this->options());
 
     return std::static_pointer_cast<network::channel>(channel);
 }

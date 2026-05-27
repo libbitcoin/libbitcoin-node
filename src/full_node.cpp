@@ -39,7 +39,6 @@ full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : net(configuration.network, log),
     config_(configuration),
-    memory_(config_.node.allocation_multiple, config_.network.threads),
     query_(query),
     chaser_block_(*this),
     chaser_header_(*this),
@@ -442,11 +441,6 @@ void full_node::performance(object_key key, uint64_t speed,
     result_handler&& handler) NOEXCEPT
 {
     chaser_check_.update(key, speed, std::move(handler));
-}
-
-network::memory& full_node::get_memory() NOEXCEPT
-{
-    return memory_;
 }
 
 // Session attachments.
