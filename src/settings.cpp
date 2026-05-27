@@ -41,7 +41,6 @@ settings::settings() NOEXCEPT
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
     announcement_cache{ 42 },
-    allocation_multiple{ 20 },
     fee_estimate_horizon{ 0 },
     ////snapshot_bytes{ 200'000'000'000 },
     ////snapshot_valid{ 250'000 },

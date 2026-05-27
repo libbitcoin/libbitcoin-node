@@ -109,11 +109,6 @@ void session::performance(object_key key, uint64_t speed,
     node_.performance(key, speed, std::move(handler));
 }
 
-network::memory& session::get_memory() const NOEXCEPT
-{
-    return node_.get_memory();
-}
-
 // Suspensions.
 // ----------------------------------------------------------------------------
 
