@@ -254,7 +254,7 @@ get_data protocol_block_in_31800::create_get_data(
     // bip144: get_data uses witness type_id but inv does not.
     std::for_each(map.pos_begin(), map.pos_end(), [&](const auto& item) NOEXCEPT
     {
-        data.items.emplace_back(block_type_, item.hash);
+        data.items.emplace_back(to_block_type(item), item.hash);
     });
 
     return data;
@@ -277,8 +277,6 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto& block = message->block;
     const auto hash = block.hash();
     const auto it = map_->find(hash);
-    auto& query = archive();
-
     if (it == map_->end())
     {
         // Allow unrequested block, not counted toward performance.
@@ -287,14 +285,20 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
         return true;
     }
 
+    auto& query = archive();
     const auto link = it->link;
     const auto height = it->context.height;
+    const auto checked = is_under_checkpoint(height);
+    const auto bypass = checked || query.is_milestone(link);
+    if (bypass && node_pruned_ && block.is_segregated())
+    {
+        LOGR("Unexpected witness from [" << opposite() << "].");
+        stop(system::error::unexpected_witness);
+        return false;
+    }
 
     // Identify block.
     // ........................................................................
-
-    const auto checked = is_under_checkpoint(height);
-    const auto bypass = checked || query.is_milestone(link);
 
     // Tx commitments and malleation are checked under bypass. Invalidity is
     // only stored when a strong header has been stored, later to be found out
@@ -363,11 +367,16 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 // While check could be called here, it's more optimal to defer to validate, as
 // requiring only identity here allows the use of the simplified block_view.
 code protocol_block_in_31800::identify(const chain::block_view& block,
-    const chain::context& ctx, bool) const NOEXCEPT
+    const chain::context& ctx, bool bypass) const NOEXCEPT
 {
-    code ec{};
+    if (const auto ec = block.identify())
+        return ec;
 
-    if (((ec = block.identify())) || ((ec = block.identify(ctx))))
+    // Bypass witness commitment check for stripped blocks.
+    if (bypass && node_pruned_)
+        return error::success;
+
+    if (const auto ec = block.identify(ctx))
         return ec;
 
     return error::success;
@@ -420,12 +429,22 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
     POST(send_get_data, map, job);
 }
 
-// checkpoint
+// utility
 // ----------------------------------------------------------------------------
 
 bool protocol_block_in_31800::is_under_checkpoint(size_t height) const NOEXCEPT
 {
     return height <= top_checkpoint_height_;
+}
+
+type_id protocol_block_in_31800::to_block_type(
+    const association& item) const NOEXCEPT
+{
+    const auto stripped = node_pruned_ &&
+        (is_under_checkpoint(item.context.height) ||
+         archive().is_milestone(item.link));
+
+    return stripped ? type_id::block : block_type_;
 }
 
 BC_POP_WARNING()

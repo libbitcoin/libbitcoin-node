@@ -41,6 +41,7 @@ public:
             session->system_settings().top_checkpoint().height()),
         block_type_(session->network_settings().witness_node() ?
             type_id::witness_block : type_id::block),
+        node_pruned_(session->network_settings().pruned_node()),
         map_(chaser_check::empty_map()),
         network::tracker<protocol_block_in_31800>(session->log)
     {
@@ -84,6 +85,7 @@ private:
 
     void restore(const map_ptr& map) NOEXCEPT;
     bool is_under_checkpoint(size_t height) const NOEXCEPT;
+    type_id to_block_type(const database::association& item) const NOEXCEPT;
     void handle_put_hashes(const code& ec, size_t count) NOEXCEPT;
     void handle_get_hashes(const code& ec, const map_ptr& map,
         const job::ptr& job) NOEXCEPT;
@@ -91,6 +93,7 @@ private:
     // These are thread safe.
     const size_t top_checkpoint_height_;
     const type_id block_type_;
+    const bool node_pruned_;
 
     // These are protected by strand.
     map_ptr map_;

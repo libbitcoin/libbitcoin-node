@@ -36,6 +36,9 @@ public:
     protocol_block_out_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
+        top_checkpoint_height_(
+            session->system_settings().top_checkpoint().height()),
+        node_pruned_(session->network_settings().pruned_node()),
         node_witness_(session->network_settings().witness_node()),
         allow_overlapped_(session->node_settings().allow_overlapped),
         network::tracker<protocol_block_out_106>(session->log)
@@ -73,10 +76,13 @@ private:
     using inventory_item = network::messages::peer::inventory_item;
     using inventory_items = network::messages::peer::inventory_items;
 
+    bool is_under_checkpoint(const database::header_link& link) NOEXCEPT;
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
     void merge_inventory(const inventory_items& items) NOEXCEPT;
 
     // These are thread safe.
+    const size_t top_checkpoint_height_;
+    const bool node_pruned_;
     const bool node_witness_;
     const bool allow_overlapped_;
 
