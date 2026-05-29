@@ -75,7 +75,7 @@ protected:
         const network::messages::peer::block::cptr& message) NOEXCEPT;
 
 private:
-    code check(const system::chain::block_view& block,
+    code identify(const system::chain::block_view& block,
         const system::chain::context& ctx, bool bypass) const NOEXCEPT;
 
     void send_get_data(const map_ptr& map, const job::ptr& job) NOEXCEPT;
