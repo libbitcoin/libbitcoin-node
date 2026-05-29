@@ -290,7 +290,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto link = it->link;
     const auto height = it->context.height;
 
-    // Check block.
+    // Identify block.
     // ........................................................................
 
     const auto checked = is_under_checkpoint(height);
@@ -300,7 +300,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // only stored when a strong header has been stored, later to be found out
     // as invalid and not malleable. Stored invalidity prevents repeat
     // processing of the same invalid chain but is not necessary or desirable.
-    if (const auto code = check(block, it->context, bypass))
+    if (const auto code = identify(block, it->context, bypass))
     {
         if (code == system::error::invalid_transaction_commitment ||
             code == system::error::invalid_witness_commitment)
@@ -362,7 +362,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 // Header is checked by organize, Check/Accept/Connect are called by validate.
 // While check could be called here, it's more optimal to defer to validate, as
 // requiring only identity here allows the use of the simplified block_view.
-code protocol_block_in_31800::check(const chain::block_view& block,
+code protocol_block_in_31800::identify(const chain::block_view& block,
     const chain::context& ctx, bool) const NOEXCEPT
 {
     code ec{};
