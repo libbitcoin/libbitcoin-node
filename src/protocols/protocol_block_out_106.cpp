@@ -32,8 +32,14 @@ using namespace network;
 using namespace std::chrono;
 using namespace std::placeholders;
 
+BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
+// This protocol provides witness support despite 106 being much older than
+// bip144. This is because protocols are splot on the version negotiated in the
+// p2p handshake. Witness is enabled via a service bit. Protocols should also
+// be factored based on relevant service bits but that is not yet implemented.
 
 // start/stop
 // ----------------------------------------------------------------------------
@@ -202,7 +208,7 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
     if (backlog_.empty()) return;
     const auto& item = backlog_.front();
     const auto witness = item.is_witness_type();
-    if (!node_witness_ && witness)
+    if (witness && !node_witness_)
     {
         LOGR("Unsupported witness get_data from [" << opposite() << "].");
         stop(network::error::protocol_violation);
@@ -210,9 +216,19 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
     }
 
     const auto& query = archive();
-    const auto start = logger::now();
     const auto link = query.to_header(item.hash);
+    if (witness && node_witness_ && node_pruned_ &&
+        (is_under_checkpoint(link) || query.is_milestone(link)))
+    {
+        LOGR("Request of witness for stripped block "
+            << encode_hash(item.hash) << " from [" << opposite() << "].");
 
+        // The peer should not be asking for this block with witness.
+        stop(system::error::not_found);
+        return;
+    }
+
+    const auto start = logger::now();
     node::messages::block out{ query.get_wire_block(link, witness), witness };
     if (out.block_data.empty())
     {
@@ -255,6 +271,20 @@ protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
     );
 }
 
+bool protocol_block_out_106::is_under_checkpoint(
+    const database::header_link& link) NOEXCEPT
+{
+    const auto height = archive().get_height(link);
+    if (height.is_terminal())
+    {
+        fault(database::error::integrity);
+        return false;
+    }
+
+    return height <= top_checkpoint_height_;
+}
+
+BC_POP_WARNING()
 BC_POP_WARNING()
 BC_POP_WARNING()
 
