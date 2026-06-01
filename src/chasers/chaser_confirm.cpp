@@ -35,7 +35,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
   : chaser(node),
-    filter_(node.archive().filter_enabled()),
     defer_(node.node_settings().defer_confirmation)
 {
 }
@@ -144,7 +143,7 @@ void chaser_confirm::do_bumped(height_t) NOEXCEPT
     // Guarded by candidate interlock.
     size_t fork_point{};
     const auto& query = archive();
-    auto fork = query.get_validated_fork(fork_point, checkpoint(), filter_);
+    auto fork = query.get_validated_fork(fork_point, checkpoint());
 
     // Fork may be empty if candidates were reorganized.
     if (fork.empty())
