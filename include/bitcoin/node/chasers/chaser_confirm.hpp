@@ -69,7 +69,8 @@ private:
         size_t top) NOEXCEPT;
     void announce(const header_link& link, height_t height) NOEXCEPT;
     
-    // This is thread safe.
+    // These are thread safe.
+    const bool filter_;
     const bool defer_;
 };
 
