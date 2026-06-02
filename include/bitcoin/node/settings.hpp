@@ -39,6 +39,7 @@ public:
     bool thread_priority;
     bool memory_priority;
     bool allow_overlapped;
+    bool batch_signatures;
     bool defer_validation;
     bool defer_confirmation;
     float allowed_deviation;
