@@ -76,6 +76,10 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
             estimate = std::max({ fee1, fee2, fee3 });
             break;
         }
+        case mode::unknown:
+        {
+            break;
+        }
     }
 
     return estimate;

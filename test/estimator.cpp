@@ -101,6 +101,16 @@ BOOST_AUTO_TEST_CASE(estimator__top_height__non_default__expected)
     BOOST_REQUIRE_EQUAL(instance->top_height(), 42u);
 }
 
+// estimate
+
+BOOST_AUTO_TEST_CASE(estimator__estimate__unknown_mode__max_uint64)
+{
+    const auto instance = acessor::create();
+    const auto estimate = instance->estimate(0u, estimator::mode::unknown);
+
+    BOOST_REQUIRE_EQUAL(estimate, max_uint64);
+}
+
 // initialize
 
 BOOST_AUTO_TEST_CASE(estimator__initialize__empty__true_height_unchanged)
