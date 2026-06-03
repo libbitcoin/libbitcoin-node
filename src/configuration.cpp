@@ -31,6 +31,7 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
     network(context),
     node(context)
 {
+    database.silent_start_height = bitcoin.bip9_bit2_active_checkpoint.height();
 }
 
 } // namespace node

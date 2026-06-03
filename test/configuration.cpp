@@ -33,4 +33,12 @@ BOOST_AUTO_TEST_CASE(configuration__construct1__none_context__expected)
     BOOST_REQUIRE_EQUAL(instance.bitcoin.first_version, 1_u32);
 }
 
+BOOST_AUTO_TEST_CASE(configuration__construct1__mainnet_silent_start__expected)
+{
+    const node::configuration instance(chain::selection::mainnet);
+    const auto height = instance.bitcoin.bip9_bit2_active_checkpoint.height();
+
+    BOOST_REQUIRE_EQUAL(instance.database.silent_start_height, height);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -388,6 +388,11 @@ bool chaser_confirm::set_organized(const header_link& link,
     }
 #endif // !NDEBUG
 
+    const auto silent = query.silent_enabled() &&
+        confirmed_height >= query.silent_start_height();
+    if (silent && !query.is_silent_indexed(link))
+        return false;
+
     // Checkpointed blocks are set strong by archiver.
     if (!query.push_confirmed(link, !is_under_checkpoint(confirmed_height)))
         return false;
@@ -395,6 +400,9 @@ bool chaser_confirm::set_organized(const header_link& link,
     notify(error::success, chase::organized, link);
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
+
+    if (silent)
+        notify(error::success, chase::silent_indexed, link);
 
     announce(link, confirmed_height);
     return true;

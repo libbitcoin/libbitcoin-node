@@ -45,7 +45,11 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     node_witness_(node.network_settings().witness_node()),
     defer_(node.node_settings().defer_validation),
-    filter_(!defer_ && node.archive().filter_enabled())
+    filter_(!defer_ && node.archive().filter_enabled()),
+    silent_(!defer_ && node.network_settings().witness_node() &&
+        node.node_settings().headers_first &&
+        node.system_settings().forks.bip341 &&
+        node.archive().silent_enabled())
 {
 }
 
@@ -160,13 +164,14 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 
         const auto bypass = defer_ || is_under_checkpoint(height) ||
             query.is_milestone(link);
+        const auto silent = silent_ && height >= query.silent_start_height();
 
         switch (ec.value())
         {
             case database::error::unvalidated:
             case database::error::unknown_state:
             {
-                if (!bypass || filter_)
+                if (!bypass || filter_ || silent)
                     post_block(link, bypass);
                 else
                     complete_block(error::success, link, height, true);
@@ -175,7 +180,11 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             case database::error::block_valid:
             case database::error::block_confirmable:
             {
-                complete_block(error::success, link, height, true);
+                if (silent && !query.is_silent_indexed(link))
+                    post_block(link, true);
+                else
+                    complete_block(error::success, link, height, true);
+
                 break;
             }
             case database::error::block_unconfirmable:
@@ -254,7 +263,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 
     if (bypass)
     {
-        // Populating for filters only (no validation metadata required).
+        // Populating optional indexes only (no validation metadata required).
         block.populate(ctx);
         if (!query.populate_without_metadata(block))
             return system::error::missing_previous_output;
@@ -306,7 +315,10 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if (!query.set_filter_body(link, block))
         return error::validate7;
 
-    // Valid must be set after set_prevouts and set_filter_body.
+    if (silent_ && !query.set_silent(link, block))
+        return error::validate9;
+
+    // Valid must be set after optional block indexes.
     if (!bypass && !query.set_block_valid(link))
         return error::validate8;
 
@@ -334,7 +346,6 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         return;
     }
 
-    // VALID BLOCK
     // Under deferral there is no state change, but downloads will stall unless
     // the window is closed out, so notify the check chaser of the increment.
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
