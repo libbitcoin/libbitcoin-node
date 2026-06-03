@@ -54,10 +54,16 @@ protected:
     /// Process tx announcement.
     virtual bool do_announce(transaction_t link) NOEXCEPT;
 
+    virtual bool handle_broadcast_transaction(const code& ec,
+        const network::messages::peer::transaction::cptr& message,
+        uint64_t sender) NOEXCEPT;
+
     virtual bool handle_receive_get_data(const code& ec,
         const network::messages::peer::get_data::cptr& message) NOEXCEPT;
     virtual void send_transaction(const code& ec, size_t index,
         const network::messages::peer::get_data::cptr& message) NOEXCEPT;
+
+    virtual bool announce(const system::hash_digest& hash) NOEXCEPT;
 
 private:
     // These are thread safe.

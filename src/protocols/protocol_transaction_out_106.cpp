@@ -45,6 +45,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
 
     // Events subscription is asynchronous, events may be missed.
     subscribe_chase(BIND(handle_chase, _1, _2, _3));
+    SUBSCRIBE_BROADCAST(transaction, handle_broadcast_transaction, _1, _2, _3);
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol_peer::start();
 }
@@ -54,6 +55,7 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
     // Unsubscriber race is ok.
     BC_ASSERT(stranded());
     unsubscribe_chase();
+    UNSUBSCRIBE_BROADCAST();
     protocol_peer::stopping(ec);
 }
 
@@ -98,8 +100,30 @@ bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
     if (stopped())
         return false;
 
-    // Don't announce to peer that announced to us.
-    const auto hash = query.get_tx_key(link);
+    return announce(query.get_tx_key(link));
+}
+
+bool protocol_transaction_out_106::handle_broadcast_transaction(const code& ec,
+    const transaction::cptr& message, uint64_t sender) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    if (sender == identifier())
+        return true;
+
+    if (!message || !message->transaction_ptr)
+        return true;
+
+    return announce(message->transaction_ptr->hash(false));
+}
+
+bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
     if (was_announced(hash))
         return true;
 
