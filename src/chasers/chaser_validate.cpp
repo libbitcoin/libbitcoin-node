@@ -43,6 +43,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
+    batch_signatures_(node.node_settings().batch_signatures),
     node_witness_(node.network_settings().witness_node()),
     defer_(node.node_settings().defer_validation),
     filter_(!defer_ && node.archive().filter_enabled())
@@ -295,8 +296,51 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
-        if ((ec = block.connect(ctx)))
-            return ec;
+        if (batch_signatures_)
+        {
+            const chain::signatures capture
+            {
+                .ecdsa = [&](const hash_digest& ,
+                    const ec_compressed& , const ec_signature& ) NOEXCEPT
+                {
+                    ////query.set_signature(digest, point, sign, link);
+                },
+            
+                .schnorr = [&](const hash_digest& ,
+                    const ec_xonly& , const ec_signature& ) NOEXCEPT
+                {
+                    ////query.set_signature(digest, point, sign, link);
+                },
+
+                .enabled = batch_signatures_
+            };
+
+            if ((ec = block.connect(ctx, capture)))
+                return ec;
+
+            batched_ecdsa_ += capture.batched_ecdsa;
+            unbatched_ecdsa_ += capture.unbatched_ecdsa;
+            batched_schnorr_ += capture.batched_schnorr;
+            unbatched_schnorr_ += capture.unbatched_schnorr;
+            batched_multisig_ += capture.batched_multisig;
+            unbatched_multisig_ += capture.unbatched_multisig;
+            {
+                LOGV("Bypass ecdsa    " << batched_ecdsa_ << " / (" << batched_ecdsa_ << " + " << unbatched_ecdsa_ << ")");
+            }
+            if (to_bool(batched_schnorr_.load()) || to_bool(unbatched_schnorr_.load()))
+            {
+                LOGV("Bypass schnorr  " << batched_schnorr_ << " / (" << batched_schnorr_ << " + " << unbatched_schnorr_ << ")");
+            }
+            if (to_bool(batched_multisig_.load()) || to_bool(unbatched_multisig_.load()))
+            {
+                LOGV("Bypass multisig " << batched_multisig_ << " / (" << batched_multisig_ << " + " << unbatched_multisig_ << ")");
+            }
+        }
+        else
+        {
+            if ((ec = block.connect(ctx)))
+                return ec;
+        }
 
         // Prevouts optimize confirmation.
         if (!query.set_prevouts(link, block))

@@ -35,6 +35,7 @@ settings::settings() NOEXCEPT
     memory_priority{ true },
     thread_priority{ true },
     allow_overlapped{ true },
+    batch_signatures{ true },
     defer_validation{ false },
     defer_confirmation{ false },
     minimum_fee_rate{ 0.0 },

@@ -82,11 +82,18 @@ private:
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
+    std::atomic<size_t> batched_ecdsa_{};
+    std::atomic<size_t> unbatched_ecdsa_{};
+    std::atomic<size_t> batched_schnorr_{};
+    std::atomic<size_t> unbatched_schnorr_{};
+    std::atomic<size_t> batched_multisig_{};
+    std::atomic<size_t> unbatched_multisig_{};
     std::atomic<size_t> backlog_{};
     network::asio::strand validation_strand_;
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
+    const bool batch_signatures_;
     const bool node_witness_;
     const bool defer_;
     const bool filter_;

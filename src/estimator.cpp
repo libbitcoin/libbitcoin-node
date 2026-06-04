@@ -34,11 +34,9 @@ using namespace system;
 
 uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
 {
-    // max_uint64 is failure sentinel (and unachievable/invalid as a fee).
-    auto estimate = max_uint64;
     constexpr size_t large = horizon::large;
     if (target >= large)
-        return estimate;
+        return estimate_failed;
 
     // Valid results are effectively limited to at least 1 sat/vb.
     // threshold_fee is thread safe but values are affected during update. 
@@ -46,13 +44,11 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
     {
         case mode::basic:
         {
-            estimate = compute(target, confidence::high);
-            break;
+            return compute(target, confidence::high);
         }
         case mode::geometric:
         {
-            estimate = compute(target, confidence::high, true);
-            break;
+            return compute(target, confidence::high, true);
         }
         case mode::economical:
         {
@@ -62,8 +58,7 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
             const auto fee1 = compute(target1, confidence::low);
             const auto fee2 = compute(target2, confidence::mid);
             const auto fee3 = compute(target3, confidence::high);
-            estimate = std::max({ fee1, fee2, fee3 });
-            break;
+            return std::max({ fee1, fee2, fee3 });
         }
         case mode::conservative:
         {
@@ -73,16 +68,14 @@ uint64_t estimator::estimate(size_t target, mode mode) const NOEXCEPT
             const auto fee1 = compute(target1, confidence::low);
             const auto fee2 = compute(target2, confidence::mid);
             const auto fee3 = compute(target3, confidence::high);
-            estimate = std::max({ fee1, fee2, fee3 });
-            break;
+            return std::max({ fee1, fee2, fee3 });
         }
+        default:
         case mode::unknown:
         {
-            break;
+            return estimate_failed;
         }
     }
-
-    return estimate;
 }
 
 bool estimator::initialize(const std::atomic_bool& cancel, const query& query,
