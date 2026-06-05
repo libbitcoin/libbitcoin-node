@@ -300,19 +300,23 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         {
             const chain::signatures capture
             {
-                .ecdsa = [&](const hash_digest& ,
-                    const ec_compressed& , const ec_signature& ) NOEXCEPT
+                .enabled = batch_signatures_,
+                .ecdsa = [&](const hash_digest& digest,
+                    const ec_compressed& point, const ec_signature& sign) NOEXCEPT
                 {
-                    ////query.set_signature(digest, point, sign, link);
+                    query.set_signature(digest, point, sign, link);
                 },
-            
-                .schnorr = [&](const hash_digest& ,
-                    const ec_xonly& , const ec_signature& ) NOEXCEPT
+                .schnorr = [&](const hash_digest& digest,
+                    const ec_xonly& point, const ec_signature& sign) NOEXCEPT
                 {
-                    ////query.set_signature(digest, point, sign, link);
+                    query.set_signature(digest, point, sign, link);
                 },
-
-                .enabled = batch_signatures_
+                .multisig = [&](const hash_digest& digest,
+                    const ec_compresseds& points, const ec_signatures& signs,
+                    uint16_t group) NOEXCEPT
+                {
+                    query.set_signatures(digest, points, signs, group, link);
+                }
             };
 
             if ((ec = block.connect(ctx, capture)))
