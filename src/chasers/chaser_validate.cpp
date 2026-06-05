@@ -322,6 +322,13 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
             if ((ec = block.connect(ctx, capture)))
                 return ec;
 
+            if (is_limited<uint16_t>(capture.group.load()))
+            {
+                LOGF("Multisig capture bypassed because correlation overflow ("
+                    << capture.group << ").");
+            }
+
+            // Diagnostics.
             batched_ecdsa_ += capture.batched_ecdsa;
             unbatched_ecdsa_ += capture.unbatched_ecdsa;
             batched_schnorr_ += capture.batched_schnorr;
@@ -329,15 +336,20 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
             batched_multisig_ += capture.batched_multisig;
             unbatched_multisig_ += capture.unbatched_multisig;
             {
-                LOGV("Bypass ecdsa    " << batched_ecdsa_ << " / (" << batched_ecdsa_ << " + " << unbatched_ecdsa_ << ")");
+                LOGV("Efficiency ecdsa    " << batched_ecdsa_ << " / ("
+                    << batched_ecdsa_ << " + " << unbatched_ecdsa_ << ")");
             }
+
             if (to_bool(batched_schnorr_.load()) || to_bool(unbatched_schnorr_.load()))
             {
-                LOGV("Bypass schnorr  " << batched_schnorr_ << " / (" << batched_schnorr_ << " + " << unbatched_schnorr_ << ")");
+                LOGV("Efficiency schnorr  " << batched_schnorr_ << " / ("
+                    << batched_schnorr_ << " + " << unbatched_schnorr_ << ")");
             }
+
             if (to_bool(batched_multisig_.load()) || to_bool(unbatched_multisig_.load()))
             {
-                LOGV("Bypass multisig " << batched_multisig_ << " / (" << batched_multisig_ << " + " << unbatched_multisig_ << ")");
+                LOGV("Efficiency multisig " << batched_multisig_ << " / (" 
+                    << batched_multisig_ << " + " << unbatched_multisig_ << ")");
             }
         }
         else
