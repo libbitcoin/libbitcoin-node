@@ -34,6 +34,7 @@ public:
     settings(system::chain::selection context) NOEXCEPT;
 
     /// Properties.
+    uint32_t threads;
     bool delay_inbound;
     bool headers_first;
     bool thread_priority;
@@ -47,14 +48,15 @@ public:
     float minimum_bump_rate;
     uint16_t announcement_cache;
     uint16_t fee_estimate_horizon;
-    ////uint64_t snapshot_bytes;
-    ////uint32_t snapshot_valid;
-    ////uint32_t snapshot_confirm;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
-    uint32_t threads;
+    uint16_t warn_dirty_background_ratio;
+    uint16_t warn_dirty_ratio;
+    ////uint64_t snapshot_bytes;
+    ////uint32_t snapshot_valid;
+    ////uint32_t snapshot_confirm;
 
     /// Helpers.
     virtual size_t threads_() const NOEXCEPT;

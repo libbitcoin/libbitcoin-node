@@ -30,7 +30,8 @@ namespace libbitcoin {
 namespace node {
 
 settings::settings() NOEXCEPT
-  : delay_inbound{ true },
+  : threads{ 1 },
+    delay_inbound{ true },
     headers_first{ true },
     memory_priority{ true },
     thread_priority{ true },
@@ -50,7 +51,8 @@ settings::settings() NOEXCEPT
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
     currency_window_minutes{ 1440 },
-    threads{ 1 }
+    warn_dirty_background_ratio{ 90_u16 },
+    warn_dirty_ratio{ 90_u16 }
 {
 }
 
