@@ -300,22 +300,29 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         {
             const chain::signatures capture
             {
+                // Enable/disable capture.
                 .enabled = batch_signatures_,
-                .ecdsa = [&](const hash_digest& digest,
-                    const ec_compressed& point, const ec_signature& sign) NOEXCEPT
+
+                .ecdsa = [&](const hash_digest& ,
+                    const ec_compressed& , const ec_signature& ) NOEXCEPT
                 {
-                    query.set_signature(digest, point, sign, link);
+                    ////query.set_signature(digest, point, sign, link);
                 },
-                .schnorr = [&](const hash_digest& digest,
-                    const ec_xonly& point, const ec_signature& sign) NOEXCEPT
+                .schnorr = [&](const hash_digest& ,
+                    const ec_xonly& , const ec_signature& ) NOEXCEPT
                 {
-                    query.set_signature(digest, point, sign, link);
+                    ////query.set_signature(digest, point, sign, link);
                 },
-                .multisig = [&](const hash_digest& digest,
-                    const ec_compresseds& points, const ec_signatures& signs,
-                    uint16_t group) NOEXCEPT
+                .multisig = [&](const hash_digest& ,
+                    const ec_compresseds& , const ec_signatures& ,
+                    uint16_t ) NOEXCEPT
                 {
-                    query.set_signatures(digest, points, signs, group, link);
+                    ////query.set_signatures(digest, points, signs, group, link);
+                },
+                .threshold = [&](const chain::signatures::threshold_group& ,
+                    uint16_t ) NOEXCEPT
+                {
+                    ////query.set_signatures(digest, points, signs, group, link);
                 }
             };
 
@@ -328,28 +335,40 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     << capture.group << ").");
             }
 
-            // Diagnostics.
+            // Diagnostics (ecdsa).
             batched_ecdsa_ += capture.batched_ecdsa;
             unbatched_ecdsa_ += capture.unbatched_ecdsa;
-            batched_schnorr_ += capture.batched_schnorr;
-            unbatched_schnorr_ += capture.unbatched_schnorr;
             batched_multisig_ += capture.batched_multisig;
             unbatched_multisig_ += capture.unbatched_multisig;
-            {
-                LOGV("Efficiency ecdsa    " << batched_ecdsa_ << " / ("
-                    << batched_ecdsa_ << " + " << unbatched_ecdsa_ << ")");
-            }
 
-            if (to_bool(batched_schnorr_.load()) || to_bool(unbatched_schnorr_.load()))
+            if (to_bool(batched_ecdsa_.load()) || to_bool(unbatched_ecdsa_.load()))
             {
-                LOGV("Efficiency schnorr  " << batched_schnorr_ << " / ("
-                    << batched_schnorr_ << " + " << unbatched_schnorr_ << ")");
+                LOGV("Efficiency ecdsa     " << batched_ecdsa_ << " / ("
+                    << batched_ecdsa_ << " + " << unbatched_ecdsa_ << ")");
             }
 
             if (to_bool(batched_multisig_.load()) || to_bool(unbatched_multisig_.load()))
             {
-                LOGV("Efficiency multisig " << batched_multisig_ << " / (" 
+                LOGV("Efficiency multisig  " << batched_multisig_ << " / ("
                     << batched_multisig_ << " + " << unbatched_multisig_ << ")");
+            }
+
+            // Diagnostics (schnorr).
+            batched_schnorr_ += capture.batched_schnorr;
+            unbatched_schnorr_ += capture.unbatched_schnorr;
+            batched_threshold_ += capture.batched_threshold;
+            unbatched_threshold_ += capture.unbatched_threshold;
+
+            if (to_bool(batched_schnorr_.load()) || to_bool(unbatched_schnorr_.load()))
+            {
+                LOGV("Efficiency schnorr   " << batched_schnorr_ << " / ("
+                    << batched_schnorr_ << " + " << unbatched_schnorr_ << ")");
+            }
+
+            if (to_bool(batched_threshold_.load()) || to_bool(unbatched_threshold_.load()))
+            {
+                LOGV("Efficiency threshold " << batched_threshold_ << " / ("
+                    << batched_threshold_ << " + " << unbatched_threshold_ << ")");
             }
         }
         else
