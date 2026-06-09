@@ -95,7 +95,7 @@ code chaser_block::validate(const block& block,
     if ((ec = header.check(
         setting.timestamp_limit_seconds,
         setting.proof_of_work_limit,
-        setting.forks.scrypt_proof_of_work)))
+        setting.forks.ltc_scrypt_proof_of_work)))
         return ec;
 
     // header.accept is never bypassed.
