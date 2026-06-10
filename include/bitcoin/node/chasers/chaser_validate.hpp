@@ -84,14 +84,14 @@ private:
     // These are thread safe.
 
     std::atomic<size_t> ecdsa_{};
-    std::atomic<size_t> multisig_{};
     std::atomic<size_t> schnorr_{};
+    std::atomic<size_t> multisig_{};
     std::atomic<size_t> threshold_{};
 
-    std::atomic<size_t> miss_ecdsa_{};
-    std::atomic<size_t> miss_multisig_{};
-    std::atomic<size_t> miss_schnorr_{};
-    std::atomic<size_t> miss_threshold_{};
+    std::atomic<size_t> missed_ecdsa_{};
+    std::atomic<size_t> missed_schnorr_{};
+    std::atomic<size_t> missed_multisig_{};
+    std::atomic<size_t> missed_threshold_{};
 
     std::atomic<size_t> backlog_{};
     network::asio::strand validation_strand_;

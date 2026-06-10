@@ -301,6 +301,51 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         {
             using namespace chain;
             std::atomic<size_t> set{};
+
+            const auto to_events = [](opcode op) NOEXCEPT
+            {
+                switch (op)
+                {
+                    // ecdsa single (checksig/verify).
+                    case opcode::checksigverify:
+                        return events::checksigverify;
+
+                    // ecdsa multiple (checkmultisig/verify).
+                    case opcode::checkmultisigverify:
+                        return events::checkmultisigverify;
+
+                    // schnorr single (op_checksigadd|op_checksig/verify).
+                    case opcode::checksigadd:
+                        return events::checksigadd;
+
+                    // schnorr multiple (multisig pattern).
+                    case opcode::checksig:
+                        return events::checksig;
+
+                    // schnorr multiple (is_threshold).
+                    case opcode::numequal:
+                        return events::numequal;
+                    case opcode::numequalverify:
+                        return events::numequalverify;
+                    case opcode::numnotequal:
+                        return events::numnotequal;
+                    case opcode::lessthan:
+                        return events::lessthan;
+                    case opcode::greaterthan:
+                        return events::greaterthan;
+                    case opcode::lessthanorequal:
+                        return events::lessthanorequal;
+                    case opcode::greaterthanorequal:
+                        return events::greaterthanorequal;
+                    case opcode::within:
+                        return events::within;
+
+                    // should be no path to this.
+                    default:
+                        return events::unknown;
+                }
+            };
+
             const signatures capture
             {
                 // Enable/disable capture.
@@ -316,21 +361,23 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     switch (miss)
                     {
                         case signatures::miss::ecdsa:
-                            ++miss_ecdsa_;
-                            fire(events::batch_ecdsa, ctx.height);
-                            break;
-                        case signatures::miss::schnorr:
-                            ++miss_schnorr_;
-                            fire(events::batch_schnorr, ctx.height);
+                            ++missed_ecdsa_;
+                            fire(events::missed_ecdsa, ctx.height);
                             break;
                         case signatures::miss::multisig:
-                            ++miss_multisig_;
-                            fire(events::batch_multisig, ctx.height);
+                            ++missed_multisig_;
+                            fire(events::missed_multisig, ctx.height);
+                            break;
+                        case signatures::miss::schnorr:
+                            ++missed_schnorr_;
+                            fire(events::missed_schnorr, ctx.height);
                             break;
                         case signatures::miss::overflow:
-                            ++miss_threshold_;
-                            fire(events::batch_overflow, ctx.height);
+                            ++missed_threshold_;
+                            fire(events::missed_overflow, ctx.height);
                             break;
+
+                        // should be no path to this.
                         default:
                             BC_ASSERT_MSG(false, "unknown signatures::miss");
                     }
@@ -340,12 +387,14 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     const ec_signature& sign) NOEXCEPT
                 {
                     ++ecdsa_;
+                    fire(to_events(opcode::checksigverify), ctx.height);
                     return query.set_signature(digest, point, sign, link);
                 },
                 .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
                     const ec_signature& sign) NOEXCEPT
                 {
                     ++schnorr_;
+                    fire(to_events(opcode::checksigadd), ctx.height);
                     return query.set_signature(digest, point, sign, link);
                 },
                 .multisig = [&](const hash_digest& digest,
@@ -354,12 +403,15 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 {
                     BC_ASSERT(points.size() == signs.size());
                     multisig_ += points.size();
+                    fire(to_events(opcode::checkmultisigverify), ctx.height);
                     return query.set_signatures(digest, points, signs, set, link);
                 },
                 .threshold = [&](
                     const signatures::threshold_entries& group) NOEXCEPT
                 {
+                    // Sets condition to opcode::checksig for all required.
                     threshold_ += group.entries.size();
+                    fire(to_events(group.condition), ctx.height);
                     return query.set_signatures(group, set, link);
                 }
             };
@@ -371,16 +423,16 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 size_t missed) NOEXCEPT
             {
                 if (!to_bool(captured) && !to_bool(missed)) return;
-                const auto ratio = to_floating(captured) / (captured + missed);
+                const auto ratio = (100.0f * captured) / (captured + missed);
                 const auto rate = std::format("{:.2f}", ratio);
                 LOGA("Efficiency " << name << rate << "% = " << captured
                     << "/(" << captured << "+" << missed << ")");
             };
 
-            log_capture("ecdsa.... ", ecdsa_,    miss_ecdsa_);
-            log_capture("multisig. ", multisig_, miss_multisig_);
-            log_capture("schnorr.. ", schnorr_,  miss_schnorr_);
-            log_capture("threshold ", threshold_,miss_threshold_);
+            log_capture("ecdsa.... ", ecdsa_,    missed_ecdsa_);
+            log_capture("multisig. ", multisig_, missed_multisig_);
+            log_capture("schnorr.. ", schnorr_,  missed_schnorr_);
+            log_capture("threshold ", threshold_,missed_threshold_);
         }
         else
         {

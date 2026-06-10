@@ -63,11 +63,27 @@ enum events : uint8_t
     filterhashes_msecs,  // getfilterhashes timespan in milliseconds.
     filterchecks_msecs,  // getcfcheckpt timespan in milliseconds.
 
-    /// Batching.
-    batch_ecdsa,         // Failed to capture ecdsa signature.
-    batch_multisig,      // Failed to capture ecdsa signatures.
-    batch_schnorr,       // Failed to capture schnorr sig (single|multiple).
-    batch_overflow       // Failed to capture schnorr sigs (multiple >= 2^16).
+    /// Batching (missed).
+    missed_ecdsa,        // Failed to capture ecdsa signature.
+    missed_multisig,     // Failed to capture ecdsa signatures.
+    missed_schnorr,      // Failed to capture schnorr sig (single|multiple).
+    missed_overflow,     // Failed to capture schnorr sigs (multiple >= 2^16).
+
+    /// Batching (captured).
+    checksigverify,      // ecdsa single (checksig/verify).
+    checkmultisigverify, // ecdsa multiple (checkmultisig/verify).
+    checksigadd,         // schnorr single (op_checksigadd|op_checksig/verify).
+    checksig,            // schnorr multiple (multisig).
+    numequal,            // schnorr multiple (threshold).
+    numequalverify,      // schnorr multiple (threshold).
+    numnotequal,         // schnorr multiple (threshold).
+    lessthan,            // schnorr multiple (threshold).
+    greaterthan,         // schnorr multiple (threshold).
+    lessthanorequal,     // schnorr multiple (threshold).
+    greaterthanorequal,  // schnorr multiple (threshold).
+    within,              // schnorr multiple (threshold).
+
+    unknown
 };
 
 } // namespace node
