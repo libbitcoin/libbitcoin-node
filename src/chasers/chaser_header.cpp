@@ -99,7 +99,8 @@ code chaser_header::validate(const header& header,
         return ec;
 
     // header.accept is never bypassed.
-    if (const auto ec = header.accept(state.context()))
+    if (const auto ec = header.accept(state.context(),
+            settings().retargeting_interval()))
         return ec;
 
     // This prevents a long unconfirmable header chain with an early

@@ -100,7 +100,8 @@ code chaser_block::validate(const block& block,
 
     // header.accept is never bypassed.
     // block.accept does not invoke header.accept.
-    if ((ec = header.accept(ctx)))
+    if ((ec = header.accept(ctx,
+        setting.retargeting_interval())))
         return ec;
 
     if (is_under_checkpoint(state.height()))
