@@ -300,6 +300,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         {
             using namespace chain;
             std::atomic<size_t> set{};
+            code capture_ec{};
 
             const auto to_events = [](opcode op) NOEXCEPT
             {
@@ -411,12 +412,29 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     // Sets condition to opcode::checksig for all required.
                     threshold_ += group.entries.size();
                     fire(to_events(group.condition), ctx.height);
-                    return query.set_signatures(group, set, link);
+
+                    // Script always processing proceeds as if batch succeeded.
+                    if (!query.set_signatures(group, set, link))
+                        capture_ec = fault(error::capture_fault);
                 }
             };
 
             if ((ec = block.connect(ctx, capture)))
                 return ec;
+
+            // TODO: capture the fault ec from closure (with block link).
+            // TODO: return failure here with dedicated ec (batch write fail).
+            // TODO: if was threshold then block must be resubmitted to queue.
+            // TODO: for others there is no special action. In all cases must
+            // TODO: regard a validation failure here (unconfirmable) and when
+            // TODO: batching, must defer setting valid state until batch post
+            // TODO: processing. chaser startup must drain the batch tables.
+            if (capture_ec)
+            {
+                // TODO: repost block (link) to work queue in complete_block
+                // TODO: based on error::capture_fault.
+                return capture_ec;
+            }
 
             const auto log_capture = [&](std::string_view name, size_t captured,
                 size_t missed) NOEXCEPT
@@ -463,6 +481,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         // Node errors are fatal.
         if (node::error::error_category::contains(ec))
         {
+            // fault(ec) initiates recovery if caused by disk full condition.
             LOGF("Fault validating [" << height << "] " << ec.message());
             fault(ec);
             return;
