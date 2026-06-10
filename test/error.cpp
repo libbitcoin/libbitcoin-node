@@ -297,4 +297,13 @@ BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop2__true_expected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop2");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__capture_fault__true_expected_message)
+{
+    constexpr auto value = error::capture_fault;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "capture_fault");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

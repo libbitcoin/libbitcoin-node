@@ -107,7 +107,8 @@ enum error_t : uint8_t
     estimates_push1,
     estimates_push2,
     estimates_pop1,
-    estimates_pop2
+    estimates_pop2,
+    capture_fault
 };
 
 // No current need for error_code equivalence mapping.

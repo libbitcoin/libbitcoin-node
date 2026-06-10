@@ -97,7 +97,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { estimates_push1, "estimates_push1" },
     { estimates_push2, "estimates_push2" },
     { estimates_pop1, "estimates_pop1" },
-    { estimates_pop2, "estimates_pop2" }
+    { estimates_pop2, "estimates_pop2" },
+    { capture_fault, "capture_fault" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
