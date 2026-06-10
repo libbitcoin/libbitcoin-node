@@ -51,17 +51,23 @@ enum events : uint8_t
     block_reorganized,   // block popped
 
     /// Mining.
-    template_issued,      // block template issued for mining
+    template_issued,     // block template issued for mining
 
     /// Timespans.
-    snapshot_secs,        // snapshot timespan in seconds.
-    prune_msecs,          // prune timespan in milliseconds.
-    reload_msecs,         // store reload timespan in milliseconds.
-    block_usecs,          // getblock timespan in microseconds.
-    ancestry_msecs,       // getancestry timespan in milliseconds.
-    filter_msecs,         // getfilter timespan in milliseconds.
-    filterhashes_msecs,   // getfilterhashes timespan in milliseconds.
-    filterchecks_msecs    // getcfcheckpt timespan in milliseconds.
+    snapshot_secs,       // snapshot timespan in seconds.
+    prune_msecs,         // prune timespan in milliseconds.
+    reload_msecs,        // store reload timespan in milliseconds.
+    block_usecs,         // getblock timespan in microseconds.
+    ancestry_msecs,      // getancestry timespan in milliseconds.
+    filter_msecs,        // getfilter timespan in milliseconds.
+    filterhashes_msecs,  // getfilterhashes timespan in milliseconds.
+    filterchecks_msecs,  // getcfcheckpt timespan in milliseconds.
+
+    /// Batching.
+    batch_ecdsa,         // Failed to capture ecdsa signature.
+    batch_multisig,      // Failed to capture ecdsa signatures.
+    batch_schnorr,       // Failed to capture schnorr sig (single|multiple).
+    batch_overflow       // Failed to capture schnorr sigs (multiple >= 2^16).
 };
 
 } // namespace node
