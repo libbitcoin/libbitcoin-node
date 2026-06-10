@@ -423,7 +423,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
             {
                 if (!to_bool(captured) && !to_bool(missed)) return;
                 const auto ratio = (100.0f * captured) / (captured + missed);
-                const auto rate = (boost::format("%.2f") % ratio).str();
+                const auto rate = (boost_format("%.2f") % ratio).str();
                 LOGA("Efficiency " << name << rate << "% = " << captured
                     << "/(" << captured << "+" << missed << ")");
             };
