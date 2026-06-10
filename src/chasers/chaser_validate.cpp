@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #include <atomic>
+#include <format>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -285,7 +286,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         code ec{};
 
         // Skips identity validation (performed in downloader).
-        // This can be performed in donwnloader as well but moving it here with
+        // This can be performed in downloader as well but moving it here with
         // more order than required allows the downloader to avoid block parse
         // which significantly reduces memory consumption and CPU during sync.
         // This slightly increases check() computation under full validation
@@ -298,78 +299,88 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
         if (batch_signatures_)
         {
-            const chain::signatures capture
+            using namespace chain;
+            std::atomic<size_t> set{};
+            const signatures capture
             {
                 // Enable/disable capture.
                 .enabled = batch_signatures_,
 
-                .ecdsa = [&](const hash_digest& ,
-                    const ec_compressed& , const ec_signature& ) NOEXCEPT
+                .log = [&](const script& missed) NOEXCEPT
                 {
-                    ////query.set_signature(digest, point, sign, link);
+                    LOGA("Sigop @ " << ctx.height << " -> "
+                        << missed.to_string(chain::flags::all_rules));
                 },
-                .schnorr = [&](const hash_digest& ,
-                    const ec_xonly& , const ec_signature& ) NOEXCEPT
+                .fire = [&](signatures::miss miss) NOEXCEPT
                 {
-                    ////query.set_signature(digest, point, sign, link);
+                    switch (miss)
+                    {
+                        case signatures::miss::ecdsa:
+                            ++miss_ecdsa_;
+                            fire(events::batch_ecdsa, ctx.height);
+                            break;
+                        case signatures::miss::schnorr:
+                            ++miss_schnorr_;
+                            fire(events::batch_schnorr, ctx.height);
+                            break;
+                        case signatures::miss::multisig:
+                            ++miss_multisig_;
+                            fire(events::batch_multisig, ctx.height);
+                            break;
+                        case signatures::miss::overflow:
+                            ++miss_threshold_;
+                            fire(events::batch_overflow, ctx.height);
+                            break;
+                        default:
+                            BC_ASSERT_MSG(false, "unknown signatures::miss");
+                    }
                 },
-                .multisig = [&](const hash_digest& ,
-                    const ec_compresseds& , const ec_signatures& ,
-                    uint16_t ) NOEXCEPT
+                .ecdsa = [&](const hash_digest& digest,
+                    const ec_compressed& point,
+                    const ec_signature& sign) NOEXCEPT
                 {
-                    ////query.set_signatures(digest, points, signs, group, link);
+                    ++ecdsa_;
+                    return query.set_signature(digest, point, sign, link);
                 },
-                .threshold = [&](const chain::signatures::threshold_group& ,
-                    uint16_t ) NOEXCEPT
+                .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
+                    const ec_signature& sign) NOEXCEPT
                 {
-                    ////query.set_signatures(digest, points, signs, group, link);
+                    ++schnorr_;
+                    return query.set_signature(digest, point, sign, link);
+                },
+                .multisig = [&](const hash_digest& digest,
+                    const ec_compresseds& points,
+                    const ec_signatures& signs) NOEXCEPT
+                {
+                    BC_ASSERT(points.size() == signs.size());
+                    multisig_ += points.size();
+                    return query.set_signatures(digest, points, signs, set, link);
+                },
+                .threshold = [&](
+                    const signatures::threshold_entries& group) NOEXCEPT
+                {
+                    threshold_ += group.entries.size();
+                    return query.set_signatures(group, set, link);
                 }
             };
 
             if ((ec = block.connect(ctx, capture)))
                 return ec;
 
-            if (is_limited<uint16_t>(capture.group.load()))
+            const auto log_capture = [&](std::string_view name, size_t captured,
+                size_t missed) NOEXCEPT
             {
-                LOGF("Multisig capture bypassed because correlation overflow ("
-                    << capture.group << ").");
-            }
+                if (!to_bool(captured) && !to_bool(missed)) return;
+                const auto ratio = to_floating(captured) / (captured + missed);
+                const auto rate = std::format("{:.2f}", ratio);
+                LOGA("Efficiency " << name << rate << "% = " << captured
+                    << "/(" << captured << "+" << missed << ")");
+            };
 
-            // Diagnostics (ecdsa).
-            batched_ecdsa_ += capture.batched_ecdsa;
-            unbatched_ecdsa_ += capture.unbatched_ecdsa;
-            batched_multisig_ += capture.batched_multisig;
-            unbatched_multisig_ += capture.unbatched_multisig;
-
-            if (to_bool(batched_ecdsa_.load()) || to_bool(unbatched_ecdsa_.load()))
-            {
-                LOGV("Efficiency ecdsa     " << batched_ecdsa_ << " / ("
-                    << batched_ecdsa_ << " + " << unbatched_ecdsa_ << ")");
-            }
-
-            if (to_bool(batched_multisig_.load()) || to_bool(unbatched_multisig_.load()))
-            {
-                LOGV("Efficiency multisig  " << batched_multisig_ << " / ("
-                    << batched_multisig_ << " + " << unbatched_multisig_ << ")");
-            }
-
-            // Diagnostics (schnorr).
-            batched_schnorr_ += capture.batched_schnorr;
-            unbatched_schnorr_ += capture.unbatched_schnorr;
-            batched_threshold_ += capture.batched_threshold;
-            unbatched_threshold_ += capture.unbatched_threshold;
-
-            if (to_bool(batched_schnorr_.load()) || to_bool(unbatched_schnorr_.load()))
-            {
-                LOGV("Efficiency schnorr   " << batched_schnorr_ << " / ("
-                    << batched_schnorr_ << " + " << unbatched_schnorr_ << ")");
-            }
-
-            if (to_bool(batched_threshold_.load()) || to_bool(unbatched_threshold_.load()))
-            {
-                LOGV("Efficiency threshold " << batched_threshold_ << " / ("
-                    << batched_threshold_ << " + " << unbatched_threshold_ << ")");
-            }
+            log_capture("ecdsa.... ", ecdsa_,    miss_ecdsa_);
+            log_capture("multisig. ", multisig_, miss_multisig_);
+            log_capture("schnorr.. ", schnorr_,  miss_schnorr_);
+            log_capture("threshold ", threshold_,miss_threshold_);
         }
         else
         {
