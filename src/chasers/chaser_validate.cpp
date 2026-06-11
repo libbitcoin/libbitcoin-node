@@ -356,24 +356,26 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     ////LOGA("Sigop @ " << ctx.height << " -> "
                     ////    << missed.to_string(chain::flags::all_rules));
                 },
-                .fire = [&](signatures::miss miss) NOEXCEPT
+                .fire = [&](signatures::miss miss, size_t count) NOEXCEPT
                 {
                     switch (miss)
                     {
                         case signatures::miss::ecdsa:
-                            ++missed_ecdsa_;
+                            missed_ecdsa_ += count;
                             ////fire(events::missed_ecdsa, ctx.height);
                             break;
                         case signatures::miss::multisig:
-                            ++missed_multisig_;
+                            missed_multisig_ += count;
                             ////fire(events::missed_multisig, ctx.height);
                             break;
                         case signatures::miss::schnorr:
-                            ++missed_schnorr_;
+                            missed_schnorr_ += count;
                             ////fire(events::missed_schnorr, ctx.height);
                             break;
                         case signatures::miss::overflow:
-                            ++missed_threshold_;
+                            // Misses overflow to single, so not called.
+                            // This is instead used to reflect cache failure.
+                            missed_threshold_ += count;
                             ////fire(events::missed_overflow, ctx.height);
                             break;
 
@@ -438,10 +440,10 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     << "/(" << captured << "+" << missed << ")");
             };
 
-            log_capture("ecdsa.... ", ecdsa_,    missed_ecdsa_);
-            log_capture("multisig. ", multisig_, missed_multisig_);
-            log_capture("schnorr.. ", schnorr_,  missed_schnorr_);
-            log_capture("threshold ", threshold_,missed_threshold_);
+            log_capture("ecdsa.... ", ecdsa_,     missed_ecdsa_);
+            log_capture("multisig. ", multisig_,  missed_multisig_);
+            log_capture("schnorr.. ", schnorr_,   missed_schnorr_);
+            log_capture("threshold ", threshold_, missed_threshold_);
         }
         else
         {
