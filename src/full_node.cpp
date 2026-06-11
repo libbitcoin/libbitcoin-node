@@ -284,7 +284,7 @@ void full_node::fault(const code& ec) NOEXCEPT
     }
     else if (query_.is_fault())
     {
-        LOGF("Store faulted '" << query_.get_fault().message()
+        LOGF("Store fault (unrecoverable) '" << query_.get_fault().message()
             << "' following, " << ec.message());
     }
     else if (ec)

@@ -300,6 +300,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         {
             using namespace chain;
             std::atomic<size_t> set{};
+            code capture_ec{};
 
             const auto to_events = [](opcode op) NOEXCEPT
             {
@@ -361,19 +362,19 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     {
                         case signatures::miss::ecdsa:
                             ++missed_ecdsa_;
-                            fire(events::missed_ecdsa, ctx.height);
+                            ////fire(events::missed_ecdsa, ctx.height);
                             break;
                         case signatures::miss::multisig:
                             ++missed_multisig_;
-                            fire(events::missed_multisig, ctx.height);
+                            ////fire(events::missed_multisig, ctx.height);
                             break;
                         case signatures::miss::schnorr:
                             ++missed_schnorr_;
-                            fire(events::missed_schnorr, ctx.height);
+                            ////fire(events::missed_schnorr, ctx.height);
                             break;
                         case signatures::miss::overflow:
                             ++missed_threshold_;
-                            fire(events::missed_overflow, ctx.height);
+                            ////fire(events::missed_overflow, ctx.height);
                             break;
 
                         // should be no path to this.
@@ -386,14 +387,14 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     const ec_signature& sign) NOEXCEPT
                 {
                     ++ecdsa_;
-                    fire(to_events(opcode::checksigverify), ctx.height);
+                    ////fire(to_events(opcode::checksigverify), ctx.height);
                     return query.set_signature(digest, point, sign, link);
                 },
                 .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
                     const ec_signature& sign) NOEXCEPT
                 {
                     ++schnorr_;
-                    fire(to_events(opcode::checksigadd), ctx.height);
+                    ////fire(to_events(opcode::checksigadd), ctx.height);
                     return query.set_signature(digest, point, sign, link);
                 },
                 .multisig = [&](const hash_digest& digest,
@@ -402,7 +403,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 {
                     BC_ASSERT(points.size() == signs.size());
                     multisig_ += points.size();
-                    fire(to_events(opcode::checkmultisigverify), ctx.height);
+                    ////fire(to_events(opcode::checkmultisigverify), ctx.height);
                     return query.set_signatures(digest, points, signs, set, link);
                 },
                 .threshold = [&](
@@ -410,20 +411,29 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 {
                     // Sets condition to opcode::checksig for all required.
                     threshold_ += group.entries.size();
-                    fire(to_events(group.condition), ctx.height);
-                    return query.set_signatures(group, set, link);
+                    ////fire(to_events(group.condition), ctx.height);
+
+                    // Script always processing proceeds as if batch succeeded.
+                    if (!query.set_signatures(group, set, link))
+                        capture_ec = fault(error::capture_fault);
                 }
             };
 
+            // Prioritize validation failure over capture failure.
             if ((ec = block.connect(ctx, capture)))
                 return ec;
 
-            const auto log_capture = [&](std::string_view name, size_t captured,
-                size_t missed) NOEXCEPT
+            // TODO: repost block (link) to work queue in complete_block
+            // TODO: based on error::capture_fault.
+            if (capture_ec)
+                return capture_ec;
+
+            const auto log_capture = [&](std::string_view name,
+                size_t captured, size_t missed) NOEXCEPT
             {
                 if (!to_bool(captured) && !to_bool(missed)) return;
                 const auto ratio = (100.0f * captured) / (captured + missed);
-                const auto rate = (boost_format("%.2f") % ratio).str();
+                const auto rate = (boost_format("%.4f") % ratio).str();
                 LOGA("Efficiency " << name << rate << "% = " << captured
                     << "/(" << captured << "+" << missed << ")");
             };
@@ -463,6 +473,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         // Node errors are fatal.
         if (node::error::error_category::contains(ec))
         {
+            // fault(ec) initiates recovery if caused by disk full condition.
             LOGF("Fault validating [" << height << "] " << ec.message());
             fault(ec);
             return;
