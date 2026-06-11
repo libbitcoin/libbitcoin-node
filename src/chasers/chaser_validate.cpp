@@ -353,8 +353,8 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
                 .log = [&](const script& missed) NOEXCEPT
                 {
-                    LOGA("Sigop @ " << ctx.height << " -> "
-                        << missed.to_string(chain::flags::all_rules));
+                    ////LOGA("Sigop @ " << ctx.height << " -> "
+                    ////    << missed.to_string(chain::flags::all_rules));
                 },
                 .fire = [&](signatures::miss miss) NOEXCEPT
                 {
