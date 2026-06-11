@@ -351,7 +351,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 // Enable/disable capture.
                 .enabled = batch_signatures_,
 
-                .log = [&](const script& missed) NOEXCEPT
+                .log = [&](const script& ) NOEXCEPT
                 {
                     ////LOGA("Sigop @ " << ctx.height << " -> "
                     ////    << missed.to_string(chain::flags::all_rules));
