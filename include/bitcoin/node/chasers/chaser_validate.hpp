@@ -102,6 +102,7 @@ private:
     const bool node_witness_;
     const bool defer_;
     const bool filter_;
+    const bool silent_;
 };
 
 } // namespace node

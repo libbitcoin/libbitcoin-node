@@ -145,6 +145,10 @@ enum class chase
     /// Issued by 'confirm' and handled by 'transaction'.
     reorganized,
 
+    /// Silent payment prevout summaries indexed for confirmed block (header_t).
+    /// Issued by 'confirm' and handled by protocol subscribers.
+    silent_indexed,
+
     /// Mining.
     /// -----------------------------------------------------------------------
 
