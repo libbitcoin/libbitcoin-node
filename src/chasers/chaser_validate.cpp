@@ -362,19 +362,19 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     {
                         case signatures::miss::ecdsa:
                             ++missed_ecdsa_;
-                            fire(events::missed_ecdsa, ctx.height);
+                            ////fire(events::missed_ecdsa, ctx.height);
                             break;
                         case signatures::miss::multisig:
                             ++missed_multisig_;
-                            fire(events::missed_multisig, ctx.height);
+                            ////fire(events::missed_multisig, ctx.height);
                             break;
                         case signatures::miss::schnorr:
                             ++missed_schnorr_;
-                            fire(events::missed_schnorr, ctx.height);
+                            ////fire(events::missed_schnorr, ctx.height);
                             break;
                         case signatures::miss::overflow:
                             ++missed_threshold_;
-                            fire(events::missed_overflow, ctx.height);
+                            ////fire(events::missed_overflow, ctx.height);
                             break;
 
                         // should be no path to this.
@@ -387,14 +387,14 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                     const ec_signature& sign) NOEXCEPT
                 {
                     ++ecdsa_;
-                    fire(to_events(opcode::checksigverify), ctx.height);
+                    ////fire(to_events(opcode::checksigverify), ctx.height);
                     return query.set_signature(digest, point, sign, link);
                 },
                 .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
                     const ec_signature& sign) NOEXCEPT
                 {
                     ++schnorr_;
-                    fire(to_events(opcode::checksigadd), ctx.height);
+                    ////fire(to_events(opcode::checksigadd), ctx.height);
                     return query.set_signature(digest, point, sign, link);
                 },
                 .multisig = [&](const hash_digest& digest,
@@ -403,7 +403,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 {
                     BC_ASSERT(points.size() == signs.size());
                     multisig_ += points.size();
-                    fire(to_events(opcode::checkmultisigverify), ctx.height);
+                    ////fire(to_events(opcode::checkmultisigverify), ctx.height);
                     return query.set_signatures(digest, points, signs, set, link);
                 },
                 .threshold = [&](
@@ -411,7 +411,7 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 {
                     // Sets condition to opcode::checksig for all required.
                     threshold_ += group.entries.size();
-                    fire(to_events(group.condition), ctx.height);
+                    ////fire(to_events(group.condition), ctx.height);
 
                     // Script always processing proceeds as if batch succeeded.
                     if (!query.set_signatures(group, set, link))
@@ -419,29 +419,21 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
                 }
             };
 
+            // Prioritize validation failure over capture failure.
             if ((ec = block.connect(ctx, capture)))
                 return ec;
 
-            // TODO: capture the fault ec from closure (with block link).
-            // TODO: return failure here with dedicated ec (batch write fail).
-            // TODO: if was threshold then block must be resubmitted to queue.
-            // TODO: for others there is no special action. In all cases must
-            // TODO: regard a validation failure here (unconfirmable) and when
-            // TODO: batching, must defer setting valid state until batch post
-            // TODO: processing. chaser startup must drain the batch tables.
+            // TODO: repost block (link) to work queue in complete_block
+            // TODO: based on error::capture_fault.
             if (capture_ec)
-            {
-                // TODO: repost block (link) to work queue in complete_block
-                // TODO: based on error::capture_fault.
                 return capture_ec;
-            }
 
-            const auto log_capture = [&](std::string_view name, size_t captured,
-                size_t missed) NOEXCEPT
+            const auto log_capture = [&](std::string_view name,
+                size_t captured, size_t missed) NOEXCEPT
             {
                 if (!to_bool(captured) && !to_bool(missed)) return;
                 const auto ratio = (100.0f * captured) / (captured + missed);
-                const auto rate = (boost_format("%.2f") % ratio).str();
+                const auto rate = (boost_format("%.4f") % ratio).str();
                 LOGA("Efficiency " << name << rate << "% = " << captured
                     << "/(" << captured << "+" << missed << ")");
             };
