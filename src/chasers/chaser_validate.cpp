@@ -276,7 +276,7 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
 }
 
 code chaser_validate::validate(bool bypass, const chain::block& block,
-    const database::header_link& link, const chain::context& ctx) NOEXCEPT
+    const header_link& link, const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
 
@@ -296,160 +296,8 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
-        if (batch_signatures_)
-        {
-            using namespace chain;
-            std::atomic<size_t> set{};
-            code capture_ec{};
-
-            const auto to_events = [](opcode op) NOEXCEPT
-            {
-                switch (op)
-                {
-                    // ecdsa single (checksig/verify).
-                    case opcode::checksigverify:
-                        return events::checksigverify;
-
-                    // ecdsa multiple (checkmultisig/verify).
-                    case opcode::checkmultisigverify:
-                        return events::checkmultisigverify;
-
-                    // schnorr single (op_checksigadd|op_checksig/verify).
-                    case opcode::checksigadd:
-                        return events::checksigadd;
-
-                    // schnorr multiple (multisig pattern).
-                    case opcode::checksig:
-                        return events::checksig;
-
-                    // schnorr multiple (is_threshold).
-                    case opcode::numequal:
-                        return events::numequal;
-                    case opcode::numequalverify:
-                        return events::numequalverify;
-                    case opcode::numnotequal:
-                        return events::numnotequal;
-                    case opcode::lessthan:
-                        return events::lessthan;
-                    case opcode::greaterthan:
-                        return events::greaterthan;
-                    case opcode::lessthanorequal:
-                        return events::lessthanorequal;
-                    case opcode::greaterthanorequal:
-                        return events::greaterthanorequal;
-                    case opcode::within:
-                        return events::within;
-
-                    // should be no path to this.
-                    default:
-                        return events::unknown;
-                }
-            };
-
-            const signatures capture
-            {
-                // Enable/disable capture.
-                .enabled = batch_signatures_,
-
-                .log = [&](const script& ) NOEXCEPT
-                {
-                    ////LOGA("Sigop @ " << ctx.height << " -> "
-                    ////    << missed.to_string(chain::flags::all_rules));
-                },
-                .fire = [&](signatures::miss miss, size_t count) NOEXCEPT
-                {
-                    switch (miss)
-                    {
-                        case signatures::miss::ecdsa:
-                            missed_ecdsa_ += count;
-                            ////fire(events::missed_ecdsa, ctx.height);
-                            break;
-                        case signatures::miss::multisig:
-                            missed_multisig_ += count;
-                            ////fire(events::missed_multisig, ctx.height);
-                            break;
-                        case signatures::miss::schnorr:
-                            missed_schnorr_ += count;
-                            ////fire(events::missed_schnorr, ctx.height);
-                            break;
-                        case signatures::miss::overflow:
-                            // Misses overflow to single, so not called.
-                            // This is instead used to reflect cache failure.
-                            missed_threshold_ += count;
-                            ////fire(events::missed_overflow, ctx.height);
-                            break;
-
-                        // should be no path to this.
-                        default:
-                            BC_ASSERT_MSG(false, "unknown signatures::miss");
-                    }
-                },
-                .ecdsa = [&](const hash_digest& digest,
-                    const ec_compressed& point,
-                    const ec_signature& sign) NOEXCEPT
-                {
-                    ++ecdsa_;
-                    ////fire(to_events(opcode::checksigverify), ctx.height);
-                    return query.set_signature(digest, point, sign, link);
-                },
-                .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
-                    const ec_signature& sign) NOEXCEPT
-                {
-                    ++schnorr_;
-                    ////fire(to_events(opcode::checksigadd), ctx.height);
-                    return query.set_signature(digest, point, sign, link);
-                },
-                .multisig = [&](const hash_digest& digest,
-                    const ec_compresseds& points,
-                    const ec_signatures& signs) NOEXCEPT
-                {
-                    BC_ASSERT(points.size() == signs.size());
-                    multisig_ += points.size();
-                    ////fire(to_events(opcode::checkmultisigverify), ctx.height);
-                    return query.set_signatures(digest, points, signs, set, link);
-                },
-                .threshold = [&](
-                    const signatures::threshold_entries& group) NOEXCEPT
-                {
-                    // Sets condition to opcode::checksig for all required.
-                    threshold_ += group.entries.size();
-                    ////fire(to_events(group.condition), ctx.height);
-
-                    // Script always processing proceeds as if batch succeeded.
-                    if (!query.set_signatures(group, set, link))
-                        capture_ec = fault(error::capture_fault);
-                }
-            };
-
-            // Prioritize validation failure over capture failure.
-            if ((ec = block.connect(ctx, capture)))
-                return ec;
-
-            // TODO: repost block (link) to work queue in complete_block
-            // TODO: based on error::capture_fault.
-            if (capture_ec)
-                return capture_ec;
-
-            const auto log_capture = [&](std::string_view name,
-                size_t captured, size_t missed) NOEXCEPT
-            {
-                if (!to_bool(captured) && !to_bool(missed)) return;
-                const auto ratio = (100.0f * captured) / (captured + missed);
-                const auto rate = (boost_format("%.4f") % ratio).str();
-                LOGA("Efficiency " << name << rate << "% = " << captured
-                    << "/(" << captured << "+" << missed << ")");
-            };
-
-            log_capture("ecdsa.... ", ecdsa_,     missed_ecdsa_);
-            log_capture("multisig. ", multisig_,  missed_multisig_);
-            log_capture("schnorr.. ", schnorr_,   missed_schnorr_);
-            log_capture("threshold ", threshold_, missed_threshold_);
-        }
-        else
-        {
-            if ((ec = block.connect(ctx)))
-                return ec;
-        }
+        if ((ec = block.connect(ctx, get_capture(link))))
+            return ec;
 
         // Prevouts optimize confirmation.
         if (!query.set_prevouts(link, block))
@@ -527,6 +375,114 @@ network::asio::strand& chaser_validate::strand() NOEXCEPT
 bool chaser_validate::stranded() const NOEXCEPT
 {
     return validation_strand_.running_in_this_thread();
+}
+
+// private
+// ----------------------------------------------------------------------------
+
+chain::signatures chaser_validate::get_capture(
+    const header_link& link) NOEXCEPT
+{
+    if (!batch_signatures_)
+        return {};
+
+    // Group identifier for block, incremented for each multisig/threshold.
+    const auto id = to_shared<std::atomic<size_t>>();
+
+    using namespace chain;
+    return signatures
+    {
+        // Default struct is disabled.
+        .enabled = true,
+
+        // Enable for a game of whack-a-mole.
+        .log = [&](const script& /* LOG_ONLY(missed) */) NOEXCEPT
+        {
+            ////LOGA("Sigop @ " << ctx.height << " -> "
+            ////    << missed.to_string(chain::flags::all_rules));
+        },
+
+        // Update counters for missed capture.
+        .fire = [&](signatures::miss miss, size_t count) NOEXCEPT
+        {
+            switch (miss)
+            {
+                case signatures::miss::ecdsa:
+                    missed_ecdsa_ += count;
+                    break;
+                case signatures::miss::multisig:
+                    missed_multisig_ += count;
+                    break;
+                case signatures::miss::schnorr:
+                    missed_schnorr_ += count;
+                    break;
+                default:;
+            }
+        },
+
+        // opcode::checksig/verify
+        .ecdsa = [&](const hash_digest& digest, const ec_compressed& point,
+            const ec_signature& sign) NOEXCEPT
+        {
+            ++ecdsa_;
+            auto& query = archive();
+            return query.set_signature(digest, point, sign, link);
+        },
+
+        // opcode::checksigadd | opcode::checksig/verify
+        .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
+            const ec_signature& sign) NOEXCEPT
+        {
+            ++schnorr_;
+            auto& query = archive();
+            return query.set_signature(digest, point, sign, link);
+        },
+
+        // opcode::checkmultisig/verify
+        .multisig = [&, id](const hash_digest& digest,
+            const ec_compresseds& points, const ec_signatures& signs) NOEXCEPT
+        {
+            BC_ASSERT(points.size() == signs.size());
+            auto& query = archive();
+            multisig_ += points.size();
+            return query.set_signatures(digest, points, signs, (*id)++, link);
+        },
+
+        // opcode::within
+        // opcode::numequal/verify
+        // opcode::numnotequal
+        // opcode::lessthan
+        // opcode::greaterthan
+        // opcode::lessthanorequal
+        // opcode::greaterthanorequal
+        // opcode::checksig (m of m)
+        .threshold = [&, id](const signatures::threshold_group& group) NOEXCEPT
+        {
+            threshold_ += group.entries.size();
+            auto& query = archive();
+            return query.set_signatures(group, (*id)++, link);
+        }
+    };
+}
+
+void chaser_validate::log_capture(const std::string_view& name,
+    size_t captured, size_t missed) const NOEXCEPT
+{
+    if (to_bool(captured) || to_bool(missed))
+    {
+        const auto rate = (100.0f * captured) / (captured + missed);
+        const auto text = (boost_format("%.4f") % rate).str();
+        LOGV("Capture rate " << name << text << "% = " << captured
+            << "/(" << captured << "+" << missed << ")");
+    }
+}
+
+void chaser_validate::log_captures() const NOEXCEPT
+{
+    log_capture("ecdsa.... ", ecdsa_,     missed_ecdsa_);
+    log_capture("multisig. ", multisig_,  missed_multisig_);
+    log_capture("schnorr.. ", schnorr_,   missed_schnorr_);
+    log_capture("threshold ", threshold_, zero);
 }
 
 BC_POP_WARNING()
