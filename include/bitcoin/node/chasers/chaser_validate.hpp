@@ -78,6 +78,12 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
+    system::chain::signatures get_capture(
+        const database::header_link& link) NOEXCEPT;
+    void log_capture(const std::string_view& name,
+        size_t captured, size_t missed) const NOEXCEPT;
+    void log_captures() const NOEXCEPT;
+
     // This is protected by strand.
     network::threadpool validation_threadpool_;
 
