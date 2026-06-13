@@ -206,7 +206,7 @@ bool chaser_header::update_milestone(const system::chain::header& header,
 
         // Iterate.
         const auto& next = get_header(*it->second);
-        previous = hash_cref(next.previous_block_hash());
+        previous = { next.previous_block_hash() };
     }
 
     // The current active milestone is necessarily on the candidate branch.

@@ -128,7 +128,7 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
-    const auto it = tree_.find(hash_cref(hash));
+    const auto it = tree_.find(hash);
     if (it != tree_.end())
     {
         handler(error_duplicate(), it->second->get_state()->height());
@@ -518,7 +518,7 @@ code CLASS::push_block(const Block& block,
 TEMPLATE
 code CLASS::push_block(const system::hash_digest& key) NOEXCEPT
 {
-    const auto handle = tree_.extract(system::hash_cref(key));
+    const auto handle = tree_.extract(key);
     if (!handle)
         return error::organize15;
 
@@ -534,7 +534,7 @@ void CLASS::cache(const typename Block::cptr& block,
     block->set_state(state);
 
     // TODO: guard cache against memory exhaustion (DoS).
-    tree_.emplace(system::hash_cref(block->get_hash()), block);
+    tree_.emplace(block->get_hash(), block);
 }
 
 // Private getters
@@ -553,7 +553,7 @@ CLASS::chain_state::cptr CLASS::get_chain_state(
         return state_;
 
     // Previous block may be cached because it is not yet strong.
-    const auto it = tree_.find(hash_cref(previous_hash));
+    const auto it = tree_.find(previous_hash);
     if (it != tree_.end())
         return it->second->get_state();
 
@@ -583,7 +583,7 @@ bool CLASS::get_branch_work(uint256_t& work,
         work += head.proof();
 
         // Iterate.
-        previous = hash_cref(head.previous_block_hash());
+        previous = { head.previous_block_hash() };
         it = tree_.find(previous);
     }
 
