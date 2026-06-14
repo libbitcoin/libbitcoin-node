@@ -397,66 +397,27 @@ chain::signatures chaser_validate::get_capture(
         return {};
 
     // Group identifier for block, incremented for each multisig/threshold.
-    const auto id = to_shared<std::atomic<size_t>>();
+    const auto id = to_shared<atomic_counter>();
 
-    using namespace chain;
     return signatures
     {
         // Default struct is disabled.
         .enabled = true,
 
         // Enable for a game of whack-a-mole.
-        .log = [&](const script& /* LOG_ONLY(missed) */) NOEXCEPT
-        {
-            ////LOGA("Sigop @ " << ctx.height << " -> "
-            ////    << missed.to_string(chain::flags::all_rules));
-        },
+        .log = BIND_THIS(do_log, _1),
 
         // Update counters for missed capture.
-        .fire = [&](signatures::miss miss, size_t count) NOEXCEPT
-        {
-            switch (miss)
-            {
-                case signatures::miss::ecdsa:
-                    missed_ecdsa_ += count;
-                    break;
-                case signatures::miss::multisig:
-                    missed_multisig_ += count;
-                    break;
-                case signatures::miss::schnorr:
-                    missed_schnorr_ += count;
-                    break;
-                default:;
-            }
-        },
+        .fire = BIND_THIS(do_fire, _1, _2),
 
         // opcode::checksig/verify
-        .ecdsa = [&](const hash_digest& digest, const ec_compressed& point,
-            const ec_signature& sign) NOEXCEPT
-        {
-            ++ecdsa_;
-            auto& query = archive();
-            return query.set_signature(digest, point, sign, link);
-        },
+        .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
 
         // opcode::checksigadd | opcode::checksig/verify
-        .schnorr = [&](const hash_digest& digest, const ec_xonly& point,
-            const ec_signature& sign) NOEXCEPT
-        {
-            ++schnorr_;
-            auto& query = archive();
-            return query.set_signature(digest, point, sign, link);
-        },
+        .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
 
         // opcode::checkmultisig/verify
-        .multisig = [&, id](const hash_digest& digest,
-            const ec_compresseds& points, const ec_signatures& signs) NOEXCEPT
-        {
-            BC_ASSERT(points.size() == signs.size());
-            auto& query = archive();
-            multisig_ += points.size();
-            return query.set_signatures(digest, points, signs, (*id)++, link);
-        },
+        .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, id),
 
         // opcode::within
         // opcode::numequal/verify
@@ -466,13 +427,78 @@ chain::signatures chaser_validate::get_capture(
         // opcode::lessthanorequal
         // opcode::greaterthanorequal
         // opcode::checksig (m of m)
-        .threshold = [&, id](const signatures::threshold_group& group) NOEXCEPT
-        {
-            threshold_ += group.entries.size();
-            auto& query = archive();
-            return query.set_signatures(group, (*id)++, link);
-        }
+        .threshold = BIND_THIS(do_threshold, _1, link, id)
     };
+}
+
+// Enable for a game of whack-a-mole.
+void chaser_validate::do_log(
+    const chain::script& /* LOG_ONLY(missed) */) NOEXCEPT
+{
+    ////LOGA("Sigop @ " << ctx.height << " -> "
+    ////    << missed.to_string(chain::flags::all_rules));
+}
+
+void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
+{
+    switch (miss)
+    {
+        case missed::ecdsa:
+            missed_ecdsa_ += count;
+            break;
+        case missed::multisig:
+            missed_multisig_ += count;
+            break;
+        case missed::schnorr:
+            missed_schnorr_ += count;
+            break;
+        default:;
+    }
+}
+
+bool chaser_validate::do_ecdsa(const hash_digest& digest,
+    const ec_compressed& point, const ec_signature& sign,
+    const header_link& link) NOEXCEPT
+{
+    ++ecdsa_;
+    const auto out = archive().set_signature(digest, point, sign, link);
+    if (!out) fault(system::error::block_capture);
+    return out;
+}
+
+bool chaser_validate::do_schnorr(const hash_digest& digest,
+    const ec_xonly& point, const ec_signature& sign,
+    const header_link& link) NOEXCEPT
+{
+    ++schnorr_;
+    const auto out = archive().set_signature(digest, point, sign, link);
+    if (!out) fault(system::error::block_capture);
+    return out;
+}
+
+bool chaser_validate::do_multisig(const hash_digest& digest,
+    const ec_compresseds& points, const ec_signatures& signs,
+    const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
+{
+    BC_ASSERT(points.size() == signs.size());
+
+    multisig_ += points.size();
+    const auto out = archive().set_signatures(digest, points, signs, (*id)++,
+        link);
+    if (!out) fault(system::error::block_capture);
+    return out;
+}
+
+bool chaser_validate::do_threshold(const threshold_group& group,
+    const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
+{
+    threshold_ += group.entries.size();
+    const auto out = archive().set_signatures(group, (*id)++, link);
+    if (!out) fault(system::error::block_capture);
+
+    // False here sets signatures.fault, causing block.connect(2) to
+    // return error::block_capture, causing block validation resubmit.
+    return out;
 }
 
 void chaser_validate::log_capture(const std::string_view& name,
