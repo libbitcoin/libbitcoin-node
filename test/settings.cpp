@@ -37,6 +37,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.thread_priority, true);
     BOOST_REQUIRE_EQUAL(node.allow_overlapped, true);
     BOOST_REQUIRE_EQUAL(node.batch_signatures, true);
+    BOOST_REQUIRE_EQUAL(node.mark_unconfirmable, true);
     BOOST_REQUIRE_EQUAL(node.defer_validation, false);
     BOOST_REQUIRE_EQUAL(node.defer_confirmation, false);
     BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.0);
