@@ -339,6 +339,17 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
             return;
         }
 
+        if (ec == system::error::block_capture)
+        {
+            // At least one unrecoverable (threshold) capture failed during 
+            // script validations, and there was no other failure. This is only
+            // caused by a store fault - possibly a disk full condition. In the
+            // case of disk full the node will pause, otherwise it will halt.
+            // Assume disk full here, requiring a repost for block validation.
+            post_block(link, bypass);
+            return;
+        }
+
         // INVALID BLOCK (not a fault)
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
