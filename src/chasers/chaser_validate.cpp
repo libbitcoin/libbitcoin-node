@@ -234,6 +234,7 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else if ((ec = populate(bypass, *block, ctx)))
     {
+        // !mark_unconfirmable allows node to stall, preserving log.
         if (node_settings().mark_unconfirmable &&
             !query.set_block_unconfirmable(link))
             ec = error::validate4;
@@ -241,11 +242,6 @@ void chaser_validate::validate_block(const header_link& link,
     else if ((ec = validate(bypass, *block, link, ctx)))
     {
         // !mark_unconfirmable allows node to stall, preserving log.
-        // Will continue to validate blocks until the end of the window.
-        // At that point validation (and confirmation) will be starved, and
-        // download will wait forever on this missing validation event. Restart
-        // is safe and will buffer this block again for validation. Without the
-        // unconfirmable state or disorganization, no header reorganize occurs.
         if (node_settings().mark_unconfirmable &&
             !query.set_block_unconfirmable(link))
                 ec = error::validate5;
