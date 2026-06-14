@@ -487,6 +487,9 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
     return out;
 }
 
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
 bool chaser_validate::do_multisig(const hash_digest& digest,
     const ec_compresseds& points, const ec_signatures& signs,
     const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
@@ -511,6 +514,9 @@ bool chaser_validate::do_threshold(const threshold_group& group,
     // return error::block_capture, causing block validation resubmit.
     return out;
 }
+
+BC_POP_WARNING()
+BC_POP_WARNING()
 
 void chaser_validate::log_capture(const std::string_view& name,
     size_t captured, size_t missed) const NOEXCEPT
