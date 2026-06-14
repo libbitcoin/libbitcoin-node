@@ -47,7 +47,7 @@ protected:
     inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
     {
         return boost::asio::post(validation_threadpool_.service(),
-            BIND_THIS(method, args));
+            BIND_TO(method, args));
     }
 
     typedef network::race_unity<const code&, const database::tx_link&> race;
