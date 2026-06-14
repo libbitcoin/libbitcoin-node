@@ -200,7 +200,9 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 void chaser_validate::post_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
-    BC_ASSERT(stranded());
+    // may be called by do_bumped (stranded) or complete_block (not stranded).
+    ///BC_ASSERT(stranded());
+
     backlog_.fetch_add(one, std::memory_order_relaxed);
     PARALLEL(validate_block, link, bypass);
 }
@@ -232,13 +234,21 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else if ((ec = populate(bypass, *block, ctx)))
     {
-        if (!query.set_block_unconfirmable(link))
+        if (node_settings().mark_unconfirmable &&
+            !query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
     else if ((ec = validate(bypass, *block, link, ctx)))
     {
-        if (!query.set_block_unconfirmable(link))
-            ec = error::validate5;
+        // !mark_unconfirmable allows node to stall, preserving log.
+        // Will continue to validate blocks until the end of the window.
+        // At that point validation (and confirmation) will be starved, and
+        // download will wait forever on this missing validation event. Restart
+        // is safe and will buffer this block again for validation. Without the
+        // unconfirmable state or disorganization, no header reorganize occurs.
+        if (node_settings().mark_unconfirmable &&
+            !query.set_block_unconfirmable(link))
+                ec = error::validate5;
     }
 
     complete_block(ec, link, ctx.height, bypass);

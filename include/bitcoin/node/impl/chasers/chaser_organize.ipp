@@ -90,6 +90,10 @@ bool CLASS::handle_chase(const code&, chase event_, event_value value) NOEXCEPT
         case chase::unvalid:
         case chase::unconfirmable:
         {
+            // !mark_unconfirmable allows node to stall, preserving log.
+            if (!node_settings().mark_unconfirmable)
+                break;
+
             // Roll back the candidate chain to confirmed top (via fork point).
             BC_ASSERT(std::holds_alternative<header_t>(value));
             POST(do_disorganize, std::get<header_t>(value));

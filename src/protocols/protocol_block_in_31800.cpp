@@ -317,7 +317,9 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
             return false;
         }
 
-        if (!query.set_block_unconfirmable(link))
+        // !mark_unconfirmable allows node to stall, preserving log.
+        if (node_settings().mark_unconfirmable &&
+            !query.set_block_unconfirmable(link))
         {
             stop(fault(error::protocol1));
             return false;
