@@ -472,9 +472,9 @@ bool chaser_validate::do_ecdsa(const hash_digest& digest,
     const header_link& link) NOEXCEPT
 {
     ++ecdsa_;
-    const auto out = archive().set_signature(digest, point, sign, link);
-    if (!out) fault(system::error::block_capture);
-    return out;
+    const auto set = archive().set_signature(digest, point, sign, link);
+    if (!set) fault(system::error::block_capture);
+    return set;
 }
 
 bool chaser_validate::do_schnorr(const hash_digest& digest,
@@ -482,9 +482,9 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
     const header_link& link) NOEXCEPT
 {
     ++schnorr_;
-    const auto out = archive().set_signature(digest, point, sign, link);
-    if (!out) fault(system::error::block_capture);
-    return out;
+    const auto set = archive().set_signature(digest, point, sign, link);
+    if (!set) fault(system::error::block_capture);
+    return set;
 }
 
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
@@ -497,22 +497,22 @@ bool chaser_validate::do_multisig(const hash_digest& digest,
     BC_ASSERT(points.size() == signs.size());
 
     multisig_ += points.size();
-    const auto out = archive().set_signatures(digest, points, signs, (*id)++,
+    const auto set = archive().set_signatures(digest, points, signs, (*id)++,
         link);
-    if (!out) fault(system::error::block_capture);
-    return out;
+    if (!set) fault(system::error::block_capture);
+    return set;
 }
 
 bool chaser_validate::do_threshold(const threshold_group& group,
     const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
 {
     threshold_ += group.entries.size();
-    const auto out = archive().set_signatures(group, (*id)++, link);
-    if (!out) fault(system::error::block_capture);
+    const auto set = archive().set_signatures(group, (*id)++, link);
+    if (!set) fault(system::error::block_capture);
 
     // False here sets signatures.fault, causing block.connect(2) to
     // return error::block_capture, causing block validation resubmit.
-    return out;
+    return set;
 }
 
 BC_POP_WARNING()
