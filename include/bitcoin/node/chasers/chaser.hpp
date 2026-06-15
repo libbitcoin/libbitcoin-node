@@ -59,14 +59,14 @@ protected:
     template <class Derived, typename Method, typename... Args>
     auto bind(Method&& method, Args&&... args) NOEXCEPT
     {
-        return BIND_THIS(method, args);
+        return BIND_TO(method, args);
     }
 
     /// Post a method to channel strand (use POST).
     template <class Derived, typename Method, typename... Args>
     auto post(Method&& method, Args&&... args) NOEXCEPT
     {
-        return boost::asio::post(strand(), BIND_THIS(method, args));
+        return boost::asio::post(strand(), BIND_TO(method, args));
     }
 
     /// Methods.

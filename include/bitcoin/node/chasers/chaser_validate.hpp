@@ -47,7 +47,7 @@ protected:
     inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
     {
         return boost::asio::post(validation_threadpool_.service(),
-            BIND_THIS(method, args));
+            BIND_TO(method, args));
     }
 
     typedef network::race_unity<const code&, const database::tx_link&> race;
@@ -78,8 +78,31 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
-    system::chain::signatures get_capture(
+    using atomic_counter = std::atomic<size_t>;
+    using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
+    using signatures = system::chain::signatures;
+    using threshold_group = signatures::threshold_group;
+    using missed = signatures::miss;
+
+    signatures get_capture(const database::header_link& link) NOEXCEPT;
+
+    // Handlers.
+    void do_log(const system::chain::script& missed) NOEXCEPT;
+    void do_fire(missed miss, size_t count) NOEXCEPT;
+    bool do_ecdsa(const system::hash_digest& digest,
+        const system::ec_compressed& point, const system::ec_signature& sign,
         const database::header_link& link) NOEXCEPT;
+    bool do_schnorr(const system::hash_digest& digest,
+        const system::ec_xonly& point, const system::ec_signature& sign,
+        const database::header_link& link) NOEXCEPT;
+    bool do_multisig(const system::hash_digest& digest,
+        const system::ec_compresseds& points,
+        const system::ec_signatures& signs, const database::header_link& link,
+        const atomic_counter_ptr& id) NOEXCEPT;
+    bool do_threshold(const threshold_group& group,
+        const database::header_link& link,
+        const atomic_counter_ptr& id) NOEXCEPT;
+
     void log_capture(const std::string_view& name,
         size_t captured, size_t missed) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
