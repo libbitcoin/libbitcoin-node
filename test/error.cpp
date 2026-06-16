@@ -297,13 +297,17 @@ BOOST_AUTO_TEST_CASE(error_t__code__estimates_pop2__true_expected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "estimates_pop2");
 }
 
-BOOST_AUTO_TEST_CASE(error_t__code__capture_fault__true_expected_message)
+// batch
+
+BOOST_AUTO_TEST_CASE(error_t__code__batch1__true_expected_message)
 {
-    constexpr auto value = error::capture_fault;
+    constexpr auto value = error::batch1;
     const auto ec = code(value);
     BOOST_REQUIRE(ec);
     BOOST_REQUIRE(ec == value);
-    BOOST_REQUIRE_EQUAL(ec.message(), "capture_fault");
+    BOOST_REQUIRE_EQUAL(ec.message(), "batch1");
 }
+
+// TODO: batch2-batch9
 
 BOOST_AUTO_TEST_SUITE_END()

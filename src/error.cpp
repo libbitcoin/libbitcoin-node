@@ -98,7 +98,15 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { estimates_push2, "estimates_push2" },
     { estimates_pop1, "estimates_pop1" },
     { estimates_pop2, "estimates_pop2" },
-    { capture_fault, "capture_fault" }
+    { batch1, "batch1" },
+    { batch2, "batch2" },
+    { batch3, "batch3" },
+    { batch4, "batch4" },
+    { batch5, "batch5" },
+    { batch6, "batch6" },
+    { batch7, "batch7" },
+    { batch8, "batch8" },
+    { batch9, "batch9" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")
