@@ -354,16 +354,20 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 // track downloaded in order (to move download window)
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_advanced(height_t height) NOEXCEPT
+void chaser_check::do_advanced(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     // Validations are not ordered, so accumulate vs. compare height.
+    // Advancement through window is a quantity, not dedicated to a branch.
     ++advanced_;
 
-    // The full set of requested hashes has been validated.
+    // The full count of requested hashes has been validated.
     if (advanced_ == requested_)
-        do_headers(height);
+    {
+        notify(error::success, chase::advanced, advanced_);
+        do_headers({});
+    }
 }
 
 void chaser_check::do_checked(height_t height) NOEXCEPT

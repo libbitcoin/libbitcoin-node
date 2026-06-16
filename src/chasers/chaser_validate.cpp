@@ -87,6 +87,16 @@ bool chaser_validate::handle_chase(const code&, chase event_,
             POST(do_checked, std::get<height_t>(value));
             break;
         }
+        case chase::advanced:
+        {
+            if (!batch_signatures_)
+                break;
+
+            // value is checked block height.
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_advanced, std::get<height_t>(value));
+            break;
+        }
         case chase::regressed:
         case chase::disorganized:
         {
@@ -118,6 +128,12 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
         return;
 
     set_position(branch_point);
+}
+
+void chaser_validate::do_advanced(height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    process_batch();
 }
 
 void chaser_validate::do_checked(height_t height) NOEXCEPT
