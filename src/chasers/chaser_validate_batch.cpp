@@ -143,8 +143,11 @@ signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
     if (!batch_signatures_ || is_current(link))
         return { false };
 
-    const auto sequence = to_shared<atomic_counter>();
+    // This call is blocked during signature batch evaluation and all
+    // outstanding captures block signature batch evaluation until complete.
     const auto lock = emplace_shared<shared_lock>(mutex_);
+
+    const auto sequence = to_shared<atomic_counter>();
     return signatures
     {
         .enabled = true,
