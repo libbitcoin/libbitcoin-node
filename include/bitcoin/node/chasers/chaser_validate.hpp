@@ -129,7 +129,6 @@ private:
     const size_t maximum_backlog_;
     const bool batch_signatures_;
     const bool node_witness_;
-    const bool defer_;
     const bool filter_;
 };
 

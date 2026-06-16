@@ -45,8 +45,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     batch_signatures_(node.node_settings().batch_signatures),
     node_witness_(node.network_settings().witness_node()),
-    defer_(node.node_settings().defer_validation),
-    filter_(!defer_ && node.archive().filter_enabled())
+    filter_(node.archive().filter_enabled())
 {
 }
 
@@ -159,7 +158,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         if (ec == database::error::unassociated)
             return;
 
-        const auto bypass = defer_ || is_under_checkpoint(height) ||
+        const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
 
         switch (ec.value())
@@ -350,15 +349,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     }
 
     // VALID BLOCK
-    // Under deferral there is no state change, but downloads will stall unless
-    // the window is closed out, so notify the check chaser of the increment.
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
-
-    if (!defer_)
-    {
-        fire(events::block_validated, height);
-        LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
-    }
+    fire(events::block_validated, height);
+    LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }
 
 // Overrides due to independent priority thread pool

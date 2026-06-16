@@ -34,8 +34,7 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 chaser_confirm::chaser_confirm(full_node& node) NOEXCEPT
-  : chaser(node),
-    defer_(node.node_settings().defer_confirmation)
+  : chaser(node)
 {
 }
 
@@ -49,11 +48,7 @@ code chaser_confirm::start() NOEXCEPT
         LOGN("Node is current at startup block [" << position() << "].");
     }
 
-    if (!defer_)
-    {
-        SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
-    }
-
+    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
 
