@@ -255,19 +255,21 @@ bool chaser_validate::do_multisig(const hash_digest& digest,
     BC_ASSERT(points.size() == signs.size());
 
     multisig_ += points.size();
-    const auto set = archive().set_signatures(digest, points, signs,
-        (*sequence)++, link);
-    if (!set) fault(error::batch9);
-    return set;
+    ////const auto set = archive().set_signatures(digest, points, signs,
+    ////    (*sequence)++, link);
+    ////if (!set) fault(error::batch9);
+    ////return set;
+    return true;
 }
 
 bool chaser_validate::do_threshold(const threshold_group& group,
     const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
     threshold_ += group.entries.size();
-    const auto set = archive().set_signatures(group, (*sequence)++, link);
-    if (!set) fault(error::batch10);
-    return set;
+    ////const auto set = archive().set_signatures(group, (*sequence)++, link);
+    ////if (!set) fault(error::batch10);
+    ////return set;
+    return true;
 }
 
 void chaser_validate::log_capture(const std::string_view& name,
