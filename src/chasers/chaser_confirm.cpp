@@ -318,16 +318,22 @@ bool chaser_confirm::complete_block(const code& ec, const header_link& link,
 {
     BC_ASSERT(stranded());
 
+    // Database errors are fatal (or disk full recoverable).
+    if (ec && database::error::error_category::contains(ec))
+    {
+        LOGF("Fault confirming [" << height << "] " << ec.message());
+        fault(ec);
+        return false;
+    }
+
+    return notify_block(ec, height, link, bypass);
+}
+
+bool chaser_confirm::notify_block(const code& ec, size_t height,
+    const header_link& link, bool bypass) NOEXCEPT
+{
     if (ec)
     {
-        // Database errors are fatal.
-        if (database::error::error_category::contains(ec))
-        {
-            LOGF("Fault confirming [" << height << "] " << ec.message());
-            fault(ec);
-            return false;
-        }
-
         // UNCONFIRMABLE BLOCK (not a fault but discontinue)
         notify(ec, chase::unconfirmable, link);
         fire(events::block_unconfirmable, height);

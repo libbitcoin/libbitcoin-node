@@ -58,7 +58,9 @@ protected:
     virtual bool confirm_block(const header_link& link,
         size_t height, const header_links& popped, size_t fork_point) NOEXCEPT;
     virtual bool complete_block(const code& ec, const header_link& link,
-        size_t height, bool bypassed) NOEXCEPT;
+        size_t height, bool bypass) NOEXCEPT;
+    virtual bool notify_block(const code& ec, size_t height,
+        const database::header_link& link, bool bypass) NOEXCEPT;
 
 private:
     bool set_reorganized(const header_link& link,

@@ -43,6 +43,9 @@ public:
     void stop() NOEXCEPT override;
 
 protected:
+    using signatures = system::chain::signatures;
+    using race = network::race_unity<const code&, const database::tx_link&>;
+
     /// Post a method in base or derived class in parallel (use PARALLEL).
     template <class Derived, typename Method, typename... Args>
     inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
@@ -50,8 +53,6 @@ protected:
         return boost::asio::post(validation_threadpool_.service(),
             BIND_TO(method, args));
     }
-
-    typedef network::race_unity<const code&, const database::tx_link&> race;
 
     virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
@@ -62,6 +63,7 @@ protected:
     virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
+    /// Validation.
     virtual void post_block(const database::header_link& link,
         bool bypass) NOEXCEPT;
     virtual void validate_block(const database::header_link& link,
@@ -76,8 +78,12 @@ protected:
         bool batched=false, bool faulted=false) NOEXCEPT;
     virtual void notify_block(const code& ec, size_t height,
         const database::header_link& link, bool bypass) NOEXCEPT;
-    virtual void push_batch(const database::header_link& link) NOEXCEPT;
+
+    /// Batching.
+    virtual code start_batch() NOEXCEPT;
     virtual void process_batch() NOEXCEPT;
+    virtual void push_batch(const database::header_link& link) NOEXCEPT;
+    virtual signatures get_capture(const database::header_link& link) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
@@ -89,13 +95,10 @@ private:
     using shared_lock_cptr = std::shared_ptr<shared_lock>;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
-    using signatures = system::chain::signatures;
     using threshold_group = signatures::threshold_group;
     using missed = signatures::miss;
 
-    signatures get_capture(const database::header_link& link) NOEXCEPT;
-
-    // Handlers.
+    // Capture handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;
     void do_fire(missed miss, size_t count,
         const shared_lock_cptr& lock) NOEXCEPT;
@@ -113,6 +116,7 @@ private:
         const database::header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
+    // Capture helpers.
     void log_capture(const std::string_view& name,
         size_t captured, size_t missed) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
