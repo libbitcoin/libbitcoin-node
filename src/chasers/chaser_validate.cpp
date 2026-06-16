@@ -234,17 +234,13 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else if ((ec = populate(bypass, *block, ctx)))
     {
-        // !mark_unconfirmable allows node to stall, preserving log.
-        if (node_settings().mark_unconfirmable &&
-            !query.set_block_unconfirmable(link))
+        if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
     else if ((ec = validate(bypass, *block, link, ctx)))
     {
-        // !mark_unconfirmable allows node to stall, preserving log.
-        if (node_settings().mark_unconfirmable &&
-            !query.set_block_unconfirmable(link))
-                ec = error::validate5;
+        if (!query.set_block_unconfirmable(link))
+            ec = error::validate5;
     }
 
     complete_block(ec, link, ctx.height, bypass);

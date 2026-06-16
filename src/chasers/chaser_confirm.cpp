@@ -286,10 +286,7 @@ bool chaser_confirm::confirm_block(const header_link& link, size_t height,
 
     if (const auto ec = query.block_confirmable(link))
     {
-        // !mark_unconfirmable allows node to stall, preserving log.
-        // Will continue to validate this block and fail to confirm here.
-        if (node_settings().mark_unconfirmable &&
-            !query.set_block_unconfirmable(link))
+        if (!query.set_block_unconfirmable(link))
         {
             fault(error::confirm9);
             return false;

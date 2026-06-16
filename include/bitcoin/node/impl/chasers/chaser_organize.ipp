@@ -90,8 +90,7 @@ bool CLASS::handle_chase(const code&, chase event_, event_value value) NOEXCEPT
         case chase::unvalid:
         case chase::unconfirmable:
         {
-            // !mark_unconfirmable allows node to stall, preserving log.
-            if (!node_settings().mark_unconfirmable)
+            if (!database_settings().mark_unconfirmable)
                 break;
 
             // Roll back the candidate chain to confirmed top (via fork point).
