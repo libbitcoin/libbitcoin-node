@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.memory_priority, true);
     BOOST_REQUIRE_EQUAL(node.thread_priority, true);
     BOOST_REQUIRE_EQUAL(node.allow_overlapped, true);
-    BOOST_REQUIRE_EQUAL(node.batch_signatures, true);
+    BOOST_REQUIRE_EQUAL(node.batch_signatures, false);
     BOOST_REQUIRE_EQUAL(node.minimum_fee_rate, 0.0);
     BOOST_REQUIRE_EQUAL(node.minimum_bump_rate, 0.0);
     BOOST_REQUIRE_EQUAL(node.allowed_deviation, 1.5);
