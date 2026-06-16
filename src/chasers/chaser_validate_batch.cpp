@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
-#include <atomic>
 #include <ranges>
 #include <bitcoin/node/define.hpp>
 
@@ -30,6 +29,7 @@ namespace node {
 using namespace system;
 using namespace system::chain;
 using namespace database;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -67,12 +67,17 @@ void chaser_validate::process_batch() NOEXCEPT
         << query.ecdsa_records() << ") ecdsa ("
         << query.schnorr_records() << ") schnorr.");
 
+    const auto start = network::logger::now();
+
     header_links invalids{};
     if (!query.verify_signatures(invalids))
     {
         fault(error::batch2);
         return;
     }
+
+    // TODO: break out timing by ecdsa_msecs and schnorr_msecs.
+    span<milliseconds>(events::batch_msecs, start);
 
     // Invalids might not be included in batched, as link push is a race.
     // Collected links are only required to set valid, not invalid, and do not
