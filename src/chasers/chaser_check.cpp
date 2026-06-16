@@ -206,7 +206,7 @@ void chaser_check::do_handle_purged(const code&) NOEXCEPT
     BC_ASSERT(stranded());
 
     start_tracking();
-    do_bump(height_t{});
+    do_bump({});
 }
 
 // starved
@@ -354,16 +354,20 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 // track downloaded in order (to move download window)
 // ----------------------------------------------------------------------------
 
-void chaser_check::do_advanced(height_t height) NOEXCEPT
+void chaser_check::do_advanced(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     // Validations are not ordered, so accumulate vs. compare height.
+    // Advancement through window is a quantity, not dedicated to a branch.
     ++advanced_;
 
-    // The full set of requested hashes has been validated.
+    // The full count of requested hashes has been validated.
     if (advanced_ == requested_)
-        do_headers(height);
+    {
+        notify(error::success, chase::advanced, advanced_);
+        do_headers({});
+    }
 }
 
 void chaser_check::do_checked(height_t height) NOEXCEPT
@@ -372,7 +376,7 @@ void chaser_check::do_checked(height_t height) NOEXCEPT
 
     // Candidate block was checked at the given height, advance.
     if (height == add1(position()))
-        do_bump(height);
+        do_bump({});
 }
 
 void chaser_check::do_bump(height_t) NOEXCEPT
@@ -386,13 +390,10 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 
     // TODO: query.is_associated() is expensive (hashmap search).
     // Skip checked blocks starting immediately after last checked.
-    while (!closed() && query.is_associated(
-        query.to_candidate((height = add1(height)))))
-    {
+    while (!closed() && query.is_associated(query.to_candidate(++height)))
         set_position(height);
-    }
 
-    do_headers(sub1(height));
+    do_headers({});
 }
 
 // add headers
@@ -402,11 +403,8 @@ void chaser_check::do_headers(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto added = set_unassociated();
-    if (is_zero(added))
-        return;
-        
-    notify(error::success, chase::download, added);
+    if (const auto added = set_unassociated(); is_nonzero(added))        
+        notify(error::success, chase::download, added);
 }
 
 // get/put hashes

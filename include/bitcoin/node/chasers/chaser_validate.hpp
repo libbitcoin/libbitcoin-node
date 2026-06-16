@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 
 #include <atomic>
+#include <mutex>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -42,6 +43,9 @@ public:
     void stop() NOEXCEPT override;
 
 protected:
+    using signatures = system::chain::signatures;
+    using race = network::race_unity<const code&, const database::tx_link&>;
+
     /// Post a method in base or derived class in parallel (use PARALLEL).
     template <class Derived, typename Method, typename... Args>
     inline auto parallel(Method&& method, Args&&... args) NOEXCEPT
@@ -50,45 +54,54 @@ protected:
             BIND_TO(method, args));
     }
 
-    typedef network::race_unity<const code&, const database::tx_link&> race;
-
     virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
+    virtual void do_advanced(height_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
 
+    /// Validation.
     virtual void post_block(const database::header_link& link,
         bool bypass) NOEXCEPT;
     virtual void validate_block(const database::header_link& link,
         bool bypass) NOEXCEPT;
-    virtual code validate(bool bypass, const system::chain::block& block,
-        const database::header_link& link,
+    virtual code validate(bool& batched, bool& faulted, bool bypass,
+        const system::chain::block& block, const database::header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec,
-        const database::header_link& link, size_t height,
-        bool bypassed) NOEXCEPT;
+        const database::header_link& link, size_t height, bool bypass,
+        bool batched=false, bool faulted=false) NOEXCEPT;
+    virtual void notify_block(const code& ec, size_t height,
+        const database::header_link& link, bool bypass) NOEXCEPT;
+
+    /// Batching.
+    virtual code start_batch() NOEXCEPT;
+    virtual void process_batch() NOEXCEPT;
+    virtual void push_batch(const database::header_link& link) NOEXCEPT;
+    virtual signatures get_capture(const database::header_link& link) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
     bool stranded() const NOEXCEPT override;
 
 private:
+    static constexpr auto relaxed = std::memory_order_relaxed;
+    using shared_lock = const std::shared_lock<std::shared_mutex>;
+    using shared_lock_cptr = std::shared_ptr<shared_lock>;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
-    using signatures = system::chain::signatures;
     using threshold_group = signatures::threshold_group;
     using missed = signatures::miss;
 
-    signatures get_capture(const database::header_link& link) NOEXCEPT;
-
-    // Handlers.
+    // Capture handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;
-    void do_fire(missed miss, size_t count) NOEXCEPT;
+    void do_fire(missed miss, size_t count,
+        const shared_lock_cptr& lock) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
         const database::header_link& link) NOEXCEPT;
@@ -98,19 +111,24 @@ private:
     bool do_multisig(const system::hash_digest& digest,
         const system::ec_compresseds& points,
         const system::ec_signatures& signs, const database::header_link& link,
-        const atomic_counter_ptr& id) NOEXCEPT;
+        const atomic_counter_ptr& sequence) NOEXCEPT;
     bool do_threshold(const threshold_group& group,
         const database::header_link& link,
-        const atomic_counter_ptr& id) NOEXCEPT;
+        const atomic_counter_ptr& sequence) NOEXCEPT;
 
+    // Capture helpers.
     void log_capture(const std::string_view& name,
         size_t captured, size_t missed) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
 
-    // This is protected by strand.
+    // These are protected by strand.
+    database::header_links batched_{};
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
+
+    // This prevents table updates during batch verify.
+    std::shared_mutex mutex_{};
 
     std::atomic<size_t> ecdsa_{};
     std::atomic<size_t> schnorr_{};
@@ -129,7 +147,6 @@ private:
     const size_t maximum_backlog_;
     const bool batch_signatures_;
     const bool node_witness_;
-    const bool defer_;
     const bool filter_;
 };
 

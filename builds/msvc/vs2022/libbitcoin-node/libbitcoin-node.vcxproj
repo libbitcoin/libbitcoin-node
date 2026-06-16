@@ -135,6 +135,7 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_template.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_transaction.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_validate.cpp" />
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_validate_batch.cpp" />
     <ClCompile Include="..\..\..\..\src\configuration.cpp" />
     <ClCompile Include="..\..\..\..\src\error.cpp" />
     <ClCompile Include="..\..\..\..\src\estimator.cpp" />

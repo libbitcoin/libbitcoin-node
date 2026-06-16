@@ -96,6 +96,10 @@ enum class chase
     /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
     disorganized,
 
+    /// Download concurrency window completed, advancing to next (height_t).
+    /// Issued by 'check' and handled by 'validate'.
+    advanced,
+
     /// Check/Identify.
     /// -----------------------------------------------------------------------
 

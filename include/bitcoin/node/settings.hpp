@@ -41,9 +41,6 @@ public:
     bool memory_priority;
     bool allow_overlapped;
     bool batch_signatures;
-    bool mark_unconfirmable;
-    bool defer_validation;
-    bool defer_confirmation;
     float allowed_deviation;
     float minimum_fee_rate;
     float minimum_bump_rate;

@@ -54,6 +54,7 @@ src_libbitcoin_node_la_SOURCES = \
     src/chasers/chaser_template.cpp \
     src/chasers/chaser_transaction.cpp \
     src/chasers/chaser_validate.cpp \
+    src/chasers/chaser_validate_batch.cpp \
     src/messages/block.cpp \
     src/messages/transaction.cpp \
     src/protocols/protocol.cpp \

@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
-#include <atomic>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -45,8 +44,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     batch_signatures_(node.node_settings().batch_signatures),
     node_witness_(node.network_settings().witness_node()),
-    defer_(node.node_settings().defer_validation),
-    filter_(!defer_ && node.archive().filter_enabled())
+    filter_(node.archive().filter_enabled())
 {
 }
 
@@ -55,8 +53,10 @@ code chaser_validate::start() NOEXCEPT
     if (!node_settings().headers_first)
         return error::success;
 
-    const auto& query = archive();
-    set_position(query.get_fork());
+    if (const auto ec = start_batch())
+        return ec;
+
+    set_position(archive().get_fork());
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
@@ -86,6 +86,16 @@ bool chaser_validate::handle_chase(const code&, chase event_,
             // value is checked block height.
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(do_checked, std::get<height_t>(value));
+            break;
+        }
+        case chase::advanced:
+        {
+            if (!batch_signatures_)
+                break;
+
+            // value is checked block height.
+            BC_ASSERT(std::holds_alternative<height_t>(value));
+            POST(do_advanced, std::get<height_t>(value));
             break;
         }
         case chase::regressed:
@@ -121,6 +131,12 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
     set_position(branch_point);
 }
 
+void chaser_validate::do_advanced(height_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    process_batch();
+}
+
 void chaser_validate::do_checked(height_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -148,7 +164,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     const auto& query = archive();
 
     // Bypass until next event if validation backlog is full.
-    // Stop when suspended as write error des not terminate asynchronous loop.
+    // Stop when suspended as write error does not terminate asynchronous loop.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
@@ -159,7 +175,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         if (ec == database::error::unassociated)
             return;
 
-        const auto bypass = defer_ || is_under_checkpoint(height) ||
+        const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
 
         switch (ec.value())
@@ -200,10 +216,9 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 void chaser_validate::post_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
-    // may be called by do_bumped (stranded) or complete_block (not stranded).
-    ///BC_ASSERT(stranded());
+    BC_ASSERT(stranded());
 
-    backlog_.fetch_add(one, std::memory_order_relaxed);
+    backlog_.fetch_add(one, relaxed);
     PARALLEL(validate_block, link, bypass);
 }
 
@@ -218,6 +233,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     code ec{};
     chain::context ctx{};
+    bool batched{}, faulted{};
     auto& query = archive();
 
     // TODO: implement allocator parameter resulting in full allocation to
@@ -234,24 +250,20 @@ void chaser_validate::validate_block(const header_link& link,
     }
     else if ((ec = populate(bypass, *block, ctx)))
     {
-        // !mark_unconfirmable allows node to stall, preserving log.
-        if (node_settings().mark_unconfirmable &&
-            !query.set_block_unconfirmable(link))
+        if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    else if ((ec = validate(bypass, *block, link, ctx)))
+    else if ((ec = validate(batched, faulted, bypass, *block, link, ctx)))
     {
-        // !mark_unconfirmable allows node to stall, preserving log.
-        if (node_settings().mark_unconfirmable &&
-            !query.set_block_unconfirmable(link))
-                ec = error::validate5;
+        if (!query.set_block_unconfirmable(link))
+            ec = error::validate5;
     }
 
-    complete_block(ec, link, ctx.height, bypass);
+    complete_block(ec, link, ctx.height, bypass, batched, faulted);
 
     // Prevent stall by posting internal event, avoiding external handlers.
-    if (is_one(backlog_.fetch_sub(one, std::memory_order_relaxed)))
-        handle_chase(error::success, chase::bump, height_t{});
+    if (is_one(backlog_.fetch_sub(one, relaxed)))
+        handle_chase({}, chase::bump, height_t{});
 }
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
@@ -281,40 +293,50 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     return error::success;
 }
 
-code chaser_validate::validate(bool bypass, const chain::block& block,
-    const header_link& link, const chain::context& ctx) NOEXCEPT
+code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
+    const chain::block& block, const header_link& link,
+    const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
 
     if (!bypass)
     {
         code ec{};
-
-        // Skips identity validation (performed in downloader).
-        // This can be performed in downloader as well but moving it here with
-        // more order than required allows the downloader to avoid block parse
-        // which significantly reduces memory consumption and CPU during sync.
-        // This slightly increases check() computation under full validation
-        // because a redundant malleation guard is required when downloading.
         if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
             return ec;
 
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
-        if ((ec = block.connect(ctx, get_capture(link))))
+        // Initialize block capture.
+        const auto capture = get_capture(link);
+
+        // Sequentially connect block with signature capture (if enabled).
+        // There is not stop during connect, so a shutdown will wait on the
+        // completion (block consistency) of all signature captures. However
+        // the faulted state of a batch is not persisted (because disk full).
+        if ((ec = block.connect(ctx, capture)))
             return ec;
 
+        // At least one signature batch was attempted (defer completion).
+        batched = capture.batched;
+
+        // Threshold batch commit failed, block otherwise passed (retry block).
+        faulted = capture.faulted;
+
         // Prevouts optimize confirmation.
-        if (!query.set_prevouts(link, block))
+        // Block will be retried if batch is faulted.
+        if (!faulted && !query.set_prevouts(link, block))
             return error::validate6;
     }
 
-    if (!query.set_filter_body(link, block))
+    // Block will be retried if batch is faulted.
+    if (!faulted && !query.set_filter_body(link, block))
         return error::validate7;
 
+    // Defer block state change when batched (or faulted).
     // Valid must be set after set_prevouts and set_filter_body.
-    if (!bypass && !query.set_block_valid(link))
+    if (!batched && !bypass && !query.set_block_valid(link))
         return error::validate8;
 
     return error::success;
@@ -322,31 +344,52 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
 // May be either concurrent or stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool bypass) NOEXCEPT
+    size_t height, bool bypass, bool batched, bool faulted) NOEXCEPT
+{
+    // Node errors are fatal (or disk full recoverable).
+    if (ec && node::error::error_category::contains(ec))
+    {
+        LOGF("Fault validating [" << height << "] " << ec.message());
+        fault(ec);
+        return;
+    }
+
+    // Prioritize non-signature block validation failures.
+    if (ec)
+    {
+        notify_block(ec, height, link, bypass);
+        return;
+    }
+
+    // At least one unrecoverable (threshold) capture failed during script
+    // validations, and there was no other failure. This is only caused by a
+    // store fault - possibly a disk full condition. In the case of disk full
+    // the node will pause, otherwise it will halt. Assume disk full here,
+    // requiring a repost for block validation.
+    if (faulted)
+    {
+        POST(post_block, link, bypass);
+        return;
+    }
+
+    // Push block link to batched_, process_batch will verify via batch.
+    // If block is missed it will be picked up on next batch, or on restart.
+    if (batched)
+    {
+        POST(push_batch, link);
+        return;
+    }
+
+    // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
+    notify_block({}, height, link, bypass);
+}
+
+void chaser_validate::notify_block(const code& ec, size_t height, 
+    const header_link& link, bool bypass) NOEXCEPT
 {
     if (ec)
     {
-        // Node errors are fatal.
-        if (node::error::error_category::contains(ec))
-        {
-            // fault(ec) initiates recovery if caused by disk full condition.
-            LOGF("Fault validating [" << height << "] " << ec.message());
-            fault(ec);
-            return;
-        }
-
-        if (ec == system::error::block_capture)
-        {
-            // At least one unrecoverable (threshold) capture failed during 
-            // script validations, and there was no other failure. This is only
-            // caused by a store fault - possibly a disk full condition. In the
-            // case of disk full the node will pause, otherwise it will halt.
-            // Assume disk full here, requiring a repost for block validation.
-            post_block(link, bypass);
-            return;
-        }
-
-        // INVALID BLOCK (not a fault)
+        // INVALID BLOCK (not a fault but discontinue)
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
@@ -354,15 +397,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     }
 
     // VALID BLOCK
-    // Under deferral there is no state change, but downloads will stall unless
-    // the window is closed out, so notify the check chaser of the increment.
     notify(ec, chase::valid, possible_wide_cast<height_t>(height));
-
-    if (!defer_)
-    {
-        fire(events::block_validated, height);
-        LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
-    }
+    fire(events::block_validated, height);
+    LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }
 
 // Overrides due to independent priority thread pool
@@ -392,146 +429,6 @@ network::asio::strand& chaser_validate::strand() NOEXCEPT
 bool chaser_validate::stranded() const NOEXCEPT
 {
     return validation_strand_.running_in_this_thread();
-}
-
-// private
-// ----------------------------------------------------------------------------
-
-chain::signatures chaser_validate::get_capture(
-    const header_link& link) NOEXCEPT
-{
-    if (!batch_signatures_)
-        return {};
-
-    // Group identifier for block, incremented for each multisig/threshold.
-    const auto id = to_shared<atomic_counter>();
-
-    return signatures
-    {
-        // Default struct is disabled.
-        .enabled = true,
-
-        // Enable for a game of whack-a-mole.
-        .log = BIND_THIS(do_log, _1),
-
-        // Update counters for missed capture.
-        .fire = BIND_THIS(do_fire, _1, _2),
-
-        // opcode::checksig/verify
-        .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
-
-        // opcode::checksigadd | opcode::checksig/verify
-        .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
-
-        // opcode::checkmultisig/verify
-        .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, id),
-
-        // opcode::within
-        // opcode::numequal/verify
-        // opcode::numnotequal
-        // opcode::lessthan
-        // opcode::greaterthan
-        // opcode::lessthanorequal
-        // opcode::greaterthanorequal
-        // opcode::checksig (m of m)
-        .threshold = BIND_THIS(do_threshold, _1, link, id)
-    };
-}
-
-// Enable for a game of whack-a-mole.
-void chaser_validate::do_log(
-    const chain::script& /* LOG_ONLY(missed) */) NOEXCEPT
-{
-    ////LOGA("Sigop @ " << ctx.height << " -> "
-    ////    << missed.to_string(chain::flags::all_rules));
-}
-
-void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
-{
-    switch (miss)
-    {
-        case missed::ecdsa:
-            missed_ecdsa_ += count;
-            break;
-        case missed::multisig:
-            missed_multisig_ += count;
-            break;
-        case missed::schnorr:
-            missed_schnorr_ += count;
-            break;
-        default:;
-    }
-}
-
-bool chaser_validate::do_ecdsa(const hash_digest& digest,
-    const ec_compressed& point, const ec_signature& sign,
-    const header_link& link) NOEXCEPT
-{
-    ++ecdsa_;
-    const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(system::error::block_capture);
-    return set;
-}
-
-bool chaser_validate::do_schnorr(const hash_digest& digest,
-    const ec_xonly& point, const ec_signature& sign,
-    const header_link& link) NOEXCEPT
-{
-    ++schnorr_;
-    const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(system::error::block_capture);
-    return set;
-}
-
-BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
-BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
-
-bool chaser_validate::do_multisig(const hash_digest& digest,
-    const ec_compresseds& points, const ec_signatures& signs,
-    const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
-{
-    BC_ASSERT(points.size() == signs.size());
-
-    multisig_ += points.size();
-    const auto set = archive().set_signatures(digest, points, signs, (*id)++,
-        link);
-    if (!set) fault(system::error::block_capture);
-    return set;
-}
-
-bool chaser_validate::do_threshold(const threshold_group& group,
-    const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
-{
-    threshold_ += group.entries.size();
-    const auto set = archive().set_signatures(group, (*id)++, link);
-    if (!set) fault(system::error::block_capture);
-
-    // False here sets signatures.fault, causing block.connect(2) to
-    // return error::block_capture, causing block validation resubmit.
-    return set;
-}
-
-BC_POP_WARNING()
-BC_POP_WARNING()
-
-void chaser_validate::log_capture(const std::string_view& name,
-    size_t captured, size_t missed) const NOEXCEPT
-{
-    if (to_bool(captured) || to_bool(missed))
-    {
-        const auto rate = (100.0f * captured) / (captured + missed);
-        const auto text = (boost_format("%.4f") % rate).str();
-        LOGV("Capture rate " << name << text << "% = " << captured
-            << "/(" << captured << "+" << missed << ")");
-    }
-}
-
-void chaser_validate::log_captures() const NOEXCEPT
-{
-    log_capture("ecdsa.... ", ecdsa_,     missed_ecdsa_);
-    log_capture("multisig. ", multisig_,  missed_multisig_);
-    log_capture("schnorr.. ", schnorr_,   missed_schnorr_);
-    log_capture("threshold ", threshold_, zero);
 }
 
 BC_POP_WARNING()
