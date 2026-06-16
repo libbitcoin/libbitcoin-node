@@ -79,6 +79,7 @@ protected:
     bool stranded() const NOEXCEPT override;
 
 private:
+    static constexpr auto relaxed = std::memory_order_relaxed;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
     using signatures = system::chain::signatures;
@@ -99,10 +100,10 @@ private:
     bool do_multisig(const system::hash_digest& digest,
         const system::ec_compresseds& points,
         const system::ec_signatures& signs, const database::header_link& link,
-        const atomic_counter_ptr& id) NOEXCEPT;
+        const atomic_counter_ptr& sequence) NOEXCEPT;
     bool do_threshold(const threshold_group& group,
         const database::header_link& link,
-        const atomic_counter_ptr& id) NOEXCEPT;
+        const atomic_counter_ptr& sequence) NOEXCEPT;
 
     void log_capture(const std::string_view& name,
         size_t captured, size_t missed) const NOEXCEPT;

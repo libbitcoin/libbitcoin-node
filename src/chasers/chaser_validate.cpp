@@ -163,7 +163,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
     const auto& query = archive();
 
     // Bypass until next event if validation backlog is full.
-    // Stop when suspended as write error des not terminate asynchronous loop.
+    // Stop when suspended as write error does not terminate asynchronous loop.
     while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
@@ -215,10 +215,9 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 void chaser_validate::post_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
-    // may be called by do_bumped (stranded) or complete_block (not stranded).
-    ///BC_ASSERT(stranded());
+    BC_ASSERT(stranded());
 
-    backlog_.fetch_add(one, std::memory_order_relaxed);
+    backlog_.fetch_add(one, relaxed);
     PARALLEL(validate_block, link, bypass);
 }
 
@@ -261,8 +260,8 @@ void chaser_validate::validate_block(const header_link& link,
     complete_block(ec, link, ctx.height, bypass);
 
     // Prevent stall by posting internal event, avoiding external handlers.
-    if (is_one(backlog_.fetch_sub(one, std::memory_order_relaxed)))
-        handle_chase(error::success, chase::bump, height_t{});
+    if (is_one(backlog_.fetch_sub(one, relaxed)))
+        handle_chase({}, chase::bump, height_t{});
 }
 
 code chaser_validate::populate(bool bypass, const chain::block& block,
@@ -300,13 +299,6 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
     if (!bypass)
     {
         code ec{};
-
-        // Skips identity validation (performed in downloader).
-        // This can be performed in downloader as well but moving it here with
-        // more order than required allows the downloader to avoid block parse
-        // which significantly reduces memory consumption and CPU during sync.
-        // This slightly increases check() computation under full validation
-        // because a redundant malleation guard is required when downloading.
         if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
             return ec;
 
@@ -370,35 +362,6 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }
 
-// Overrides due to independent priority thread pool
-// ----------------------------------------------------------------------------
-
-void chaser_validate::stopping(const code& ec) NOEXCEPT
-{
-    // Stop threadpool keep-alive, all work must self-terminate to affect join.
-    validation_threadpool_.stop();
-    chaser::stopping(ec);
-}
-
-void chaser_validate::stop() NOEXCEPT
-{
-    if (!validation_threadpool_.join())
-    {
-        BC_ASSERT_MSG(false, "failed to join threadpool");
-        std::abort();
-    }
-}
-
-network::asio::strand& chaser_validate::strand() NOEXCEPT
-{
-    return validation_strand_;
-}
-
-bool chaser_validate::stranded() const NOEXCEPT
-{
-    return validation_strand_.running_in_this_thread();
-}
-
 // private
 // ----------------------------------------------------------------------------
 
@@ -413,40 +376,19 @@ chain::signatures chaser_validate::get_capture(
 
     return signatures
     {
-        // Default struct is disabled.
         .enabled = true,
-
-        // Enable for a game of whack-a-mole.
         .log = BIND_THIS(do_log, _1),
-
-        // Update counters for missed capture.
         .fire = BIND_THIS(do_fire, _1, _2),
-
-        // opcode::checksig/verify
         .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
-
-        // opcode::checksigadd | opcode::checksig/verify
         .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
-
-        // opcode::checkmultisig/verify
         .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, id),
-
-        // opcode::within
-        // opcode::numequal/verify
-        // opcode::numnotequal
-        // opcode::lessthan
-        // opcode::greaterthan
-        // opcode::lessthanorequal
-        // opcode::greaterthanorequal
-        // opcode::checksig (m of m)
         .threshold = BIND_THIS(do_threshold, _1, link, id)
     };
 }
 
-// Enable for a game of whack-a-mole.
-void chaser_validate::do_log(
-    const chain::script& /* LOG_ONLY(missed) */) NOEXCEPT
+void chaser_validate::do_log(const chain::script& ) NOEXCEPT
 {
+    // Enable for a game of whack-a-mole.
     ////LOGA("Sigop @ " << ctx.height << " -> "
     ////    << missed.to_string(chain::flags::all_rules));
 }
@@ -474,7 +416,7 @@ bool chaser_validate::do_ecdsa(const hash_digest& digest,
 {
     ++ecdsa_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(system::error::block_capture);
+    if (!set) fault(error::batch6);
     return set;
 }
 
@@ -484,7 +426,7 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
 {
     ++schnorr_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(system::error::block_capture);
+    if (!set) fault(error::batch7);
     return set;
 }
 
@@ -493,26 +435,23 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 bool chaser_validate::do_multisig(const hash_digest& digest,
     const ec_compresseds& points, const ec_signatures& signs,
-    const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
+    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
     BC_ASSERT(points.size() == signs.size());
 
     multisig_ += points.size();
-    const auto set = archive().set_signatures(digest, points, signs, (*id)++,
-        link);
-    if (!set) fault(system::error::block_capture);
+    const auto set = archive().set_signatures(digest, points, signs,
+        (*sequence)++, link);
+    if (!set) fault(error::batch8);
     return set;
 }
 
 bool chaser_validate::do_threshold(const threshold_group& group,
-    const header_link& link, const atomic_counter_ptr& id) NOEXCEPT
+    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
     threshold_ += group.entries.size();
-    const auto set = archive().set_signatures(group, (*id)++, link);
-    if (!set) fault(system::error::block_capture);
-
-    // False here sets signatures.fault, causing block.connect(2) to
-    // return error::block_capture, causing block validation resubmit.
+    const auto set = archive().set_signatures(group, (*sequence)++, link);
+    if (!set) fault(error::batch9);
     return set;
 }
 
@@ -533,10 +472,39 @@ void chaser_validate::log_capture(const std::string_view& name,
 
 void chaser_validate::log_captures() const NOEXCEPT
 {
-    log_capture("ecdsa.... ", ecdsa_,     missed_ecdsa_);
-    log_capture("multisig. ", multisig_,  missed_multisig_);
-    log_capture("schnorr.. ", schnorr_,   missed_schnorr_);
+    log_capture("ecdsa.... ", ecdsa_, missed_ecdsa_);
+    log_capture("multisig. ", multisig_, missed_multisig_);
+    log_capture("schnorr.. ", schnorr_, missed_schnorr_);
     log_capture("threshold ", threshold_, zero);
+}
+
+// Overrides due to independent priority thread pool
+// ----------------------------------------------------------------------------
+
+void chaser_validate::stopping(const code& ec) NOEXCEPT
+{
+    // Stop threadpool keep-alive, all work must self-terminate to affect join.
+    validation_threadpool_.stop();
+    chaser::stopping(ec);
+}
+
+void chaser_validate::stop() NOEXCEPT
+{
+    if (!validation_threadpool_.join())
+    {
+        BC_ASSERT_MSG(false, "failed to join threadpool");
+        std::abort();
+    }
+}
+
+network::asio::strand& chaser_validate::strand() NOEXCEPT
+{
+    return validation_strand_;
+}
+
+bool chaser_validate::stranded() const NOEXCEPT
+{
+    return validation_strand_.running_in_this_thread();
 }
 
 BC_POP_WARNING()
