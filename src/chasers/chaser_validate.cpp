@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #include <atomic>
+#include <ranges>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -54,7 +55,13 @@ code chaser_validate::start() NOEXCEPT
     if (!node_settings().headers_first)
         return error::success;
 
-    const auto& query = archive();
+    // TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
+    // Cannot know if archived batch is faulted, despite being otherwise full,
+    // as faulted is a non-persistent state. So we must purge batches at start.
+    auto& query = archive();
+    if (batch_signatures_ && !query.purge_signatures())
+        return error::batch1;
+
     set_position(query.get_fork());
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
@@ -232,6 +239,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     code ec{};
     chain::context ctx{};
+    bool batched{}, faulted{};
     auto& query = archive();
 
     // TODO: implement allocator parameter resulting in full allocation to
@@ -251,13 +259,13 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    else if ((ec = validate(bypass, *block, link, ctx)))
+    else if ((ec = validate(batched, faulted, bypass, *block, link, ctx)))
     {
         if (!query.set_block_unconfirmable(link))
             ec = error::validate5;
     }
 
-    complete_block(ec, link, ctx.height, bypass);
+    complete_block(ec, link, ctx.height, bypass, batched, faulted);
 
     // Prevent stall by posting internal event, avoiding external handlers.
     if (is_one(backlog_.fetch_sub(one, relaxed)))
@@ -291,8 +299,9 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     return error::success;
 }
 
-code chaser_validate::validate(bool bypass, const chain::block& block,
-    const header_link& link, const chain::context& ctx) NOEXCEPT
+code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
+    const chain::block& block, const header_link& link,
+    const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
 
@@ -305,19 +314,35 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
-        if ((ec = block.connect(ctx, get_capture(link))))
+        // Initialize block capture.
+        const auto capture = get_capture(link);
+
+        // Sequentially connect block with signature capture (if enabled).
+        // There is not stop during connect, so a shutdown will wait on the
+        // completion (block consistency) of all signature captures. However
+        // the faulted state of a batch is not persisted (because disk full).
+        if ((ec = block.connect(ctx, capture)))
             return ec;
 
+        // At least one signature batch was attempted (defer completion).
+        batched = capture.batched;
+
+        // Threshold batch commit failed, block otherwise passed (retry block).
+        faulted = capture.faulted;
+
         // Prevouts optimize confirmation.
-        if (!query.set_prevouts(link, block))
+        // Block will be retried if batch is faulted.
+        if (!faulted && !query.set_prevouts(link, block))
             return error::validate6;
     }
 
-    if (!query.set_filter_body(link, block))
+    // Block will be retried if batch is faulted.
+    if (!faulted && !query.set_filter_body(link, block))
         return error::validate7;
 
+    // Defer block state change when batched (or faulted).
     // Valid must be set after set_prevouts and set_filter_body.
-    if (!bypass && !query.set_block_valid(link))
+    if (!batched && !bypass && !query.set_block_valid(link))
         return error::validate8;
 
     return error::success;
@@ -325,30 +350,135 @@ code chaser_validate::validate(bool bypass, const chain::block& block,
 
 // May be either concurrent or stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool bypass) NOEXCEPT
+    size_t height, bool bypass, bool batched, bool faulted) NOEXCEPT
+{
+    // Node errors are fatal (or disk full recoverable).
+    if (ec && node::error::error_category::contains(ec))
+    {
+        fault(ec);
+        return;
+    }
+
+    // Prioritize non-signature block validation failures.
+    if (ec)
+    {
+        notify_block(ec, height, link, bypass);
+        return;
+    }
+
+    // At least one unrecoverable (threshold) capture failed during script
+    // validations, and there was no other failure. This is only caused by a
+    // store fault - possibly a disk full condition. In the case of disk full
+    // the node will pause, otherwise it will halt. Assume disk full here,
+    // requiring a repost for block validation.
+    if (faulted)
+    {
+        POST(post_block, link, bypass);
+        return;
+    }
+
+    // Push block link to batched_, process_batch will verify via batch.
+    // If block is missed it will be picked up on next batch, or on restart.
+    if (batched)
+    {
+        POST(push_batch, link);
+        return;
+    }
+
+    // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
+    notify_block({}, height, link, bypass);
+}
+
+void chaser_validate::push_batch(const header_link& link) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    batched_.push_back(link);
+}
+
+// TODO: This is only invoked by check chaser advancement. But it's possible
+// entries may be captured after that point. So this must be bumped.
+void chaser_validate::process_batch() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    auto& query = archive();
+
+    // Unique lock prevents batch table updates during evaluation, allowing the
+    // tables to be fully purged upon completion, and ensuring that evaluation
+    // does not operate over partial block records in the batch tables.
+    std::unique_lock lock(mutex_);
+
+    LOGN("Batch verification begin.");
+
+    header_links invalids{};
+    if (!query.verify_signatures(invalids))
+    {
+        fault(error::batch2);
+        return;
+    }
+
+    // Invalids might not be included in batched, as link push is a race.
+    // Collected links are only required to set valid, not invalid, and do not
+    // need to coincide with the batch that is currently being processed (!).
+    for (const auto& link: invalids)
+    {
+        size_t height{};
+        if (!query.get_height(height, link) ||
+            !query.set_block_unconfirmable(link))
+        {
+            fault(error::batch3);
+            return;
+        }
+
+        notify_block(system::error::invalid_signature, height, link, false);
+    }
+
+    // Set all invalid links in batched_ to terminal.
+    std::ranges::replace_if(batched_, [&](const auto& link) NOEXCEPT
+    {
+        return contains(invalids, link);
+    }, header_link::terminal);
+
+    // Set all batched blocks that aren't invalid to valid.
+    // May be ancestors of invalid, in which case they are also unconfirmable.
+    for (const auto& link: batched_)
+    {
+        // Terminal links are previously set invalid.
+        if (link == header_link::terminal)
+            continue;
+
+        size_t height{};
+        if (!query.get_height(height, link) ||
+            !query.set_block_valid(link))
+        {
+            fault(error::batch4);
+            return;
+        }
+
+        notify_block(system::error::block_success, height, link, false);
+    }
+
+    // All batched are processed, and since strand-protected is safe to clear.
+    batched_.clear();
+
+    // May have grown to maximum_concurrency and never used again once current.
+    if (is_current(true))
+        batched_.shrink_to_fit();
+
+    // Purge all signature batch tables.
+    if (!query.purge_signatures())
+    {
+        fault(error::batch5);
+        return;
+    }
+
+    LOGN("Batch verification begin.");
+}
+
+void chaser_validate::notify_block(const code& ec, size_t height, 
+    const header_link& link, bool bypass) NOEXCEPT
 {
     if (ec)
     {
-        // Node errors are fatal.
-        if (node::error::error_category::contains(ec))
-        {
-            // fault(ec) initiates recovery if caused by disk full condition.
-            LOGF("Fault validating [" << height << "] " << ec.message());
-            fault(ec);
-            return;
-        }
-
-        if (ec == system::error::block_capture)
-        {
-            // At least one unrecoverable (threshold) capture failed during 
-            // script validations, and there was no other failure. This is only
-            // caused by a store fault - possibly a disk full condition. In the
-            // case of disk full the node will pause, otherwise it will halt.
-            // Assume disk full here, requiring a repost for block validation.
-            post_block(link, bypass);
-            return;
-        }
-
         // INVALID BLOCK (not a fault)
         notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
@@ -368,21 +498,20 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 chain::signatures chaser_validate::get_capture(
     const header_link& link) NOEXCEPT
 {
-    if (!batch_signatures_)
-        return {};
+    if (!batch_signatures_ || is_current(link))
+        return { false };
 
-    // Group identifier for block, incremented for each multisig/threshold.
-    const auto id = to_shared<atomic_counter>();
-
+    const auto sequence = to_shared<atomic_counter>();
+    const auto lock = emplace_shared<shared_lock>(mutex_);
     return signatures
     {
         .enabled = true,
         .log = BIND_THIS(do_log, _1),
-        .fire = BIND_THIS(do_fire, _1, _2),
+        .fire = BIND_THIS(do_fire, _1, _2, lock),
         .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
         .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
-        .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, id),
-        .threshold = BIND_THIS(do_threshold, _1, link, id)
+        .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, sequence),
+        .threshold = BIND_THIS(do_threshold, _1, link, sequence)
     };
 }
 
@@ -393,7 +522,8 @@ void chaser_validate::do_log(const chain::script& ) NOEXCEPT
     ////    << missed.to_string(chain::flags::all_rules));
 }
 
-void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
+void chaser_validate::do_fire(missed miss, size_t count,
+    const shared_lock_cptr&) NOEXCEPT
 {
     switch (miss)
     {

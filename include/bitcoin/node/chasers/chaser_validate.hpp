@@ -20,6 +20,7 @@
 #define LIBBITCOIN_NODE_CHASERS_CHASER_VALIDATE_HPP
 
 #include <atomic>
+#include <mutex>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
@@ -65,14 +66,18 @@ protected:
         bool bypass) NOEXCEPT;
     virtual void validate_block(const database::header_link& link,
         bool bypass) NOEXCEPT;
-    virtual code validate(bool bypass, const system::chain::block& block,
-        const database::header_link& link,
+    virtual code validate(bool& batched, bool& faulted, bool bypass,
+        const system::chain::block& block, const database::header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec,
-        const database::header_link& link, size_t height,
-        bool bypassed) NOEXCEPT;
+        const database::header_link& link, size_t height, bool bypass,
+        bool batched=false, bool faulted=false) NOEXCEPT;
+    virtual void notify_block(const code& ec, size_t height,
+        const database::header_link& link, bool bypass) NOEXCEPT;
+    virtual void push_batch(const database::header_link& link) NOEXCEPT;
+    virtual void process_batch() NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
@@ -80,6 +85,8 @@ protected:
 
 private:
     static constexpr auto relaxed = std::memory_order_relaxed;
+    using shared_lock = const std::shared_lock<std::shared_mutex>;
+    using shared_lock_cptr = std::shared_ptr<shared_lock>;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
     using signatures = system::chain::signatures;
@@ -90,7 +97,8 @@ private:
 
     // Handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;
-    void do_fire(missed miss, size_t count) NOEXCEPT;
+    void do_fire(missed miss, size_t count,
+        const shared_lock_cptr& lock) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
         const database::header_link& link) NOEXCEPT;
@@ -109,10 +117,14 @@ private:
         size_t captured, size_t missed) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
 
-    // This is protected by strand.
+    // These are protected by strand.
+    database::header_links batched_{};
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
+
+    // This prevents table updates during batch verify.
+    std::shared_mutex mutex_{};
 
     std::atomic<size_t> ecdsa_{};
     std::atomic<size_t> schnorr_{};
