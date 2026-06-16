@@ -62,6 +62,8 @@ enum events : uint8_t
     filter_msecs,        // getfilter timespan in milliseconds.
     filterhashes_msecs,  // getfilterhashes timespan in milliseconds.
     filterchecks_msecs,  // getcfcheckpt timespan in milliseconds.
+    ecdsa_msecs,         // process_batch ecdsa timespan in milliseconds.
+    schnorr_msecs,       // process_batch schnorr timespan in milliseconds.
 
     unknown
 };

@@ -309,6 +309,7 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
             return ec;
 
         // Initialize block capture.
+        // This call is blocked during signature batch evaluation.
         const auto capture = get_capture(link);
 
         // Sequentially connect block with signature capture (if enabled).

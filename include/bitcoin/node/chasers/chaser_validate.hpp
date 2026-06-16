@@ -81,8 +81,11 @@ protected:
 
     /// Batching.
     virtual code start_batch() NOEXCEPT;
-    virtual void process_batch() NOEXCEPT;
     virtual void push_batch(const database::header_link& link) NOEXCEPT;
+    virtual void process_batch() NOEXCEPT;
+    virtual bool process_valids() NOEXCEPT;
+    virtual bool process_invalids(const database::header_links& invalids,
+        const std::string_view& name) NOEXCEPT;
     virtual signatures get_capture(const database::header_link& link) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.

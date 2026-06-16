@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
-#include <atomic>
 #include <ranges>
 #include <bitcoin/node/define.hpp>
 
@@ -30,6 +29,7 @@ namespace node {
 using namespace system;
 using namespace system::chain;
 using namespace database;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -51,86 +51,129 @@ void chaser_validate::push_batch(const header_link& link) NOEXCEPT
     batched_.push_back(link);
 }
 
-// TODO: This is only invoked by check chaser advancement. But it's possible
-// entries may be captured after that point. So this must be bumped.
+// TODO: This is only invoked by check chaser advancement. But it is possible
+// that entries may be captured after that point. So this must be bumped.
 void chaser_validate::process_batch() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    auto& query = archive();
 
     // Unique lock prevents batch table updates during evaluation, allowing the
     // tables to be fully purged upon completion, and ensuring that evaluation
     // does not operate over partial block records in the batch tables.
     std::unique_lock lock(mutex_);
 
+    auto& query = archive();
     LOGN("Batch signature verify begin ("
         << query.ecdsa_records() << ") ecdsa ("
         << query.schnorr_records() << ") schnorr.");
 
+    // set_block_unconfirmable
+    // ------------------------------------------------------------------------
+
     header_links invalids{};
-    if (!query.verify_signatures(invalids))
+    auto start = network::logger::now();
+    if (!query.verify_ecdsa_signatures(invalids))
     {
         fault(error::batch2);
         return;
     }
+    span<milliseconds>(events::ecdsa_msecs, start);
 
-    // Invalids might not be included in batched, as link push is a race.
-    // Collected links are only required to set valid, not invalid, and do not
-    // need to coincide with the batch that is currently being processed (!).
+    if (!process_invalids(invalids, "ecdsa") ||
+        !query.purge_ecdsa_signatures())
+    {
+        fault(error::batch3);
+        return;
+    }
+
+    invalids.clear();
+    start = network::logger::now();
+    if (!query.verify_schnorr_signatures(invalids))
+    {
+        fault(error::batch4);
+        return;
+    }
+    span<milliseconds>(events::schnorr_msecs, start);
+
+    if (!process_invalids(invalids, "schnorr") ||
+        !query.purge_schnorr_signatures())
+    {
+        fault(error::batch5);
+        return;
+    }
+
+    // set_block_valid
+    // ------------------------------------------------------------------------
+
+    if (!process_valids())
+    {
+        fault(error::batch6);
+        return;
+    }
+
+    // ------------------------------------------------------------------------
+
+    LOGN("Batch signature verify end.");
+}
+
+// Invalids might not be included in batched, as link push is a race.
+// Collected links are only required to set valid, not invalid, and do not
+// need to coincide with the batch that is currently being processed (!).
+bool chaser_validate::process_invalids(const header_links& invalids,
+    const std::string_view& name) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    auto& query = archive();
     for (const auto& link: invalids)
     {
         size_t height{};
         if (!query.get_height(height, link) ||
             !query.set_block_unconfirmable(link))
-        {
-            fault(error::batch3);
-            return;
-        }
+            return false;
 
-        LOGR("Unverifiable signature in block (" << height << ").");
+        LOGR("Invalid " << name << " signature in block (" << height << ").");
         notify_block(system::error::invalid_signature, height, link, false);
     }
 
-    // Set all invalid links in batched_ to terminal.
-    std::ranges::replace_if(batched_, [&](const auto& link) NOEXCEPT
+    // Set all invalids links in batched_ to terminal (to be skipped).
+    if (!invalids.empty())
     {
-        return contains(invalids, link);
-    }, header_link::terminal);
+        std::ranges::replace_if(batched_, [&](const auto& link) NOEXCEPT
+        {
+            return contains(invalids, link);
+        }, header_link::terminal);
+    }
 
-    // Set all batched blocks that aren't invalid to valid.
-    // May be ancestors of invalid, in which case they are also unconfirmable.
+    return true;
+}
+
+// Set all batched blocks that aren't invalid to valid.
+// May be ancestors of invalid, in which case they are also unconfirmable.
+bool chaser_validate::process_valids() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    auto& query = archive();
     for (const auto& link: batched_)
     {
-        // Terminal links are previously set invalid.
+        // Terminal links are previously set invalid (to be skipped).
         if (link == header_link::terminal)
             continue;
 
         size_t height{};
         if (!query.get_height(height, link) ||
             !query.set_block_valid(link))
-        {
-            fault(error::batch4);
-            return;
-        }
+            return false;
 
         notify_block(system::error::block_success, height, link, false);
     }
 
-    // All batched are processed, and since strand-protected is safe to clear.
     batched_.clear();
-
-    // May have grown to maximum_concurrency and never used again once current.
     if (is_current(true))
         batched_.shrink_to_fit();
 
-    // Purge all signature batch tables.
-    if (!query.purge_signatures())
-    {
-        fault(error::batch5);
-        return;
-    }
-
-    LOGN("Batch signature verify end.");
+    return true;
 }
 
 signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
@@ -138,8 +181,11 @@ signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
     if (!batch_signatures_ || is_current(link))
         return { false };
 
-    const auto sequence = to_shared<atomic_counter>();
+    // This call is blocked during signature batch evaluation and all
+    // outstanding captures block signature batch evaluation until complete.
     const auto lock = emplace_shared<shared_lock>(mutex_);
+
+    const auto sequence = to_shared<atomic_counter>();
     return signatures
     {
         .enabled = true,
@@ -187,7 +233,7 @@ bool chaser_validate::do_ecdsa(const hash_digest& digest,
 {
     ++ecdsa_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch6);
+    if (!set) fault(error::batch7);
     return set;
 }
 
@@ -197,7 +243,7 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
 {
     ++schnorr_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch7);
+    if (!set) fault(error::batch8);
     return set;
 }
 
@@ -210,7 +256,7 @@ bool chaser_validate::do_multisig(const hash_digest& digest,
     multisig_ += points.size();
     const auto set = archive().set_signatures(digest, points, signs,
         (*sequence)++, link);
-    if (!set) fault(error::batch8);
+    if (!set) fault(error::batch9);
     return set;
 }
 
@@ -219,7 +265,7 @@ bool chaser_validate::do_threshold(const threshold_group& group,
 {
     threshold_ += group.entries.size();
     const auto set = archive().set_signatures(group, (*sequence)++, link);
-    if (!set) fault(error::batch9);
+    if (!set) fault(error::batch10);
     return set;
 }
 

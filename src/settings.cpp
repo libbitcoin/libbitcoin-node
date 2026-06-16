@@ -36,7 +36,7 @@ settings::settings() NOEXCEPT
     memory_priority{ true },
     thread_priority{ true },
     allow_overlapped{ true },
-    batch_signatures{ true },
+    batch_signatures{ false }, // <-- update when ready.
     minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
