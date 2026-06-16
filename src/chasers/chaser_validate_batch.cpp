@@ -36,13 +36,14 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
+// Cannot know if archived batch is faulted, despite being otherwise full, as
+// faulted is a non-persistent state. So we must purge batches at start.
 code chaser_validate::start_batch() NOEXCEPT
 {
-    // TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
-    // Cannot know if archived batch is faulted, despite being otherwise full,
-    // as faulted is a non-persistent state. So we must purge batches at start.
-    return (batch_signatures_ && !archive().purge_signatures()) ?
-        error::batch1 : error::success;
+    auto& query = archive();
+    return (batch_signatures_ && (!query.purge_ecdsa_signatures() ||
+        !query.purge_schnorr_signatures())) ? error::batch1 : error::success;
 }
 
 void chaser_validate::push_batch(const header_link& link) NOEXCEPT
