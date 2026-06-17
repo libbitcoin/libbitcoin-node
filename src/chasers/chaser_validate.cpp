@@ -42,7 +42,8 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
-    batch_signatures_(node.node_settings().batch_signatures),
+    batch_target_(node.node_settings().batch_signatures),
+    batch_enabled_(node.node_settings().batch_signatures_enabled()),
     node_witness_(node.network_settings().witness_node()),
     filter_(node.archive().filter_enabled())
 {
@@ -88,16 +89,6 @@ bool chaser_validate::handle_chase(const code&, chase event_,
             POST(do_checked, std::get<height_t>(value));
             break;
         }
-        case chase::advanced:
-        {
-            if (!batch_signatures_)
-                break;
-
-            // value is checked block height.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_advanced, std::get<height_t>(value));
-            break;
-        }
         case chase::regressed:
         case chase::disorganized:
         {
@@ -129,12 +120,6 @@ void chaser_validate::do_regressed(height_t branch_point) NOEXCEPT
         return;
 
     set_position(branch_point);
-}
-
-void chaser_validate::do_advanced(height_t) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    process_batch();
 }
 
 void chaser_validate::do_checked(height_t height) NOEXCEPT
@@ -386,6 +371,13 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 
     // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
     notify_block({}, height, link, bypass);
+
+    // Arriving here with batch enabled implies that the block is current and
+    // was not batched. Each such block triggers residual batch processing.
+    if (batch_enabled_)
+    {
+        POST(process_batch, true);
+    }
 }
 
 void chaser_validate::notify_block(const code& ec, size_t height, 

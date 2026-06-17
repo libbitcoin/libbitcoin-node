@@ -36,7 +36,7 @@ settings::settings() NOEXCEPT
     memory_priority{ true },
     thread_priority{ true },
     allow_overlapped{ true },
-    batch_signatures{ false }, // <-- update when ready.
+    batch_signatures{ 100'000 },
     minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
@@ -83,6 +83,11 @@ size_t settings::fee_estimate_horizon_() const NOEXCEPT
 bool settings::fee_estimate_enabled() const NOEXCEPT
 {
     return to_bool(fee_estimate_horizon_());
+}
+
+bool settings::batch_signatures_enabled() const NOEXCEPT
+{
+    return to_bool(batch_signatures);
 }
 
 network::steady_clock::duration settings::sample_period() const NOEXCEPT

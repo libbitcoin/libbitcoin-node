@@ -364,10 +364,7 @@ void chaser_check::do_advanced(height_t) NOEXCEPT
 
     // The full count of requested hashes has been validated.
     if (advanced_ == requested_)
-    {
-        notify(error::success, chase::advanced, advanced_);
         do_headers({});
-    }
 }
 
 void chaser_check::do_checked(height_t height) NOEXCEPT
