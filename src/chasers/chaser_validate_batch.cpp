@@ -56,13 +56,9 @@ void chaser_validate::process_batch() NOEXCEPT
     // tables to be fully purged upon completion, and ensuring that evaluation
     // does not operate over partial block records in the batch tables.
     std::unique_lock lock(mutex_);
-
     auto& query = archive();
-    LOGN("Batch signature verify begin ("
-        << query.ecdsa_records() << ") ecdsa ("
-        << query.schnorr_records() << ") schnorr.");
 
-    // set_block_unconfirmable
+    // set_block_unconfirmable(ecdsa)
     // ------------------------------------------------------------------------
 
     header_links invalids{};
@@ -72,13 +68,23 @@ void chaser_validate::process_batch() NOEXCEPT
         fault(error::batch2);
         return;
     }
-    span<milliseconds>(events::ecdsa_msecs, start);
+
+    if (!invalids.empty())
+    {
+        span<milliseconds>(events::ecdsa_msecs, start);
+        const auto elapsed = steady_clock::now() - start;
+        LOGN("Batch signature verify ecdsa (" << query.ecdsa_records()
+            << "/" << duration_cast<seconds>(elapsed).count() << ") ");
+    }
 
     if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
     {
         fault(error::batch3);
         return;
     }
+
+    // set_block_unconfirmable(schnorr)
+    // ------------------------------------------------------------------------
 
     invalids.clear();
     start = network::logger::now();
@@ -87,7 +93,14 @@ void chaser_validate::process_batch() NOEXCEPT
         fault(error::batch4);
         return;
     }
-    span<milliseconds>(events::schnorr_msecs, start);
+
+    if (!invalids.empty())
+    {
+        span<milliseconds>(events::schnorr_msecs, start);
+        const auto elapsed = steady_clock::now() - start;
+        LOGN("Batch signature verify schnorr (" << query.schnorr_records()
+            << "/" << duration_cast<seconds>(elapsed).count() << ") ");
+    }
 
     if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
     {
@@ -95,7 +108,7 @@ void chaser_validate::process_batch() NOEXCEPT
         return;
     }
 
-    // set_block_valid
+    // set_block_valid(batched_ excluding ecdsa/schnorr failures)
     // ------------------------------------------------------------------------
 
     if (!process_valids())
@@ -103,10 +116,6 @@ void chaser_validate::process_batch() NOEXCEPT
         fault(error::batch6);
         return;
     }
-
-    // ------------------------------------------------------------------------
-
-    LOGN("Batch signature verify end.");
 }
 
 void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEPT
