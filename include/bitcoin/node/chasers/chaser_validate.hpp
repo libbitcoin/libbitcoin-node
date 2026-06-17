@@ -43,6 +43,8 @@ public:
     void stop() NOEXCEPT override;
 
 protected:
+    using header_link = database::header_link;
+    using header_links = database::header_links;
     using signatures = system::chain::signatures;
     using race = network::race_unity<const code&, const database::tx_link&>;
 
@@ -64,29 +66,26 @@ protected:
     virtual void do_bump(height_t height) NOEXCEPT;
 
     /// Validation.
-    virtual void post_block(const database::header_link& link,
-        bool bypass) NOEXCEPT;
-    virtual void validate_block(const database::header_link& link,
-        bool bypass) NOEXCEPT;
+    virtual void post_block(const header_link& link, bool bypass) NOEXCEPT;
+    virtual void validate_block(const header_link& link, bool bypass) NOEXCEPT;
     virtual code validate(bool& batched, bool& faulted, bool bypass,
-        const system::chain::block& block, const database::header_link& link,
+        const system::chain::block& block, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
-    virtual void complete_block(const code& ec,
-        const database::header_link& link, size_t height, bool bypass,
-        bool batched=false, bool faulted=false) NOEXCEPT;
+    virtual void complete_block(const code& ec, const header_link& link,
+        size_t height, bool bypass, bool batched=false,
+        bool faulted=false) NOEXCEPT;
     virtual void notify_block(const code& ec, size_t height,
-        const database::header_link& link, bool bypass) NOEXCEPT;
+        const header_link& link, bool bypass) NOEXCEPT;
 
     /// Batching.
     virtual code start_batch() NOEXCEPT;
-    virtual void push_batch(const database::header_link& link) NOEXCEPT;
     virtual void process_batch() NOEXCEPT;
     virtual bool process_valids() NOEXCEPT;
-    virtual bool process_invalids(const database::header_links& invalids,
-        const std::string_view& name) NOEXCEPT;
-    virtual signatures get_capture(const database::header_link& link) NOEXCEPT;
+    virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
+    virtual bool process_invalids(const header_links& invalids) NOEXCEPT;
+    virtual signatures get_capture(const header_link& link) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
@@ -107,16 +106,15 @@ private:
         const shared_lock_cptr& lock) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
-        const database::header_link& link) NOEXCEPT;
+        const header_link& link) NOEXCEPT;
     bool do_schnorr(const system::hash_digest& digest,
         const system::ec_xonly& point, const system::ec_signature& sign,
-        const database::header_link& link) NOEXCEPT;
+        const header_link& link) NOEXCEPT;
     bool do_multisig(const system::hash_digest& digest,
         const system::ec_compresseds& points,
-        const system::ec_signatures& signs, const database::header_link& link,
+        const system::ec_signatures& signs, const header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
-    bool do_threshold(const threshold_group& group,
-        const database::header_link& link,
+    bool do_threshold(const threshold_group& group, const header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
     // Capture helpers.
@@ -125,7 +123,7 @@ private:
     void log_captures() const NOEXCEPT;
 
     // These are protected by strand.
-    database::header_links batched_{};
+    header_links batched_{};
     network::threadpool validation_threadpool_;
 
     // These are thread safe.

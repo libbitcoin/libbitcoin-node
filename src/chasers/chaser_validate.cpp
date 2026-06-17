@@ -369,6 +369,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // requiring a repost for block validation.
     if (faulted)
     {
+        // retry, no notify_block() this time.
         POST(post_block, link, bypass);
         return;
     }
@@ -377,7 +378,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // If block is missed it will be picked up on next batch, or on restart.
     if (batched)
     {
-        POST(push_batch, link);
+        // notify_block() success comes from process_invalids() and fail is
+        // split beween push_batch() and process_valids(). 
+        POST(push_batch, link, height);
         return;
     }
 
