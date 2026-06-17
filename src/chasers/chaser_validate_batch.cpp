@@ -46,12 +46,6 @@ code chaser_validate::start_batch() NOEXCEPT
         !query.purge_schnorr_signatures())) ? error::batch1 : error::success;
 }
 
-void chaser_validate::push_batch(const header_link& link) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-    batched_.push_back(link);
-}
-
 // TODO: This is only invoked by check chaser advancement. But it is possible
 // that entries may be captured after that point. So this must be bumped.
 void chaser_validate::process_batch() NOEXCEPT
@@ -80,8 +74,7 @@ void chaser_validate::process_batch() NOEXCEPT
     }
     span<milliseconds>(events::ecdsa_msecs, start);
 
-    if (!process_invalids(invalids, "ecdsa") ||
-        !query.purge_ecdsa_signatures())
+    if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
     {
         fault(error::batch3);
         return;
@@ -96,8 +89,7 @@ void chaser_validate::process_batch() NOEXCEPT
     }
     span<milliseconds>(events::schnorr_msecs, start);
 
-    if (!process_invalids(invalids, "schnorr") ||
-        !query.purge_schnorr_signatures())
+    if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
     {
         fault(error::batch5);
         return;
@@ -117,11 +109,19 @@ void chaser_validate::process_batch() NOEXCEPT
     LOGN("Batch signature verify end.");
 }
 
+void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    batched_.push_back(link);
+
+    // chase portion of notify_block(success).
+    notify({}, chase::valid, possible_wide_cast<height_t>(height));
+}
+
 // Invalids might not be included in batched, as link push is a race.
 // Collected links are only required to set valid, not invalid, and do not
 // need to coincide with the batch that is currently being processed (!).
-bool chaser_validate::process_invalids(const header_links& invalids,
-    const std::string_view& name) NOEXCEPT
+bool chaser_validate::process_invalids(const header_links& invalids) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -133,7 +133,6 @@ bool chaser_validate::process_invalids(const header_links& invalids,
             !query.set_block_unconfirmable(link))
             return false;
 
-        LOGR("Invalid " << name << " signature in block (" << height << ").");
         notify_block(system::error::invalid_signature, height, link, false);
     }
 
@@ -167,7 +166,9 @@ bool chaser_validate::process_valids() NOEXCEPT
             !query.set_block_valid(link))
             return false;
 
-        notify_block(system::error::block_success, height, link, false);
+        // logging portion of notify_block(success).
+        fire(events::block_validated, height);
+        LOGV("Block validated: " << height << " (batch)");
     }
 
     batched_.clear();
@@ -248,9 +249,9 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
     return set;
 }
 
-bool chaser_validate::do_multisig(const hash_digest& digest,
-    const ec_compresseds& points, const ec_signatures& signs,
-    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
+bool chaser_validate::do_multisig(const hash_digest& ,
+    const ec_compresseds& points, const ec_signatures& BC_DEBUG_ONLY(signs),
+    const header_link& , const atomic_counter_ptr& ) NOEXCEPT
 {
     BC_ASSERT(points.size() == signs.size());
 
@@ -263,7 +264,7 @@ bool chaser_validate::do_multisig(const hash_digest& digest,
 }
 
 bool chaser_validate::do_threshold(const threshold_group& group,
-    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
+    const header_link& , const atomic_counter_ptr& ) NOEXCEPT
 {
     threshold_ += group.entries.size();
     ////const auto set = archive().set_signatures(group, (*sequence)++, link);
