@@ -76,6 +76,8 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // does not operate over partial block records in the batch tables.
     std::unique_lock lock(mutex_);
 
+    log_captures();
+
     // set_block_unconfirmable(ecdsa)
     // ------------------------------------------------------------------------
 
@@ -92,7 +94,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto end = network::logger::now();
         const auto elapsed = duration_cast<seconds>(end - start).count();
         fire(events::ecdsa_secs, elapsed);
-        LOGN(log_ratio("Batch verify rate ecdsa.... ", records, elapsed));
+        LOGN(log_rate("Batch verify rate ecdsa.... ", records, elapsed));
 
         if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
         {
@@ -117,7 +119,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto end = network::logger::now();
         const auto elapsed = duration_cast<seconds>(end - start).count();
         fire(events::schnorr_secs, elapsed);
-        LOGN(log_ratio("Batch verify rate schnorr.. ", records, elapsed));
+        LOGN(log_rate("Batch verify rate schnorr.. ", records, elapsed));
 
         if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
         {
@@ -289,6 +291,14 @@ bool chaser_validate::do_threshold(const threshold_group& group,
     ////if (!set) fault(error::batch10);
     ////return set;
     return true;
+}
+
+std::string chaser_validate::log_rate(const std::string& name,
+    size_t numerator, size_t denominator) const NOEXCEPT
+{
+    const auto rate = numerator / greater(denominator, one);
+    return (boost_format("%1% (%2% / %3%) = %4% sps") %
+        name % numerator % denominator % rate).str();
 }
 
 std::string chaser_validate::log_ratio(const std::string& name,

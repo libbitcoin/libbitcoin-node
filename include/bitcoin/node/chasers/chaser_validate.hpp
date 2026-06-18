@@ -117,6 +117,8 @@ private:
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
     // Capture helpers.
+    std::string log_rate(const std::string& name, size_t numerator,
+        size_t denominator) const NOEXCEPT;
     std::string log_ratio(const std::string& name, size_t numerator,
         size_t denominator) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
