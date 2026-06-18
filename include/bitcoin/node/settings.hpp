@@ -40,10 +40,10 @@ public:
     bool thread_priority;
     bool memory_priority;
     bool allow_overlapped;
-    bool batch_signatures;
     float allowed_deviation;
     float minimum_fee_rate;
     float minimum_bump_rate;
+    uint64_t batch_signatures;
     uint16_t announcement_cache;
     uint16_t fee_estimate_horizon;
     uint32_t maximum_height;
@@ -62,6 +62,7 @@ public:
     virtual size_t maximum_concurrency_() const NOEXCEPT;
     virtual size_t fee_estimate_horizon_() const NOEXCEPT;
     virtual bool fee_estimate_enabled() const NOEXCEPT;
+    virtual bool batch_signatures_enabled() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;
     virtual network::wall_clock::duration currency_window() const NOEXCEPT;
     virtual network::processing_priority thread_priority_() const NOEXCEPT;

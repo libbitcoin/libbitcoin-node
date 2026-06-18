@@ -42,71 +42,8 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 code chaser_validate::start_batch() NOEXCEPT
 {
     auto& query = archive();
-    return (batch_signatures_ && (!query.purge_ecdsa_signatures() ||
+    return (batch_enabled_ && (!query.purge_ecdsa_signatures() ||
         !query.purge_schnorr_signatures())) ? error::batch1 : error::success;
-}
-
-// TODO: This is only invoked by check chaser advancement. But it is possible
-// that entries may be captured after that point. So this must be bumped.
-void chaser_validate::process_batch() NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    // Unique lock prevents batch table updates during evaluation, allowing the
-    // tables to be fully purged upon completion, and ensuring that evaluation
-    // does not operate over partial block records in the batch tables.
-    std::unique_lock lock(mutex_);
-
-    auto& query = archive();
-    LOGN("Batch signature verify begin ("
-        << query.ecdsa_records() << ") ecdsa ("
-        << query.schnorr_records() << ") schnorr.");
-
-    // set_block_unconfirmable
-    // ------------------------------------------------------------------------
-
-    header_links invalids{};
-    auto start = network::logger::now();
-    if (!query.verify_ecdsa_signatures(invalids))
-    {
-        fault(error::batch2);
-        return;
-    }
-    span<milliseconds>(events::ecdsa_msecs, start);
-
-    if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
-    {
-        fault(error::batch3);
-        return;
-    }
-
-    invalids.clear();
-    start = network::logger::now();
-    if (!query.verify_schnorr_signatures(invalids))
-    {
-        fault(error::batch4);
-        return;
-    }
-    span<milliseconds>(events::schnorr_msecs, start);
-
-    if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
-    {
-        fault(error::batch5);
-        return;
-    }
-
-    // set_block_valid
-    // ------------------------------------------------------------------------
-
-    if (!process_valids())
-    {
-        fault(error::batch6);
-        return;
-    }
-
-    // ------------------------------------------------------------------------
-
-    LOGN("Batch signature verify end.");
 }
 
 void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEPT
@@ -116,6 +53,89 @@ void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEP
 
     // chase portion of notify_block(success).
     notify({}, chase::valid, possible_wide_cast<height_t>(height));
+
+    // Process both tables when one hits target, allowing batched_ clearance
+    // and therefore forward confirmation progress.
+    process_batch(false);
+}
+
+void chaser_validate::process_batch(bool residual) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Test outside of lock to prevent reader contention for nearly all calls.
+    // Will retest inside the lock, as table updates are running concurrently.
+    auto& query = archive();
+    if (!residual &&
+        (query.ecdsa_records() < batch_target_) &&
+        (query.schnorr_records() < batch_target_))
+        return;
+
+    // Unique lock prevents batch table updates during evaluation, allowing the
+    // tables to be fully purged upon completion, and ensuring that evaluation
+    // does not operate over partial block records in the batch tables.
+    std::unique_lock lock(mutex_);
+
+    log_captures();
+
+    // set_block_unconfirmable(ecdsa)
+    // ------------------------------------------------------------------------
+
+    if (const auto records = query.ecdsa_records(); is_nonzero(records))
+    {
+        header_links invalids{};
+        const auto start = network::logger::now();
+        if (!query.verify_ecdsa_signatures(invalids))
+        {
+            fault(error::batch2);
+            return;
+        }
+
+        const auto end = network::logger::now();
+        const auto elapsed = duration_cast<seconds>(end - start).count();
+        fire(events::ecdsa_secs, elapsed);
+        LOGN(log_rate("Batch verify rate ecdsa.... ", records, elapsed));
+
+        if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
+        {
+            fault(error::batch3);
+            return;
+        }
+    }
+
+    // set_block_unconfirmable(schnorr)
+    // ------------------------------------------------------------------------
+
+    if (const auto records = query.schnorr_records(); is_nonzero(records))
+    {
+        header_links invalids{};
+        const auto start = network::logger::now();
+        if (!query.verify_schnorr_signatures(invalids))
+        {
+            fault(error::batch4);
+            return;
+        }
+
+        const auto end = network::logger::now();
+        const auto elapsed = duration_cast<seconds>(end - start).count();
+        fire(events::schnorr_secs, elapsed);
+        LOGN(log_rate("Batch verify rate schnorr.. ", records, elapsed));
+
+        if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
+        {
+            fault(error::batch5);
+            return;
+        }
+    }
+
+    // set_block_valid(batched_ excluding ecdsa/schnorr failures)
+    // ------------------------------------------------------------------------
+
+    if (!process_valids())
+    {
+        fault(error::batch6);
+        return;
+    }
 }
 
 // Invalids might not be included in batched, as link push is a race.
@@ -180,7 +200,7 @@ bool chaser_validate::process_valids() NOEXCEPT
 
 signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
 {
-    if (!batch_signatures_ || is_current(link))
+    if (!batch_enabled_ || is_current(link))
         return { false };
 
     // This call is blocked during signature batch evaluation and all
@@ -273,24 +293,31 @@ bool chaser_validate::do_threshold(const threshold_group& group,
     return true;
 }
 
-void chaser_validate::log_capture(const std::string_view& name,
-    size_t captured, size_t missed) const NOEXCEPT
+std::string chaser_validate::log_rate(const std::string& name,
+    size_t numerator, size_t denominator) const NOEXCEPT
 {
-    if (to_bool(captured) || to_bool(missed))
-    {
-        const auto rate = (100.0f * captured) / (captured + missed);
-        const auto text = (boost_format("%.4f") % rate).str();
-        LOGV("Capture rate " << name << text << "% = " << captured
-            << "/(" << captured << "+" << missed << ")");
-    }
+    const auto rate = numerator / greater(denominator, one);
+    return (boost_format("%1% (%2% / %3%) = %4% sps") %
+        name % numerator % denominator % rate).str();
+}
+
+std::string chaser_validate::log_ratio(const std::string& name,
+    size_t numerator, size_t denominator) const NOEXCEPT
+{
+    if (is_zero(denominator))
+        return name;
+
+    const auto ratio = (100.0 * numerator) / denominator;
+    return (boost_format("%1% (%2% / %3%) = %4$.4f%%") %
+        name % numerator % denominator % ratio).str();
 }
 
 void chaser_validate::log_captures() const NOEXCEPT
 {
-    log_capture("ecdsa.... ", ecdsa_, missed_ecdsa_);
-    log_capture("multisig. ", multisig_, missed_multisig_);
-    log_capture("schnorr.. ", schnorr_, missed_schnorr_);
-    log_capture("threshold ", threshold_, zero);
+    LOGV(log_ratio("Capture rate ecdsa.... ", ecdsa_,     ecdsa_     + missed_ecdsa_));
+    LOGV(log_ratio("Capture rate multisig. ", multisig_,  multisig_  + missed_multisig_));
+    LOGV(log_ratio("Capture rate schnorr.. ", schnorr_,   schnorr_   + missed_schnorr_));
+    LOGV(log_ratio("Capture rate threshold ", threshold_, threshold_ + zero));
 }
 
 BC_POP_WARNING()

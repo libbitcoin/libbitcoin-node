@@ -60,7 +60,6 @@ protected:
         event_value value) NOEXCEPT;
 
     virtual void do_regressed(height_t branch_point) NOEXCEPT;
-    virtual void do_advanced(height_t height) NOEXCEPT;
     virtual void do_checked(height_t height) NOEXCEPT;
     virtual void do_bumped(height_t height) NOEXCEPT;
     virtual void do_bump(height_t height) NOEXCEPT;
@@ -81,8 +80,8 @@ protected:
 
     /// Batching.
     virtual code start_batch() NOEXCEPT;
-    virtual void process_batch() NOEXCEPT;
     virtual bool process_valids() NOEXCEPT;
+    virtual void process_batch(bool residual) NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
     virtual bool process_invalids(const header_links& invalids) NOEXCEPT;
     virtual signatures get_capture(const header_link& link) NOEXCEPT;
@@ -118,8 +117,10 @@ private:
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
     // Capture helpers.
-    void log_capture(const std::string_view& name,
-        size_t captured, size_t missed) const NOEXCEPT;
+    std::string log_rate(const std::string& name, size_t numerator,
+        size_t denominator) const NOEXCEPT;
+    std::string log_ratio(const std::string& name, size_t numerator,
+        size_t denominator) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
 
     // These are protected by strand.
@@ -146,7 +147,8 @@ private:
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
-    const bool batch_signatures_;
+    const uint64_t batch_target_;
+    const bool batch_enabled_;
     const bool node_witness_;
     const bool filter_;
 };
