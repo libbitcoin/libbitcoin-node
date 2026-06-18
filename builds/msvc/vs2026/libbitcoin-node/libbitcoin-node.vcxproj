@@ -120,7 +120,6 @@
     <Import Project="$(ProjectDir)..\..\properties\Output.props" />
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
-
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
     <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
