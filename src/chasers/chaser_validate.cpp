@@ -170,10 +170,10 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             case database::error::unvalidated:
             case database::error::unknown_state:
             {
-                if (!bypass || filter_)
-                    post_block(link, bypass);
-                else
+                if (bypass && !filter_)
                     complete_block(error::success, link, height, true);
+                else
+                    post_block(link, bypass);
                 break;
             }
             case database::error::block_valid:
