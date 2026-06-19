@@ -407,6 +407,9 @@ void chaser_validate::notify_block(const code& ec, size_t height,
 
 void chaser_validate::stopping(const code& ec) NOEXCEPT
 {
+    // Stop long-running batch validations.
+    stopping_.store(true);
+
     // Stop threadpool keep-alive, all work must self-terminate to affect join.
     validation_threadpool_.stop();
     chaser::stopping(ec);

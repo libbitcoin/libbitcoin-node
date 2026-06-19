@@ -308,6 +308,6 @@ BOOST_AUTO_TEST_CASE(error_t__code__batch1__true_expected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "batch1");
 }
 
-// TODO: batch2-batch9
+// TODO: batch2-batch8
 
 BOOST_AUTO_TEST_SUITE_END()

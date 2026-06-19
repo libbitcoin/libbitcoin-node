@@ -95,9 +95,9 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     {
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(invalids))
+        if (!query.verify_ecdsa_signatures(stopping_, invalids))
         {
-            fault(error::batch2);
+            // False return implies stopping (only).
             return;
         }
 
@@ -108,7 +108,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
 
         if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
         {
-            fault(error::batch3);
+            fault(error::batch2);
             return;
         }
     }
@@ -120,9 +120,9 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     {
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(invalids))
+        if (!query.verify_schnorr_signatures(stopping_, invalids))
         {
-            fault(error::batch4);
+            // False return implies stopping (only).
             return;
         }
 
@@ -133,7 +133,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
 
         if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
         {
-            fault(error::batch5);
+            fault(error::batch3);
             return;
         }
     }
@@ -143,7 +143,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
 
     if (!process_valids(residual))
     {
-        fault(error::batch6);
+        fault(error::batch4);
         return;
     }
 
@@ -267,7 +267,7 @@ bool chaser_validate::do_ecdsa(const hash_digest& digest,
 {
     ++ecdsa_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch7);
+    if (!set) fault(error::batch5);
     return set;
 }
 
@@ -277,7 +277,7 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
 {
     ++schnorr_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch8);
+    if (!set) fault(error::batch6);
     return set;
 }
 
@@ -290,7 +290,7 @@ bool chaser_validate::do_multisig(const hash_digest& ,
     multisig_ += points.size();
     ////const auto set = archive().set_signatures(digest, points, signs,
     ////    (*sequence)++, link);
-    ////if (!set) fault(error::batch9);
+    ////if (!set) fault(error::batch7);
     ////return set;
     return true;
 }
@@ -300,7 +300,7 @@ bool chaser_validate::do_threshold(const threshold_group& group,
 {
     threshold_ += group.entries.size();
     ////const auto set = archive().set_signatures(group, (*sequence)++, link);
-    ////if (!set) fault(error::batch10);
+    ////if (!set) fault(error::batch8);
     ////return set;
     return true;
 }

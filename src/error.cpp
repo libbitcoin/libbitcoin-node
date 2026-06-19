@@ -105,9 +105,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { batch5, "batch5" },
     { batch6, "batch6" },
     { batch7, "batch7" },
-    { batch8, "batch8" },
-    { batch9, "batch9" },
-    { batch10, "batch10" }
+    { batch8, "batch8" }
 };
 
 DEFINE_ERROR_T_CATEGORY(error, "node", "node code")

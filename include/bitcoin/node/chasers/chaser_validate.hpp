@@ -128,8 +128,7 @@ private:
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
-
-    // This prevents table updates during batch verify.
+    stopper stopping_{};
     std::shared_mutex mutex_{};
 
     std::atomic<size_t> ecdsa_{};
