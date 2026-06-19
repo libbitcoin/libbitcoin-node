@@ -247,6 +247,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     complete_block(ec, link, ctx.height, bypass, batched, faulted, enabled);
 
+    // Backlog does not account for post-validation (batch) processing.
     // Prevent stall by posting internal event, avoiding external handlers.
     if (is_one(backlog_.fetch_sub(one, relaxed)))
         handle_chase({}, chase::bump, height_t{});
@@ -352,43 +353,42 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         return;
     }
 
-    // Prioritize non-signature block validation failures.
+    // Prioritize non-signature validation failures over batch result.
     if (ec)
     {
         notify_block(ec, height, link, bypass);
         return;
     }
 
-    // At least one unrecoverable (threshold) capture failed during script
-    // validations, and there was no other failure. This is only caused by a
-    // store fault - possibly a disk full condition. In the case of disk full
-    // the node will pause, otherwise it will halt. Assume disk full here,
-    // requiring a repost for block validation.
+    // Falls through to trigger residual batch processing.
+    if (!batched)
+        notify_block({}, height, link, bypass);
+
+    // Batch jobs.
+    // ------------------------------------------------------------------------
+    // Avoid posting new work when closing.
+    if (closed() || !batch_enabled_)
+        return;
+
+    // Trigger residual block batch processing.
+    if (!capturing && !bypass)
+    {
+        POST(process_batch, true);
+        return;
+    }
+
+    // Retry faulted threshold (presumes disk full).
     if (faulted)
     {
-        // retry, no notify_block() this time.
         POST(post_block, link, bypass);
         return;
     }
 
-    // Push block link to batched_, process_batch will verify via batch.
-    // If block is missed it will be picked up on next batch, or on restart.
+    // Queue block and process batch if ready.
     if (batched)
     {
-        // notify_block() success comes from process_invalids() and fail is
-        // split beween push_batch() and process_valids(). 
         POST(push_batch, link, height);
         return;
-    }
-
-    // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
-    notify_block({}, height, link, bypass);
-
-    // Batch enabled not bypassed implies that the block is current and not
-    // batched. Each such block triggers residual batch processing (no push).
-    if (batch_enabled_ && !stopping_ && !capturing && !bypass)
-    {
-        POST(process_batch, true);
     }
 }
 

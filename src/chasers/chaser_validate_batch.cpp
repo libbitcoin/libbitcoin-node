@@ -54,6 +54,8 @@ code chaser_validate::start_batch() NOEXCEPT
 void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (closed()) return;
     batched_.push_back(link);
 
     // chase portion of notify_block(success).
@@ -70,7 +72,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
 
     // Test outside of lock to prevent reader contention for nearly all calls.
     auto& query = archive();
-    if (stopping_ || (!residual &&
+    if (closed() || (!residual &&
         (query.ecdsa_records() < batch_target_) &&
         (query.schnorr_records() < batch_target_)))
         return;
@@ -82,7 +84,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     const std::unique_lock lock{ mutex_ };
 
     // Must retest inside the lock as table updates are running concurrently.
-    if (stopping_) return;
+    if (closed()) return;
     const auto ecdsa = query.ecdsa_records();
     const auto schnorr = query.schnorr_records();
     if (!residual && (ecdsa < batch_target_) && (schnorr < batch_target_))
