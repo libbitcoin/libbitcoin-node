@@ -150,9 +150,9 @@ const node::settings& session::node_settings() const NOEXCEPT
     return node_.node_settings();
 }
 
-bool session::is_current(bool confirmed) const NOEXCEPT
+bool session::is_current_chain(bool confirmed) const NOEXCEPT
 {
-    return node_.is_current(confirmed);
+    return node_.is_current_chain(confirmed);
 }
 
 bool session::is_recent() const NOEXCEPT

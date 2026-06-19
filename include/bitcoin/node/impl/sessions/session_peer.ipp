@@ -109,7 +109,7 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
 
     // Ready to relay transactions.
     const auto txs_in_out = relay && peer->is_negotiated(level::bip37) &&
-        (!delay || is_current(true));
+        (!delay || is_current_chain(true));
 
     // Peer advertises chain (blocks in).
     if (peer->is_peer_service(service::node_network))

@@ -133,10 +133,14 @@ public:
     virtual const node::settings& node_settings() const NOEXCEPT;
 
     /// The candidate|confirmed chain is current.
-    virtual bool is_current(bool confirmed) const NOEXCEPT;
+    virtual bool is_current_chain(bool confirmed) const NOEXCEPT;
 
     /// The specified timestamp is current.
-    virtual bool is_current(uint32_t timestamp) const NOEXCEPT;
+    virtual bool is_current_time(uint32_t timestamp) const NOEXCEPT;
+
+    /// Header's timestamp is within configured span from current time.
+    virtual bool is_current_header(
+        const database::header_link& link) const NOEXCEPT;
 
     /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;

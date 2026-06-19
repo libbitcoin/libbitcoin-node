@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/chasers/chaser.hpp>
 
-#include <mutex>
 #include <bitcoin/node/configuration.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -152,20 +151,20 @@ const node::settings& chaser::node_settings() const NOEXCEPT
     return node_.node_settings();
 }
 
-bool chaser::is_current(bool confirmed) const NOEXCEPT
+bool chaser::is_current_chain(bool confirmed) const NOEXCEPT
 {
-    return node_.is_current(confirmed);
+    return node_.is_current_chain(confirmed);
 }
 
-bool chaser::is_current(uint32_t timestamp) const NOEXCEPT
+bool chaser::is_current_time(uint32_t timestamp) const NOEXCEPT
 {
-    return node_.is_current(timestamp);
+    return node_.is_current_time(timestamp);
 }
 
 // get_timestamp error results in false (ok).
-bool chaser::is_current(const database::header_link& link) const NOEXCEPT
+bool chaser::is_current_header(const database::header_link& link) const NOEXCEPT
 {
-    return node_.is_current(link);
+    return node_.is_current_header(link);
 }
 
 bool chaser::is_recent() const NOEXCEPT

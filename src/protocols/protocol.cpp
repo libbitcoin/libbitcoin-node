@@ -61,9 +61,9 @@ const node::settings& protocol::node_settings() const NOEXCEPT
     return session_->node_settings();
 }
 
-bool protocol::is_current(bool confirmed) const NOEXCEPT
+bool protocol::is_current_chain(bool confirmed) const NOEXCEPT
 {
-    return session_->is_current(confirmed);
+    return session_->is_current_chain(confirmed);
 }
 
 // Methods.

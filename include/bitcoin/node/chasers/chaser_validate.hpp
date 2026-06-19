@@ -80,8 +80,8 @@ protected:
 
     /// Batching.
     virtual code start_batch() NOEXCEPT;
-    virtual bool process_valids() NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
+    virtual bool process_valids(bool residual) NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
     virtual bool process_invalids(const header_links& invalids) NOEXCEPT;
     virtual signatures get_capture(const header_link& link) NOEXCEPT;
@@ -101,8 +101,7 @@ private:
 
     // Capture handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;
-    void do_fire(missed miss, size_t count,
-        const shared_lock_cptr& lock) NOEXCEPT;
+    void do_fire(missed miss, size_t count) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
         const header_link& link) NOEXCEPT;
@@ -128,21 +127,18 @@ private:
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
-
-    // This prevents table updates during batch verify.
+    stopper stopping_{};
     std::shared_mutex mutex_{};
-
     std::atomic<size_t> ecdsa_{};
     std::atomic<size_t> schnorr_{};
     std::atomic<size_t> multisig_{};
     std::atomic<size_t> threshold_{};
-
     std::atomic<size_t> missed_ecdsa_{};
     std::atomic<size_t> missed_schnorr_{};
     std::atomic<size_t> missed_multisig_{};
     std::atomic<size_t> missed_threshold_{};
-
     std::atomic<size_t> backlog_{};
+
     network::asio::strand validation_strand_;
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;

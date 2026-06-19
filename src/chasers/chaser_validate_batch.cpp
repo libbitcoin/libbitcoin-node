@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #include <ranges>
+#include <shared_mutex>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -37,13 +38,17 @@ BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
+// TODO: scnorr can be retained if each threshold carries total sig count.
+// TODO: if so we can detect faulted (ignore) if full set is missing for block.
 // Cannot know if archived batch is faulted, despite being otherwise full, as
 // faulted is a non-persistent state. So we must purge batches at start.
 code chaser_validate::start_batch() NOEXCEPT
 {
     auto& query = archive();
-    return (batch_enabled_ && (!query.purge_ecdsa_signatures() ||
-        !query.purge_schnorr_signatures())) ? error::batch1 : error::success;
+    return (batch_enabled_ &&
+        (!query.purge_ecdsa_signatures() ||
+         !query.purge_schnorr_signatures())) ?
+        error::batch1 : error::success;
 }
 
 void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEPT
@@ -64,7 +69,6 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Test outside of lock to prevent reader contention for nearly all calls.
-    // Will retest inside the lock, as table updates are running concurrently.
     auto& query = archive();
     if (!residual &&
         (query.ecdsa_records() < batch_target_) &&
@@ -74,31 +78,38 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // Unique lock prevents batch table updates during evaluation, allowing the
     // tables to be fully purged upon completion, and ensuring that evaluation
     // does not operate over partial block records in the batch tables.
-    std::unique_lock lock(mutex_);
+    // ========================================================================
+    const std::unique_lock lock{ mutex_ };
+
+    // Must retest inside the lock as table updates are running concurrently.
+    const auto ecdsa = query.ecdsa_records();
+    const auto schnorr = query.schnorr_records();
+    if (!residual && (ecdsa < batch_target_) && (schnorr < batch_target_))
+        return;
 
     log_captures();
 
     // set_block_unconfirmable(ecdsa)
     // ------------------------------------------------------------------------
 
-    if (const auto records = query.ecdsa_records(); is_nonzero(records))
+    if (is_nonzero(ecdsa))
     {
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_ecdsa_signatures(invalids))
+        if (!query.verify_ecdsa_signatures(stopping_, invalids))
         {
-            fault(error::batch2);
+            // False return implies canceled (only).
             return;
         }
 
         const auto end = network::logger::now();
         const auto elapsed = duration_cast<seconds>(end - start).count();
         fire(events::ecdsa_secs, elapsed);
-        LOGN(log_rate("Batch verify rate ecdsa.... ", records, elapsed));
+        LOGN(log_rate("Batch verify rate ecdsa.... ", ecdsa, elapsed));
 
         if (!process_invalids(invalids) || !query.purge_ecdsa_signatures())
         {
-            fault(error::batch3);
+            fault(error::batch2);
             return;
         }
     }
@@ -106,24 +117,24 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // set_block_unconfirmable(schnorr)
     // ------------------------------------------------------------------------
 
-    if (const auto records = query.schnorr_records(); is_nonzero(records))
+    if (is_nonzero(schnorr))
     {
         header_links invalids{};
         const auto start = network::logger::now();
-        if (!query.verify_schnorr_signatures(invalids))
+        if (!query.verify_schnorr_signatures(stopping_, invalids))
         {
-            fault(error::batch4);
+            // False return implies canceled (only).
             return;
         }
 
         const auto end = network::logger::now();
         const auto elapsed = duration_cast<seconds>(end - start).count();
         fire(events::schnorr_secs, elapsed);
-        LOGN(log_rate("Batch verify rate schnorr.. ", records, elapsed));
+        LOGN(log_rate("Batch verify rate schnorr.. ", schnorr, elapsed));
 
         if (!process_invalids(invalids) || !query.purge_schnorr_signatures())
         {
-            fault(error::batch5);
+            fault(error::batch3);
             return;
         }
     }
@@ -131,11 +142,12 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // set_block_valid(batched_ excluding ecdsa/schnorr failures)
     // ------------------------------------------------------------------------
 
-    if (!process_valids())
+    if (!process_valids(residual))
     {
-        fault(error::batch6);
+        fault(error::batch4);
         return;
     }
+    // ========================================================================
 }
 
 // Invalids might not be included in batched, as link push is a race.
@@ -170,7 +182,7 @@ bool chaser_validate::process_invalids(const header_links& invalids) NOEXCEPT
 
 // Set all batched blocks that aren't invalid to valid.
 // May be ancestors of invalid, in which case they are also unconfirmable.
-bool chaser_validate::process_valids() NOEXCEPT
+bool chaser_validate::process_valids(bool residual) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -192,7 +204,7 @@ bool chaser_validate::process_valids() NOEXCEPT
     }
 
     batched_.clear();
-    if (is_current(true))
+    if (residual)
         batched_.shrink_to_fit();
 
     return true;
@@ -200,19 +212,15 @@ bool chaser_validate::process_valids() NOEXCEPT
 
 signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
 {
-    if (!batch_enabled_ || is_current(link))
+    if (!batch_enabled_ || is_current_header(link))
         return { false };
-
-    // This call is blocked during signature batch evaluation and all
-    // outstanding captures block signature batch evaluation until complete.
-    const auto lock = emplace_shared<shared_lock>(mutex_);
 
     const auto sequence = to_shared<atomic_counter>();
     return signatures
     {
         .enabled = true,
         .log = BIND_THIS(do_log, _1),
-        .fire = BIND_THIS(do_fire, _1, _2, lock),
+        .fire = BIND_THIS(do_fire, _1, _2),
         .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
         .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
         .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, sequence),
@@ -230,9 +238,7 @@ void chaser_validate::do_log(const script& ) NOEXCEPT
     ////    << missed.to_string(flags::all_rules));
 }
 
-// Captures shared lock on batch verification.
-void chaser_validate::do_fire(missed miss, size_t count,
-    const shared_lock_cptr&) NOEXCEPT
+void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
 {
     switch (miss)
     {
@@ -255,7 +261,7 @@ bool chaser_validate::do_ecdsa(const hash_digest& digest,
 {
     ++ecdsa_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch7);
+    if (!set) fault(error::batch5);
     return set;
 }
 
@@ -265,7 +271,7 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
 {
     ++schnorr_;
     const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch8);
+    if (!set) fault(error::batch6);
     return set;
 }
 
@@ -278,7 +284,7 @@ bool chaser_validate::do_multisig(const hash_digest& ,
     multisig_ += points.size();
     ////const auto set = archive().set_signatures(digest, points, signs,
     ////    (*sequence)++, link);
-    ////if (!set) fault(error::batch9);
+    ////if (!set) fault(error::batch7);
     ////return set;
     return true;
 }
@@ -288,7 +294,7 @@ bool chaser_validate::do_threshold(const threshold_group& group,
 {
     threshold_ += group.entries.size();
     ////const auto set = archive().set_signatures(group, (*sequence)++, link);
-    ////if (!set) fault(error::batch10);
+    ////if (!set) fault(error::batch8);
     ////return set;
     return true;
 }

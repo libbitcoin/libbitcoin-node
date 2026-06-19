@@ -302,7 +302,7 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
-    if (is_block() || is_current(header.timestamp()))
+    if (is_block() || is_current_time(header.timestamp()))
     {
         if (!bumped_)
         {
