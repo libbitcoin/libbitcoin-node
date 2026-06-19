@@ -261,7 +261,7 @@ protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
     const get_blocks& locator) const NOEXCEPT
 {
     // Empty response implies complete (success).
-    if (!is_current(true))
+    if (!is_current_chain(true))
         return {};
 
     return inventory::factory

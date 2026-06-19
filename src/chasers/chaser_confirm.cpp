@@ -43,7 +43,7 @@ code chaser_confirm::start() NOEXCEPT
     const auto& query = archive();
     set_position(query.get_fork());
 
-    if (is_current(true))
+    if (is_current_chain(true))
     {
         LOGN("Node is current at startup block [" << position() << "].");
     }
@@ -423,7 +423,7 @@ void chaser_confirm::announce(const header_link& link, height_t) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Announce newly-organized blocks when confirmed chain is current.
-    if (is_current(true))
+    if (is_current_chain(true))
         notify(error::success, chase::block, link);
 }
 

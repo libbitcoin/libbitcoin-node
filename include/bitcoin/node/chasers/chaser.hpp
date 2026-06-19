@@ -131,13 +131,13 @@ protected:
     const node::settings& node_settings() const NOEXCEPT;
 
     /// Top candidate|confirmed is within configured span from current time.
-    bool is_current(bool confirmed) const NOEXCEPT;
+    bool is_current_chain(bool confirmed) const NOEXCEPT;
 
     /// Header timestamp is within configured span from current time.
-    bool is_current(uint32_t timestamp) const NOEXCEPT;
+    bool is_current_time(uint32_t timestamp) const NOEXCEPT;
 
     /// Header's timestamp is within configured span from current time.
-    bool is_current(const database::header_link& link) const NOEXCEPT;
+    bool is_current_header(const database::header_link& link) const NOEXCEPT;
 
     /// The confirmed chain is confirmed to maximum height or is current.
     bool is_recent() const NOEXCEPT;

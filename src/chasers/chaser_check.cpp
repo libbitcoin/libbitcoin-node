@@ -528,7 +528,7 @@ size_t chaser_check::set_unassociated() NOEXCEPT
 
 size_t chaser_check::get_inventory_size() const NOEXCEPT
 {
-    if (is_zero(connections_) || !is_current(false))
+    if (is_zero(connections_) || !is_current_chain(false))
         return zero;
 
     const auto& query = archive();

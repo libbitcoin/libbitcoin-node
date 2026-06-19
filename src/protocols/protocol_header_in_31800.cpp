@@ -134,7 +134,7 @@ void protocol_header_in_31800::complete() NOEXCEPT
     BC_ASSERT(stranded());
 
     // There are no header announcements at 31800, so translate from inv.
-    if (!subscribed && is_current(true))
+    if (!subscribed && is_current_chain(true))
     {
         subscribed = true;
         SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);

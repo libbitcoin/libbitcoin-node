@@ -398,15 +398,15 @@ const node::settings& full_node::node_settings() const NOEXCEPT
     return config_.node;
 }
 
-bool full_node::is_current(bool confirmed) const NOEXCEPT
+bool full_node::is_current_chain(bool confirmed) const NOEXCEPT
 {
     if (is_zero(config_.node.currency_window_minutes))
         return true;
 
-    return is_current(query_.get_top_timestamp(confirmed));
+    return is_current_time(query_.get_top_timestamp(confirmed));
 }
 
-bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
+bool full_node::is_current_time(uint32_t timestamp) const NOEXCEPT
 {
     if (is_zero(config_.node.currency_window_minutes))
         return true;
@@ -416,16 +416,26 @@ bool full_node::is_current(uint32_t timestamp) const NOEXCEPT
     return time >= current;
 }
 
-bool full_node::is_recent() const NOEXCEPT
+// get_timestamp error results in false (ok).
+bool full_node::is_current_header(const header_link& link) const NOEXCEPT
 {
-    const auto top = query_.get_top_confirmed();
-    if (!is_zero(config_.node.maximum_height) &&
-        top >= config_.node.maximum_height)
+    if (is_zero(config_.node.currency_window_minutes))
         return true;
 
     uint32_t timestamp{};
-    const auto link = query_.to_confirmed(top);
-    return is_current(query_.get_timestamp(timestamp, link));
+    if (!query_.get_timestamp(timestamp, link))
+        return false;
+
+    return is_current_time(timestamp);
+}
+
+bool full_node::is_recent() const NOEXCEPT
+{
+    if (is_nonzero(config_.node.maximum_height) && 
+        (query_.get_top_confirmed() >= config_.node.maximum_height))
+        return true;
+
+    return is_current_time(true);
 }
 
 // Methods.

@@ -69,7 +69,7 @@ void protocol_block_in_31800::subscribed(const code& ec, object_key) NOEXCEPT
 
     // Start performance timing and download cycles if candidates are current.
     // This prevents a startup delay in which the node waits on a header.
-    if (is_current(false))
+    if (is_current_chain(false))
     {
         start_performance();
         get_hashes(BIND(handle_get_hashes, _1, _2, _3));

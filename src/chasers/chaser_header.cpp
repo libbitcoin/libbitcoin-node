@@ -135,7 +135,7 @@ bool chaser_header::is_milestone(const chain_state& state) const NOEXCEPT
 
 bool chaser_header::is_current(const chain_state& state) const NOEXCEPT
 {
-    return chaser::is_current(state.timestamp());
+    return chaser::is_current_time(state.timestamp());
 }
 
 bool chaser_header::is_hard(const chain_state& state) const NOEXCEPT
