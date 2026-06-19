@@ -101,8 +101,7 @@ private:
 
     // Capture handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;
-    void do_fire(missed miss, size_t count,
-        const shared_lock_cptr& lock) NOEXCEPT;
+    void do_fire(missed miss, size_t count) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
         const header_link& link) NOEXCEPT;

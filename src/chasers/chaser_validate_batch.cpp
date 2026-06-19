@@ -19,6 +19,7 @@
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
 #include <ranges>
+#include <shared_mutex>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -77,8 +78,8 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // Unique lock prevents batch table updates during evaluation, allowing the
     // tables to be fully purged upon completion, and ensuring that evaluation
     // does not operate over partial block records in the batch tables.
-    std::unique_lock lock(mutex_);
     // ========================================================================
+    const std::unique_lock lock{ mutex_ };
 
     // Must retest inside the lock as table updates are running concurrently.
     const auto ecdsa = query.ecdsa_records();
@@ -97,7 +98,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto start = network::logger::now();
         if (!query.verify_ecdsa_signatures(stopping_, invalids))
         {
-            // False return implies stopping (only).
+            // False return implies canceled (only).
             return;
         }
 
@@ -122,7 +123,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto start = network::logger::now();
         if (!query.verify_schnorr_signatures(stopping_, invalids))
         {
-            // False return implies stopping (only).
+            // False return implies canceled (only).
             return;
         }
 
@@ -146,7 +147,6 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         fault(error::batch4);
         return;
     }
-
     // ========================================================================
 }
 
@@ -212,19 +212,15 @@ bool chaser_validate::process_valids(bool residual) NOEXCEPT
 
 signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
 {
-    ////if (!batch_enabled_ || is_current(link))
-    ////    return { false };
-
-    // This call is blocked during signature batch evaluation and all
-    // outstanding captures block signature batch evaluation until complete.
-    const auto lock = emplace_shared<shared_lock>(mutex_);
+    if (!batch_enabled_ || is_current_header(link))
+        return { false };
 
     const auto sequence = to_shared<atomic_counter>();
     return signatures
     {
         .enabled = true,
         .log = BIND_THIS(do_log, _1),
-        .fire = BIND_THIS(do_fire, _1, _2, lock),
+        .fire = BIND_THIS(do_fire, _1, _2),
         .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
         .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
         .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, sequence),
@@ -242,9 +238,7 @@ void chaser_validate::do_log(const script& ) NOEXCEPT
     ////    << missed.to_string(flags::all_rules));
 }
 
-// Captures shared lock on batch verification.
-void chaser_validate::do_fire(missed miss, size_t count,
-    const shared_lock_cptr&) NOEXCEPT
+void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
 {
     switch (miss)
     {

@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
+#include <shared_mutex>
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
@@ -293,31 +294,33 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
-        // Initialize block capture.
+        // This critical section is mutually-exclusive with batch verification.
         // ====================================================================
-        // `capture` holds a shared lock on `mutex_` (when `capture.enabled`).
-        const auto capture = get_capture(link);
+        {
+            const std::shared_lock lock{ mutex_ };
 
-        // Sequentially connect block with signature capture (if enabled).
-        // There is not stop during connect, so a shutdown will wait on the
-        // completion (block consistency) of all signature captures. However
-        // the faulted state of a batch is not persisted (because disk full).
-        if ((ec = block.connect(ctx, capture)))
-            return ec;
+            // Initialize block capture.
+            const auto capture = get_capture(link);
 
-        // At least one signature batch was attempted (defer completion).
-        batched = capture.batched;
+            // Sequentially connect block with signature capture (if enabled).
+            // There is not stop during connect, so shutdown will wait on the
+            // completion (block consistency) of all signature captures. But
+            // the faulted state of batch is not persisted (because disk full).
+            if ((ec = block.connect(ctx, capture)))
+                return ec;
 
-        // Threshold batch commit failed, block otherwise passed (retry block).
-        faulted = capture.faulted;
+            // At least one signature batch was attempted (defer completion).
+            batched = capture.batched;
+
+            // Threshold batch commit failed, block otherwise passed (retry).
+            faulted = capture.faulted;
+            // ================================================================
+        }
 
         // Prevouts optimize confirmation.
         // Block will be retried if batch is faulted.
         if (!faulted && !query.set_prevouts(link, block))
             return error::validate6;
-
-        // `capture` shared lock on `mutex_` released here.
-        // ====================================================================
     }
 
     // Block will be retried if batch is faulted.
@@ -376,12 +379,12 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
     notify_block({}, height, link, bypass);
 
-    ////// Batch enabled not bypassed implies that the block is current and was
-    ////// not batched. Each such block triggers residual batch processing.
-    ////if (!bypass && batch_enabled_)
-    ////{
-    ////    POST(process_batch, true);
-    ////}
+    // Batch enabled not bypassed implies that the block is current and was
+    // not batched. Each such block triggers residual batch processing.
+    if (!bypass && batch_enabled_)
+    {
+        POST(process_batch, true);
+    }
 }
 
 void chaser_validate::notify_block(const code& ec, size_t height, 
