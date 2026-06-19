@@ -219,7 +219,7 @@ void chaser_validate::validate_block(const header_link& link,
 
     code ec{};
     chain::context ctx{};
-    bool batched{}, faulted{};
+    bool batched{}, faulted{}, enabled{};
     auto& query = archive();
 
     // TODO: implement allocator parameter resulting in full allocation to
@@ -239,13 +239,13 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate4;
     }
-    else if ((ec = validate(batched, faulted, bypass, *block, link, ctx)))
+    else if ((ec = validate(batched, faulted, enabled, bypass, *block, link, ctx)))
     {
         if (!query.set_block_unconfirmable(link))
             ec = error::validate5;
     }
 
-    complete_block(ec, link, ctx.height, bypass, batched, faulted);
+    complete_block(ec, link, ctx.height, bypass, batched, faulted, enabled);
 
     // Prevent stall by posting internal event, avoiding external handlers.
     if (is_one(backlog_.fetch_sub(one, relaxed)))
@@ -279,8 +279,8 @@ code chaser_validate::populate(bool bypass, const chain::block& block,
     return error::success;
 }
 
-code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
-    const chain::block& block, const header_link& link,
+code chaser_validate::validate(bool& batched, bool& faulted, bool& capturing,
+    bool bypass, const chain::block& block, const header_link& link,
     const chain::context& ctx) NOEXCEPT
 {
     auto& query = archive();
@@ -294,13 +294,17 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
         if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
             return ec;
 
+        // Initialize block capture.
+        const auto capture = get_capture(link);
+
+        // Signature capture is enabled.
+        capturing = capture.enabled;
+
         // This critical section is mutually-exclusive with batch verification.
         // ====================================================================
         {
-            const std::shared_lock lock{ mutex_ };
-
-            // Initialize block capture.
-            const auto capture = get_capture(link);
+            std::shared_lock lock{ mutex_, std::defer_lock };
+            if (capturing) lock.lock();
 
             // Sequentially connect block with signature capture (if enabled).
             // There is not stop during connect, so shutdown will wait on the
@@ -314,8 +318,8 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
 
             // Threshold batch commit failed, block otherwise passed (retry).
             faulted = capture.faulted;
-            // ================================================================
         }
+        // ================================================================
 
         // Prevouts optimize confirmation.
         // Block will be retried if batch is faulted.
@@ -337,7 +341,8 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
 
 // May be either concurrent or stranded.
 void chaser_validate::complete_block(const code& ec, const header_link& link,
-    size_t height, bool bypass, bool batched, bool faulted) NOEXCEPT
+    size_t height, bool bypass, bool batched, bool faulted,
+    bool capturing) NOEXCEPT
 {
     // Node errors are fatal (or disk full recoverable).
     if (ec && node::error::error_category::contains(ec))
@@ -379,9 +384,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
     notify_block({}, height, link, bypass);
 
-    // Batch enabled not bypassed implies that the block is current and was
-    // not batched. Each such block triggers residual batch processing.
-    if (!bypass && batch_enabled_)
+    // Batch enabled not bypassed implies that the block is current and not
+    // batched. Each such block triggers residual batch processing (no push).
+    if (batch_enabled_ && !stopping_ && !capturing && !bypass)
     {
         POST(process_batch, true);
     }

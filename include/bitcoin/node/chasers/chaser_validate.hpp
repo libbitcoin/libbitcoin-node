@@ -67,14 +67,14 @@ protected:
     /// Validation.
     virtual void post_block(const header_link& link, bool bypass) NOEXCEPT;
     virtual void validate_block(const header_link& link, bool bypass) NOEXCEPT;
-    virtual code validate(bool& batched, bool& faulted, bool bypass,
-        const system::chain::block& block, const header_link& link,
-        const system::chain::context& ctx) NOEXCEPT;
+    virtual code validate(bool& batched, bool& faulted, bool& capturing,
+        bool bypass, const system::chain::block& block,
+        const header_link& link, const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
         const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec, const header_link& link,
         size_t height, bool bypass, bool batched=false,
-        bool faulted=false) NOEXCEPT;
+        bool faulted=false, bool capturing=false) NOEXCEPT;
     virtual void notify_block(const code& ec, size_t height,
         const header_link& link, bool bypass) NOEXCEPT;
 
@@ -92,8 +92,6 @@ protected:
 
 private:
     static constexpr auto relaxed = std::memory_order_relaxed;
-    using shared_lock = const std::shared_lock<std::shared_mutex>;
-    using shared_lock_cptr = std::shared_ptr<shared_lock>;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
     using threshold_group = signatures::threshold_group;
