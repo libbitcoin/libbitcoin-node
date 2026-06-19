@@ -43,6 +43,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
+    maximum_height_(node.node_settings().maximum_height_()),
     batch_target_(node.node_settings().batch_signatures),
     batch_enabled_(node.node_settings().batch_signatures_enabled()),
     node_witness_(node.network_settings().witness_node()),
@@ -191,6 +192,13 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
                 fault(error::validate1);
                 return;
             }
+        }
+
+        if (height == maximum_height_)
+        {
+            // TODO: the height limit has been queued for validation.
+            // TODO: once all queued validations are complete/batched, invoke
+            // TODO: POST(process_batch(true)) from point where that is known.
         }
 
         // All posted validations must complete or this is invalid.

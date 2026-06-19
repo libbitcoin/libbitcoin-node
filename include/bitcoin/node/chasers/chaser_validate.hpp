@@ -141,6 +141,7 @@ private:
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
     const size_t maximum_backlog_;
+    const size_t maximum_height_;
     const uint64_t batch_target_;
     const bool batch_enabled_;
     const bool node_witness_;
