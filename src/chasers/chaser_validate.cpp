@@ -294,7 +294,8 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
             return ec;
 
         // Initialize block capture.
-        // This call is blocked during signature batch evaluation.
+        // ====================================================================
+        // `capture` holds a shared lock on `mutex_` (when `capture.enabled`).
         const auto capture = get_capture(link);
 
         // Sequentially connect block with signature capture (if enabled).
@@ -314,6 +315,9 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool bypass,
         // Block will be retried if batch is faulted.
         if (!faulted && !query.set_prevouts(link, block))
             return error::validate6;
+
+        // `capture` shared lock on `mutex_` released here.
+        // ====================================================================
     }
 
     // Block will be retried if batch is faulted.
@@ -372,12 +376,12 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
     notify_block({}, height, link, bypass);
 
-    // Arriving here with batch enabled implies that the block is current and
-    // was not batched. Each such block triggers residual batch processing.
-    if (batch_enabled_)
-    {
-        POST(process_batch, true);
-    }
+    ////// Batch enabled not bypassed implies that the block is current and was
+    ////// not batched. Each such block triggers residual batch processing.
+    ////if (!bypass && batch_enabled_)
+    ////{
+    ////    POST(process_batch, true);
+    ////}
 }
 
 void chaser_validate::notify_block(const code& ec, size_t height, 

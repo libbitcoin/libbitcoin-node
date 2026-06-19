@@ -80,8 +80,8 @@ protected:
 
     /// Batching.
     virtual code start_batch() NOEXCEPT;
-    virtual bool process_valids() NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
+    virtual bool process_valids(bool residual) NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
     virtual bool process_invalids(const header_links& invalids) NOEXCEPT;
     virtual signatures get_capture(const header_link& link) NOEXCEPT;
