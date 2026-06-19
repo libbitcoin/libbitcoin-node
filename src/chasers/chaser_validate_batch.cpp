@@ -18,8 +18,8 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
-#include <ranges>
-#include <shared_mutex>
+#include <algorithm>
+#include <mutex>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -70,9 +70,9 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
 
     // Test outside of lock to prevent reader contention for nearly all calls.
     auto& query = archive();
-    if (!residual &&
+    if (stopping_ || (!residual &&
         (query.ecdsa_records() < batch_target_) &&
-        (query.schnorr_records() < batch_target_))
+        (query.schnorr_records() < batch_target_)))
         return;
 
     // Unique lock prevents batch table updates during evaluation, allowing the
@@ -82,6 +82,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     const std::unique_lock lock{ mutex_ };
 
     // Must retest inside the lock as table updates are running concurrently.
+    if (stopping_) return;
     const auto ecdsa = query.ecdsa_records();
     const auto schnorr = query.schnorr_records();
     if (!residual && (ecdsa < batch_target_) && (schnorr < batch_target_))
