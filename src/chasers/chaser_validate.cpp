@@ -43,6 +43,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
+    maximum_height_(node.node_settings().maximum_height_()),
     batch_target_(node.node_settings().batch_signatures),
     batch_enabled_(node.node_settings().batch_signatures_enabled()),
     node_witness_(node.network_settings().witness_node()),
@@ -151,7 +152,7 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
 
     // Bypass until next event if validation backlog is full.
     // Stop when suspended as write error does not terminate asynchronous loop.
-    while ((backlog_ < maximum_backlog_) && !closed() && !suspended())
+    while ((validate_backlog_ < maximum_backlog_) && !closed() && !suspended())
     {
         const auto link = query.to_candidate(height);
         const auto ec = query.get_block_state(link);
@@ -161,6 +162,10 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
         if (ec == database::error::unassociated)
             return;
 
+        // The last job requiring validation has been posted.
+        if (height == maximum_height_)
+            maximum_posted_ = true;
+
         const auto bypass = is_under_checkpoint(height) ||
             query.is_milestone(link);
 
@@ -169,10 +174,15 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             case database::error::unvalidated:
             case database::error::unknown_state:
             {
-                if (!bypass || filter_)
-                    post_block(link, bypass);
-                else
+                if (bypass && !filter_)
+                {
                     complete_block(error::success, link, height, true);
+                }
+                else
+                {
+                    ++validate_backlog_;
+                    post_block(link, bypass);
+                }
                 break;
             }
             case database::error::block_valid:
@@ -203,140 +213,7 @@ void chaser_validate::post_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    backlog_.fetch_add(one, relaxed);
     PARALLEL(validate_block, link, bypass);
-}
-
-// Unstranded (concurrent by block)
-// ----------------------------------------------------------------------------
-
-void chaser_validate::validate_block(const header_link& link,
-    bool bypass) NOEXCEPT
-{
-    if (closed())
-        return;
-
-    code ec{};
-    chain::context ctx{};
-    bool batched{}, faulted{}, enabled{};
-    auto& query = archive();
-
-    // TODO: implement allocator parameter resulting in full allocation to
-    // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
-    const auto block = query.get_block(link, node_witness_);
-
-    if (!block)
-    {
-        ec = error::validate2;
-    }
-    else if (!query.get_context(ctx, link))
-    {
-        ec = error::validate3;
-    }
-    else if ((ec = populate(bypass, *block, ctx)))
-    {
-        if (!query.set_block_unconfirmable(link))
-            ec = error::validate4;
-    }
-    else if ((ec = validate(batched, faulted, enabled, bypass, *block, link, ctx)))
-    {
-        if (!query.set_block_unconfirmable(link))
-            ec = error::validate5;
-    }
-
-    complete_block(ec, link, ctx.height, bypass, batched, faulted, enabled);
-
-    // Prevent stall by posting internal event, avoiding external handlers.
-    if (is_one(backlog_.fetch_sub(one, relaxed)))
-        handle_chase({}, chase::bump, height_t{});
-}
-
-code chaser_validate::populate(bool bypass, const chain::block& block,
-    const chain::context& ctx) NOEXCEPT
-{
-    const auto& query = archive();
-
-    if (bypass)
-    {
-        // Populating for filters only (no validation metadata required).
-        block.populate(ctx);
-        if (!query.populate_without_metadata(block))
-            return system::error::missing_previous_output;
-    }
-    else
-    {
-        // Internal maturity and time locks are verified here because they are
-        // the only necessary confirmation checks for internal spends.
-        if (const auto ec = block.populate(ctx))
-            return ec;
-
-        // Metadata identifies internal spends allowing confirmation bypass.
-        if (!query.populate_with_metadata(block))
-            return system::error::missing_previous_output;
-    }
-    
-    return error::success;
-}
-
-code chaser_validate::validate(bool& batched, bool& faulted, bool& capturing,
-    bool bypass, const chain::block& block, const header_link& link,
-    const chain::context& ctx) NOEXCEPT
-{
-    auto& query = archive();
-
-    if (!bypass)
-    {
-        code ec{};
-        if (((ec = block.check(false))) || ((ec = block.check(ctx, false))))
-            return ec;
-
-        if ((ec = block.accept(ctx, subsidy_interval_, initial_subsidy_)))
-            return ec;
-
-        // Initialize block capture.
-        const auto capture = get_capture(link);
-
-        // Signature capture is enabled.
-        capturing = capture.enabled;
-
-        // This critical section is mutually-exclusive with batch verification.
-        // ====================================================================
-        {
-            std::shared_lock lock{ mutex_, std::defer_lock };
-            if (capturing) lock.lock();
-
-            // Sequentially connect block with signature capture (if enabled).
-            // There is not stop during connect, so shutdown will wait on the
-            // completion (block consistency) of all signature captures. But
-            // the faulted state of batch is not persisted (because disk full).
-            if ((ec = block.connect(ctx, capture)))
-                return ec;
-
-            // At least one signature batch was attempted (defer completion).
-            batched = capture.batched;
-
-            // Threshold batch commit failed, block otherwise passed (retry).
-            faulted = capture.faulted;
-        }
-        // ================================================================
-
-        // Prevouts optimize confirmation.
-        // Block will be retried if batch is faulted.
-        if (!faulted && !query.set_prevouts(link, block))
-            return error::validate6;
-    }
-
-    // Block will be retried if batch is faulted.
-    if (!faulted && !query.set_filter_body(link, block))
-        return error::validate7;
-
-    // Defer block state change when batched (or faulted).
-    // Valid must be set after set_prevouts and set_filter_body.
-    if (!batched && !bypass && !query.set_block_valid(link))
-        return error::validate8;
-
-    return error::success;
 }
 
 // May be either concurrent or stranded.
@@ -344,6 +221,13 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     size_t height, bool bypass, bool batched, bool faulted,
     bool capturing) NOEXCEPT
 {
+    // Not stranded when called from validate_block.
+    if (is_zero(validate_backlog_.load()) && !stranded())
+    {
+        // Prevent stall by posting internal event, avoiding external handlers.
+        handle_chase({}, chase::bump, height_t{});
+    }
+
     // Node errors are fatal (or disk full recoverable).
     if (ec && node::error::error_category::contains(ec))
     {
@@ -352,41 +236,48 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         return;
     }
 
-    // Prioritize non-signature block validation failures.
+    // Prioritize non-signature validation failures over batch result.
     if (ec)
     {
         notify_block(ec, height, link, bypass);
         return;
     }
 
-    // At least one unrecoverable (threshold) capture failed during script
-    // validations, and there was no other failure. This is only caused by a
-    // store fault - possibly a disk full condition. In the case of disk full
-    // the node will pause, otherwise it will halt. Assume disk full here,
-    // requiring a repost for block validation.
+    // Falls through to trigger residual batch processing.
+    if (!batched)
+    {
+        notify_block({}, height, link, bypass);
+    }
+
+    // Batch jobs (all posting from unstranded).
+    // ------------------------------------------------------------------------
+
+    // Avoid posting new work when closing.
+    if (closed() || !batch_enabled_)
+        return;
+
+    // Retry faulted threshold, re-enters backlog (presumes disk full).
     if (faulted)
     {
-        // retry, no notify_block() this time.
+        ++validate_backlog_;
         POST(post_block, link, bypass);
         return;
     }
 
-    // Push block link to batched_, process_batch will verify via batch.
-    // If block is missed it will be picked up on next batch, or on restart.
+    // Queue block and process batch if ready.
     if (batched)
     {
-        // notify_block() success comes from process_invalids() and fail is
-        // split beween push_batch() and process_valids(). 
+        ++batch_backlog_;
         POST(push_batch, link, height);
         return;
     }
 
-    // Not failed/invalid/batched/faulted, so block is complete (maybe valid).
-    notify_block({}, height, link, bypass);
+    // Capturing disabled when confirmed chain current (and not under bypass).
+    // When not in effect must drain last batch by last block validation.
+    const auto current = !capturing && !bypass;
 
-    // Batch enabled not bypassed implies that the block is current and not
-    // batched. Each such block triggers residual batch processing (no push).
-    if (batch_enabled_ && !stopping_ && !capturing && !bypass)
+    // Drain batch when recent (current, or maximum reached without backlog).
+    if (current || is_maximum())
     {
         POST(process_batch, true);
     }
@@ -395,6 +286,8 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
 void chaser_validate::notify_block(const code& ec, size_t height, 
     const header_link& link, bool bypass) NOEXCEPT
 {
+    // Not stranded when complete_block is called from validate_block.
+
     if (ec)
     {
         // INVALID BLOCK (not a fault but discontinue)
