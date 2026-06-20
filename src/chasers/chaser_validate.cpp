@@ -175,9 +175,14 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
             case database::error::unknown_state:
             {
                 if (bypass && !filter_)
+                {
                     complete_block(error::success, link, height, true);
+                }
                 else
+                {
+                    ++validate_backlog_;
                     post_block(link, bypass);
+                }
                 break;
             }
             case database::error::block_valid:
@@ -208,8 +213,6 @@ void chaser_validate::post_block(const header_link& link,
     bool bypass) NOEXCEPT
 {
     BC_ASSERT(stranded());
-
-    ++validate_backlog_;
     PARALLEL(validate_block, link, bypass);
 }
 
@@ -253,20 +256,10 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     if (closed() || !batch_enabled_)
         return;
 
-    // Capturing disabled when confirmed chain current (and not under bypass).
-    // When not in effect must drain last batch by last block validation.
-    const auto current = !capturing && !bypass;
-
-    // Drain batch when recent (current, or maximum reached without backlog).
-    if (current || is_maximum())
-    {
-        POST(process_batch, true);
-        return;
-    }
-
     // Retry faulted threshold, re-enters backlog (presumes disk full).
     if (faulted)
     {
+        ++validate_backlog_;
         POST(post_block, link, bypass);
         return;
     }
@@ -277,6 +270,16 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
         ++batch_backlog_;
         POST(push_batch, link, height);
         return;
+    }
+
+    // Capturing disabled when confirmed chain current (and not under bypass).
+    // When not in effect must drain last batch by last block validation.
+    const auto current = !capturing && !bypass;
+
+    // Drain batch when recent (current, or maximum reached without backlog).
+    if (current || is_maximum())
+    {
+        POST(process_batch, true);
     }
 }
 
