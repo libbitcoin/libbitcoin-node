@@ -155,6 +155,7 @@ bool chaser_check::handle_chase(const code&, chase event_,
             break;
         }
         case chase::valid:
+        case chase::prevalid:
         {
             BC_ASSERT(std::holds_alternative<height_t>(value));
             POST(do_advanced, std::get<height_t>(value));
