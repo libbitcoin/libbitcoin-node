@@ -38,8 +38,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // protected
 
 // TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
-// TODO: scnorr can be retained if each threshold carries total sig count.
-// TODO: if so we can detect faulted (ignore) if full set is missing for block.
 // Cannot know if archived batch is faulted, despite being otherwise full, as
 // faulted is a non-persistent state. So we must purge batches at start.
 code chaser_validate::start_batch() NOEXCEPT
