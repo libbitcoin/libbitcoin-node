@@ -104,10 +104,10 @@ private:
     void do_fire(missed miss, size_t count) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
-        const header_link& link) NOEXCEPT;
+        const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT;
     bool do_schnorr(const system::hash_digest& digest,
         const system::ec_xonly& point, const system::ec_signature& sign,
-        const header_link& link) NOEXCEPT;
+        const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT;
     bool do_multisig(const system::hash_digest& digest,
         const system::ec_compresseds& points,
         const system::ec_signatures& signs, const header_link& link,
