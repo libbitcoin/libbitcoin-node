@@ -28,14 +28,14 @@ namespace node {
 #define CLASS chaser_validate
 
 using namespace system;
-using namespace system::chain;
 using namespace database;
 using namespace std::chrono;
-using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
-BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
-BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+
+// Batching.
+// ----------------------------------------------------------------------------
+// protected
 
 // TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
 // TODO: scnorr can be retained if each threshold carries total sig count.
@@ -57,13 +57,15 @@ void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEP
 
     if (closed()) return;
     batched_.push_back(link);
+    --batch_backlog_;
 
     // Unblocks check chaser.
     notify({}, chase::prevalid, possible_wide_cast<height_t>(height));
 
     // Process both tables when one hits target, allowing batched_ clearance
-    // and therefore forward confirmation progress.
-    process_batch(false);
+    // and therefore forward confirmation progress. Drain batch if no backlogs
+    // and maximum hash been posted.
+    process_batch(is_maximum());
 }
 
 void chaser_validate::process_batch(bool residual) NOEXCEPT
@@ -153,6 +155,17 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // ========================================================================
 }
 
+// Batching helpers.
+// ----------------------------------------------------------------------------
+// private
+
+bool chaser_validate::is_maximum() NOEXCEPT
+{
+    return maximum_posted_.load() &&
+        is_zero(batch_backlog_.load()) &&
+        is_zero(validate_backlog_.load());
+}
+
 // Invalids might not be included in batched, as link push is a race.
 // Collected links are only required to set valid, not invalid, and do not
 // need to coincide with the batch that is currently being processed (!).
@@ -211,124 +224,6 @@ bool chaser_validate::process_valids(bool residual) NOEXCEPT
     return true;
 }
 
-signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
-{
-    if (!batch_enabled_ || is_current_header(link))
-        return { false };
-
-    const auto sequence = to_shared<atomic_counter>();
-    return signatures
-    {
-        .enabled = true,
-        .log = BIND_THIS(do_log, _1),
-        .fire = BIND_THIS(do_fire, _1, _2),
-        .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
-        .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
-        .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, sequence),
-        .threshold = BIND_THIS(do_threshold, _1, link, sequence)
-    };
-}
-
-// private
-// ----------------------------------------------------------------------------
-
-void chaser_validate::do_log(const script& ) NOEXCEPT
-{
-    // Enable for a game of whack-a-mole.
-    ////LOGA("Sigop @ " << ctx.height << " -> "
-    ////    << missed.to_string(flags::all_rules));
-}
-
-void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
-{
-    switch (miss)
-    {
-        case missed::ecdsa:
-            missed_ecdsa_ += count;
-            break;
-        case missed::multisig:
-            missed_multisig_ += count;
-            break;
-        case missed::schnorr:
-            missed_schnorr_ += count;
-            break;
-        default:;
-    }
-}
-
-bool chaser_validate::do_ecdsa(const hash_digest& digest,
-    const ec_compressed& point, const ec_signature& sign,
-    const header_link& link) NOEXCEPT
-{
-    ++ecdsa_;
-    const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch5);
-    return set;
-}
-
-bool chaser_validate::do_schnorr(const hash_digest& digest,
-    const ec_xonly& point, const ec_signature& sign,
-    const header_link& link) NOEXCEPT
-{
-    ++schnorr_;
-    const auto set = archive().set_signature(digest, point, sign, link);
-    if (!set) fault(error::batch6);
-    return set;
-}
-
-bool chaser_validate::do_multisig(const hash_digest& ,
-    const ec_compresseds& points, const ec_signatures& BC_DEBUG_ONLY(signs),
-    const header_link& , const atomic_counter_ptr& ) NOEXCEPT
-{
-    BC_ASSERT(points.size() == signs.size());
-
-    multisig_ += points.size();
-    ////const auto set = archive().set_signatures(digest, points, signs,
-    ////    (*sequence)++, link);
-    ////if (!set) fault(error::batch7);
-    ////return set;
-    return true;
-}
-
-bool chaser_validate::do_threshold(const threshold_group& group,
-    const header_link& , const atomic_counter_ptr& ) NOEXCEPT
-{
-    threshold_ += group.entries.size();
-    ////const auto set = archive().set_signatures(group, (*sequence)++, link);
-    ////if (!set) fault(error::batch8);
-    ////return set;
-    return true;
-}
-
-std::string chaser_validate::log_rate(const std::string& name,
-    size_t numerator, size_t denominator) const NOEXCEPT
-{
-    const auto rate = numerator / greater(denominator, one);
-    return (boost_format("%1% (%2% / %3%) = %4% sps") %
-        name % numerator % denominator % rate).str();
-}
-
-std::string chaser_validate::log_ratio(const std::string& name,
-    size_t numerator, size_t denominator) const NOEXCEPT
-{
-    if (is_zero(denominator))
-        return name;
-
-    const auto ratio = (100.0 * numerator) / denominator;
-    return (boost_format("%1% (%2% / %3%) = %4$.4f%%") %
-        name % numerator % denominator % ratio).str();
-}
-
-void chaser_validate::log_captures() const NOEXCEPT
-{
-    LOGV(log_ratio("Capture rate ecdsa.... ", ecdsa_,     ecdsa_     + missed_ecdsa_));
-    LOGV(log_ratio("Capture rate multisig. ", multisig_,  multisig_  + missed_multisig_));
-    LOGV(log_ratio("Capture rate schnorr.. ", schnorr_,   schnorr_   + missed_schnorr_));
-    LOGV(log_ratio("Capture rate threshold ", threshold_, threshold_ + zero));
-}
-
-BC_POP_WARNING()
-BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

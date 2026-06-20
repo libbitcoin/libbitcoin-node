@@ -108,6 +108,12 @@
     <ClCompile Include="..\..\..\..\src\chasers\chaser_validate_batch.cpp">
       <Filter>src\chasers</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_validate_capture.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\chasers\chaser_validate_parallel.cpp">
+      <Filter>src\chasers</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\src\configuration.cpp">
       <Filter>src</Filter>
     </ClCompile>

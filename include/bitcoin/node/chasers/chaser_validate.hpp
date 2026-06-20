@@ -81,10 +81,7 @@ protected:
     /// Batching.
     virtual code start_batch() NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
-    virtual bool process_valids(bool residual) NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
-    virtual bool process_invalids(const header_links& invalids) NOEXCEPT;
-    virtual signatures get_capture(const header_link& link) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
@@ -96,6 +93,11 @@ private:
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
     using threshold_group = signatures::threshold_group;
     using missed = signatures::miss;
+
+    /// Batching helpers.
+    bool is_maximum() NOEXCEPT;
+    bool process_valids(bool residual) NOEXCEPT;
+    bool process_invalids(const header_links& invalids) NOEXCEPT;
 
     // Capture handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;
@@ -114,6 +116,7 @@ private:
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
     // Capture helpers.
+    signatures get_capture(const header_link& link) NOEXCEPT;
     std::string log_rate(const std::string& name, size_t numerator,
         size_t denominator) const NOEXCEPT;
     std::string log_ratio(const std::string& name, size_t numerator,
@@ -135,7 +138,9 @@ private:
     std::atomic<size_t> missed_schnorr_{};
     std::atomic<size_t> missed_multisig_{};
     std::atomic<size_t> missed_threshold_{};
-    std::atomic<size_t> backlog_{};
+    std::atomic<size_t> validate_backlog_{};
+    std::atomic<size_t> batch_backlog_{};
+    std::atomic_bool maximum_posted_{};
 
     network::asio::strand validation_strand_;
     const uint32_t subsidy_interval_;
