@@ -49,6 +49,8 @@ code chaser_validate::start_batch() NOEXCEPT
         error::batch1 : error::success;
 }
 
+// batched_ is redundant with the combined set of ecdsa/schnorr unfailed block
+// identifiers stored in the two batch tables, so just a sort optimization.
 void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEPT
 {
     BC_ASSERT(stranded());
