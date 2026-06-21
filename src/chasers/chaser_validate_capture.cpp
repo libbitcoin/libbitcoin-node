@@ -31,6 +31,9 @@ using namespace system::chain;
 using namespace database;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Capture handlers.
@@ -67,7 +70,9 @@ bool chaser_validate::do_ecdsa(const hash_digest& digest,
 {
     ++ecdsa_;
     const auto id = (*sequence)++;
-    const auto set = archive().set_signature(digest, point, sign, id, link);
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signature(digest, point, sign, group, link);
     if (!set) fault(error::batch5);
     return set;
 }
@@ -78,7 +83,9 @@ bool chaser_validate::do_schnorr(const hash_digest& digest,
 {
     ++schnorr_;
     const auto id = (*sequence)++;
-    const auto set = archive().set_signature(digest, point, sign, id, link);
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signature(digest, point, sign, group, link);
     if (!set) fault(error::batch6);
     return set;
 }
@@ -91,17 +98,21 @@ bool chaser_validate::do_multisig(const hash_digest& digest,
 
     multisig_ += points.size();
     const auto id = (*sequence)++;
-    const auto set = archive().set_signatures(digest, points, signs, id, link);
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signatures(digest, points, signs, group, link);
     if (!set) fault(error::batch7);
     return set;
 }
 
-bool chaser_validate::do_threshold(const threshold_group& group,
+bool chaser_validate::do_threshold(const threshold& batch,
     const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
-    threshold_ += group.entries.size();
+    threshold_ += batch.tuples.size();
     const auto id = (*sequence)++;
-    const auto set = archive().set_signatures(group, id, link);
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signatures(batch, group, link);
     if (!set) fault(error::batch8);
     return set;
 }
@@ -155,6 +166,8 @@ void chaser_validate::log_captures() const NOEXCEPT
     LOGV(log_ratio("Capture rate threshold ", threshold_, threshold_ + zero));
 }
 
+BC_POP_WARNING()
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

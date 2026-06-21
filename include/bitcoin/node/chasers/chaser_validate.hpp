@@ -91,7 +91,7 @@ private:
     static constexpr auto relaxed = std::memory_order_relaxed;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
-    using threshold_group = signatures::threshold_group;
+    using threshold = system::chain::threshold;
     using missed = signatures::miss;
 
     /// Batching helpers.
@@ -112,7 +112,7 @@ private:
         const system::ec_compresseds& points,
         const system::ec_signatures& signs, const header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
-    bool do_threshold(const threshold_group& group, const header_link& link,
+    bool do_threshold(const threshold& batch, const header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
     // Capture helpers.
