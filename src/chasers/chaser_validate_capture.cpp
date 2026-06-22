@@ -31,6 +31,9 @@ using namespace system::chain;
 using namespace database;
 using namespace std::placeholders;
 
+// Shared pointers required for lifetime in handler parameters.
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
+BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 // Capture handlers.
@@ -63,46 +66,55 @@ void chaser_validate::do_fire(missed miss, size_t count) NOEXCEPT
 
 bool chaser_validate::do_ecdsa(const hash_digest& digest,
     const ec_compressed& point, const ec_signature& sign,
-    const header_link& link) NOEXCEPT
+    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
     ++ecdsa_;
-    const auto set = archive().set_signature(digest, point, sign, link);
+    const auto id = (*sequence)++;
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signature(digest, point, sign, group, link);
     if (!set) fault(error::batch5);
     return set;
 }
 
 bool chaser_validate::do_schnorr(const hash_digest& digest,
     const ec_xonly& point, const ec_signature& sign,
-    const header_link& link) NOEXCEPT
+    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
     ++schnorr_;
-    const auto set = archive().set_signature(digest, point, sign, link);
+    const auto id = (*sequence)++;
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signature(digest, point, sign, group, link);
     if (!set) fault(error::batch6);
     return set;
 }
 
-bool chaser_validate::do_multisig(const hash_digest& ,
-    const ec_compresseds& points, const ec_signatures& BC_DEBUG_ONLY(signs),
-    const header_link& , const atomic_counter_ptr& ) NOEXCEPT
+bool chaser_validate::do_multisig(const hash_digest& digest,
+    const ec_compresseds& points, const ec_signatures& signs,
+    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
     BC_ASSERT(points.size() == signs.size());
 
     multisig_ += points.size();
-    ////const auto set = archive().set_signatures(digest, points, signs,
-    ////    (*sequence)++, link);
-    ////if (!set) fault(error::batch7);
-    ////return set;
-    return true;
+    const auto id = (*sequence)++;
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signatures(digest, points, signs, group, link);
+    if (!set) fault(error::batch7);
+    return set;
 }
 
-bool chaser_validate::do_threshold(const threshold_group& group,
-    const header_link& , const atomic_counter_ptr& ) NOEXCEPT
+bool chaser_validate::do_threshold(const threshold& batch,
+    const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT
 {
-    threshold_ += group.entries.size();
-    ////const auto set = archive().set_signatures(group, (*sequence)++, link);
-    ////if (!set) fault(error::batch8);
-    ////return set;
-    return true;
+    threshold_ += batch.tuples.size();
+    const auto id = (*sequence)++;
+    if (is_limited<uint16_t>(id)) return false;
+    const auto group = narrow_cast<uint16_t>(id);
+    const auto set = archive().set_signatures(batch, group, link);
+    if (!set) fault(error::batch8);
+    return set;
 }
 
 std::string chaser_validate::log_rate(const std::string& name,
@@ -128,8 +140,8 @@ signatures chaser_validate::get_capture(const header_link& link) NOEXCEPT
         .enabled = true,
         .log = BIND_THIS(do_log, _1),
         .fire = BIND_THIS(do_fire, _1, _2),
-        .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link),
-        .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link),
+        .ecdsa = BIND_THIS(do_ecdsa, _1, _2, _3, link, sequence),
+        .schnorr = BIND_THIS(do_schnorr, _1, _2, _3, link, sequence),
         .multisig = BIND_THIS(do_multisig, _1, _2, _3, link, sequence),
         .threshold = BIND_THIS(do_threshold, _1, link, sequence)
     };
@@ -154,6 +166,8 @@ void chaser_validate::log_captures() const NOEXCEPT
     LOGV(log_ratio("Capture rate threshold ", threshold_, threshold_ + zero));
 }
 
+BC_POP_WARNING()
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

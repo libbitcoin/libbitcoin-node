@@ -91,7 +91,7 @@ private:
     static constexpr auto relaxed = std::memory_order_relaxed;
     using atomic_counter = std::atomic<size_t>;
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
-    using threshold_group = signatures::threshold_group;
+    using threshold = system::chain::threshold;
     using missed = signatures::miss;
 
     /// Batching helpers.
@@ -104,15 +104,15 @@ private:
     void do_fire(missed miss, size_t count) NOEXCEPT;
     bool do_ecdsa(const system::hash_digest& digest,
         const system::ec_compressed& point, const system::ec_signature& sign,
-        const header_link& link) NOEXCEPT;
+        const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT;
     bool do_schnorr(const system::hash_digest& digest,
         const system::ec_xonly& point, const system::ec_signature& sign,
-        const header_link& link) NOEXCEPT;
+        const header_link& link, const atomic_counter_ptr& sequence) NOEXCEPT;
     bool do_multisig(const system::hash_digest& digest,
         const system::ec_compresseds& points,
         const system::ec_signatures& signs, const header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
-    bool do_threshold(const threshold_group& group, const header_link& link,
+    bool do_threshold(const threshold& batch, const header_link& link,
         const atomic_counter_ptr& sequence) NOEXCEPT;
 
     // Capture helpers.
