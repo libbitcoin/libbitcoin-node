@@ -103,7 +103,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto start = network::logger::now();
         if (!query.verify_ecdsa_signatures(stopping_, invalids))
         {
-            // False return implies canceled (only).
+            LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return;
         }
 
@@ -128,7 +128,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto start = network::logger::now();
         if (!query.verify_schnorr_signatures(stopping_, invalids))
         {
-            // False return implies canceled (only).
+            LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return;
         }
 
