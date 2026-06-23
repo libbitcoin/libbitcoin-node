@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 
+#include <atomic>
 #include <algorithm>
 #include <mutex>
 #include <bitcoin/node/define.hpp>
@@ -103,7 +104,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto start = network::logger::now();
         if (!query.verify_ecdsa_signatures(stopping_, invalids))
         {
-            // False return implies canceled (only).
+            LOGN("Batch verify ecdsa canceled (" << ecdsa << ").");
             return;
         }
 
@@ -128,7 +129,7 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
         const auto start = network::logger::now();
         if (!query.verify_schnorr_signatures(stopping_, invalids))
         {
-            // False return implies canceled (only).
+            LOGN("Batch verify schnorr canceled (" << schnorr << ").");
             return;
         }
 
@@ -203,25 +204,31 @@ bool chaser_validate::process_valids(bool residual) NOEXCEPT
     BC_ASSERT(stranded());
 
     auto& query = archive();
-    for (const auto& link: batched_)
+    std::atomic_bool fault{};
+    constexpr auto parallel = poolstl::execution::par;
+
+    std::for_each(parallel, batched_.cbegin(), batched_.cend(),
+        [&](auto link) NOEXCEPT
     {
-        // Terminal links are previously set invalid (to be skipped).
+        // terminal links are previously set invalid (to be skipped).
         if (link == header_link::terminal)
-            continue;
+            return;
 
         size_t height{};
-        if (!query.get_height(height, link) ||
-            !query.set_block_valid(link))
-            return false;
+        if (!query.get_height(height, link) || !query.set_block_valid(link))
+        {
+            fault.store(true);
+            return;
+        }
 
         notify_block(system::error::success, height, link, false);
-    }
+    });
 
     batched_.clear();
     if (residual)
         batched_.shrink_to_fit();
 
-    return true;
+    return fault.load();
 }
 
 BC_POP_WARNING()
