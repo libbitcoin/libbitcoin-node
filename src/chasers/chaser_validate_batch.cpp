@@ -228,7 +228,7 @@ bool chaser_validate::process_valids(bool residual) NOEXCEPT
     if (residual)
         batched_.shrink_to_fit();
 
-    return fault.load();
+    return !fault.load();
 }
 
 BC_POP_WARNING()
