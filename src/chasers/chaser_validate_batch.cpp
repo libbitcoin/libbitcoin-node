@@ -185,6 +185,13 @@ bool chaser_validate::process_invalids(const header_links& invalids) NOEXCEPT
         notify_block(system::error::invalid_signature, height, link, false);
     }
 
+    // BUGBUG: a batched_ value may not be present in the current batched_ set
+    // despite being invalid here, which is expected. However upon invalidation
+    // and failure to match here, this block id will subsequently land in
+    // batched_ and then be reported as valid, overriding the unconfirmable
+    // block state set above. We also don't want to read block state before
+    // every write of valid state.
+
     // Set all invalids links in batched_ to terminal (to be skipped).
     if (!invalids.empty())
     {
