@@ -170,6 +170,11 @@ bool chaser_validate::is_maximum() NOEXCEPT
 // Invalids might not be included in batched, as link push is a race.
 // Collected links are only required to set valid, not invalid, and do not
 // need to coincide with the batch that is currently being processed (!).
+// A batched_ value may not be present in the current batched_ set despite
+// being invalid here, which is expected. However upon invalidation and failure
+// to match here, this block id will subsequently land in batched_ and would
+// then be reported as valid, overriding the unconfirmable block state set
+// below, so invalids_ are cached for process lifetime.
 bool chaser_validate::process_invalids(const header_links& invalids) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -182,15 +187,16 @@ bool chaser_validate::process_invalids(const header_links& invalids) NOEXCEPT
             !query.set_block_unconfirmable(link))
             return false;
 
+        invalids_.push_back(link);
         notify_block(system::error::invalid_signature, height, link, false);
     }
 
-    // Set all invalids links in batched_ to terminal (to be skipped).
-    if (!invalids.empty())
+    // Set all invalid links in batched_ to terminal (to be skipped).
+    if (!invalids_.empty())
     {
         std::ranges::replace_if(batched_, [&](const auto& link) NOEXCEPT
         {
-            return contains(invalids, link);
+            return contains(invalids_, link);
         }, header_link::terminal);
     }
 

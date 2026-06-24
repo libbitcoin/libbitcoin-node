@@ -125,6 +125,7 @@ private:
 
     // These are protected by strand.
     header_links batched_{};
+    header_links invalids_{};
     network::threadpool validation_threadpool_;
 
     // These are thread safe.
