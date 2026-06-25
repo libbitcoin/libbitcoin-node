@@ -61,8 +61,8 @@ void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEP
     --batch_backlog_;
 
     // Unblocks check chaser for download while verifying.
-    if (allow_batch_race_)
-        notify({}, chase::prevalid, possible_wide_cast<height_t>(height));
+    ////if (allow_batch_race_)
+    notify({}, chase::prevalid, possible_wide_cast<height_t>(height));
 
     // Process both tables when one hits target, allowing batched_ clearance
     // and therefore forward confirmation progress. Drain batch if no backlogs
