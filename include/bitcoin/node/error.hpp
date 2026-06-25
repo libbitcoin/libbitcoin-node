@@ -91,6 +91,7 @@ enum error_t : uint8_t
     validate6,
     validate7,
     validate8,
+    validate9,
     confirm1,
     confirm2,
     confirm3,
