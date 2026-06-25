@@ -47,6 +47,7 @@ settings::settings() NOEXCEPT
     ////snapshot_valid{ 250'000 },
     ////snapshot_confirm{ 500'000 },
     maximum_height{ 0 },
+    silent_start_height{ 0xffffffff_u32 },
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
     currency_window_minutes{ 1440 },
