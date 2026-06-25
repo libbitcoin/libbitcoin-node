@@ -49,6 +49,7 @@ public:
     uint16_t fee_estimate_horizon;
     uint32_t maximum_height;
     uint32_t maximum_concurrency;
+    uint32_t silent_start_height;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
     uint16_t warn_dirty_background_ratio;

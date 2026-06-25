@@ -151,10 +151,15 @@ code chaser_validate::validate(bool& batched, bool& faulted, bool& capturing,
     if (!faulted && !query.set_filter_body(link, block))
         return error::validate7;
 
-    // Defer block state change when batched (or faulted).
-    // Valid must be set after set_prevouts and set_filter_body.
-    if (!batched && !bypass && !query.set_block_valid(link))
+    // Block will be retried if batch is faulted.
+    if (!faulted && (ctx.height >= silent_start_height_) &&
+        !query.set_silent(link, block))
         return error::validate8;
+
+    // Defer block state change when batched (or faulted).
+    // Valid must be set after set_prevouts, set_filter_body, and set_silent.
+    if (!batched && !bypass && !query.set_block_valid(link))
+        return error::validate9;
 
     return error::success;
 }

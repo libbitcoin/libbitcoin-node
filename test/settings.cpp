@@ -45,6 +45,7 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.fee_estimate_horizon, 0u);
     BOOST_REQUIRE_EQUAL(node.maximum_height, 0_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_height_(), max_size_t);
+    BOOST_REQUIRE_EQUAL(node.silent_start_height, 0xffffffff_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency, 50000_u32);
     BOOST_REQUIRE_EQUAL(node.maximum_concurrency_(), 50000_size);
     BOOST_REQUIRE_EQUAL(node.sample_period_seconds, 10_u16);

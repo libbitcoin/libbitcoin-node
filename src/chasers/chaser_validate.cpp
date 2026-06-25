@@ -42,10 +42,11 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     validation_strand_(validation_threadpool_.service().get_executor()),
     subsidy_interval_(node.system_settings().subsidy_interval_blocks),
     initial_subsidy_(node.system_settings().initial_subsidy()),
+    silent_start_height_(node.node_settings().silent_start_height),
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     maximum_height_(node.node_settings().maximum_height_()),
     batch_target_(node.node_settings().batch_signatures),
-    allow_batch_race_(node.node_settings().allow_batch_race),
+    ////allow_batch_race_(node.node_settings().allow_batch_race),
     batch_enabled_(node.node_settings().batch_signatures_enabled()),
     node_witness_(node.network_settings().witness_node()),
     filter_(node.archive().filter_enabled())

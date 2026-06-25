@@ -146,10 +146,11 @@ private:
     network::asio::strand validation_strand_;
     const uint32_t subsidy_interval_;
     const uint64_t initial_subsidy_;
+    const size_t silent_start_height_;
     const size_t maximum_backlog_;
     const size_t maximum_height_;
     const uint64_t batch_target_;
-    const bool allow_batch_race_;
+    ////const bool allow_batch_race_;
     const bool batch_enabled_;
     const bool node_witness_;
     const bool filter_;

@@ -62,8 +62,9 @@ enum events : uint8_t
     filter_msecs,        // getfilter timespan in milliseconds.
     filterhashes_msecs,  // getfilterhashes timespan in milliseconds.
     filterchecks_msecs,  // getcfcheckpt timespan in milliseconds.
-    ecdsa_secs,          // process_batch ecdsa timespan in seconds.
-    schnorr_secs,        // process_batch schnorr timespan in seconds.
+    ecdsa_secs,          // ecdsa batch verify timespan in seconds.
+    schnorr_secs,        // schnorr batch verify timespan in seconds.
+    silent_secs,         // silent payment scan timespan in seconds.
 
     unknown
 };
