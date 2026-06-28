@@ -64,6 +64,11 @@ void chaser_validate::validate_block(const header_link& link,
         if (!query.set_block_unconfirmable(link))
             ec = error::validate5;
     }
+    else if (batched && !faulted)
+    {
+        if (!query.set_block_prevalid(link))
+            ec = error::batch1;
+    }
 
     --validate_backlog_;
     complete_block(ec, link, ctx.height, bypass, batched, faulted, capturing);

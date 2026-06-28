@@ -57,10 +57,10 @@ code chaser_validate::start() NOEXCEPT
     if (!node_settings().headers_first)
         return error::success;
 
-    if (const auto ec = start_batch())
-        return ec;
-
     set_position(archive().get_fork());
+    if (const auto ec = start_batch())
+        return fault(ec);
+
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
@@ -192,6 +192,10 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
                 complete_block(error::success, link, height, true);
                 break;
             }
+            case database::error::block_prevalid:
+            {
+                break;
+            }
             case database::error::block_unconfirmable:
             {
                 return;
@@ -279,28 +283,28 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     const auto current = !capturing && !bypass;
 
     // Drain batch when recent (current, or maximum reached without backlog).
-    if (current || is_maximum())
+    if (current || is_residual())
     {
         POST(process_batch, true);
     }
 }
 
 void chaser_validate::notify_block(const code& ec, size_t height, 
-    const header_link& link, bool bypass) NOEXCEPT
+    const header_link& link, bool bypass, bool startup) NOEXCEPT
 {
     // Not stranded when complete_block is called from validate_block.
 
     if (ec)
     {
         // INVALID BLOCK (not a fault but discontinue)
-        notify(ec, chase::unvalid, link);
+        if (!startup) notify(ec, chase::unvalid, link);
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
         return;
     }
 
     // VALID BLOCK
-    notify(ec, chase::valid, possible_wide_cast<height_t>(height));
+    if (!startup) notify(ec, chase::valid, possible_wide_cast<height_t>(height));
     fire(events::block_validated, height);
     LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }

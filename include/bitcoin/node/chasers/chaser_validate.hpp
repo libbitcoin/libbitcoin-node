@@ -76,12 +76,18 @@ protected:
         size_t height, bool bypass, bool batched=false,
         bool faulted=false, bool capturing=false) NOEXCEPT;
     virtual void notify_block(const code& ec, size_t height,
-        const header_link& link, bool bypass) NOEXCEPT;
+        const header_link& link, bool bypass, bool startup=false) NOEXCEPT;
 
     /// Batching.
+    virtual bool is_residual() NOEXCEPT;
+    virtual bool is_mature(bool residual) NOEXCEPT;
     virtual code start_batch() NOEXCEPT;
-    virtual void process_batch(bool residual) NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
+    virtual void process_batch(bool residual) NOEXCEPT;
+    virtual code do_process_batch(bool startup) NOEXCEPT;
+    virtual bool mark_valids(bool startup) NOEXCEPT;
+    virtual bool mark_invalids(const header_links& invalids,
+        bool startup) NOEXCEPT;
 
     // Override base class strand because it sits on the network thread pool.
     network::asio::strand& strand() NOEXCEPT override;
@@ -93,11 +99,6 @@ private:
     using atomic_counter_ptr = std::shared_ptr<atomic_counter>;
     using threshold = system::chain::threshold;
     using missed = signatures::miss;
-
-    /// Batching helpers.
-    bool is_maximum() NOEXCEPT;
-    bool process_valids(bool residual) NOEXCEPT;
-    bool process_invalids(const header_links& invalids) NOEXCEPT;
 
     // Capture handlers.
     void do_log(const system::chain::script& missed) NOEXCEPT;

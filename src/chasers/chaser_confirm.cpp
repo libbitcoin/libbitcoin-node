@@ -252,6 +252,7 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
             }
             // error::unassociated
             // error::unknown_state
+            // error::block_prevalid
             // error::block_unconfirmable
             default:
             {
