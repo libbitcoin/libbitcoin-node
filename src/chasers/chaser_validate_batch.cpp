@@ -38,7 +38,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // ----------------------------------------------------------------------------
 // protected
 
-// TODO: ecdsa can be retained, as they don't fault, so set batched_ here.
 // Cannot know if archived batch is faulted, despite being otherwise full, as
 // faulted is a non-persistent state. So we must purge batches at start.
 code chaser_validate::start_batch() NOEXCEPT
@@ -61,7 +60,6 @@ void chaser_validate::push_batch(const header_link& link, size_t height) NOEXCEP
     --batch_backlog_;
 
     // Unblocks check chaser for download while verifying.
-    ////if (allow_batch_race_)
     notify({}, chase::prevalid, possible_wide_cast<height_t>(height));
 
     // Process both tables when one hits target, allowing batched_ clearance
