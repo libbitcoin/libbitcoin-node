@@ -156,6 +156,9 @@ void chaser_storage::do_reload() NOEXCEPT
     }
     else
     {
+        // Recovery from disk full message sent in addition to chase::resume.
+        notify(error::success, chase::unfull, {});
+
         resume();
         const auto span = duration_cast<seconds>(logger::now() - start);
         LOGN("Reload from disk full complete in " << span.count() << " secs.");

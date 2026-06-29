@@ -143,6 +143,7 @@ private:
     std::atomic<size_t> validate_backlog_{};
     std::atomic<size_t> batch_backlog_{};
     std::atomic_bool maximum_posted_{};
+    std::atomic_bool recovering_{};
 
     network::asio::strand validation_strand_;
     const uint32_t subsidy_interval_;
