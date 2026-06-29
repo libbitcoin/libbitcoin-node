@@ -71,6 +71,14 @@ bool chaser_validate::handle_chase(const code&, chase event_,
     if (closed())
         return false;
 
+    // Latch recovering from disk full, before suspension is lifted.
+    // Because in-flight blocks are lost, reset position when backlog clears.
+    if (event_ == chase::unfull)
+    {
+        recovering_.store(true);
+        return true;
+    }
+
     // Stop generating query during suspension.
     // Incoming events may already be flushed to the strand at this point.
     if (suspended())
@@ -137,6 +145,12 @@ void chaser_validate::do_checked(height_t height) NOEXCEPT
 void chaser_validate::do_bump(height_t) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
+    if (recovering_.load() && is_zero(validate_backlog_.load()))
+    {
+        recovering_.store(false);
+        set_position(archive().get_fork());
+    }
 
     const auto height = add1(position());
     if (archive().is_validateable(height))
@@ -257,18 +271,9 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     // Batch jobs (all posting from unstranded).
     // ------------------------------------------------------------------------
 
-    // Avoid posting new work when closing.
-    if (closed() || !batch_enabled_)
+    // Faulted implies disk full prevented threshold batch writes.
+    if (closed() || !batch_enabled_ || faulted)
         return;
-
-    // TODO: ensure doesn't lead to tight revalidation loop under disk full.
-    // Retry faulted threshold, re-enters backlog (presumes disk full).
-    if (faulted)
-    {
-        ++validate_backlog_;
-        POST(post_block, link, bypass);
-        return;
-    }
 
     // Queue block and process batch if ready.
     if (batched)

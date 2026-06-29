@@ -53,6 +53,10 @@ enum class chase
     /// Issued by 'full_node' and handled by 'check', 'validate', 'confirm'.
     resume,
 
+    /// Node is recovering from disk full condition.
+    /// Issued by 'storage' and handled by 'validate'.
+    unfull,
+
     /// Channel starved for work (object_t).
     /// Issued by 'block_in_31800' and handled by 'session_outbound'.
     starved,
