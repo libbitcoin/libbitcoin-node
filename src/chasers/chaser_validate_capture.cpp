@@ -117,14 +117,6 @@ bool chaser_validate::do_threshold(const threshold& batch,
     return set;
 }
 
-std::string chaser_validate::log_rate(const std::string& name,
-    size_t numerator, size_t denominator) const NOEXCEPT
-{
-    const auto rate = numerator / greater(denominator, one);
-    return (boost_format("%1% (%2% / %3%) = %4% sps") %
-        name % numerator % denominator % rate).str();
-}
-
 // Capture helpers.
 // ----------------------------------------------------------------------------
 // private

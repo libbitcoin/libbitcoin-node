@@ -38,24 +38,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // ----------------------------------------------------------------------------
 // protected
 
-bool chaser_validate::is_residual() NOEXCEPT
-{
-    // Verify residuals when recent.
-    return maximum_posted_.load() &&
-        is_zero(batch_backlog_.load()) &&
-        is_zero(validate_backlog_.load());
-}
-
-bool chaser_validate::is_mature(bool residual) NOEXCEPT
-{
-    const auto& query = archive();
-    const auto ecdsa = query.ecdsa_records();
-    const auto schnorr = query.schnorr_records();
-
-    // Verify non-residuals when mature.
-    return residual || (ecdsa >= batch_target_) || (schnorr >= batch_target_);
-}
-
 // If there was a non-empty batch at startup, process it for invalids and set
 // their states normally, then scan from fork point (position()) to association
 // gap for all prevalids. Iterate over these setting their states to valid.
@@ -271,6 +253,36 @@ bool chaser_validate::mark_valids(bool startup) NOEXCEPT
 
     batched_.clear();
     return !fault.load();
+}
+
+// Batch helpers.
+// ----------------------------------------------------------------------------
+// private
+
+bool chaser_validate::is_residual() NOEXCEPT
+{
+    // Verify residuals when recent.
+    return maximum_posted_.load() &&
+        is_zero(batch_backlog_.load()) &&
+        is_zero(validate_backlog_.load());
+}
+
+bool chaser_validate::is_mature(bool residual) NOEXCEPT
+{
+    const auto& query = archive();
+    const auto ecdsa = query.ecdsa_records();
+    const auto schnorr = query.schnorr_records();
+
+    // Verify non-residuals when mature.
+    return residual || (ecdsa >= batch_target_) || (schnorr >= batch_target_);
+}
+
+std::string chaser_validate::log_rate(const std::string& name,
+    size_t numerator, size_t denominator) const NOEXCEPT
+{
+    const auto rate = numerator / greater(denominator, one);
+    return (boost_format("%1% (%2% / %3%) = %4% sps") %
+        name % numerator % denominator % rate).str();
 }
 
 BC_POP_WARNING()

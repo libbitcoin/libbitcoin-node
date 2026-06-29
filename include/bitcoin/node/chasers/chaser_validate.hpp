@@ -79,8 +79,6 @@ protected:
         const header_link& link, bool bypass, bool startup=false) NOEXCEPT;
 
     /// Batching.
-    virtual bool is_residual() NOEXCEPT;
-    virtual bool is_mature(bool residual) NOEXCEPT;
     virtual code start_batch() NOEXCEPT;
     virtual void close_batch() NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
@@ -119,11 +117,15 @@ private:
 
     // Capture helpers.
     signatures get_capture(const header_link& link) NOEXCEPT;
-    std::string log_rate(const std::string& name, size_t numerator,
-        size_t denominator) const NOEXCEPT;
     std::string log_ratio(const std::string& name, size_t numerator,
         size_t denominator) const NOEXCEPT;
     void log_captures() const NOEXCEPT;
+
+    // Batching helpers.
+    bool is_residual() NOEXCEPT;
+    bool is_mature(bool residual) NOEXCEPT;
+    std::string log_rate(const std::string& name, size_t numerator,
+        size_t denominator) const NOEXCEPT;
 
     // These are protected by strand.
     header_links batched_{};
