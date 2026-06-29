@@ -206,10 +206,6 @@ void chaser_validate::do_bumped(height_t height) NOEXCEPT
                 complete_block(error::success, link, height, true);
                 break;
             }
-            case database::error::block_prevalid:
-            {
-                break;
-            }
             case database::error::block_unconfirmable:
             {
                 return;
@@ -319,6 +315,9 @@ void chaser_validate::notify_block(const code& ec, size_t height,
 
 void chaser_validate::stopping(const code& ec) NOEXCEPT
 {
+    // closed() is now true so time to bump batched_ drain.
+    POST(close_batch);
+
     // Stop long-running batch validations.
     stopping_.store(true);
 

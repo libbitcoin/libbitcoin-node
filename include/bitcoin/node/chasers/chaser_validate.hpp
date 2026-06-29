@@ -82,6 +82,7 @@ protected:
     virtual bool is_residual() NOEXCEPT;
     virtual bool is_mature(bool residual) NOEXCEPT;
     virtual code start_batch() NOEXCEPT;
+    virtual void close_batch() NOEXCEPT;
     virtual void push_batch(const header_link& link, size_t height) NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
     virtual code do_process_batch(bool startup) NOEXCEPT;

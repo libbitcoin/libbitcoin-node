@@ -65,13 +65,30 @@ code chaser_validate::start_batch() NOEXCEPT
     if (!batch_enabled_)
         return {};
 
-    const auto& query = archive();
+    auto& query = archive();
+    batched_ = query.get_prevalids();
+    if (!query.purge_prevalids())
+        return error::batch1;
+
     if (is_zero(query.ecdsa_records()) && is_zero(query.schnorr_records()))
         return {};
 
-    // Accumulate all prevalid block links above the fork point.
-    batched_ = query.get_prevalids(position());
     return do_process_batch(true);
+}
+
+// Shutdown drains batched_ to block prevalid states, recovered on startup.
+// Snapshot restoration purges batch backlog as the tables are not append-only.
+void chaser_validate::close_batch() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    BC_ASSERT(closed());
+
+    // Set even if signature batch tables are empty.
+    if (is_zero(batch_backlog_.load()))
+    {
+        archive().set_prevalids(batched_);
+        batched_.clear();
+    }
 }
 
 // batched_ is redundant with the combined set of ecdsa/schnorr unfailed block
@@ -81,11 +98,15 @@ void chaser_validate::push_batch(const header_link& link,
 {
     BC_ASSERT(stranded());
 
-    if (closed())
-        return;
-
+    // Accumulate even if closed. Sacrifices stop speed to save validations.
     batched_.push_back(link);
     --batch_backlog_;
+
+    if (closed())
+    {
+        close_batch();
+        return;
+    }
 
     // Unblocks check chaser for download while verifying.
     notify({}, chase::prevalid, possible_wide_cast<height_t>(height));
