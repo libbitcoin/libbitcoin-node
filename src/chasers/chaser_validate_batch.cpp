@@ -115,22 +115,27 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // tables to be fully purged upon completion, and ensuring that evaluation
     // does not operate over partial block records in the batch tables.
     // ========================================================================
-    const std::unique_lock lock{ mutex_ };
+    {
+        const std::unique_lock lock{ mutex_ };
 
-    // Must retest inside the lock as table updates are running concurrently.
-    if (closed() || !is_mature(residual))
-        return;
+        // Must retest inside lock as table updates are running concurrently.
+        if (closed() || !is_mature(residual))
+            return;
 
-    if (const auto ec = do_process_batch(false))
-        fault(ec);
+        if (const auto ec = do_process_batch(false))
+        {
+            fault(ec);
+            return;
+        }
+    }
     // ========================================================================
+
+    // Log outside of lock, oand nly when batch executes (non-verbose).
+    log_captures();
 }
 
 code chaser_validate::do_process_batch(bool startup) NOEXCEPT
 {
-    if (!startup)
-        log_captures();
-
     auto& query = archive();
 
     const auto ecdsa = query.ecdsa_records();
