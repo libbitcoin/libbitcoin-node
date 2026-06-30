@@ -38,24 +38,6 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // ----------------------------------------------------------------------------
 // protected
 
-bool chaser_validate::is_residual() NOEXCEPT
-{
-    // Verify residuals when recent.
-    return maximum_posted_.load() &&
-        is_zero(batch_backlog_.load()) &&
-        is_zero(validate_backlog_.load());
-}
-
-bool chaser_validate::is_mature(bool residual) NOEXCEPT
-{
-    const auto& query = archive();
-    const auto ecdsa = query.ecdsa_records();
-    const auto schnorr = query.schnorr_records();
-
-    // Verify non-residuals when mature.
-    return residual || (ecdsa >= batch_target_) || (schnorr >= batch_target_);
-}
-
 // If there was a non-empty batch at startup, process it for invalids and set
 // their states normally, then scan from fork point (position()) to association
 // gap for all prevalids. Iterate over these setting their states to valid.
@@ -65,13 +47,30 @@ code chaser_validate::start_batch() NOEXCEPT
     if (!batch_enabled_)
         return {};
 
-    const auto& query = archive();
+    auto& query = archive();
+    batched_ = query.get_prevalids();
+    if (!query.purge_prevalids())
+        return error::batch1;
+
     if (is_zero(query.ecdsa_records()) && is_zero(query.schnorr_records()))
         return {};
 
-    // Accumulate all prevalid block links above the fork point.
-    batched_ = query.get_prevalids(position());
     return do_process_batch(true);
+}
+
+// Shutdown drains batched_ to block prevalid states, recovered on startup.
+// Snapshot restoration purges batch backlog as the tables are not append-only.
+void chaser_validate::close_batch() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    BC_ASSERT(closed());
+
+    // Set even if signature batch tables are empty.
+    if (is_zero(batch_backlog_.load()))
+    {
+        archive().set_prevalids(batched_);
+        batched_.clear();
+    }
 }
 
 // batched_ is redundant with the combined set of ecdsa/schnorr unfailed block
@@ -81,11 +80,15 @@ void chaser_validate::push_batch(const header_link& link,
 {
     BC_ASSERT(stranded());
 
-    if (closed())
-        return;
-
+    // Accumulate even if closed. Sacrifices stop speed to save validations.
     batched_.push_back(link);
     --batch_backlog_;
+
+    if (closed())
+    {
+        close_batch();
+        return;
+    }
 
     // Unblocks check chaser for download while verifying.
     notify({}, chase::prevalid, possible_wide_cast<height_t>(height));
@@ -112,22 +115,27 @@ void chaser_validate::process_batch(bool residual) NOEXCEPT
     // tables to be fully purged upon completion, and ensuring that evaluation
     // does not operate over partial block records in the batch tables.
     // ========================================================================
-    const std::unique_lock lock{ mutex_ };
+    {
+        const std::unique_lock lock{ mutex_ };
 
-    // Must retest inside the lock as table updates are running concurrently.
-    if (closed() || !is_mature(residual))
-        return;
+        // Must retest inside lock as table updates are running concurrently.
+        if (closed() || !is_mature(residual))
+            return;
 
-    if (const auto ec = do_process_batch(false))
-        fault(ec);
+        if (const auto ec = do_process_batch(false))
+        {
+            fault(ec);
+            return;
+        }
+    }
     // ========================================================================
+
+    // Log outside of lock, oand nly when batch executes (non-verbose).
+    log_captures();
 }
 
 code chaser_validate::do_process_batch(bool startup) NOEXCEPT
 {
-    if (!startup)
-        log_captures();
-
     auto& query = archive();
 
     const auto ecdsa = query.ecdsa_records();
@@ -250,6 +258,36 @@ bool chaser_validate::mark_valids(bool startup) NOEXCEPT
 
     batched_.clear();
     return !fault.load();
+}
+
+// Batch helpers.
+// ----------------------------------------------------------------------------
+// private
+
+bool chaser_validate::is_residual() NOEXCEPT
+{
+    // Verify residuals when recent.
+    return maximum_posted_.load() &&
+        is_zero(batch_backlog_.load()) &&
+        is_zero(validate_backlog_.load());
+}
+
+bool chaser_validate::is_mature(bool residual) NOEXCEPT
+{
+    const auto& query = archive();
+    const auto ecdsa = query.ecdsa_records();
+    const auto schnorr = query.schnorr_records();
+
+    // Verify non-residuals when mature.
+    return residual || (ecdsa >= batch_target_) || (schnorr >= batch_target_);
+}
+
+std::string chaser_validate::log_rate(const std::string& name,
+    size_t numerator, size_t denominator) const NOEXCEPT
+{
+    const auto rate = numerator / greater(denominator, one);
+    return (boost_format("%1% (%2% / %3%) = %4% sps") %
+        name % numerator % denominator % rate).str();
 }
 
 BC_POP_WARNING()

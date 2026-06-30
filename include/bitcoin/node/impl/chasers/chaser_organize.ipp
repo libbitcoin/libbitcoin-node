@@ -179,7 +179,7 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // TODO: If any checkpoint is reached then reject non-candidates below.
     // TODO: because checkpoints are storable (and therefore stored) along with
-    // TODO: all ancestor blocks, which therefore much be candidates as well.
+    // TODO: all ancestor blocks, which therefore must be candidates as well.
     // TODO: When a checkpoint is pushed and after its branch is reorganized,
     // TODO: purge all blocks in the tree with height at/below that checkpoint.
     // TODO: The combination strongly mitigates low pow sybil attacks against
