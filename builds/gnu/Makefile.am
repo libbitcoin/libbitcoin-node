@@ -238,6 +238,7 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/chasers/chaser_template.cpp \
     ${srcdir}/../../test/chasers/chaser_transaction.cpp \
     ${srcdir}/../../test/chasers/chaser_validate.cpp \
+    ${srcdir}/../../test/messages/block.cpp \
     ${srcdir}/../../test/protocols/protocol.cpp \
     ${srcdir}/../../test/sessions/session.cpp
 

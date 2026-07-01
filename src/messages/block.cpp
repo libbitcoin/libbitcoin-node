@@ -36,28 +36,20 @@ const uint32_t block::version_maximum = level::maximum_protocol;
 bool block::serialize(uint32_t version, const data_slab& data,
     bool witness) const NOEXCEPT
 {
-    if (witness != witnessed_)
-        return false;
-
     system::stream::out::fast out{ data };
     system::write::bytes::fast writer{ out };
     serialize(version, writer, witness);
     return writer;
 }
 
-// Sender must ensure that version/witness are consistent with channel.
-void block::serialize(uint32_t, writer& sink,
-    bool BC_DEBUG_ONLY(witness)) const NOEXCEPT
+void block::serialize(uint32_t, writer& sink, bool witness) const NOEXCEPT
 {
-    BC_ASSERT(witness == witnessed_);
-    sink.write_bytes(block_data);
+    block.to_data(sink, witness);
 }
 
-// Sender must ensure that version/witness are consistent with channel.
-size_t block::size(uint32_t, bool BC_DEBUG_ONLY(witness)) const NOEXCEPT
+size_t block::size(uint32_t, bool witness) const NOEXCEPT
 {
-    BC_ASSERT(witness == witnessed_);
-    return block_data.size();
+    return block.is_valid() ? block.serialized_size(witness) : zero;
 }
 
 } // namespace messages

@@ -13,11 +13,14 @@
     <Filter Include="src\chasers">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000001}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\protocols">
+    <Filter Include="src\messages">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000002}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\sessions">
+    <Filter Include="src\protocols">
       <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\sessions">
+      <UniqueIdentifier>{4BD50864-D3BC-4F64-0000-000000000004}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -71,6 +74,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\main.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\test\messages\block.cpp">
+      <Filter>src\messages</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\test\protocols\protocol.cpp">
       <Filter>src\protocols</Filter>
