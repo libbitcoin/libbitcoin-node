@@ -606,7 +606,7 @@ source_archive()
             read -p "Replace '${PROJECT}' directory with intended contents? [y/N] " CONFIRM
         fi
 
-        if [[ "${CONFIRM,,}" == "y" ]]; then
+        if [[ "$(printf '%s' "${CONFIRM}" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
             remove_directory_force "${PROJECT}"
         else
             msg_error "Aborted installation."
@@ -621,10 +621,14 @@ source_archive()
 
     local TAR="tar"
     local WGET="wget --quiet"
+    local CURL="curl --fail --silent --show-error --location"
 
-    # retrieve file
-    ${WGET} --output-document "${FILENAME}" "${URL_BASE}${FILENAME}"
-    # ${WGET} --output-document "${FILENAME}" "${URL_BASE}${FILENAME}"
+    # retrieve file, preferring wget (curl fallback for macOS)
+    if command -v wget >/dev/null 2>&1; then
+        ${WGET} --output-document "${FILENAME}" "${URL_BASE}${FILENAME}"
+    else
+        ${CURL} --output "${FILENAME}" "${URL_BASE}${FILENAME}"
+    fi
 
     # extract to expected path
     ${TAR} --extract --file "${FILENAME}" --${COMPRESSION} --strip-components=1
@@ -685,7 +689,7 @@ source_github()
             read -p "Replace '${REPOSITORY}' directory with intended contents? [y/N] " CONFIRM
         fi
 
-        if [[ "${CONFIRM,,}" == "y" ]]; then
+        if [[ "$(printf '%s' "${CONFIRM}" | tr '[:upper:]' '[:lower:]')" == "y" ]]; then
             remove_directory_force "${REPOSITORY}"
         else
             msg_error "Aborted installation."
