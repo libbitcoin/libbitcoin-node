@@ -217,13 +217,10 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 
     const auto& query = archive();
     const auto link = query.to_header(item.hash);
-    if (witness && node_witness_ && node_pruned_ &&
-        (is_under_checkpoint(link) || query.is_milestone(link)))
+    if (node_pruned_ && (is_under_checkpoint(link) || query.is_milestone(link)))
     {
-        LOGR("Request of witness for stripped block "
-            << encode_hash(item.hash) << " from [" << opposite() << "].");
-
-        // The peer should not be asking for this block with witness.
+        LOGR("Requested pruned block " << encode_hash(item.hash)
+            << " from [" << opposite() << "].");
         stop(system::error::not_found);
         return;
     }
