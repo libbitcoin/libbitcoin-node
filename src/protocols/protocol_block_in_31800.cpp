@@ -290,7 +290,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto height = it->context.height;
     const auto checked = is_under_checkpoint(height);
     const auto bypass = checked || query.is_milestone(link);
-    if (bypass && node_pruned_ && block.is_segregated())
+    if (node_pruned_ && bypass && block.is_segregated())
     {
         LOGR("Unexpected witness from [" << opposite() << "].");
         stop(system::error::unexpected_witness);
@@ -440,11 +440,8 @@ bool protocol_block_in_31800::is_under_checkpoint(size_t height) const NOEXCEPT
 type_id protocol_block_in_31800::to_block_type(
     const association& item) const NOEXCEPT
 {
-    const auto stripped = node_pruned_ &&
-        (is_under_checkpoint(item.context.height) ||
-         archive().is_milestone(item.link));
-
-    return stripped ? type_id::block : block_type_;
+    return node_pruned_ && (is_under_checkpoint(item.context.height) ||
+        archive().is_milestone(item.link)) ? type_id::block : block_type_;
 }
 
 BC_POP_WARNING()
