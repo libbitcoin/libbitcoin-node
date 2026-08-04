@@ -163,6 +163,19 @@ private:
     void cache(const typename Block::cptr& block,
         const chain_state::cptr& state) NOEXCEPT;
 
+    // Checkpoint gate.
+    // ------------------------------------------------------------------------
+
+    // True if the parent of a new block is below the top reached checkpoint.
+    bool is_under_active_checkpoint(
+        const system::hash_digest& previous) const NOEXCEPT;
+
+    // Advance top reached checkpoint and purge the tree at/below it.
+    void update_checkpoint(height_t top) NOEXCEPT;
+
+    // Remove tree blocks at/below the top reached checkpoint (conflicted).
+    void purge_under_checkpoint() NOEXCEPT;
+
     // Getters.
     // ------------------------------------------------------------------------
 
@@ -188,6 +201,8 @@ private:
 
     // These are protected by strand.
     bool bumped_{};
+    size_t next_checkpoint_{};
+    size_t active_checkpoint_{};
     chain_state::cptr state_{};
 
     // TODO: optimize, default bucket count is around 8.
