@@ -299,9 +299,12 @@ void CLASS::do_organize(typename Block::cptr block,
     // Reset top chain state and notify.
     // ........................................................................
 
+    // Evaluated independently of the block short-circuit below.
+    const auto current = is_current_time(header.timestamp());
+
     // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
-    if (is_block() || is_current_time(header.timestamp()))
+    if (is_block() || current)
     {
         if (!bumped_)
         {
@@ -326,6 +329,7 @@ void CLASS::do_organize(typename Block::cptr block,
 
     // Advance top reached checkpoint and purge the tree at/below it.
     update_checkpoint(height);
+    shrink_tree(current);
     handler(error::success, height);
 }
 
@@ -606,6 +610,18 @@ void CLASS::purge_under_checkpoint() NOEXCEPT
         LOGN("Purged (" << count << ") blocks under checkpoint ["
             << active_checkpoint_ << "].");
     }
+}
+
+TEMPLATE
+void CLASS::shrink_tree(bool current) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (shrunk_ || !current)
+        return;
+
+    shrunk_ = true;
+    tree_.rehash(zero);
+    LOGV("Tree buckets reduced to (" << tree_.bucket_count() << ").");
 }
 
 // Private getters

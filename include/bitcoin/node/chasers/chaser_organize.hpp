@@ -176,6 +176,9 @@ private:
     // Remove tree blocks at/below the top reached checkpoint (conflicted).
     void purge_under_checkpoint() NOEXCEPT;
 
+    // Release tree buckets retained from accumulation (once, when current).
+    void shrink_tree(bool current) NOEXCEPT;
+
     // Getters.
     // ------------------------------------------------------------------------
 
@@ -201,11 +204,10 @@ private:
 
     // These are protected by strand.
     bool bumped_{};
+    bool shrunk_{};
     size_t next_checkpoint_{};
     size_t active_checkpoint_{};
     chain_state::cptr state_{};
-
-    // TODO: optimize, default bucket count is around 8.
     block_tree tree_{};
 };
 
