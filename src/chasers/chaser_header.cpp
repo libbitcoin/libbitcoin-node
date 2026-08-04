@@ -82,6 +82,7 @@ code chaser_header::duplicate(size_t& height,
             return ec;
         }
 
+        // height set to max_size_t unless unconfirmable.
         return error::duplicate_header;
     }
 

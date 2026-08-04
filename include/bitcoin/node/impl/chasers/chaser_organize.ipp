@@ -61,6 +61,7 @@ code CLASS::start() NOEXCEPT
     LOGN("Candidate top [" << system::encode_hash(state_->hash()) << ":"
         << state_->height() << "].");
 
+    update_checkpoint(top);
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
 }
@@ -156,6 +157,13 @@ void CLASS::do_organize(typename Block::cptr block,
         return;
     }
 
+    // Shortcircuit fork at/under the top reached checkpoint.
+    if (is_under_active_checkpoint(previous))
+    {
+        handler(system::error::checkpoint_conflict, {});
+        return;
+    }
+
     // Obtain parent state from state_, tree, or store as applicable.
     const auto parent = get_chain_state(previous);
     if (!parent)
@@ -175,16 +183,7 @@ void CLASS::do_organize(typename Block::cptr block,
     {
         handler(system::error::checkpoint_conflict, height);
         return;
-    };
-
-    // TODO: If any checkpoint is reached then reject non-candidates below.
-    // TODO: because checkpoints are storable (and therefore stored) along with
-    // TODO: all ancestor blocks, which therefore must be candidates as well.
-    // TODO: When a checkpoint is pushed and after its branch is reorganized,
-    // TODO: purge all blocks in the tree with height at/below that checkpoint.
-    // TODO: The combination strongly mitigates low pow sybil attacks against
-    // TODO: the header tree, as all are purged as each checkpoint is reached,
-    // TODO: and no more are ever accepted below the top checkpoint.
+    }
 
     // Blocks of headers are validated later, malleations ignored until then.
     // Blocks are fully validated (not confirmed), so malleation is non-issue.
@@ -300,9 +299,12 @@ void CLASS::do_organize(typename Block::cptr block,
     // Reset top chain state and notify.
     // ........................................................................
 
+    // Evaluated independently of the block short-circuit below.
+    const auto current = is_current_time(header.timestamp());
+
     // Delay so headers can get current before block download starts.
     // Checking currency before notify also avoids excessive work backlog.
-    if (is_block() || is_current_time(header.timestamp()))
+    if (is_block() || current)
     {
         if (!bumped_)
         {
@@ -324,6 +326,10 @@ void CLASS::do_organize(typename Block::cptr block,
     // Logs from candidate block parent to the candidate (forward sequential).
     log_state_change(*parent, *state);
     state_ = state;
+
+    // Advance top reached checkpoint and purge the tree at/below it.
+    update_checkpoint(height);
+    shrink_tree(current);
     handler(error::success, height);
 }
 
@@ -515,7 +521,7 @@ code CLASS::push_block(const Block& block,
     // events::header_archived | events::block_archived
     fire(events_object_archived(), ctx.height);
     LOGV("Header archived: " << ctx.height);
-    return set_organized(link, ctx.height) ? ec : error::organize14;
+    return set_organized(link, ctx.height) ? error::success : error::organize14;
 }
 
 TEMPLATE
@@ -536,8 +542,86 @@ void CLASS::cache(const typename Block::cptr& block,
     // Any block obtained from the tree must have state cached.
     block->set_state(state);
 
-    // TODO: guard cache against memory exhaustion (DoS).
     tree_.emplace(block->get_hash(), block);
+}
+
+TEMPLATE
+bool CLASS::is_under_active_checkpoint(
+    const system::hash_digest& previous) const NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& query = archive();
+
+    if (is_zero(active_checkpoint_))
+        return false;
+
+    // Extending the candidate top (the common case, necessarily above).
+    if (state_->hash() == previous)
+        return false;
+
+    // Tree blocks are necessarily above (purged as checkpoints are reached).
+    if (tree_.find(previous) != tree_.end())
+        return false;
+
+    // Unstored parent is the orphan case (handled downstream).
+    const auto link = query.to_header(previous);
+    if (link.is_terminal())
+        return false;
+
+    // The new block is a child, so at/under when its parent is under.
+    return query.get_height(link) < active_checkpoint_;
+}
+
+// Set the highest checkpoint reached in the candidate chain.
+TEMPLATE
+void CLASS::update_checkpoint(height_t top) NOEXCEPT
+{
+    if (top < next_checkpoint_)
+        return;
+
+    next_checkpoint_ = max_size_t;
+    const auto previous = active_checkpoint_;
+    for (const auto& item: checkpoints_)
+    {
+        if (item.height() <= top)
+            active_checkpoint_ = std::max(active_checkpoint_, item.height());
+        else
+            next_checkpoint_ = std::min(next_checkpoint_, item.height());
+    }
+
+    if (active_checkpoint_ != previous)
+    {
+        LOGV("Checkpoint [" << active_checkpoint_ << "] reached.");
+        purge_under_checkpoint();
+    }
+}
+
+TEMPLATE
+void CLASS::purge_under_checkpoint() NOEXCEPT
+{
+    // Purged blocks conflict with the reached checkpoint (dead branches).
+    const auto count = std::erase_if(tree_, [this](const auto& entry) NOEXCEPT
+    {
+        return entry.second->get_state()->height() <= active_checkpoint_;
+    });
+
+    if (!is_zero(count))
+    {
+        LOGN("Purged (" << count << ") blocks under checkpoint ["
+            << active_checkpoint_ << "].");
+    }
+}
+
+TEMPLATE
+void CLASS::shrink_tree(bool current) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (shrunk_ || !current)
+        return;
+
+    shrunk_ = true;
+    tree_.rehash(zero);
+    LOGV("Tree buckets reduced to (" << tree_.bucket_count() << ").");
 }
 
 // Private getters
