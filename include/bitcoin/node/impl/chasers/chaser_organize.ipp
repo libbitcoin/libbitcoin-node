@@ -183,7 +183,7 @@ void CLASS::do_organize(typename Block::cptr block,
     {
         handler(system::error::checkpoint_conflict, height);
         return;
-    };
+    }
 
     // Blocks of headers are validated later, malleations ignored until then.
     // Blocks are fully validated (not confirmed), so malleation is non-issue.
@@ -517,7 +517,7 @@ code CLASS::push_block(const Block& block,
     // events::header_archived | events::block_archived
     fire(events_object_archived(), ctx.height);
     LOGV("Header archived: " << ctx.height);
-    return set_organized(link, ctx.height) ? ec : error::organize14;
+    return set_organized(link, ctx.height) ? error::success : error::organize14;
 }
 
 TEMPLATE
