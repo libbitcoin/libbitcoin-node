@@ -620,7 +620,7 @@ void CLASS::shrink_tree(bool current) NOEXCEPT
         return;
 
     shrunk_ = true;
-    tree_.rehash(zero);
+    tree_ = { tree_.begin(), tree_.end() };
     LOGV("Tree buckets reduced to (" << tree_.bucket_count() << ").");
 }
 
