@@ -152,6 +152,14 @@ void chaser_storage::do_reload() NOEXCEPT
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
+        // Reload blockeed by accessor holding remap lock.
+        if (ec == database::error::reload_locked)
+        {
+            LOGN("Reload deferred by in-flight accessors.");
+            disk_timer_->start(BIND(handle_timer, _1));
+            return;
+        }
+
         LOGF("Reload from disk full condition failed, " << ec.message());
     }
     else
