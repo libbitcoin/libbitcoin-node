@@ -126,8 +126,8 @@ void chaser_storage::handle_timer(const code& ec) NOEXCEPT
         return;
     }
 
-    // Network is resumed or store is failed, cancel monitoring.
-    if (!suspended() || archive().is_fault())
+    // Store is failed or the condition is clear, cancel monitoring.
+    if (archive().is_fault() || !to_bool(archive().get_space()))
         return;
 
     // There are often multiple events, each resetting the timer.
@@ -152,7 +152,8 @@ void chaser_storage::do_reload() NOEXCEPT
             << "(" << full_node::store::tables.at(table) << ")");
     }))
     {
-        // Reload blockeed by accessor holding remap lock.
+        // A locked reload is a wait (in-flight accessors), not a failure:
+        // retry on the timer. All other store errors are terminal.
         if (ec == database::error::reload_locked)
         {
             LOGN("Reload deferred by in-flight accessors.");
