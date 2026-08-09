@@ -226,8 +226,11 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
     }
 
     const auto start = logger::now();
-    node::messages::block out{ query.get_wire_block(link, witness), witness };
-    if (out.block_data.empty())
+    node::messages::block out
+    {
+        { query.get_wire_block(link, witness), witness }
+    };
+    if (!out.block.is_valid())
     {
         LOGR("Requested block " << encode_hash(item.hash) << " from ["
             << opposite() << "] not found.");

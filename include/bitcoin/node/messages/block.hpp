@@ -41,18 +41,17 @@ struct BCN_API block
     ////static block deserialize(uint32_t version, system::reader& source,
     ////    bool witness=true) NOEXCEPT;
 
-    /// These return false if witness or version is inconsistent with block data.
+    /// The held block is serialized in the requested form; a witnessed view
+    /// is stripped when serialized without witness.
+    /// The bool overload returns false only on a short output buffer.
     bool serialize(uint32_t version, const system::data_slab& data,
         bool witness=true) const NOEXCEPT;
     void serialize(uint32_t version, system::writer& sink,
         bool witness=true) const NOEXCEPT;
     size_t size(uint32_t version, bool witness=true) const NOEXCEPT;
 
-    /// Wire serialized block.
-    system::data_chunk block_data{};
-
-    /// Block contains witness data (if applicable).
-    const bool witnessed_{};
+    /// The block, serialized on demand as witnessed or stripped.
+    system::chain::block_view block;
 };
 
 } // namespace messages
