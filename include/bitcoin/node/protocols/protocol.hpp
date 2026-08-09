@@ -68,6 +68,15 @@ protected:
     /// The candidate|confirmed chain is current.
     virtual bool is_current_chain(bool confirmed) const NOEXCEPT;
 
+    /// Zulu time at which the node started.
+    virtual time_t start_time() const NOEXCEPT;
+
+    /// The number of peer channels (counted, not quiet).
+    virtual size_t channel_count() const NOEXCEPT;
+
+    /// The number of inbound peer channels (counted, not quiet).
+    virtual size_t inbound_channel_count() const NOEXCEPT;
+
     /// Methods.
     /// -----------------------------------------------------------------------
 

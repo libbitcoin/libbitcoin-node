@@ -150,8 +150,9 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
             {
                 BC_ASSERT(std::holds_alternative<header_t>(value));
                 POST(do_reorganized, std::get<header_t>(value));
-                break;
             }
+
+            break;
         }
         case chase::stop:
         {
