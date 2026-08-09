@@ -145,6 +145,9 @@ public:
     /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;
 
+    /// Zulu time at which the node started.
+    virtual time_t start_time() const NOEXCEPT;
+
     /// Methods.
     /// -----------------------------------------------------------------------
 
@@ -180,6 +183,7 @@ private:
 
     // These are thread safe.
     const configuration& config_;
+    const time_t start_time_;
     query& query_;
 
     // These are protected by strand.

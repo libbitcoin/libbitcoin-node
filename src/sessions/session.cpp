@@ -160,6 +160,21 @@ bool session::is_recent() const NOEXCEPT
     return node_.is_recent();
 }
 
+time_t session::start_time() const NOEXCEPT
+{
+    return node_.start_time();
+}
+
+size_t session::channel_count() const NOEXCEPT
+{
+    return node_.channel_count();
+}
+
+size_t session::inbound_channel_count() const NOEXCEPT
+{
+    return node_.inbound_channel_count();
+}
+
 BC_POP_WARNING()
 
 } // namespace node

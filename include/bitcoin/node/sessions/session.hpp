@@ -109,6 +109,15 @@ public:
     /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;
 
+    /// Zulu time at which the node started.
+    virtual time_t start_time() const NOEXCEPT;
+
+    /// The number of peer channels (counted, not quiet).
+    virtual size_t channel_count() const NOEXCEPT;
+
+    /// The number of inbound peer channels (counted, not quiet).
+    virtual size_t inbound_channel_count() const NOEXCEPT;
+
 protected:
 
     /// Constructors.

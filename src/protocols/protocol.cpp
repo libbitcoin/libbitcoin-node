@@ -66,6 +66,21 @@ bool protocol::is_current_chain(bool confirmed) const NOEXCEPT
     return session_->is_current_chain(confirmed);
 }
 
+time_t protocol::start_time() const NOEXCEPT
+{
+    return session_->start_time();
+}
+
+size_t protocol::channel_count() const NOEXCEPT
+{
+    return session_->channel_count();
+}
+
+size_t protocol::inbound_channel_count() const NOEXCEPT
+{
+    return session_->inbound_channel_count();
+}
+
 // Methods.
 // ----------------------------------------------------------------------------
 

@@ -39,6 +39,7 @@ full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
   : net(configuration.network, log),
     config_(configuration),
+    start_time_(zulu_time()),
     query_(query),
     chaser_block_(*this),
     chaser_header_(*this),
@@ -431,11 +432,16 @@ bool full_node::is_current_header(const header_link& link) const NOEXCEPT
 
 bool full_node::is_recent() const NOEXCEPT
 {
-    if (is_nonzero(config_.node.maximum_height) && 
+    if (is_nonzero(config_.node.maximum_height) &&
         (query_.get_top_confirmed() >= config_.node.maximum_height))
         return true;
 
     return is_current_chain(true);
+}
+
+time_t full_node::start_time() const NOEXCEPT
+{
+    return start_time_;
 }
 
 // Methods.
