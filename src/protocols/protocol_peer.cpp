@@ -80,6 +80,11 @@ void protocol_peer::set_announced(const system::hash_digest& hash) NOEXCEPT
     channel_->set_announced(hash);
 }
 
+void protocol_peer::set_current(bool value) NOEXCEPT
+{
+    channel_->set_current(value);
+}
+
 bool protocol_peer::was_announced(const system::hash_digest& hash) const NOEXCEPT
 {
     return channel_->was_announced(hash);

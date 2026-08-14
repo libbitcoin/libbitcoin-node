@@ -353,6 +353,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     fire(events::block_archived, height);
 
     count(block.serialized_size(true));
+    set_current(is_current_chain(true));
     map_->erase(it);
     if (is_idle())
     {
