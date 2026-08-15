@@ -28,7 +28,6 @@ using namespace system;
 using namespace network::messages::peer;
     
 const std::string block::command = "block";
-const identifier block::id = identifier::block;
 const uint32_t block::version_minimum = level::minimum_protocol;
 const uint32_t block::version_maximum = level::maximum_protocol;
 

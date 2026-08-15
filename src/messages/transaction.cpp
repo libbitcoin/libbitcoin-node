@@ -28,7 +28,6 @@ using namespace system;
 using namespace network::messages::peer;
     
 const std::string transaction::command = "tx";
-const identifier transaction::id = identifier::transaction;
 const uint32_t transaction::version_minimum = level::minimum_protocol;
 const uint32_t transaction::version_maximum = level::maximum_protocol;
 
