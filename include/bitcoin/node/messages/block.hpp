@@ -30,7 +30,6 @@ struct BCN_API block
 {
     typedef std::shared_ptr<const block> cptr;
 
-    static const network::messages::peer::identifier id;
     static const std::string command;
     static const uint32_t version_minimum;
     static const uint32_t version_maximum;

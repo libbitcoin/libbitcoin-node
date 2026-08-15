@@ -334,7 +334,10 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     // Commit block.txs.
     // ........................................................................
 
-    if (const auto code = query.set_code(block, link, checked, bypass, height))
+    // Pruned nodes do not store input script or witness under bypass.
+    const auto prune = bypass && node_pruned_;
+    if (const auto code = query.set_code(block, link, checked, bypass, height,
+        prune))
     {
         LOGF("Failure storing block [" << encode_hash(hash) << ":" << height
             << "] from [" << opposite() << "] " << code.message());
@@ -353,6 +356,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     fire(events::block_archived, height);
 
     count(block.serialized_size(true));
+    set_current(is_current_chain(true));
     map_->erase(it);
     if (is_idle())
     {

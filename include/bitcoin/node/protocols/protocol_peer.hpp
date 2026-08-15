@@ -91,6 +91,12 @@ protected:
     /// Determine if outgoing block or tx was previously announced by peer.
     virtual bool was_announced(const system::hash_digest&) const NOEXCEPT;
 
+    /// Currency.
+    /// -----------------------------------------------------------------------
+
+    /// Set chain currency, which is not latched (channel buffer policy).
+    virtual void set_current(bool value) NOEXCEPT;
+
     /// Events notification.
     /// -----------------------------------------------------------------------
 
