@@ -53,15 +53,6 @@ protected:
     {
     }
 
-    /// Properties.
-    /// -----------------------------------------------------------------------
-
-    /// The services provided to peers.
-    uint64_t services_provided() const NOEXCEPT override;
-
-    /// The services required of peers.
-    uint64_t services_required() const NOEXCEPT override;
-
     /// Organizers.
     /// -----------------------------------------------------------------------
 

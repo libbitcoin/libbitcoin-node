@@ -44,6 +44,7 @@ public:
         announced_(config.node.announcement_cache),
         network::tracker<channel_peer>(log)
     {
+        set_witness(config.node.require_witness);
     }
 
     void set_announced(const system::hash_digest& hash) NOEXCEPT;

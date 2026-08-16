@@ -45,7 +45,7 @@ public:
                 is_negotiated(network::messages::peer::level::bip37) &&
             !session->network_settings().enable_relay
         ),
-        node_witness_(session->network_settings().witness_node()),
+        node_witness_(session->node_settings().require_witness),
         network::tracker<protocol_observer>(session->log)
     {
     }

@@ -39,9 +39,9 @@ public:
       : protocol_performer(session, channel, performance_enabled),
         top_checkpoint_height_(
             session->system_settings().top_checkpoint().height()),
-        block_type_(session->network_settings().witness_node() ?
+        block_type_(session->node_settings().require_witness ?
             type_id::witness_block : type_id::block),
-        node_pruned_(session->network_settings().pruned_node()),
+        node_pruned_(session->node_settings().limited_blocks),
         map_(chaser_check::empty_map()),
         network::tracker<protocol_block_in_31800>(session->log)
     {

@@ -36,7 +36,7 @@ public:
     protocol_block_in_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
-        block_type_(session->network_settings().witness_node() ?
+        block_type_(session->node_settings().require_witness ?
             type_id::witness_block : type_id::block),
         network::tracker<protocol_block_in_106>(session->log)
     {

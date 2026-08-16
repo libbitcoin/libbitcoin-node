@@ -54,6 +54,7 @@ protected:
     using socket_ptr = network::socket::ptr;
     using channel_ptr = network::channel::ptr;
 
+    inline uint64_t services_provided() const NOEXCEPT override;
     inline channel_ptr create_channel(
         const socket_ptr& socket) NOEXCEPT override;
     inline void attach_handshake(const channel_ptr& channel,

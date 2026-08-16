@@ -46,7 +46,7 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     maximum_height_(node.node_settings().maximum_height_()),
     batch_target_(node.node_settings().batch_signatures),
     batch_enabled_(node.node_settings().batch_signatures_enabled()),
-    node_witness_(node.network_settings().witness_node()),
+    node_witness_(node.node_settings().require_witness),
     filter_(node.archive().filter_enabled())
 {
 }
