@@ -32,6 +32,14 @@ public:
     typedef std::shared_ptr<session_outbound> ptr;
     using base = session_peer<network::session_outbound>;
     using base::base;
+
+protected:
+    /// Outbound connections require the configured node services.
+    uint64_t services_required() const NOEXCEPT override
+    {
+        return system::bit_or(base::services_required(),
+            node_settings().services_required());
+    }
 };
 
 } // namespace node

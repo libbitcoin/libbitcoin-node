@@ -37,7 +37,7 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // net::strand() is safe to call from constructor (non-virtual).
 full_node::full_node(query& query, const configuration& configuration,
     const logger& log) NOEXCEPT
-  : net(configuration.network, log),
+  : net(configuration.network, log, configuration.node.services_required()),
     config_(configuration),
     start_time_(zulu_time()),
     query_(query),

@@ -26,6 +26,13 @@ namespace node {
 // this-> is required for dependent base access in CRTP.
 
 TEMPLATE
+inline uint64_t CLASS::services_provided() const NOEXCEPT
+{
+    return system::bit_or(NetworkSession::services_provided(),
+        this->node_settings().services_provided());
+}
+
+TEMPLATE
 inline CLASS::channel_ptr CLASS::create_channel(
     const socket_ptr& socket) NOEXCEPT
 {
@@ -69,16 +76,8 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     const auto relay = this->network_settings().enable_relay;
     const auto delay = this->node_settings().delay_inbound;
     const auto headers = this->node_settings().headers_first;
-    const auto node_network = to_bool(bit_and<uint64_t>
-    (
-        this->network_settings().services_maximum,
-        service::node_network
-    ));
-    const auto node_client_filters = to_bool(bit_and<uint64_t>
-    (
-        this->network_settings().services_maximum,
-        service::node_client_filters
-    ));
+    const auto node_network = this->node_settings().provide_blocks;
+    const auto node_client_filters = this->node_settings().provide_filters;
 
     // Attach appropriate alert, reject, ping, and/or address protocols.
     NetworkSession::attach_protocols(channel);

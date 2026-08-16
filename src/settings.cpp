@@ -36,6 +36,12 @@ settings::settings() NOEXCEPT
     memory_priority{ true },
     thread_priority{ true },
     allow_overlapped{ true },
+    provide_blocks{ true },
+    require_blocks{ true },
+    provide_witness{ true },
+    require_witness{ true },
+    provide_filters{ false },
+    limited_blocks{ false },
     batch_signatures{ 0 },
     minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
@@ -79,6 +85,38 @@ size_t settings::maximum_concurrency_() const NOEXCEPT
 size_t settings::fee_estimate_horizon_() const NOEXCEPT
 {
     return std::min<size_t>(fee_estimate_horizon, estimator::maximum_horizon);
+}
+
+uint64_t settings::services_provided() const NOEXCEPT
+{
+    using namespace network::messages::peer;
+    uint64_t services{ service::node_none };
+
+    if (provide_blocks)
+        services = bit_or<uint64_t>(services, limited_blocks ?
+            service::node_network_limited : service::node_network);
+
+    if (provide_witness)
+        services = bit_or<uint64_t>(services, service::node_witness);
+
+    if (provide_filters)
+        services = bit_or<uint64_t>(services, service::node_client_filters);
+
+    return services;
+}
+
+uint64_t settings::services_required() const NOEXCEPT
+{
+    using namespace network::messages::peer;
+    uint64_t services{ service::node_none };
+
+    if (require_blocks)
+        services = bit_or<uint64_t>(services, service::node_network);
+
+    if (require_witness)
+        services = bit_or<uint64_t>(services, service::node_witness);
+
+    return services;
 }
 
 bool settings::fee_estimate_enabled() const NOEXCEPT

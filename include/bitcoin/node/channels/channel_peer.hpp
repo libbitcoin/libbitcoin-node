@@ -41,6 +41,7 @@ public:
         const node::configuration& config, const options_t& options) NOEXCEPT
       : node::channel(log, socket, identifier, config),
         network::channel_peer(log, socket, identifier, config.network, options),
+        witness_(config.node.require_witness),
         announced_(config.node.announcement_cache),
         network::tracker<channel_peer>(log)
     {
@@ -49,7 +50,20 @@ public:
     void set_announced(const system::hash_digest& hash) NOEXCEPT;
     bool was_announced(const system::hash_digest& hash) const NOEXCEPT;
 
+protected:
+    /// Stamp witness parse context on the frame.
+    inline network::messages::peer::frame_ptr create_frame()
+        const NOEXCEPT override
+    {
+        const auto in = network::channel_peer::create_frame();
+        in->witness = witness_;
+        return in;
+    }
+
 private:
+    // This is thread safe (const).
+    const bool witness_;
+
     // This is protected by strand.
     // boost::circular_buffer is included by network.
     boost::circular_buffer<system::hash_digest> announced_;

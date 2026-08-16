@@ -40,6 +40,12 @@ public:
     bool thread_priority;
     bool memory_priority;
     bool allow_overlapped;
+    bool provide_blocks;
+    bool require_blocks;
+    bool provide_witness;
+    bool require_witness;
+    bool provide_filters;
+    bool limited_blocks;
     float allowed_deviation;
     float minimum_fee_rate;
     float minimum_bump_rate;
@@ -62,6 +68,8 @@ public:
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
     virtual size_t fee_estimate_horizon_() const NOEXCEPT;
+    virtual uint64_t services_provided() const NOEXCEPT;
+    virtual uint64_t services_required() const NOEXCEPT;
     virtual bool fee_estimate_enabled() const NOEXCEPT;
     virtual bool batch_signatures_enabled() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;

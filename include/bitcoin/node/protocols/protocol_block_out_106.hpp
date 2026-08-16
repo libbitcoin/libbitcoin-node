@@ -38,8 +38,8 @@ public:
       : node::protocol_peer(session, channel),
         top_checkpoint_height_(
             session->system_settings().top_checkpoint().height()),
-        node_pruned_(session->network_settings().pruned_node()),
-        node_witness_(session->network_settings().witness_node()),
+        node_pruned_(session->node_settings().limited_blocks),
+        node_witness_(session->node_settings().provide_witness),
         allow_overlapped_(session->node_settings().allow_overlapped),
         network::tracker<protocol_block_out_106>(session->log)
     {
