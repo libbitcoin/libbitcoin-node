@@ -71,12 +71,12 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     const auto headers = this->node_settings().headers_first;
     const auto node_network = to_bool(bit_and<uint64_t>
     (
-        this->network_settings().services_maximum,
+        this->network_settings().services_provided,
         service::node_network
     ));
     const auto node_client_filters = to_bool(bit_and<uint64_t>
     (
-        this->network_settings().services_maximum,
+        this->network_settings().services_provided,
         service::node_client_filters
     ));
 
