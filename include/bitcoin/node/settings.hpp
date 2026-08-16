@@ -40,6 +40,12 @@ public:
     bool thread_priority;
     bool memory_priority;
     bool allow_overlapped;
+    bool provide_blocks;
+    bool limited_blocks;
+    bool require_blocks;
+    bool provide_witness;
+    bool require_witness;
+    bool provide_filters;
     float allowed_deviation;
     float minimum_fee_rate;
     float minimum_bump_rate;
