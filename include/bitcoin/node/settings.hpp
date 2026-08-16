@@ -68,6 +68,8 @@ public:
     virtual size_t maximum_height_() const NOEXCEPT;
     virtual size_t maximum_concurrency_() const NOEXCEPT;
     virtual size_t fee_estimate_horizon_() const NOEXCEPT;
+    virtual uint64_t services_provided() const NOEXCEPT;
+    virtual uint64_t services_required() const NOEXCEPT;
     virtual bool fee_estimate_enabled() const NOEXCEPT;
     virtual bool batch_signatures_enabled() const NOEXCEPT;
     virtual network::steady_clock::duration sample_period() const NOEXCEPT;

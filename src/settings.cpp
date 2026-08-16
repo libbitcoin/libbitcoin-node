@@ -87,6 +87,38 @@ size_t settings::fee_estimate_horizon_() const NOEXCEPT
     return std::min<size_t>(fee_estimate_horizon, estimator::maximum_horizon);
 }
 
+uint64_t settings::services_provided() const NOEXCEPT
+{
+    using namespace network::messages::peer;
+    auto services = service::node_none;
+
+    if (provide_blocks)
+        services |= limited_blocks ? service::node_network_limited :
+            service::node_network;
+
+    if (provide_witness)
+        services |= service::node_witness;
+
+    if (provide_filters)
+        services |= service::node_client_filters;
+
+    return services;
+}
+
+uint64_t settings::services_required() const NOEXCEPT
+{
+    using namespace network::messages::peer;
+    auto services = service::node_none;
+
+    if (require_blocks)
+        services |= service::node_network;
+
+    if (require_witness)
+        services |= service::node_witness;
+
+    return services;
+}
+
 bool settings::fee_estimate_enabled() const NOEXCEPT
 {
     return to_bool(fee_estimate_horizon_());

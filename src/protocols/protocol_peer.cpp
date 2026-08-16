@@ -26,6 +26,21 @@ namespace node {
 using namespace system;
 using namespace network;
 
+// Properties.
+// ----------------------------------------------------------------------------
+
+uint64_t protocol_peer::services_provided() const NOEXCEPT
+{
+    return bit_or(network::protocol_peer::services_provided(),
+        node_settings().services_provided());
+}
+
+uint64_t protocol_peer::services_required() const NOEXCEPT
+{
+    return bit_or(network::protocol_peer::services_required(),
+        node_settings().services_required());
+}
+
 // Organizers.
 // ----------------------------------------------------------------------------
 
