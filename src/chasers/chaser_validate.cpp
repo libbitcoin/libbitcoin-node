@@ -58,7 +58,9 @@ code chaser_validate::start() NOEXCEPT
         return error::success;
 
     if (node_settings().batch_signatures_enabled() && !batch_enabled_)
-        LOGN("Signature batching disabled (not accelerated).");
+        LOGN("Signature batching disabled ("
+            << (system::batched::compiled() ? "no device" : "not compiled")
+            << ").");
 
     set_position(archive().get_fork());
     if (const auto ec = start_batch())
