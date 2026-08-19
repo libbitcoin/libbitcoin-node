@@ -40,8 +40,8 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { stalled_channel, "stalled channel" },
     { exhausted_channel, "exhausted channel" },
     { sacrificed_channel, "sacrificed channel" },
-    { suspended_channel, "sacrificed channel" },
-    { suspended_service, "sacrificed service" },
+    { suspended_channel, "suspended channel" },
+    { suspended_service, "suspended service" },
 
     // blockchain
     { orphan_block, "orphan block" },
@@ -88,7 +88,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { validate7, "validate7" },
     { validate8, "validate8" },
     { validate9, "validate9" },
-    { validate10, "validate0" },
+    { validate10, "validate10" },
     { confirm1, "confirm1" },
     { confirm2, "confirm2" },
     { confirm3, "confirm3" },
