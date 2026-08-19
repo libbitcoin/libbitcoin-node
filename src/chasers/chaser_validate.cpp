@@ -45,7 +45,8 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
     maximum_backlog_(node.node_settings().maximum_concurrency_()),
     maximum_height_(node.node_settings().maximum_height_()),
     batch_target_(node.node_settings().batch_signatures),
-    batch_enabled_(node.node_settings().batch_signatures_enabled()),
+    batch_enabled_(node.node_settings().batch_signatures_enabled() &&
+        system::batched::accelerated()),
     node_witness_(node.node_settings().require_witness),
     filter_(node.archive().filter_enabled())
 {
@@ -55,6 +56,11 @@ code chaser_validate::start() NOEXCEPT
 {
     if (!node_settings().headers_first)
         return error::success;
+
+    if (node_settings().batch_signatures_enabled() && !batch_enabled_)
+        LOGN("Signature batching disabled ("
+            << (system::batched::compiled() ? "no device" : "not compiled")
+            << ").");
 
     set_position(archive().get_fork());
     if (const auto ec = start_batch())
