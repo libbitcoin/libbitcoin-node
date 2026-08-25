@@ -202,8 +202,9 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         LOGR("Requested tx " << encode_hash(item.hash)
             << " from [" << opposite() << "] not found.");
 
-        // This tx could not have been advertised to the peer.
-        stop(system::error::not_found);
+        // The protocol is attached above bip37, where not_found is defined.
+        BC_ASSERT(negotiated_version() >= level::bip37);
+        SEND(not_found{ { item } }, send_transaction, _1, add1(index), message);
         return;
     }
 

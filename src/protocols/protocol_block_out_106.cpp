@@ -201,10 +201,13 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
 void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 {
     BC_ASSERT(stranded());
+
     if (stopped(ec))
         return;
 
-    if (backlog_.empty()) return;
+    if (backlog_.empty())
+        return;
+
     const auto& item = backlog_.front();
     const auto witness = item.is_witness_type();
     if (witness && !node_witness_)
@@ -216,11 +219,23 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 
     const auto& query = archive();
     const auto link = query.to_header(item.hash);
+
+    // The checkpoint height query faults the store on a terminal link.
+    if (link.is_terminal())
+    {
+        LOGR("Requested block " << encode_hash(item.hash) << " from ["
+            << opposite() << "] not stored.");
+
+        send_not_found(item);
+        return;
+    }
+
     if (node_pruned_ && (is_under_checkpoint(link) || query.is_milestone(link)))
     {
         LOGR("Requested pruned block " << encode_hash(item.hash)
             << " from [" << opposite() << "].");
-        stop(system::error::not_found);
+
+        send_not_found(item);
         return;
     }
 
@@ -229,14 +244,13 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
     {
         { query.get_wire_block(link, witness), witness }
     };
+
     if (!out.block.is_valid())
     {
         LOGR("Requested block " << encode_hash(item.hash) << " from ["
             << opposite() << "] not found.");
 
-        // This block could not have been advertised to the peer.
-        // TODO: send not_found message in protocol override.
-        stop(system::error::not_found);
+        send_not_found(item);
         return;
     }
 
@@ -247,6 +261,27 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 
 // utilities
 // ----------------------------------------------------------------------------
+
+// Block-out protocols are selected on send_headers, so a peer above bip37
+// reaches this one through the default arm. not_found is undefined below
+// bip37, so the negotiated level is captured at construction and tested here.
+void protocol_block_out_106::send_not_found(
+    const inventory_item& item) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (!not_found_allowed_)
+    {
+        stop(system::error::not_found);
+        return;
+    }
+
+    // The message is created before the item is dequeued, as item references
+    // the front of the backlog.
+    not_found out{ { item } };
+    backlog_.pop_front();
+    SEND(std::move(out), send_block, _1);
+}
 
 void protocol_block_out_106::merge_inventory(
     const inventory_items& items) NOEXCEPT

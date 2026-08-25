@@ -41,6 +41,11 @@ public:
         node_pruned_(session->node_settings().limited_blocks),
         node_witness_(session->node_settings().provide_witness),
         allow_overlapped_(session->node_settings().allow_overlapped),
+        not_found_allowed_
+        (
+            std::dynamic_pointer_cast<network::channel_peer>(channel)->
+                is_negotiated(network::messages::peer::level::bip37)
+        ),
         network::tracker<protocol_block_out_106>(session->log)
     {
     }
@@ -73,10 +78,12 @@ protected:
 
 private:
     using inventory = network::messages::peer::inventory;
+    using not_found = network::messages::peer::not_found;
     using inventory_item = network::messages::peer::inventory_item;
     using inventory_items = network::messages::peer::inventory_items;
 
     bool is_under_checkpoint(const database::header_link& link) NOEXCEPT;
+    void send_not_found(const inventory_item& item) NOEXCEPT;
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
     void merge_inventory(const inventory_items& items) NOEXCEPT;
 
@@ -85,6 +92,7 @@ private:
     const bool node_pruned_;
     const bool node_witness_;
     const bool allow_overlapped_;
+    const bool not_found_allowed_;
 
     // This is protected by strand.
     std::deque<inventory_item> backlog_{};

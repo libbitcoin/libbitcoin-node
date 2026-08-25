@@ -59,4 +59,45 @@ BOOST_AUTO_TEST_CASE(functional_p2p__get_data__genesis_block__expected_bytes)
     BOOST_REQUIRE(payload == expected);
 }
 
+BOOST_AUTO_TEST_CASE(functional_p2p__get_data__unknown_block__not_found)
+{
+    BOOST_REQUIRE(handshake());
+
+    const get_data get{ { { inventory_item::type_id::block, system::one_hash } } };
+    send(get, node_version->value);
+
+    const auto payload = receive(not_found::command);
+    const auto message = not_found::deserialize(node_version->value, payload);
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->items.size(), one);
+    BOOST_REQUIRE(message->items.front().hash == system::one_hash);
+}
+
+// A limited node answers for a block it has pruned, and remains unfaulted.
+struct p2p_limited_setup_fixture
+  : p2p_setup_fixture
+{
+    p2p_limited_setup_fixture() NOEXCEPT
+      : p2p_setup_fixture({}, [](configuration& config) NOEXCEPT
+        {
+            config.node.limited_blocks = true;
+        })
+    {
+    }
+};
+
+BOOST_FIXTURE_TEST_CASE(functional_p2p__get_data__pruned_block__not_found, p2p_limited_setup_fixture)
+{
+    BOOST_REQUIRE(handshake());
+
+    const system::chain::block& genesis = config_.bitcoin.genesis_block;
+    const get_data get{ { { inventory_item::type_id::block, genesis.hash() } } };
+    send(get, node_version->value);
+
+    const auto payload = receive(not_found::command);
+    const auto message = not_found::deserialize(node_version->value, payload);
+    BOOST_REQUIRE(message);
+    BOOST_REQUIRE_EQUAL(message->items.size(), one);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
