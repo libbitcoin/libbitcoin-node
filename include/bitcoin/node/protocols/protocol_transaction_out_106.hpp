@@ -36,6 +36,7 @@ public:
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
         node_witness_(session->node_settings().provide_witness),
+        broadcast_(maximum_retained),
         network::tracker<protocol_transaction_out_106>(session->log)
     {
     }
@@ -70,9 +71,28 @@ protected:
 
     virtual bool announce(const system::hash_digest& hash) NOEXCEPT;
 
+    /// Retain a broadcast tx, pending request by the peer.
+    virtual void retain(const system::hash_digest& hash,
+        const system::chain::transaction::cptr& tx) NOEXCEPT;
+
+    /// Obtain and drop a retained tx, or nullptr.
+    virtual system::chain::transaction::cptr release(
+        const system::hash_digest& hash) NOEXCEPT;
+
 private:
+    using retained_t = std::pair<system::hash_digest,
+        system::chain::transaction::cptr>;
+    using retained_txs = boost::circular_buffer<retained_t>;
+
+    static constexpr size_t maximum_retained = 42;
+
+    retained_txs::iterator find(const system::hash_digest& hash) NOEXCEPT;
+
     // These are thread safe.
     const bool node_witness_;
+
+    // This is protected by strand.
+    retained_txs broadcast_;
 };
 
 } // namespace node
