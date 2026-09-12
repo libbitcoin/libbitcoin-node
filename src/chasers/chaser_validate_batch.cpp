@@ -39,14 +39,18 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 
 code chaser_validate::start_batch() NOEXCEPT
 {
-    if (!batch_enabled_)
-        return {};
-
-    const auto& query = archive();
+    auto& query = archive();
     if (is_zero(query.prevalid_records()) &&
         is_zero(query.ecdsa_records()) &&
         is_zero(query.schnorr_records()))
         return {};
+
+    // Prevalid is not a validation state, so dropped blocks validate in place.
+    if (!batch_enabled_)
+    {
+        LOGN("Dropping staged batch rows (" << query.prevalid_records() << ").");
+        return purge_batch();
+    }
 
     return do_process_batch(true);
 }
@@ -156,6 +160,13 @@ code chaser_validate::do_process_batch(bool startup) NOEXCEPT
 
     if (!mark_valids(prevalids, startup))
         return error::batch3;
+
+    return purge_batch();
+}
+
+code chaser_validate::purge_batch() NOEXCEPT
+{
+    auto& query = archive();
 
     // Purge prevalids before signatures.
     return query.purge_prevalids() &&

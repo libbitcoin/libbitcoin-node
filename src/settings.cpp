@@ -54,9 +54,7 @@ settings::settings() NOEXCEPT
     silent_start_height{ 0xffffffff_u32 },
     maximum_concurrency{ 50'000 },
     sample_period_seconds{ 10 },
-    currency_window_minutes{ 1440 },
-    warn_dirty_background_ratio{ 90_u16 },
-    warn_dirty_ratio{ 90_u16 }
+    currency_window_minutes{ 1440 }
 {
 }
 

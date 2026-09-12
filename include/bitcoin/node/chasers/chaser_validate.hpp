@@ -83,6 +83,7 @@ protected:
     virtual code start_batch() NOEXCEPT;
     virtual void process_batch(bool residual) NOEXCEPT;
     virtual code do_process_batch(bool startup) NOEXCEPT;
+    virtual code purge_batch() NOEXCEPT;
     virtual bool mark_valids(header_links& prevalids, bool startup) NOEXCEPT;
     virtual bool mark_invalids(header_links& prevalids,
         const header_links& invalids, bool startup) NOEXCEPT;
