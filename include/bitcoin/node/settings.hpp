@@ -57,8 +57,6 @@ public:
     uint32_t silent_start_height;
     uint16_t sample_period_seconds;
     uint32_t currency_window_minutes;
-    uint16_t warn_dirty_background_ratio;
-    uint16_t warn_dirty_ratio;
     ////uint64_t snapshot_bytes;
     ////uint32_t snapshot_valid;
     ////uint32_t snapshot_confirm;
