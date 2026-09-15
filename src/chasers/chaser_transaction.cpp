@@ -26,11 +26,13 @@ namespace libbitcoin {
 namespace node {
 
 #define CLASS chaser_transaction
-    
+
+using namespace system;
 using namespace system::chain;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
+BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
   : chaser(node)
@@ -40,10 +42,10 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 // start
 // ----------------------------------------------------------------------------
 
-// TODO: initialize tx graph from store, log and stop on error.
 code chaser_transaction::start() NOEXCEPT
 {
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    POST(do_bump);
     return error::success;
 }
 
@@ -56,14 +58,14 @@ bool chaser_transaction::handle_chase(const code&, chase event_,
     if (closed())
         return false;
 
-    // TODO: allow required messages.
-    ////// Stop generating query during suspension.
-    ////// Incoming events may already be flushed to the strand at this point.
-    ////if (suspended())
-    ////    return true;
-
     switch (event_)
     {
+        case chase::organized:
+        case chase::reorganized:
+        {
+            POST(do_bump);
+            break;
+        }
         case chase::stop:
         {
             return false;
@@ -77,34 +79,137 @@ bool chaser_transaction::handle_chase(const code&, chase event_,
     return true;
 }
 
-// TODO: handle the new confirmed blocks (may issue 'transaction').
-void chaser_transaction::do_confirmed(header_t) NOEXCEPT
+// The pool is closed until the confirmed chain is current, and closes again if
+// currency is lost, though the store latch is one way, since the txs archived
+// while it was open outlive it.
+void chaser_transaction::do_bump() NOEXCEPT
 {
     BC_ASSERT(stranded());
+    pooling_ = false;
 
-    notify(error::success, chase::transaction, transaction_t{});
+    if (closed() || !is_current_chain(true))
+        return;
+
+    auto& query = archive();
+    const auto top = query.get_top_confirmed();
+    const auto state = query.get_confirmed_chain_state(system_settings(),
+        query.to_confirmed(top), top);
+
+    if (!state)
+    {
+        fault(error::transaction1);
+        return;
+    }
+
+    // The context of the next block, in which a pool tx would confirm.
+    pool_ = chain_state{ *state, system_settings() }.context();
+    query.set_pooling();
+    pooling_ = true;
 }
 
 // methods
 // ----------------------------------------------------------------------------
 
-void chaser_transaction::store(const transaction::cptr&) NOEXCEPT
+void chaser_transaction::submit(const transactions_cptr& txs, bool test,
+    submit_handler&& handler) NOEXCEPT
 {
-    // Push new checked tx into store and update DAG. Issue transaction event
-    // so that candidate may construct a new template.
+    if (closed())
+        return;
+
+    POST(do_submit, txs, test, std::move(handler));
 }
 
 // private
-void chaser_transaction::do_store(const transaction::cptr&) NOEXCEPT
+void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
+    const submit_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // TODO: validate and store transaction.
+    if (closed())
+    {
+        handler(network::error::service_stopped, {});
+        return;
+    }
 
-    // Relay notification.
-    ////notify(error::success, chase::transaction, link);
+    if (!pooling_)
+    {
+        handler(error::pooling_disabled, {});
+        return;
+    }
+
+    size_t index{};
+    if (const auto ec = validate(index, *txs))
+    {
+        handler(ec, index);
+        return;
+    }
+
+    if (test)
+    {
+        handler(error::success, {});
+        return;
+    }
+
+    auto& query = archive();
+    for (index = {}; index < txs->size(); ++index)
+    {
+        database::tx_link link{};
+
+        // Disk full may leave package partly archived, resolves by resubmit.
+        if (const auto ec = query.set_code(link, *txs->at(index)))
+        {
+            handler(fault(ec), index);
+            return;
+        }
+
+        fire(events::tx_archived, link);
+        notify(error::success, chase::transaction, transaction_t{ link });
+    }
+
+    handler(error::success, {});
 }
 
+// validation
+// ----------------------------------------------------------------------------
+
+code chaser_transaction::validate(size_t& index,
+    const transaction_cptrs& txs) NOEXCEPT
+{
+    index = zero;
+    if (txs.empty())
+        return error::empty_package;
+
+    if (const auto ec = block::populate(txs, pool_, false))
+        return ec;
+
+    for (; index < txs.size(); ++index)
+        if (const auto ec = validate(*txs.at(index)))
+            return ec;
+
+    return {};
+}
+
+code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
+{
+    code ec{};
+
+    // Ensure tx does not violate tx consensus rules.
+    if (!ec) ec = tx.check();
+    if (!ec) ec = tx.check(pool_);
+    if (!ec) archive().populate_with_metadata(tx, true);
+    if (!ec) ec = tx.accept(pool_);
+    if (!ec) ec = tx.confirm(pool_);
+    if (!ec) ec = tx.connect(pool_);
+
+    // Ensure tx does not violate presumed block consensus rules.
+    // This is a DoS guard when validating a tx outside of a block.
+    if (!ec) ec = tx.check_guard();
+    if (!ec) ec = tx.check_guard(pool_);
+    if (!ec) ec = tx.accept_guard(pool_);
+    return ec;
+}
+
+BC_POP_WARNING()
 BC_POP_WARNING()
 
 } // namespace node

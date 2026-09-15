@@ -59,6 +59,10 @@ enum error_t : uint8_t
     duplicate_block,
     duplicate_header,
 
+    /// transaction pool
+    pooling_disabled,
+    empty_package,
+
     /// fee estimation
     estimate_disabled,
     estimate_premature,
@@ -105,6 +109,7 @@ enum error_t : uint8_t
     confirm10,
     confirm11,
     confirm12,
+    transaction1,
     estimates_initialize,
     estimates_push1,
     estimates_push2,

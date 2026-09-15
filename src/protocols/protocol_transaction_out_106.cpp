@@ -18,7 +18,6 @@
  */
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 
-#include <algorithm>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -47,7 +46,6 @@ void protocol_transaction_out_106::start() NOEXCEPT
     // Events subscription is asynchronous, events may be missed.
     subscribe_chase(BIND(handle_chase, _1, _2, _3));
 
-    SUBSCRIBE_BROADCAST(transaction, handle_broadcast_transaction, _1, _2, _3);
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol_peer::start();
 }
@@ -58,8 +56,6 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 
     // Unsubscriber race is ok.
     unsubscribe_chase();
-
-    UNSUBSCRIBE_BROADCAST();
     protocol_peer::stopping(ec);
 }
 
@@ -106,26 +102,6 @@ bool protocol_transaction_out_106::do_announce(transaction_t link) NOEXCEPT
     return announce(archive().get_tx_key(link));
 }
 
-bool protocol_transaction_out_106::handle_broadcast_transaction(const code& ec,
-    const transaction::cptr& message, uint64_t sender) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (stopped(ec))
-        return false;
-
-    if (sender == identifier())
-        return true;
-
-    const auto& tx = message->transaction_ptr;
-    const auto hash = tx->hash(false);
-    if (was_announced(hash))
-        return true;
-
-    retain(hash, tx);
-    return announce(hash);
-}
-
 bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -144,45 +120,6 @@ bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
     const inventory inv{ { { type_id::transaction, hash } } };
     SEND(inv, handle_send, _1);
     return true;
-}
-
-// Retention.
-// ----------------------------------------------------------------------------
-
-void protocol_transaction_out_106::retain(const hash_digest& hash,
-    const chain::transaction::cptr& tx) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    if (find(hash) != broadcast_.end())
-        return;
-
-    broadcast_.push_back({ hash, tx });
-}
-
-chain::transaction::cptr protocol_transaction_out_106::release(
-    const hash_digest& hash) NOEXCEPT
-{
-    BC_ASSERT(stranded());
-
-    const auto it = find(hash);
-    if (it == broadcast_.end())
-        return {};
-
-    const auto tx = it->second;
-    broadcast_.erase(it);
-    return tx;
-}
-
-protocol_transaction_out_106::retained_txs::iterator
-protocol_transaction_out_106::find(const hash_digest& hash) NOEXCEPT
-{
-    const auto match = [&hash](const auto& entry) NOEXCEPT
-    {
-        return entry.first == hash;
-    };
-
-    return std::find_if(broadcast_.begin(), broadcast_.end(), match);
 }
 
 // Inbound (get_data).
@@ -235,13 +172,6 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     {
         LOGR("Unsupported witness get_data from [" << opposite() << "].");
         stop(network::error::protocol_violation);
-        return;
-    }
-
-    // A broadcast tx is not archived, so is served from retention, once.
-    if (const auto retained = release(item.hash))
-    {
-        SEND(transaction{ retained }, send_transaction, _1, add1(index), message);
         return;
     }
 

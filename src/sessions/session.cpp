@@ -57,6 +57,12 @@ void session::prioritize(const hash_digest& hash,
     node_.prioritize(hash, std::move(handler));
 }
 
+void session::submit(const transactions_cptr& txs, bool test,
+    submit_handler&& handler) NOEXCEPT
+{
+    node_.submit(txs, test, std::move(handler));
+}
+
 void session::get_hashes(map_handler&& handler) NOEXCEPT
 {
     node_.get_hashes(std::move(handler));

@@ -183,6 +183,12 @@ void full_node::prioritize(const system::hash_digest& hash,
         chaser_block_.prioritize(hash, std::move(handler));
 }
 
+void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
+    submit_handler&& handler) NOEXCEPT
+{
+    chaser_transaction_.submit(txs, test, std::move(handler));
+}
+
 void full_node::get_hashes(map_handler&& handler) NOEXCEPT
 {
     chaser_check_.get_hashes(std::move(handler));
