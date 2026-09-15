@@ -47,6 +47,14 @@ void protocol_transaction_out_70013::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(fee_filter, handle_receive_fee_filter, _1, _2);
+
+    // bip133: the peer does not announce a tx below our configured rate.
+    if (const auto minimum = node_settings().minimum_fee_rate_();
+        !is_zero(minimum))
+    {
+        SEND(fee_filter{ minimum }, handle_send, _1);
+    }
+
     protocol_transaction_out_70001::start();
 }
 
