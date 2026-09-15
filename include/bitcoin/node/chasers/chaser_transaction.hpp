@@ -53,6 +53,9 @@ protected:
     virtual void do_bump() NOEXCEPT;
 
 private:
+    code validate(const system::chain::transaction& tx, const query& query,
+        const system::chain::context& pool) NOEXCEPT;
+
     // These are protected by strand.
     system::chain::context pool_{};
     bool pooling_{};

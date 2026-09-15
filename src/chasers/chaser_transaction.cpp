@@ -21,7 +21,6 @@
 #include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/full_node.hpp>
-#include <bitcoin/node/validate.hpp>
 
 namespace libbitcoin {
 namespace node {
@@ -121,8 +120,6 @@ void chaser_transaction::submit(const transactions_cptr& txs,
 }
 
 // private
-// The package is accepted as a whole, so nothing is archived until all txs
-// have validated, and the index identifies the tx that a failure pertains to.
 void chaser_transaction::do_submit(const transactions_cptr& txs,
     const submit_handler& handler) NOEXCEPT
 {
@@ -146,8 +143,6 @@ void chaser_transaction::do_submit(const transactions_cptr& txs,
         return;
     }
 
-    // Prevouts internal to the package are populated from it, and those that
-    // remain are populated from the archive by each tx validation.
     constexpr auto coinbase = false;
     if (const auto ec = block::populate(*txs, pool_, coinbase))
     {
@@ -158,7 +153,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs,
     auto& query = archive();
     for (size_t index{}; index < txs->size(); ++index)
     {
-        if (const auto ec = validate_transaction(*txs->at(index), query, pool_))
+        if (const auto ec = validate(*txs->at(index), query, pool_))
         {
             handler(ec, index);
             return;
@@ -181,6 +176,30 @@ void chaser_transaction::do_submit(const transactions_cptr& txs,
     }
 
     handler(error::success, zero);
+}
+
+// methods
+// ----------------------------------------------------------------------------
+
+code chaser_transaction::validate(const chain::transaction& tx,
+    const query& query, const chain::context& pool) NOEXCEPT
+{
+    code ec{};
+
+    // Ensure tx does not violate tx consensus rules.
+    if (!ec) ec = tx.check();
+    if (!ec) ec = tx.check(pool);
+    if (!ec) query.populate_with_metadata(tx, true);
+    if (!ec) ec = tx.accept(pool);
+    if (!ec) ec = tx.confirm(pool);
+    if (!ec) ec = tx.connect(pool);
+
+    // Ensure tx does not violate presumed block consensus rules.
+    // This is a DoS guard when validating a tx outside of a block.
+    if (!ec) ec = tx.check_guard();
+    if (!ec) ec = tx.check_guard(pool);
+    if (!ec) ec = tx.accept_guard(pool);
+    return ec;
 }
 
 BC_POP_WARNING()
