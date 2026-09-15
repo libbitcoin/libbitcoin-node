@@ -181,6 +181,11 @@ code chaser_transaction::validate(size_t& index,
     if (txs.empty())
         return error::empty_package;
 
+    // Conflict within the package, as with a block (see is_spent for those
+    // already archived), since the package is accepted as a whole.
+    if (block::is_internal_double_spend(txs, false))
+        return system::error::block_internal_double_spend;
+
     if (const auto ec = block::populate(txs, pool_, false))
         return ec;
 
@@ -214,16 +219,18 @@ code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
     // Ensure tx does not violate tx consensus rules.
     if (!ec) ec = tx.check();
     if (!ec) ec = tx.check(pool_);
-    if (!ec) archive().populate_with_metadata(tx, true);
+    if (!ec) archive().populate_with_metadata(tx, true, true);
     if (!ec) ec = tx.accept(pool_);
-    if (!ec) ec = tx.confirm(pool_);
-    if (!ec) ec = tx.connect(pool_);
 
     // Ensure tx does not violate presumed block consensus rules.
     // This is a DoS guard when validating a tx outside of a block.
     if (!ec) ec = tx.check_guard();
     if (!ec) ec = tx.check_guard(pool_);
     if (!ec) ec = tx.accept_guard(pool_);
+    if (!ec) ec = tx.confirm_guard(pool_);
+
+    // Script validation is the most costly, so it follows the guards.
+    if (!ec) ec = tx.connect(pool_);
     return ec;
 }
 
