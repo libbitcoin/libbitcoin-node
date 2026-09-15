@@ -181,8 +181,7 @@ code chaser_transaction::validate(size_t& index,
     if (txs.empty())
         return error::empty_package;
 
-    // Conflict within the package, as with a block (see is_spent for those
-    // already archived), since the package is accepted as a whole.
+    // Conflict within the package, as with a block, since it is accepted whole.
     if (block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
 
