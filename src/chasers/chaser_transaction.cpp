@@ -31,6 +31,8 @@ using namespace system;
 using namespace system::chain;
 using namespace std::placeholders;
 
+constexpr uint64_t vbytes_per_vkbyte = 1'000;
+
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -185,6 +187,22 @@ code chaser_transaction::validate(size_t& index,
     for (; index < txs.size(); ++index)
         if (const auto ec = validate(*txs.at(index)))
             return ec;
+
+    // The package is accepted as a whole, so the whole must pay the rate.
+    index = zero;
+    uint64_t fee{};
+    uint64_t size{};
+    for (const auto& tx: txs)
+    {
+        fee = ceilinged_add(fee, tx->fee());
+        size = ceilinged_add(size, possible_wide_cast<uint64_t>(
+            tx->virtual_size()));
+    }
+
+    // Compared in satoshis per virtual kilobyte, so exact and undivided.
+    if (ceilinged_multiply(fee, vbytes_per_vkbyte) <
+        ceilinged_multiply(node_settings().minimum_fee_rate_(), size))
+        return error::insufficient_fee;
 
     return {};
 }

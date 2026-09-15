@@ -51,6 +51,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
 
     // transaction pool
     { pooling_disabled, "pooling disabled" },
+    { insufficient_fee, "insufficient fee" },
     { empty_package, "empty package" },
 
     // fee estimation
