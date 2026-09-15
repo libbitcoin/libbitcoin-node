@@ -120,6 +120,15 @@ bool protocol_block_in_106::handle_receive_inventory(const code& ec,
 // accept block
 // ----------------------------------------------------------------------------
 
+// protected
+bool protocol_block_in_106::erase_requested(
+    const hash_digest& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    return !is_zero(tracker_.ids.erase(hash));
+}
+
 // Process block responses in order as dictated by tracker.
 bool protocol_block_in_106::handle_receive_block(const code& ec,
     const block::cptr& ) NOEXCEPT

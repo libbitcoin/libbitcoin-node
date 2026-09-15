@@ -68,7 +68,8 @@ protected:
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::peer::inventory::cptr& message) NOEXCEPT;
 
-    // This is thread safe.
+private:
+    // These are thread safe.
     const bool relay_disallowed_;
     const bool node_witness_;
 };

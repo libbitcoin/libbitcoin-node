@@ -46,8 +46,8 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Squash duplicates and provide constant time retrieval.
-    using hashmap = std::unordered_set<system::hash_digest>;
+    /// Clear the request record, false if the tx was not requested.
+    bool erase_requested(const system::hash_digest& hash) NOEXCEPT;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
@@ -60,6 +60,9 @@ protected:
     virtual void do_handle_submit(const code& ec) NOEXCEPT;
 
 private:
+    /// Squash duplicates and provide constant time retrieval.
+    using hashmap = std::unordered_set<system::hash_digest>;
+
     network::messages::peer::get_data create_get_data(
         const network::messages::peer::inventory& message) NOEXCEPT;
 

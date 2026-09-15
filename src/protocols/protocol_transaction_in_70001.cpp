@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <bitcoin/node/protocols/protocol_transaction_out_70001.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in_70001.hpp>
 
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
 namespace node {
 
-#define CLASS protocol_transaction_out_70001
+#define CLASS protocol_transaction_in_70001
 
 using namespace system;
 using namespace network::messages::peer;
@@ -33,36 +33,47 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
-// Outbound (not_found).
+// Start.
 // ----------------------------------------------------------------------------
 
-// Accumulate the run, so that it is reported by one message.
-bool protocol_transaction_out_70001::handle_unservable(
-    const inventory_item& item) NOEXCEPT
+void protocol_transaction_in_70001::start() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (!enable_not_found_)
-        return protocol_transaction_out_106::handle_unservable(item);
+    if (started())
+        return;
 
-    unservable_.push_back(item);
-    return true;
+    SUBSCRIBE_CHANNEL(not_found, handle_receive_not_found, _1, _2);
+    protocol_transaction_in_106::start();
 }
 
-// The items are answered and the send loop resumed, as with a transaction, so
-// nothing is produced until the prior write completes.
-bool protocol_transaction_out_70001::report_unservable(size_t index,
-    const get_data::cptr& message) NOEXCEPT
+// Inbound (not_found).
+// ----------------------------------------------------------------------------
+
+bool protocol_transaction_in_70001::handle_receive_not_found(const code& ec,
+    const not_found::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    if (unservable_.empty())
+    if (stopped(ec))
         return false;
 
-    auto items = std::move(unservable_);
-    unservable_.clear();
+    // bip144: get_data uses witness type_id but inv does not.
+    for (const auto& item: message->items)
+    {
+        if (!item.is_transaction_type())
+            continue;
 
-    SEND(not_found{ std::move(items) }, send_transaction, _1, index, message);
+        // A reply to a request that was not made is not accepted.
+        if (!erase_requested(item.hash))
+        {
+            LOGR("Unrequested tx not_found [" << encode_hash(item.hash)
+                << "] from [" << opposite() << "].");
+            stop(network::error::protocol_violation);
+            return false;
+        }
+    }
+
     return true;
 }
 

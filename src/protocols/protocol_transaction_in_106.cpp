@@ -117,6 +117,15 @@ get_data protocol_transaction_in_106::create_get_data(
 // accept transaction
 // ----------------------------------------------------------------------------
 
+// protected
+bool protocol_transaction_in_106::erase_requested(
+    const hash_digest& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    return !is_zero(requested_.erase(hash));
+}
+
 bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
     const transaction::cptr& message) NOEXCEPT
 {
@@ -126,7 +135,7 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
         return false;
 
     const auto& tx = message->transaction_ptr;
-    if (is_zero(requested_.erase(tx->get_hash(false))))
+    if (!erase_requested(tx->get_hash(false)))
     {
         LOGR("Unrequested tx [" << encode_hash(tx->get_hash(false))
             << "] from [" << opposite() << "].");

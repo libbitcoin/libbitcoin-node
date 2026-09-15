@@ -22,6 +22,7 @@
 #include <bitcoin/node/protocols/protocol.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
+#include <bitcoin/node/protocols/protocol_block_in_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70012.hpp>
@@ -34,6 +35,7 @@
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 #include <bitcoin/node/protocols/protocol_performer.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_in_70001.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_70001.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_70013.hpp>

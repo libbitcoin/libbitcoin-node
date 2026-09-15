@@ -153,10 +153,44 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     if (stopped(ec))
         return;
 
-    // Skip over non-tx inventory.
+    const auto& query = archive();
+    chain::transaction::cptr ptr{};
+    auto witness = false;
+
+    // Drain unservable items, skipping non-tx inventory. The derived protocol
+    // accumulates them if it reports them, and otherwise stops the channel.
     for (; index < message->items.size(); ++index)
-        if (message->items.at(index).is_transaction_type())
+    {
+        const auto& item = message->items.at(index);
+        if (!item.is_transaction_type())
+            continue;
+
+        witness = item.is_witness_type();
+        if (!node_witness_ && witness)
+        {
+            LOGR("Unsupported witness get_data from [" << opposite() << "].");
+            stop(network::error::protocol_violation);
+            return;
+        }
+
+        // Tx could be always queried with witness and therefore safely cached.
+        // If can then be serialized according to channel configuration, however
+        // that is currently fixed to witness as available in the object.
+        ptr = query.get_transaction(query.to_tx(item.hash), witness);
+        if (ptr)
             break;
+
+        LOGV("Requested tx " << encode_hash(item.hash)
+            << " from [" << opposite() << "] not found.");
+
+        // This tx could not have been advertised to the peer.
+        if (!handle_unservable(item))
+            return;
+    }
+
+    // The report resumes this loop on completion, so it precedes the tx.
+    if (report_unservable(index, message))
+        return;
 
     // BUGBUG: registration race.
     if (index >= message->items.size())
@@ -166,37 +200,12 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
         return;
     }
 
-    const auto& item = message->items.at(index);
-    const auto witness = item.is_witness_type();
-    if (!node_witness_ && witness)
-    {
-        LOGR("Unsupported witness get_data from [" << opposite() << "].");
-        stop(network::error::protocol_violation);
-        return;
-    }
-
-    // Tx could be always queried with witness and therefore safely cached.
-    // If can then be serialized according to channel configuration, however
-    // that is currently fixed to witness as available in the object.
-    const auto& query = archive();
-    const auto ptr = query.get_transaction(query.to_tx(item.hash), witness);
-    if (!ptr)
-    {
-        LOGV("Requested tx " << encode_hash(item.hash)
-            << " from [" << opposite() << "] not found.");
-
-        // This tx could not have been advertised to the peer.
-        handle_unservable(item, index, message);
-        return;
-    }
-
     SEND(transaction{ ptr }, send_transaction, _1, add1(index), message);
 }
 
 // not_found is undefined below bip37, so the channel is stopped instead.
-void protocol_transaction_out_106::handle_unservable(
-    const inventory_item& LOG_ONLY(item), size_t,
-    const get_data::cptr&) NOEXCEPT
+bool protocol_transaction_out_106::handle_unservable(
+    const inventory_item& LOG_ONLY(item)) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -204,6 +213,14 @@ void protocol_transaction_out_106::handle_unservable(
         << opposite() << "], stopping.");
 
     stop(system::error::not_found);
+    return false;
+}
+
+// There is nothing to report below bip37, the channel is stopped above.
+bool protocol_transaction_out_106::report_unservable(size_t,
+    const get_data::cptr&) NOEXCEPT
+{
+    return false;
 }
 
 BC_POP_WARNING()
