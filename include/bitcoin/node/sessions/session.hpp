@@ -51,6 +51,10 @@ public:
     virtual void prioritize(const system::hash_digest& hash,
         organize_handler&& handler) NOEXCEPT;
 
+    /// Validate and archive a submitted package, accepted as a whole.
+    virtual void submit(const system::chain::transactions_cptr& txs,
+        submit_handler&& handler) NOEXCEPT;
+
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,

@@ -38,15 +38,24 @@ public:
 
     code start() NOEXCEPT override;
 
-    virtual void store(const system::chain::transaction::cptr& block) NOEXCEPT;
+    /// Validate and archive a submitted package, accepted as a whole.
+    virtual void submit(const system::chain::transactions_cptr& txs,
+        submit_handler&& handler) NOEXCEPT;
 
 protected:
     virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    virtual void do_confirmed(header_t link) NOEXCEPT;
-    virtual void do_store(
-        const system::chain::transaction::cptr& header) NOEXCEPT;
+    virtual void do_submit(const system::chain::transactions_cptr& txs,
+        const submit_handler& handler) NOEXCEPT;
+
+    /// Recompute the pool context, closing the pool if not current.
+    virtual void do_bump() NOEXCEPT;
+
+private:
+    // These are protected by strand.
+    system::chain::context pool_{};
+    bool pooling_{};
 };
 
 } // namespace node

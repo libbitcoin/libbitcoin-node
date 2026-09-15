@@ -49,6 +49,10 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { duplicate_block, "duplicate block" },
     { duplicate_header, "duplicate header" },
 
+    // transaction pool
+    { pooling_disabled, "pooling disabled" },
+    { empty_package, "empty package" },
+
     // fee estimation
     { estimate_disabled, "estimate_disabled" },
     { estimate_premature, "estimate_premature" },
@@ -95,6 +99,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm10, "confirm10" },
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
+    { transaction1, "transaction1" },
     { estimates_initialize, "estimates_initialize" },
     { estimates_push1, "estimates_push1" },
     { estimates_push2, "estimates_push2" },
