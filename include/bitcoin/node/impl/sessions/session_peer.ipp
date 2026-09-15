@@ -154,7 +154,9 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     // Relay is configured, active, and txs are ready (txs in/out).
     if (txs_in_out && peer->peer_version()->relay)
     {
-        if (peer->is_negotiated(level::bip37))
+        if (peer->is_negotiated(level::bip133))
+            channel->attach<protocol_transaction_out_70013>(self)->start();
+        else if (peer->is_negotiated(level::bip37))
             channel->attach<protocol_transaction_out_70001>(self)->start();
         else
             channel->attach<protocol_transaction_out_106>(self)->start();

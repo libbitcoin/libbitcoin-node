@@ -80,6 +80,14 @@ size_t settings::maximum_concurrency_() const NOEXCEPT
     return to_bool(maximum_concurrency) ? maximum_concurrency : max_size_t;
 }
 
+// The configured rate is btc/vkb, as reported to clients (see relayfee).
+uint64_t settings::minimum_fee_rate_() const NOEXCEPT
+{
+    // Ceilinged, as a configured minimum is not rounded down.
+    return to_ceilinged_integer<uint64_t>(minimum_fee_rate *
+        chain::satoshi_per_bitcoin);
+}
+
 size_t settings::fee_estimate_horizon_() const NOEXCEPT
 {
     return std::min<size_t>(fee_estimate_horizon, estimator::maximum_horizon);

@@ -36,5 +36,6 @@
 #include <bitcoin/node/protocols/protocol_transaction_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_transaction_out_70001.hpp>
+#include <bitcoin/node/protocols/protocol_transaction_out_70013.hpp>
 
 #endif
