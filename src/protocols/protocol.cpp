@@ -139,10 +139,10 @@ void protocol::prioritize(const system::hash_digest& hash,
     session_->prioritize(hash, std::move(handler));
 }
 
-void protocol::submit(const system::chain::transactions_cptr& txs,
+void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
-    session_->submit(txs, std::move(handler));
+    session_->submit(txs, test, std::move(handler));
 }
 
 void protocol::subscribe_chase(event_notifier&& handler) NOEXCEPT

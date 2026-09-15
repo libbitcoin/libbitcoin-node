@@ -113,8 +113,9 @@ protected:
         organize_handler&& handler) NOEXCEPT;
 
     /// Validate and archive a submitted package, accepted as a whole.
+    /// The package is only validated when test, so nothing is archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
-        submit_handler&& handler) NOEXCEPT;
+        bool test, submit_handler&& handler) NOEXCEPT;
 
     /// Events subscription.
     /// -----------------------------------------------------------------------

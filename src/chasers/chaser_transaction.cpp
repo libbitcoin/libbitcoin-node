@@ -110,61 +110,52 @@ void chaser_transaction::do_bump() NOEXCEPT
 // methods
 // ----------------------------------------------------------------------------
 
-void chaser_transaction::submit(const transactions_cptr& txs,
+void chaser_transaction::submit(const transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
     if (closed())
         return;
 
-    POST(do_submit, txs, std::move(handler));
+    POST(do_submit, txs, test, std::move(handler));
 }
 
 // private
-void chaser_transaction::do_submit(const transactions_cptr& txs,
+void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     const submit_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (closed())
     {
-        handler(network::error::service_stopped, zero);
+        handler(network::error::service_stopped, {});
         return;
     }
 
     if (!pooling_)
     {
-        handler(error::pooling_disabled, zero);
+        handler(error::pooling_disabled, {});
         return;
     }
 
-    if (txs->empty())
+    size_t index{};
+    if (const auto ec = validate(index, *txs))
     {
-        handler(error::empty_package, zero);
+        handler(ec, index);
         return;
     }
 
-    constexpr auto coinbase = false;
-    if (const auto ec = block::populate(*txs, pool_, coinbase))
+    if (test)
     {
-        handler(ec, zero);
+        handler(error::success, {});
         return;
     }
 
     auto& query = archive();
-    for (size_t index{}; index < txs->size(); ++index)
-    {
-        if (const auto ec = validate(*txs->at(index), query, pool_))
-        {
-            handler(ec, index);
-            return;
-        }
-    }
-
-    // A fault here leaves a prefix of the package archived, which the caller
-    // resolves by resubmission (an archived tx substitutes its own link).
-    for (size_t index{}; index < txs->size(); ++index)
+    for (index = {}; index < txs->size(); ++index)
     {
         database::tx_link link{};
+
+        // Disk full may leave package partly archived, resolves by resubmit.
         if (const auto ec = query.set_code(link, *txs->at(index)))
         {
             handler(fault(ec), index);
@@ -175,30 +166,46 @@ void chaser_transaction::do_submit(const transactions_cptr& txs,
         notify(error::success, chase::transaction, transaction_t{ link });
     }
 
-    handler(error::success, zero);
+    handler(error::success, {});
 }
 
-// methods
+// validation
 // ----------------------------------------------------------------------------
 
-code chaser_transaction::validate(const chain::transaction& tx,
-    const query& query, const chain::context& pool) NOEXCEPT
+code chaser_transaction::validate(size_t& index,
+    const transaction_cptrs& txs) NOEXCEPT
+{
+    index = zero;
+    if (txs.empty())
+        return error::empty_package;
+
+    if (const auto ec = block::populate(txs, pool_, false))
+        return ec;
+
+    for (; index < txs.size(); ++index)
+        if (const auto ec = validate(*txs.at(index)))
+            return ec;
+
+    return {};
+}
+
+code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
 {
     code ec{};
 
     // Ensure tx does not violate tx consensus rules.
     if (!ec) ec = tx.check();
-    if (!ec) ec = tx.check(pool);
-    if (!ec) query.populate_with_metadata(tx, true);
-    if (!ec) ec = tx.accept(pool);
-    if (!ec) ec = tx.confirm(pool);
-    if (!ec) ec = tx.connect(pool);
+    if (!ec) ec = tx.check(pool_);
+    if (!ec) archive().populate_with_metadata(tx, true);
+    if (!ec) ec = tx.accept(pool_);
+    if (!ec) ec = tx.confirm(pool_);
+    if (!ec) ec = tx.connect(pool_);
 
     // Ensure tx does not violate presumed block consensus rules.
     // This is a DoS guard when validating a tx outside of a block.
     if (!ec) ec = tx.check_guard();
-    if (!ec) ec = tx.check_guard(pool);
-    if (!ec) ec = tx.accept_guard(pool);
+    if (!ec) ec = tx.check_guard(pool_);
+    if (!ec) ec = tx.accept_guard(pool_);
     return ec;
 }
 

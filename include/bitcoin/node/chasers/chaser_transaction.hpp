@@ -39,22 +39,24 @@ public:
     code start() NOEXCEPT override;
 
     /// Validate and archive a submitted package, accepted as a whole.
+    /// The package is only validated when test, so nothing is archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
-        submit_handler&& handler) NOEXCEPT;
+        bool test, submit_handler&& handler) NOEXCEPT;
 
 protected:
     virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
-        const submit_handler& handler) NOEXCEPT;
+        bool test, const submit_handler& handler) NOEXCEPT;
 
     /// Recompute the pool context, closing the pool if not current.
     virtual void do_bump() NOEXCEPT;
 
 private:
-    code validate(const system::chain::transaction& tx, const query& query,
-        const system::chain::context& pool) NOEXCEPT;
+    code validate(size_t& index,
+        const system::chain::transaction_cptrs& txs) NOEXCEPT;
+    code validate(const system::chain::transaction& tx) NOEXCEPT;
 
     // These are protected by strand.
     system::chain::context pool_{};
