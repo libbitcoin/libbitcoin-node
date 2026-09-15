@@ -25,8 +25,12 @@ namespace node {
 
 #define CLASS protocol_transaction_in_106
 
+using namespace system;
 using namespace network::messages::peer;
 using namespace std::placeholders;
+
+// The maximum number of txs requested from a peer and not yet received.
+constexpr size_t maximum_backlog = max_inventory;
 
 // Shared pointers required for lifetime in handler parameters.
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
@@ -42,6 +46,7 @@ void protocol_transaction_in_106::start() NOEXCEPT
     if (started())
         return;
 
+    SUBSCRIBE_CHANNEL(transaction, handle_receive_transaction, _1, _2);
     SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
     protocol_peer::start();
 }
@@ -53,19 +58,109 @@ void protocol_transaction_in_106::start() NOEXCEPT
 // transactions."
 
 bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
-    const inventory::cptr&) NOEXCEPT
+    const inventory::cptr& message) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
     if (stopped(ec))
         return false;
 
+    // Ignore non-tx inventory.
+    if (is_zero(message->count(type_id::transaction)))
+        return true;
+
+    // An announcement is buffered in full, so the backlog is measured only
+    // between messages, and may exceed the maximum by one message.
+    if (requested_.size() > maximum_backlog)
+    {
+        LOGR("Excessive tx backlog (" << requested_.size() << ") from ["
+            << opposite() << "].");
+        stop(error::excessive_backlog);
+        return false;
+    }
+
+    const auto getter = create_get_data(*message);
+    if (getter.items.empty())
+        return true;
+
+    LOGP("Requested (" << getter.items.size() << ") txs from ["
+        << opposite() << "].");
+
+    SEND(getter, handle_send, _1);
+    return true;
+}
+
+// private
+get_data protocol_transaction_in_106::create_get_data(
+    const inventory& message) NOEXCEPT
+{
     // bip144: get_data uses witness type_id but inv does not.
 
-    // TODO: get and handle tx as required.
-    ////const auto tx_count = message->count(type_id::transaction);
-    ////set_announced(hash);
+    get_data getter{};
+    getter.items.reserve(message.count(type_id::transaction));
+    for (const auto& item: message.view(type_id::transaction))
+    {
+        // The peer has the tx, so it is not announced back to it.
+        set_announced(item.hash);
+
+        if (!archive().is_tx(item.hash))
+        {
+            getter.items.emplace_back(tx_type_, item.hash);
+            requested_.insert(item.hash);
+        }
+    }
+
+    getter.items.shrink_to_fit();
+    return getter;
+}
+
+// accept transaction
+// ----------------------------------------------------------------------------
+
+bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
+    const transaction::cptr& message) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    const auto& tx = message->transaction_ptr;
+    if (is_zero(requested_.erase(tx->get_hash(false))))
+    {
+        LOGR("Unrequested tx [" << encode_hash(tx->get_hash(false))
+            << "] from [" << opposite() << "].");
+        stop(network::error::protocol_violation);
+        return false;
+    }
+
+    constexpr auto test = false;
+    submit(to_shared(chain::transaction_cptrs{ tx }), test,
+        BIND(handle_submit, _1, _2));
     return true;
+}
+
+// protected
+void protocol_transaction_in_106::handle_submit(const code& ec, size_t) NOEXCEPT
+{
+    POST(do_handle_submit, ec);
+}
+
+// protected
+void protocol_transaction_in_106::do_handle_submit(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    // Chaser may be stopped before protocol.
+    if (stopped() || ec == network::error::service_stopped)
+        return;
+
+    // Sending a conflict with a confirmed tx is considered misbehavior.
+    if (ec && (ec != system::error::double_spend))
+    {
+        LOGR("Tx from [" << opposite() << "] " << ec.message());
+        stop(ec);
+    }
 }
 
 BC_POP_WARNING()

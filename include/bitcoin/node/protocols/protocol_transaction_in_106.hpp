@@ -19,6 +19,7 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_TRANSACTION_IN_106_HPP
 
+#include <unordered_set>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 
@@ -35,8 +36,8 @@ public:
     protocol_transaction_in_106(const auto& session,
         const network::channel::ptr& channel) NOEXCEPT
       : node::protocol_peer(session, channel),
-        ////tx_type_(session->node_settings().require_witness ?
-        ////    type_id::witness_tx : type_id::transaction),
+        tx_type_(session->node_settings().require_witness ?
+            type_id::witness_tx : type_id::transaction),
         network::tracker<protocol_transaction_in_106>(session->log)
     {
     }
@@ -45,13 +46,28 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    /// Squash duplicates and provide constant time retrieval.
+    using hashmap = std::unordered_set<system::hash_digest>;
+
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::peer::inventory::cptr& message) NOEXCEPT;
 
+    /// Accept incoming transaction message.
+    virtual bool handle_receive_transaction(const code& ec,
+        const network::messages::peer::transaction::cptr& message) NOEXCEPT;
+    virtual void handle_submit(const code& ec, size_t index) NOEXCEPT;
+    virtual void do_handle_submit(const code& ec) NOEXCEPT;
+
 private:
+    network::messages::peer::get_data create_get_data(
+        const network::messages::peer::inventory& message) NOEXCEPT;
+
     // This is thread safe.
-    ////const type_id tx_type_;
+    const type_id tx_type_;
+
+    // This is protected by strand.
+    hashmap requested_{};
 };
 
 } // namespace node
