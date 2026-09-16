@@ -69,6 +69,10 @@ bool protocol_transaction_in_106::handle_receive_inventory(const code& ec,
     if (is_zero(message->count(type_id::transaction)))
         return true;
 
+    // Relay is implied by protocol attachment, so peer is not in violation.
+    if (!is_current_chain(true))
+        return true;
+
     // An announcement is buffered in full, so the backlog is measured only
     // between messages, and may exceed the maximum by one message.
     if (requested_.size() > maximum_backlog)
@@ -143,9 +147,9 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
         return false;
     }
 
-    constexpr auto test = false;
-    submit(to_shared(chain::transaction_cptrs{ tx }), test,
+    submit(to_shared(chain::transaction_cptrs{ tx }), false,
         BIND(handle_submit, _1, _2));
+
     return true;
 }
 

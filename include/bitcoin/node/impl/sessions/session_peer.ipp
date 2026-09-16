@@ -106,8 +106,8 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     if (!node_network)
         return;
 
-    // Ready to relay transactions.
-    const auto txs_in_out = relay && (!delay || is_current_chain(true));
+    // Configured to relay transactions (currency is signalled by fee_filter).
+    const auto txs_in_out = relay;
 
     // Peer advertises chain (blocks in).
     if (peer->is_peer_service(service::node_network))

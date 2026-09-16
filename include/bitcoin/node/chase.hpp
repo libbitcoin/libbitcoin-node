@@ -145,6 +145,10 @@ enum class chase
     /// Issued by 'confirm' and handled by 'protocol_header/block_out/estimator'.
     block,
 
+    /// The confirmed chain is no longer current (default).
+    /// Issued by 'confirm' and handled by 'protocol_transaction_out'.
+    stale,
+
     /// A confirmable block has been confirmed (header_t).
     /// Issued by 'confirm' and handled by 'transaction'.
     organized,

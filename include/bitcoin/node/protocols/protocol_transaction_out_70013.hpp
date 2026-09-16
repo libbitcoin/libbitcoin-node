@@ -43,6 +43,10 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    /// Handle chaser events.
+    bool handle_chase(const code& ec, chase event_,
+        event_value value) NOEXCEPT override;
+
     /// Capture the peer's minimum fee rate for announcements.
     virtual bool handle_receive_fee_filter(const code& ec,
         const network::messages::peer::fee_filter::cptr& message) NOEXCEPT;
@@ -52,9 +56,11 @@ protected:
 
 private:
     bool insufficient(const database::fee_rate& rate) const NOEXCEPT;
+    void do_send_fee_filter() NOEXCEPT;
 
-    // This is protected by strand.
+    // These are protected by strand.
     uint64_t minimum_fee_{};
+    uint64_t sent_fee_{};
 };
 
 } // namespace node

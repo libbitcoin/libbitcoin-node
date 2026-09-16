@@ -29,6 +29,8 @@ namespace node {
 #define CLASS chaser_confirm
 
 using namespace system;
+using namespace network;
+using namespace std::chrono;
 using namespace std::placeholders;
 
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
@@ -48,8 +50,28 @@ code chaser_confirm::start() NOEXCEPT
         LOGN("Node is current at startup block [" << position() << "].");
     }
 
+    // Construct is too early to create the unstarted timer.
+    stale_timer_ = std::make_shared<deadline>(log, strand());
+
     SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
     return error::success;
+}
+
+void chaser_confirm::stopping(const code& ec) NOEXCEPT
+{
+    POST(do_stopping, ec);
+}
+
+// private
+void chaser_confirm::do_stopping(const code&) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stale_timer_)
+    {
+        stale_timer_->stop();
+        stale_timer_.reset();
+    }
 }
 
 bool chaser_confirm::handle_chase(const code&, chase event_,
@@ -429,7 +451,45 @@ void chaser_confirm::announce(const header_link& link, height_t) NOEXCEPT
 
     // Announce newly-organized blocks when confirmed chain is current.
     if (is_current_chain(true))
+    {
         notify(error::success, chase::block, link);
+        start_stale_timer();
+    }
+}
+
+// The chain becomes stale at the top block timestamp plus the window, which
+// may be sooner than the window, as the block may have been mined earlier.
+void chaser_confirm::start_stale_timer() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    const auto window = node_settings().currency_window();
+    if (!stale_timer_ || is_zero(window.count()))
+        return;
+
+    const auto top = archive().get_top_timestamp(true);
+    const auto expiry = wall_clock::from_time_t(top) + window;
+    const auto span = expiry - wall_clock::now();
+
+    stale_timer_->start(BIND(handle_stale_timer, _1),
+        duration_cast<deadline::duration>(span));
+}
+
+// private
+void chaser_confirm::handle_stale_timer(const code& ec) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (closed() || !stale_timer_ || ec == network::error::operation_canceled)
+        return;
+
+    if (ec && ec != network::error::operation_timeout)
+    {
+        LOGF("Confirm chaser timer fault, " << ec.message());
+        return;
+    }
+
+    notify(error::success, chase::stale, {});
 }
 
 BC_POP_WARNING()
