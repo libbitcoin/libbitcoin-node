@@ -37,6 +37,7 @@ public:
     chaser_confirm(full_node& node) NOEXCEPT;
 
     code start() NOEXCEPT override;
+    void stopping(const code& ec) NOEXCEPT override;
 
 protected:
     using header_link = database::header_link;
@@ -70,6 +71,12 @@ private:
     bool roll_back(const header_links& popped, size_t fork_point,
         size_t top) NOEXCEPT;
     void announce(const header_link& link, height_t height) NOEXCEPT;
+    void do_stopping(const code& ec) NOEXCEPT;
+    void start_stale_timer() NOEXCEPT;
+    void handle_stale_timer(const code& ec) NOEXCEPT;
+
+    // This is protected by strand.
+    network::deadline::ptr stale_timer_{};
 };
 
 } // namespace node

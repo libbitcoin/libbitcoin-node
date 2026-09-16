@@ -106,8 +106,8 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     if (!node_network)
         return;
 
-    // Ready to relay transactions.
-    const auto txs_in_out = relay && (!delay || is_current_chain(true));
+    // Configured to relay transactions (currency is signalled by fee_filter).
+    const auto txs_in_out = relay;
 
     // Peer advertises chain (blocks in).
     if (peer->is_peer_service(service::node_network))
@@ -127,7 +127,10 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
         {
             // Very hard to find < 31800 peer to connect with.
             // Blocks-first synchronization (not base of block_in_31800).
-            channel->attach<protocol_block_in_106>(self)->start();
+            if (peer->is_negotiated(level::bip37))
+                channel->attach<protocol_block_in_70001>(self)->start();
+            else
+                channel->attach<protocol_block_in_106>(self)->start();
         }
     }
 
@@ -152,14 +155,24 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     }
 
     // Relay is configured, active, and txs are ready (txs in/out).
-    if (txs_in_out && peer->peer_version()->relay)
+    if (txs_in_out)
     {
-        if (peer->is_negotiated(level::bip133))
-            channel->attach<protocol_transaction_out_70013>(self)->start();
-        else if (peer->is_negotiated(level::bip37))
-            channel->attach<protocol_transaction_out_70001>(self)->start();
+        // Relay was requested in the version handshake (txs in).
+        if (peer->is_negotiated(level::bip37))
+            channel->attach<protocol_transaction_in_70001>(self)->start();
         else
-            channel->attach<protocol_transaction_out_106>(self)->start();
+            channel->attach<protocol_transaction_in_106>(self)->start();
+
+        // The peer requested relay in the version handshake (txs out).
+        if (peer->peer_version()->relay)
+        {
+            if (peer->is_negotiated(level::bip133))
+                channel->attach<protocol_transaction_out_70013>(self)->start();
+            else if (peer->is_negotiated(level::bip37))
+                channel->attach<protocol_transaction_out_70001>(self)->start();
+            else
+                channel->attach<protocol_transaction_out_106>(self)->start();
+        }
     }
 }
 

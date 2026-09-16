@@ -47,15 +47,52 @@ void protocol_transaction_out_70013::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(fee_filter, handle_receive_fee_filter, _1, _2);
+    do_send_fee_filter();
+    protocol_transaction_out_70001::start();
+}
 
-    // bip133: the peer does not announce a tx below our configured rate.
-    if (const auto minimum = node_settings().minimum_fee_rate_();
-        !is_zero(minimum))
+// Outbound (feefilter).
+// ----------------------------------------------------------------------------
+
+// bip133: a tx below the advertised rate is not announced to us, and the
+// maximum suppresses relay entirely, as txs are not accepted when not current.
+void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    const auto minimum = is_current_chain(true) ?
+        node_settings().minimum_fee_rate_() :
+        system_settings().max_money();
+
+    if (minimum == sent_fee_)
+        return;
+
+    sent_fee_ = minimum;
+    SEND(fee_filter{ minimum }, handle_send, _1);
+}
+
+bool protocol_transaction_out_70013::handle_chase(const code& ec,
+    chase event_, event_value value) NOEXCEPT
+{
+    // Do not pass ec to stopped as it is not a call status.
+    if (stopped())
+        return false;
+
+    switch (event_)
     {
-        SEND(fee_filter{ minimum }, handle_send, _1);
+        case chase::block:
+        case chase::stale:
+        {
+            POST(do_send_fee_filter);
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
 
-    protocol_transaction_out_70001::start();
+    return protocol_transaction_out_70001::handle_chase(ec, event_, value);
 }
 
 // Inbound (feefilter).

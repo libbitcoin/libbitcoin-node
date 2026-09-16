@@ -145,6 +145,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_31800.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70012.cpp" />
@@ -157,6 +158,7 @@
     <ClCompile Include="..\..\..\..\src\protocols\protocol_peer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_performer.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_106.cpp" />
+    <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_in_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_transaction_out_70013.cpp" />
@@ -197,6 +199,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_31800.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70012.hpp" />
@@ -209,6 +212,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_performer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_106.hpp" />
+    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_in_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_transaction_out_70013.hpp" />

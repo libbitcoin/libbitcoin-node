@@ -63,6 +63,7 @@ enum error_t : uint8_t
     pooling_disabled,
     insufficient_fee,
     empty_package,
+    excessive_backlog,
 
     /// fee estimation
     estimate_disabled,

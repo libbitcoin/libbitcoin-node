@@ -46,16 +46,8 @@ public:
     void start() NOEXCEPT override;
 
 protected:
-    /// Squash duplicates and provide constant time retrieval.
-    using hashmap = std::unordered_set<system::hash_digest>;
-
-    struct track
-    {
-        // TODO: optimize, default bucket count is around 8.
-        hashmap ids{};
-        size_t announced{};
-        system::hash_digest last{};
-    };
+    /// Clear the request record, false if the block was not requested.
+    bool erase_requested(const system::hash_digest& hash) NOEXCEPT;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
@@ -70,6 +62,16 @@ protected:
         const system::chain::block::cptr& block_ptr) NOEXCEPT;
 
 private:
+    /// Squash duplicates and provide constant time retrieval.
+    using hashmap = std::unordered_set<system::hash_digest>;
+
+    struct track
+    {
+        hashmap ids{};
+        size_t announced{};
+        system::hash_digest last{};
+    };
+
     static hashmap to_hashes(size_t reserve,
         const network::messages::peer::get_data& getter) NOEXCEPT;
 
