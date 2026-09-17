@@ -43,8 +43,8 @@ enum events : uint8_t
 
     /// Transactions.
     tx_archived,         // unassociated tx checked, accepted, connected
-    tx_validated,        // associated tx checked, accepted, connected
-    tx_invalidated,      // associated tx invalid (after headers-first archive)
+    tx_validated,        // associated tx checked, accepted, connected (unused)
+    tx_invalidated,      // associated tx invalid (unused)
 
     /// Confirmed chain.
     block_organized,     // block pushed (previously confirmable)
