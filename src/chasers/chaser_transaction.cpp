@@ -89,7 +89,8 @@ void chaser_transaction::do_bump() NOEXCEPT
     BC_ASSERT(stranded());
     pooling_ = false;
 
-    if (closed() || !is_current_chain(true))
+    // Pooling is a permanent store property, so it requires relay.
+    if (closed() || !network_settings().enable_relay || !is_current_chain(true))
         return;
 
     auto& query = archive();
