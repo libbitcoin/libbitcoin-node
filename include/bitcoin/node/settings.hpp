@@ -45,6 +45,7 @@ public:
     bool provide_witness;
     bool require_witness;
     bool provide_filters;
+    bool provide_privacy;
     bool limited_blocks;
     float allowed_deviation;
     double minimum_fee_rate;

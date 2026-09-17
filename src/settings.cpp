@@ -40,6 +40,7 @@ settings::settings() NOEXCEPT
     provide_witness{ true },
     require_witness{ true },
     provide_filters{ false },
+    provide_privacy{ false },
     limited_blocks{ false },
     batch_signatures{ 0 },
     minimum_fee_rate{ 0.0 },
@@ -107,6 +108,9 @@ uint64_t settings::services_provided() const NOEXCEPT
 
     if (provide_filters)
         services = bit_or<uint64_t>(services, service::node_client_filters);
+
+    if (provide_privacy)
+        services = bit_or<uint64_t>(services, service::node_encrypted_transport);
 
     return services;
 }
