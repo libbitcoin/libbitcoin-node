@@ -31,8 +31,8 @@ class BCN_API configuration
 public:
     configuration(system::chain::selection context) NOEXCEPT;
 
-    /// Pack derived settings, must follow configuration parse.
-    void initialize() NOEXCEPT;
+    /// Read files and pack derived settings, must follow configuration parse.
+    virtual code initialize() NOEXCEPT;
 
     /// Settings.
     system::settings bitcoin;
