@@ -33,9 +33,10 @@ configuration::configuration(system::chain::selection context) NOEXCEPT
 {
 }
 
-void configuration::initialize() NOEXCEPT
+code configuration::initialize() NOEXCEPT
 {
     database.initialize(bitcoin, node.limited_blocks);
+    return network.initialize();
 }
 
 } // namespace node
