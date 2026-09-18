@@ -60,10 +60,6 @@ protected:
     virtual bool handle_chase(const code& ec, chase event_,
         event_value value) NOEXCEPT;
 
-    /////// Accept incoming get_data message.
-    ////virtual bool handle_receive_get_data(const code& ec,
-    ////    const network::messages::peer::get_data::cptr& message) NOEXCEPT;
-
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::peer::inventory::cptr& message) NOEXCEPT;
@@ -71,7 +67,6 @@ protected:
 private:
     // These are thread safe.
     const bool relay_disallowed_;
-    const bool node_witness_;
 };
 
 } // namespace node
