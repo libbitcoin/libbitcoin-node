@@ -50,10 +50,7 @@ void protocol_observer::start() NOEXCEPT
         SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
     }
 
-    SUBSCRIBE_BROADCAST(network::diagnostics, handle_broadcast_diagnostics,
-        _1, _2, _3);
-
-    ////SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
+    SUBSCRIBE_BROADCAST(network::diagnostics, handle_broadcast_diagnostics, _1, _2, _3);
     protocol_peer::start();
 }
 
@@ -139,23 +136,42 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
     if (!message->member(identifier()) && !message->member(group()))
         return true;
 
+    using namespace system;
     const auto peer = peer_version();
+    uint64_t services{ service::node_none };
+    network::config::address local{};
+    int64_t time_offset{};
+    std::string agent{};
+    bool relay{};
+
+    if (peer)
+    {
+        time_offset = subtract<int64_t>(peer->timestamp, created());
+        local = { peer->address_receiver };
+        services = peer->services;
+        agent = peer->user_agent;
+        relay = peer->relay;
+    }
 
     message->add(
     {
         .identifier = identifier(),
         .address = outbound(),
+        .local = local,
+        .binding = binding(),
         .group = group(),
         .version = negotiated_version(),
-        .services = peer ? peer->services : service::node_none,
+        .services = services,
         .sent = sent(),
         .received = received(),
         .created = created(),
         .last_read = last_read(),
         .last_write = last_write(),
+        .time_offset = time_offset,
         .start_height = start_height(),
         .encrypted = encrypted(),
-        .agent = peer ? peer->user_agent : std::string{}
+        .relay = relay,
+        .agent = agent
     });
 
     return true;
