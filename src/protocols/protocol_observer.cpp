@@ -92,11 +92,9 @@ bool protocol_observer::handle_chase(const code&, chase event_,
     return true;
 }
 
-// Inbound (inv, get_data).
+// Inbound (inv).
 // ----------------------------------------------------------------------------
-// These implement protocol hygiene for messages that may not be captured.
-// This also allows various protocols to not have to handle all conditions.
-// Not currently comprehensive but at least catches a lot of disallowed relay.
+// Protocol hygiene for messages that may not be captured.
 
 bool protocol_observer::handle_receive_inventory(const code& ec,
     const inventory::cptr& message) NOEXCEPT
@@ -116,35 +114,8 @@ bool protocol_observer::handle_receive_inventory(const code& ec,
         return false;
     }
 
-    ////// Witness types never allowed in inventory (wxtid excluded).
-    ////if (message->any_witness())
-    ////{
-    ////    LOGR("Unsupported witness inventory from [" << opposite() << "].");
-    ////    stop(network::error::protocol_violation);
-    ////    return false;
-    ////}
-
     return true;
 }
-
-////bool protocol_observer::handle_receive_get_data(const code& ec,
-////    const get_data::cptr& message) NOEXCEPT
-////{
-////    BC_ASSERT(stranded());
-////
-////    if (stopped(ec))
-////        return false;
-////
-////    // Witness types only allowed in get_data if witness service advertised.
-////    if (!node_witness_ && message->any_witness())
-////    {
-////        LOGR("Unsupported witness get_data from [" << authority42() << "].");
-////        stop(network::error::protocol_violation);
-////        return false;
-////    }
-////
-////    return true;
-////}
 
 BC_POP_WARNING()
 BC_POP_WARNING()
