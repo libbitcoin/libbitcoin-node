@@ -158,7 +158,9 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     if (txs_in_out)
     {
         // Relay was requested in the version handshake (txs in).
-        if (peer->is_negotiated(level::bip37))
+        if (peer->is_negotiated(level::bip133))
+            channel->attach<protocol_transaction_in_70013>(self)->start();
+        else if (peer->is_negotiated(level::bip37))
             channel->attach<protocol_transaction_in_70001>(self)->start();
         else
             channel->attach<protocol_transaction_in_106>(self)->start();
