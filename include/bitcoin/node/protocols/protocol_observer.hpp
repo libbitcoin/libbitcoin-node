@@ -44,6 +44,7 @@ public:
                 is_negotiated(network::messages::peer::level::bip37) &&
             !session->network_settings().enable_relay
         ),
+        group_(to_group<std::decay_t<decltype(*session)>>()),
         network::tracker<protocol_observer>(session->log)
     {
     }
@@ -63,9 +64,33 @@ protected:
     virtual bool handle_receive_inventory(const code& ec,
         const network::messages::peer::inventory::cptr& message) NOEXCEPT;
 
+    /// Add the channel row to a capture of which it is a member.
+    virtual bool handle_broadcast_diagnostics(const code& ec,
+        const network::diagnostics::cptr& message, uint64_t sender) NOEXCEPT;
+
+    /// The capture group of the channel (the session determines the group).
+    virtual network::diagnostics::target group() const NOEXCEPT;
+
 private:
+    // The session configuration type identifies its capture group.
+    template <typename Session>
+    static constexpr network::diagnostics::target to_group() NOEXCEPT
+    {
+        using options = typename Session::options_t;
+        using inbound = network::settings::peer_inbound;
+        using manual = network::settings::peer_manual;
+
+        if constexpr (is_same_type<options, inbound>)
+            return network::diagnostics::target::inbound;
+        else if constexpr (is_same_type<options, manual>)
+            return network::diagnostics::target::manual;
+        else
+            return network::diagnostics::target::outbound;
+    }
+
     // These are thread safe.
     const bool relay_disallowed_;
+    const network::diagnostics::target group_;
 };
 
 } // namespace node

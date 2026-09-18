@@ -50,6 +50,9 @@ void protocol_observer::start() NOEXCEPT
         SUBSCRIBE_CHANNEL(inventory, handle_receive_inventory, _1, _2);
     }
 
+    SUBSCRIBE_BROADCAST(network::diagnostics, handle_broadcast_diagnostics,
+        _1, _2, _3);
+
     ////SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol_peer::start();
 }
@@ -113,6 +116,42 @@ bool protocol_observer::handle_receive_inventory(const code& ec,
         stop(network::error::protocol_violation);
         return false;
     }
+
+    return true;
+}
+
+// Diagnostics (capture).
+// ----------------------------------------------------------------------------
+
+network::diagnostics::target protocol_observer::group() const NOEXCEPT
+{
+    return group_;
+}
+
+bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
+    const network::diagnostics::cptr& message, uint64_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    if (!message->member(identifier()) && !message->member(group()))
+        return true;
+
+    const auto peer = peer_version();
+
+    message->add(
+    {
+        identifier(),
+        outbound(),
+        group(),
+        negotiated_version(),
+        peer ? peer->services : service::node_none,
+        sent(),
+        start_height(),
+        encrypted()
+    });
 
     return true;
 }
