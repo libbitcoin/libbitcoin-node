@@ -168,8 +168,20 @@ void protocol_transaction_in_106::do_handle_submit(const code& ec) NOEXCEPT
     if (stopped() || ec == network::error::service_stopped)
         return;
 
-    // Sending a conflict with a confirmed tx is considered misbehavior.
-    if (ec && (ec != system::error::double_spend))
+    // A conflict with an unconfirmed tx is not misbehavior, as the peer
+    // cannot know what is held here. An unknown prevout is not misbehavior,
+    // as announcement order is not constrained and orphans are not pooled.
+    // A locked tx is final to a peer one block ahead, as locks are evaluated
+    // against the presumed next block, so neither lock is misbehavior.
+    // The rate and suspension cannot be advertised below bip133, so a tx that
+    // violates either is not misbehavior (see protocol_transaction_in_70013).
+    if (ec &&
+        (ec != error::pooling_disabled) &&
+        (ec != error::insufficient_fee) &&
+        (ec != system::error::double_spend) &&
+        (ec != system::error::absolute_time_locked) &&
+        (ec != system::error::relative_time_locked) &&
+        (ec != system::error::missing_previous_output))
     {
         LOGR("Tx from [" << opposite() << "] " << ec.message());
         stop(ec);
