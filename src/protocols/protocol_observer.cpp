@@ -143,15 +143,16 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
 
     message->add(
     {
-        identifier(),
-        outbound(),
-        group(),
-        negotiated_version(),
-        peer ? peer->services : service::node_none,
-        sent(),
-        start_height(),
-        encrypted(),
-        peer ? peer->user_agent : std::string{}
+        .identifier = identifier(),
+        .address = outbound(),
+        .group = group(),
+        .version = negotiated_version(),
+        .services = peer ? peer->services : service::node_none,
+        .sent = sent(),
+        .received = received(),
+        .start_height = start_height(),
+        .encrypted = encrypted(),
+        .agent = peer ? peer->user_agent : std::string{}
     });
 
     return true;
