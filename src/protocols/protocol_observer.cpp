@@ -150,7 +150,8 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
         peer ? peer->services : service::node_none,
         sent(),
         start_height(),
-        encrypted()
+        encrypted(),
+        peer ? peer->user_agent : std::string{}
     });
 
     return true;
