@@ -54,6 +54,8 @@ protected:
     virtual void do_bump() NOEXCEPT;
 
 private:
+    static size_t to_rate(const system::chain::transaction& tx) NOEXCEPT;
+
     code validate(size_t& index,
         const system::chain::transaction_cptrs& txs) NOEXCEPT;
     code validate(const system::chain::transaction& tx) NOEXCEPT;

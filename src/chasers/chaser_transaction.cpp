@@ -157,19 +157,37 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     for (index = {}; index < txs->size(); ++index)
     {
         database::tx_link link{};
+        const auto& tx = *txs->at(index);
 
         // Disk full may leave package partly archived, resolves by resubmit.
-        if (const auto ec = query.set_code(link, *txs->at(index)))
+        if (const auto ec = query.set_code(link, tx))
         {
             handler(fault(ec), index);
             return;
         }
 
-        fire(events::tx_archived, link);
+        fire(events::tx_archived, to_rate(tx));
         notify(error::success, chase::transaction, transaction_t{ link });
     }
 
     handler(error::success, {});
+}
+
+// utility
+// ----------------------------------------------------------------------------
+
+// Satoshis per virtual kilobyte, as configured and as advertised (bip133).
+// The fee and size are recomputed here, as they are for the package rate and
+// for block fees, so the rate could instead be cached on the transaction.
+size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
+{
+    const auto size = tx.virtual_size();
+    if (is_zero(size))
+        return zero;
+
+    return possible_narrow_cast<size_t>(system::floored_divide(
+        ceilinged_multiply(tx.fee(), vbytes_per_vkbyte),
+        possible_wide_cast<uint64_t>(size)));
 }
 
 // validation
