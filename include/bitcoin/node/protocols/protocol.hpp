@@ -85,6 +85,10 @@ protected:
     /// Maintain a manual connection to the given endpoint.
     virtual void connect(const network::config::endpoint& endpoint) NOEXCEPT;
 
+    /// Connect to the given endpoint, handler invoked on each connect/stop.
+    virtual void connect(const network::config::endpoint& endpoint,
+        network::net::channel_notifier&& handler) NOEXCEPT;
+
     /// Get current fee estimate.
     void estimate(size_t target, estimator::mode mode,
         estimate_handler&& handler) NOEXCEPT;
