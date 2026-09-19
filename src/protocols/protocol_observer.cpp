@@ -135,7 +135,7 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (!message->member(identifier()) && !message->member(group()))
+    if (!message->targets(identifier()) && !message->targets(group()))
         return true;
 
     using namespace system;
@@ -157,27 +157,33 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
 
     message->add(
     {
+        .group = group(),
         .identifier = identifier(),
+        .endpoint = opposite(),
         .address = outbound(),
         .local = local,
         .binding = binding(),
-        .group = group(),
-        .version = negotiated_version(),
-        .services = services,
-        .sent = sent(),
-        .received = received(),
+
+        .encrypted = encrypted(),
+        .peer_relay = relay,
+        .peer_start_height = start_height(),
+        .peer_version = negotiated_version(),
+        .peer_services = services,
+        .peer_minimum_fee = minimum_fee(),
+        .peer_user_agent = agent,
+
         .created = created(),
         .last_read = last_read(),
         .last_write = last_write(),
         .time_offset = time_offset,
-        .minimum_fee = minimum_fee(),
+        .bytes_sent = sent(),
+        .bytes_received = received(),
+        .bytes_sent_by_message = sent_by_message(),
+        .bytes_received_by_message = received_by_message(),
+
         .ping_time = ping_time(),
         .minimum_ping_time = minimum_ping_time(),
-        .pending_ping_time = pending_ping_time(),
-        .start_height = start_height(),
-        .encrypted = encrypted(),
-        .relay = relay,
-        .agent = agent
+        .pending_ping_time = pending_ping_time()
     });
 
     return true;
@@ -192,7 +198,7 @@ bool protocol_observer::handle_broadcast_terminator(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (!message->member(identifier(), outbound()))
+    if (!message->targets(identifier(), outbound(), opposite()))
         return true;
 
     message->stopped();

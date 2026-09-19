@@ -103,6 +103,12 @@ void protocol::connect(const network::config::endpoint& endpoint) NOEXCEPT
     session_->connect(endpoint);
 }
 
+void protocol::connect(const network::config::endpoint& endpoint,
+    network::net::channel_notifier&& handler) NOEXCEPT
+{
+    session_->connect(endpoint, std::move(handler));
+}
+
 bool protocol::suspended() const NOEXCEPT
 {
     return session_->suspended();

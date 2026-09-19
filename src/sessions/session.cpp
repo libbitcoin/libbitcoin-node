@@ -196,6 +196,12 @@ void session::connect(const network::config::endpoint& endpoint) NOEXCEPT
     node_.connect(endpoint);
 }
 
+void session::connect(const network::config::endpoint& endpoint,
+    network::net::channel_notifier&& handler) NOEXCEPT
+{
+    node_.connect(endpoint, std::move(handler));
+}
+
 bool session::suspended() const NOEXCEPT
 {
     return node_.suspended();
