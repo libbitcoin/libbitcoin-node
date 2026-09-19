@@ -276,7 +276,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     const auto& block = message->block;
     const auto hash = block.hash();
     const auto it = map_->find(hash);
-    if (it == map_->end())
+    if (it == map_->cend())
     {
         // Allow unrequested block, not counted toward performance.
         LOGR("Unrequested block [" << encode_hash(hash) << "] from ["
