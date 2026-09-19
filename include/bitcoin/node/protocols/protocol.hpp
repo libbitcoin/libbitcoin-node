@@ -67,7 +67,7 @@ protected:
     /// The candidate|confirmed chain is current.
     virtual bool is_current_chain(bool confirmed) const NOEXCEPT;
 
-    /// The minimum fee rate (satoshis/kvB) to relay, max_money if not pooling.
+    /// The minimum fee rate (satoshis/kvB) to relay, max_money if not current.
     virtual uint64_t minimum_fee_rate() const NOEXCEPT;
 
     /// Zulu time at which the node started.
