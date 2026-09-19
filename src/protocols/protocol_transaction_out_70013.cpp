@@ -106,7 +106,7 @@ bool protocol_transaction_out_70013::handle_receive_fee_filter(const code& ec,
     if (stopped(ec))
         return false;
 
-    minimum_fee_ = message->minimum_fee;
+    set_minimum_fee(message->minimum_fee);
     return true;
 }
 
@@ -140,7 +140,7 @@ bool protocol_transaction_out_70013::insufficient(
     const database::fee_rate& rate) const NOEXCEPT
 {
     return ceilinged_multiply(rate.fee, vbytes_per_vkbyte) <
-        ceilinged_multiply(minimum_fee_,
+        ceilinged_multiply(minimum_fee(),
             possible_wide_cast<uint64_t>(rate.bytes));
 }
 

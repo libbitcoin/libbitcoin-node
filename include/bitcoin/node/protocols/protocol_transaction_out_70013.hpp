@@ -58,8 +58,7 @@ private:
     bool insufficient(const database::fee_rate& rate) const NOEXCEPT;
     void do_send_fee_filter() NOEXCEPT;
 
-    // These are protected by strand.
-    uint64_t minimum_fee_{};
+    // This is protected by strand.
     uint64_t sent_fee_{};
 };
 
