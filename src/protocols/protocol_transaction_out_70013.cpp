@@ -54,15 +54,12 @@ void protocol_transaction_out_70013::start() NOEXCEPT
 // Outbound (feefilter).
 // ----------------------------------------------------------------------------
 
-// bip133: a tx below the advertised rate is not announced to us, and the
-// maximum suppresses relay entirely, as txs are not accepted when not current.
+// bip133: a tx below the advertised rate is not announced to us.
 void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    const auto minimum = is_current_chain(true) ?
-        node_settings().minimum_fee_rate_() :
-        system_settings().max_money();
+    const auto minimum = minimum_fee_rate();
 
     if (minimum == sent_fee_)
         return;

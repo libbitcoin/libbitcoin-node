@@ -66,6 +66,12 @@ bool protocol::is_current_chain(bool confirmed) const NOEXCEPT
     return session_->is_current_chain(confirmed);
 }
 
+uint64_t protocol::minimum_fee_rate() const NOEXCEPT
+{
+    return is_current_chain(true) ? node_settings().minimum_fee_rate_() :
+        system_settings().max_money();
+}
+
 time_t protocol::start_time() const NOEXCEPT
 {
     return session_->start_time();
