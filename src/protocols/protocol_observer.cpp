@@ -51,6 +51,7 @@ void protocol_observer::start() NOEXCEPT
     }
 
     SUBSCRIBE_BROADCAST(network::diagnostics, handle_broadcast_diagnostics, _1, _2, _3);
+    SUBSCRIBE_BROADCAST(network::terminator, handle_broadcast_terminator, _1, _2, _3);
     protocol_peer::start();
 }
 
@@ -65,7 +66,7 @@ void protocol_observer::stopping(const code& ec) NOEXCEPT
 // handle events (suspend)
 // ----------------------------------------------------------------------------
 
-bool protocol_observer::handle_chase(const code&, chase event_,
+bool protocol_observer::handle_chase(const code& ec, chase event_,
     event_value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
@@ -76,7 +77,8 @@ bool protocol_observer::handle_chase(const code&, chase event_,
     {
         case chase::suspend:
         {
-            stop(error::suspended_channel);
+            // The code distinguishes a stop from a drop (manual removal).
+            stop(ec);
             break;
         }
         case chase::stop:
@@ -178,6 +180,23 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
     });
 
     return true;
+}
+
+// The first member stops, so the round completes without the other channels.
+bool protocol_observer::handle_broadcast_terminator(const code& ec,
+    const network::terminator::cptr& message, uint64_t) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped(ec))
+        return false;
+
+    if (!message->member(identifier(), outbound()))
+        return true;
+
+    message->stopped();
+    stop(message->reason());
+    return false;
 }
 
 BC_POP_WARNING()

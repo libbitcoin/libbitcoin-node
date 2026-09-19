@@ -293,7 +293,7 @@ void full_node::suspend(const code& ec) NOEXCEPT
 {
     LOGS("Suspending network, " << ec.message());
     net::suspend(ec);
-    notify(ec, chase::suspend, {});
+    notify(error::suspended_channel, chase::suspend, {});
 }
 
 void full_node::fault(const code& ec) NOEXCEPT

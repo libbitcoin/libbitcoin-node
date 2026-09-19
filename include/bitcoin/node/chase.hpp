@@ -45,7 +45,7 @@ enum class chase
     /// Issued by 'organize' and handled by 'check', 'validate', 'confirm'.
     bump,
 
-    /// Channels (all) directed to stop (default).
+    /// Channels (all) directed to stop with the given code (default).
     /// Issued by 'full_node' and handled by 'observer'.
     suspend,
 

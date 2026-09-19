@@ -68,6 +68,10 @@ protected:
     virtual bool handle_broadcast_diagnostics(const code& ec,
         const network::diagnostics::cptr& message, uint64_t sender) NOEXCEPT;
 
+    /// Stop the channel if it is the member of a stop.
+    virtual bool handle_broadcast_terminator(const code& ec,
+        const network::terminator::cptr& message, uint64_t sender) NOEXCEPT;
+
     /// The capture group of the channel (the session determines the group).
     virtual network::diagnostics::target group() const NOEXCEPT;
 
