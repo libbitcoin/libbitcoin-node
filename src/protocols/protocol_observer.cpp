@@ -178,6 +178,8 @@ bool protocol_observer::handle_broadcast_diagnostics(const code& ec,
         .time_offset = time_offset,
         .bytes_sent = sent(),
         .bytes_received = received(),
+        .bytes_sent_by_message = sent_by_message(),
+        .bytes_received_by_message = received_by_message(),
 
         .ping_time = ping_time(),
         .minimum_ping_time = minimum_ping_time(),
