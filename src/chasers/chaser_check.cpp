@@ -221,7 +221,7 @@ void chaser_check::do_starved(object_t self) NOEXCEPT
     BC_ASSERT(stranded());
 
     // Remove the starved channel to prevent self-selection.
-    if (speeds_.find(self) != speeds_.end())
+    if (speeds_.find(self) != speeds_.cend())
         speeds_.erase(self);
 
     // Find the slowest reporting channel.
@@ -232,7 +232,7 @@ void chaser_check::do_starved(object_t self) NOEXCEPT
         });
 
     // Direct the slowest channel to split work and stop.
-    if (slowest != speeds_.end())
+    if (slowest != speeds_.cend())
     {
         // Erase entry so less likely to be claimed again before stopping.
         const auto slow = slowest->first;

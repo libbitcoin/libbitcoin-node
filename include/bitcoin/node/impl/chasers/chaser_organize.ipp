@@ -142,7 +142,7 @@ void CLASS::do_organize(typename Block::cptr block, bool prioritized,
     }
 
     const auto it = tree_.find(hash);
-    if (it != tree_.end())
+    if (it != tree_.cend())
     {
         handler(error_duplicate(), it->second->get_state()->height());
         return;
@@ -354,7 +354,7 @@ void CLASS::do_prioritize(const system::hash_digest& hash,
         return;
 
     // Only the top of a cached branch can tie the candidate top.
-    if (std::any_of(tree_.begin(), tree_.end(), [&](const auto& item) NOEXCEPT
+    if (std::any_of(tree_.cbegin(), tree_.cend(), [&](const auto& item) NOEXCEPT
         {
             return get_header(*item.second).previous_block_hash() == hash;
         }))
@@ -661,7 +661,7 @@ void CLASS::shrink_tree(bool current) NOEXCEPT
         return;
 
     shrunk_ = true;
-    tree_ = { tree_.begin(), tree_.end() };
+    tree_ = { tree_.cbegin(), tree_.cend() };
     LOGV("Tree buckets reduced to (" << tree_.bucket_count() << ").");
 }
 
