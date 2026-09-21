@@ -118,7 +118,7 @@ bool protocol_transaction_out_106::announce(const hash_digest& hash) NOEXCEPT
 
     // bip144: get_data uses witness type_id but inv does not.
     const inventory inv{ { { type_id::transaction, hash } } };
-    SEND(inv, handle_send, _1);
+    NOTIFY(inv, handle_send, _1);
     return true;
 }
 

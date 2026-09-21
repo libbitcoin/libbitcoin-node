@@ -65,7 +65,7 @@ void protocol_transaction_out_70013::do_send_fee_filter() NOEXCEPT
         return;
 
     sent_fee_ = minimum;
-    SEND(fee_filter{ minimum }, handle_send, _1);
+    NOTIFY(fee_filter{ minimum }, handle_send, _1);
 }
 
 bool protocol_transaction_out_70013::handle_chase(const code& ec,
