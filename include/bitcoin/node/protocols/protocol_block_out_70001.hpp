@@ -45,7 +45,8 @@ protected:
     bool handle_unservable(const inventory_item& item) NOEXCEPT override;
 
     /// Replies not_found with the accumulated items, false if none.
-    bool report_unservable(const gate_t::ptr& gate) NOEXCEPT override;
+    bool report_unservable(size_t index, const get_data::cptr& message,
+        const gate_t::ptr& gate) NOEXCEPT override;
 
 private:
     // This is thread safe.

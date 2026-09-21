@@ -133,9 +133,8 @@ bool protocol_transaction_out_106::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Post so the completion resubscribe runs outside the current notify().
-    POST(send_transaction, error::success, zero, message, gate());
-    return false;
+    send_transaction(error::success, zero, message, gate());
+    return true;
 }
 
 // Outbound (tx).
@@ -193,13 +192,8 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     if (report_unservable(index, message, gate))
         return;
 
-    // BUGBUG: registration race.
     if (index >= message->items.size())
-    {
-        // Complete, resubscribe to transaction requests.
-        SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
         return;
-    }
 
     SEND(transaction{ ptr }, send_transaction, _1, add1(index), message, gate);
 }

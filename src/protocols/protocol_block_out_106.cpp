@@ -163,43 +163,15 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
     if (is_zero(size))
         return true;
 
-    const auto total = ceilinged_add(backlog_.size(), size);
-    if (total > network::messages::peer::max_inventory)
-    {
-        LOGR("Blocks requested (" << total << ") exceeds inv limit ["
-            << opposite() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
-
-    // Satoshi sends overlapping get_data requests, but assumes that the
-    // recipient is blocking *all traffic* until the previous is completed.
-    // So to prevent frequent drops of satoshi peers, and not let one protocol
-    // block all others, we must accumulate the requests into a backlog. If the
-    // backlog exceeds the *individual* message limit we drop the peer.
-    const auto idle = backlog_.empty();
-    if (!allow_overlapped_ && !idle)
-    {
-        LOGR("Overlapping block requests [" << opposite() << "].");
-        stop(network::error::protocol_violation);
-        return false;
-    }
-
-    // Append the new inventory the request queue.
-    merge_inventory(message->items);
-
-    // Bump the idle async send loop if no pending send.
-    if (idle)
-        send_block(error::success, gate());
-
+    send_block(error::success, zero, message, gate());
     return true;
 }
 
 // Outbound (block).
 // ----------------------------------------------------------------------------
 
-void protocol_block_out_106::send_block(const code& ec,
-    const gate_t::ptr& gate) NOEXCEPT
+void protocol_block_out_106::send_block(const code& ec, size_t index,
+    const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
@@ -207,13 +179,16 @@ void protocol_block_out_106::send_block(const code& ec,
 
     const auto& query = archive();
 
-    // Drain unservable items from the front of the backlog. The derived
+    // Drain unservable items, skipping non-block inventory. The derived
     // protocol accumulates them if it reports them, and otherwise stops the
-    // channel on the first. Copied because each is handled after the pop.
+    // channel on the first.
     database::header_link link{};
-    while (!backlog_.empty())
+    for (; index < message->items.size(); ++index)
     {
-        const auto item = backlog_.front();
+        const auto& item = message->items.at(index);
+        if (!item.is_block())
+            continue;
+
         if (item.is_witness_type() && !node_witness_)
         {
             LOGR("Unsupported witness get_data from [" << opposite() << "].");
@@ -225,18 +200,18 @@ void protocol_block_out_106::send_block(const code& ec,
         if (is_servable(item, link))
             break;
 
-        backlog_.pop_front();
         if (!handle_unservable(item))
             return;
     }
 
     // The report resumes this loop on completion, so it precedes the block.
-    if (report_unservable(gate))
+    if (report_unservable(index, message, gate))
         return;
 
-    if (backlog_.empty()) return;
+    if (index >= message->items.size())
+        return;
 
-    const auto item = backlog_.front();
+    const auto& item = message->items.at(index);
     const auto witness = item.is_witness_type();
     const auto start = logger::now();
     messages::peer::block out
@@ -250,16 +225,14 @@ void protocol_block_out_106::send_block(const code& ec,
         LOGV("Requested block " << encode_hash(item.hash) << " from ["
             << opposite() << "] not obtained.");
 
-        backlog_.pop_front();
         if (handle_unservable(item))
-            report_unservable(gate);
+            report_unservable(add1(index), message, gate);
 
         return;
     }
 
-    backlog_.pop_front();
     span<microseconds>(events::block_usecs, start);
-    SEND(std::move(out), send_block, _1, gate);
+    SEND(std::move(out), send_block, _1, add1(index), message, gate);
 }
 
 // The checkpoint, milestone and association queries assume an archived header.
@@ -309,7 +282,8 @@ bool protocol_block_out_106::handle_unservable(
 }
 
 // There is nothing to report below bip37, the channel is stopped above.
-bool protocol_block_out_106::report_unservable(const gate_t::ptr&) NOEXCEPT
+bool protocol_block_out_106::report_unservable(size_t,
+    const get_data::cptr&, const gate_t::ptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
     return false;
@@ -318,13 +292,6 @@ bool protocol_block_out_106::report_unservable(const gate_t::ptr&) NOEXCEPT
 // utilities
 // ----------------------------------------------------------------------------
 
-void protocol_block_out_106::merge_inventory(
-    const inventory_items& items) NOEXCEPT
-{
-    for (const auto& item: items)
-        if (item.is_block())
-            backlog_.push_back(item);
-}
 
 protocol_block_out_106::inventory protocol_block_out_106::create_inventory(
     const get_blocks& locator) const NOEXCEPT

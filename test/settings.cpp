@@ -35,7 +35,6 @@ BOOST_AUTO_TEST_CASE(settings__node__default_context__expected)
     BOOST_REQUIRE_EQUAL(node.headers_first, true);
     BOOST_REQUIRE_EQUAL(node.memory_priority, true);
     BOOST_REQUIRE_EQUAL(node.thread_priority, true);
-    BOOST_REQUIRE_EQUAL(node.allow_overlapped, true);
     BOOST_REQUIRE_EQUAL(node.provide_blocks, true);
     BOOST_REQUIRE_EQUAL(node.require_blocks, true);
     BOOST_REQUIRE_EQUAL(node.provide_witness, true);
