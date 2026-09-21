@@ -296,6 +296,7 @@ AS_IF([(test "x${with_tests}" != "xno")],
 AC_CONFIG_FILES([
     Makefile
     libbitcoin-node.pc
+    include/bitcoin/node/version.hpp:${repository_root_dir}/include/bitcoin/node/version.hpp.in
   ])
 
 AC_OUTPUT
