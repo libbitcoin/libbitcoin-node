@@ -114,7 +114,7 @@ bool protocol_header_out_70012::do_announce(header_t link) NOEXCEPT
 
     LOGN("Announce ..." << encode_hash(hash).substr(hash_size - 8, 8)
         << " to [" << opposite() << "].");
-    SEND(headers{ { ptr } }, handle_send, _1);
+    NOTIFY(headers{ { ptr } }, handle_send, _1);
     return true;
 }
 

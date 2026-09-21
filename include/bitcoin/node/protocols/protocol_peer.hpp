@@ -91,6 +91,8 @@ protected:
     /// Events notification.
     /// -----------------------------------------------------------------------
 
+    using network::protocol_peer::notify;
+
     /// Set a chaser event.
     virtual void notify(const code& ec, chase event_,
         event_value value) const NOEXCEPT;

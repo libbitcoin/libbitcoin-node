@@ -121,7 +121,7 @@ bool protocol_block_out_106::do_announce(header_t link) NOEXCEPT
 
     // bip144: get_data uses witness type_id but inv does not.
     const inventory inv{ { { type_id::block, hash } } };
-    SEND(inv, handle_send, _1);
+    NOTIFY(inv, handle_send, _1);
     return true;
 }
 
