@@ -133,9 +133,8 @@ bool protocol_transaction_out_106::handle_receive_get_data(const code& ec,
     if (stopped(ec))
         return false;
 
-    // Post so the completion resubscribe runs outside the current notify().
-    POST(send_transaction, error::success, zero, message);
-    return false;
+    send_transaction(error::success, zero, message, gate());
+    return true;
 }
 
 // Outbound (tx).
@@ -146,7 +145,8 @@ bool protocol_transaction_out_106::handle_receive_get_data(const code& ec,
 // using MSG_TX getdata messages." (derived protocol)
 
 void protocol_transaction_out_106::send_transaction(const code& ec,
-    size_t index, const get_data::cptr& message) NOEXCEPT
+    size_t index, const get_data::cptr& message,
+    const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -189,18 +189,13 @@ void protocol_transaction_out_106::send_transaction(const code& ec,
     }
 
     // The report resumes this loop on completion, so it precedes the tx.
-    if (report_unservable(index, message))
+    if (report_unservable(index, message, gate))
         return;
 
-    // BUGBUG: registration race.
     if (index >= message->items.size())
-    {
-        // Complete, resubscribe to transaction requests.
-        SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
         return;
-    }
 
-    SEND(transaction{ ptr }, send_transaction, _1, add1(index), message);
+    SEND(transaction{ ptr }, send_transaction, _1, add1(index), message, gate);
 }
 
 // not_found is undefined below bip37, so the channel is stopped instead.
@@ -218,7 +213,7 @@ bool protocol_transaction_out_106::handle_unservable(
 
 // There is nothing to report below bip37, the channel is stopped above.
 bool protocol_transaction_out_106::report_unservable(size_t,
-    const get_data::cptr&) NOEXCEPT
+    const get_data::cptr&, const gate_t::ptr&) NOEXCEPT
 {
     return false;
 }

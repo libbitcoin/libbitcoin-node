@@ -50,7 +50,7 @@ inline void CLASS::attach_handshake(const channel_ptr& channel,
     network::result_handler&& handler) NOEXCEPT
 {
     BC_ASSERT(channel->stranded());
-    BC_ASSERT(channel->paused());
+    BC_ASSERT(!channel->held());
 
     // Set the current top for version protocol, before handshake.
     const auto top = this->archive().get_top_confirmed();
@@ -65,7 +65,7 @@ TEMPLATE
 inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
 {
     BC_ASSERT(channel->stranded());
-    BC_ASSERT(channel->paused());
+    BC_ASSERT(channel->held());
 
     using namespace system;
     using namespace network;

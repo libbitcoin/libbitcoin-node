@@ -19,7 +19,6 @@
 #ifndef LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_OUT_106_HPP
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOL_BLOCK_OUT_106_HPP
 
-#include <deque>
 #include <bitcoin/node/define.hpp>
 #include <bitcoin/node/protocols/protocol_peer.hpp>
 
@@ -40,8 +39,7 @@ public:
             session->system_settings().top_checkpoint().height()),
         node_pruned_(session->node_settings().limited_blocks),
         node_witness_(session->node_settings().provide_witness),
-        allow_overlapped_(session->node_settings().allow_overlapped),
-        network::tracker<protocol_block_out_106>(session->log)
+       network::tracker<protocol_block_out_106>(session->log)
     {
     }
 
@@ -71,13 +69,15 @@ protected:
         const get_blocks::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_data(const code& ec,
         const get_data::cptr& message) NOEXCEPT;
-    virtual void send_block(const code& ec) NOEXCEPT;
+    virtual void send_block(const code& ec, size_t index,
+        const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT;
 
     /// The item cannot be served, stops the channel and returns false.
     virtual bool handle_unservable(const inventory_item& item) NOEXCEPT;
 
     /// Send any unservable items accumulated above, false if none.
-    virtual bool report_unservable() NOEXCEPT;
+    virtual bool report_unservable(size_t index,
+        const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT;
 
 private:
     using inventory = network::messages::peer::inventory;
@@ -86,16 +86,11 @@ private:
         const database::header_link& link) NOEXCEPT;
     bool is_under_checkpoint(const database::header_link& link) NOEXCEPT;
     inventory create_inventory(const get_blocks& locator) const NOEXCEPT;
-    void merge_inventory(const inventory_items& items) NOEXCEPT;
 
     // These are thread safe.
     const size_t top_checkpoint_height_;
     const bool node_pruned_;
     const bool node_witness_;
-    const bool allow_overlapped_;
-
-    // This is protected by strand.
-    std::deque<inventory_item> backlog_{};
 };
 
 } // namespace node

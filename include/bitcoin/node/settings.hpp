@@ -39,7 +39,6 @@ public:
     bool headers_first;
     bool thread_priority;
     bool memory_priority;
-    bool allow_overlapped;
     bool provide_blocks;
     bool require_blocks;
     bool provide_witness;

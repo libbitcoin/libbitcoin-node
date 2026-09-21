@@ -59,7 +59,8 @@ protected:
     virtual bool handle_receive_get_data(const code& ec,
         const network::messages::peer::get_data::cptr& message) NOEXCEPT;
     virtual void send_transaction(const code& ec, size_t index,
-        const network::messages::peer::get_data::cptr& message) NOEXCEPT;
+        const network::messages::peer::get_data::cptr& message,
+        const gate_t::ptr& gate) NOEXCEPT;
 
     /// The item cannot be served, false terminates the send loop.
     virtual bool handle_unservable(
@@ -67,7 +68,8 @@ protected:
 
     /// Replies not_found with the accumulated items, false if none.
     virtual bool report_unservable(size_t index,
-        const network::messages::peer::get_data::cptr& message) NOEXCEPT;
+        const network::messages::peer::get_data::cptr& message,
+        const gate_t::ptr& gate) NOEXCEPT;
 
     virtual bool announce(const system::hash_digest& hash) NOEXCEPT;
 

@@ -36,7 +36,8 @@ BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
 // bip133: the peer is sent our rate when current and the maximum otherwise, so
 // a tx below the rate, or any tx while suspended, is sent against instruction.
-void protocol_transaction_in_70013::do_handle_submit(const code& ec) NOEXCEPT
+void protocol_transaction_in_70013::do_handle_submit(const code& ec,
+    const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -50,7 +51,7 @@ void protocol_transaction_in_70013::do_handle_submit(const code& ec) NOEXCEPT
         return;
     }
 
-    protocol_transaction_in_70001::do_handle_submit(ec);
+    protocol_transaction_in_70001::do_handle_submit(ec, gate);
 }
 
 BC_POP_WARNING()

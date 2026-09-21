@@ -56,8 +56,10 @@ protected:
     /// Accept incoming transaction message.
     virtual bool handle_receive_transaction(const code& ec,
         const network::messages::peer::transaction::cptr& message) NOEXCEPT;
-    virtual void handle_submit(const code& ec, size_t index) NOEXCEPT;
-    virtual void do_handle_submit(const code& ec) NOEXCEPT;
+    virtual void handle_submit(const code& ec, size_t index,
+        const gate_t::ptr& gate) NOEXCEPT;
+    virtual void do_handle_submit(const code& ec,
+        const gate_t::ptr& gate) NOEXCEPT;
 
 private:
     /// Squash duplicates and provide constant time retrieval.

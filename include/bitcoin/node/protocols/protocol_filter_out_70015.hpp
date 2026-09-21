@@ -52,7 +52,8 @@ protected:
 
 private:
     using ancestry_ptr = std::shared_ptr<database::header_links>;
-    void send_filter(const code& ec, const ancestry_ptr& ancestry) NOEXCEPT;
+    void send_filter(const code& ec, const ancestry_ptr& ancestry,
+        const gate_t::ptr& gate) NOEXCEPT;
 };
 
 } // namespace node

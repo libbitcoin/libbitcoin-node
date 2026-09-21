@@ -47,8 +47,8 @@ protected:
 
     /// Replies not_found with the accumulated items, false if none.
     bool report_unservable(size_t index,
-        const network::messages::peer::get_data::cptr& message) NOEXCEPT
-        override;
+        const network::messages::peer::get_data::cptr& message,
+        const gate_t::ptr& gate) NOEXCEPT override;
 
 private:
     // This is thread safe.
