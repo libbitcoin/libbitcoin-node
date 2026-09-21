@@ -37,6 +37,7 @@ class BCN_API protocol_peer
 public:
     // Replace base class channel_t (network::channel_peer). 
     using channel_t = node::channel_peer;
+    using gate_t = network::channel_peer::gate_t;
 
 protected:
     /// Constructors.

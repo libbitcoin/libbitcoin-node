@@ -41,7 +41,8 @@ public:
 
 protected:
     /// The peer is advised of the fee rate and of suspension (see fee_filter).
-    void do_handle_submit(const code& ec) NOEXCEPT override;
+    void do_handle_submit(const code& ec,
+        const gate_t::ptr& gate) NOEXCEPT override;
 };
 
 } // namespace node

@@ -71,13 +71,13 @@ protected:
         const get_blocks::cptr& message) NOEXCEPT;
     virtual bool handle_receive_get_data(const code& ec,
         const get_data::cptr& message) NOEXCEPT;
-    virtual void send_block(const code& ec) NOEXCEPT;
+    virtual void send_block(const code& ec, const gate_t::ptr& gate) NOEXCEPT;
 
     /// The item cannot be served, stops the channel and returns false.
     virtual bool handle_unservable(const inventory_item& item) NOEXCEPT;
 
     /// Send any unservable items accumulated above, false if none.
-    virtual bool report_unservable() NOEXCEPT;
+    virtual bool report_unservable(const gate_t::ptr& gate) NOEXCEPT;
 
 private:
     using inventory = network::messages::peer::inventory;

@@ -148,19 +148,21 @@ bool protocol_transaction_in_106::handle_receive_transaction(const code& ec,
     }
 
     submit(to_shared(chain::transaction_cptrs{ tx }), false,
-        BIND(handle_submit, _1, _2));
+        BIND(handle_submit, _1, _2, gate()));
 
     return true;
 }
 
 // protected
-void protocol_transaction_in_106::handle_submit(const code& ec, size_t) NOEXCEPT
+void protocol_transaction_in_106::handle_submit(const code& ec, size_t,
+    const gate_t::ptr& gate) NOEXCEPT
 {
-    POST(do_handle_submit, ec);
+    POST(do_handle_submit, ec, gate);
 }
 
 // protected
-void protocol_transaction_in_106::do_handle_submit(const code& ec) NOEXCEPT
+void protocol_transaction_in_106::do_handle_submit(const code& ec,
+    const gate_t::ptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
 

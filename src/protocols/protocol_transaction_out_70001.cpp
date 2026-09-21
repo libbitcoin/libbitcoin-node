@@ -52,7 +52,7 @@ bool protocol_transaction_out_70001::handle_unservable(
 // The items are answered and the send loop resumed, as with a transaction, so
 // nothing is produced until the prior write completes.
 bool protocol_transaction_out_70001::report_unservable(size_t index,
-    const get_data::cptr& message) NOEXCEPT
+    const get_data::cptr& message, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -62,7 +62,8 @@ bool protocol_transaction_out_70001::report_unservable(size_t index,
     auto items = std::move(unservable_);
     unservable_.clear();
 
-    SEND(not_found{ std::move(items) }, send_transaction, _1, index, message);
+    SEND(not_found{ std::move(items) }, send_transaction, _1, index,
+        message, gate);
     return true;
 }
 

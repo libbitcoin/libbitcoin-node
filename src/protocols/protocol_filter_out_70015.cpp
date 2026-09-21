@@ -222,12 +222,12 @@ bool protocol_filter_out_70015::handle_receive_get_filters(const code& ec,
 
     // Post so the completion resubscribe runs outside the current notify().
     span<milliseconds>(events::ancestry_msecs, start);
-    POST(send_filter, error::success, ancestry);
+    POST(send_filter, error::success, ancestry, gate());
     return false;
 }
 
 void protocol_filter_out_70015::send_filter(const code& ec,
-    const ancestry_ptr& ancestry) NOEXCEPT
+    const ancestry_ptr& ancestry, const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
@@ -255,7 +255,7 @@ void protocol_filter_out_70015::send_filter(const code& ec,
     out.block_hash = query.get_header_key(link);
     out.filter_type = client_filter::type_id::neutrino;
     span<milliseconds>(events::filter_msecs, start);
-    SEND(out, send_filter, _1, ancestry);
+    SEND(out, send_filter, _1, ancestry, gate);
 }
 
 BC_POP_WARNING()

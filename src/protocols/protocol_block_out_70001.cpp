@@ -52,7 +52,8 @@ bool protocol_block_out_70001::handle_unservable(
 
 // The items are answered and the send loop resumed, as with a block, so
 // nothing is produced until the prior write completes.
-bool protocol_block_out_70001::report_unservable() NOEXCEPT
+bool protocol_block_out_70001::report_unservable(
+    const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
@@ -62,7 +63,7 @@ bool protocol_block_out_70001::report_unservable() NOEXCEPT
     auto items = std::move(unservable_);
     unservable_.clear();
 
-    SEND(not_found{ std::move(items) }, send_block, _1);
+    SEND(not_found{ std::move(items) }, send_block, _1, gate);
     return true;
 }
 

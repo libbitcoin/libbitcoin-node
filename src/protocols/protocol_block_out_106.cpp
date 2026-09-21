@@ -190,7 +190,7 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
 
     // Bump the idle async send loop if no pending send.
     if (idle)
-        send_block(error::success);
+        send_block(error::success, gate());
 
     return true;
 }
@@ -198,7 +198,8 @@ bool protocol_block_out_106::handle_receive_get_data(const code& ec,
 // Outbound (block).
 // ----------------------------------------------------------------------------
 
-void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
+void protocol_block_out_106::send_block(const code& ec,
+    const gate_t::ptr& gate) NOEXCEPT
 {
     BC_ASSERT(stranded());
     if (stopped(ec))
@@ -230,7 +231,7 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
     }
 
     // The report resumes this loop on completion, so it precedes the block.
-    if (report_unservable())
+    if (report_unservable(gate))
         return;
 
     if (backlog_.empty()) return;
@@ -251,14 +252,14 @@ void protocol_block_out_106::send_block(const code& ec) NOEXCEPT
 
         backlog_.pop_front();
         if (handle_unservable(item))
-            report_unservable();
+            report_unservable(gate);
 
         return;
     }
 
     backlog_.pop_front();
     span<microseconds>(events::block_usecs, start);
-    SEND(std::move(out), send_block, _1);
+    SEND(std::move(out), send_block, _1, gate);
 }
 
 // The checkpoint, milestone and association queries assume an archived header.
@@ -308,7 +309,7 @@ bool protocol_block_out_106::handle_unservable(
 }
 
 // There is nothing to report below bip37, the channel is stopped above.
-bool protocol_block_out_106::report_unservable() NOEXCEPT
+bool protocol_block_out_106::report_unservable(const gate_t::ptr&) NOEXCEPT
 {
     BC_ASSERT(stranded());
     return false;
