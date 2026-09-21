@@ -219,10 +219,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\session_peer.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\sessions\sessions.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp" />
+    <None Include="..\..\..\..\include\bitcoin\node\version.hpp.in" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

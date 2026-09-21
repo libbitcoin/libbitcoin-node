@@ -344,13 +344,13 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\settings.hpp">
       <Filter>include\bitcoin\node</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp">
-      <Filter>include\bitcoin\node</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp">
       <Filter>include\bitcoin\node\impl\sessions</Filter>
+    </None>
+    <None Include="..\..\..\..\include\bitcoin\node\version.hpp.in">
+      <Filter>include\bitcoin\node</Filter>
     </None>
     <None Include="packages.config" />
   </ItemGroup>
