@@ -43,15 +43,14 @@ chaser_template::chaser_template(full_node& node) NOEXCEPT
 // TODO: initialize template state.
 code chaser_template::start() NOEXCEPT
 {
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
 
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_template::handle_chase(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_template::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -62,12 +61,11 @@ bool chaser_template::handle_chase(const code&, chase event_,
         return true;
 
     // TODO: also handle confirmed/unconfirmed.
-    switch (event_)
+    switch (to_chase(value))
     {
         case chase::transaction:
         {
-            BC_ASSERT(std::holds_alternative<transaction_t>(value));
-            POST(do_transaction, std::get<transaction_t>(value));
+            POST(do_transaction, to_payload<chase::transaction>(value).link);
             break;
         }
         case chase::stop:

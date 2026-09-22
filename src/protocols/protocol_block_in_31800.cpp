@@ -49,7 +49,7 @@ void protocol_block_in_31800::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_chase(BIND(handle_chase, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2));
     SUBSCRIBE_CHANNEL(block, handle_receive_block, _1, _2);
     protocol_performer::start();
 }
@@ -95,14 +95,14 @@ bool protocol_block_in_31800::is_idle() const NOEXCEPT
     return map_->empty();
 }
 
-bool protocol_block_in_31800::handle_chase(const code&, chase event_,
+bool protocol_block_in_31800::handle_chase(const code&,
     event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
     if (stopped())
         return false;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         case chase::split:
         {
@@ -131,14 +131,12 @@ bool protocol_block_in_31800::handle_chase(const code&, chase event_,
             // There are count blocks to download at/above given header.
             // chase::headers is only sent for current candidate chain, and this
             // chase::download is only sent as a consequence of chase::headers.
-            BC_ASSERT(std::holds_alternative<count_t>(value));
-            POST(do_get_downloads, std::get<count_t>(value));
+            POST(do_get_downloads, to_payload<chase::download>(value).count);
             break;
         }
         case chase::report:
         {
-            BC_ASSERT(std::holds_alternative<count_t>(value));
-            POST(do_report, std::get<count_t>(value));
+            POST(do_report, to_payload<chase::report>(value).sequence);
             break;
         }
         case chase::stop:
@@ -324,7 +322,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
 
         LOGR("Block failed check [" << encode_hash(hash) << ":" << height
             << "] from [" << opposite() << "] " << code.message());
-        notify(error::success, chase::unchecked, link);
+        notify(error::success, chases::unchecked{ link });
         fire(events::block_unconfirmable, height);
         stop(code);
         return false;
@@ -351,7 +349,7 @@ bool protocol_block_in_31800::handle_receive_block(const code& ec,
     LOGP("Downloaded block [" << encode_hash(hash) << ":" << height
         << "] from [" << opposite() << "].");
 
-    notify(ec, chase::checked, height);
+    notify(ec, chases::checked{ height });
     fire(events::block_archived, height);
 
     count(block.serialized_size(true));
@@ -425,7 +423,7 @@ void protocol_block_in_31800::handle_get_hashes(const code& ec,
 
     if (map->empty())
     {
-        notify(error::success, chase::starved, events_key());
+        notify(error::success, chases::starved{ events_key() });
         return;
     }
 

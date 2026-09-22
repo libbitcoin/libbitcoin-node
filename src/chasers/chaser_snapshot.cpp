@@ -65,15 +65,14 @@ code chaser_snapshot::start() NOEXCEPT
     ////if (enabled_confirm_)
     ////    confirm_ = std::max(archive().get_top_confirmed(), checkpoint());
 
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
 
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_snapshot::handle_chase(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_snapshot::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -83,7 +82,7 @@ bool chaser_snapshot::handle_chase(const code&, chase event_,
     if (suspended())
         return true;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         // blocks first and headers first (checked) messages
         ////case chase::blocks:
@@ -119,14 +118,12 @@ bool chaser_snapshot::handle_chase(const code&, chase event_,
             if (pruned_.load(std::memory_order_relaxed))
                 break;
 
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_prune, std::get<header_t>(value));
+            POST(do_prune, to_payload<chase::block>(value).link);
             break;
         }
         case chase::snap:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_snap, std::get<height_t>(value));
+            POST(do_snap, to_payload<chase::snap>(value).height);
             break;
         }
         default:

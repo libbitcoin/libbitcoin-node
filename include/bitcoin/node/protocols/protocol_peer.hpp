@@ -95,11 +95,10 @@ protected:
     using network::protocol_peer::notify;
 
     /// Set a chaser event.
-    virtual void notify(const code& ec, chase event_,
-        event_value value) const NOEXCEPT;
+    virtual void notify(const code& ec, event_value value) const NOEXCEPT;
 
     /// Set a chaser event.
-    virtual void notify_one(object_key key, const code& ec, chase event_,
+    virtual void notify_one(object_key key, const code& ec,
         event_value value) const NOEXCEPT;
 
 private:

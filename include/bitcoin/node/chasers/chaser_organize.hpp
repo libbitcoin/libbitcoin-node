@@ -90,8 +90,7 @@ protected:
     /// -----------------------------------------------------------------------
 
     /// Handle chaser events.
-    virtual bool handle_chase(const code&, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code&, event_value value) NOEXCEPT;
 
     /// Organize a discovered Block, prioritized accepts a tied branch.
     virtual void do_organize(typename Block::cptr block, bool prioritized,
@@ -120,32 +119,40 @@ private:
     // Template differentiators.
     // ------------------------------------------------------------------------
 
+    static constexpr bool is_block_
+    {
+        is_same_type<Block, system::chain::block>
+    };
+        
+    using chase_object = iif<is_block_, chases::blocks, chases::headers>;
+    
     static constexpr bool is_block() NOEXCEPT
     {
-        return is_same_type<Block, system::chain::block>;
+        return is_block_;
     }
+
     static constexpr auto error_duplicate() NOEXCEPT
     {
         return is_block() ? error::duplicate_block : error::duplicate_header;
     }
+
     static constexpr auto error_orphan() NOEXCEPT
     {
         return is_block() ? error::orphan_block : error::orphan_header;
     }
-    static constexpr auto chase_object() NOEXCEPT
-    {
-        return is_block() ? chase::blocks : chase::headers;
-    }
+
     static constexpr auto events_object_archived() NOEXCEPT
     {
         return is_block() ? events::block_archived : events::header_archived;
     }
+
     static constexpr auto events_object_organized() NOEXCEPT
     {
         // Using header because block organization is in confirmation chaser.
         ////return is_block() ? events::block_organized : events::header_organized;
         return events::header_organized;
     }
+
     static constexpr auto events_object_reorganized() NOEXCEPT
     {
         // Using header because block reorganized is in confirmation chaser.

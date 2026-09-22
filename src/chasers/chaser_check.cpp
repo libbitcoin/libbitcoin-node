@@ -99,7 +99,7 @@ code chaser_check::start() NOEXCEPT
     const auto added = set_unassociated();
     LOGN("Fork point (" << requested_ << ") unassociated (" << added << ").");
 
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
 
@@ -110,21 +110,19 @@ void chaser_check::stopping(const code& ec) NOEXCEPT
     chaser::stopping(ec);
 }
 
-bool chaser_check::handle_chase(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_check::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         // Performance.
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::starved:
         {
             // When a channel becomes starved notify other(s) to split work.
-            BC_ASSERT(std::holds_alternative<object_t>(value));
-            POST(do_starved, std::get<object_t>(value));
+            POST(do_starved, to_payload<chase::starved>(value).channel);
             break;
         }
         // Track downloaded.
@@ -138,30 +136,32 @@ bool chaser_check::handle_chase(const code&, chase event_,
         }
         case chase::checked:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_checked, std::get<height_t>(value));
+            POST(do_checked, to_payload<chase::checked>(value).height);
             break;
         }
         case chase::regressed:
+        {
+            POST(do_regressed,
+                to_payload<chase::regressed>(value).branch_point);
+            break;
+        }
         case chase::disorganized:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
+            POST(do_regressed,
+                to_payload<chase::disorganized>(value).branch_point);
             break;
         }
         // Track chain.
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         case chase::headers:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_headers, std::get<height_t>(value));
+            POST(do_headers, to_payload<chase::headers>(value).branch_point);
             break;
         }
         case chase::valid:
         ////case chase::prevalid:
         {
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_advanced, std::get<height_t>(value));
+            POST(do_advanced, to_payload<chase::valid>(value).height);
             break;
         }
         case chase::stop:
@@ -239,12 +239,12 @@ void chaser_check::do_starved(object_t self) NOEXCEPT
         speeds_.erase(slowest);
 
         // Notify slow channel to split itself (in favor of 'self' channel).
-        notify_one(slow, error::success, chase::split, self);
+        notify_one(slow, error::success, chases::split{ self });
         return;
     }
 
     // With no speeds recorded there may still be channels with work.
-    notify(error::success, chase::stall, self);
+    notify(error::success, chases::stall{ self });
 }
 
 // update
@@ -352,7 +352,7 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
     set_position(branch_point);
     stop_tracking();
     maps_.clear();
-    notify(error::success, chase::purge, branch_point);
+    notify(error::success, chases::purge{ branch_point });
 }
 
 // track downloaded in order (to move download window)
@@ -396,7 +396,7 @@ void chaser_check::do_bump(height_t) NOEXCEPT
 
         // Notify validator that no more blocks are coming.
         if (height == requested_)
-            notify(error::success, chase::windowed, height);
+            notify(error::success, chases::windowed{ height });
     }
 
     do_headers({});
@@ -410,7 +410,7 @@ void chaser_check::do_headers(height_t) NOEXCEPT
     BC_ASSERT(stranded());
 
     if (const auto added = set_unassociated(); is_nonzero(added))        
-        notify(error::success, chase::download, added);
+        notify(error::success, chases::download{ added });
 }
 
 // get/put hashes
@@ -456,7 +456,7 @@ void chaser_check::do_put_hashes(const map_ptr& map,
         return;
 
     if (set_map(map))
-        notify(error::success, chase::download, map->size());
+        notify(error::success, chases::download{ map->size() });
 
     handler(error::success);
 }

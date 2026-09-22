@@ -46,7 +46,7 @@ code chaser_estimate::start() NOEXCEPT
 {
     if (node_settings().fee_estimate_enabled())
     {
-        SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+        SUBSCRIBE_CHASE(handle_chase, _1, _2);
     }
 
     return error::success;
@@ -108,8 +108,7 @@ bool chaser_estimate::initialized() const NOEXCEPT
 // ----------------------------------------------------------------------------
 // protected
 
-bool chaser_estimate::handle_chase(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_estimate::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -118,7 +117,7 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
     ////if (suspended())
     ////    return true;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         // chase::block is only sent when current. This is captured as a cheap
         // way to test currency for initialization. Once initialized it is not
@@ -128,8 +127,7 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
         {
             if (!initialized())
             {
-                BC_ASSERT(std::holds_alternative<header_t>(value));
-                POST(do_initialize, std::get<header_t>(value));
+                POST(do_initialize, to_payload<chase::block>(value).link);
             }
 
             break;
@@ -138,8 +136,8 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
         {
             if (initialized())
             {
-                BC_ASSERT(std::holds_alternative<header_t>(value));
-                POST(do_organized, std::get<header_t>(value));
+                POST(do_organized,
+                    to_payload<chase::organized>(value).link);
             }
 
             break;
@@ -148,8 +146,8 @@ bool chaser_estimate::handle_chase(const code&, chase event_,
         {
             if (initialized())
             {
-                BC_ASSERT(std::holds_alternative<header_t>(value));
-                POST(do_reorganized, std::get<header_t>(value));
+                POST(do_reorganized,
+                    to_payload<chase::reorganized>(value).link);
             }
 
             break;

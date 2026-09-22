@@ -53,7 +53,7 @@ code chaser_confirm::start() NOEXCEPT
     // Construct is too early to create the unstarted timer.
     stale_timer_ = std::make_shared<deadline>(log, strand());
 
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
 
@@ -74,8 +74,7 @@ void chaser_confirm::do_stopping(const code&) NOEXCEPT
     }
 }
 
-bool chaser_confirm::handle_chase(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_confirm::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
@@ -85,7 +84,7 @@ bool chaser_confirm::handle_chase(const code&, chase event_,
     if (suspended())
         return true;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         case chase::resume:
         case chase::start:
@@ -96,17 +95,19 @@ bool chaser_confirm::handle_chase(const code&, chase event_,
         }
         case chase::valid:
         {
-            // value is validated block height.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_validated, std::get<height_t>(value));
+            POST(do_validated, to_payload<chase::valid>(value).height);
             break;
         }
         case chase::regressed:
+        {
+            POST(do_regressed,
+                to_payload<chase::regressed>(value).branch_point);
+            break;
+        }
         case chase::disorganized:
         {
-            // value is regression branch_point.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
+            POST(do_regressed,
+                to_payload<chase::disorganized>(value).branch_point);
             break;
         }
         case chase::stop:
@@ -297,7 +298,7 @@ void chaser_confirm::organize(header_states& fork, const header_links& popped,
 
     // Prevent stall by posting internal event, avoiding external handlers.
     // Posts new work, preventing recursion and releasing reorganization lock.
-    handle_chase(error::success, chase::bump, height_t{});
+    handle_chase(error::success, chases::bump{});
 }
 
 bool chaser_confirm::confirm_block(const header_link& link, size_t height,
@@ -362,14 +363,14 @@ bool chaser_confirm::notify_block(const code& ec, size_t height,
     if (ec)
     {
         // UNCONFIRMABLE BLOCK (not a fault but discontinue)
-        notify(ec, chase::unconfirmable, link);
+        notify(ec, chases::unconfirmable{ link });
         fire(events::block_unconfirmable, height);
         LOGR("Unconfirmable block [" << height << "] " << ec.message());
         return false;
     }
 
     // CONFIRMABLE BLOCK
-    notify(error::success, chase::confirmable, link);
+    notify(error::success, chases::confirmable{ link });
     fire(events::block_confirmed, height);
     LOGV("Block confirmed: " << height << (bypass ? " (bypass)" : ""));
     return true;
@@ -387,7 +388,7 @@ bool chaser_confirm::set_reorganized(const header_link& link,
     if (!archive().pop_confirmed())
         return false;
 
-    notify(error::success, chase::reorganized, link);
+    notify(error::success, chases::reorganized{ link });
     fire(events::block_reorganized, confirmed_height);
     LOGV("Block reorganized: " << confirmed_height);
     return true;
@@ -420,7 +421,7 @@ bool chaser_confirm::set_organized(const header_link& link,
     if (!query.push_confirmed(link, !is_under_checkpoint(confirmed_height)))
         return false;
 
-    notify(error::success, chase::organized, link);
+    notify(error::success, chases::organized{ link });
     fire(events::block_organized, confirmed_height);
     LOGV("Block organized: " << confirmed_height);
 
@@ -452,7 +453,7 @@ void chaser_confirm::announce(const header_link& link, height_t) NOEXCEPT
     // Announce newly-organized blocks when confirmed chain is current.
     if (is_current_chain(true))
     {
-        notify(error::success, chase::block, link);
+        notify(error::success, chases::block{ link });
         start_stale_timer();
     }
 }
@@ -489,7 +490,7 @@ void chaser_confirm::handle_stale_timer(const code& ec) NOEXCEPT
         return;
     }
 
-    notify(error::success, chase::stale, {});
+    notify(error::success, chases::stale{});
 }
 
 BC_POP_WARNING()

@@ -115,7 +115,7 @@ void full_node::do_run(const result_handler& handler) NOEXCEPT
 
     // Bump sequential chasers to their starting heights.
     // This will kick off lagging validations even if not current.
-    do_notify(error::success, chase::start, height_t{});
+    do_notify(error::success, chases::start{});
 
     // Start services after network is running.
     net::do_run(handler);
@@ -156,7 +156,7 @@ void full_node::do_close() NOEXCEPT
     chaser_snapshot_.stopping(network::error::service_stopped);
     chaser_storage_.stopping(network::error::service_stopped);
 
-    event_subscriber_.stop(network::error::service_stopped, chase::stop, {});
+    event_subscriber_.stop(network::error::service_stopped, chases::stop{});
     net::do_close();
 }
 
@@ -204,36 +204,34 @@ void full_node::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
-void full_node::notify(const code& ec, chase event_,
-    event_value value) NOEXCEPT
+void full_node::notify(const code& ec, event_value value) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&full_node::do_notify,
-            this, ec, event_, value));
+            this, ec, value));
 }
 
 // private
-void full_node::do_notify(const code& ec, chase event_,
-    event_value value) NOEXCEPT
+void full_node::do_notify(const code& ec, event_value value) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    event_subscriber_.notify(ec, event_, value);
+    event_subscriber_.notify(ec, value);
 }
 
-void full_node::notify_one(object_key key, const code& ec, chase event_,
+void full_node::notify_one(object_key key, const code& ec,
     event_value value) NOEXCEPT
 {
     boost::asio::post(strand(),
         std::bind(&full_node::do_notify_one,
-            this, key, ec, event_, value));
+            this, key, ec, value));
 }
 
 // private
-void full_node::do_notify_one(object_key key, const code& ec, chase event_,
+void full_node::do_notify_one(object_key key, const code& ec,
     event_value value) NOEXCEPT
 {
     BC_ASSERT(stranded());
-    event_subscriber_.notify_one(key, ec, event_, value);
+    event_subscriber_.notify_one(key, ec, value);
 }
 
 object_key full_node::subscribe_chase(event_notifier&& handler) NOEXCEPT
@@ -263,7 +261,7 @@ void full_node::do_subscribe_chase(const event_notifier& handler,
 
 void full_node::unsubscribe_chase(object_key key) NOEXCEPT
 {
-    notify_one(key, network::error::service_stopped, chase::stop, {});
+    notify_one(key, network::error::service_stopped, chases::stop{});
 }
 
 // Suspensions.
@@ -284,7 +282,7 @@ bool full_node::resume() NOEXCEPT
     }
 
     LOGS("Resuming network.");
-    notify(error::success, chase::resume, {});
+    notify(error::success, chases::resume{});
     return net::resume();
 }
 
@@ -293,7 +291,7 @@ void full_node::suspend(const code& ec) NOEXCEPT
 {
     LOGS("Suspending network, " << ec.message());
     net::suspend(ec);
-    notify(error::suspended_channel, chase::suspend, {});
+    notify(error::suspended_channel, chases::suspend{});
 }
 
 void full_node::fault(const code& ec) NOEXCEPT
@@ -302,7 +300,7 @@ void full_node::fault(const code& ec) NOEXCEPT
     {
         LOGF("Disk full [" << query_.get_space()
             << "] bytes required following, " << ec.message());
-        notify(ec, chase::space, {});
+        notify(ec, chases::space{});
     }
     else if (query_.is_fault())
     {

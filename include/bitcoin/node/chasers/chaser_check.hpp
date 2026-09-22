@@ -60,8 +60,7 @@ public:
 
 protected:
     virtual void handle_purged(const code& ec) NOEXCEPT;
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     /// block tracking
     virtual void do_bump(height_t height) NOEXCEPT;

@@ -52,8 +52,7 @@ public:
     bool initialized() const NOEXCEPT;
 
 protected:
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_initialize(header_t link) NOEXCEPT;
     virtual void do_organized(header_t link) NOEXCEPT;

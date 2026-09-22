@@ -61,7 +61,7 @@ code CLASS::start() NOEXCEPT
         << state_->height() << "].");
 
     update_checkpoint(top);
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
 
@@ -89,23 +89,40 @@ void CLASS::prioritize(const system::hash_digest& hash,
 // ----------------------------------------------------------------------------
 
 TEMPLATE
-bool CLASS::handle_chase(const code&, chase event_, event_value value) NOEXCEPT
+bool CLASS::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
 
-    switch (event_)
+    switch (to_chase(value))
     {
+        // Roll back the candidate chain to confirmed top (via fork point).
         case chase::unchecked:
+        {
+            if (database_settings().mark_unconfirmable)
+            {
+                POST(do_disorganize, to_payload<chase::unchecked>(value).link);
+            }
+
+            break;
+        }
         case chase::unvalid:
+        {
+            if (database_settings().mark_unconfirmable)
+            {
+                POST(do_disorganize, to_payload<chase::unvalid>(value).link);
+            }
+
+            break;
+        }
         case chase::unconfirmable:
         {
-            if (!database_settings().mark_unconfirmable)
-                break;
+            if (database_settings().mark_unconfirmable)
+            {
+                POST(do_disorganize,
+                    to_payload<chase::unconfirmable>(value).link);
+            }
 
-            // Roll back the candidate chain to confirmed top (via fork point).
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_disorganize, std::get<header_t>(value));
             break;
         }
         case chase::stop:
@@ -273,7 +290,7 @@ void CLASS::do_organize(typename Block::cptr block, bool prioritized,
     // Reset chasers to the branch point.
     if (regress)
     {
-        notify(error::success, chase::regressed, branch_point);
+        notify(error::success, chases::regressed{ branch_point });
     }
 
     // Push stored strong headers to candidate chain.
@@ -322,14 +339,14 @@ void CLASS::do_organize(typename Block::cptr block, bool prioritized,
             // be skipped, resulting in stall until restart at which time the start
             // event will advance through all downloaded candidates and progress on
             // arrivals. This bumps validation once for current strong headers.
-            notify(error::success, chase::bump, add1(branch_point));
+            notify(error::success, chases::bump{ add1(branch_point) });
             bumped_ = true;
         }
 
         // chase::headers | chase::blocks
         // This prevents download stall, the check chaser races ahead.
         // Start block downloads, which upon completion bumps validation.
-        notify(error::success, chase_object(), branch_point);
+        notify(error::success, chase_object{ branch_point });
     }
 
     // Logs from candidate block parent to the candidate (forward sequential).
@@ -486,10 +503,10 @@ void CLASS::do_disorganize(header_t link) NOEXCEPT
     state_ = state;
 
     // Candidate is same as confirmed, reset chasers to new top.
-    notify(error::success, chase::disorganized, fork_point);
+    notify(error::success, chases::disorganized{ fork_point });
 
     // Reset all connections to ensure that new connections exist.
-    notify(error::success, chase::suspend, {});
+    notify(error::success, chases::suspend{});
 }
 
 // Private setters

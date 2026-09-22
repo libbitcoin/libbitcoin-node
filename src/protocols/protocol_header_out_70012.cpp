@@ -59,20 +59,18 @@ void protocol_header_out_70012::stopping(const code& ec) NOEXCEPT
 // handle events (block)
 // ----------------------------------------------------------------------------
 
-bool protocol_header_out_70012::handle_chase(const code&, chase event_,
+bool protocol_header_out_70012::handle_chase(const code&,
     event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
     if (stopped())
         return false;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         case chase::block:
         {
-            // value is organized block pk.
-            BC_ASSERT(std::holds_alternative<header_t>(value));
-            POST(do_announce, std::get<header_t>(value));
+            POST(do_announce, to_payload<chase::block>(value).link);
             break;
         }
         default:
@@ -130,7 +128,7 @@ bool protocol_header_out_70012::handle_receive_send_headers(const code& ec,
         return false;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_chase(BIND(handle_chase, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2));
     return false;
 }
 
