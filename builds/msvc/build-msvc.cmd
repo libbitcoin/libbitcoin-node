@@ -119,7 +119,7 @@ if "!libbitcoin_node_TAG!" == "" (
     )
 
     if "!BUILD_VERSION!" == "" (
-        set "BUILD_VERSION=vs2022"
+        set "BUILD_VERSION=vs2026"
         call :msg_warn "Build msvc version not provided, defaulting to '!BUILD_VERSION!'."
     )
 
