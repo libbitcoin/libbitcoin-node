@@ -24,7 +24,7 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
 class BCN_API session_outbound
   : public session_peer<network::session_outbound>
 {
@@ -33,6 +33,9 @@ public:
     using base = session_peer<network::session_outbound>;
     using base::base;
 
+    /// Start connections, reduced when current (call from network strand).
+    void start(network::result_handler&& handler) NOEXCEPT override;
+
 protected:
     /// Outbound connections require the configured node services.
     uint64_t services_required() const NOEXCEPT override
@@ -40,6 +43,12 @@ protected:
         return system::bit_or(base::services_required(),
             node_settings().services_required());
     }
+
+private:
+    void handle_started(const code& ec,
+        const network::result_handler& handler) NOEXCEPT;
+    bool handle_chase(const code& ec, event_value value) NOEXCEPT;
+    void update_connections() NOEXCEPT;
 };
 
 } // namespace node

@@ -197,7 +197,11 @@ bool protocol_observer::handle_broadcast_terminator(const code& ec,
     if (stopped(ec))
         return false;
 
-    if (!message->targets(identifier(), outbound(), opposite()))
+    using target = network::diagnostics::target;
+    const auto slotted = (group() == target::outbound) &&
+        is_terminal(message->slots());
+
+    if (!slotted && !message->targets(identifier(), outbound(), opposite()))
         return true;
 
     message->stopped();
