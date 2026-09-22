@@ -43,8 +43,7 @@ public:
 protected:
     virtual void do_reload() NOEXCEPT;
     virtual void do_space(size_t space) NOEXCEPT;
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
 private:
     void do_stopping(const code& ec) NOEXCEPT;

@@ -50,8 +50,7 @@ protected:
     using inventory_items = network::messages::peer::inventory_items;
 
     /// Handle chaser events.
-    virtual bool handle_chase(const code& ec, chase event_, 
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     /// Process tx announcement.
     virtual bool do_announce(transaction_t link) NOEXCEPT;

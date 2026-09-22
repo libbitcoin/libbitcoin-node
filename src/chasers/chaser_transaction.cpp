@@ -46,7 +46,7 @@ chaser_transaction::chaser_transaction(full_node& node) NOEXCEPT
 
 code chaser_transaction::start() NOEXCEPT
 {
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     POST(do_bump);
     return error::success;
 }
@@ -54,13 +54,12 @@ code chaser_transaction::start() NOEXCEPT
 // event handlers
 // ----------------------------------------------------------------------------
 
-bool chaser_transaction::handle_chase(const code&, chase event_,
-    event_value) NOEXCEPT
+bool chaser_transaction::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         case chase::organized:
         case chase::reorganized:
@@ -167,7 +166,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
         }
 
         fire(events::tx_archived, to_rate(tx));
-        notify(error::success, chase::transaction, transaction_t{ link });
+        notify(error::success, chases::transaction{ link });
     }
 
     handler(error::success, {});

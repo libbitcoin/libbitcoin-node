@@ -59,8 +59,7 @@ protected:
     virtual bool superseded() const NOEXCEPT;
 
     /// Handle chaser events.
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     /// Process block announcement.
     virtual bool do_announce(header_t link) NOEXCEPT;

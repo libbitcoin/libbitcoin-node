@@ -87,11 +87,10 @@ public:
     /// -----------------------------------------------------------------------
 
     /// Set chaser event.
-    virtual void notify(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual void notify(const code& ec, event_value value) NOEXCEPT;
 
     /// Set chaser event for the given subscriber only.
-    virtual void notify_one(object_key key, const code& ec, chase event_,
+    virtual void notify_one(object_key key, const code& ec,
         event_value value) NOEXCEPT;
 
     /// Call from chaser start() methods (requires strand).
@@ -186,8 +185,8 @@ protected:
 private:
     void do_subscribe_chase(const event_notifier& handler,
         const event_completer& complete) NOEXCEPT;
-    void do_notify(const code& ec, chase event_, event_value value) NOEXCEPT;
-    void do_notify_one(object_key key, const code& ec, chase event_,
+    void do_notify(const code& ec, event_value value) NOEXCEPT;
+    void do_notify_one(object_key key, const code& ec,
         event_value value) NOEXCEPT;
 
     // These are thread safe.

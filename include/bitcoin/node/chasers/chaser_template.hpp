@@ -39,8 +39,7 @@ public:
     code start() NOEXCEPT override;
 
 protected:
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_transaction(transaction_t value) NOEXCEPT;
 };

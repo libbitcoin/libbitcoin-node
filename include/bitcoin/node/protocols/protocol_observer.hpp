@@ -57,8 +57,7 @@ public:
 
 protected:
     /// Handle chaser events.
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     /// Accept incoming inventory message.
     virtual bool handle_receive_inventory(const code& ec,

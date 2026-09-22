@@ -77,16 +77,15 @@ void session::put_hashes(const map_ptr& map,
 // Events.
 // ----------------------------------------------------------------------------
 
-void session::notify(const code& ec, chase event_,
-    event_value value) const NOEXCEPT
+void session::notify(const code& ec, event_value value) const NOEXCEPT
 {
-    node_.notify(ec, event_, value);
+    node_.notify(ec, value);
 }
 
-void session::notify_one(object_key key, const code& ec, chase event_,
+void session::notify_one(object_key key, const code& ec,
     event_value value) const NOEXCEPT
 {
-    node_.notify_one(key, ec, event_, value);
+    node_.notify_one(key, ec, value);
 }
 
 object_key session::subscribe_chase(event_notifier&& handler) NOEXCEPT

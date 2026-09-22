@@ -40,7 +40,6 @@
 #endif
 
 /// For common types below.
-#include <bitcoin/database.hpp>
 #include <bitcoin/network.hpp>
 
 namespace libbitcoin {
@@ -64,40 +63,13 @@ typedef std::shared_ptr<database::associations> map_ptr;
 typedef std::function<void(const code&, const map_ptr&,
     const job::ptr&)> map_handler;
 
-/// Event desubscriber key type.
-using object_key = uint64_t;
-
-/// Event value types.
-using count_t = size_t;
-using height_t = size_t;
-using peer_t = uint64_t;
-using object_t = object_key;
-using header_t = database::header_link::integer;
-using transaction_t = database::tx_link::integer;
-
-/// std::variant types must be distinct, and xcode size_t is neither uint32_t 
-/// nor uint64_t, so this ensures we have the distinct set of necessary types.
-using event_value =
-    iif<is_same_type<std::size_t, uint64_t>,
-        std::variant<uint32_t, size_t>,
-        iif<is_same_type<std::size_t, uint32_t>,
-            std::variant<uint64_t, size_t>,
-                std::variant<uint64_t, uint32_t, size_t>>>;
-
 /// Event desubscriber.
-typedef network::desubscriber<object_key, chase, event_value> event_subscriber;
+typedef network::desubscriber<object_key, event_value> event_subscriber;
 typedef event_subscriber::handler event_notifier;
 typedef event_subscriber::completer event_completer;
 
 // Inventory messages.
 using type_id = network::messages::peer::inventory_item::type_id;
-
-// NDEBUG MSVC
-////static_assert(sizeof(uint64_t) == 8u);
-////static_assert(sizeof(block_t) == 16u);
-////static_assert(sizeof(xblock_t) == 32u);
-////static_assert(sizeof(event_value) == 24u);
-////static_assert(sizeof(xevent_value) == 40u);
 
 } // namespace node
 } // namespace libbitcoin

@@ -66,15 +66,16 @@ code chaser_validate::start() NOEXCEPT
     if (const auto ec = start_batch())
         return fault(ec);
 
-    SUBSCRIBE_CHASE(handle_chase, _1, _2, _3);
+    SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
 
-bool chaser_validate::handle_chase(const code&, chase event_,
-    event_value value) NOEXCEPT
+bool chaser_validate::handle_chase(const code&, event_value value) NOEXCEPT
 {
     if (closed())
         return false;
+
+    const auto event_ = to_chase(value);
 
     // Latch recovering from disk full, before suspension is lifted.
     // Because in-flight blocks are lost, reset position when backlog clears.
@@ -113,27 +114,28 @@ bool chaser_validate::handle_chase(const code&, chase event_,
         }
         case chase::checked:
         {
-            // value is checked block height.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_checked, std::get<height_t>(value));
+            POST(do_checked, to_payload<chase::checked>(value).height);
             break;
         }
         case chase::windowed:
         {
-            // value is last height in window. Called directly (not posted):
-            // the drain must never depend on scheduling, which saturated
-            // validations can exhaust for the entire window (strand for
-            // admission-side control, never for release-side).
-            BC_ASSERT(std::holds_alternative<height_t>(value));
+            // Called directly (not posted): the drain must never depend on
+            // scheduling, which saturated validations can exhaust for the
+            // entire window (strand for admission-side control, never for
+            // release-side).
             process_batch(is_residual());
             break;
         }
         case chase::regressed:
+        {
+            POST(do_regressed,
+                to_payload<chase::regressed>(value).branch_point);
+            break;
+        }
         case chase::disorganized:
         {
-            // value is regression branch_point.
-            BC_ASSERT(std::holds_alternative<height_t>(value));
-            POST(do_regressed, std::get<height_t>(value));
+            POST(do_regressed,
+                to_payload<chase::disorganized>(value).branch_point);
             break;
         }
         case chase::stop:
@@ -267,7 +269,7 @@ void chaser_validate::complete_block(const code& ec, const header_link& link,
     if (is_zero(validate_backlog_.load()) && !stranded())
     {
         // Prevent stall by posting internal event, avoiding external handlers.
-        handle_chase({}, chase::bump, height_t{});
+        handle_chase({}, chases::bump{});
     }
 
     // Node errors are fatal (or disk full recoverable).
@@ -327,14 +329,15 @@ void chaser_validate::notify_block(const code& ec, size_t height,
     if (ec)
     {
         // INVALID BLOCK (not a fault but discontinue)
-        if (!startup) notify(ec, chase::unvalid, link);
+        if (!startup) notify(ec, chases::unvalid{ link });
         fire(events::block_unconfirmable, height);
         LOGR("Invalid block [" << height << "] " << ec.message());
         return;
     }
 
     // VALID BLOCK
-    if (!startup) notify(ec, chase::valid, possible_wide_cast<height_t>(height));
+    if (!startup)
+        notify(ec, chases::valid{ possible_wide_cast<height_t>(height) });
     fire(events::block_validated, height);
     LOGV("Block validated: " << height << (bypass ? " (bypass)" : ""));
 }

@@ -44,8 +44,7 @@ public:
         bool test, submit_handler&& handler) NOEXCEPT;
 
 protected:
-    virtual bool handle_chase(const code& ec, chase event_,
-        event_value value) NOEXCEPT;
+    virtual bool handle_chase(const code& ec, event_value value) NOEXCEPT;
 
     virtual void do_submit(const system::chain::transactions_cptr& txs,
         bool test, const submit_handler& handler) NOEXCEPT;

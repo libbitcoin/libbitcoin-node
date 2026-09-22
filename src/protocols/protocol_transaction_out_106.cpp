@@ -44,7 +44,7 @@ void protocol_transaction_out_106::start() NOEXCEPT
         return;
 
     // Events subscription is asynchronous, events may be missed.
-    subscribe_chase(BIND(handle_chase, _1, _2, _3));
+    subscribe_chase(BIND(handle_chase, _1, _2));
 
     SUBSCRIBE_CHANNEL(get_data, handle_receive_get_data, _1, _2);
     protocol_peer::start();
@@ -62,20 +62,18 @@ void protocol_transaction_out_106::stopping(const code& ec) NOEXCEPT
 // handle events (transaction)
 // ----------------------------------------------------------------------------
 
-bool protocol_transaction_out_106::handle_chase(const code&, chase event_,
+bool protocol_transaction_out_106::handle_chase(const code&,
     event_value value) NOEXCEPT
 {
     // Do not pass ec to stopped as it is not a call status.
     if (stopped())
         return false;
 
-    switch (event_)
+    switch (to_chase(value))
     {
         case chase::transaction:
         {
-            // value is organized tx pk.
-            BC_ASSERT(std::holds_alternative<transaction_t>(value));
-            POST(do_announce, std::get<transaction_t>(value));
+            POST(do_announce, to_payload<chase::transaction>(value).link);
             break;
         }
         default:
