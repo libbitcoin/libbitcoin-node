@@ -45,6 +45,7 @@ settings::settings() NOEXCEPT
     minimum_fee_rate{ 0.0 },
     minimum_bump_rate{ 0.0 },
     allowed_deviation{ 1.5 },
+    current_connections{ 10 },
     announcement_cache{ 42 },
     fee_estimate_horizon{ 0 },
     ////snapshot_bytes{ 200'000'000'000 },
