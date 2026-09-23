@@ -60,6 +60,9 @@ public:
     virtual void prioritize(const system::hash_digest& hash,
         organize_handler&& handler) NOEXCEPT;
 
+    /// Work a proven header branch must reach (candidate or configured).
+    virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
+
 protected:
     using header_link = database::header_link;
     using chain_state = system::chain::chain_state;
@@ -81,6 +84,9 @@ protected:
     /// Reorganize to the branch of the given block.
     virtual void do_prioritize(const system::hash_digest& hash,
         const organize_handler& handler) NOEXCEPT;
+
+    /// Obtain the work a proven header branch must reach.
+    virtual void do_get_minimum_work(const work_handler& handler) NOEXCEPT;
 
 private:
     using header_links = database::header_links;
@@ -112,6 +118,8 @@ private:
     void prune_tree() NOEXCEPT;
 
     // Getters.
+    size_t get_window() const NOEXCEPT;
+    uint256_t get_window_work() const NOEXCEPT;
     chain_state::cptr get_chain_state(
         const system::hash_digest& previous_hash) const NOEXCEPT;
     bool get_branch_work(uint256_t& branch_work,

@@ -176,6 +176,11 @@ void full_node::prioritize(const system::hash_digest& hash,
     chaser_header_.prioritize(hash, std::move(handler));
 }
 
+void full_node::get_minimum_work(work_handler&& handler) NOEXCEPT
+{
+    chaser_header_.get_minimum_work(std::move(handler));
+}
+
 void full_node::submit(const system::chain::transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {

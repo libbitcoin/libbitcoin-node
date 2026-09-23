@@ -57,6 +57,10 @@ protected:
         const headers::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
+    virtual void handle_minimum_work(const code& ec, const uint256_t& work,
+        bool initial) NOEXCEPT;
+    virtual void do_minimum_work(const code& ec, const uint256_t& work,
+        bool initial) NOEXCEPT;
     virtual void complete() NOEXCEPT;
 
     // This is protected by strand.
@@ -87,6 +91,7 @@ private:
     system::hash_digest previous_{};
     system::chain::header_cptrs buffer_{};
     size_t interval_{ network::messages::peer::max_get_headers };
+    uint256_t minimum_work_{};
     chain_state::cptr state_{};
 };
 

@@ -119,6 +119,14 @@ void chaser_header::prioritize(const hash_digest& hash,
     POST(do_prioritize, hash, std::move(handler));
 }
 
+void chaser_header::get_minimum_work(work_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_get_minimum_work, std::move(handler));
+}
+
 // Methods
 // ----------------------------------------------------------------------------
 
@@ -405,6 +413,14 @@ void chaser_header::do_prioritize(const hash_digest& hash,
     }
 
     do_organize(handle.mapped(), true, false, true, handler);
+}
+
+// The greater of configured minimum work and candidate work less a window.
+void chaser_header::do_get_minimum_work(const work_handler& handler) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const uint256_t minimum_work = settings_.minimum_work;
+    handler(error::success, std::max(minimum_work, get_window_work()));
 }
 
 void chaser_header::do_disorganize(header_t link) NOEXCEPT
@@ -763,19 +779,12 @@ void chaser_header::prune_tree(height_t top) NOEXCEPT
     if (top < next_window_)
         return;
 
-    const auto minutes = node_settings().currency_window_minutes;
-    const auto spacing = settings_.block_spacing_seconds;
-    const auto window = (minutes * 60u) / spacing;
+    const auto window = get_window();
     if (is_zero(window))
         return;
 
-    // Threshold is the candidate top work less a window of its proof.
     next_window_ = top + window;
-    const auto& work = state_->cumulative_work();
-    const auto proof = chain::header::proof(state_->work_required());
-    const auto span = uint256_t{ window } * proof;
-    if (work > span)
-        prune_tree(work - span);
+    prune_tree(get_window_work());
 }
 
 // Purged headers conflict with the reached checkpoint (dead branches).
@@ -796,6 +805,24 @@ void chaser_header::prune_tree() NOEXCEPT
 
 // Getters (private).
 // ----------------------------------------------------------------------------
+
+// The currency window in blocks, zero disables.
+size_t chaser_header::get_window() const NOEXCEPT
+{
+    const auto minutes = node_settings().currency_window_minutes;
+    const auto spacing = settings_.block_spacing_seconds;
+    return (minutes * 60u) / spacing;
+}
+
+// Candidate top work less a window of its proof, zero if none.
+uint256_t chaser_header::get_window_work() const NOEXCEPT
+{
+    const auto window = get_window();
+    const auto& work = state_->cumulative_work();
+    const auto proof = chain::header::proof(state_->work_required());
+    const auto span = uint256_t{ window } * proof;
+    return (is_zero(window) || (work <= span)) ? uint256_t{} : work - span;
+}
 
 chaser_header::chain_state::cptr chaser_header::get_chain_state(
     const hash_digest& previous_hash) const NOEXCEPT

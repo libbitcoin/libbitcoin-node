@@ -63,6 +63,11 @@ void session::submit(const transactions_cptr& txs, bool test,
     node_.submit(txs, test, std::move(handler));
 }
 
+void session::get_minimum_work(work_handler&& handler) NOEXCEPT
+{
+    node_.get_minimum_work(std::move(handler));
+}
+
 void session::get_hashes(map_handler&& handler) NOEXCEPT
 {
     node_.get_hashes(std::move(handler));

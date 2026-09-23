@@ -49,8 +49,41 @@ void protocol_header_in_31800::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(headers, handle_receive_headers, _1, _2);
-    SEND(create_get_headers(), handle_send, _1);
+    get_minimum_work(BIND(handle_minimum_work, _1, _2, true));
     protocol_peer::start();
+}
+
+// not stranded
+void protocol_header_in_31800::handle_minimum_work(const code& ec,
+    const uint256_t& work, bool initial) NOEXCEPT
+{
+    // Chaser may be stopped before protocol.
+    if (stopped() || ec == network::error::service_stopped)
+        return;
+
+    POST(do_minimum_work, ec, work, initial);
+}
+
+// A proven branch must reach this work, sync begins once it is first set.
+void protocol_header_in_31800::do_minimum_work(const code& ec,
+    const uint256_t& work, bool initial) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return;
+
+    if (ec)
+    {
+        stop(ec);
+        return;
+    }
+
+    minimum_work_ = work;
+    if (initial)
+    {
+        SEND(create_get_headers(), handle_send, _1);
+    }
 }
 
 // Inbound (headers).
@@ -244,6 +277,9 @@ bool protocol_header_in_31800::restart(const hash_digest& previous) NOEXCEPT
     previous_ = previous;
     height_ = state_->height();
     interval_ = max_get_headers;
+
+    // Refresh the proof threshold as the candidate advances.
+    get_minimum_work(BIND(handle_minimum_work, _1, _2, false));
     return true;
 }
 
@@ -295,10 +331,9 @@ void protocol_header_in_31800::prove() NOEXCEPT
 void protocol_header_in_31800::finish() NOEXCEPT
 {
     BC_ASSERT(stranded());
-    const uint256_t minimum_work = system_settings().minimum_work;
     if (state_ && (state_->height() > height_) &&
         is_current_time(state_->timestamp()) &&
-        (state_->cumulative_work() >= minimum_work))
+        (state_->cumulative_work() >= minimum_work_))
     {
         prove();
         return;

@@ -122,6 +122,9 @@ protected:
     virtual void prioritize(const system::hash_digest& hash,
         organize_handler&& handler) NOEXCEPT;
 
+    /// Work a proven header branch must reach (candidate or configured).
+    virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
+
     /// Validate and archive a submitted package, accepted as a whole.
     /// The package is only validated when test, so nothing is archived.
     virtual void submit(const system::chain::transactions_cptr& txs,

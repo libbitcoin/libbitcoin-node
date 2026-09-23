@@ -56,6 +56,9 @@ public:
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
 
+    /// Work a proven header branch must reach (candidate or configured).
+    virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
+
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
     virtual void put_hashes(const map_ptr& map,

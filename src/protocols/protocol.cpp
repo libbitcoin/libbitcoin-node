@@ -156,6 +156,11 @@ void protocol::prioritize(const system::hash_digest& hash,
     session_->prioritize(hash, std::move(handler));
 }
 
+void protocol::get_minimum_work(work_handler&& handler) NOEXCEPT
+{
+    session_->get_minimum_work(std::move(handler));
+}
+
 void protocol::submit(const system::chain::transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
