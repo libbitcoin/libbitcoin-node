@@ -315,6 +315,7 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     if (regress)
     {
         notify(error::success, chases::regressed{ branch_point });
+        bumped_ = false;
     }
 
     // Push stored strong headers to candidate chain.
@@ -354,16 +355,16 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     const auto current = is_current_time(header.timestamp());
     if (current)
     {
-        if (!bumped_ || regress)
+        if (!bumped_)
         {
             // If at start the fork point is top of both chains, and next
             // candidate is already downloaded, then new header will arrive and
             // download will be skipped, resulting in stall until restart at
             // which time the start event will advance through all downloaded
-            // candidates and progress on arrivals. This bumps validation once
-            // for current strong headers, and again on regression, as the
-            // candidate above the branch point may already be downloaded when
-            // reorganizing back to a stored branch.
+            // candidates and progress on arrivals. This bumps validation for
+            // the first current strong header, and for the first following
+            // each regression, as the candidate above the branch point may
+            // already be downloaded when reorganizing back to a stored branch.
             notify(error::success, chases::bump{ add1(branch_point) });
             bumped_ = true;
         }
