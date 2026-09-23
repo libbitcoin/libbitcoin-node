@@ -66,6 +66,11 @@ bool protocol::is_current_chain(bool confirmed) const NOEXCEPT
     return session_->is_current_chain(confirmed);
 }
 
+bool protocol::is_current_time(uint32_t timestamp) const NOEXCEPT
+{
+    return session_->is_current_time(timestamp);
+}
+
 uint64_t protocol::minimum_fee_rate() const NOEXCEPT
 {
     return is_current_chain(true) ? node_settings().minimum_fee_rate_() :
@@ -137,6 +142,12 @@ void protocol::organize(const system::chain::header::cptr& header,
     organize_handler&& handler) NOEXCEPT
 {
     session_->organize(header, std::move(handler));
+}
+
+void protocol::organize(const system::chain::header::cptr& header,
+    bool milestone, organize_handler&& handler) NOEXCEPT
+{
+    session_->organize(header, milestone, std::move(handler));
 }
 
 void protocol::prioritize(const system::hash_digest& hash,

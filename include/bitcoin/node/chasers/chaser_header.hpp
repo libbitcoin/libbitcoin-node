@@ -31,6 +31,7 @@ class full_node;
 /// Chase down stronger header branches for the candidate chain.
 /// Weak branches are retained in a hash table if not store populated.
 /// Strong branches reorganize the candidate chain and fire the 'header' event.
+/// Headers are validated and proven by the protocol, so all are storable.
 class BCN_API chaser_header
   : public chaser
 {
@@ -39,12 +40,21 @@ public:
 
     chaser_header(full_node& node) NOEXCEPT;
 
+    /// Validate a header against its chain state.
+    static code validate(const system::chain::header& header,
+        const system::chain::chain_state& state,
+        const system::settings& settings) NOEXCEPT;
+
     /// Initialize chaser state.
     code start() NOEXCEPT override;
 
-    /// Validate and organize next header in sequence relative to calling peer.
+    /// Validate and organize an unproven header.
     virtual void organize(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
+
+    /// Organize a proven header, milestone set if in milestone branch.
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,
@@ -53,6 +63,7 @@ public:
 protected:
     using header_link = database::header_link;
     using chain_state = system::chain::chain_state;
+
     using header_tree = std::unordered_map<system::hash_cref,
         system::chain::header::cptr>;
 
@@ -60,8 +71,9 @@ protected:
     virtual bool handle_chase(const code&, event_value value) NOEXCEPT;
 
     /// Organize a discovered header, prioritized accepts a tied branch.
-    virtual void do_organize(system::chain::header::cptr header,
-        bool prioritized, const organize_handler& handler) NOEXCEPT;
+    virtual void do_organize(const system::chain::header::cptr& header,
+        bool prioritized, bool milestone, bool proven,
+        const organize_handler& handler) NOEXCEPT;
 
     /// Reorganize following block unconfirmability.
     virtual void do_disorganize(header_t header) NOEXCEPT;
@@ -70,9 +82,6 @@ protected:
     virtual void do_prioritize(const system::hash_digest& hash,
         const organize_handler& handler) NOEXCEPT;
 
-    /// Constant access to header tree.
-    virtual const header_tree& tree() const NOEXCEPT;
-
 private:
     using header_links = database::header_links;
     using header_states = database::header_states;
@@ -80,19 +89,6 @@ private:
     // Validation.
     code duplicate(size_t& height,
         const system::hash_digest& hash) const NOEXCEPT;
-    code validate(const system::chain::header& header,
-        const chain_state& state) const NOEXCEPT;
-    bool is_storable(const chain_state& state) const NOEXCEPT;
-    bool is_checkpoint(const chain_state& state) const NOEXCEPT;
-    bool is_milestone(const chain_state& state) const NOEXCEPT;
-    bool is_current(const chain_state& state) const NOEXCEPT;
-    bool is_hard(const chain_state& state) const NOEXCEPT;
-
-    // Milestone.
-    bool initialize_milestone() NOEXCEPT;
-    bool is_under_milestone(size_t height) const NOEXCEPT;
-    bool update_milestone(const system::chain::header& header,
-        size_t height, size_t branch_point) NOEXCEPT;
 
     // Setters.
     bool set_reorganized(height_t candidate_height) NOEXCEPT;
@@ -100,7 +96,7 @@ private:
         height_t candidate_height) NOEXCEPT;
     code push_header(const system::hash_digest& key) NOEXCEPT;
     code push_header(const system::chain::header& header,
-        const system::chain::context& ctx) NOEXCEPT;
+        const system::chain::context& ctx, bool milestone) NOEXCEPT;
     void cache(const system::chain::header::cptr& header,
         const chain_state::cptr& state) NOEXCEPT;
 
@@ -108,8 +104,12 @@ private:
     bool is_under_active_checkpoint(
         const system::hash_digest& previous) const NOEXCEPT;
     void update_checkpoint(height_t top) NOEXCEPT;
-    void purge_under_checkpoint() NOEXCEPT;
+
+    // Tree control.
     void shrink_tree(bool current) NOEXCEPT;
+    void prune_tree(const uint256_t& threshold) NOEXCEPT;
+    void prune_tree(height_t top) NOEXCEPT;
+    void prune_tree() NOEXCEPT;
 
     // Getters.
     chain_state::cptr get_chain_state(
@@ -125,14 +125,13 @@ private:
     // These are thread safe.
     const system::settings& settings_;
     const system::chain::checkpoints& checkpoints_;
-    const system::chain::checkpoint& milestone_;
 
     // These are protected by strand.
     bool bumped_{};
     bool shrunk_{};
+    size_t next_window_{};
     size_t next_checkpoint_{};
     size_t active_checkpoint_{};
-    size_t active_milestone_height_{};
     chain_state::cptr state_{};
     header_tree tree_{};
 };

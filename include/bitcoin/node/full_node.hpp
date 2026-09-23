@@ -61,9 +61,13 @@ public:
     /// Organizers.
     /// -----------------------------------------------------------------------
 
-    /// Organize a validated header.
+    /// Validate and organize an unproven header.
     virtual void organize(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
+
+    /// Organize a proven header, milestone set if in milestone branch.
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,

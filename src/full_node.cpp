@@ -164,6 +164,12 @@ void full_node::organize(const system::chain::header::cptr& header,
     chaser_header_.organize(header, std::move(handler));
 }
 
+void full_node::organize(const system::chain::header::cptr& header,
+    bool milestone, organize_handler&& handler) NOEXCEPT
+{
+    chaser_header_.organize(header, milestone, std::move(handler));
+}
+
 void full_node::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {

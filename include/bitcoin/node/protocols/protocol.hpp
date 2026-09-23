@@ -67,6 +67,9 @@ protected:
     /// The candidate|confirmed chain is current.
     virtual bool is_current_chain(bool confirmed) const NOEXCEPT;
 
+    /// Header timestamp is within configured span from current time.
+    virtual bool is_current_time(uint32_t timestamp) const NOEXCEPT;
+
     /// The minimum fee rate (satoshis/kvB) to relay, max_money if not current.
     virtual uint64_t minimum_fee_rate() const NOEXCEPT;
 
@@ -107,9 +110,13 @@ protected:
     /// Organizers.
     /// -----------------------------------------------------------------------
 
-    /// Organize a validated header.
+    /// Validate and organize an unproven header.
     virtual void organize(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
+
+    /// Organize a proven header, milestone set if in milestone branch.
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,

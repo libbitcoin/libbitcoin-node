@@ -37,19 +37,37 @@ BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 // Public
 // ----------------------------------------------------------------------------
 
+// static
+code chaser_header::validate(const header& header, const chain_state& state,
+    const system::settings& settings) NOEXCEPT
+{
+    if (const auto ec = header.check(
+        settings.timestamp_limit_seconds,
+        settings.proof_of_work_limit,
+        settings.forks.ltc_scrypt_proof_of_work))
+        return ec;
+
+    if (const auto ec = header.accept(state.context(),
+        settings.retargeting_interval()))
+        return ec;
+
+    const auto height = state.height();
+    const auto& checkpoints = settings.checkpoints;
+    if (checkpoint::is_conflict(checkpoints, header.get_hash(), height))
+        return system::error::checkpoint_conflict;
+
+    return error::success;
+}
+
 chaser_header::chaser_header(full_node& node) NOEXCEPT
   : chaser(node),
     settings_(system_settings()),
-    checkpoints_(system_settings().checkpoints),
-    milestone_(system_settings().milestone)
+    checkpoints_(system_settings().checkpoints)
 {
 }
 
 code chaser_header::start() NOEXCEPT
 {
-    if (!initialize_milestone())
-        return fault(error::header1);
-
     // Initialize cache of top candidate chain state.
     // Spans full chain to obtain cumulative work. This can be optimized by
     // storing it with each header, though the scan is fast. The same occurs
@@ -69,6 +87,7 @@ code chaser_header::start() NOEXCEPT
         << state_->height() << "].");
 
     update_checkpoint(top);
+    prune_tree(top);
     SUBSCRIBE_CHASE(handle_chase, _1, _2);
     return error::success;
 }
@@ -79,7 +98,16 @@ void chaser_header::organize(const header::cptr& header,
     if (closed())
         return;
 
-    POST(do_organize, header, false, std::move(handler));
+    POST(do_organize, header, false, false, false, std::move(handler));
+}
+
+void chaser_header::organize(const header::cptr& header, bool milestone,
+    organize_handler&& handler) NOEXCEPT
+{
+    if (closed())
+        return;
+
+    POST(do_organize, header, false, milestone, true, std::move(handler));
 }
 
 void chaser_header::prioritize(const hash_digest& hash,
@@ -143,7 +171,8 @@ bool chaser_header::handle_chase(const code&, event_value value) NOEXCEPT
     return true;
 }
 
-void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
+void chaser_header::do_organize(const header::cptr& header_ptr,
+    bool prioritized, bool milestone, bool proven,
     const organize_handler& handler) NOEXCEPT
 {
     BC_ASSERT(stranded());
@@ -164,7 +193,8 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
     const auto it = tree_.find(hash);
     if (it != tree_.cend())
     {
-        handler(error::duplicate_header, it->second->get_state()->height());
+        const auto& state = it->second->get_state();
+        handler(error::duplicate_header, state->height());
         return;
     }
 
@@ -202,11 +232,8 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
     }
 
     // Roll chain state forward from archived parent to new header.
-    const auto state = std::make_shared<chain_state>(*parent, header, settings_);
+    const auto state = emplace_shared<chain_state>(*parent, header, settings_);
     height = state->height();
-
-    // Validation and currency.
-    // ........................................................................
 
     if (checkpoint::is_conflict(checkpoints_, hash, height))
     {
@@ -214,20 +241,14 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
         return;
     }
 
-    // Blocks of headers are validated later, malleations ignored until then.
-    if (const auto ec = validate(header, *state))
+    // A proven header was validated by the protocol, all are storable.
+    if (!proven)
     {
-        handler(ec, height);
-        return;
-    }
-
-    // Cache headers until the branch is sufficiently guaranteed.
-    if (!is_storable(*state))
-    {
-        log_state_change(*parent, *state);
-        cache(header_ptr, state);
-        handler(error::success, height);
-        return;
+        if (const auto ec = validate(header, *state, settings_))
+        {
+            handler(ec, height);
+            return;
+        }
     }
 
     // Compute relative work.
@@ -262,13 +283,6 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
 
     // Reorganize candidate chain.
     // ........................................................................
-
-    // The milestone flag will be archived in the header record.
-    // Here it must be computed from the header tree because it trickles down.
-    if (update_milestone(header, height, branch_point))
-    {
-        LOGN("Found milestone [" << encode_hash(hash) << ":" << height << "]");
-    }
 
     // Cannot be branching above top.
     auto top = state_->height();
@@ -318,7 +332,7 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
     }
 
     // Push new header as top of candidate chain.
-    if (const auto ec = push_header(header, state->context()))
+    if (const auto ec = push_header(header, state->context(), milestone))
     {
         handler(fault(ec), height);
         return;
@@ -334,13 +348,14 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
     {
         if (!bumped_ || regress)
         {
-            // If at start the fork point is top of both chains, and next candidate
-            // is already downloaded, then new header will arrive and download will
-            // be skipped, resulting in stall until restart at which time the start
-            // event will advance through all downloaded candidates and progress on
-            // arrivals. This bumps validation once for current strong headers, and
-            // again on regression, as the candidate above the branch point may
-            // already be downloaded when reorganizing back to a stored branch.
+            // If at start the fork point is top of both chains, and next
+            // candidate is already downloaded, then new header will arrive and
+            // download will be skipped, resulting in stall until restart at
+            // which time the start event will advance through all downloaded
+            // candidates and progress on arrivals. This bumps validation once
+            // for current strong headers, and again on regression, as the
+            // candidate above the branch point may already be downloaded when
+            // reorganizing back to a stored branch.
             notify(error::success, chases::bump{ add1(branch_point) });
             bumped_ = true;
         }
@@ -354,8 +369,9 @@ void chaser_header::do_organize(header::cptr header_ptr, bool prioritized,
     log_state_change(*parent, *state);
     state_ = state;
 
-    // Advance top reached checkpoint and purge the tree at/below it.
+    // Advance top reached checkpoint and prune the tree.
     update_checkpoint(height);
+    prune_tree(height);
     shrink_tree(current);
     handler(error::success, height);
 }
@@ -388,7 +404,7 @@ void chaser_header::do_prioritize(const hash_digest& hash,
         return;
     }
 
-    do_organize(handle.mapped(), true, handler);
+    do_organize(handle.mapped(), true, false, true, handler);
 }
 
 void chaser_header::do_disorganize(header_t link) NOEXCEPT
@@ -544,130 +560,6 @@ code chaser_header::duplicate(size_t& height,
     return error::success;
 }
 
-code chaser_header::validate(const header& header,
-    const chain_state& state) const NOEXCEPT
-{
-    // header.check is never bypassed.
-    if (const auto ec = header.check(
-        settings_.timestamp_limit_seconds,
-        settings_.proof_of_work_limit,
-        settings_.forks.ltc_scrypt_proof_of_work))
-        return ec;
-
-    // header.accept is never bypassed.
-    if (const auto ec = header.accept(state.context(),
-            settings_.retargeting_interval()))
-        return ec;
-
-    // This prevents a long unconfirmable header chain with an early
-    // unconfirmable from reinitiating a long validation chain before hitting
-    // the invalidation again. This is more likely the case of a bug than IRL.
-    ////const auto& query = archive();
-    ////const auto ec = query.get_header_state(query.to_header(header.hash()));
-    ////if (ec == database::error::block_unconfirmable)
-    ////    return ec;
-
-    return system::error::block_success;
-}
-
-bool chaser_header::is_storable(const chain_state& state) const NOEXCEPT
-{
-    return is_checkpoint(state) || is_milestone(state)
-        || (is_current(state) && is_hard(state));
-}
-
-bool chaser_header::is_checkpoint(const chain_state& state) const NOEXCEPT
-{
-    return checkpoint::is_at(checkpoints_, state.height());
-}
-
-bool chaser_header::is_milestone(const chain_state& state) const NOEXCEPT
-{
-    return milestone_.equals(state.hash(), state.height());
-}
-
-bool chaser_header::is_current(const chain_state& state) const NOEXCEPT
-{
-    return is_current_time(state.timestamp());
-}
-
-bool chaser_header::is_hard(const chain_state& state) const NOEXCEPT
-{
-    // TODO: use minimum_work as a threshold but once chain is organized and
-    // TODO: this is exceed, the comparison should be against the cumulative
-    // TODO: work of the current top block. This value is already stored in
-    // TODO: the top block chain state, so strong can be reduced to compare.
-    return state.cumulative_work() >= settings_.minimum_work;
-}
-
-// Milestone (private).
-// ----------------------------------------------------------------------------
-
-bool chaser_header::initialize_milestone() NOEXCEPT
-{
-    active_milestone_height_ = zero;
-    if (is_zero(milestone_.height()) || milestone_.hash() == null_hash)
-        return true;
-
-    const auto& query = archive();
-    const auto link = query.to_candidate(milestone_.height());
-    if (link.is_terminal())
-        return true;
-
-    const auto hash = query.get_header_key(link);
-    if (hash == null_hash)
-        return false;
-
-    if (hash == milestone_.hash())
-        active_milestone_height_ = milestone_.height();
-
-    return true;
-}
-
-bool chaser_header::is_under_milestone(size_t height) const NOEXCEPT
-{
-    return height <= active_milestone_height_;
-}
-
-bool chaser_header::update_milestone(const header& header, size_t height,
-    size_t branch_point) NOEXCEPT
-{
-    if (milestone_.equals(header.get_hash(), height))
-    {
-        active_milestone_height_ = height;
-        return true;
-    }
-
-    hash_cref previous{ header.previous_block_hash() };
-
-    // Scan branch for milestone match.
-    for (auto it = tree_.find(previous); it != tree_.end();
-        it = tree_.find(previous))
-    {
-        const auto& state = *(it->second->get_state());
-        const auto index = state.height();
-        if (milestone_.equals(state.hash(), index))
-        {
-            active_milestone_height_ = index;
-            return true;
-        }
-
-        // Iterate.
-        previous = { it->second->previous_block_hash() };
-    }
-
-    // The current active milestone is necessarily on the candidate branch.
-    // New branch doesn't have milestone and reorganizes the branch with it.
-    // Can retain a milestone at the branch point (below its definition).
-    if (active_milestone_height_ > branch_point)
-    {
-        active_milestone_height_ = branch_point;
-        return true;
-    }
-
-    return false;
-}
-
 // Setters (private).
 // ----------------------------------------------------------------------------
 
@@ -717,12 +609,10 @@ bool chaser_header::set_organized(const header_link& link,
 // Headers cannot be set strong, that is only when the block is archived.
 // Milestone is archived in the header and like checkpoint cannot change.
 // But unlike checkpointed, milestoned blocks may not be strong chain.
-code chaser_header::push_header(const header& header,
-    const context& ctx) NOEXCEPT
+code chaser_header::push_header(const header& header, const context& ctx,
+    bool milestone) NOEXCEPT
 {
     auto& query = archive();
-    const auto milestone = is_under_milestone(ctx.height);
-
     header_link link{};
     const auto ec = query.set_code(link, header, ctx, milestone, false);
     if (ec)
@@ -740,7 +630,8 @@ code chaser_header::push_header(const hash_digest& key) NOEXCEPT
         return error::organize15;
 
     const auto& header_ptr = handle.mapped();
-    return push_header(*header_ptr, header_ptr->get_state()->context());
+    const auto& state = header_ptr->get_state();
+    return push_header(*header_ptr, state->context(), false);
 }
 
 void chaser_header::cache(const header::cptr& header,
@@ -800,24 +691,12 @@ void chaser_header::update_checkpoint(height_t top) NOEXCEPT
     if (active_checkpoint_ != previous)
     {
         LOGV("Checkpoint [" << active_checkpoint_ << "] reached.");
-        purge_under_checkpoint();
+        prune_tree();
     }
 }
 
-void chaser_header::purge_under_checkpoint() NOEXCEPT
-{
-    // Purged headers conflict with the reached checkpoint (dead branches).
-    const auto count = std::erase_if(tree_, [this](const auto& entry) NOEXCEPT
-    {
-        return entry.second->get_state()->height() <= active_checkpoint_;
-    });
-
-    if (!is_zero(count))
-    {
-        LOGN("Purged (" << count << ") headers under checkpoint ["
-            << active_checkpoint_ << "].");
-    }
-}
+// Tree control (private).
+// ----------------------------------------------------------------------------
 
 void chaser_header::shrink_tree(bool current) NOEXCEPT
 {
@@ -828,6 +707,91 @@ void chaser_header::shrink_tree(bool current) NOEXCEPT
     shrunk_ = true;
     tree_ = { tree_.cbegin(), tree_.cend() };
     LOGV("Tree buckets reduced to (" << tree_.bucket_count() << ").");
+}
+
+// Purged branches have top work under the window (dead branches).
+void chaser_header::prune_tree(const uint256_t& threshold) NOEXCEPT
+{
+    std::unordered_map<hash_digest, size_t> children{};
+    for (const auto& item: tree_)
+        ++children[item.second->previous_block_hash()];
+
+    hashes tops{};
+    for (const auto& item: tree_)
+        if (children.find(item.first) == children.end())
+            tops.push_back(item.first);
+
+    size_t count{};
+    for (const auto& top: tops)
+    {
+        auto it = tree_.find(top);
+        if (it == tree_.end())
+            continue;
+
+        const auto& state = it->second->get_state();
+        if (state->cumulative_work() >= threshold)
+            continue;
+
+        // Descend while each parent has no other child (copy before erase).
+        while (true)
+        {
+            const auto& head = *it->second;
+            const hash_digest previous{ head.previous_block_hash() };
+            tree_.erase(it);
+            ++count;
+
+            const auto child = children.find(previous);
+            if (child == children.end() || !is_zero(--child->second))
+                break;
+
+            it = tree_.find(previous);
+            if (it == tree_.end())
+                break;
+        }
+    }
+
+    if (!is_zero(count))
+    {
+        LOGN("Purged (" << count << ") headers under window at ["
+            << state_->height() << "].");
+    }
+}
+
+// Purge once per window of candidate progress, never on arrival.
+void chaser_header::prune_tree(height_t top) NOEXCEPT
+{
+    if (top < next_window_)
+        return;
+
+    const auto minutes = node_settings().currency_window_minutes;
+    const auto spacing = settings_.block_spacing_seconds;
+    const auto window = (minutes * 60u) / spacing;
+    if (is_zero(window))
+        return;
+
+    // Threshold is the candidate top work less a window of its proof.
+    next_window_ = top + window;
+    const auto& work = state_->cumulative_work();
+    const auto proof = chain::header::proof(state_->work_required());
+    const auto span = uint256_t{ window } * proof;
+    if (work > span)
+        prune_tree(work - span);
+}
+
+// Purged headers conflict with the reached checkpoint (dead branches).
+void chaser_header::prune_tree() NOEXCEPT
+{
+    const auto count = std::erase_if(tree_, [this](const auto& item) NOEXCEPT
+    {
+        const auto& state = item.second->get_state();
+        return state->height() <= active_checkpoint_;
+    });
+
+    if (!is_zero(count))
+    {
+        LOGN("Purged (" << count << ") headers under checkpoint ["
+            << active_checkpoint_ << "].");
+    }
 }
 
 // Getters (private).
@@ -890,14 +854,6 @@ bool chaser_header::get_branch_work(uint256_t& work, hashes& tree_branch,
     }
 
     return true;
-}
-
-// Properties
-// ----------------------------------------------------------------------------
-
-const chaser_header::header_tree& chaser_header::tree() const NOEXCEPT
-{
-    return tree_;
 }
 
 // Logging
