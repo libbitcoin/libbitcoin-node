@@ -332,13 +332,15 @@ void CLASS::do_organize(typename Block::cptr block, bool prioritized,
     // Checking currency before notify also avoids excessive work backlog.
     if (is_block() || current)
     {
-        if (!bumped_)
+        if (!bumped_ || regress)
         {
             // If at start the fork point is top of both chains, and next candidate
             // is already downloaded, then new header will arrive and download will
             // be skipped, resulting in stall until restart at which time the start
             // event will advance through all downloaded candidates and progress on
-            // arrivals. This bumps validation once for current strong headers.
+            // arrivals. This bumps validation once for current strong headers, and
+            // again on regression, as the candidate above the branch point may
+            // already be downloaded when reorganizing back to a stored branch.
             notify(error::success, chases::bump{ add1(branch_point) });
             bumped_ = true;
         }

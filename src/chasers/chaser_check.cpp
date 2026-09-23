@@ -344,12 +344,15 @@ void chaser_check::do_regressed(height_t branch_point) NOEXCEPT
 {
     BC_ASSERT(stranded());
 
-    // Inconsequential regression, work isn't there yet.
-    if (branch_point >= position())
+    // Inconsequential regression, neither position nor window is there yet.
+    if (branch_point >= std::max(position(), requested_))
         return;
 
-    // Update position, purge outstanding work, and wait on track completion.
-    set_position(branch_point);
+    // Update position and window, purge outstanding work, and wait on track
+    // completion. The window must follow the position or the gap it awaits
+    // is never requested.
+    set_position(std::min(branch_point, position()));
+    requested_ = advanced_ = position();
     stop_tracking();
     maps_.clear();
     notify(error::success, chases::purge{ branch_point });
