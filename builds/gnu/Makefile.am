@@ -59,7 +59,6 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/settings.cpp \
     ${srcdir}/../../src/channels/channel_peer.cpp \
     ${srcdir}/../../src/chasers/chaser.cpp \
-    ${srcdir}/../../src/chasers/chaser_block.cpp \
     ${srcdir}/../../src/chasers/chaser_check.cpp \
     ${srcdir}/../../src/chasers/chaser_confirm.cpp \
     ${srcdir}/../../src/chasers/chaser_estimate.cpp \
@@ -73,9 +72,7 @@ src_libbitcoin_node_la_SOURCES = \
     ${srcdir}/../../src/chasers/chaser_validate_capture.cpp \
     ${srcdir}/../../src/chasers/chaser_validate_parallel.cpp \
     ${srcdir}/../../src/protocols/protocol.cpp \
-    ${srcdir}/../../src/protocols/protocol_block_in_106.cpp \
     ${srcdir}/../../src/protocols/protocol_block_in_31800.cpp \
-    ${srcdir}/../../src/protocols/protocol_block_in_70001.cpp \
     ${srcdir}/../../src/protocols/protocol_block_out_106.cpp \
     ${srcdir}/../../src/protocols/protocol_block_out_70001.cpp \
     ${srcdir}/../../src/protocols/protocol_block_out_70012.cpp \
@@ -133,24 +130,16 @@ include_bitcoin_node_chasersdir = \
 
 include_bitcoin_node_chasers_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser.hpp \
-    ${srcdir}/../../include/bitcoin/node/chasers/chaser_block.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_check.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_confirm.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_estimate.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_header.hpp \
-    ${srcdir}/../../include/bitcoin/node/chasers/chaser_organize.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_snapshot.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_storage.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_template.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_transaction.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chaser_validate.hpp \
     ${srcdir}/../../include/bitcoin/node/chasers/chasers.hpp
-
-include_bitcoin_node_impl_chasersdir = \
-    ${includedir}/bitcoin/node/impl/chasers
-
-include_bitcoin_node_impl_chasers_HEADERS = \
-    ${srcdir}/../../include/bitcoin/node/impl/chasers/chaser_organize.ipp
 
 include_bitcoin_node_impl_sessionsdir = \
     ${includedir}/bitcoin/node/impl/sessions
@@ -163,9 +152,7 @@ include_bitcoin_node_protocolsdir = \
 
 include_bitcoin_node_protocols_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol.hpp \
-    ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_in_106.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_in_31800.hpp \
-    ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_in_70001.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_106.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_70001.hpp \
     ${srcdir}/../../include/bitcoin/node/protocols/protocol_block_out_70012.hpp \
@@ -232,7 +219,6 @@ test_libbitcoin_node_test_SOURCES = \
     ${srcdir}/../../test/settings.cpp \
     ${srcdir}/../../test/test.cpp \
     ${srcdir}/../../test/chasers/chaser.cpp \
-    ${srcdir}/../../test/chasers/chaser_block.cpp \
     ${srcdir}/../../test/chasers/chaser_check.cpp \
     ${srcdir}/../../test/chasers/chaser_confirm.cpp \
     ${srcdir}/../../test/chasers/chaser_estimate.cpp \

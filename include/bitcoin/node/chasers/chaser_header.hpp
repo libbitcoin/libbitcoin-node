@@ -19,7 +19,8 @@
 #ifndef LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 #define LIBBITCOIN_NODE_CHASERS_CHASER_HEADER_HPP
 
-#include <bitcoin/node/chasers/chaser_organize.hpp>
+#include <unordered_map>
+#include <bitcoin/node/chasers/chaser.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -30,56 +31,117 @@ class full_node;
 /// Chase down stronger header branches for the candidate chain.
 /// Weak branches are retained in a hash table if not store populated.
 /// Strong branches reorganize the candidate chain and fire the 'header' event.
+/// Headers are validated and proven by the protocol, so all are storable.
 class BCN_API chaser_header
-  : public chaser_organize<system::chain::header>
+  : public chaser
 {
 public:
     DELETE_COPY_MOVE_DESTRUCT(chaser_header);
 
     chaser_header(full_node& node) NOEXCEPT;
 
+    /// Validate a header against its chain state.
+    static code validate(const system::chain::header& header,
+        const system::chain::chain_state& state,
+        const system::settings& settings) NOEXCEPT;
+
     /// Initialize chaser state.
     code start() NOEXCEPT override;
 
+    /// Validate and organize an unproven header.
+    virtual void organize(const system::chain::header::cptr& header,
+        organize_handler&& handler) NOEXCEPT;
+
+    /// Organize a proven header, milestone set if in milestone branch.
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, organize_handler&& handler) NOEXCEPT;
+
+    /// Reorganize to the branch of an archived block of at least equal work.
+    virtual void prioritize(const system::hash_digest& hash,
+        organize_handler&& handler) NOEXCEPT;
+
+    /// Work a proven header branch must reach (candidate or configured).
+    virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
+
 protected:
-    /// Get header from Block instance.
-    const system::chain::header& get_header(
-        const system::chain::header& header) const NOEXCEPT override;
+    using header_link = database::header_link;
+    using chain_state = system::chain::chain_state;
 
-    /// Query store for const pointer to Block instance by candidate height.
-    bool get_block(system::chain::header::cptr& out,
-        const header_link& link) const NOEXCEPT override;
+    using header_tree = std::unordered_map<system::hash_cref,
+        system::chain::header::cptr>;
 
-    /// Determine if Block is a duplicate (success for not duplicate).
-    code duplicate(size_t& height,
-        const system::hash_digest& hash) const NOEXCEPT override;
+    /// Handle chaser events.
+    virtual bool handle_chase(const code&, event_value value) NOEXCEPT;
 
-    /// Determine if Block is valid.
-    code validate(const system::chain::header& header,
-        const chain_state& state) const NOEXCEPT override;
+    /// Organize a discovered header, prioritized accepts a tied branch.
+    virtual void do_organize(const system::chain::header::cptr& header,
+        bool prioritized, bool milestone, bool proven,
+        const organize_handler& handler) NOEXCEPT;
 
-    /// Determine if state is top of a storable branch.
-    bool is_storable(const chain_state& state) const NOEXCEPT override;
+    /// Reorganize following block unconfirmability.
+    virtual void do_disorganize(header_t header) NOEXCEPT;
 
-    /// True if Block is on a milestone-covered branch.
-    bool is_under_milestone(size_t height) const NOEXCEPT override;
+    /// Reorganize to the branch of the given block.
+    virtual void do_prioritize(const system::hash_digest& hash,
+        const organize_handler& handler) NOEXCEPT;
 
-    /// Milestone tracking, true if updated.
-    bool update_milestone(const system::chain::header& header,
-        size_t height, size_t branch_point) NOEXCEPT override;
+    /// Obtain the work a proven header branch must reach.
+    virtual void do_get_minimum_work(const work_handler& handler) NOEXCEPT;
 
 private:
-    bool is_checkpoint(const chain_state& state) const NOEXCEPT;
-    bool is_milestone(const chain_state& state) const NOEXCEPT;
-    bool is_current(const chain_state& state) const NOEXCEPT;
-    bool is_hard(const chain_state& state) const NOEXCEPT;
-    bool initialize_milestone() NOEXCEPT;
+    using header_links = database::header_links;
+    using header_states = database::header_states;
 
-    // This is thread safe.
-    const system::chain::checkpoint& milestone_;
+    // Validation.
+    code duplicate(size_t& height,
+        const system::hash_digest& hash) const NOEXCEPT;
 
-    // This is protected by strand.
-    size_t active_milestone_height_{};
+    // Setters.
+    bool set_reorganized(height_t candidate_height) NOEXCEPT;
+    bool set_organized(const header_link& link,
+        height_t candidate_height) NOEXCEPT;
+    code push_header(const system::hash_digest& key) NOEXCEPT;
+    code push_header(const system::chain::header& header,
+        const system::chain::context& ctx, bool milestone) NOEXCEPT;
+    void cache(const system::chain::header::cptr& header,
+        const chain_state::cptr& state) NOEXCEPT;
+
+    // Checkpoint gate.
+    bool is_under_active_checkpoint(
+        const system::hash_digest& previous) const NOEXCEPT;
+    void update_checkpoint(height_t top) NOEXCEPT;
+
+    // Tree control.
+    void shrink_tree(bool current) NOEXCEPT;
+    void prune_tree(const uint256_t& threshold) NOEXCEPT;
+    void prune_tree(height_t top) NOEXCEPT;
+    void prune_tree() NOEXCEPT;
+
+    // Getters.
+    size_t get_window() const NOEXCEPT;
+    uint256_t get_window_work() const NOEXCEPT;
+    chain_state::cptr get_chain_state(
+        const system::hash_digest& previous_hash) const NOEXCEPT;
+    bool get_branch_work(uint256_t& branch_work,
+        system::hashes& tree_branch, header_states& store_branch,
+        const system::chain::header& header) const NOEXCEPT;
+
+    // Logging.
+    void log_state_change(const chain_state& from,
+        const chain_state& to) const NOEXCEPT;
+
+    // These are thread safe.
+    const system::settings& settings_;
+    const system::chain::checkpoints& checkpoints_;
+
+    // These are protected by strand.
+    bool bumped_{};
+    bool shrunk_{};
+    size_t next_window_{};
+    size_t next_checkpoint_{};
+    size_t active_checkpoint_{};
+    chain_state::cptr state_{};
+    header_tree tree_{};
 };
 
 } // namespace node

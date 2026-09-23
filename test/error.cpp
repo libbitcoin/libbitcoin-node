@@ -175,6 +175,15 @@ BOOST_AUTO_TEST_CASE(error_t__code__estimate_disabled__true_expected_message)
     BOOST_REQUIRE_EQUAL(ec.message(), "estimate_disabled");
 }
 
+BOOST_AUTO_TEST_CASE(error_t__code__unexpected_header__true_expected_message)
+{
+    constexpr auto value = error::unexpected_header;
+    const auto ec = code(value);
+    BOOST_REQUIRE(ec);
+    BOOST_REQUIRE(ec == value);
+    BOOST_REQUIRE_EQUAL(ec.message(), "unexpected header");
+}
+
 BOOST_AUTO_TEST_CASE(error_t__code__estimate_premature__true_expected_message)
 {
     constexpr auto value = error::estimate_premature;

@@ -58,6 +58,7 @@ enum error_t : uint8_t
     orphan_header,
     duplicate_block,
     duplicate_header,
+    unexpected_header,
 
     /// transaction pool
     pooling_disabled,

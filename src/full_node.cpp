@@ -41,7 +41,6 @@ full_node::full_node(query& query, const configuration& configuration,
     config_(configuration),
     start_time_(zulu_time()),
     query_(query),
-    chaser_block_(*this),
     chaser_header_(*this),
     chaser_check_(*this),
     chaser_validate_(*this),
@@ -78,9 +77,7 @@ void full_node::do_start(const result_handler& handler) NOEXCEPT
     BC_ASSERT(stranded());
     code ec{};
 
-    if (((ec = (config_.node.headers_first ?
-            chaser_header_.start() :
-            chaser_block_.start()))) ||
+    if (((ec = chaser_header_.start())) ||
         ((ec = chaser_check_.start())) ||
         ((ec = chaser_validate_.start())) ||
         ((ec = chaser_confirm_.start())) ||
@@ -128,7 +125,6 @@ void full_node::close() NOEXCEPT
 
     // Block on chaser stop (including dedicated threadpool joins).
     chaser_header_.stop();
-    chaser_block_.stop();
     chaser_check_.stop();
     chaser_validate_.stop();
     chaser_confirm_.stop();
@@ -146,7 +142,6 @@ void full_node::do_close() NOEXCEPT
 
     // Initiate chaser stopping (including dedicated threadpools).
     chaser_header_.stopping(network::error::service_stopped);
-    chaser_block_.stopping(network::error::service_stopped);
     chaser_check_.stopping(network::error::service_stopped);
     chaser_validate_.stopping(network::error::service_stopped);
     chaser_confirm_.stopping(network::error::service_stopped);
@@ -169,19 +164,21 @@ void full_node::organize(const system::chain::header::cptr& header,
     chaser_header_.organize(header, std::move(handler));
 }
 
-void full_node::organize(const system::chain::block::cptr& block,
-    organize_handler&& handler) NOEXCEPT
+void full_node::organize(const system::chain::header::cptr& header,
+    bool milestone, organize_handler&& handler) NOEXCEPT
 {
-    chaser_block_.organize(block, std::move(handler));
+    chaser_header_.organize(header, milestone, std::move(handler));
 }
 
 void full_node::prioritize(const system::hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {
-    if (config_.node.headers_first)
-        chaser_header_.prioritize(hash, std::move(handler));
-    else
-        chaser_block_.prioritize(hash, std::move(handler));
+    chaser_header_.prioritize(hash, std::move(handler));
+}
+
+void full_node::get_minimum_work(work_handler&& handler) NOEXCEPT
+{
+    chaser_header_.get_minimum_work(std::move(handler));
 }
 
 void full_node::submit(const system::chain::transactions_cptr& txs, bool test,

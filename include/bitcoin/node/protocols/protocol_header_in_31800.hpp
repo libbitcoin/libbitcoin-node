@@ -24,7 +24,10 @@
 
 namespace libbitcoin {
 namespace node {
-    
+
+/// Synchronize the peer's header branch, validating and discarding headers
+/// until proven (a checkpoint, or exhausted, current and at minimum work).
+/// Then get it again and archive as verified against sampled hashes.
 class BCN_API protocol_header_in_31800
   : public node::protocol_peer,
     protected network::tracker<protocol_header_in_31800>
@@ -43,23 +46,53 @@ public:
     void start() NOEXCEPT override;
 
 protected:
+    using chain_state = system::chain::chain_state;
+    using headers = network::messages::peer::headers;
+    using inventory = network::messages::peer::inventory;
+    using get_headers = network::messages::peer::get_headers;
+
     virtual bool handle_receive_inventory(const code& ec,
-        const network::messages::peer::inventory::cptr& message) NOEXCEPT;
+        const inventory::cptr& message) NOEXCEPT;
     virtual bool handle_receive_headers(const code& ec,
-        const network::messages::peer::headers::cptr& message) NOEXCEPT;
+        const headers::cptr& message) NOEXCEPT;
     virtual void handle_organize(const code& ec, size_t height,
         const system::chain::header::cptr& header_ptr) NOEXCEPT;
+    virtual void handle_minimum_work(const code& ec, const uint256_t& work,
+        bool initial) NOEXCEPT;
+    virtual void do_minimum_work(const code& ec, const uint256_t& work,
+        bool initial) NOEXCEPT;
     virtual void complete() NOEXCEPT;
 
     // This is protected by strand.
     bool subscribed{};
 
 private:
-    network::messages::peer::get_headers create_get_headers() const NOEXCEPT;
-    network::messages::peer::get_headers create_get_headers(
+
+    void synchronize(const headers& message, bool full) NOEXCEPT;
+    void collect(const headers& message, bool full) NOEXCEPT;
+    bool restart(const system::hash_digest& previous) NOEXCEPT;
+    void sample(const system::hash_digest& hash) NOEXCEPT;
+    void prove() NOEXCEPT;
+    void finish() NOEXCEPT;
+
+    get_headers create_get_headers() const NOEXCEPT;
+    get_headers create_get_headers(
         const system::hash_digest& last) const NOEXCEPT;
-    network::messages::peer::get_headers create_get_headers(
+    get_headers create_get_headers(
         system::hashes&& start_hashes) const NOEXCEPT;
+
+    // These are protected by strand.
+    bool archiving_{};
+    size_t top_{};
+    size_t index_{};
+    size_t height_{};
+    size_t milestone_{};
+    system::hashes samples_{};
+    system::hash_digest previous_{};
+    system::chain::header_cptrs buffer_{};
+    size_t interval_{ network::messages::peer::max_get_headers };
+    uint256_t minimum_work_{};
+    chain_state::cptr state_{};
 };
 
 } // namespace node

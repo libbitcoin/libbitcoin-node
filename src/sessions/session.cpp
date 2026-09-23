@@ -45,10 +45,10 @@ void session::organize(const header::cptr& header,
     node_.organize(header, std::move(handler));
 }
 
-void session::organize(const block::cptr& block,
+void session::organize(const header::cptr& header, bool milestone,
     organize_handler&& handler) NOEXCEPT
 {
-    node_.organize(block, std::move(handler));
+    node_.organize(header, milestone, std::move(handler));
 }
 
 void session::prioritize(const hash_digest& hash,
@@ -61,6 +61,11 @@ void session::submit(const transactions_cptr& txs, bool test,
     submit_handler&& handler) NOEXCEPT
 {
     node_.submit(txs, test, std::move(handler));
+}
+
+void session::get_minimum_work(work_handler&& handler) NOEXCEPT
+{
+    node_.get_minimum_work(std::move(handler));
 }
 
 void session::get_hashes(map_handler&& handler) NOEXCEPT
@@ -163,6 +168,11 @@ const node::settings& session::node_settings() const NOEXCEPT
 bool session::is_current_chain(bool confirmed) const NOEXCEPT
 {
     return node_.is_current_chain(confirmed);
+}
+
+bool session::is_current_time(uint32_t timestamp) const NOEXCEPT
+{
+    return node_.is_current_time(timestamp);
 }
 
 bool session::is_recent() const NOEXCEPT

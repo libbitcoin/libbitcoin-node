@@ -18,6 +18,7 @@
  */
 #include <bitcoin/node/protocols/protocol_header_in_31800.hpp>
 
+#include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/define.hpp>
 
 namespace libbitcoin {
@@ -34,6 +35,9 @@ using namespace std::placeholders;
 BC_PUSH_WARNING(SMART_PTR_NOT_NEEDED)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
+// Sample budget when header rows are not configured (expected is zero).
+constexpr size_t default_samples = 1024;
+
 // Start.
 // ----------------------------------------------------------------------------
 
@@ -45,8 +49,41 @@ void protocol_header_in_31800::start() NOEXCEPT
         return;
 
     SUBSCRIBE_CHANNEL(headers, handle_receive_headers, _1, _2);
-    SEND(create_get_headers(), handle_send, _1);
+    get_minimum_work(BIND(handle_minimum_work, _1, _2, true));
     protocol_peer::start();
+}
+
+// not stranded
+void protocol_header_in_31800::handle_minimum_work(const code& ec,
+    const uint256_t& work, bool initial) NOEXCEPT
+{
+    // Chaser may be stopped before protocol.
+    if (stopped() || ec == network::error::service_stopped)
+        return;
+
+    POST(do_minimum_work, ec, work, initial);
+}
+
+// A proven branch must reach this work, sync begins once it is first set.
+void protocol_header_in_31800::do_minimum_work(const code& ec,
+    const uint256_t& work, bool initial) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    if (stopped())
+        return;
+
+    if (ec)
+    {
+        stop(ec);
+        return;
+    }
+
+    minimum_work_ = work;
+    if (initial)
+    {
+        SEND(create_get_headers(), handle_send, _1);
+    }
 }
 
 // Inbound (headers).
@@ -62,38 +99,249 @@ bool protocol_header_in_31800::handle_receive_headers(const code& ec,
     if (stopped(ec))
         return false;
 
-    LOGP("Headers (" << message->header_ptrs.size() << ") from ["
-        << opposite() << "].");
+    const auto& ptrs = message->header_ptrs;
+    LOGP("Headers (" << ptrs.size() << ") from [" << opposite() << "].");
 
-    // Store each header, drop channel if invalid.
-    for (const auto& ptr: message->header_ptrs)
-    {
-        if (stopped())
-            return false;
-
-        if (subscribed)
+    if (subscribed)
+        for (const auto& ptr: ptrs)
             set_announced(ptr->get_hash());
 
-        // A job backlog will occur when organize is slower than download.
-        // This is not likely with headers-first even for high channel count.
-        organize(ptr, BIND(handle_organize, _1, _2, ptr));
-    }
-
-    // The headers response to get_headers is limited to max_get_headers.
-    if (message->header_ptrs.size() == max_get_headers)
-    {
-        const auto& last = message->header_ptrs.back()->get_hash();
-        SEND(create_get_headers(last), handle_send, _1);
-    }
+    // Protocol presumes max_get_headers unless complete.
+    // Completeness assumes empty response from peer if caught up at 2000.
+    const auto full = (ptrs.size() == max_get_headers);
+    if (archiving_)
+        collect(*message, full);
     else
-    {
-        // Protocol presumes max_get_headers unless complete.
-        // Completeness assumes empty response from peer if caught up at 2000.
-        LOGP("Completed headers from [" << opposite() << "].");
-        complete();
-    }
+        synchronize(*message, full);
 
     return true;
+}
+
+// Validate and discard each header, sampling hashes, until proven.
+void protocol_header_in_31800::synchronize(const headers& message,
+    bool full) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    const auto& ptrs = message.header_ptrs;
+    if (ptrs.empty())
+    {
+        finish();
+        return;
+    }
+
+    // A message not extending the branch restarts from its stored parent.
+    // An unstored parent (announcement) is requested from the candidate.
+    const auto& first = ptrs.front()->previous_block_hash();
+    if ((!state_ || first != state_->hash()) && !restart(first))
+    {
+        LOGP("Header [" << encode_hash(ptrs.front()->get_hash()) << "] from ["
+            << opposite() << "] " << code{ error::orphan_header }.message());
+        SEND(create_get_headers(), handle_send, _1);
+        return;
+    }
+
+    const auto& settings = system_settings();
+    for (const auto& ptr: ptrs)
+    {
+        const auto& header = *ptr;
+        const auto& hash = header.get_hash();
+        if (header.previous_block_hash() != state_->hash())
+        {
+            const code ec{ error::orphan_header };
+            LOGR("Header [" << encode_hash(hash) << "] from [" << opposite()
+                << "] " << ec.message());
+            stop(ec);
+            return;
+        }
+
+        const auto state = to_shared<chain_state>(*state_, header, settings);
+        if (const auto ec = chaser_header::validate(header, *state, settings))
+        {
+            LOGR("Header [" << encode_hash(hash) << ":" << state->height()
+                << "] from [" << opposite() << "] " << ec.message());
+            stop(ec);
+            return;
+        }
+
+        state_ = state;
+        const auto height = state->height();
+        if (is_zero(height % interval_))
+            sample(hash);
+
+        if (settings.milestone.equals(hash, height))
+            milestone_ = height;
+
+        // A checkpoint proves the branch to itself, the rest is resynced.
+        if (chain::checkpoint::is_at(settings.checkpoints, height))
+        {
+            prove();
+            return;
+        }
+    }
+
+    if (full)
+    {
+        SEND(create_get_headers(state_->hash()), handle_send, _1);
+        return;
+    }
+
+    finish();
+}
+
+// Verify each header against the sampled hashes and organize as proven.
+void protocol_header_in_31800::collect(const headers& message,
+    bool full) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+
+    for (const auto& ptr: message.header_ptrs)
+    {
+        const auto& header = *ptr;
+        if (header.previous_block_hash() != previous_)
+        {
+            const code ec{ error::orphan_header };
+            LOGR("Header [" << encode_hash(header.get_hash()) << "] from ["
+                << opposite() << "] " << ec.message());
+            stop(ec);
+            return;
+        }
+
+        previous_ = header.get_hash();
+        buffer_.push_back(ptr);
+        ++height_;
+
+        // Buffer until the next sample (at each interval and the top).
+        if (!is_zero(height_ % interval_) && height_ != top_)
+            continue;
+
+        if (index_ >= samples_.size() || previous_ != samples_.at(index_))
+        {
+            const code ec{ error::unexpected_header };
+            LOGR("Header [" << encode_hash(previous_) << ":" << height_
+                << "] from [" << opposite() << "] " << ec.message());
+            stop(ec);
+            return;
+        }
+
+        // Organize verified segment, milestone at/under milestone.
+        ++index_;
+        auto height = height_ - buffer_.size();
+        for (const auto& proven: buffer_)
+        {
+            const auto milestone = (++height <= milestone_);
+            organize(proven, milestone, BIND(handle_organize, _1, _2, proven));
+        }
+
+        buffer_.clear();
+        if (height_ == top_)
+        {
+            LOGP("Archived headers to [" << encode_hash(previous_) << ":"
+                << height_ << "] from [" << opposite() << "].");
+
+            // Resume synchronization above the proven top (state_ retained),
+            // which is independent of when the organizer archives it.
+            samples_.clear();
+            milestone_ = zero;
+            archiving_ = false;
+            interval_ = max_get_headers;
+            SEND(create_get_headers(previous_), handle_send, _1);
+            return;
+        }
+    }
+
+    if (full)
+    {
+        SEND(create_get_headers(previous_), handle_send, _1);
+        return;
+    }
+
+    // The peer no longer presents the branch (reorganized).
+    LOGP("Discarded headers from [" << opposite() << "].");
+
+    archiving_ = false;
+    state_.reset();
+    buffer_.clear();
+    complete();
+}
+
+// Start a branch from a stored parent (locator hit or announcement).
+bool protocol_header_in_31800::restart(const hash_digest& previous) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    state_ = archive().get_confirmed_chain_state(system_settings(), previous);
+    if (!state_)
+        return false;
+
+    samples_.clear();
+    milestone_ = zero;
+    previous_ = previous;
+    height_ = state_->height();
+    interval_ = max_get_headers;
+
+    // Refresh the proof threshold as the candidate advances.
+    get_minimum_work(BIND(handle_minimum_work, _1, _2, false));
+    return true;
+}
+
+// At the sample budget the interval doubles, retaining its multiples.
+void protocol_header_in_31800::sample(const hash_digest& hash) NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    samples_.push_back(hash);
+
+    // Budget retains the expected header rows at the base interval.
+    const auto expected = database_settings().header.expected;
+    const auto budget = is_zero(expected) ? default_samples :
+        ceilinged_divide(expected, max_get_headers);
+
+    if (samples_.size() < budget)
+        return;
+
+    hashes retained{};
+    retained.reserve(to_half(samples_.size()));
+    const auto first = add1(height_ / interval_);
+
+    // Sample heights are multiples of interval_ above height_ (branch start).
+    for (size_t index{}; index < samples_.size(); ++index)
+        if (is_zero((first + index) % two))
+            retained.push_back(samples_.at(index));
+
+    samples_ = std::move(retained);
+    interval_ *= two;
+}
+
+// The branch is proven, request it again from its parent for archival.
+void protocol_header_in_31800::prove() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    top_ = state_->height();
+    if (!is_zero(top_ % interval_))
+        samples_.push_back(state_->hash());
+
+    LOGP("Proven headers to [" << encode_hash(state_->hash()) << ":" << top_
+        << "] from [" << opposite() << "].");
+
+    index_ = zero;
+    buffer_.clear();
+    archiving_ = true;
+    SEND(create_get_headers(previous_), handle_send, _1);
+}
+
+// The peer is exhausted, the branch is proven if current at minimum work.
+void protocol_header_in_31800::finish() NOEXCEPT
+{
+    BC_ASSERT(stranded());
+    if (state_ && (state_->height() > height_) &&
+        is_current_time(state_->timestamp()) &&
+        (state_->cumulative_work() >= minimum_work_))
+    {
+        prove();
+        return;
+    }
+
+    LOGP("Completed headers from [" << opposite() << "].");
+    state_.reset();
+    complete();
 }
 
 // not stranded
@@ -101,7 +349,8 @@ void protocol_header_in_31800::handle_organize(const code& ec,
     size_t height, const chain::header::cptr& LOG_ONLY(header_ptr)) NOEXCEPT
 {
     // Chaser may be stopped before protocol.
-    if (stopped() || ec == network::error::service_stopped ||
+    if (stopped() ||
+        ec == network::error::service_stopped ||
         ec == error::duplicate_header)
         return;
 
@@ -110,8 +359,8 @@ void protocol_header_in_31800::handle_organize(const code& ec,
     {
         if (is_zero(height))
         {
-            LOGP("Header [" << encode_hash(header_ptr->get_hash()) << "] from ["
-                << opposite() << "] " << ec.message());
+            LOGP("Header [" << encode_hash(header_ptr->get_hash())
+                << "] from [" << opposite() << "] " << ec.message());
         }
         else
         {

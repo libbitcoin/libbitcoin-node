@@ -39,13 +39,13 @@ public:
     /// Organizers.
     /// -----------------------------------------------------------------------
 
-    /// Organize a validated header.
+    /// Validate and organize an unproven header.
     virtual void organize(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
-    /// Organize a validated block.
-    virtual void organize(const system::chain::block::cptr& block,
-        organize_handler&& handler) NOEXCEPT;
+    /// Organize a proven header, milestone set if in milestone branch.
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,
@@ -55,6 +55,9 @@ public:
     /// The package is only validated when test, so nothing is archived.
     virtual void submit(const system::chain::transactions_cptr& txs,
         bool test, submit_handler&& handler) NOEXCEPT;
+
+    /// Work a proven header branch must reach (candidate or configured).
+    virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
 
     /// Manage download queue.
     virtual void get_hashes(map_handler&& handler) NOEXCEPT;
@@ -125,6 +128,7 @@ public:
 
     /// The candidate|confirmed chain is current.
     virtual bool is_current_chain(bool confirmed) const NOEXCEPT;
+    virtual bool is_current_time(uint32_t timestamp) const NOEXCEPT;
 
     /// The confirmed chain is confirmed to maximum height or is current.
     virtual bool is_recent() const NOEXCEPT;

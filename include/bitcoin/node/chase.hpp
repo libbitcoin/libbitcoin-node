@@ -93,10 +93,6 @@ enum class chase
     /// -----------------------------------------------------------------------
 
     /// A new candidate branch exists from given branch point.
-    /// Issued by 'block' and handled by none.
-    blocks,
-
-    /// A new candidate branch exists from given branch point.
     /// Issued by 'header' and handled by 'check'.
     headers,
 
@@ -257,12 +253,6 @@ struct report
     count_t sequence;
 };
 
-struct blocks
-{
-    static constexpr chase id{ chase::blocks };
-    height_t branch_point;
-};
-
 struct headers
 {
     static constexpr chase id{ chase::headers };
@@ -386,7 +376,6 @@ using event_value = std::variant
     chases::stall,
     chases::purge,
     chases::report,
-    chases::blocks,
     chases::headers,
     chases::download,
     chases::regressed,

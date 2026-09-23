@@ -31,7 +31,6 @@ namespace node {
 settings::settings() NOEXCEPT
   : threads{ 0 },
     delay_inbound{ true },
-    headers_first{ true },
     memory_priority{ true },
     thread_priority{ true },
     provide_blocks{ true },

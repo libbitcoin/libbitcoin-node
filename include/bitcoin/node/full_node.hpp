@@ -61,17 +61,20 @@ public:
     /// Organizers.
     /// -----------------------------------------------------------------------
 
-    /// Organize a validated header.
+    /// Validate and organize an unproven header.
     virtual void organize(const system::chain::header::cptr& header,
         organize_handler&& handler) NOEXCEPT;
 
-    /// Organize a validated block.
-    virtual void organize(const system::chain::block::cptr& block,
-        organize_handler&& handler) NOEXCEPT;
+    /// Organize a proven header, milestone set if in milestone branch.
+    virtual void organize(const system::chain::header::cptr& header,
+        bool milestone, organize_handler&& handler) NOEXCEPT;
 
     /// Reorganize to the branch of an archived block of at least equal work.
     virtual void prioritize(const system::hash_digest& hash,
         organize_handler&& handler) NOEXCEPT;
+
+    /// Work a proven header branch must reach (candidate or configured).
+    virtual void get_minimum_work(work_handler&& handler) NOEXCEPT;
 
     /// Validate and archive a submitted package, accepted as a whole.
     /// The package is only validated when test, so nothing is archived.
@@ -195,7 +198,6 @@ private:
     query& query_;
 
     // These are protected by strand.
-    chaser_block chaser_block_;
     chaser_header chaser_header_;
     chaser_check chaser_check_;
     chaser_validate chaser_validate_;

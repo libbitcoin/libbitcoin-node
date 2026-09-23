@@ -48,6 +48,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { orphan_header, "orphan header" },
     { duplicate_block, "duplicate block" },
     { duplicate_header, "duplicate header" },
+    { unexpected_header, "unexpected header" },
 
     // transaction pool
     { pooling_disabled, "pooling disabled" },

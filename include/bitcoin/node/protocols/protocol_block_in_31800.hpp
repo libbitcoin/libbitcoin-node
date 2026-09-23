@@ -26,7 +26,7 @@
 namespace libbitcoin {
 namespace node {
     
-/// This class does NOT inherit from protocol_block_in_106.
+/// Headers-first block download (bip130 announcements via headers).
 class BCN_API protocol_block_in_31800
   : public protocol_performer,
     protected network::tracker<protocol_block_in_31800>

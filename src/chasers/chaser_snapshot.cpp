@@ -85,7 +85,6 @@ bool chaser_snapshot::handle_chase(const code&, event_value value) NOEXCEPT
     switch (to_chase(value))
     {
         // blocks first and headers first (checked) messages
-        ////case chase::blocks:
         ////case chase::checked:
         ////{
         ////    if (!enabled_bytes_ || ec)
