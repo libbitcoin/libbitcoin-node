@@ -125,7 +125,6 @@
     <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
     <ClCompile Include="..\..\..\..\src\channels\channel_peer.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser.cpp" />
-    <ClCompile Include="..\..\..\..\src\chasers\chaser_block.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_check.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_confirm.cpp" />
     <ClCompile Include="..\..\..\..\src\chasers\chaser_estimate.cpp" />
@@ -143,9 +142,7 @@
     <ClCompile Include="..\..\..\..\src\estimator.cpp" />
     <ClCompile Include="..\..\..\..\src\full_node.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol.cpp" />
-    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_31800.cpp" />
-    <ClCompile Include="..\..\..\..\src\protocols\protocol_block_in_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_106.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70001.cpp" />
     <ClCompile Include="..\..\..\..\src\protocols\protocol_block_out_70012.cpp" />
@@ -179,12 +176,10 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\channels\channels.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chase.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_block.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_check.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_confirm.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_estimate.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_header.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_organize.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_snapshot.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_storage.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\chasers\chaser_template.hpp" />
@@ -198,9 +193,7 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\events.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\full_node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_31800.hpp" />
-    <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_in_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_106.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70001.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\protocols\protocol_block_out_70012.hpp" />
@@ -229,7 +222,6 @@
     <ClInclude Include="..\..\..\..\include\bitcoin\node\version.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\include\bitcoin\node\impl\chasers\chaser_organize.ipp" />
     <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp" />
     <None Include="packages.config" />
   </ItemGroup>

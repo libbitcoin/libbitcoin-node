@@ -54,9 +54,6 @@ chaser_validate::chaser_validate(full_node& node) NOEXCEPT
 
 code chaser_validate::start() NOEXCEPT
 {
-    if (!node_settings().headers_first)
-        return error::success;
-
     if (node_settings().batch_signatures_enabled() && !batch_enabled_)
         LOGN("Signature batching disabled ("
             << (system::batched::compiled() ? "no device" : "not compiled")

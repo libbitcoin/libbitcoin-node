@@ -20,9 +20,7 @@
 #define LIBBITCOIN_NODE_PROTOCOLS_PROTOCOLS_HPP
 
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
-#include <bitcoin/node/protocols/protocol_block_in_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70012.hpp>

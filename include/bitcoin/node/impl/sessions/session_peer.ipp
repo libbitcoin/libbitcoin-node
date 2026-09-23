@@ -75,7 +75,6 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     const auto self = this->template shared_from_base<base>();
     const auto relay = this->network_settings().enable_relay;
     const auto delay = this->node_settings().delay_inbound;
-    const auto headers = this->node_settings().headers_first;
     const auto node_network = this->node_settings().provide_blocks;
     const auto node_client_filters = this->node_settings().provide_filters;
 
@@ -109,42 +108,32 @@ inline void CLASS::attach_protocols(const channel_ptr& channel) NOEXCEPT
     // Configured to relay transactions (currency is signalled by fee_filter).
     const auto txs_in_out = relay;
 
-    // Peer advertises chain (blocks in).
+    // Peer advertises chain (blocks in), headers-first requires 31800.
     if (peer->is_peer_service(service::node_network))
     {
-        if (headers && peer->is_negotiated(level::bip130))
+        if (peer->is_negotiated(level::bip130))
         {
             channel->attach<protocol_header_in_70012>(self)->start();
             channel->attach<protocol_block_in_31800>(self)->start();
-
         }
-        else if (headers && peer->is_negotiated(level::headers_protocol))
+        else if (peer->is_negotiated(level::headers_protocol))
         {
             channel->attach<protocol_header_in_31800>(self)->start();
             channel->attach<protocol_block_in_31800>(self)->start();
-        }
-        else
-        {
-            // Very hard to find < 31800 peer to connect with.
-            // Blocks-first synchronization (not base of block_in_31800).
-            if (peer->is_negotiated(level::bip37))
-                channel->attach<protocol_block_in_70001>(self)->start();
-            else
-                channel->attach<protocol_block_in_106>(self)->start();
         }
     }
 
     // Blocks are ready (blocks out).
     if (blocks_out)
     {
-        if (headers && peer->is_negotiated(level::bip130))
+        if (peer->is_negotiated(level::bip130))
         {
             channel->attach<protocol_header_out_70012>(self)->start();
             channel->attach<protocol_block_out_70012>(self)->start();
         }
         else
         {
-            if (headers && peer->is_negotiated(level::headers_protocol))
+            if (peer->is_negotiated(level::headers_protocol))
                 channel->attach<protocol_header_out_31800>(self)->start();
 
             if (peer->is_negotiated(level::bip37))

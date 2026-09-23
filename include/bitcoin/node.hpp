@@ -31,12 +31,10 @@
 #include <bitcoin/node/channels/channel_peer.hpp>
 #include <bitcoin/node/channels/channels.hpp>
 #include <bitcoin/node/chasers/chaser.hpp>
-#include <bitcoin/node/chasers/chaser_block.hpp>
 #include <bitcoin/node/chasers/chaser_check.hpp>
 #include <bitcoin/node/chasers/chaser_confirm.hpp>
 #include <bitcoin/node/chasers/chaser_estimate.hpp>
 #include <bitcoin/node/chasers/chaser_header.hpp>
-#include <bitcoin/node/chasers/chaser_organize.hpp>
 #include <bitcoin/node/chasers/chaser_snapshot.hpp>
 #include <bitcoin/node/chasers/chaser_storage.hpp>
 #include <bitcoin/node/chasers/chaser_template.hpp>
@@ -44,9 +42,7 @@
 #include <bitcoin/node/chasers/chaser_validate.hpp>
 #include <bitcoin/node/chasers/chasers.hpp>
 #include <bitcoin/node/protocols/protocol.hpp>
-#include <bitcoin/node/protocols/protocol_block_in_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_in_31800.hpp>
-#include <bitcoin/node/protocols/protocol_block_in_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_106.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70001.hpp>
 #include <bitcoin/node/protocols/protocol_block_out_70012.hpp>

@@ -36,7 +36,6 @@ public:
     /// Properties.
     uint32_t threads;
     bool delay_inbound;
-    bool headers_first;
     bool thread_priority;
     bool memory_priority;
     bool provide_blocks;

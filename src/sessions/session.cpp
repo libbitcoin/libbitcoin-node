@@ -45,12 +45,6 @@ void session::organize(const header::cptr& header,
     node_.organize(header, std::move(handler));
 }
 
-void session::organize(const block::cptr& block,
-    organize_handler&& handler) NOEXCEPT
-{
-    node_.organize(block, std::move(handler));
-}
-
 void session::prioritize(const hash_digest& hash,
     organize_handler&& handler) NOEXCEPT
 {

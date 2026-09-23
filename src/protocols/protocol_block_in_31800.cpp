@@ -24,7 +24,7 @@
 namespace libbitcoin {
 namespace node {
 
-// This class does NOT inherit from protocol_block_in_106.
+// Headers-first block download (bip130 announcements via headers).
 #define CLASS protocol_block_in_31800
 
 using namespace system;
