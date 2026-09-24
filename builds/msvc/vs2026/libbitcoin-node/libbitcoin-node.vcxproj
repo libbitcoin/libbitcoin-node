@@ -109,22 +109,6 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <PropertyGroup Label="Prebuild">
-    <GeneratedIncludeDirBase>$(ProjectDir)..\..\..\..\non-persistent\</GeneratedIncludeDirBase>
-    <GeneratedIncludeDir>$(GeneratedIncludeDirBase)include\</GeneratedIncludeDir>
-  </PropertyGroup>
-  <ItemGroup>
-    <ConfigurableFile Include="version">
-      <FileInput>$(RepoRoot)include\bitcoin\node\version.hpp.in</FileInput>
-      <FileOutput>$(GeneratedIncludeDirBase)include\bitcoin\node\version.hpp</FileOutput>
-    </ConfigurableFile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="%(ConfigurableFile.FileInput)" />
-    <ClInclude Include="%(ConfigurableFile.FileOutput)">
-      <DependentUpon>%(ConfigurableFile.FileInput)</DependentUpon>
-    </ClInclude>
-  </ItemGroup>
   <PropertyGroup Label="Configuration">
     <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) == -1">StaticLibrary</ConfigurationType>
     <ConfigurationType Condition="$(Configuration.IndexOf('DLL')) != -1">DynamicLibrary</ConfigurationType>
@@ -136,6 +120,16 @@
     <Import Project="$(ProjectDir)..\..\properties\Output.props" />
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
+  <PropertyGroup Label="Git">
+    <VersionMajor>4</VersionMajor>
+    <VersionMinor>0</VersionMinor>
+  </PropertyGroup>
+  <ItemGroup>
+    <ConfigurableFile Include="..\..\..\..\include\bitcoin\node\version.hpp.in">
+      <Generated>..\..\..\..\build\include\bitcoin\node\version.hpp</Generated>
+    </ConfigurableFile>
+    <ClInclude Include="..\..\..\..\build\include\bitcoin\node\version.hpp" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
     <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
@@ -183,7 +177,6 @@
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\builds\msvc\resource.h" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
@@ -242,7 +235,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\builds\msvc\resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
