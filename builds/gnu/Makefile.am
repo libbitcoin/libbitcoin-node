@@ -37,6 +37,7 @@ lib_LTLIBRARIES = src/libbitcoin-node.la
 src_libbitcoin_node_la_LIBS = src/libbitcoin-node.la
 
 src_libbitcoin_node_la_CPPFLAGS = \
+    -I${top_builddir}/include \
     -I${srcdir}/../../include \
     ${libbitcoin_database_BUILD_CPPFLAGS} \
     ${libbitcoin_network_BUILD_CPPFLAGS}
@@ -115,7 +116,8 @@ include_bitcoin_node_HEADERS = \
     ${srcdir}/../../include/bitcoin/node/events.hpp \
     ${srcdir}/../../include/bitcoin/node/full_node.hpp \
     ${srcdir}/../../include/bitcoin/node/settings.hpp \
-    ${srcdir}/../../include/bitcoin/node/version.hpp
+    ${srcdir}/../../include/bitcoin/node/version.hpp \
+    include/bitcoin/node/version.hpp
 
 include_bitcoin_node_channelsdir = \
     ${includedir}/bitcoin/node/channels

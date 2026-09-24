@@ -120,6 +120,16 @@
     <Import Project="$(ProjectDir)..\..\properties\Output.props" />
     <Import Project="$(ProjectDir)$(ProjectName).props" />
   </ImportGroup>
+  <PropertyGroup Label="Git">
+    <VersionMajor>4</VersionMajor>
+    <VersionMinor>0</VersionMinor>
+  </PropertyGroup>
+  <ItemGroup>
+    <ConfigurableFile Include="..\..\..\..\include\bitcoin\node\version.hpp.in">
+      <Generated>..\..\..\..\build\include\bitcoin\node\version.hpp</Generated>
+    </ConfigurableFile>
+    <ClInclude Include="..\..\..\..\build\include\bitcoin\node\version.hpp" />
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\block_arena.cpp" />
     <ClCompile Include="..\..\..\..\src\block_memory.cpp" />
@@ -167,7 +177,6 @@
     <ClCompile Include="..\..\..\..\src\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\builds\msvc\resource.h" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_arena.hpp" />
     <ClInclude Include="..\..\..\..\include\bitcoin\node\block_memory.hpp" />
@@ -223,10 +232,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\..\include\bitcoin\node\impl\sessions\session_peer.ipp" />
+    <None Include="..\..\..\..\include\bitcoin\node\version.hpp.in" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\builds\msvc\resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
