@@ -153,20 +153,37 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     }
 
     auto& query = archive();
+    database::tx_links fresh(txs->size(), database::tx_link::terminal);
     for (index = {}; index < txs->size(); ++index)
     {
+        bool pooled{};
         database::tx_link link{};
         const auto& tx = *txs->at(index);
 
         // Disk full may leave package partly archived, resolves by resubmit.
-        if (const auto ec = query.set_code(link, tx))
+        if (const auto ec = query.set_code(link, pooled, tx))
         {
             handler(fault(ec), index);
             return;
         }
 
+        if (!pooled)
+            fresh.at(index) = link;
+
         fire(events::tx_archived, to_rate(tx));
         notify(error::success, chases::transaction{ link });
+    }
+
+    // Package parents are resolved by hash, so the whole package precedes.
+    for (index = {}; index < txs->size(); ++index)
+    {
+        const database::tx_link link{ fresh.at(index) };
+        if (!link.is_terminal() &&
+            !query.set_tx_state(link, *txs->at(index), pool_))
+        {
+            handler(fault(error::transaction2), index);
+            return;
+        }
     }
 
     handler(error::success, {});
