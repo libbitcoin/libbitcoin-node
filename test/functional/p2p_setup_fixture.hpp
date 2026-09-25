@@ -125,7 +125,7 @@ struct p2p_unassociated_setup_fixture
     inline p2p_unassociated_setup_fixture()
       : p2p_setup_fixture([](node::query& query)
         {
-            return query.set(unassociated(), database::context{}, false);
+            return query.set(unassociated(), database::context{}, {}, false);
         }, [](configuration& config)
         {
             config.network.enable_not_found = true;
