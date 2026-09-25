@@ -102,7 +102,8 @@ private:
         height_t candidate_height) NOEXCEPT;
     code push_header(const system::hash_digest& key) NOEXCEPT;
     code push_header(const system::chain::header& header,
-        const system::chain::context& ctx, bool milestone) NOEXCEPT;
+        const system::chain::context& ctx, const uint256_t& work,
+        bool milestone) NOEXCEPT;
     void cache(const system::chain::header::cptr& header,
         const chain_state::cptr& state) NOEXCEPT;
 

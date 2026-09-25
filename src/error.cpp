@@ -103,6 +103,7 @@ DEFINE_ERROR_T_MESSAGE_MAP(error)
     { confirm11, "confirm11" },
     { confirm12, "confirm12" },
     { transaction1, "transaction1" },
+    { transaction2, "transaction2" },
     { estimates_initialize, "estimates_initialize" },
     { estimates_push1, "estimates_push1" },
     { estimates_push2, "estimates_push2" },

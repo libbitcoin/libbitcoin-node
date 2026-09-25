@@ -341,7 +341,8 @@ void chaser_header::do_organize(const header::cptr& header_ptr,
     }
 
     // Push new header as top of candidate chain.
-    if (const auto ec = push_header(header, state->context(), milestone))
+    if (const auto ec = push_header(header, state->context(),
+        state->cumulative_work(), milestone))
     {
         handler(fault(ec), height);
         return;
@@ -627,11 +628,11 @@ bool chaser_header::set_organized(const header_link& link,
 // Milestone is archived in the header and like checkpoint cannot change.
 // But unlike checkpointed, milestoned blocks may not be strong chain.
 code chaser_header::push_header(const header& header, const context& ctx,
-    bool milestone) NOEXCEPT
+    const uint256_t& work, bool milestone) NOEXCEPT
 {
     auto& query = archive();
     header_link link{};
-    const auto ec = query.set_code(link, header, ctx, milestone, false);
+    const auto ec = query.set_code(link, header, ctx, work, milestone, false);
     if (ec)
         return ec;
 
@@ -648,7 +649,8 @@ code chaser_header::push_header(const hash_digest& key) NOEXCEPT
 
     const auto& header_ptr = handle.mapped();
     const auto& state = header_ptr->get_state();
-    return push_header(*header_ptr, state->context(), false);
+    return push_header(*header_ptr, state->context(),
+        state->cumulative_work(), false);
 }
 
 void chaser_header::cache(const header::cptr& header,

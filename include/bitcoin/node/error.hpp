@@ -113,6 +113,7 @@ enum error_t : uint8_t
     confirm11,
     confirm12,
     transaction1,
+    transaction2,
     estimates_initialize,
     estimates_push1,
     estimates_push2,
