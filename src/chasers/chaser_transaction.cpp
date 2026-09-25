@@ -201,7 +201,7 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
     // Satoshis per virtual kilobyte, as configured and as advertised (bip133).
     constexpr uint64_t thousand = 1'000;
     const auto rate = ceilinged_multiply<uint64_t>(tx.fee(), thousand);
-    return possible_narrow_cast<size_t>(system::floored_divide(rate, size));
+    return limit<size_t>(system::floored_divide(rate, size));
 }
 
 // validation
