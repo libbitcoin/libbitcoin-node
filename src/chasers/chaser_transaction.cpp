@@ -31,8 +31,6 @@ using namespace system;
 using namespace system::chain;
 using namespace std::placeholders;
 
-constexpr uint64_t vbytes_per_vkbyte = 1'000;
-
 BC_PUSH_WARNING(NO_THROW_IN_NOEXCEPT)
 BC_PUSH_WARNING(NO_VALUE_OR_CONST_REF_SHARED_PTR)
 
@@ -192,7 +190,6 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 // utility
 // ----------------------------------------------------------------------------
 
-// Satoshis per virtual kilobyte, as configured and as advertised (bip133).
 // The fee and size are recomputed here, as they are for the package rate and
 // for block fees, so the rate could instead be cached on the transaction.
 size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
@@ -201,9 +198,10 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
     if (is_zero(size))
         return zero;
 
-    return possible_narrow_cast<size_t>(system::floored_divide(
-        ceilinged_multiply(tx.fee(), vbytes_per_vkbyte),
-        possible_wide_cast<uint64_t>(size)));
+    // Satoshis per virtual kilobyte, as configured and as advertised (bip133).
+    constexpr uint64_t thousand = 1'000;
+    const auto rate = ceilinged_multiply<uint64_t>(tx.fee(), thousand);
+    return possible_narrow_cast<size_t>(system::floored_divide(rate, size));
 }
 
 // validation
@@ -239,8 +237,9 @@ code chaser_transaction::validate(size_t& index,
     }
 
     // Compared in satoshis per virtual kilobyte, so exact and undivided.
-    if (ceilinged_multiply(fee, vbytes_per_vkbyte) <
-        ceilinged_multiply(node_settings().minimum_fee_rate_(), size))
+    constexpr uint64_t thousand = 1'000;
+    const auto rate = node_settings().minimum_fee_rate_();
+    if (ceilinged_multiply(fee, thousand) < ceilinged_multiply(rate, size))
         return error::insufficient_fee;
 
     return {};
