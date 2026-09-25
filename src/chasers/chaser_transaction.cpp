@@ -176,8 +176,8 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     for (index = zero; index < txs->size(); ++index)
     {
         const database::tx_link link{ fresh.at(index) };
-        if (!link.is_terminal() &&
-            !query.set_tx_state(link, *txs->at(index), pool_))
+        if (!link.is_terminal() && !query.set_pooled(link,
+            *txs->at(index), pool_))
         {
             handler(fault(error::transaction2), index);
             return;
