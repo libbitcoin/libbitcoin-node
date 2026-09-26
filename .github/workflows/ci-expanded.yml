@@ -543,7 +543,7 @@ jobs:
         working-directory: 'libbitcoin-node'
         run: |
           lcov --ignore-errors version,gcov,mismatch,mismatch --directory . --capture --output-file coverage.info
-          lcov --ignore-errors unused --remove coverage.info "${{ github.workspace }}/prefix/*" "${{ github.workspace }}/libbitcoin-node/examples/*" "${{ github.workspace }}/libbitcoin-node/test/*"  --output-file coverage.info
+          lcov --ignore-errors unused --extract coverage.info "${{ github.workspace }}/libbitcoin-node/include/*" "${{ github.workspace }}/libbitcoin-node/src/*" --output-file coverage.info
 
       - name: Coveralls.io upload
         if: ${{ matrix.coverage == 'lcov' }}
@@ -1118,7 +1118,7 @@ jobs:
         working-directory: 'libbitcoin-node'
         run: |
           lcov --ignore-errors version,gcov,mismatch,mismatch --directory . --capture --output-file coverage.info
-          lcov --ignore-errors unused --remove coverage.info "${{ github.workspace }}/prefix/*" "${{ github.workspace }}/libbitcoin-node/examples/*" "${{ github.workspace }}/libbitcoin-node/test/*"  --output-file coverage.info
+          lcov --ignore-errors unused --extract coverage.info "${{ github.workspace }}/libbitcoin-node/include/*" "${{ github.workspace }}/libbitcoin-node/src/*" --output-file coverage.info
 
       - name: Coveralls.io upload
         if: ${{ matrix.coverage == 'lcov' }}
@@ -1616,7 +1616,7 @@ jobs:
         working-directory: 'libbitcoin-node'
         run: |
           lcov --ignore-errors version,gcov,mismatch,mismatch --directory . --capture --output-file coverage.info
-          lcov --ignore-errors unused --remove coverage.info "${{ github.workspace }}/prefix/*" "${{ github.workspace }}/libbitcoin-node/examples/*" "${{ github.workspace }}/libbitcoin-node/test/*"  --output-file coverage.info
+          lcov --ignore-errors unused --extract coverage.info "${{ github.workspace }}/libbitcoin-node/include/*" "${{ github.workspace }}/libbitcoin-node/src/*" --output-file coverage.info
 
       - name: Coveralls.io upload
         if: ${{ matrix.coverage == 'lcov' }}
