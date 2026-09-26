@@ -97,8 +97,7 @@ bool protocol_header_out_70012::do_announce(header_t link) NOEXCEPT
     const auto hash = query.get_header_key(link);
     if (was_announced(hash))
     {
-        LOGP("Suppress " << encode_hash(hash) << " to ["
-            << opposite() << "].");
+        LOGV("Suppress " << encode_hash(hash) << " to [" << opposite() << "].");
         return true;
     }
 
