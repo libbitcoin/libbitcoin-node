@@ -152,7 +152,7 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
 
     auto& query = archive();
     database::tx_links fresh(txs->size(), database::tx_link::terminal);
-    for (index = {}; index < txs->size(); ++index)
+    for (index = zero; index < txs->size(); ++index)
     {
         bool pooled{};
         database::tx_link link{};
@@ -173,11 +173,11 @@ void chaser_transaction::do_submit(const transactions_cptr& txs, bool test,
     }
 
     // Package parents are resolved by hash, so the whole package precedes.
-    for (index = {}; index < txs->size(); ++index)
+    for (index = zero; index < txs->size(); ++index)
     {
         const database::tx_link link{ fresh.at(index) };
-        if (!link.is_terminal() &&
-            !query.set_tx_state(link, *txs->at(index), pool_))
+        if (!link.is_terminal() && !query.set_pooled(link,
+            *txs->at(index), pool_))
         {
             handler(fault(error::transaction2), index);
             return;
@@ -199,9 +199,8 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
         return zero;
 
     // Satoshis per virtual kilobyte, as configured and as advertised (bip133).
-    constexpr uint64_t thousand = 1'000;
-    const auto rate = ceilinged_multiply<uint64_t>(tx.fee(), thousand);
-    return limit<size_t>(system::floored_divide(rate, size));
+    const auto rate = ceilinged_multiply(tx.fee(), 1'000_u64);
+    return limit<size_t>(floored_divide(rate, size));
 }
 
 // validation
@@ -210,25 +209,21 @@ size_t chaser_transaction::to_rate(const chain::transaction& tx) NOEXCEPT
 code chaser_transaction::validate(size_t& index,
     const transaction_cptrs& txs) NOEXCEPT
 {
-    index = zero;
     if (txs.empty())
         return error::empty_package;
 
-    // Conflict within the package, as with a block, since it is accepted whole.
     if (block::is_internal_double_spend(txs, false))
         return system::error::block_internal_double_spend;
 
     if (const auto ec = block::populate(txs, pool_, false))
         return ec;
 
-    for (; index < txs.size(); ++index)
-        if (const auto ec = validate(*txs.at(index)))
+    for(const auto& tx: txs)
+        if (const auto ec = validate(*tx))
             return ec;
 
-    // The package is accepted as a whole, so the whole must pay the rate.
-    index = zero;
-    uint64_t fee{};
-    uint64_t size{};
+
+    uint64_t fee{}, size{};
     for (const auto& tx: txs)
     {
         fee = ceilinged_add(fee, tx->fee());
@@ -236,13 +231,10 @@ code chaser_transaction::validate(size_t& index,
             tx->virtual_size()));
     }
 
-    // Compared in satoshis per virtual kilobyte, so exact and undivided.
-    constexpr uint64_t thousand = 1'000;
+    // Compared in satoshis per virtual kilobyte.
     const auto rate = node_settings().minimum_fee_rate_();
-    if (ceilinged_multiply(fee, thousand) < ceilinged_multiply(rate, size))
-        return error::insufficient_fee;
-
-    return {};
+    return ceilinged_multiply(fee, 1'000_u64) < ceilinged_multiply(rate, size) ?
+        error::insufficient_fee : error::success;
 }
 
 code chaser_transaction::validate(const chain::transaction& tx) NOEXCEPT
