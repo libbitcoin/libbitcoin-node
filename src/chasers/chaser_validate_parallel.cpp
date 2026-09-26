@@ -26,6 +26,7 @@ namespace node {
 
 using namespace system;
 using namespace database;
+using namespace std::chrono;
 
 // Parallel execution path (concurrent by block).
 // ----------------------------------------------------------------------------
@@ -40,6 +41,7 @@ void chaser_validate::validate_block(const header_link& link,
     chain::context ctx{};
     bool batched{}, capturing{};
     auto& query = archive();
+    const auto start = network::logger::now();
 
     // TODO: implement allocator parameter resulting in full allocation to
     // shared_ptr<block>, to optimize deallocate (12% of milestone/filter).
@@ -63,6 +65,13 @@ void chaser_validate::validate_block(const header_link& link,
     {
         if (!query.set_block_unconfirmable(link))
             ec = error::validate5;
+    }
+
+    if (!ec && !bypass)
+    {
+        const auto elapsed = network::logger::now() - start;
+        fire(events::validate_usecs,
+            duration_cast<microseconds>(elapsed).count());
     }
 
     --validate_backlog_;
