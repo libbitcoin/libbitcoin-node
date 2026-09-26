@@ -69,7 +69,9 @@ protected:
         const system::chain::block& block, const header_link& link,
         const system::chain::context& ctx) NOEXCEPT;
     virtual code populate(bool bypass, const system::chain::block& block,
-        const system::chain::context& ctx) NOEXCEPT;
+        const header_link& link, const system::chain::context& ctx) NOEXCEPT;
+    virtual bool populate_metadata(const system::chain::block& block,
+        const header_link& link, const system::chain::context& ctx) NOEXCEPT;
     virtual void complete_block(const code& ec, const header_link& link,
         size_t height, bool bypass, bool batched=false,
         bool capturing=false) NOEXCEPT;

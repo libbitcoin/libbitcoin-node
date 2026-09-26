@@ -65,6 +65,7 @@ enum events : uint8_t
     ecdsa_secs,          // ecdsa batch verify timespan in seconds.
     schnorr_secs,        // schnorr batch verify timespan in seconds.
     silent_secs,         // silent payment scan timespan in seconds.
+    validate_usecs,      // block validation timespan in microseconds.
 
     unknown
 };
